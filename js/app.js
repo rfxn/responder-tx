@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.55.0';
+const APP_VERSION = 'v0.56.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1439,6 +1439,44 @@ function applyShareParams(q) {
   apply('#flt-alert-q', 'aq', 'input');
 }
 
+// persist the user's view (feed + alert filters, sort, aged toggle, active tab) across
+// hard refreshes and app updates. URL share-params still win for their load (applied after).
+const VIEW_KEY = 'respondertx.view';
+function saveViewState() {
+  try {
+    const active = document.querySelector('.tabs button.active');
+    localStorage.setItem(VIEW_KEY, JSON.stringify({
+      ft: state.filters.type || '', fc: state.filters.county || '', fq: state.filters.q || '',
+      fw: state.filters.window || '', fd: state.filters.dist || '', fs: state.sort,
+      aged: state.showAged ? 1 : 0,
+      as: $('#flt-alert-sev').value, aq: $('#flt-alert-q').value,
+      tab: active ? active.dataset.tab : 'tab-requests',
+    }));
+  } catch { /* private-mode / quota — view persistence is best-effort */ }
+}
+function restoreViewState() {
+  let v; try { v = JSON.parse(localStorage.getItem(VIEW_KEY) || 'null'); } catch { v = null; }
+  if (!v) return;
+  state.filters.type = v.ft || ''; $('#flt-type').value = v.ft || '';
+  state.filters.window = v.fw || ''; $('#flt-window').value = v.fw || '';
+  state.filters.dist = v.fd || ''; $('#flt-dist').value = v.fd || '';
+  state.filters.q = v.fq || ''; $('#flt-q').value = v.fq || '';
+  state.sort = v.fs || 'smart'; $('#flt-sort').value = state.sort;
+  state.showAged = !!v.aged;
+  if (v.fc) { // county options arrive with board data — park the value so the select shows it
+    const sel = $('#flt-county');
+    if (![...sel.options].some((o) => o.value === v.fc)) sel.add(new Option(v.fc, v.fc));
+    sel.value = v.fc; state.filters.county = v.fc;
+  }
+  $('#flt-alert-sev').value = v.as || '';
+  $('#flt-alert-q').value = v.aq || '';
+  if (v.ft || v.fc || v.fq || v.fw || v.fd || (v.fs && v.fs !== 'smart') || v.aged) $('#req-filters').hidden = false;
+  if (v.tab && v.tab !== 'tab-requests') {
+    const btn = document.querySelector(`.tabs button[data-tab="${v.tab}"]`);
+    if (btn) btn.click();
+  }
+}
+
 function exportAAR() {
   const reqs = allRequests(true).sort((a, b) => new Date(a.ts) - new Date(b.ts));
   const count = (fn) => reqs.reduce((m, r) => { const k = fn(r); m[k] = (m[k] || 0) + 1; return m; }, {});
@@ -1891,6 +1929,7 @@ async function boot() {
   document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
     document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
     document.querySelectorAll('.tab-body').forEach((t) => t.classList.toggle('active', t.id === b.dataset.tab));
+    if (state.viewReady) saveViewState(); // skip during boot restore/URL apply — only real user taps
   }));
   // header tiles mirror the threat-strip act() targets — passive numbers are dead UI
   const goTab = (tab) => document.querySelector(`.tabs button[data-tab="${tab}"]`).click();
@@ -1959,18 +1998,21 @@ async function boot() {
     state.filters.type = $('#flt-type').value;
     state.filters.county = $('#flt-county').value;
     renderRequests();
+    saveViewState();
   }));
   $('#flt-q').addEventListener('input', () => {
     state.filters.q = $('#flt-q').value;
     renderRequests();
     flyToRadioId(state.filters.q);
+    saveViewState();
   });
-  $('#flt-sort').addEventListener('change', () => { state.sort = $('#flt-sort').value; renderRequests(); });
-  $('#flt-alert-sev').addEventListener('change', renderAlertList);
-  $('#flt-alert-q').addEventListener('input', renderAlertList);
+  $('#flt-sort').addEventListener('change', () => { state.sort = $('#flt-sort').value; renderRequests(); saveViewState(); });
+  $('#flt-alert-sev').addEventListener('change', () => { renderAlertList(); saveViewState(); });
+  $('#flt-alert-q').addEventListener('input', () => { renderAlertList(); saveViewState(); });
   $('#flt-window').addEventListener('change', () => {
     state.filters.window = $('#flt-window').value;
     renderRequests();
+    saveViewState();
     fetchLsrs().catch(() => { /* transient — next poll retries */ });
   });
   $('#flt-dist').addEventListener('change', () => {
@@ -1980,9 +2022,10 @@ async function boot() {
       state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
     }
     renderRequests();
+    saveViewState();
   });
 
-  $('#flt-aged').addEventListener('click', () => { state.showAged = !state.showAged; renderRequests(); });
+  $('#flt-aged').addEventListener('click', () => { state.showAged = !state.showAged; renderRequests(); saveViewState(); });
   $('#req-filters').hidden = localStorage.getItem('respondertx.filtersOpen') !== '1';
   $('#find-id').addEventListener('click', () => {
     $('#req-filters').hidden = false;
@@ -2033,6 +2076,8 @@ async function boot() {
       document.body.appendChild(s);
     } else markMirror();
   }).catch(markMirror);
+  restoreViewState(); // saved view first, so any URL param below overrides it for this load
+
   const rainParam = new URLSearchParams(location.search).get('rain');
   if (rainParam === '1h') state.layers.mrms1h.addTo(state.map);
   else if (rainParam === '24h') state.layers.mrms24h.addTo(state.map);
@@ -2042,7 +2087,8 @@ async function boot() {
     const btn = document.querySelector(`.tabs button[data-tab="tab-${tabParam}"]`);
     if (btn) btn.click();
   }
-  applyShareParams(new URLSearchParams(location.search));
+  applyShareParams(new URLSearchParams(location.search)); // URL share-params win for this load
+  state.viewReady = true;
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
   state.bootAt = Date.now();

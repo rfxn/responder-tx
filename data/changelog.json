@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.56.0",
+      "date": "2026-07-17",
+      "line": "Your view is now remembered: feed + alert filters, sort, aged toggle, and active tab persist across hard refreshes and app updates (shared-link URLs still win for their load)"
+    },
+    {
       "v": "v0.55.0",
       "date": "2026-07-17",
       "line": "Product vet pass: shared radio-ID links (?fq=R-031) now fly the map to the card on load; multi-digit ID typing no longer wobbles through intermediate matches; full UAT of every feature passed"

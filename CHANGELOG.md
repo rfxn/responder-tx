@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.56.0 — 2026-07-17 (owner request: persist view settings across refresh)
+- Your view now survives hard refreshes and app updates: feed filters (type/county/sort/time window/distance/search), the aged toggle, alert filters (severity/text), and the active tab are saved to the browser and restored on next load — no more re-setting filters after every deploy-triggered reload
+- Precedence preserved: a shared/deep-link URL (?tab=, ?ft=, ?theme=, etc.) still wins for that load; theme, basemap, and filters-panel open-state already persisted and continue to
 ## v0.55.0 — 2026-07-17 (product vet pass: radio-ID share-link + wobble fixes)
 - Fix (field bug): a shared/deep radio-ID link (?fq=R-031) now flies the map to the card and opens its popup on load — previously the fly-to fired before seeds loaded and left the map statewide; re-applied after the board data lands
 - Fix: typing a multi-digit radio ID no longer wobbles the map through intermediate matches (R-03 → R-003) — fly-to now requires the complete 3-character code

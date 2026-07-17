@@ -71,6 +71,8 @@ const state = {
   showAged: false,
   showAgedLsrs: false,
   showAlertHist: false,
+  showNormalGauges: false,
+  gaugeGroup: 'priority',
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };
@@ -516,6 +518,7 @@ async function fetchGauges() {
   markHealthy('gauges');
   recordTrends();
   renderGauges();
+  renderGaugesTab();
   renderForecastList();
   renderTiles();
 }
@@ -524,6 +527,8 @@ function gaugeCat(g) {
   const c = g.status.observed.floodCategory;
   return FLOOD_CATS.includes(c) ? c : 'none';
 }
+
+const riverOf = (name) => String(name || '').split(/ (?:at|near|below|above) /)[0];
 
 function gaugeForecastCat(g) {
   const c = g.status && g.status.forecast && g.status.forecast.floodCategory;
@@ -560,6 +565,7 @@ function gaugeTrend(lid) {
 
 function renderGauges() {
   state.layers.gauges.clearLayers();
+  state.gaugeMarkers = {};
   for (const g of state.gauges) {
     const cat = gaugeCat(g);
     const rising = gaugeRising(g);
@@ -579,6 +585,7 @@ function renderGauges() {
     const m = L.marker([g.latitude, g.longitude], { icon, zIndexOffset: cat === 'major' ? 1000 : rising ? 500 : 0 });
     m.bindPopup(() => gaugePopup(g), { minWidth: 290 });
     state.layers.gauges.addLayer(m);
+    state.gaugeMarkers[g.lid] = m;
   }
 }
 
@@ -828,6 +835,7 @@ function renderLsrs() {
     el.appendChild(btn);
     if (state.showAgedLsrs) for (const e of aged.slice(0, 40)) el.appendChild(lsrCardDiv(e, true));
   }
+  renderTicker();
 }
 
 function renderForecastList() {
@@ -849,6 +857,113 @@ function renderForecastList() {
       `<div class="summary">${esc(g.name)} — forecast crest ${f.primary} ${esc(f.primaryUnit)}</div>`;
     div.addEventListener('click', () => state.map.setView([g.latitude, g.longitude], 11));
     el.appendChild(div);
+  }
+}
+
+/* ---------- gauges tab — bucketed by actionability ---------- */
+
+function focusGauge(g) {
+  state.map.setView([g.latitude, g.longitude], 11);
+  const mk = state.gaugeMarkers && state.gaugeMarkers[g.lid];
+  if (mk) mk.openPopup();
+  // phone layout: the map is above the scrolled list — make the pan visible
+  if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+}
+
+function gaugeGlyphHtml(g) {
+  if (gaugeRising(g)) return `<span style="color:var(--cat-${gaugeForecastCat(g)})">▲</span>`;
+  const cat = gaugeCat(g);
+  if (cat === 'none') return '<span style="color:var(--cat-none)">○</span>';
+  if ((gaugeTrend(g.lid) || {}).dir === 'down') return '<span style="color:var(--good)">▼</span>';
+  return `<span style="color:var(--cat-${cat})">●</span>`;
+}
+
+function gaugeCardDiv(g) {
+  const cat = gaugeCat(g);
+  const o = g.status.observed;
+  const tr = gaugeTrend(g.lid);
+  const fCat = gaugeForecastCat(g);
+  const f = g.status.forecast;
+  const site = g.name.slice(riverOf(g.name).length).trim();
+  const div = document.createElement('div');
+  div.className = `card gauge-card${cat === 'none' && !gaugeRising(g) ? ' aged' : ''}`;
+  div.style.borderLeftColor = `var(--cat-${cat})`;
+  const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
+  div.innerHTML = `<div class="head">${gaugeGlyphHtml(g)}<span class="g-name">${esc(g.name)}</span>` +
+    `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
+    `<div class="meta">OBS ${o.primary} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
+    (fCat ? `<div class="meta">crest ${f.primary} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(fCat)}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
+    (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
+  div.addEventListener('click', (ev) => { if (ev.target.closest('a')) return; focusGauge(g); });
+  return div;
+}
+
+function renderGaugesTab() {
+  const el = $('#gauge-list');
+  if (!el) return;
+  const inFlood = state.gauges.filter((g) => gaugeCat(g) !== 'none');
+  const badge = $('#gauges-count');
+  badge.textContent = inFlood.length;
+  badge.classList.toggle('sev', inFlood.some((g) => gaugeCat(g) === 'major'));
+
+  // double-listing precedence: rising wins, then falling, then in-flood
+  const rising = state.gauges.filter(gaugeRising)
+    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
+  const risingLids = new Set(rising.map((g) => g.lid));
+  const inFloodOnly = inFlood.filter((g) => !risingLids.has(g.lid));
+  const falling = inFloodOnly.filter((g) => (gaugeTrend(g.lid) || {}).dir === 'down');
+  const fallingLids = new Set(falling.map((g) => g.lid));
+  const holding = inFloodOnly.filter((g) => !fallingLids.has(g.lid))
+    .sort((a, b) => CAT_RANK[gaugeCat(b)] - CAT_RANK[gaugeCat(a)] || b.status.observed.primary - a.status.observed.primary);
+  const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !risingLids.has(g.lid))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  el.innerHTML = '';
+  const bar = document.createElement('div');
+  bar.className = 'filters group-toggle';
+  for (const [key, label] of [['priority', 'By priority'], ['river', 'By river']]) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.classList.toggle('on', state.gaugeGroup === key);
+    b.addEventListener('click', () => { state.gaugeGroup = key; renderGaugesTab(); });
+    bar.appendChild(b);
+  }
+  el.appendChild(bar);
+
+  const section = (title, list) => {
+    const t = document.createElement('div');
+    t.className = 'section-title';
+    t.textContent = title;
+    el.appendChild(t);
+    for (const g of list) el.appendChild(gaugeCardDiv(g));
+  };
+  if (state.gaugeGroup === 'river') {
+    // NWPS gauge objects carry no county — group by river name derived from the site name
+    const groups = new Map();
+    for (const g of rising.concat(holding, falling)) {
+      const r = riverOf(g.name);
+      if (!groups.has(r)) groups.set(r, []);
+      groups.get(r).push(g);
+    }
+    for (const [river, list] of groups) section(`${river} (${list.length})`, list);
+  } else {
+    if (rising.length) section(`▲ Rising — pre-position ahead of these (${rising.length})`, rising);
+    if (holding.length) section(`● In flood now (${holding.length})`, holding);
+    if (falling.length) section(`▼ Falling — recovery (${falling.length})`, falling);
+  }
+  if (!rising.length && !holding.length && !falling.length) {
+    const none = document.createElement('div');
+    none.className = 'card';
+    none.textContent = state.gauges.length ? 'No monitored gauges in or forecast to flood.' : 'Gauge data not loaded yet.';
+    el.appendChild(none);
+  }
+  if (normal.length) {
+    const btn = document.createElement('button');
+    btn.className = 'aged-toggle';
+    btn.textContent = `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges normal`;
+    btn.addEventListener('click', () => { state.showNormalGauges = !state.showNormalGauges; renderGaugesTab(); });
+    el.appendChild(btn);
+    if (state.showNormalGauges) for (const g of normal) el.appendChild(gaugeCardDiv(g));
   }
 }
 
@@ -1158,7 +1273,7 @@ function buildSitrep() {
   }
   for (const g of toMajor) L.push(`  RISING ${g.name} — fcst crest ${g.status.forecast.primary} ft ${fmtWhen(g.status.forecast.validTime)}`);
   const falling = state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
-  if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => g.name.split(' at ')[0].split(' near ')[0]).slice(0, 6).join('; ')})`);
+  if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')})`);
   if (cutoffs.length) L.push(`CUT-OFF AREAS: ${cutoffs.map((r) => `${r.place} (${r.county} Co.)`).join('; ')}`);
   L.push(`ACTIVE CRITICAL (${crit.length}):`);
   for (const r of crit.slice(0, 10)) {
@@ -1293,7 +1408,7 @@ function renderThreatStrip() {
   if (soonest) {
     const b = document.createElement('button');
     b.className = 'threat-chip major';
-    const river = soonest.name.split(' at ')[0].split(' near ')[0].split(' below ')[0];
+    const river = riverOf(soonest.name);
     b.innerHTML = `⏱ next crest <strong>${esc(fmtWhen(soonest.status.forecast.validTime).split(' · ')[0])}</strong> ${esc(river.slice(0, 18))}`;
     b.addEventListener('click', () => state.map.setView([soonest.latitude, soonest.longitude], 11));
     el.appendChild(b);
@@ -1311,10 +1426,74 @@ function renderThreatStrip() {
   }
 }
 
+/* ---------- actionable ticker — recency-biased glance line ---------- */
+
+const relWhen = (iso) => fmtWhen(iso).split(' · ')[0];
+
+// aging invariant: only active alerts, rising/in-flood gauges, fresh LSRs, and non-aged critical notices qualify
+function tickerItems() {
+  const emerg = [], rise = [], majors = [];
+  const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
+  for (const a of state.alerts.filter((x) => x._sev === 'emergency' && new Date(x.properties.expires) > new Date())) {
+    const where = (a.properties.areaDesc || '?').split(';')[0].replace(/, TX$/, '');
+    const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
+    emerg.push({ text: `⚠ FF EMERGENCY ${where} — until ${until}`, color: 'var(--sev-emergency)', act: goAlerts });
+  }
+  const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
+    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
+  for (const g of rising) {
+    const fCat = gaugeForecastCat(g);
+    rise.push({ text: `▲ ${riverOf(g.name)} → ${fCat.toUpperCase()} crest ${relWhen(g.status.forecast.validTime)}`, color: `var(--cat-${fCat})`, act: () => focusGauge(g) });
+  }
+  for (const g of state.gauges.filter((x) => gaugeCat(x) === 'major' && !gaugeRising(x))) {
+    const tr = gaugeTrend(g.lid);
+    const trendBit = tr ? ` ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
+    majors.push({ text: `● ${riverOf(g.name)} MAJOR ${g.status.observed.primary} ft${trendBit}`, color: 'var(--cat-major)', act: () => focusGauge(g) });
+  }
+  const tail = [];
+  const freshLsrs = state.lsrs.filter((f) => ageMins(f.properties.valid) <= lsrFreshCutoffMins()).slice(0, 2);
+  for (const f of freshLsrs) {
+    const p = f.properties;
+    const [lon, lat] = f.geometry.coordinates;
+    tail.push({ text: `💧 ${p.typetext} ${p.city} · ${relWhen(p.valid)}`, act: () => state.map.setView([lat, lon], 12) });
+  }
+  const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical')
+    .sort((a, b) => new Date(b.ts) - new Date(a.ts))[0];
+  if (crit) {
+    const head = crit.summary.length > 60 ? `${crit.summary.slice(0, 59)}…` : crit.summary;
+    tail.push({
+      text: `${TYPE_GLYPH[crit.type] || '📍'} ${head} · ${relWhen(crit.ts)}`,
+      color: 'var(--sev-emergency)',
+      act: () => {
+        document.querySelector('.tabs button[data-tab="tab-requests"]').click();
+        if (Number.isFinite(crit.lat)) state.map.setView([crit.lat, crit.lon], 12);
+      },
+    });
+  }
+  // ~12-item budget: emergencies, majors, and the ground-truth tail keep their slots; the rising block absorbs the trim
+  const riseSlots = Math.max(0, 12 - tail.length - emerg.length - majors.length);
+  return emerg.concat(rise.slice(0, riseSlots), majors, tail);
+}
+
+function renderTicker() {
+  const el = $('#ticker');
+  if (!el) return;
+  const items = tickerItems();
+  state.tickerActs = items.map((i) => i.act);
+  if (!items.length) { el.hidden = true; state.tickerHash = ''; return; }
+  el.hidden = false;
+  const half = items.map((i, n) =>
+    `<span class="ticker-item" data-ti="${n}"${i.color ? ` style="color:${i.color}"` : ''}>${esc(i.text)}</span><span class="ticker-sep">·</span>`).join('');
+  if (half === state.tickerHash) return; // unchanged — don't restart the scroll animation
+  state.tickerHash = half;
+  $('#ticker-track').innerHTML = `<span class="ticker-half">${half}</span><span class="ticker-half">${half}</span>`;
+}
+
 /* ---------- tiles / header ---------- */
 
 function renderTiles() {
   renderThreatStrip();
+  renderTicker();
   const emergencies = state.alerts.filter((a) => a._sev === 'emergency').length;
   const warnings = state.alerts.filter((a) => a._sev === 'warning').length;
   const inFlood = state.gauges.filter((g) => FLOOD_CATS.includes(gaugeCat(g)));
@@ -1368,7 +1547,7 @@ function hydrateFromCache() {
   let c;
   try { c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { c = null; }
   if (!c) return false;
-  if (!state.gauges.length && c.gauges) { state.gauges = c.gauges; renderGauges(); }
+  if (!state.gauges.length && c.gauges) { state.gauges = c.gauges; renderGauges(); renderGaugesTab(); }
   if (!state.alerts.length && c.alertsSlim) { state.alerts = c.alertsSlim; renderAlertList(); }
   renderTiles();
   $('#refresh-note').textContent = `offline — cached as of ${fmtWhen(new Date(c.ts).toISOString())}`;
@@ -1388,6 +1567,7 @@ async function hydrateGaugesSnapshot() {
     state.snapshotAt = new Date(d.generated).getTime();
     recordTrends();
     renderGauges();
+    renderGaugesTab();
     renderForecastList();
     renderTiles();
     $('#refresh-note').textContent = `gauges from snapshot · ${fmtWhen(d.generated)}`;
@@ -1537,6 +1717,13 @@ async function boot() {
   $('#export-geo-btn').addEventListener('click', exportGeoJSON);
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
+  // ticker halves are duplicated markup — delegate clicks by item index instead of per-node listeners
+  $('#ticker').addEventListener('click', (e) => {
+    const it = e.target.closest('.ticker-item');
+    if (!it || !state.tickerActs) return;
+    const act = state.tickerActs[+it.dataset.ti];
+    if (act) act();
+  });
   $('#banner-dismiss').addEventListener('click', dismissEmergencyBanner);
   $('#banner-text').addEventListener('click', () => {
     dismissEmergencyBanner();

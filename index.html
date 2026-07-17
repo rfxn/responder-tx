@@ -32,6 +32,7 @@
     </div>
   </header>
 
+  <div id="ticker" hidden><div class="ticker-track" id="ticker-track"></div></div>
   <div id="emergency-banner" hidden>
     <span id="banner-text"></span>
     <button id="banner-dismiss" title="Dismiss">✕</button>
@@ -43,6 +44,7 @@
       <div class="tabs">
         <button class="active" data-tab="tab-requests">Feed <span class="count" id="requests-count">0</span></button>
         <button data-tab="tab-alerts">Alerts <span class="count" id="alerts-count">0</span></button>
+        <button data-tab="tab-gauges">Gauges <span class="count" id="gauges-count">0</span></button>
         <button data-tab="tab-monitor">Social</button>
         <button data-tab="tab-resources">Resources</button>
       </div>
@@ -153,6 +155,7 @@
         <div id="forecast-list"></div>
         <div id="lsr-list"></div>
       </div>
+      <div class="tab-body" id="tab-gauges"><div id="gauge-list"></div></div>
       <div class="tab-body" id="tab-monitor"><div id="monitor-body"></div></div>
       <div class="tab-body" id="tab-resources"><div id="source-health"></div><div id="resources-body"></div></div>
 

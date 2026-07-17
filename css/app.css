@@ -94,6 +94,18 @@ button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: #fff; border-color: transparent; }
 .refresh-meta { font-size: 11px; color: var(--ink-muted); min-width: 110px; text-align: right; }
 
+/* actionable ticker — recency-biased glance line; duplicated halves loop seamlessly */
+#ticker { overflow: hidden; background: var(--surface-2); border-bottom: 1px solid var(--hairline); }
+#ticker[hidden] { display: none; }
+.ticker-track { display: inline-flex; white-space: nowrap; animation: tickerScroll 40s linear infinite; will-change: transform; }
+#ticker:hover .ticker-track, #ticker:active .ticker-track { animation-play-state: paused; }
+.ticker-half { display: inline-flex; align-items: center; min-width: 100%; }
+.ticker-item { font-size: 12.5px; font-weight: 600; padding: 5px 0; cursor: pointer; flex: 0 0 auto; color: var(--ink-2); }
+.ticker-item:hover { text-decoration: underline; }
+.ticker-sep { color: var(--ink-muted); padding: 0 14px; flex: 0 0 auto; }
+@keyframes tickerScroll { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } }
+
 #emergency-banner {
   position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
   z-index: 1200; max-width: min(92vw, 720px);
@@ -315,7 +327,7 @@ main { flex: 1; display: flex; min-height: 0; }
 .leaflet-popup-content { font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 10px 12px; }
 .popup-title { font-weight: 650; margin-bottom: 2px; }
 .popup-meta { color: var(--ink-2); font-size: 12px; }
-.popup-meta .cat-word { font-weight: 700; text-transform: uppercase; }
+.cat-word { font-weight: 700; text-transform: uppercase; }
 .popup-link a { color: var(--accent); text-decoration: none; font-size: 12px; }
 .popup-spark { margin-top: 6px; }
 .popup-spark .spark-note { font-size: 10.5px; color: var(--ink-muted); }
@@ -498,6 +510,11 @@ main { flex: 1; display: flex; min-height: 0; }
   .map-legend:not(.open) > *:not(:first-child) { display: none; }
   .map-legend:not(.open) > .lg-title:first-child::after { content: ' ▸'; color: var(--accent); }
 }
+
+/* gauges tab — bucketed by actionability */
+.group-toggle button { font-size: 12px; padding: 4px 10px; }
+.group-toggle button.on { border-color: var(--accent); color: var(--accent); }
+.gauge-card .g-name { font-weight: 650; font-size: 13px; min-width: 0; }
 
 /* RFC forecast-max crests (hollow rings) + USGS raw-stage dots */
 .fcst-ring {

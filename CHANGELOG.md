@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.38.0 — 2026-07-17 (10:43 cycle: USGS auto-fallback)
+- When the live NWPS gauge feed is stale >15 min and USGS sites are loaded, the clustered USGS raw-stage layer auto-enables and the staleness bar notes "USGS raw-stage fallback ON (no flood categories)"; auto-stands-down on NWPS recovery without fighting a manual toggle
+- Snapshot refreshed (220 gauges, 21 in flood, 1 major); both FF emergencies steady (Sutton 1:15 PM, Crockett 11:45 AM); healthy-path renders verified at both widths
 ## v0.37.0 — 2026-07-17 (10:35 cycle: snapshot resilience + readable maps)
 - Gauge snapshot fallback: every ops cycle publishes data/gauges-snapshot.json (≤15 min old); fresh public visitors hydrate from it when NWPS rate-limits, with an honest amber/red "GAUGES FROM SNAPSHOT N MIN OLD" bar — proven live during this cycle's NWPS 429 window
 - Place-label boost (agent-built, merged): CARTO label overlay in a dedicated pane ABOVE radar/alert washes with dark-mode brightness filter — city/county names now readable over heavy echoes (screenshot-proven on the storm core); theme-aware, toggleable

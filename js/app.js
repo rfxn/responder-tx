@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.37.0';
+const APP_VERSION = 'v0.38.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1423,6 +1423,20 @@ function tickCountdown() {
   renderDataAgeBar();
 }
 
+// when the live gauge feed dies, surface the fallback the board already holds — and stand it down on recovery
+function autoUsgsFallback(on) {
+  const lyr = state.layers.usgs;
+  if (!lyr) return false;
+  if (on && (state.usgsSites || []).length && !state.map.hasLayer(lyr)) {
+    lyr.addTo(state.map);
+    state.usgsAutoOn = true;
+  } else if (!on && state.usgsAutoOn) {
+    if (state.map.hasLayer(lyr)) state.map.removeLayer(lyr);
+    state.usgsAutoOn = false;
+  }
+  return state.usgsAutoOn && state.map.hasLayer(lyr);
+}
+
 // stale data must never masquerade as live — full-width bar, not a muted corner note
 function renderDataAgeBar() {
   const el = $('#data-age-bar');
@@ -1430,19 +1444,22 @@ function renderDataAgeBar() {
   const worst = ['gauges', 'alerts']
     .map((k) => ({ k, age: state.sourceHealth[k] ? (Date.now() - state.sourceHealth[k]) / 60000 : Infinity }))
     .sort((a, b) => b.age - a.age)[0];
+  const gaugesAge = state.sourceHealth.gauges ? (Date.now() - state.sourceHealth.gauges) / 60000 : Infinity;
+  const usgsOn = autoUsgsFallback(gaugesAge > 15);
   if (worst.age < 7.5) { el.hidden = true; return; }
   el.hidden = false;
   el.className = worst.age > 15 ? 'red' : 'amber';
   const label = worst.k === 'gauges' ? 'GAUGE' : 'ALERT';
+  const usgsNote = usgsOn ? ' · USGS raw-stage fallback ON (no flood categories)' : '';
   if (worst.k === 'gauges' && state.snapshotAt) {
     const snapAge = Math.round((Date.now() - state.snapshotAt) / 60000);
     el.className = snapAge > 30 ? 'red' : 'amber';
-    el.textContent = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD — live NWPS feed failing`;
+    el.textContent = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD — live NWPS feed failing${usgsNote}`;
     return;
   }
-  el.textContent = worst.age === Infinity
+  el.textContent = (worst.age === Infinity
     ? `⚠ ${label} DATA NEVER LOADED — numbers on this board exclude it`
-    : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD — refresh failing; treat as stale`;
+    : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD — refresh failing; treat as stale`) + (worst.k === 'gauges' ? usgsNote : '');
 }
 
 /* ---------- in-app changelog ---------- */

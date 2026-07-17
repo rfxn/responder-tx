@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.38.0",
+      "date": "2026-07-17",
+      "line": "USGS raw-stage layer auto-enables when the NWPS feed dies (and stands down on recovery) \u2014 the fallback the board held is now automatic; snapshot refreshed"
+    },
+    {
       "v": "v0.37.0",
       "date": "2026-07-17",
       "line": "Gauge snapshot fallback (public survives NWPS outages, honest snapshot-age bar); place labels now readable OVER radar (boost pane); OSM Streets base layer (?base=osm)"

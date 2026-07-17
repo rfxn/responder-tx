@@ -61,8 +61,8 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
    do before fan-out widens. **[infra]** (one agent, exclusive app.js lock).
 4. **UX-audit remainder** — #10 GPS-wait chip SHIPPED v0.51.0 (pulsing map
    chip + locate-button state + 20s timeout); #14 threat-strip chip cap
-   OBSOLETE (v0.44 rework replaced the chip model). Remaining: #11
-   light-theme sunlight contrast. Cost S. **[ux]**.
+   OBSOLETE (v0.44 rework replaced the chip model). #11 light-theme
+   sunlight contrast SHIPPED v0.52.0 — batch complete.
 5. ~~**#9 Dead-tap alert cards**~~ — DONE (verified in code 7/17 12:15: geometry
    → zoneGeomCache → window.open fallback in renderAlertList; never a dead tap).
 6. **RFC forecast-max layer** — every gauge's 5-day max category statewide,

@@ -1,5 +1,7 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.52.0 — 2026-07-17 (13:08 cycle: light-theme sunlight contrast)
+- Light theme retuned for direct-sunlight readability (the field case for light mode): darker secondary ink and muted text, stronger hairlines/borders, and dedicated light-mode severity/category colors — the dark theme's pale amber (watch/action), orange (warning/minor), and gray tokens washed out on white; category dots, sev text, threat rows, and the ticker now hold contrast outdoors
 ## v0.51.0 — 2026-07-17 (12:53 cycle: GPS-wait feedback)
 - Tapping ⌖ (or enabling a distance filter) now shows a pulsing "acquiring GPS fix…" chip on the map and lights the locate button until the fix lands or fails — no more dead air during the 5-30s GPS wait; locates now carry a 20s timeout so failures actually report instead of hanging silently
 ## v0.50.0 — 2026-07-17 (12:38 cycle: MRMS rainfall legend)

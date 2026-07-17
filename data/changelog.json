@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.52.0",
+      "date": "2026-07-17",
+      "line": "Light theme retuned for sunlight: darker inks, stronger hairlines, and light-mode severity colors — ambers/oranges/grays no longer wash out on white"
+    },
+    {
       "v": "v0.51.0",
       "date": "2026-07-17",
       "line": "GPS feedback: locate taps and distance filters show a pulsing 'acquiring GPS fix…' chip until the fix lands or times out (20s) — no more silent waiting"

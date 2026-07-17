@@ -1,0 +1,5 @@
+HANDOFF.md
+data/chat-inbox.jsonl
+data/.chat-cursor
+nohup.out
+*.log

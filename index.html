@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responder TX — Hill Country Flood Ops Board</title>
+  <meta name="theme-color" content="#1a1a19">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Responder TX — Flood Ops Board</h1>
+      <div class="sub"><span class="live-dot"></span>Texas Hill Country event · live NWS / NOAA / USGS data · community assistance feed</div>
+    </div>
+    <div class="tiles">
+      <div class="tile alert-tile" id="tile-emergency"><div class="label">Flash flood emergencies</div><div class="value">–</div></div>
+      <div class="tile" id="tile-warnings"><div class="label">Flood warnings (TX)</div><div class="value">–</div></div>
+      <div class="tile" id="tile-gauges"><div class="label">Gauges in flood</div><div class="value">–</div></div>
+      <div class="tile" id="tile-open"><div class="label">Open requests</div><div class="value">–</div></div>
+    </div>
+    <div class="controls">
+      <button id="refresh-now" title="Refresh live layers">⟳ Refresh</button>
+      <button id="theme-toggle">☀️ Light</button>
+      <div class="refresh-meta"><div id="refresh-note">loading…</div><div id="refresh-count"></div></div>
+    </div>
+  </header>
+
+  <div id="emergency-banner" hidden>
+    <span id="banner-text"></span>
+    <button id="banner-dismiss" title="Dismiss">✕</button>
+  </div>
+  <main>
+    <div id="sidebar">
+      <div id="data-age-bar" hidden></div>
+      <div id="threat-strip"></div>
+      <div class="tabs">
+        <button class="active" data-tab="tab-requests">Requests <span class="count" id="requests-count">0</span></button>
+        <button data-tab="tab-alerts">Alerts <span class="count" id="alerts-count">0</span></button>
+        <button data-tab="tab-monitor">Social</button>
+        <button data-tab="tab-resources">Resources</button>
+      </div>
+
+      <div class="tab-body active" id="tab-requests">
+        <div class="feed-actions">
+          <button class="primary" id="toggle-form">＋ New request</button>
+          <button id="sitrep-btn" title="Copy a plain-text situation report for radio/SMS/email handoff">📋 SITREP</button>
+          <button id="filters-toggle" title="Show/hide filters and sort">☰ Filters</button>
+          <button id="more-toggle" title="Export, import, archive">⋯ More</button>
+        </div>
+        <div class="feed-actions" id="more-menu" hidden>
+          <button id="export-btn">Export JSON</button>
+          <button id="export-geo-btn" title="GeoJSON for CalTopo / SARTopo">Export GeoJSON</button>
+          <button id="aar-btn" title="Markdown after-action export: stats, chronological card log, situation snapshot">Export AAR</button>
+          <button id="archive-btn" title="Move resolved cards out of the feed/map (kept in exports)">Archive resolved</button>
+          <label for="import-file" style="display:inline-block"><span class="badge" style="cursor:pointer;padding:5px 10px;font-size:12px">Import JSON</span></label>
+          <input type="file" id="import-file" accept="application/json" style="display:none">
+        </div>
+
+        <form id="new-request-form">
+          <div class="hint">Triage a social post or field report into the board. Click the map to set the location pin.</div>
+          <div class="row">
+            <select id="f-type">
+              <option value="rescue">🆘 Rescue</option><option value="evacuation">🏃 Evacuation</option>
+              <option value="medical">⚕️ Medical</option><option value="supplies">📦 Supplies</option>
+              <option value="shelter">🏠 Shelter</option><option value="animal">🐾 Animal</option>
+              <option value="wellness">💬 Wellness check</option><option value="volunteer">🤝 Volunteer offer</option>
+              <option value="equipment">🛠️ Equipment</option><option value="road">🚧 Road blocked</option>
+              <option value="cutoff">⛔ Cut-off area</option><option value="info">ℹ️ Info</option>
+            </select>
+            <select id="f-priority">
+              <option value="critical">Critical</option><option value="high" selected>High</option>
+              <option value="medium">Medium</option><option value="low">Low</option>
+            </select>
+            <select id="f-status">
+              <option value="unverified" selected>Unverified</option><option value="open">Open (verified)</option>
+            </select>
+          </div>
+          <div class="row">
+            <input id="f-place" placeholder="Place / address *" required>
+            <input id="f-county" placeholder="County">
+          </div>
+          <div class="row">
+            <button type="button" id="f-geocode" title="Look up the place name">🔎 Find on map</button>
+            <input id="f-latlon" placeholder="Click map or 🔎 for lat, lon" readonly>
+          </div>
+          <div class="row"><input id="f-summary" placeholder="One-line summary *" required></div>
+          <textarea id="f-details" placeholder="Details — who/what/where, water conditions, access notes"></textarea>
+          <div class="row">
+            <select id="f-source">
+              <option value="x">X</option><option value="facebook">Facebook</option>
+              <option value="nextdoor">Nextdoor</option><option value="news">News</option>
+              <option value="official">Official</option><option value="field" selected>Field report</option>
+            </select>
+            <input id="f-handle" placeholder="Source handle / group">
+            <input id="f-url" placeholder="Source URL (post link)">
+          </div>
+          <div class="row">
+            <input id="f-contact" placeholder="Callback contact (phone)">
+            <input id="f-radius" type="number" step="0.5" min="0" placeholder="Cut-off radius (mi)">
+            <button type="submit" class="primary">Add to board</button>
+          </div>
+        </form>
+
+        <div class="filters" id="req-filters" hidden>
+          <select id="flt-type">
+            <option value="">All types</option>
+            <option value="rescue">Rescue</option><option value="evacuation">Evacuation</option>
+            <option value="medical">Medical</option><option value="supplies">Supplies</option>
+            <option value="shelter">Shelter</option><option value="animal">Animal</option>
+            <option value="wellness">Wellness</option><option value="volunteer">Volunteer</option>
+            <option value="equipment">Equipment</option><option value="road">Road blocked</option>
+            <option value="cutoff">Cut-off area</option><option value="info">Info</option>
+          </select>
+          <select id="flt-status">
+            <option value="">All statuses</option>
+            <option value="unverified">Unverified</option><option value="open">Open</option>
+            <option value="in-progress">In progress</option><option value="resolved">Resolved</option>
+          </select>
+          <select id="flt-county"><option value="">All counties</option></select>
+          <select id="flt-sort" title="Sort order">
+            <option value="smart" selected>Sort: urgency × fresh</option>
+            <option value="newest">Sort: newest</option>
+            <option value="priority">Sort: priority</option>
+          </select>
+          <select id="flt-window" title="Time window">
+            <option value="">Any age</option>
+            <option value="60">Last 1h</option><option value="180">Last 3h</option>
+            <option value="360">Last 6h</option><option value="720">Last 12h</option>
+            <option value="1440">Last 24h</option>
+          </select>
+          <select id="flt-dist" title="Distance from my location">
+            <option value="">Any distance</option>
+            <option value="10">&lt; 10 mi of me</option>
+            <option value="25">&lt; 25 mi of me</option>
+            <option value="50">&lt; 50 mi of me</option>
+          </select>
+          <button id="flt-aged" title="Cards idle >24h auto-suppress off the board — toggle to view them" style="display:none">aged 0</button>
+          <input type="search" id="flt-q" placeholder="Search…">
+        </div>
+        <div id="request-list"></div>
+      </div>
+
+      <div class="tab-body" id="tab-alerts">
+        <div class="filters" id="alert-filters">
+          <select id="flt-alert-sev">
+            <option value="">All severities</option>
+            <option value="emergency">Emergency</option>
+            <option value="warning">Warning</option>
+            <option value="watch">Watch</option>
+            <option value="advisory">Advisory</option>
+          </select>
+          <input type="search" id="flt-alert-q" placeholder="Filter alerts (county, river)…">
+        </div>
+        <div id="alert-list"></div>
+        <div id="forecast-list"></div>
+        <div id="lsr-list"></div>
+      </div>
+      <div class="tab-body" id="tab-monitor"><div id="monitor-body"></div></div>
+      <div class="tab-body" id="tab-resources"><div id="source-health"></div><div id="resources-body"></div></div>
+
+      <div class="disclaimer" id="disclaimer">
+        <span class="disc-short"><strong>⚠ Life-threatening emergency → call 911.</strong> Not a dispatch system · tap for full notice</span>
+        <span class="disc-full"><strong>Life-threatening emergency → call 911.</strong> This board coordinates volunteer monitoring and situational awareness;
+        it is not a dispatch system and is not monitored by emergency services. Verify before acting. Do not self-deploy into warned areas.</span>
+        <span id="app-version" style="float:right" title="Tap for what's new" role="button"></span>
+      </div>
+    </div>
+    <div id="map"></div>
+  </main>
+
+  <button id="chat-fab" title="Ops chat — message the Claude session running this board">💬<span id="chat-unread" hidden>0</span></button>
+  <div id="chat-panel" hidden>
+    <div class="chat-head">
+      <div><strong>Ops session chat</strong><div class="chat-sub">feeds the live Claude session · replies &amp; recent actions land here</div></div>
+      <button id="chat-close" title="Close">✕</button>
+    </div>
+    <div id="chat-msgs"></div>
+    <div class="chat-compose">
+      <textarea id="chat-input" rows="2" placeholder="Question or redirect for the ops session…"></textarea>
+      <button id="chat-send" class="primary">Send</button>
+    </div>
+    <div id="chat-note"></div>
+  </div>
+
+  <div id="changelog-modal" hidden>
+    <div class="modal-box">
+      <div class="chat-head"><strong>What's new</strong><button id="changelog-close" title="Close">✕</button></div>
+      <div id="changelog-body">Loading…</div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/usng.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

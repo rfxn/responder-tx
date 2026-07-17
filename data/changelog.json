@@ -1,0 +1,154 @@
+{
+  "versions": [
+    {
+      "v": "v0.30.0",
+      "date": "2026-07-17",
+      "line": "Gauge dots now have 32px tap areas (one-thumb friendly); non-flooding gauges hidden on phone; Sutherland Springs secondary bump CANCELED \u2014 falling at 33.9, forecast 33.1"
+    },
+    {
+      "v": "v0.29.0",
+      "date": "2026-07-17",
+      "line": "UX-audit dangerous fixes: stale-data warning bar, guarded status changes (confirm resolve, explicit reopen), alerts-first Alerts tab with red emergency badge, phone declutter (tiles hidden, 1-line disclaimer, FAB clearance), card-tap map linkage; 8 vetted live resources added (iSTAT, DriveTexas, SARiverFlood, CSR activation)"
+    },
+    {
+      "v": "v0.28.0",
+      "date": "2026-07-17",
+      "line": "NEW Ozona/Crockett FF EMERGENCY carded (PDS wording); UX declutter \u2014 4-button feed, collapsible filters, More menu, tap-to-expand mobile legend; card taps open the map popup; gauges tile shows 'no data' instead of false 0; banner auto-expires; 30-min release cadence"
+    },
+    {
+      "v": "v0.27.0",
+      "date": "2026-07-17",
+      "line": "Rainfall layers: MRMS 1h/24h accumulation tiles in the layer control (?rain=24h deep link); Falls City crest revised \u2014 25.2 ft MAJOR tonight ~10 PM (below record, a day earlier); Sutherland Springs secondary-bump watch; livestock-loss reports carded"
+    },
+    {
+      "v": "v0.26.0",
+      "date": "2026-07-17",
+      "line": "Aging timeouts: cards >24h and storm reports >3h auto-suppress to toggleable aged/history layers (nothing deleted); alert history pane; in-app changelog (tap the version); \ud83d\udcac ops chat wired to the live Claude session with recent-actions feed"
+    },
+    {
+      "v": "v0.25.0",
+      "date": "2026-07-17",
+      "line": "Sonora/Sutton Co FLASH FLOOD EMERGENCY carded; clipboard fixed on LAN http (execCommand fallback); Falls City crest revised 26.4 ft"
+    },
+    {
+      "v": "v0.24.0",
+      "date": "2026-07-17",
+      "line": "LSR popups gain navigate links + USNG grids; Sutherland Springs PEAKED ~35.3; Asherton thresholds added"
+    },
+    {
+      "v": "v0.23.0",
+      "date": "2026-07-17",
+      "line": "Tab-title open-critical badge for many-tab ops rooms; SITREP RECOVERY line; NEW Asherton record-crest card"
+    },
+    {
+      "v": "v0.22.0",
+      "date": "2026-07-17",
+      "line": "Sutherland Springs AT MAJOR; Crystal City escalated to evacuation; QA sweep passed"
+    },
+    {
+      "v": "v0.21.0",
+      "date": "2026-07-17",
+      "line": "Quiet-state threat strip shows explicit recovery posture; Crystal City downstream-wave + agricultural-emergency cards"
+    },
+    {
+      "v": "v0.20.0",
+      "date": "2026-07-17",
+      "line": "Event config externalized to data/event.json \u2014 board re-points to future events by swapping one file"
+    },
+    {
+      "v": "v0.19.0",
+      "date": "2026-07-17",
+      "line": "Archive resolved: one click clears resolved cards from feed/map, kept in all exports"
+    },
+    {
+      "v": "v0.18.0",
+      "date": "2026-07-17",
+      "line": "Export AAR: markdown after-action bundle \u2014 stats, chronological card log, situation snapshot"
+    },
+    {
+      "v": "v0.17.0",
+      "date": "2026-07-17",
+      "line": "Data Source Health panel: per-feed freshness dots so degraded connectivity is visible"
+    },
+    {
+      "v": "v0.16.0",
+      "date": "2026-07-17",
+      "line": "SITREP uses native share sheet on mobile with clipboard/download fallback"
+    },
+    {
+      "v": "v0.15.0",
+      "date": "2026-07-17",
+      "line": "\u25bc falling (recovery) chip in threat strip \u2014 taps to recovering gauges"
+    },
+    {
+      "v": "v0.14.0",
+      "date": "2026-07-17",
+      "line": "Duplicate-intake guard: warns when a same-type open request exists within 3 mi"
+    },
+    {
+      "v": "v0.13.0",
+      "date": "2026-07-17",
+      "line": "New-emergency pulsing banner + \ud83d\udd34 tab flag for overnight monitoring"
+    },
+    {
+      "v": "v0.12.0",
+      "date": "2026-07-16",
+      "line": "Visibility-aware polling: backgrounded tabs pause refresh (battery saver), catch up on return"
+    },
+    {
+      "v": "v0.11.0",
+      "date": "2026-07-16",
+      "line": "\ud83d\udccb SITREP generator: one-tap plain-text situation report for radio/SMS/email handoff"
+    },
+    {
+      "v": "v0.10.0",
+      "date": "2026-07-16",
+      "line": "Gauge trend engine: ft/hr trends from accumulated stage history; falling gauges get green \u25bc"
+    },
+    {
+      "v": "v0.9.0",
+      "date": "2026-07-16",
+      "line": "USNG/MGRS grids (SAR-standard) on popups and copy-coords, validated \u00b11 m"
+    },
+    {
+      "v": "v0.8.0",
+      "date": "2026-07-16",
+      "line": "Seeds re-fetched every 3 min with change detection \u2014 live clients pick up curated updates"
+    },
+    {
+      "v": "v0.7.0",
+      "date": "2026-07-16",
+      "line": "Intake geocoding assist via Nominatim (find place \u2192 drop pin \u2192 verify)"
+    },
+    {
+      "v": "v0.6.0",
+      "date": "2026-07-16",
+      "line": "Comfort/Kendall evacuation data; LCRA floodgate advisory; correctness fixes"
+    },
+    {
+      "v": "v0.5.0",
+      "date": "2026-07-16",
+      "line": "Comms section: Broadcastify scanners all 9 counties, CrowdSource Rescue, OpenMHz, Zello nets"
+    },
+    {
+      "v": "v0.4.0",
+      "date": "2026-07-16",
+      "line": "THREAT TO LIFE strip: fused live counts, each chip focuses the map"
+    },
+    {
+      "v": "v0.3.0",
+      "date": "2026-07-16",
+      "line": "NEXRAD radar overlay (IEM tiles), 5-min refresh"
+    },
+    {
+      "v": "v0.2.0",
+      "date": "2026-07-16",
+      "line": "Mobile-first layout: map-on-top, \u226542px touch targets"
+    },
+    {
+      "v": "v0.1.0",
+      "date": "2026-07-16",
+      "line": "Initial release: Leaflet board with live NWS alerts, NWPS gauges, request cards"
+    }
+  ]
+}

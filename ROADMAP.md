@@ -83,6 +83,14 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
     the curator) even under the reframe. Cost M. Deps: reframe wording (item 1).
     **[ux]**.
 
+### NEXT addendum (2026-07-17 11:00)
+
+- **Future-cast radar source hunt** — RainViewer's free API dropped nowcast
+  (docs now list past-2h only; empty array confirmed repeatedly). Candidates:
+  RainViewer keyed tier, Open-Meteo 15-min precip forecast (grid → canvas
+  overlay), NWS HRRR sub-hourly reflectivity via mapservices (verify token
+  policy). Research-agent task before implementing. **[data]**
+
 ### NEXT (today/tomorrow horizon)
 
 11. **USGS IV gauge fallback layer** — 5-min data, extra gauges, health-degrade

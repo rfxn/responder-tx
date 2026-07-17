@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.39.0 — 2026-07-17 (owner radar/base directives)
+- Streets (OSM) is now the DEFAULT basemap (saved choice and ?base= respected; picks persist across visits) — street-level detail out of the box, dark/light CARTO still one tap away
+- Radar scrub extended to the full published history (~2h @ 10-min steps, was 1h) and playback made fluid: all frames pre-mount as opacity-crossfaded tile layers — no per-frame tile reload/redraw during loop or scrub
+- Future-cast truth: RainViewer's free API dropped nowcast (docs now list past-2h only) — scrubber labels "now · no future-cast in free feed" instead of implying projection; source hunt queued in ROADMAP (keyed RainViewer / Open-Meteo 15-min precip / HRRR sub-hourly)
+- Radar play state survives the 3-min frame refresh; time labels switch to hours beyond -110m
 ## v0.38.0 — 2026-07-17 (10:43 cycle: USGS auto-fallback)
 - When the live NWPS gauge feed is stale >15 min and USGS sites are loaded, the clustered USGS raw-stage layer auto-enables and the staleness bar notes "USGS raw-stage fallback ON (no flood categories)"; auto-stands-down on NWPS recovery without fighting a manual toggle
 - Snapshot refreshed (220 gauges, 21 in flood, 1 major); both FF emergencies steady (Sutton 1:15 PM, Crockett 11:45 AM); healthy-path renders verified at both widths

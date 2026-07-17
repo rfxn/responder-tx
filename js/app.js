@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.38.0';
+const APP_VERSION = 'v0.39.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -164,8 +164,8 @@ function initMap() {
 
   const bustSrc = (url) => url + '?_=' + Math.floor(Date.now() / 300000);
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
-  // maxNativeZoom 7: RainViewer's free tiles serve placeholders above z7 — upscale instead
-  state.layers.radar = L.tileLayer('', { opacity: 0.6, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' });
+  // group of pre-loaded per-frame tile layers; playback crossfades opacity (no per-step tile reload)
+  state.layers.radar = L.layerGroup();
   state.layers.mrms1h = L.tileLayer(bustSrc(CONFIG.mrms1hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
   state.layers.mrms24h = L.tileLayer(bustSrc(CONFIG.mrms24hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
   state.refreshRadar = () => {
@@ -187,15 +187,17 @@ function initMap() {
   state.map.on('baselayerchange', (e) => {
     state.activeBase = e.layer === state.baseLayers.streets ? 'streets'
       : e.layer === state.baseLayers.light ? 'light' : 'dark';
+    localStorage.setItem('respondertx.base', state.activeBase);
     // picking a CARTO base re-syncs the UI theme; Streets leaves the theme untouched
     if (state.activeBase !== 'streets' && state.activeBase !== document.documentElement.getAttribute('data-theme')) applyTheme(state.activeBase);
     else syncLabelBoost();
   });
-  // set activeBase directly: the layer control (which fires baselayerchange) is not built yet
-  if (new URLSearchParams(location.search).get('base') === 'osm') {
-    state.activeBase = 'streets';
-    state.baseLayers.streets.addTo(state.map);
-  }
+  // default base is Streets (owner directive); saved choice or ?base= overrides — layer control not built yet, set directly
+  const baseParam = new URLSearchParams(location.search).get('base');
+  const wantBase = baseParam === 'osm' ? 'streets'
+    : (baseParam in state.baseLayers ? baseParam : null) || localStorage.getItem('respondertx.base') || 'streets';
+  state.activeBase = wantBase in state.baseLayers ? wantBase : 'streets';
+  state.baseLayers[state.activeBase].addTo(state.map);
 
   state.layers.alerts = L.layerGroup().addTo(state.map);
   state.layers.gauges = L.layerGroup().addTo(state.map);
@@ -297,27 +299,36 @@ async function fetchRadarFrames() {
   const res = await fetch(CONFIG.rainviewerApi);
   if (!res.ok) throw new Error(`RainViewer HTTP ${res.status}`);
   const d = await res.json();
-  const past = (d.radar && d.radar.past || []).slice(-7);
+  const past = (d.radar && d.radar.past) || []; // full published history (~2h @ 10-min steps)
   const cast = (d.radar && d.radar.nowcast) || [];
   if (!past.length) throw new Error('no radar frames');
   const keepIdx = state.radar ? state.radar.idx : -1;
-  state.radar = { host: d.host, frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, playing: false, timer: null };
-  $('#rs-slider').max = state.radar.frames.length - 1;
-  setRadarFrame(keepIdx >= 0 && keepIdx < state.radar.frames.length ? keepIdx : state.radar.nowIdx);
+  const wasPlaying = state.radar && state.radar.playing;
+  stopRadarPlay();
+  state.radar = { host: d.host, frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, playing: false, timer: null, frameLayers: [] };
+  const r = state.radar;
+  state.layers.radar.clearLayers();
+  r.frameLayers = r.frames.map((f) => L.tileLayer(`${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
+    opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, attribution: 'Radar: RainViewer',
+  }));
+  r.frameLayers.forEach((l) => state.layers.radar.addLayer(l)); // all mounted once — playback is opacity-only
+  $('#rs-slider').max = r.frames.length - 1;
+  setRadarFrame(keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx : r.nowIdx);
+  if (wasPlaying) toggleRadarPlay();
 }
 
 function setRadarFrame(i) {
   const r = state.radar;
   if (!r || !r.frames.length) return;
   r.idx = Math.max(0, Math.min(i, r.frames.length - 1));
-  state.layers.radar.setUrl(`${r.host}${r.frames[r.idx].path}/256/{z}/{x}/{y}/2/1_1.png`);
+  r.frameLayers.forEach((l, j) => l.setOpacity(j === r.idx ? 0.6 : 0));
   $('#rs-slider').value = r.idx;
   const dMin = Math.round((r.frames[r.idx].time - r.frames[r.nowIdx].time) / 60);
   const projected = r.idx >= r.castStart;
   const label = $('#rs-label');
-  label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin}m` : `+${dMin}m PROJECTED`;
+  label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin >= -110 ? dMin + 'm' : Math.round(dMin / 6) / 10 + 'h'}` : `+${dMin}m PROJECTED`;
   label.classList.toggle('projected', projected);
-  if (r.castStart >= r.frames.length && dMin === 0) label.textContent = 'now (projection unavailable)';
+  if (r.castStart >= r.frames.length && dMin === 0) label.textContent = 'now · no future-cast in free feed';
 }
 
 function stopRadarPlay() {

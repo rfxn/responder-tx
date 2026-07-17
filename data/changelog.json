@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.39.0",
+      "date": "2026-07-17",
+      "line": "Streets (OSM) now the default basemap; radar scrub covers the full 2h history with fluid crossfade playback (no redraw); honest future-cast label \u2014 free feed dropped nowcast, alternative source hunt queued"
+    },
+    {
       "v": "v0.38.0",
       "date": "2026-07-17",
       "line": "USGS raw-stage layer auto-enables when the NWPS feed dies (and stands down on recovery) \u2014 the fallback the board held is now automatic; snapshot refreshed"

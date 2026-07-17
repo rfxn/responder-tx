@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.64.0",
+      "date": "2026-07-17",
+      "line": "NEW ⬇ Save map offline (bottom-left): caches the current view + one zoom deeper into IndexedDB so the basemap keeps drawing in canyon dead zones — works on plain LAN http, no Service Worker; basemap only, gauge/alert data still needs a connection"
+    },
+    {
       "v": "v0.63.0",
       "date": "2026-07-17",
       "line": "NEW public RSS feed (/feed.xml — emergencies, forecast crests, notices) + subscribable crest calendar (/crests.ics); follow the event in any reader or calendar app, no account needed"

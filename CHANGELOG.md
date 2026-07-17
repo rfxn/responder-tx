@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.64.0 — 2026-07-17 (next-wave W9: offline map tiles for canyon dead zones)
+- NEW "⬇ Save map offline" control (bottom-left, above the legend): caches the current map view — this zoom plus one deeper — into IndexedDB so the basemap keeps drawing when signal drops in the Hill Country canyons; works over plain LAN http (no Service Worker, which http can't use), custom cache-first tile layer (~140 lines, no bundler, no new vendored dep)
+- When the network fails, cached tiles render automatically from IndexedDB — the active base (and its place-label boost) route through the offline layer; the saved-tile count persists across reloads (read from IndexedDB on boot) and a "Clear offline cache" affordance is offered once anything is stored
+- Honesty guard: the control states "Basemap only — gauge/alert data still needs a connection." — cached map tiles never imply the DATA is live; the data-age bar and all stale-data indicators keep governing staleness offline, unchanged
+- CARTO/OSM-friendly: only the current viewport + one zoom is cached, no bulk pre-fetch, hard cap of 1500 tiles per save (over cap → "zoom in, then save"); already-stored tiles are skipped on re-save
 ## v0.63.0 — 2026-07-17 (next-wave W8: public RSS feed + crest calendar)
 - NEW public follow mechanism, no account or backend: /feed.xml (RSS 2.0 — flash flood emergencies, forecast MAJOR crests, active critical/high notices) and /crests.ics (subscribe to add forecast crests to any calendar app)
 - RSS auto-discovery link in the page head; a "Follow / subscribe" section in the Resources tab links both; each item stamps its time and forecast crests carry real NWPS validTime + a ?hydro= deep link back to the chart

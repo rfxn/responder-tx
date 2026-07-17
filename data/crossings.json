@@ -1,0 +1,47 @@
+{
+ "generated": "2026-07-17T21:48:39Z",
+ "source": "Curator-maintained from official statements (county OEM / TxDOT / KUT). Verify current status before routing \u2014 conditions change fast.",
+ "crossings": [
+  {
+   "id": "x-us90-sabinal",
+   "name": "US 90 at Sabinal River (Sabinal)",
+   "lat": 29.3216,
+   "lon": -99.4657,
+   "status": "closed",
+   "reason": "Pavement undermined; closed both directions during the Nueces/Frio round",
+   "updated_at": "2026-07-17T21:48:39Z",
+   "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+  },
+  {
+   "id": "x-us90-uvalde-w",
+   "name": "US 90 west of Uvalde (Nueces/Leona)",
+   "lat": 29.205,
+   "lon": -99.901,
+   "status": "caution",
+   "reason": "Reopened after earlier closure; intermittent high water \u2014 verify before crossing",
+   "updated_at": "2026-07-17T21:48:39Z",
+   "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+  },
+  {
+   "id": "x-goatcreek-kerr",
+   "name": "Goat Creek Rd low-water crossing (Kerrville)",
+   "lat": 30.0805,
+   "lon": -99.1735,
+   "status": "closed",
+   "reason": "Guadalupe/Goat Creek evacuation area \u2014 crossing under water",
+   "updated_at": "2026-07-17T21:48:39Z",
+   "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+  },
+  {
+   "id": "x-junctionhwy-kerr",
+   "name": "Junction Hwy (SH 27) low-water crossings, W Kerr Co.",
+   "lat": 30.064,
+   "lon": -99.236,
+   "status": "caution",
+   "reason": "Multiple low-water crossings flagged during evacuations; receding but debris-laden",
+   "updated_at": "2026-07-17T21:48:39Z",
+   "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+  }
+ ],
+ "authoritative": "https://drivetexas.org/"
+}

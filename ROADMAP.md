@@ -94,9 +94,9 @@ record-crest + downstream-wave + east-recovery phase):
 - ~~**W3. OG share-card unfurl**~~ — SHIPPED v0.59.0 (evergreen branded
   og-card.png + og:*/twitter: meta; chose evergreen over live-stats because
   social caches og:image for days — a stats card would go stale/dishonest).
-- **W4. Low-water crossing inventory + layer** — curator open/closed/caution
-  crossings, the operational currency of flood SAR. Cost M. data/crossings.json
-  + map layer. Aging + reframe (curator data, not tap-cycle). **[data]**
+- ~~**W4. Low-water crossing inventory + layer**~~ — SHIPPED v0.60.0
+  (data/crossings.json curator file → color-coded map layer + Resources list;
+  update-stamped, stale-after-12h, verify-before-routing + DriveTexas link).
 - **W5. Drive Mode ?view=drive** — one-thumb huge-type nearest-threats glance
   list (truck/gloves/glare). Cost M. new view region. 911 line stays. **[views]**
 - **W6. Full-screen hydrograph** — tap sparkline → big chart w/ flood bands +

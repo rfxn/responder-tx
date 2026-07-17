@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.59.0';
+const APP_VERSION = 'v0.60.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -223,6 +223,7 @@ function initMap() {
   state.layers.lsrsAged = L.layerGroup(); // history layer — off by default, toggle in layer control
   state.layers.requests = L.layerGroup().addTo(state.map);
   state.layers.shelters = L.layerGroup().addTo(state.map);
+  state.layers.crossings = L.layerGroup().addTo(state.map);
   L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
@@ -240,6 +241,7 @@ function initMap() {
     'Aged storm reports (history)': state.layers.lsrsAged,
     'Notices (curated + field)': state.layers.requests,
     'Shelters': state.layers.shelters,
+    'Low-water crossings': state.layers.crossings,
   }, { collapsed: true }).addTo(state.map);
 
   const legend = L.control({ position: 'bottomleft' });
@@ -1812,6 +1814,8 @@ async function loadSeeds() {
     if (!state.records) {
       state.records = (await fetch(`data/records.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) || {}).records || {};
     }
+    // low-water crossings — absence-tolerant; refetched each cycle for status changes
+    state.crossings = (await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) || {}).crossings || [];
     markHealthy('seeds');
     const hash = JSON.stringify([reqs, res]);
     if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
@@ -1820,9 +1824,48 @@ async function loadSeeds() {
     state.resources = res;
     renderRequests();
     renderResources();
+    renderCrossings();
     renderMonitors();
     return true;
   } catch { return false; }
+}
+
+const CROSSING_STALE_H = 12;
+const CROSSING_STATUS = {
+  closed: { color: 'var(--sev-emergency)', glyph: '⛔', label: 'CLOSED' },
+  caution: { color: 'var(--cat-action)', glyph: '⚠', label: 'CAUTION' },
+  longterm: { color: 'var(--ink-muted)', glyph: '⛔', label: 'LONG-TERM CLOSED' },
+  open: { color: 'var(--good)', glyph: '✓', label: 'OPEN' },
+};
+function renderCrossings() {
+  const layer = state.layers.crossings;
+  if (layer) layer.clearLayers();
+  const list = state.crossings || [];
+  const el = $('#crossings-body');
+  if (el) {
+    el.innerHTML = list.length
+      ? '<div class="section-title">Low-water crossings (curator-tracked — verify before routing)</div>' +
+        list.map((c) => {
+          const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
+          const staleH = c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity;
+          const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">stale ${Math.round(staleH)}h — reverify</span>` : '';
+          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong> — ${esc(c.name)}` +
+            `<div class="addr">${esc(c.reason || '')} · updated ${esc(fmtWhen(c.updated_at))}${stale} <a href="${esc(c.source)}" target="_blank" rel="noopener">src</a></div></div>`;
+        }).join('') +
+        '<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">↗ TxDOT DriveTexas — authoritative statewide closures</a></div>'
+      : '';
+  }
+  for (const c of list) {
+    if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon) || !layer) continue;
+    const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
+    const icon = L.divIcon({ className: '', html: `<div class="crossing-icon" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    const m = L.marker([c.lat, c.lon], { icon });
+    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} — crossing</div><div>${esc(c.name)}</div>` +
+      `<div class="popup-meta">${esc(c.reason || '')}</div>` +
+      `<div class="popup-meta">Updated ${esc(fmtWhen(c.updated_at))} · verify before routing</div>` +
+      (c.source ? `<div class="popup-link"><a href="${esc(c.source)}" target="_blank" rel="noopener">source →</a></div>` : ''));
+    layer.addLayer(m);
+  }
 }
 
 const CACHE_KEY = 'respondertx.cache.v1';

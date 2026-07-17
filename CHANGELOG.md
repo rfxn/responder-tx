@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.60.0 — 2026-07-17 (next-wave W4: low-water crossing inventory)
+- NEW low-water crossing tracker — the operational currency of flood SAR: curator-maintained data/crossings.json (closed/caution/long-term, reason, updated-at, cited source) renders as a color-coded map layer AND a Resources-tab list; each entry stamps its update time and flips to "stale — reverify" after 12h
+- Every entry carries "verify before routing" and links to TxDOT DriveTexas as the authoritative statewide closure map — the board never claims a crossing is safe
+- Seeded from this event's documented closures (US 90 Sabinal/west-of-Uvalde, Kerrville Goat Creek + Junction Hwy crossings); absence-tolerant so older deploys degrade cleanly
 ## v0.59.0 — 2026-07-17 (next-wave W3: social link-unfurl card)
 - NEW Open Graph / Twitter card: links to the public board now unfurl with a branded 1200×630 image and description on X, Facebook, iMessage, Slack, etc. — turning every shared link into a recognizable card instead of a bare URL
 - The card is intentionally evergreen (capabilities + the 911/not-a-dispatch line), NOT live counts: social platforms cache og:image for hours-to-days, so a stats card would go stale in their cache and misrepresent the situation — honesty over vanity metrics

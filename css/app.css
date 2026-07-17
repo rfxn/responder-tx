@@ -530,6 +530,14 @@ main { flex: 1; display: flex; min-height: 0; }
 .record-line.near { color: var(--cat-major); font-weight: 600; }
 .record-line.at { color: var(--sev-emergency); }
 
+.crossing-icon {
+  width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid;
+  background: var(--surface-1); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.xg-stale { color: var(--cat-action); font-weight: 600; }
+#crossings-body:not(:empty) { border-bottom: 1px solid var(--hairline); margin-bottom: 6px; padding-bottom: 4px; }
+
 #wave-list { border-bottom: 1px solid var(--hairline); padding-bottom: 8px; margin-bottom: 6px; }
 #wave-list[hidden] { display: none; }
 .wave-river { font-size: 12px; font-weight: 700; color: var(--ink-1); margin: 8px 2px 3px; }

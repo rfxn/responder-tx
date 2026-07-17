@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.60.0",
+      "date": "2026-07-17",
+      "line": "NEW low-water crossing tracker: curator-maintained closed/caution crossings as a color-coded map layer + Resources list, each stamped with update time (stale after 12h) and 'verify before routing' + DriveTexas link"
+    },
+    {
       "v": "v0.59.0",
       "date": "2026-07-17",
       "line": "Shared links now unfurl with a branded card + description on X/Facebook/iMessage/Slack (Open Graph + Twitter meta); evergreen by design so cached social images never show stale counts"

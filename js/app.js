@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.34.0';
+const APP_VERSION = 'v0.35.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -22,7 +22,7 @@ const CONFIG = {
   histDays: 7,
   lsrHours: 12,
   lsrUrl: 'https://mesonet.agron.iastate.edu/geojson/lsr.geojson',
-  radarUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
+  rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   mrms1hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-n1p-900913/{z}/{x}/{y}.png',
   mrms24hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-p24h-900913/{z}/{x}/{y}.png',
 };
@@ -137,15 +137,26 @@ function initMap() {
   state.baseLayers.light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
 
   const bustSrc = (url) => url + '?_=' + Math.floor(Date.now() / 300000);
-  state.layers.radar = L.tileLayer(bustSrc(CONFIG.radarUrl), { opacity: 0.5, attribution: 'Radar: NEXRAD via IEM' }).addTo(state.map);
-  // rainfall accumulation (MRMS) — off by default; "how much fell where" flags the next crossings to go under
+  // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
+  // maxNativeZoom 7: RainViewer's free tiles serve placeholders above z7 — upscale instead
+  state.layers.radar = L.tileLayer('', { opacity: 0.6, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' });
   state.layers.mrms1h = L.tileLayer(bustSrc(CONFIG.mrms1hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
   state.layers.mrms24h = L.tileLayer(bustSrc(CONFIG.mrms24hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
   state.refreshRadar = () => {
-    state.layers.radar.setUrl(bustSrc(CONFIG.radarUrl));
     state.layers.mrms1h.setUrl(bustSrc(CONFIG.mrms1hUrl));
     state.layers.mrms24h.setUrl(bustSrc(CONFIG.mrms24hUrl));
+    if (state.map.hasLayer(state.layers.radar)) fetchRadarFrames().catch(() => { /* keep last frames */ });
   };
+  state.map.on('overlayadd', (e) => {
+    if (e.layer !== state.layers.radar) return;
+    $('#radar-scrub').hidden = false;
+    fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
+  });
+  state.map.on('overlayremove', (e) => {
+    if (e.layer !== state.layers.radar) return;
+    $('#radar-scrub').hidden = true;
+    stopRadarPlay();
+  });
 
   state.layers.alerts = L.layerGroup().addTo(state.map);
   state.layers.gauges = L.layerGroup().addTo(state.map);
@@ -159,7 +170,7 @@ function initMap() {
   state.layers.requests = L.layerGroup().addTo(state.map);
   state.layers.shelters = L.layerGroup().addTo(state.map);
   L.control.layers(null, {
-    'Radar (NEXRAD)': state.layers.radar,
+    'Radar scrub (-1h → +30m)': state.layers.radar,
     'Rainfall 1h (MRMS)': state.layers.mrms1h,
     'Rainfall 24h (MRMS)': state.layers.mrms24h,
     'Flood alerts (NWS)': state.layers.alerts,
@@ -217,9 +228,16 @@ function initMap() {
     if (state.posLayer) state.map.removeLayer(state.posLayer);
     state.posLayer = L.layerGroup([
       L.circle(e.latlng, { radius: e.accuracy, weight: 1, color: cssVar('--accent') || '#3987e5', fillOpacity: 0.08 }),
-      L.marker(e.latlng, { icon: L.divIcon({ className: 'my-pos', iconSize: [14, 14] }), title: 'You' }),
+      L.marker(e.latlng, {
+        icon: L.divIcon({
+          className: '',
+          html: '<div class="my-pos-wrap"><div class="my-pos-ring"></div><div class="my-pos-ring d2"></div><div class="my-pos-core"></div><div class="my-pos-label">YOU</div></div>',
+          iconSize: [48, 48], iconAnchor: [24, 24],
+        }),
+        title: 'Your location', zIndexOffset: 2000, interactive: false,
+      }),
     ]).addTo(state.map);
-    state.map.setView(e.latlng, Math.max(state.map.getZoom(), 10));
+    state.map.setView(e.latlng, Math.max(state.map.getZoom(), 12));
     renderRequests();
   });
   state.map.on('locationerror', () => { $('#refresh-note').textContent = 'location unavailable (permission or no GPS)'; });
@@ -227,6 +245,49 @@ function initMap() {
   const declutter = () => state.map.getContainer().classList.toggle('z-low', state.map.getZoom() < 9);
   state.map.on('zoomend', declutter);
   declutter();
+}
+
+/* ---------- radar time-scrub (RainViewer: past ~1h + nowcast projection when published) ---------- */
+
+async function fetchRadarFrames() {
+  const res = await fetch(CONFIG.rainviewerApi);
+  if (!res.ok) throw new Error(`RainViewer HTTP ${res.status}`);
+  const d = await res.json();
+  const past = (d.radar && d.radar.past || []).slice(-7);
+  const cast = (d.radar && d.radar.nowcast) || [];
+  if (!past.length) throw new Error('no radar frames');
+  const keepIdx = state.radar ? state.radar.idx : -1;
+  state.radar = { host: d.host, frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, playing: false, timer: null };
+  $('#rs-slider').max = state.radar.frames.length - 1;
+  setRadarFrame(keepIdx >= 0 && keepIdx < state.radar.frames.length ? keepIdx : state.radar.nowIdx);
+}
+
+function setRadarFrame(i) {
+  const r = state.radar;
+  if (!r || !r.frames.length) return;
+  r.idx = Math.max(0, Math.min(i, r.frames.length - 1));
+  state.layers.radar.setUrl(`${r.host}${r.frames[r.idx].path}/256/{z}/{x}/{y}/2/1_1.png`);
+  $('#rs-slider').value = r.idx;
+  const dMin = Math.round((r.frames[r.idx].time - r.frames[r.nowIdx].time) / 60);
+  const projected = r.idx >= r.castStart;
+  const label = $('#rs-label');
+  label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin}m` : `+${dMin}m PROJECTED`;
+  label.classList.toggle('projected', projected);
+  if (r.castStart >= r.frames.length && dMin === 0) label.textContent = 'now (projection unavailable)';
+}
+
+function stopRadarPlay() {
+  if (state.radar && state.radar.timer) { clearInterval(state.radar.timer); state.radar.timer = null; state.radar.playing = false; }
+  $('#rs-play').textContent = '▶';
+}
+
+function toggleRadarPlay() {
+  const r = state.radar;
+  if (!r) return;
+  if (r.playing) { stopRadarPlay(); return; }
+  r.playing = true;
+  $('#rs-play').textContent = '⏸';
+  r.timer = setInterval(() => setRadarFrame((r.idx + 1) % r.frames.length), 700);
 }
 
 /* ---------- NWS alerts ---------- */
@@ -1384,6 +1445,10 @@ async function boot() {
   $('#app-version').addEventListener('click', openChangelog);
   $('#changelog-close').addEventListener('click', () => { $('#changelog-modal').hidden = true; });
   $('#changelog-modal').addEventListener('click', (e) => { if (e.target.id === 'changelog-modal') $('#changelog-modal').hidden = true; });
+
+  $('#rs-play').addEventListener('click', toggleRadarPlay);
+  $('#rs-slider').addEventListener('input', () => { stopRadarPlay(); setRadarFrame(+$('#rs-slider').value); });
+  if (new URLSearchParams(location.search).get('radar') === '1') state.layers.radar.addTo(state.map);
 
   $('#disclaimer').addEventListener('click', (e) => {
     if (e.target.id === 'app-version') return;

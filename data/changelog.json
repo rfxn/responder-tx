@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.35.0",
+      "date": "2026-07-17",
+      "line": "Radar time-scrub (past 1h + projected frames when published, play/loop, ?radar=1); radar/rainfall layers now OFF by default \u2014 explicit enable; unmissable YOU location beacon (double-ping ring + tag)"
+    },
+    {
       "v": "v0.34.0",
       "date": "2026-07-17",
       "line": "Cache fix for the public mirror (versioned assets + no-store data \u2014 fixes 'no data' on stale edge caches); NEW: RFC forecast-crest rings layer + clustered USGS raw-stage layer (224 sites, off by default); Sonora emergency EXTENDED to 1:15 PM"

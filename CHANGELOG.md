@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.35.0 — 2026-07-17 (radar scrub + location beacon)
+- Radar time-scrub: RainViewer past-hour frames + forward nowcast projection (when published; labeled "+Nm PROJECTED", amber) with play/pause loop and slider over the map; replaces the static NEXRAD layer; maxNativeZoom 7 upscaling (free-tier tiles placeholder above z7); frames refresh with the 3-min cycle while enabled; ?radar=1 deep link
+- All radar/rainfall layers now OFF by default (owner directive) — explicit enable via layer control ("Radar scrub (-1h → +30m)", MRMS 1h/24h)
+- Location beacon: locate-me now drops an unmissable double-ping ring + core dot + "YOU" tag (was a subtle 14px dot), zooms to 12, sits above all markers
+- Cache stamps bumped to ?v=0.35.0
 ## v0.34.0 — 2026-07-17 (cache-skew fix + parallel-agent data layers)
 - Fix: public mirror "no data" — stale edge-cached app.js (max-age 3600) paired with newer HTML crashed boot on removed elements; all local asset URLs now carry ?v=VERSION stamps (atomic HTML↔asset pairing) and `_headers` forces no-store on /data/* and no-cache on the shell
 - NEW (agent-built branch, merged): RFC forecast-crest layer — hollow rings in category colors for gauges carrying a 5-day max forecast NWPS lacks (on by default); USGS raw-stage layer — 224 in-bbox instantaneous-value sites, clustered (vendored Leaflet.markercluster v1.5.3, MIT), off by default, no fake flood categories on raw stage

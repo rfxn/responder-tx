@@ -73,7 +73,9 @@ header {
   border-radius: 8px;
   padding: 6px 14px;
   min-width: 108px;
+  cursor: pointer;
 }
+.tile:hover, .tile:focus-visible { border-color: var(--accent); }
 .tile .label { font-size: 11px; color: var(--ink-2); }
 .tile .value { font-size: 22px; font-weight: 600; color: var(--tile-value); line-height: 1.2; }
 .tile .value .unit { font-size: 12px; font-weight: 400; color: var(--ink-muted); }
@@ -191,7 +193,8 @@ main { flex: 1; display: flex; min-height: 0; }
   border-radius: 10px; padding: 0 6px; font-size: 11px; margin-left: 4px;
 }
 
-.tab-body { flex: 1; overflow-y: auto; padding: 10px 12px; display: none; }
+/* min-height 0: without it a long feed grows past the flex column and shoves the disclaimer off-viewport */
+.tab-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px; display: none; }
 .tab-body.active { display: block; }
 
 .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -269,6 +272,7 @@ main { flex: 1; display: flex; min-height: 0; }
 .filters[hidden] { display: none; }
 
 .disclaimer {
+  flex-shrink: 0;
   font-size: 11px; color: var(--ink-muted); padding: 8px 12px;
   border-top: 1px solid var(--hairline); background: var(--surface-1);
 }
@@ -432,7 +436,22 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 .modal-head button { min-height: 0; padding: 2px 8px; }
 
-.locate-btn { font-size: 18px; line-height: 26px; }
+.locate-btn { font-size: 18px; }
+
+/* AO quick-jump — pills along the map top edge next to the nav bar */
+.ao-jump {
+  position: absolute; top: 10px; left: 54px; right: 56px; z-index: 1000;
+  display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap;
+  pointer-events: none;
+}
+.ao-chip {
+  pointer-events: auto; white-space: nowrap; min-height: 0;
+  font-size: 12px; padding: 4px 10px; border-radius: 12px;
+  background: var(--surface-1); border: 1px solid var(--border); color: var(--ink-1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.ao-chip:hover { border-color: var(--accent); }
+.ao-toggle { display: none; }
 
 /* location beacon — must be unmissable at a glance while moving */
 .my-pos-wrap { position: relative; width: 48px; height: 48px; }
@@ -514,6 +533,16 @@ main { flex: 1; display: flex; min-height: 0; }
   /* collapsed to a title pill — tap to expand; frees ~1/3 of the phone map */
   .map-legend:not(.open) > *:not(:first-child) { display: none; }
   .map-legend:not(.open) > .lg-title:first-child::after { content: ' ▸'; color: var(--accent); }
+  /* one-thumb targets on the merged + / − / ⌖ bar */
+  .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
+  /* AO presets collapse behind 🗺 — five pills would bury the 42vh map */
+  .ao-jump { left: 62px; right: 62px; }
+  .ao-jump:not(.open) .ao-chip { display: none; }
+  .ao-toggle {
+    display: block; pointer-events: auto; width: 42px; padding: 0;
+    font-size: 18px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  }
+  .ao-toggle:active, .ao-jump.open .ao-toggle { border-color: var(--accent); }
 }
 
 /* gauges tab — bucketed by actionability */

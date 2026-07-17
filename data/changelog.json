@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.44.0",
+      "date": "2026-07-17",
+      "line": "Command-area rework: threat strip is now a structured status module (aligned tiered stat rows, next-crest countdown, FF EMERG mini-chips), tabs never wrap their count badges, app renamed to just 'Responder TX', slimmer header — phones reclaim a big chunk of feed space"
+    },
+    {
       "v": "v0.43.0",
       "date": "2026-07-17",
       "line": "Nav package: merged zoom/locate bar (un-jumbled corner), AO quick-jump chips (Kerr, Uvalde/Frio, Sonora/Ozona, Cibolo, Full AO), tappable KPI tiles, 911 line pinned to phone viewport bottom"

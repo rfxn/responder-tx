@@ -1,5 +1,5 @@
 {
-  "name": "Responder TX — Flood Ops Board",
+  "name": "Responder TX",
   "short_name": "Responder TX",
   "description": "Live flood ops board: NWS alerts, river gauges, radar, storm reports, and a triaged community assistance feed.",
   "start_url": "./index.html",

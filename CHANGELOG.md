@@ -1,5 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.45.0 — 2026-07-17 (Field Notes — community + responder annotation board)
+- NEW 📍 Field Notes flyout (agent-built): chronological annotation board over the map — right-side panel on desktop, full-width bottom sheet on phones; teal "📍 Notes" button stacks above the map legend
+- Three note kinds: pinned map notes (drop-pin mode → tap the map → mini-compose with info/hazard/road/water-level/photo-worthy category), flat comment threads on any note, and general no-location board posts
+- Teal teardrop pins (visually distinct from gauge/need markers) with a popup thread + reply/copy-link; every note is shareable — ?note=<id> deep links open the flyout, focus the note, and fly the map to its pin
+- Persistence: POST /api/notes appends to data/notes-inbox.jsonl on the LAN server (chat-inbox pattern, kind/category/coord validation); client merges curated data/notes.json so published notes survive to the mirror; the public mirror detects the missing API and degrades honestly to "Read-only public mirror — notes viewable only"
+- Compose carries the safety line (Life-threatening emergency → call 911; notes are unverified community input) and asks only an optional display name — no PII solicited; server.py gains a PORT env override for side-by-side test instances
 ## v0.44.0 — 2026-07-17 (command-area rework: threat module, tabs, slim header)
 - Threat-to-life strip rebuilt as a structured status module: "THREAT TO LIFE" header (only when life-safety signals exist), aligned stat rows in a 2-col grid — glyph + tabular number + label with a consistent 4-tier semantic (life-safety red, escalation amber, major-flood purple, recovery green), subtle left accent + tinted background instead of 8 mismatched outlined pills; every row keeps its tap-through (tab jump / map zoom)
 - "Next crest" gets its own emphasized full-width countdown row; raw red "FF EMERG:" text line replaced by tidy per-emergency mini-chips (place → expiry) that open the Alerts tab

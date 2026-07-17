@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.45.0",
+      "date": "2026-07-17",
+      "line": "NEW 📍 Field Notes: community/responder annotation flyout — drop-pin map notes with categories, comment threads, general posts, shareable ?note= deep links; the public mirror shows notes read-only"
+    },
+    {
       "v": "v0.44.0",
       "date": "2026-07-17",
       "line": "Command-area rework: threat strip is now a structured status module (aligned tiered stat rows, next-crest countdown, FF EMERG mini-chips), tabs never wrap their count badges, app renamed to just 'Responder TX', slimmer header — phones reclaim a big chunk of feed space"

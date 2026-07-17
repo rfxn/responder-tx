@@ -4,3 +4,4 @@ data/.chat-cursor
 nohup.out
 *.log
 data/chat-outbox.json
+data/notes-inbox.jsonl

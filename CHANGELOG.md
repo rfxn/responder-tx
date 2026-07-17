@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.54.0 — 2026-07-17 (owner chat directives: radio-ID search + Notes hidden)
+- Radio-ID search (owner request): the Feed search now matches short IDs, and typing an exact ID ("R-031", "r031") flies the map to that card and opens its popup — phones scroll the map into view; new 🔍 ID button opens search pre-focused for gloved one-tap entry
+- Field Notes hidden for now (owner request): the 📍 Notes button and flyout no longer load by default — ?notes=1 / ?note= deep links still work for testing, server /api/notes stays live, nothing deleted
 ## v0.53.0 — 2026-07-17 (13:23 cycle: speakable short IDs)
 - Every feed card now carries a radio-speakable reference (R-036 style — seeds keep their number, field intakes hash to 3 characters, stable across reloads): tap the badge to copy, shown in map popups, and prefixed on every SITREP critical line so "flag R-036" works over radio/SMS; curator resolves by ID from chat
 - LSR short-IDs deferred: IEM report identity isn't stable enough across refreshes to promise a speakable reference yet

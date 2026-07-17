@@ -35,6 +35,10 @@
   const newId = () => `n-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const noteLink = (id) => `${location.origin}${location.pathname}?note=${encodeURIComponent(id)}`;
 
+  // owner directive 7/17 1:10 PM: Notes hidden for now — ?notes=1 / ?note= deep links still work
+  const q0 = new URLSearchParams(location.search);
+  if (!q0.has('notes') && !q0.has('note')) return;
+
   /* ---------- DOM scaffold ---------- */
 
   const flyout = document.getElementById('notes-flyout') || (() => {

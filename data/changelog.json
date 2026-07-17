@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.54.0",
+      "date": "2026-07-17",
+      "line": "Radio-ID search: type R-031 (or tap 🔍 ID) and the board filters to the card AND flies the map to its pin; Field Notes hidden for now per owner — deep links still work"
+    },
+    {
       "v": "v0.53.0",
       "date": "2026-07-17",
       "line": "Radio-speakable IDs on every feed card (R-036 style): tap to copy, shown in popups, prefixed on SITREP critical lines — 'flag R-036' now works over radio/SMS"

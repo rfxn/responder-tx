@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.53.0';
+const APP_VERSION = 'v0.54.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1102,7 +1102,7 @@ function requestVisible(r) {
   if (f.dist && state.myPos && Number.isFinite(r.lat)
       && distMi(state.myPos.lat, state.myPos.lng, r.lat, r.lon) > +f.dist) return false;
   if (f.q) {
-    const hay = `${r.summary} ${r.details} ${r.place} ${r.county}`.toLowerCase();
+    const hay = `${shortId(r.id)} ${r.summary} ${r.details} ${r.place} ${r.county}`.toLowerCase();
     if (!hay.includes(f.q.toLowerCase())) return false;
   }
   return true;
@@ -1945,7 +1945,22 @@ async function boot() {
     state.filters.county = $('#flt-county').value;
     renderRequests();
   }));
-  $('#flt-q').addEventListener('input', () => { state.filters.q = $('#flt-q').value; renderRequests(); });
+  $('#flt-q').addEventListener('input', () => {
+    state.filters.q = $('#flt-q').value;
+    renderRequests();
+    // exact radio-ID entry ("R-031", "r031") flies the map to the card and opens its popup
+    const m = /^r-?([0-9a-z]{2,3})$/i.exec(state.filters.q.trim());
+    if (m) {
+      const want = `R-${m[1].toUpperCase().padStart(3, '0')}`;
+      const hit = allRequests().find((r) => shortId(r.id) === want);
+      if (hit && Number.isFinite(hit.lat)) {
+        state.map.setView([hit.lat, hit.lon], 12);
+        const mk = state.reqMarkers[hit.id];
+        if (mk) mk.openPopup();
+        if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  });
   $('#flt-sort').addEventListener('change', () => { state.sort = $('#flt-sort').value; renderRequests(); });
   $('#flt-alert-sev').addEventListener('change', renderAlertList);
   $('#flt-alert-q').addEventListener('input', renderAlertList);
@@ -1965,6 +1980,13 @@ async function boot() {
 
   $('#flt-aged').addEventListener('click', () => { state.showAged = !state.showAged; renderRequests(); });
   $('#req-filters').hidden = localStorage.getItem('respondertx.filtersOpen') !== '1';
+  $('#find-id').addEventListener('click', () => {
+    $('#req-filters').hidden = false;
+    const q = $('#flt-q');
+    q.placeholder = 'Type a radio ID — R-031';
+    q.focus();
+    q.select();
+  });
   $('#filters-toggle').addEventListener('click', () => {
     const open = $('#req-filters').hidden;
     $('#req-filters').hidden = !open;

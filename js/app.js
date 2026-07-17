@@ -44,6 +44,7 @@ const LS_KEY = 'respondertx.store.v1';
 const state = {
   map: null,
   baseLayers: {},
+  activeBase: null,
   layers: {},
   seedRequests: [],
   store: { added: [], overrides: {} },
@@ -119,13 +120,30 @@ function fmtWhen(iso) {
 
 /* ---------- theme ---------- */
 
+// boost variant tracks the surface under it: dark CARTO base gets light-on-dark labels, light/streets get dark-on-light
+function labelBoostVariant() {
+  return (state.activeBase || document.documentElement.getAttribute('data-theme')) === 'dark' ? 'dark' : 'light';
+}
+function labelBoostUrl() {
+  return `https://{s}.basemaps.cartocdn.com/${labelBoostVariant()}_only_labels/{z}/{x}/{y}{r}.png`;
+}
+function syncLabelBoost() {
+  state.layers.labelBoost.setUrl(labelBoostUrl());
+  state.map.getPane('labels').classList.toggle('boost-dark', labelBoostVariant() === 'dark');
+}
+
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('respondertx.theme', theme);
   $('#theme-toggle').textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
   if (state.map) {
-    Object.values(state.baseLayers).forEach((l) => state.map.removeLayer(l));
-    state.baseLayers[theme].addTo(state.map);
+    // Streets base is theme-neutral: keep it in place, theme then only affects UI chrome
+    if (state.activeBase !== 'streets' && state.activeBase !== theme) {
+      Object.values(state.baseLayers).forEach((l) => state.map.removeLayer(l));
+      state.baseLayers[theme].addTo(state.map);
+      state.activeBase = theme;
+    }
+    syncLabelBoost();
   }
 }
 
@@ -136,6 +154,13 @@ function initMap() {
   const attrib = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
   state.baseLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
   state.baseLayers.light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
+  state.baseLayers.streets = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19 });
+
+  // label boost pane: above radar tiles (200) and alert polygons (400), below markers (600)
+  state.map.createPane('labels');
+  state.map.getPane('labels').style.zIndex = 450;
+  state.map.getPane('labels').style.pointerEvents = 'none';
+  state.layers.labelBoost = L.tileLayer(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
 
   const bustSrc = (url) => url + '?_=' + Math.floor(Date.now() / 300000);
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
@@ -159,6 +184,19 @@ function initMap() {
     stopRadarPlay();
   });
 
+  state.map.on('baselayerchange', (e) => {
+    state.activeBase = e.layer === state.baseLayers.streets ? 'streets'
+      : e.layer === state.baseLayers.light ? 'light' : 'dark';
+    // picking a CARTO base re-syncs the UI theme; Streets leaves the theme untouched
+    if (state.activeBase !== 'streets' && state.activeBase !== document.documentElement.getAttribute('data-theme')) applyTheme(state.activeBase);
+    else syncLabelBoost();
+  });
+  // set activeBase directly: the layer control (which fires baselayerchange) is not built yet
+  if (new URLSearchParams(location.search).get('base') === 'osm') {
+    state.activeBase = 'streets';
+    state.baseLayers.streets.addTo(state.map);
+  }
+
   state.layers.alerts = L.layerGroup().addTo(state.map);
   state.layers.gauges = L.layerGroup().addTo(state.map);
   state.layers.fcstMax = L.layerGroup().addTo(state.map);
@@ -170,7 +208,12 @@ function initMap() {
   state.layers.lsrsAged = L.layerGroup(); // history layer — off by default, toggle in layer control
   state.layers.requests = L.layerGroup().addTo(state.map);
   state.layers.shelters = L.layerGroup().addTo(state.map);
-  L.control.layers(null, {
+  L.control.layers({
+    'Dark (CARTO)': state.baseLayers.dark,
+    'Light (CARTO)': state.baseLayers.light,
+    'Streets (OSM)': state.baseLayers.streets,
+  }, {
+    'Place labels (boost)': state.layers.labelBoost,
     'Radar scrub (-1h → +30m)': state.layers.radar,
     'Rainfall 1h (MRMS)': state.layers.mrms1h,
     'Rainfall 24h (MRMS)': state.layers.mrms24h,

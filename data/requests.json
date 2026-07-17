@@ -3,6 +3,24 @@
  "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
  "requests": [
   {
+   "id": "seed-038",
+   "ts": "2026-07-17T22:19:02Z",
+   "type": "info",
+   "priority": "high",
+   "status": "open",
+   "county": "Regional",
+   "place": "Texas Hill Country \u2014 regional",
+   "lat": 30.05,
+   "lon": -99.14,
+   "summary": "FLASH FLOOD EMERGENCY PHASE ENDED ~5:15 PM: no active TX flash-flood emergencies for the first time in this event \u2014 board shifts to ANTICIPATION + RECOVERY posture",
+   "details": "The last catastrophic-tagged emergency (Ozona/Crockett Co) expired at 5:15 PM CT and was not renewed; the only remaining TX flash flood warning is a base-level one near El Paso, outside this event. Threat now is downstream/forecast, not immediate: Asherton crest ~30 ft MAJOR Sat evening (still below the 1935 record), lower-Frio wave to Derby overnight and Tilden Mon. Stay out of receding rivers and off flooded crossings during recovery.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS active alerts",
+    "url": "https://www.weather.gov/ewx/"
+   }
+  },
+  {
    "id": "seed-037",
    "ts": "2026-07-17T17:58:25Z",
    "type": "evacuation",

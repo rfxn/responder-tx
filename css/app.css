@@ -530,6 +530,40 @@ main { flex: 1; display: flex; min-height: 0; }
 .record-line.near { color: var(--cat-major); font-weight: 600; }
 .record-line.at { color: var(--sev-emergency); }
 
+/* Drive Mode — big type, high contrast, one-thumb; overrides theme to dark for glare */
+#drive-mode {
+  position: fixed; inset: 0; z-index: 1600; background: #0c0c0b; color: #fff;
+  display: flex; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+#drive-mode[hidden] { display: none; }
+.drive-head {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  border-bottom: 1px solid #2c2c2a; position: sticky; top: 0; background: #0c0c0b; z-index: 2;
+}
+.drive-title { font-size: 17px; font-weight: 800; flex: 1 1 auto; letter-spacing: 0.02em; }
+.drive-head button { font-size: 16px; padding: 10px 16px; background: #222221; color: #fff; border: 1px solid #3a3a37; border-radius: 8px; min-height: 48px; }
+#drive-exit { background: #3987e5; border-color: #3987e5; }
+#drive-threat { padding: 6px 14px; }
+.dt-emerg { background: #2a1414; border: 2px solid #d03b3b; color: #ff6b6b; font-size: 19px; font-weight: 800; padding: 12px 14px; border-radius: 10px; margin: 8px 0; line-height: 1.3; }
+.dt-crest { color: #c9a0ff; font-size: 17px; font-weight: 700; padding: 6px 2px; }
+.dt-nogps { color: #b9b8b1; font-size: 16px; padding: 10px 2px; }
+#drive-list { padding: 4px 10px 10px; flex: 1 1 auto; }
+.drive-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 16px 14px; margin: 8px 0; background: #1a1a19; border: 1px solid #2c2c2a;
+  border-radius: 12px; color: #fff; min-height: 64px;
+}
+.drive-row:active { background: #262625; }
+.d-glyph { font-size: 30px; flex: 0 0 auto; width: 38px; text-align: center; }
+.d-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.d-name { font-size: 18px; font-weight: 700; line-height: 1.25; }
+.d-sub { font-size: 14px; color: #b9b8b1; }
+.d-dist { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; flex: 0 0 auto; text-align: right; color: #fff; }
+.drive-911 {
+  position: sticky; bottom: 0; background: #1a0e0e; border-top: 2px solid #d03b3b;
+  color: #ff8080; font-size: 15px; font-weight: 700; text-align: center; padding: 12px 14px; line-height: 1.35;
+}
+
 .crossing-icon {
   width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid;
   background: var(--surface-1); display: flex; align-items: center; justify-content: center;

@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.61.0 — 2026-07-17 (next-wave W5: Drive Mode)
+- NEW 🚗 Drive Mode (header button or ?view=drive): a full-screen, big-type, high-contrast glance list built for the truck — nearest hazards (closed/caution crossings, critical life-safety + road notices, MAJOR gauges) ranked by distance + compass bearing from your GPS, with the active FF-emergency banner and next-major-crest countdown on top
+- Auto-refreshes with the board's 3-min cycle; tap any row to exit and fly the map there; ⌖ Locate ranks by distance; sticky "Turn Around, Don't Drown — never enter flooded roads" + 911 line always visible
+- No GPS needed to open — falls back to severity ranking and prompts to locate; degrades cleanly when no hazards are mapped
 ## v0.60.0 — 2026-07-17 (next-wave W4: low-water crossing inventory)
 - NEW low-water crossing tracker — the operational currency of flood SAR: curator-maintained data/crossings.json (closed/caution/long-term, reason, updated-at, cited source) renders as a color-coded map layer AND a Resources-tab list; each entry stamps its update time and flips to "stale — reverify" after 12h
 - Every entry carries "verify before routing" and links to TxDOT DriveTexas as the authoritative statewide closure map — the board never claims a crossing is safe

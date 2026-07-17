@@ -97,8 +97,9 @@ record-crest + downstream-wave + east-recovery phase):
 - ~~**W4. Low-water crossing inventory + layer**~~ — SHIPPED v0.60.0
   (data/crossings.json curator file → color-coded map layer + Resources list;
   update-stamped, stale-after-12h, verify-before-routing + DriveTexas link).
-- **W5. Drive Mode ?view=drive** — one-thumb huge-type nearest-threats glance
-  list (truck/gloves/glare). Cost M. new view region. 911 line stays. **[views]**
+- ~~**W5. Drive Mode ?view=drive**~~ — SHIPPED v0.61.0 (full-screen big-type
+  nearest-hazards list ranked by distance+bearing; crossings/life-safety/major
+  gauges; sticky 911/Turn-Around-Don't-Drown; tap-to-fly).
 - **W6. Full-screen hydrograph** — tap sparkline → big chart w/ flood bands +
   forecast trace + record line. Cost S/M. drawSparkline extract + modal. **[ux]**
 - **W7. Per-item share** (gauge/alert/card focus= deep links + Web Share). S. **[ux]**

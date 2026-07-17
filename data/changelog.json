@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.61.0",
+      "date": "2026-07-17",
+      "line": "NEW 🚗 Drive Mode: full-screen big-type nearest-hazards glance list (crossings, life-safety notices, MAJOR gauges) ranked by distance + bearing from your GPS — built for the truck; tap a row to fly there"
+    },
+    {
       "v": "v0.60.0",
       "date": "2026-07-17",
       "line": "NEW low-water crossing tracker: curator-maintained closed/caution crossings as a color-coded map layer + Resources list, each stamped with update time (stale after 12h) and 'verify before routing' + DriveTexas link"

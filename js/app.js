@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.60.0';
+const APP_VERSION = 'v0.61.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -309,6 +309,7 @@ function initMap() {
     ]).addTo(state.map);
     state.map.setView(e.latlng, Math.max(state.map.getZoom(), 12));
     renderRequests();
+    renderDriveMode(); // re-rank the glance list by the new fix
   });
   state.map.on('locationerror', () => {
     gpsWait(false);
@@ -1037,6 +1038,67 @@ function renderWave() {
   el.querySelectorAll('.wave-row').forEach((b) => b.addEventListener('click', () => {
     const g = state.gauges.find((x) => x.lid === b.dataset.lid);
     if (g) focusGauge(g);
+  }));
+}
+
+/* ---------- Drive Mode: big-type nearest-hazards glance list ---------- */
+
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+function bearing(fromLat, fromLon, toLat, toLon) {
+  const toR = Math.PI / 180;
+  const dLon = (toLon - fromLon) * toR;
+  const y = Math.sin(dLon) * Math.cos(toLat * toR);
+  const x = Math.cos(fromLat * toR) * Math.sin(toLat * toR) - Math.sin(fromLat * toR) * Math.cos(toLat * toR) * Math.cos(dLon);
+  return COMPASS[Math.round((((Math.atan2(y, x) / toR) + 360) % 360) / 45) % 8];
+}
+
+// hazards a driver cares about: closed/caution crossings, life-safety + road/cutoff notices, major/rising gauges
+function driveItems() {
+  const items = [];
+  for (const c of (state.crossings || [])) {
+    if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) continue;
+    const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
+    if (c.status === 'open') continue;
+    items.push({ glyph: st.glyph, color: st.color, name: c.name, sub: `${st.label} crossing`, lat: c.lat, lon: c.lon, rank: c.status === 'closed' ? 0 : 2 });
+  }
+  for (const r of activeRequests().filter((x) => x.status !== 'resolved')) {
+    if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
+    if (!LIFE_SAFETY_TYPES.includes(r.type) && r.type !== 'road') continue;
+    items.push({ glyph: TYPE_GLYPH[r.type] || '📍', color: r.priority === 'critical' ? 'var(--sev-emergency)' : 'var(--sev-warning)', name: r.summary, sub: `${r.type} · ${r.place}`, lat: r.lat, lon: r.lon, rank: r.priority === 'critical' ? 0 : 1 });
+  }
+  for (const g of state.gauges.filter((x) => gaugeCat(x) === 'major' || (gaugeRising(x) && gaugeForecastCat(x) === 'major'))) {
+    items.push({ glyph: '●', color: 'var(--cat-major)', name: g.name, sub: gaugeCat(g) === 'major' ? 'MAJOR flood now' : 'rising to MAJOR', lat: g.latitude, lon: g.longitude, rank: 1 });
+  }
+  const p = state.myPos;
+  if (p) {
+    for (const it of items) { it.dist = distMi(p.lat, p.lng, it.lat, it.lon); it.brng = bearing(p.lat, p.lng, it.lat, it.lon); }
+    items.sort((a, b) => a.dist - b.dist);
+  } else {
+    items.sort((a, b) => a.rank - b.rank);
+  }
+  return items.slice(0, 14);
+}
+
+function renderDriveMode() {
+  if ($('#drive-mode').hidden) return;
+  const emerg = state.alerts.filter((a) => a._sev === 'emergency');
+  const soonest = state.gauges
+    .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.moderate && new Date(g.status.forecast.validTime) > new Date())
+    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
+  $('#drive-threat').innerHTML =
+    (emerg.length ? `<div class="dt-emerg">⚠ ${emerg.length} FLASH FLOOD EMERGENCY — ${esc(emerg.map((a) => a.properties.areaDesc).join('; '))}</div>` : '') +
+    (soonest ? `<div class="dt-crest">▲ Next major crest — ${esc(riverOf(soonest.name))} ${esc(fmtWhen(soonest.status.forecast.validTime))}</div>` : '') +
+    (state.myPos ? '' : '<div class="dt-nogps">Tap ⌖ Locate to rank hazards by distance from you</div>');
+  const items = driveItems();
+  $('#drive-list').innerHTML = items.length ? items.map((it) => {
+    const distBit = it.dist != null ? `<span class="d-dist">${it.dist.toFixed(1)} mi ${it.brng}</span>` : '';
+    return `<button class="drive-row" data-lat="${it.lat}" data-lon="${it.lon}">` +
+      `<span class="d-glyph" style="color:${it.color}">${it.glyph}</span>` +
+      `<span class="d-body"><span class="d-name">${esc(it.name)}</span><span class="d-sub">${esc(it.sub)}</span></span>${distBit}</button>`;
+  }).join('') : '<div class="dt-nogps">No mapped hazards right now — stay alert, verify roads.</div>';
+  $('#drive-list').querySelectorAll('.drive-row').forEach((b) => b.addEventListener('click', () => {
+    $('#drive-mode').hidden = true;
+    state.map.setView([+b.dataset.lat, +b.dataset.lon], 13);
   }));
 }
 
@@ -1784,6 +1846,7 @@ function renderTicker() {
 function renderTiles() {
   renderThreatStrip();
   renderTicker();
+  renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
   const emergencies = state.alerts.filter((a) => a._sev === 'emergency').length;
   const warnings = state.alerts.filter((a) => a._sev === 'warning').length;
   const inFlood = state.gauges.filter((g) => FLOOD_CATS.includes(gaugeCat(g)));
@@ -2074,6 +2137,10 @@ async function boot() {
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
   $('#refresh-now').addEventListener('click', refresh);
   $('#share-btn').addEventListener('click', (e) => shareView(e.target));
+  const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } renderDriveMode(); };
+  $('#drive-btn').addEventListener('click', enterDrive);
+  $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; });
+  $('#drive-loc').addEventListener('click', () => { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });
   $('#update-chip').addEventListener('click', () => location.reload());
   $('#data-age-bar').addEventListener('click', (e) => {
     if (!e.target.closest('.age-bar-x')) return;
@@ -2222,6 +2289,7 @@ async function boot() {
   }
   applyShareParams(new URLSearchParams(location.search)); // URL share-params win for this load
   state.viewReady = true;
+  if (new URLSearchParams(location.search).get('view') === 'drive') $('#drive-btn').click();
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
   state.bootAt = Date.now();

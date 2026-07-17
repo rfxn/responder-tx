@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.45.0';
+const APP_VERSION = 'v0.46.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1638,20 +1638,22 @@ async function refresh() {
   // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
   const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
   const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds()]);
+  const SOURCE_NAMES = ['NWS alerts', 'NWPS gauges', 'RFC forecast', 'USGS stage', 'storm reports', 'board data'];
   const failed = results.filter((r) => r.status === 'rejected');
+  const failedNames = results.map((r, i) => (r.status === 'rejected' ? SOURCE_NAMES[i] : null)).filter(Boolean).join(', ');
   state.refreshAt = Date.now() + CONFIG.refreshMs;
   if (failed.length && (!state.alerts.length || !state.gauges.length)) {
     const hydrated = hydrateFromCache();
     const snapped = await hydrateGaugesSnapshot();
     renderSourceHealth();
-    if (!hydrated && !snapped) $('#refresh-note').textContent = `degraded: ${failed.map((f) => f.reason.message).join('; ')}`;
+    if (!hydrated && !snapped) $('#refresh-note').textContent = `degraded: ${failedNames}`;
     return;
   }
   if (!failed.length) saveCache();
   renderSourceHealth();
   checkAppVersion();
   $('#refresh-note').textContent = failed.length
-    ? `degraded: ${failed.map((f) => f.reason.message).join('; ')}`
+    ? `degraded: ${failedNames}`
     : `updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
 }
 
@@ -1713,19 +1715,26 @@ function renderDataAgeBar() {
   const gaugesAge = state.sourceHealth.gauges ? (Date.now() - state.sourceHealth.gauges) / 60000 : Infinity;
   const usgsOn = autoUsgsFallback(gaugesAge > 15);
   if (worst.age < 7.5) { el.hidden = true; return; }
-  el.hidden = false;
-  el.className = worst.age > 15 ? 'red' : 'amber';
   const label = worst.k === 'gauges' ? 'GAUGE' : 'ALERT';
   const usgsNote = usgsOn ? ' · USGS raw-stage fallback ON (no flood categories)' : '';
+  let cls, text;
   if (worst.k === 'gauges' && state.snapshotAt) {
     const snapAge = Math.round((Date.now() - state.snapshotAt) / 60000);
-    el.className = snapAge > 30 ? 'red' : 'amber';
-    el.textContent = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD — live NWPS feed failing${usgsNote}`;
-    return;
+    if (snapAge < 30) { el.hidden = true; return; } // owner: a fresh snapshot is a working state, not a warning
+    cls = snapAge >= 60 ? 'red' : 'amber';
+    text = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD — live NWPS feed failing${usgsNote}`;
+  } else {
+    cls = worst.age > 15 ? 'red' : 'amber';
+    text = (worst.age === Infinity
+      ? `⚠ ${label} DATA NEVER LOADED — numbers on this board exclude it`
+      : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD — refresh failing; treat as stale`) + (worst.k === 'gauges' ? usgsNote : '');
   }
-  el.textContent = (worst.age === Infinity
-    ? `⚠ ${label} DATA NEVER LOADED — numbers on this board exclude it`
-    : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD — refresh failing; treat as stale`) + (worst.k === 'gauges' ? usgsNote : '');
+  const key = `${worst.k}|${cls}`; // dismissal holds until the failing source or severity changes
+  if (sessionStorage.getItem('respondertx.ageBarDismiss') === key) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = cls;
+  el.dataset.key = key;
+  el.innerHTML = `<span>${esc(text)}</span><button class="age-bar-x" title="Dismiss until this changes">✕</button>`;
 }
 
 /* ---------- in-app changelog ---------- */
@@ -1785,6 +1794,19 @@ async function boot() {
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
   $('#refresh-now').addEventListener('click', refresh);
   $('#update-chip').addEventListener('click', () => location.reload());
+  $('#data-age-bar').addEventListener('click', (e) => {
+    if (!e.target.closest('.age-bar-x')) return;
+    sessionStorage.setItem('respondertx.ageBarDismiss', $('#data-age-bar').dataset.key || '');
+    $('#data-age-bar').hidden = true;
+  });
+  // one-time safety acknowledgment (persisted) — the footer 911 disclaimer stays regardless
+  if (!localStorage.getItem('respondertx.safetyAck')) {
+    $('#safety-modal').hidden = false;
+    $('#safety-ack').addEventListener('click', () => {
+      localStorage.setItem('respondertx.safetyAck', '1');
+      $('#safety-modal').hidden = true;
+    });
+  }
   $('#toggle-form').addEventListener('click', () => $('#new-request-form').classList.toggle('open'));
   $('#f-geocode').addEventListener('click', geocodePlace);
   $('#new-request-form').addEventListener('submit', submitRequest);

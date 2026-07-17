@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.46.0 — 2026-07-17 (owner directives: calmer fallback warnings + one-time safety modal)
+- Snapshot fallback is no longer alarmist: the "GAUGES FROM SNAPSHOT" bar now appears only when the snapshot is ≥30 min old (a fresh snapshot is a working state, not a warning); amber 30-60 min, red beyond
+- The data-age warning bar is now dismissable (✕) on desktop and mobile — dismissal holds until the failing source or severity changes, so escalations still break through
+- One-time safety modal on first visit (persisted): life-threatening-emergency → 911 text with strong "DO NOT SELF-DEPLOY into warned or flooded areas" emphasis and an explicit acknowledge button; the always-on footer disclaimer is unchanged
+- Header degraded note now names the failing feed ("degraded: NWPS gauges, storm reports") instead of a bare "Failed to fetch"
 ## v0.45.0 — 2026-07-17 (Field Notes — community + responder annotation board)
 - NEW 📍 Field Notes flyout (agent-built): chronological annotation board over the map — right-side panel on desktop, full-width bottom sheet on phones; teal "📍 Notes" button stacks above the map legend
 - Three note kinds: pinned map notes (drop-pin mode → tap the map → mini-compose with info/hazard/road/water-level/photo-worthy category), flat comment threads on any note, and general no-location board posts

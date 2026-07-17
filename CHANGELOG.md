@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.50.0 — 2026-07-17 (12:38 cycle: MRMS rainfall legend)
+- Rainfall layers finally carry a scale: turning on MRMS 1h/24h shows a color-ramp legend on the map (blue→cyan→green→yellow→orange→red, endpoints sampled from the live IEM q2 tiles) labeled light→extreme; title tracks which accumulation window is active; hides when the layers go off
+- Labels stay qualitative on purpose — IEM does not publish the inch-value breakpoints for this ramp, and inventing numbers would be dishonest; warmer = heavier is the field read
 ## v0.49.0 — 2026-07-17 (12:23 cycle: typed-coordinate intake)
 - The intake form's lat/lon field is now editable (was readonly): type radio-relayed decimal coords ("29.2810, -99.7862"), they parse/validate, drop the pin, and pan the map — bad input says so instead of silently failing; map-click and 🔎 geocode unchanged
 - Phones scroll the map into view when the intake form opens — the pin-drop target is on screen instead of below the fold

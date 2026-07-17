@@ -512,6 +512,20 @@ main { flex: 1; display: flex; min-height: 0; }
 
 .locate-btn { font-size: 18px; }
 
+/* ramp endpoints sampled from live IEM q2 tiles (continuous HSV: blue→cyan→green→yellow→orange→red) */
+#mrms-legend {
+  position: absolute; bottom: 26px; right: 84px; z-index: 900; /* clear of the chat FAB corner */
+  background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
+  padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+#mrms-legend[hidden] { display: none; }
+#mrms-legend-title { font-size: 11px; font-weight: 700; color: var(--ink-2); display: block; margin-bottom: 4px; }
+.mrms-ramp {
+  height: 10px; border-radius: 3px;
+  background: linear-gradient(90deg, #0006ff, #00d8ff, #00fe00, #e4fe00, #ff9e00, #ff0000, #ff00c8);
+}
+.mrms-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-muted); margin-top: 2px; }
+
 /* AO quick-jump — pills along the map top edge next to the nav bar */
 .ao-jump {
   position: absolute; top: 10px; left: 54px; right: 56px; z-index: 1000;

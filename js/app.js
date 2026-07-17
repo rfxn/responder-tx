@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.49.0';
+const APP_VERSION = 'v0.50.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -179,12 +179,19 @@ function initMap() {
     state.layers.mrms24h.setUrl(bustSrc(CONFIG.mrms24hUrl));
     if (state.map.hasLayer(state.layers.radar)) fetchRadarFrames().catch(() => { /* keep last frames */ });
   };
+  const updateMrmsLegend = () => {
+    const on1 = state.map.hasLayer(state.layers.mrms1h), on24 = state.map.hasLayer(state.layers.mrms24h);
+    $('#mrms-legend').hidden = !(on1 || on24);
+    if (on1 || on24) $('#mrms-legend-title').textContent = `Rainfall accumulation ${on1 && on24 ? '1h + 24h' : on1 ? '1h' : '24h'} (MRMS)`;
+  };
   state.map.on('overlayadd', (e) => {
+    if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = false;
     fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
   });
   state.map.on('overlayremove', (e) => {
+    if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = true;
     stopRadarPlay();

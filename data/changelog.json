@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.41.0",
+      "date": "2026-07-17",
+      "line": "NEW Gauges tab (rising \u2192 in-flood \u2192 falling buckets, by-river grouping, crest timing) + scrolling actionable ticker; fresh-load 'NEVER LOADED' flash fixed (instant snapshot hydration); Ozona extended 2:15 PM; Frio/Llano MAJOR crest cards"
+    },
+    {
       "v": "v0.40.0",
       "date": "2026-07-17",
       "line": "Radar suppression FIXED \u2014 frames were being painted over by the Streets base (z-index bug); radar now lives in its own pane above every base; opacity 0.75; past crests dropped from the next-crest chip"

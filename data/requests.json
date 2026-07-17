@@ -3,8 +3,44 @@
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
+      "id": "seed-036",
+      "ts": "2026-07-17T16:16:00Z",
+      "type": "evacuation",
+      "priority": "critical",
+      "status": "open",
+      "county": "Kimble",
+      "place": "Junction \u2014 Llano River",
+      "lat": 30.4894,
+      "lon": -99.772,
+      "summary": "Llano River near Junction rising to MAJOR \u2014 forecast crest ~31.3 ft around noon CT; low-lying areas near the river should move now",
+      "details": "NWPS JNCT2: observed 28.7 moderate rising, forecast 31.3 major ~12:00 PM CT. Same westward round as Sonora/Ozona. RV parks and river-adjacent structures at Junction historically impacted at these stages.",
+      "source": {
+        "platform": "official",
+        "handle": "NOAA NWPS",
+        "url": "https://water.noaa.gov/gauges/JNCT2"
+      }
+    },
+    {
+      "id": "seed-035",
+      "ts": "2026-07-17T16:16:00Z",
+      "type": "evacuation",
+      "priority": "critical",
+      "status": "open",
+      "county": "Uvalde",
+      "place": "Concan / Garner State Park corridor \u2014 Frio River",
+      "lat": 29.4886,
+      "lon": -99.7042,
+      "summary": "Frio River at Concan crested MAJOR (~15.4 ft) \u2014 Garner State Park corridor flooding; avoid river crossings, campground/low-water areas dangerous",
+      "details": "NWPS CONT2-area gauge: observed 12.76 moderate and peaking ~15.4 major around 11 AM CT. Westward storm round now flooding the upper Frio. Verify park/campground status before any routing.",
+      "source": {
+        "platform": "official",
+        "handle": "NOAA NWPS",
+        "url": "https://water.noaa.gov/gauges/CONT2"
+      }
+    },
+    {
       "id": "seed-034",
-      "ts": "2026-07-17T14:29:00Z",
+      "ts": "2026-07-17T16:16:00Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -12,8 +48,8 @@
       "place": "Ozona and surrounding areas \u2014 east-central Crockett County",
       "lat": 30.7102,
       "lon": -101.206,
-      "summary": "NEW FLASH FLOOD EMERGENCY: Ozona (Crockett Co.) \u2014 PARTICULARLY DANGEROUS SITUATION, seek higher ground NOW; 2-5.5 in fallen, 1.5-3.5 more possible; flash flooding already occurring",
-      "details": "NWS San Angelo FFW with emergency wording sent 8:45 AM CT, through 11:45 AM CT. Second westward-shift emergency after Sonora (7:12 AM, expires 10:15). Emergency management reports flash flooding in progress. Johnson Draw runs through Ozona \u2014 historic 1954 flood killed 16 there; treat draws as lethal.",
+      "summary": "FLASH FLOOD EMERGENCY EXTENDED: Ozona/Crockett Co through 2:15 PM CT \u2014 flash flooding ongoing; second extension of the westward round",
+      "details": "NWS San Angelo extended the Crockett Co emergency-worded warning to 2:15 PM (prior 11:45). Sutton/Sonora emergency runs to 1:15 PM. Johnson Draw caution stands.",
       "source": {
         "platform": "official",
         "handle": "NWS San Angelo via api.weather.gov",

@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.41.0 — 2026-07-17 (Gauges tab + ticker + fresh-load honesty fix)
+- NEW Gauges tab (agent-built, merged): monitored gauges bucketed by actionability — ▲ RISING (soonest crest first) → ● IN FLOOD NOW → ▼ FALLING, normal gauges collapsed; "By priority / By river" grouping (NWPS carries no county field); cards show obs+category, trend ft/hr, forecast crest with timing, NWPS link; tap flies the map and opens the gauge popup; red tab badge on majors
+- NEW actionable ticker under the header: recency-biased marquee of FF-emergency countdowns, rising-to-flood crests (category-colored), MAJOR holds, fresh storm reports, newest critical notice; pauses on touch, honors reduced-motion, every segment tap-navigates; becomes the phone's glance surface
+- Fix (owner report): fresh loads flashed "GAUGE DATA NEVER LOADED" — snapshot now hydrates immediately at boot (live fetch overwrites), snapshot state clears on live recovery, and the staleness bar gets a 25s boot grace
+- Data: Ozona/Crockett emergency EXTENDED to 2:15 PM; NEW critical cards — Frio at Concan crested MAJOR (~15.4 ft, Garner corridor) and Llano near Junction rising to MAJOR (~31.3 ft ~noon); westward round now flooding the Frio/Llano
 ## v0.40.0 — 2026-07-17 (radar suppression fix)
 - Fix (owner report, agent root-caused): radar frames were painted OVER by the Streets base — the layers control auto-assigns base z-indexes (Streets=3) while late-created radar frame layers defaulted to z-index 1 in the same pane; dark base only worked by DOM-order luck. Radar now renders in a dedicated pane (z-350: above every base, below alert polys and boosted labels); crossfade opacity 0.75; color schemes tested and proven pixel-identical (kept 2); ?rf=N scrub deep-link; frame advance verified by pixel diff
 - Fix: "next crest" chip no longer shows crests already past

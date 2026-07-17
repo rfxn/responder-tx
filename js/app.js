@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.40.0';
+const APP_VERSION = 'v0.41.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -516,6 +516,7 @@ async function fetchGauges() {
     return c && !['out_of_service', 'obs_not_current', 'not_defined'].includes(c);
   });
   markHealthy('gauges');
+  state.snapshotAt = null; // live feed recovered — snapshot semantics no longer apply
   recordTrends();
   renderGauges();
   renderGaugesTab();
@@ -1642,6 +1643,8 @@ function renderDataAgeBar() {
   const worst = ['gauges', 'alerts']
     .map((k) => ({ k, age: state.sourceHealth[k] ? (Date.now() - state.sourceHealth[k]) / 60000 : Infinity }))
     .sort((a, b) => b.age - a.age)[0];
+  // boot grace: don't flash "NEVER LOADED" while the first fetch round is still in flight
+  if (worst.age === Infinity && state.bootAt && Date.now() - state.bootAt < 25000) { el.hidden = true; return; }
   const gaugesAge = state.sourceHealth.gauges ? (Date.now() - state.sourceHealth.gauges) / 60000 : Infinity;
   const usgsOn = autoUsgsFallback(gaugesAge > 15);
   if (worst.age < 7.5) { el.hidden = true; return; }
@@ -1804,6 +1807,9 @@ async function boot() {
     if (btn) btn.click();
   }
 
+  // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
+  state.bootAt = Date.now();
+  hydrateGaugesSnapshot();
   const ok = await loadSeeds();
   if (!ok) {
     $('#request-list').innerHTML = '<div class="card">Failed to load seed data. Serve over HTTP (see README), not file://.</div>';

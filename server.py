@@ -10,6 +10,18 @@ INBOX = os.path.join(ROOT, 'data', 'chat-inbox.jsonl')
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # LAN-only capability beacon: app.js loads the chat UI only when this answers
+        if self.path == '/api/ping':
+            body = b'{"ok": true, "chat": true}'
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
+
     def do_POST(self):
         if self.path != '/api/chat':
             self.send_error(404)

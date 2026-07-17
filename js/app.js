@@ -18,7 +18,6 @@ const CONFIG = {
   agedCardMins: 1440,
   agedLsrMins: 180,
   histDays: 7,
-  chatPollMs: 30000,
   lsrHours: 12,
   lsrUrl: 'https://mesonet.agron.iastate.edu/geojson/lsr.geojson',
   radarUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
@@ -66,9 +65,6 @@ const state = {
   showAged: false,
   showAgedLsrs: false,
   showAlertHist: false,
-  chatOpen: false,
-  chatMsgs: [],
-  chatSeen: 0,
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };
@@ -1163,7 +1159,6 @@ async function refresh() {
   }
   if (!failed.length) saveCache();
   renderSourceHealth();
-  loadChat(); // piggyback: badge stays live without a dedicated closed-panel poll
   $('#refresh-note').textContent = failed.length
     ? `degraded: ${failed.map((f) => f.reason.message).join('; ')}`
     : `updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
@@ -1222,71 +1217,6 @@ async function openChangelog() {
       `<div class="chg-row"><span class="chg-v">${esc(v.v)}</span><span class="chg-line">${esc(v.line)}</span></div>`).join('');
     body.dataset.loaded = '1';
   } catch { body.textContent = 'Changelog unavailable.'; }
-}
-
-/* ---------- ops chat — feeds the live Claude session (server.py inbox / session-written outbox) ---------- */
-
-async function loadChat() {
-  const bust = `?_=${Date.now()}`;
-  const msgs = [];
-  try {
-    const out = await fetch(`data/chat-outbox.json${bust}`).then((r) => (r.ok ? r.json() : null));
-    if (out) msgs.push(...(out.messages || []));
-  } catch { /* outbox missing — session has not written yet */ }
-  try {
-    const res = await fetch(`data/chat-inbox.jsonl${bust}`);
-    if (res.ok) {
-      for (const line of (await res.text()).split('\n')) {
-        if (!line.trim()) continue;
-        try { msgs.push(JSON.parse(line)); } catch { /* skip malformed line */ }
-      }
-    }
-  } catch { /* inbox unreadable — panel just shows outbox */ }
-  msgs.sort((a, b) => new Date(a.ts) - new Date(b.ts));
-  state.chatMsgs = msgs;
-  renderChat();
-}
-
-function renderChat() {
-  const unseen = state.chatMsgs.filter((m) => m.role !== 'user' && new Date(m.ts).getTime() > state.chatSeen).length;
-  const badge = $('#chat-unread');
-  badge.hidden = !unseen || state.chatOpen;
-  badge.textContent = unseen;
-  if (!state.chatOpen) return;
-  const el = $('#chat-msgs');
-  const atBottom = !el.childElementCount || el.scrollHeight - el.scrollTop - el.clientHeight < 60;
-  el.innerHTML = state.chatMsgs.map((m) => (m.role === 'action'
-    ? `<div class="chat-action">⚙ ${esc(m.text)} <span class="chat-ts">${esc(fmtWhen(m.ts).split(' · ')[0])}</span></div>`
-    : `<div class="chat-msg ${m.role === 'user' ? 'from-user' : 'from-claude'}"><div class="chat-bubble">${esc(m.text)}</div>` +
-      `<div class="chat-ts">${m.role === 'user' ? 'you' : 'claude'} · ${esc(fmtWhen(m.ts))}</div></div>`)).join('')
-    || '<div class="chat-action">No messages yet — ask a question or redirect the session; it checks the inbox every ~5 min.</div>';
-  if (atBottom) el.scrollTop = el.scrollHeight;
-  const latest = state.chatMsgs.filter((m) => m.role !== 'user').map((m) => new Date(m.ts).getTime());
-  if (latest.length) {
-    state.chatSeen = Math.max(state.chatSeen, ...latest);
-    localStorage.setItem('respondertx.chatSeen', String(state.chatSeen));
-  }
-}
-
-async function sendChat() {
-  const inp = $('#chat-input');
-  const text = inp.value.trim();
-  if (!text) return;
-  try {
-    const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    inp.value = '';
-    state.chatMsgs.push({ ts: new Date().toISOString(), role: 'user', text });
-    renderChat();
-    $('#chat-note').textContent = 'sent ✓ — the session polls every ~5 min';
-  } catch (e) { $('#chat-note').textContent = `send unavailable (${e.message}) — read-only mirror, or LAN server down`; }
-}
-
-function toggleChat(open) {
-  state.chatOpen = open ?? !state.chatOpen;
-  $('#chat-panel').hidden = !state.chatOpen;
-  if (state.chatOpen) loadChat();
-  else renderChat();
 }
 
 /* ---------- boot ---------- */
@@ -1385,16 +1315,15 @@ async function boot() {
     if (window.innerWidth <= 768) $('#disclaimer').classList.toggle('open');
   });
 
-  state.chatSeen = +localStorage.getItem('respondertx.chatSeen') || 0;
-  $('#chat-fab').addEventListener('click', () => toggleChat());
-  $('#chat-close').addEventListener('click', () => toggleChat(false));
-  $('#chat-send').addEventListener('click', sendChat);
-  $('#chat-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
-  });
-  loadChat();
-  setInterval(() => { if (state.chatOpen && document.visibilityState === 'visible') loadChat(); }, CONFIG.chatPollMs);
-  if (new URLSearchParams(location.search).get('chat') === '1') toggleChat(true);
+  // ops chat is a LAN-only construct: UI code (js/chat.js) loads only when the
+  // local backend answers — the public mirror ships neither the file nor a route
+  fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
+    if (d && d.chat) {
+      const s = document.createElement('script');
+      s.src = 'js/chat.js';
+      document.body.appendChild(s);
+    }
+  }).catch(() => { /* no LAN backend — chat stays absent */ });
   const rainParam = new URLSearchParams(location.search).get('rain');
   if (rainParam === '1h') state.layers.mrms1h.addTo(state.map);
   else if (rainParam === '24h') state.layers.mrms24h.addTo(state.map);

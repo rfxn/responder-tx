@@ -7,6 +7,7 @@
 - Tabs modernized: never wrap (fixes desktop "Gauges/21" badge breaking to a second line) — nowrap buttons with inline-centered count badges, hidden-scrollbar horizontal overflow on narrow widths, smooth active-underline transition; red sev badge on Alerts preserved
 - Rename: app is now just "Responder TX" (header h1, page title, manifest, event config); subtitle carries the Hill Country flood context
 - Header slimmed: tighter padding, smaller KPI tiles, compact Refresh/Light controls — buys back vertical space, especially on phones (all click-through and update-chip behavior intact)
+- Gauge popup hydrograph now served from a 3-min TTL cache: closing and reopening a gauge redraws instantly instead of refetching; in-flight requests are shared and failures evict so retries still work (owner request)
 ## v0.43.0 — 2026-07-17 (nav/UX package — the researched reorg lands)
 - Top-left corner is one organized unit: zoom + locate merged into a single 3-button control bar (was two disconnected stacked boxes); 42px touch targets on phones
 - AO quick-jump chips along the map top edge: Full AO, Kerr/Guadalupe, Uvalde/Frio-Nueces, Sonora/Ozona, Cibolo corridor — one tap fits the map; collapses behind a 🗺 toggle on phones

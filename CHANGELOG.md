@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.34.0 — 2026-07-17 (cache-skew fix + parallel-agent data layers)
+- Fix: public mirror "no data" — stale edge-cached app.js (max-age 3600) paired with newer HTML crashed boot on removed elements; all local asset URLs now carry ?v=VERSION stamps (atomic HTML↔asset pairing) and `_headers` forces no-store on /data/* and no-cache on the shell
+- NEW (agent-built branch, merged): RFC forecast-crest layer — hollow rings in category colors for gauges carrying a 5-day max forecast NWPS lacks (on by default); USGS raw-stage layer — 224 in-bbox instantaneous-value sites, clustered (vendored Leaflet.markercluster v1.5.3, MIT), off by default, no fake flood categories on raw stage
+- Data: Sonora FF emergency EXTENDED to 1:15 PM CT (new emergency-worded FFW 10:06 AM); Ozona active through 11:45 AM — 3 emergency-worded warnings live
+- 404.html added (kills Pages SPA fallback — removed paths now truly 404); master-roadmap draft assembled by planning agent
 ## v0.33.0 — 2026-07-17 (reframe: notices, not requests)
 - Requests reframed as alerts/notices (owner directive): no manual status management — no "status →" cycling, no archive chore, no status filter/intake field; curator (the ops session) resolves via data updates and resolved cards auto-suppress to the aged/history layer immediately; everything else ages out on the 24h timeout as before
 - Renames: Requests tab → Feed, "Open requests" tile → "Active notices", "+ New request" → "+ New notice" (field capture keeps working), map layer → "Notices (curated + field)", SITREP "OPEN REQUESTS TOTAL" → "ACTIVE NOTICES TOTAL"

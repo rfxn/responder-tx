@@ -41,7 +41,7 @@
     },
     {
       "id": "seed-032",
-      "ts": "2026-07-17T12:28:00Z",
+      "ts": "2026-07-17T15:13:00Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -49,8 +49,8 @@
       "place": "Sonora \u2014 Sutton County (western Edwards Plateau)",
       "lat": 30.5671,
       "lon": -100.6434,
-      "summary": "NEW FLASH FLOOD EMERGENCY in and around Sonora \u2014 the westward-shifting storm round; move to high ground now, avoid all low crossings",
-      "details": "NWS FFW with emergency wording sent 7:12 AM CT, through 10:15 AM. This is the 'threat shifts west' round on saturated ground \u2014 treat Dry Devils River drainages as dangerous.",
+      "summary": "FLASH FLOOD EMERGENCY EXTENDED for Sonora \u2014 new emergency-worded warning through 1:15 PM CT; continued dangerous flooding on saturated ground, avoid all low crossings",
+      "details": "NWS San Angelo re-issued emergency wording 10:06 AM CT (prior 7:12 AM round expires 10:15). Westward-shift round continuing; Dry Devils River drainages remain dangerous. Ozona/Crockett emergency also active through 11:45 AM.",
       "source": {
         "platform": "official",
         "handle": "NWS San Angelo via api.weather.gov",

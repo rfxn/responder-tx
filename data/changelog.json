@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.34.0",
+      "date": "2026-07-17",
+      "line": "Cache fix for the public mirror (versioned assets + no-store data \u2014 fixes 'no data' on stale edge caches); NEW: RFC forecast-crest rings layer + clustered USGS raw-stage layer (224 sites, off by default); Sonora emergency EXTENDED to 1:15 PM"
+    },
+    {
       "v": "v0.33.0",
       "date": "2026-07-17",
       "line": "Notices, not requests: no manual status/archive management \u2014 curator resolves via data, resolved auto-suppresses, everything ages out; Feed tab, Active notices tile, New notice intake"

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.48.0",
+      "date": "2026-07-17",
+      "line": "NEW 🔗 Share button: one tap copies a link that reproduces your exact view — map position/zoom, active tab, Feed + Alerts filters, basemap, theme; phones get the native share sheet"
+    },
+    {
       "v": "v0.46.0",
       "date": "2026-07-17",
       "line": "Calmer warnings + first-visit safety: snapshot bar only when the snapshot is ≥30 min old, warning bar dismissable, one-time 911 / DO-NOT-SELF-DEPLOY acknowledgment modal, degraded note names the failing feed"

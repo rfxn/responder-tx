@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.46.0';
+const APP_VERSION = 'v0.48.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1331,6 +1331,62 @@ function copySitrep(btn) {
   else copy();
 }
 
+/* ---------- share view — one link reproduces map, tab, and filters ---------- */
+
+function buildShareUrl() {
+  const p = new URLSearchParams();
+  const c = state.map.getCenter();
+  p.set('mlat', c.lat.toFixed(4));
+  p.set('mlon', c.lng.toFixed(4));
+  p.set('mz', String(state.map.getZoom()));
+  const active = document.querySelector('.tabs button.active');
+  const tab = active ? active.dataset.tab.replace(/^tab-/, '') : 'requests';
+  if (tab !== 'requests') p.set('tab', tab);
+  const f = state.filters;
+  if (f.type) p.set('ft', f.type);
+  if (f.county) p.set('fc', f.county);
+  if (f.window) p.set('fw', f.window);
+  if (f.dist) p.set('fd', f.dist);
+  if (f.q) p.set('fq', f.q);
+  if (state.sort !== 'smart') p.set('fs', state.sort);
+  if ($('#flt-alert-sev').value) p.set('as', $('#flt-alert-sev').value);
+  if ($('#flt-alert-q').value) p.set('aq', $('#flt-alert-q').value);
+  p.set('base', state.activeBase);
+  p.set('theme', document.documentElement.getAttribute('data-theme'));
+  return `${location.origin}${location.pathname}?${p}`;
+}
+
+function shareView(btn) {
+  const url = buildShareUrl();
+  const copy = () => copyText(url).then(
+    () => { btn.textContent = '✓ Link copied'; setTimeout(() => { btn.textContent = '🔗 Share'; }, 2000); },
+    () => prompt('Copy this link:', url));
+  if (navigator.share) navigator.share({ url }).catch(copy);
+  else copy();
+}
+
+// boot-time restore: set each control the way a user would, then let its own handler re-render
+function applyShareParams(q) {
+  const lat = parseFloat(q.get('mlat')), lon = parseFloat(q.get('mlon')), z = parseInt(q.get('mz'), 10);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) state.map.setView([lat, lon], Number.isFinite(z) ? z : state.map.getZoom());
+  const apply = (sel, key, evt) => {
+    const val = q.get(key);
+    if (val === null || val === '') return false;
+    const el = $(sel);
+    // county options arrive with board data — park the shared value until renderRequests rebuilds the list
+    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === val)) el.add(new Option(val, val));
+    el.value = val;
+    el.dispatchEvent(new Event(evt));
+    return true;
+  };
+  const feedFiltered = [['#flt-type', 'ft', 'change'], ['#flt-county', 'fc', 'change'], ['#flt-window', 'fw', 'change'],
+    ['#flt-dist', 'fd', 'change'], ['#flt-q', 'fq', 'input'], ['#flt-sort', 'fs', 'change']]
+    .map(([sel, key, evt]) => apply(sel, key, evt)).some(Boolean);
+  if (feedFiltered) $('#req-filters').hidden = false; // a shared filtered view must be visible, not silent
+  apply('#flt-alert-sev', 'as', 'change');
+  apply('#flt-alert-q', 'aq', 'input');
+}
+
 function exportAAR() {
   const reqs = allRequests(true).sort((a, b) => new Date(a.ts) - new Date(b.ts));
   const count = (fn) => reqs.reduce((m, r) => { const k = fn(r); m[k] = (m[k] || 0) + 1; return m; }, {});
@@ -1793,6 +1849,7 @@ async function boot() {
   $('#theme-toggle').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
   $('#refresh-now').addEventListener('click', refresh);
+  $('#share-btn').addEventListener('click', (e) => shareView(e.target));
   $('#update-chip').addEventListener('click', () => location.reload());
   $('#data-age-bar').addEventListener('click', (e) => {
     if (!e.target.closest('.age-bar-x')) return;
@@ -1900,6 +1957,7 @@ async function boot() {
     const btn = document.querySelector(`.tabs button[data-tab="tab-${tabParam}"]`);
     if (btn) btn.click();
   }
+  applyShareParams(new URLSearchParams(location.search));
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
   state.bootAt = Date.now();

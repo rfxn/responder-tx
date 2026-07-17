@@ -1,5 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.48.0 — 2026-07-17 (owner directive: stupidly-simple Share View)
+- NEW 🔗 Share button in the header (next to Refresh): one tap builds a link that reproduces the current view exactly — map center/zoom, active tab, Feed filters (type/county/sort/time window/distance/search), Alerts filters (severity/text), basemap, and theme — then copies it ("✓ Link copied") or hands it to the phone's native share sheet (navigator.share) when available
+- Short param scheme (mlat/mlon/mz · tab · ft/fc/fs/fw/fd/fq · as/aq) rides the existing ?tab=/?base=/?theme= deep-link vocabulary; URL wins over saved basemap/theme for that load only; existing deep links (?chat=1, ?note=, ?notes=1, ?rf=, ?radar=, ?rain=) untouched
+- On open, restored filters apply through the same handlers a user change would fire (so every list re-renders live) and the Filters panel auto-opens so a shared filtered view is visible, not silent; notes state intentionally excluded from share links for now
+- Links are built from the page's own origin — the same button works on the LAN board and the public mirror
+
 ## v0.46.0 — 2026-07-17 (owner directives: calmer fallback warnings + one-time safety modal)
 - Snapshot fallback is no longer alarmist: the "GAUGES FROM SNAPSHOT" bar now appears only when the snapshot is ≥30 min old (a fresh snapshot is a working state, not a warning); amber 30-60 min, red beyond
 - The data-age warning bar is now dismissable (✕) on desktop and mobile — dismissal holds until the failing source or severity changes, so escalations still break through

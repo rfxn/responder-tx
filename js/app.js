@@ -638,11 +638,22 @@ function gaugePopup(g) {
   return el;
 }
 
+// 3-min TTL promise cache — popup close/reopen redraws instantly; failures evict so retry works
+const sparkCache = new Map();
+function cachedJson(url, ttlMs = 180000) {
+  const hit = sparkCache.get(url);
+  if (hit && Date.now() - hit.t < ttlMs) return hit.p;
+  const p = fetch(url).then((r) => r.json());
+  sparkCache.set(url, { t: Date.now(), p });
+  p.catch(() => sparkCache.delete(url));
+  return p;
+}
+
 async function drawSparkline(g, canvas, note) {
   try {
     const [detail, series] = await Promise.all([
-      fetch(`${CONFIG.nwpsBase}/gauges/${g.lid}`).then((r) => r.json()),
-      fetch(`${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/observed`).then((r) => r.json()),
+      cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}`),
+      cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/observed`),
     ]);
     const cutoff = Date.now() - CONFIG.sparkHours * 3600000;
     let pts = (series.data || []).filter((p) => new Date(p.validTime).getTime() >= cutoff && p.primary > -999);

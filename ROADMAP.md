@@ -83,6 +83,28 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
     the curator) even under the reframe. Cost M. Deps: reframe wording (item 1).
     **[ux]**.
 
+### Community/social track addendum (2026-07-17 11:45 owner directive)
+
+Owner directive: iterate for first responders, community, social, communication,
+shareability. In flight: v0.44.0 command-area rework (threat module + tabs +
+brand rename "Responder TX" + slimmer header) and v0.45.0 **Field Notes** flyout
+(map markers + per-note comment threads + general comments, ?note= deep links,
+LAN-write / public-read via data/notes.json). Follow-on items, ranked:
+
+- **N1. Notes curation flow** — cycle protocol step: promote notes-inbox.jsonl
+  lines into published data/notes.json (curated, cited where possible) so the
+  public mirror sees community notes. Cost S. **[data]**
+- **N2. Confirm/“seen it” tally on notes** — lightweight corroboration count
+  (tap ✓), stored like note comments; surfaces trust without login. Cost S.
+  **[views]**
+- **N3. Share cards** — per-note/per-card "copy link" + Web Share API on
+  mobile; OG meta for link unfurls. Cost S/M. **[ux]**
+- **N4. Notes filter chips** — hazard/road/water/info category filter in the
+  flyout; map layer toggle for note markers. Cost S. **[views]**
+- **N5. Photo attachment (LAN-only v1)** — compose accepts an image, server
+  stores under data/notes-media/, published only after curation. Cost M.
+  **[infra]**
+
 ### NEXT addendum (2026-07-17 11:00)
 
 - **Future-cast radar source hunt** — RainViewer's free API dropped nowcast

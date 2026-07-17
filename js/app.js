@@ -10,6 +10,8 @@ const CONFIG = {
   gaugeBbox: { xmin: -101.2, ymin: 28.0, xmax: -97.0, ymax: 31.1 },
   alertsUrl: 'https://api.weather.gov/alerts/active?area=TX',
   nwpsBase: 'https://api.water.noaa.gov/nwps/v1',
+  fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
+  usgsIvBase: 'https://waterservices.usgs.gov/nwis/iv/',
   refreshMs: 180000,
   maxZoneGeomFetches: 12,
   sparkHours: 48,
@@ -47,6 +49,8 @@ const state = {
   resources: null,
   alerts: [],
   gauges: [],
+  fcstMax: [],
+  usgsSites: [],
   lsrs: [],
   zoneGeomCache: new Map(),
   filters: { type: '', status: '', county: '', q: '', window: '', dist: '' },
@@ -145,6 +149,11 @@ function initMap() {
 
   state.layers.alerts = L.layerGroup().addTo(state.map);
   state.layers.gauges = L.layerGroup().addTo(state.map);
+  state.layers.fcstMax = L.layerGroup().addTo(state.map);
+  // clustered — off by default; degrade to a plain group if the vendored plugin failed to load
+  state.layers.usgs = L.markerClusterGroup
+    ? L.markerClusterGroup({ disableClusteringAtZoom: 10, maxClusterRadius: 40 })
+    : L.layerGroup();
   state.layers.lsrs = L.layerGroup().addTo(state.map);
   state.layers.lsrsAged = L.layerGroup(); // history layer — off by default, toggle in layer control
   state.layers.requests = L.layerGroup().addTo(state.map);
@@ -155,6 +164,8 @@ function initMap() {
     'Rainfall 24h (MRMS)': state.layers.mrms24h,
     'Flood alerts (NWS)': state.layers.alerts,
     'River gauges (NOAA)': state.layers.gauges,
+    'Forecast crests (RFC max)': state.layers.fcstMax,
+    'USGS gauges (raw stage)': state.layers.usgs,
     'Storm reports (LSR)': state.layers.lsrs,
     'Aged storm reports (history)': state.layers.lsrsAged,
     'Notices (curated + field)': state.layers.requests,
@@ -171,6 +182,7 @@ function initMap() {
       }).join('') +
       '<div><span class="sw" style="width:10px">▲</span>forecast to rise</div>' +
       '<div><span class="sw" style="width:10px;color:var(--good)">▼</span>observed falling</div>' +
+      '<div><span class="sw fcst-ring cat-moderate" style="width:10px;height:10px"></span>forecast crest (RFC)</div>' +
       '<div class="lg-title" style="margin-top:6px">Reports & requests</div>' +
       '<div><span style="margin-right:6px">💧</span>storm report (LSR)</div>' +
       '<div><span style="margin-right:6px">🆘</span>marker glyph = need type</div>';
@@ -510,6 +522,96 @@ async function drawSparkline(g, canvas, note) {
     ctx.fillText(`${last.primary} ft`, W - mR + 4, y(last.primary) + 4);
     note.textContent = `Last ${CONFIG.sparkHours}h · dashed lines = action/minor/moderate/major stages`;
   } catch { note.textContent = 'Stage history unavailable.'; }
+}
+
+/* ---------- RFC forecast-max crests (5-day max stage per gauge) ---------- */
+
+function inGaugeBbox(lat, lon) {
+  const b = CONFIG.gaugeBbox;
+  return lat >= b.ymin && lat <= b.ymax && lon >= b.xmin && lon <= b.xmax;
+}
+
+// issued_time is "YYYY-MM-DD HH:MM:SS UTC", not ISO
+const fcstIssuedIso = (t) => String(t || '').replace(' ', 'T').replace(' UTC', 'Z');
+
+async function fetchFcstMax() {
+  const params = new URLSearchParams({
+    where: "nws_lid LIKE '%T2' AND max_status NOT IN ('no_flooding','not_defined')",
+    outFields: 'nws_lid,nws_name,max_value,max_status,issued_time',
+    returnGeometry: 'true',
+    f: 'geojson',
+  });
+  const res = await fetch(`${CONFIG.fcstMaxUrl}?${params}`);
+  if (!res.ok) throw new Error(`RFC fcst HTTP ${res.status}`);
+  const data = await res.json();
+  // NWPS gauges already show their own forecast — keep only lids this board lacks
+  const nwpsLids = new Set(state.gauges.map((g) => g.lid));
+  state.fcstMax = (data.features || []).filter((f) => {
+    const [lon, lat] = f.geometry.coordinates;
+    return inGaugeBbox(lat, lon) && !nwpsLids.has(f.properties.nws_lid);
+  });
+  markHealthy('fcstMax');
+  renderFcstMax();
+}
+
+function renderFcstMax() {
+  state.layers.fcstMax.clearLayers();
+  for (const f of state.fcstMax) {
+    const p = f.properties;
+    const [lon, lat] = f.geometry.coordinates;
+    const cat = FLOOD_CATS.includes(p.max_status) ? p.max_status : 'none';
+    const size = CAT_SIZE[cat];
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="gauge-hit"><div class="fcst-ring cat-${cat}" style="width:${size}px;height:${size}px"></div></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+    const m = L.marker([lat, lon], { icon });
+    m.bindPopup(`<div class="popup-title">${esc(p.nws_name)}</div>` +
+      `<div class="popup-meta">Forecast max: ${p.max_value} ft — <span class="cat-word" style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span> (5-day)</div>` +
+      `<div class="popup-meta">Issued ${esc(fmtWhen(fcstIssuedIso(p.issued_time)))}</div>` +
+      `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(p.nws_lid)}" target="_blank" rel="noopener">NOAA gauge page →</a></div>`);
+    state.layers.fcstMax.addLayer(m);
+  }
+}
+
+/* ---------- USGS instantaneous values (raw stage — no flood-stage context) ---------- */
+
+async function fetchUsgsIv() {
+  const b = CONFIG.gaugeBbox;
+  const url = `${CONFIG.usgsIvBase}?format=json&parameterCd=00065&modifiedSince=PT2H&bBox=${b.xmin},${b.ymin},${b.xmax},${b.ymax}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`USGS IV HTTP ${res.status}`);
+  const data = await res.json();
+  const sites = [];
+  for (const ts of (data.value && data.value.timeSeries) || []) {
+    const si = ts.sourceInfo;
+    const vals = ts.values && ts.values[0] && ts.values[0].value;
+    const last = vals && vals[vals.length - 1];
+    if (!last) continue;
+    const ft = parseFloat(last.value);
+    if (!Number.isFinite(ft) || ft <= -999) continue;
+    const loc = si.geoLocation.geogLocation;
+    sites.push({ site: si.siteCode[0].value, name: si.siteName, lat: loc.latitude, lon: loc.longitude, ft, t: last.dateTime });
+  }
+  // NWPS gauges carry flood categories — keep USGS to the sites NWPS lacks
+  state.usgsSites = sites.filter((s) => !state.gauges.some((g) => distMi(s.lat, s.lon, g.latitude, g.longitude) < 0.3));
+  markHealthy('usgs');
+  renderUsgsIv();
+}
+
+function renderUsgsIv() {
+  state.layers.usgs.clearLayers();
+  for (const s of state.usgsSites) {
+    const icon = L.divIcon({ className: '', html: '<div class="usgs-dot"></div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+    const m = L.marker([s.lat, s.lon], { icon });
+    // raw stage has no flood-stage thresholds here — never imply a category
+    m.bindPopup(`<div class="popup-title">${esc(s.name)}</div>` +
+      `<div class="popup-meta">Stage: ${s.ft} ft @ ${esc(fmtWhen(s.t))} — raw reading, no flood-stage context</div>` +
+      `<div class="popup-link"><a href="https://waterdata.usgs.gov/monitoring-location/${esc(s.site)}" target="_blank" rel="noopener">USGS site page →</a></div>`);
+    state.layers.usgs.addLayer(m);
+  }
 }
 
 /* ---------- IEM local storm reports (ground truth) ---------- */
@@ -1122,7 +1224,10 @@ function hydrateFromCache() {
 async function refresh() {
   $('#refresh-note').textContent = 'refreshing…';
   if (state.refreshRadar) state.refreshRadar();
-  const results = await Promise.allSettled([fetchAlerts(), fetchGauges(), fetchLsrs(), loadSeeds()]);
+  const gaugesP = fetchGauges();
+  // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
+  const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
+  const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds()]);
   const failed = results.filter((r) => r.status === 'rejected');
   state.refreshAt = Date.now() + CONFIG.refreshMs;
   if (failed.length && (!state.alerts.length || !state.gauges.length)) {
@@ -1141,7 +1246,7 @@ function markHealthy(source) { state.sourceHealth[source] = Date.now(); }
 function renderSourceHealth() {
   const el = $('#source-health');
   if (!el) return;
-  const sources = [['alerts', 'NWS alerts'], ['gauges', 'NOAA gauges'], ['lsrs', 'Storm reports'], ['seeds', 'Board data']];
+  const sources = [['alerts', 'NWS alerts'], ['gauges', 'NOAA gauges'], ['fcstMax', 'RFC forecast max'], ['usgs', 'USGS raw stage'], ['lsrs', 'Storm reports'], ['seeds', 'Board data']];
   el.innerHTML = '<div class="section-title">Data source health</div>' +
     '<div class="filters" style="margin-bottom:12px">' + sources.map(([k, label]) => {
       const t = state.sourceHealth[k];

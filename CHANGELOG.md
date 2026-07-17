@@ -1,5 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.43.0 — 2026-07-17 (nav/UX package — the researched reorg lands)
+- Top-left corner is one organized unit: zoom + locate merged into a single 3-button control bar (was two disconnected stacked boxes); 42px touch targets on phones
+- AO quick-jump chips along the map top edge: Full AO, Kerr/Guadalupe, Uvalde/Frio-Nueces, Sonora/Ozona, Cibolo corridor — one tap fits the map; collapses behind a 🗺 toggle on phones
+- KPI tiles are now actionable: tap emergencies/warnings → Alerts, gauges → Gauges tab, notices → Feed (keyboard-accessible, hover affordance)
+- Mobile: the collapsed 911 disclaimer now anchors flush at the viewport bottom (root cause: missing flex min-height let long feeds shove it off-screen); chat FAB clearance verified
+- Patterns per the Watch Duty / CalTopo / PulsePoint research; deferred by design: bottom tab bar (M), ticker discrete mode (owner prefers the tuned crawl)
 ## v0.42.0 — 2026-07-17 (11:23 cycle: stale-tab update chip + ticker pacing)
 - Long-lived tabs now learn about new builds: each 3-min refresh compares the deployed changelog version against the running APP_VERSION and shows a pulsing "⬆ Updated — tap to reload" chip on divergence (never auto-reloads mid-use) — closes the cache story after the owner's tab sat on v0.39 through three deploys
 - Ticker slowed ~30% (40s → 58s loop) per owner feedback

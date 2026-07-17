@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.43.0",
+      "date": "2026-07-17",
+      "line": "Nav package: merged zoom/locate bar (un-jumbled corner), AO quick-jump chips (Kerr, Uvalde/Frio, Sonora/Ozona, Cibolo, Full AO), tappable KPI tiles, 911 line pinned to phone viewport bottom"
+    },
+    {
       "v": "v0.42.0",
       "date": "2026-07-17",
       "line": "Stale-tab fix: open tabs now show a green 'Updated \u2014 tap to reload' chip when a newer build ships (no auto-reload); ticker slowed ~30% per owner feedback"

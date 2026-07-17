@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.58.0 — 2026-07-17 (next-wave W1: crest-wave tracker)
+- NEW 🌊 CREST WAVE section at the top of the Gauges tab: for each river with a moving crest, lists its gauges in crest-arrival order with the forecast crest stage, category, and ETA (relative + clock) — answers "when does the wave reach my town" for the multi-day downstream progression (e.g. Nueces: below Uvalde tonight → Asherton Sat 1 PM → Cotulla Tue; Frio: Derby overnight → Tilden Mon)
+- Each row taps to fly the map to that gauge; hidden when no river has ≥2 forecast-crest points
+- Honesty: ordering is by real NWPS forecast crest validTime only (labeled "crest arrival order", not a geographic claim); no interpolation between gauges — no invented "the wave is here now" precision
 ## v0.57.0 — 2026-07-17 (next-wave W2: Record-Watch — crest-of-record context)
 - NEW crest-of-record context: gauges forecast within 5 ft of (or above) their all-time NWPS crest of record now show it — a "⚑ near crest of record" row in the threat module, a per-gauge record line on the Gauges tab ("record 33 ft (1935); forecast 3 ft below"), and a bracketed note on SITREP rising lines
 - Data: new curated data/records.json built from NOAA NWPS historic crests (cited, dated); absence-tolerant so older deploys degrade cleanly

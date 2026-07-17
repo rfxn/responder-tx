@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.57.0';
+const APP_VERSION = 'v0.58.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -992,7 +992,54 @@ function recordLineHtml(g) {
   return '';
 }
 
+// crest-wave tracker: on one river the forecast-crest time IS the wave's arrival order,
+// so ordering a river's gauges by crest validTime shows the crest marching downstream.
+// pure NWPS validTime data — no interpolation between gauges (would be fake precision).
+function waveRivers() {
+  const withCrest = state.gauges.filter((g) => {
+    const f = g.status && g.status.forecast;
+    return f && f.validTime && f.primary > 0 && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.action;
+  });
+  const byRiver = {};
+  for (const g of withCrest) (byRiver[riverOf(g.name)] = byRiver[riverOf(g.name)] || []).push(g);
+  const crestT = (g) => new Date(g.status.forecast.validTime).getTime();
+  return Object.keys(byRiver)
+    .map((river) => [river, byRiver[river].sort((a, b) => crestT(a) - crestT(b))])
+    .filter(([, gs]) => gs.length >= 2) // a "wave" needs ≥2 points on the same river
+    .sort((a, b) => crestT(a[1][0]) - crestT(b[1][0]));
+}
+
+function renderWave() {
+  const el = $('#wave-list');
+  if (!el) return;
+  const rivers = waveRivers();
+  if (!rivers.length) { el.innerHTML = ''; el.hidden = true; return; }
+  el.hidden = false;
+  const now = Date.now();
+  let html = '<div class="section-title">🌊 CREST WAVE — when the crest reaches each point</div>';
+  for (const [river, gs] of rivers) {
+    html += `<div class="wave-river">${esc(river)} <span class="wave-hint">crest arrival order →</span></div>`;
+    for (const g of gs) {
+      const f = g.status.forecast;
+      const fCat = gaugeForecastCat(g);
+      const past = new Date(f.validTime).getTime() < now;
+      const site = g.name.slice(riverOf(g.name).length).trim() || g.name;
+      html += `<button class="wave-row" data-lid="${esc(g.lid)}">` +
+        `<span class="wave-dot" style="background:var(--cat-${fCat})"></span>` +
+        `<span class="wave-site">${esc(site)}</span>` +
+        `<span class="wave-stage" style="color:var(--cat-${fCat})">${f.primary} ft ${esc(fCat)}</span>` +
+        `<span class="wave-eta ${past ? 'past' : ''}">${past ? 'crested' : 'crest'} ${esc(fmtWhen(f.validTime))}</span></button>`;
+    }
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.wave-row').forEach((b) => b.addEventListener('click', () => {
+    const g = state.gauges.find((x) => x.lid === b.dataset.lid);
+    if (g) focusGauge(g);
+  }));
+}
+
 function renderGaugesTab() {
+  renderWave();
   const el = $('#gauge-list');
   if (!el) return;
   const inFlood = state.gauges.filter((g) => gaugeCat(g) !== 'none');

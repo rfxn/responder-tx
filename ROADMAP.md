@@ -84,11 +84,10 @@ Owner directive: "you are the product owner, move this forward, don't be
 afraid of new features." Ranked next-wave (agent gap-analysis, event now in
 record-crest + downstream-wave + east-recovery phase):
 
-- **W1. Down-basin crest-wave tracker** — order each river's gauges
-  upstream→downstream, show the crest passing with per-gauge forecast ETAs
-  ("when does the wave reach my town" — the 48h headline question). Cost M.
-  data/event.json basins + renderForecastList/new renderWave. Honesty: real
-  NWPS validTime only; interpolation labeled estimate. **[views/data]**
+- ~~**W1. Down-basin crest-wave tracker**~~ — SHIPPED v0.58.0 (🌊 CREST WAVE
+  section on Gauges tab: per-river gauges in crest-arrival order w/ forecast
+  ETAs; real NWPS validTime only, no interpolation). Next: W3 OG cards / W4
+  crossings.
 - ~~**W2. Record-Watch**~~ — SHIPPED v0.57.0 (crest-of-record context: threat
   chip + gauge card line + SITREP; data/records.json from NWPS historic crests;
   honest margin-to-record, no invented breaks). Next: W1.

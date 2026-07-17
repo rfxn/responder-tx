@@ -1,688 +1,688 @@
 {
-  "generated": "2026-07-17T12:36:00Z",
-  "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
-  "requests": [
-    {
-      "id": "seed-036",
-      "ts": "2026-07-17T16:16:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Kimble",
-      "place": "Junction \u2014 Llano River",
-      "lat": 30.4894,
-      "lon": -99.772,
-      "summary": "Llano River near Junction rising to MAJOR \u2014 forecast crest ~31.3 ft around noon CT; low-lying areas near the river should move now",
-      "details": "NWPS JNCT2: observed 28.7 moderate rising, forecast 31.3 major ~12:00 PM CT. Same westward round as Sonora/Ozona. RV parks and river-adjacent structures at Junction historically impacted at these stages.",
-      "source": {
-        "platform": "official",
-        "handle": "NOAA NWPS",
-        "url": "https://water.noaa.gov/gauges/JNCT2"
-      }
-    },
-    {
-      "id": "seed-035",
-      "ts": "2026-07-17T16:16:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Uvalde",
-      "place": "Concan / Garner State Park corridor \u2014 Frio River",
-      "lat": 29.4886,
-      "lon": -99.7042,
-      "summary": "Frio River at Concan crested MAJOR (~15.4 ft) \u2014 Garner State Park corridor flooding; avoid river crossings, campground/low-water areas dangerous",
-      "details": "NWPS CONT2-area gauge: observed 12.76 moderate and peaking ~15.4 major around 11 AM CT. Westward storm round now flooding the upper Frio. Verify park/campground status before any routing.",
-      "source": {
-        "platform": "official",
-        "handle": "NOAA NWPS",
-        "url": "https://water.noaa.gov/gauges/CONT2"
-      }
-    },
-    {
-      "id": "seed-034",
-      "ts": "2026-07-17T16:16:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Crockett",
-      "place": "Ozona and surrounding areas \u2014 east-central Crockett County",
-      "lat": 30.7102,
-      "lon": -101.206,
-      "summary": "FLASH FLOOD EMERGENCY EXTENDED: Ozona/Crockett Co through 2:15 PM CT \u2014 flash flooding ongoing; second extension of the westward round",
-      "details": "NWS San Angelo extended the Crockett Co emergency-worded warning to 2:15 PM (prior 11:45). Sutton/Sonora emergency runs to 1:15 PM. Johnson Draw caution stands.",
-      "source": {
-        "platform": "official",
-        "handle": "NWS San Angelo via api.weather.gov",
-        "url": "https://api.weather.gov/alerts/active?area=TX"
-      },
-      "contact": "Crockett County Sheriff / 911"
-    },
-    {
-      "id": "seed-033",
-      "ts": "2026-07-17T16:28:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "open",
-      "county": "Karnes",
-      "place": "Falls City \u2014 Cibolo Creek (FM 791 / CR area)",
-      "lat": 28.98,
-      "lon": -98.02,
-      "summary": "Falls City DOWNGRADE: Cibolo crest revised DOWN to 23.6 ft moderate ~midnight tonight (was 25.2 major) \u2014 still prep low-lying Cibolo properties, but record threat has passed",
-      "details": "NWPS FCTT2 11:25 AM CT: observed 19.65 minor rising, forecast 23.6 moderate 05:00Z (~12 AM CT). Second downward revision; livestock-loss reach note stands.",
-      "source": {
-        "platform": "official",
-        "handle": "NOAA NWPS FCTT2",
-        "url": "https://water.noaa.gov/gauges/FCTT2"
-      }
-    },
-    {
-      "id": "seed-032",
-      "ts": "2026-07-17T15:13:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Sutton",
-      "place": "Sonora \u2014 Sutton County (western Edwards Plateau)",
-      "lat": 30.5671,
-      "lon": -100.6434,
-      "summary": "FLASH FLOOD EMERGENCY EXTENDED for Sonora \u2014 new emergency-worded warning through 1:15 PM CT; continued dangerous flooding on saturated ground, avoid all low crossings",
-      "details": "NWS San Angelo re-issued emergency wording 10:06 AM CT (prior 7:12 AM round expires 10:15). Westward-shift round continuing; Dry Devils River drainages remain dangerous. Ozona/Crockett emergency also active through 11:45 AM.",
-      "source": {
-        "platform": "official",
-        "handle": "NWS San Angelo via api.weather.gov",
-        "url": "https://api.weather.gov/alerts/active?area=TX"
-      },
-      "contact": "Sutton County Sheriff / 911"
-    },
-    {
-      "id": "seed-031",
-      "ts": "2026-07-17T16:28:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Dimmit",
-      "place": "Asherton \u2014 Nueces River (Dimmit Co.)",
-      "lat": 28.4419,
-      "lon": -99.7625,
-      "summary": "ASHERTON ESCALATION: Nueces forecast crest revised UP to 30.2 ft MAJOR ~7 AM Saturday \u2014 4.5 ft ABOVE the 1991 record (25.7); obs 24.83 rising; prepare for record-shattering flooding",
-      "details": "NWPS ASRT2 11:25 AM CT: observed 24.83 (moderate, already near record), forecast 30.2 MAJOR 2026-07-18 12:00Z. Massive upward revision from 25.8. FM 190 and low floodplain sections will be far exceeded; Zavala/Dimmit OEMs coordinate evacuations (Facebook-only comms).",
-      "source": {
-        "platform": "official",
-        "handle": "NOAA NWPS ASRT2",
-        "url": "https://water.noaa.gov/gauges/ASRT2"
-      },
-      "contact": "Dimmit County OEM"
-    },
-    {
-      "id": "seed-029",
-      "ts": "2026-07-17T09:26:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "open",
-      "county": "Zavala",
-      "place": "Crystal City \u2014 Nueces River downstream corridor",
-      "lat": 28.6852,
-      "lon": -99.8281,
-      "summary": "Crystal City: roads flooding as the record Nueces wave arrives \u2014 mobile-home residents evacuated; at 21 ft the lowest homes on the east edge flood; NWS warns of DISASTROUS widespread lowland flooding",
-      "details": "FM 582 near Rock Quarry Rd flooded; some motels offering evacuee discounts (Mayor Pro Tem Marquez). US 57 closed I-35 to Zavala Co. Wave continues downstream toward Asherton (forecast moderate 25.8).",
-      "source": {
-        "platform": "official",
-        "handle": "NWS forecast + Zavala Co Fire/Rescue LSR via IEM",
-        "url": "https://water.noaa.gov/gauges/uvlt2"
-      },
-      "contact": "Zavala County OEM"
-    },
-    {
-      "id": "seed-030",
-      "ts": "2026-07-17T13:34:00Z",
-      "type": "animal",
-      "priority": "medium",
-      "status": "open",
-      "county": "Multi",
-      "place": "Region-wide \u2014 ranch and farm country",
-      "lat": 29.6,
-      "lon": -99.5,
-      "summary": "AGRICULTURAL EMERGENCY: hundreds of livestock reported trapped/drowned along the Pedernales and Cibolo near Falls City, and Frio/Nueces near Uvalde \u2014 TDA relief active",
-      "details": "KSAT 7/17: reports of hundreds of livestock trapped and potentially drowned along Pedernales River and Cibolo Creek near Falls City; similar out of Frio and Nueces near Uvalde. TDA agricultural emergency (Commissioner Miller) activates state recovery resources for producers.",
-      "source": {
-        "platform": "news",
-        "handle": "KSAT",
-        "url": "https://www.ksat.com/weather/2026/07/17/update-rain-is-winding-down-for-all-flooding-still-possible-downstream-along-rivers/"
-      },
-      "contact": "Texas Dept. of Agriculture / county AgriLife"
-    },
-    {
-      "id": "seed-028",
-      "ts": "2026-07-17T07:17:00Z",
-      "type": "supplies",
-      "priority": "high",
-      "status": "open",
-      "county": "Comal",
-      "place": "Canyon Lake \u2014 water system service area",
-      "lat": 29.8752,
-      "lon": -98.2625,
-      "summary": "BOIL WATER NOTICE for Canyon Lake: flood debris/sediment spiked turbidity at the Canyon Lake Shores Treatment Plant intake \u2014 bottled/potable water staging may be needed",
-      "details": "Issued to protect public health during elevated turbidity. Coordinate potable water for shelters and vulnerable residents in the service area.",
-      "source": {
-        "platform": "official",
-        "handle": "Water utility via My Canyon Lake",
-        "url": "https://mycanyonlake.com/flood-debris-heads-for-spring-branch-guadalupe-river-will-crest-over-rebecca-creek-overnight/"
-      },
-      "contact": "Comal County OEM / water utility"
-    },
-    {
-      "id": "seed-027",
-      "ts": "2026-07-17T07:17:00Z",
-      "type": "animal",
-      "priority": "medium",
-      "status": "open",
-      "county": "Kerr",
-      "place": "Kerr County wildlife rescue facility (Guadalupe corridor, location approx.)",
-      "lat": 30.033,
-      "lon": -99.16,
-      "summary": "Kerr County wildlife rescue facility torn apart by floodwaters \u2014 displaced animals; animal-rescue coordination and temporary housing needed",
-      "details": "Video via KSAT. Coordinate through Kerr County animal control / vetted animal-rescue orgs; do not self-deploy to the damaged site.",
-      "source": {
-        "platform": "news",
-        "handle": "KSAT",
-        "url": "https://www.ksat.com/news/local/2026/07/16/watch-floodwaters-tear-apart-kerr-county-wildlife-rescue-facility/"
-      },
-      "contact": "Kerr County Animal Services"
-    },
-    {
-      "id": "seed-026",
-      "ts": "2026-07-17T04:30:00Z",
-      "type": "evacuation",
-      "priority": "medium",
-      "status": "in-progress",
-      "county": "Wilson",
-      "place": "San Antonio River near Elmendorf (Bexar/Wilson Co.)",
-      "lat": 29.2564,
-      "lon": -98.3331,
-      "summary": "Elmendorf: San Antonio River crest (38.7 ft) has PASSED and is receding \u2014 below flood stage late Friday morning; lowland impacts persist below San Antonio to below Floresville",
-      "details": "Isolated livestock/structures, flooded secondary roads, low bridges, irrigation pumps, oil-field pump jacks and tank batteries. Wilson Co voluntary-evacuation advisory still posted.",
-      "source": {
-        "platform": "official",
-        "handle": "NWS / Wilson County EM via Wilson County News",
-        "url": "https://www.wilsoncountynews.com/articles/flood-warning-issued-for-san-antonio-river-in-wilson-bexar-counties/"
-      },
-      "contact": "Wilson County OEM"
-    },
-    {
-      "id": "seed-024",
-      "ts": "2026-07-17T01:45:00Z",
-      "type": "road",
-      "priority": "critical",
-      "status": "open",
-      "county": "Uvalde",
-      "place": "US-90 corridor \u2014 Sabinal / Uvalde / Hondo to Del Rio",
-      "lat": 29.3214,
-      "lon": -99.4692,
-      "summary": "US 90 CLOSED both directions at Sabinal and west of Uvalde \u2014 pavement torn up in places; corridor flooding Hondo to Del Rio; US 57, FM 140, FM 3352, FM 1581 also closed",
-      "details": "TxDOT: at least 125 roadways affected and 87 CLOSED across Central Texas due to flooding, damage and debris. Frio/Uvalde/Zavala closures include US 57, FM 140, FM 3352, FM 1581. Route via drivetexas.org; assume low crossings impassable.",
-      "source": {
-        "platform": "official",
-        "handle": "Sabinal Mayor / TxDOT via KSAT & KENS5",
-        "url": "https://www.ksat.com/weather/2026/07/16/portions-of-us-highway-90-in-west-bexar-county-uvalde-county-closed-due-to-ongoing-flooding/"
-      },
-      "contact": ""
-    },
-    {
-      "id": "seed-025",
-      "ts": "2026-07-17T00:10:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "in-progress",
-      "county": "Medina",
-      "place": "D'Hanis \u2014 Seco Creek",
-      "lat": 29.3266,
-      "lon": -99.2853,
-      "summary": "Flash flood emergency was issued for D'Hanis as Seco Creek rose rapidly (now receding) \u2014 evacuee shelter established by Medina County and City of Hondo",
-      "details": "Verify all D'Hanis residents accounted for as water recedes. Shelter location via Medina County OEM / City of Hondo.",
-      "source": {
-        "platform": "official",
-        "handle": "Medina County OEM via KENS5",
-        "url": "https://www.kens5.com/article/news/local/greg-abbott-flooding-flash-emergency-response-texas-national-guard-blackhawk-dps-swiftwater-rescue-helicopters-highwater-vehicles/273-72364290-08d6-4db9-b979-fd4b04a7737c"
-      },
-      "contact": "Medina County OEM"
-    },
-    {
-      "id": "seed-023",
-      "ts": "2026-07-17T14:42:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Wilson",
-      "place": "Sutherland Springs / Falls City \u2014 Cibolo Creek (Wilson & Karnes Co.)",
-      "lat": 29.2727,
-      "lon": -98.0561,
-      "summary": "Sutherland Springs FALLING (33.9 ft) \u2014 forecast secondary bump CANCELED (fcst revised to 33.1); homes-cutoff avoided; FM 539-south roadway still submerged until further drop",
-      "details": "NWPS SUPT2 9:40 AM CT: observed 33.9 (moderate) and falling, forecast 33.1 \u2014 the ~35.5 morning re-rise did not materialize. Keep the card open for the roadway; downgrade posture to damage-assessment as it clears.",
-      "source": {
-        "platform": "official",
-        "handle": "NOAA NWPS SUPT2",
-        "url": "https://water.noaa.gov/gauges/SUPT2"
-      },
-      "contact": "Wilson County OEM / Karnes County OEM"
-    },
-    {
-      "id": "seed-021",
-      "ts": "2026-07-16T22:45:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "resolved",
-      "county": "Guadalupe",
-      "place": "Schertz \u2014 Cibolo Creek corridor (incl. Pecan Grove RV Park)",
-      "lat": 29.5522,
-      "lon": -98.2697,
-      "summary": "RESOLVED: Schertz lifted its Cibolo Creek evacuation order at 3 PM; barricades being removed, debris clearing underway",
-      "details": "Overnight severe weather passed; residents asked for patience during cleanup. The flood wave is now downstream \u2014 see Sutherland Springs card.",
-      "source": {
-        "platform": "official",
-        "handle": "City of Schertz via KENS5",
-        "url": "https://www.kens5.com/article/weather/severe-weather/texas-schertz-disaster-declaration-cibolo-creek-flooding-evacuations/273-a618d120-454a-473a-abbf-40f539e3d40d"
-      },
-      "contact": "Schertz EM / Guadalupe County OEM"
-    },
-    {
-      "id": "seed-022",
-      "ts": "2026-07-16T21:10:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Bandera",
-      "place": "Medina River RV parks \u2014 Bandera County",
-      "lat": 29.7266,
-      "lon": -99.0737,
-      "summary": "Evacuations ORDERED for Medina River RV parks as the river rises toward forecast MAJOR flood at Bandera",
-      "details": "At 24 ft major flooding reaches Pioneer RV Park below Hwy 173; at 25 ft all campsites flood. Crest forecast 24.2 ft (previous record 24.5 ft, June 1997). Silver Sage open as overnight emergency shelter for Bandera County.",
-      "source": {
-        "platform": "official",
-        "handle": "Bandera County via CBS Austin",
-        "url": "https://cbsaustin.com/news/local/evacuations-ordered-for-medina-river-rv-parks-in-bandera-county-flooding-road-closures-rain-heavy-rainfall"
-      },
-      "contact": "Bandera County OEM"
-    },
-    {
-      "id": "seed-020",
-      "ts": "2026-07-17T08:26:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "in-progress",
-      "county": "Comal",
-      "place": "Spring Branch / Canyon Lake / Guadalupe River State Park corridor",
-      "lat": 29.888,
-      "lon": -98.414,
-      "summary": "Spring Branch crest has PASSED \u2014 Guadalupe fell out of flood categories and is receding fast; damage assessment and re-entry checks begin along the Canyon Lake corridor",
-      "details": "Boil water notice remains for Canyon Lake service area. Verify campground/park re-entry only with officials.",
-      "source": {
-        "platform": "official",
-        "handle": "NWS via KUT/Fox Weather live coverage",
-        "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-      },
-      "contact": "Comal County OEM"
-    },
-    {
-      "id": "seed-001",
-      "ts": "2026-07-17T03:30:00Z",
-      "type": "rescue",
-      "priority": "critical",
-      "status": "resolved",
-      "county": "Uvalde",
-      "place": "City of Uvalde \u2014 multiple locations",
-      "lat": 29.2097,
-      "lon": -99.7862,
-      "summary": "RESOLVED: Uvalde vehicle-entrapment phase over \u2014 waters receding in the city, 230+ rescues completed statewide, no new entrapments reported Friday morning",
-      "details": "Police report trapped people are communicating with the emergency dispatch center so crews can reach them. All major highways and streets near rivers, creeks and sloughs in Uvalde closed. 40+ rescued by Texas Game Wardens in Uvalde County area.",
-      "source": {
-        "platform": "official",
-        "handle": "Uvalde PD / Uvalde County OEM via AP",
-        "url": "https://www.news4jax.com/news/national/2026/07/16/texas-flooding-surges-from-huge-rainstorms-as-rescuers-pull-people-from-rising-waters/"
-      },
-      "contact": "911 (life-threatening only)"
-    },
-    {
-      "id": "seed-002",
-      "ts": "2026-07-17T03:35:00Z",
-      "type": "rescue",
-      "priority": "critical",
-      "status": "in-progress",
-      "county": "Uvalde",
-      "place": "Uvalde County \u2014 Nueces/Leona/Frio river areas",
-      "lat": 29.14,
-      "lon": -99.84,
-      "summary": "Uvalde County: rescue phase winding down as Nueces/Frio crests pass \u2014 shift to welfare checks and resupply of cut-off pockets",
-      "details": "Nueces below Uvalde falling from ~27.8 ft record-area crest; Frio below Dry Frio falling. TDEM resupply running. Officials still ask residents to stay off roads.",
-      "source": {
-        "platform": "official",
-        "handle": "Uvalde County officials via Texas Tribune",
-        "url": "https://www.texastribune.org/2026/07/14/texas-weather-castastrophic-flooding-forecast/"
-      },
-      "contact": "911"
-    },
-    {
-      "id": "seed-003",
-      "ts": "2026-07-16T09:30:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "in-progress",
-      "county": "Kerr",
-      "place": "Ingram \u2014 Guadalupe River corridor",
-      "lat": 30.0771,
-      "lon": -99.2403,
-      "summary": "Volunteer firefighters evacuating residents overnight; ongoing calls about rising water",
-      "details": "Ingram code enforcement: damage more significant than the 2025 July 4 floods; overturned RVs and vehicles in debris fields, branches in downed power lines. Damage assessment begins as water recedes.",
-      "source": {
-        "platform": "news",
-        "handle": "AP via CBS Texas",
-        "url": "https://www.cbsnews.com/texas/news/texas-hill-country-flooding-rescues-july-16-2026/"
-      },
-      "contact": "Ingram VFD via Kerr County dispatch"
-    },
-    {
-      "id": "seed-004",
-      "ts": "2026-07-16T20:15:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "open",
-      "county": "Kerr",
-      "place": "Kerrville \u2014 Quinlan Creek corridor",
-      "lat": 30.052,
-      "lon": -99.131,
-      "summary": "Kerrville: most high water has receded \u2014 shelter-in-place continues, STAY OFF STREETS so responders can work; main bridge across the city still closed",
-      "details": "KPD via Facebook ~evening. Second, lower wave expected down the river system this afternoon. Water conservation still in effect (Arcadia Loop line break).",
-      "source": {
-        "platform": "official",
-        "handle": "City of Kerrville",
-        "url": "https://cbsaustin.com/news/local/flash-flood-emergency-declared-for-kerrville-area-as-catastrophic-flooding-prompts-rescues"
-      },
-      "contact": "Kerrville EOC"
-    },
-    {
-      "id": "seed-005",
-      "ts": "2026-07-16T20:30:00Z",
-      "type": "rescue",
-      "priority": "critical",
-      "status": "resolved",
-      "county": "Kerr",
-      "place": "Camp Mystic / South Fork Guadalupe, near Hunt",
-      "lat": 30.0055,
-      "lon": -99.371,
-      "summary": "RESOLVED: all Kerr County camps confirmed campers safe; Camp Mystic-area flash flood emergency has expired",
-      "details": "Kerr County Sheriff confirmed no camper casualties; the event's single confirmed fatality (near Center Point) was not a camper.",
-      "source": {
-        "platform": "news",
-        "handle": "KSLA",
-        "url": "https://www.ksla.com/2026/07/16/flash-flood-emergency-issued-camp-mystic-disaster-area-rivers-rise-southern-texas/"
-      },
-      "contact": "Kerr County dispatch"
-    },
-    {
-      "id": "seed-006",
-      "ts": "2026-07-16T22:40:00Z",
-      "type": "wellness",
-      "priority": "high",
-      "status": "open",
-      "county": "Kerr",
-      "place": "Center Point \u2014 Guadalupe River",
-      "lat": 29.9447,
-      "lon": -99.0364,
-      "summary": "Death toll now 2: man swept away in an RV near Comfort; 74-year-old man swept away driving in Uvalde \u2014 welfare checks continue Center Point\u2013Comfort",
-      "details": "Fatalities: a man ~65 at Center Point and a 74-year-old man in Uvalde (vehicle). One positive from 2025 lessons: new sirens + proactive evacuations cleared 80+ campers from riverside campgrounds before the water arrived.",
-      "source": {
-        "platform": "official",
-        "handle": "NWS Austin/San Antonio via Texas Tribune",
-        "url": "https://www.texastribune.org/2026/07/14/texas-weather-castastrophic-flooding-forecast/"
-      },
-      "contact": "Kerr County Sheriff"
-    },
-    {
-      "id": "seed-007",
-      "ts": "2026-07-17T01:35:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "open",
-      "county": "Blanco",
-      "place": "Pedernales River \u2014 central Blanco / southern Gillespie",
-      "lat": 30.2411,
-      "lon": -98.5628,
-      "summary": "Flash flood emergency: large and deadly flood wave moving down the Pedernales; riverside residents must move to high ground",
-      "details": "Flood wave reached Johnson City 3:41 PM Thu; gauge now falling (20.1 ft from 24.3 peak). Blanco County FF emergency still active \u2014 many roads around the river remain closed; 30+ rescued near Fredericksburg Thursday morning.",
-      "source": {
-        "platform": "official",
-        "handle": "NWS via KXAN",
-        "url": "https://www.kxan.com/news/texas/flash-flood-emergency-in-texas-thursday-july-16-2026/"
-      },
-      "contact": "Blanco County OEM"
-    },
-    {
-      "id": "seed-008",
-      "ts": "2026-07-16T13:30:00Z",
-      "type": "supplies",
-      "priority": "medium",
-      "status": "open",
-      "county": "Kerr",
-      "place": "Kerrville \u2014 citywide",
-      "lat": 30.0474,
-      "lon": -99.1403,
-      "summary": "Kerrville Surface Water Plant offline \u2014 city asks residents to minimize water use; bottled water staging may be needed",
-      "details": "City says no issues with water supply, request is preventative while the plant is offline.",
-      "source": {
-        "platform": "official",
-        "handle": "City of Kerrville",
-        "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-      },
-      "contact": "City of Kerrville"
-    },
-    {
-      "id": "seed-009",
-      "ts": "2026-07-17T00:15:00Z",
-      "type": "road",
-      "priority": "high",
-      "status": "open",
-      "county": "Kerr",
-      "place": "Highway 39 (Kerr County) / I-10",
-      "lat": 30.07,
-      "lon": -99.3,
-      "summary": "Kerr County bridge infrastructure heavily damaged: Sidney Baker St Bridge CLOSED (barge lodged underneath); Anderson Ranch, Ingram Hills Rd and Henderson Branch bridges WASHED OUT; Hwy 39 buckled Hunt\u2013Ingram",
-      "details": "Bridges: Sidney Baker closed (barge); Anderson Ranch, Ingram Hills, Henderson Branch washed out; Main St + Water St bridges debris-covered (Town Creek); Hwy 39 stabilized. Kerrville+Kerr Co+Gillespie local disasters declared; federal request PENDING.",
-      "source": {
-        "platform": "news",
-        "handle": "News4SA",
-        "url": "https://news4sanantonio.com/news/local/flooding-closes-highway-39-in-kerr-county-i-10-shut-down-after-major-crash"
-      },
-      "contact": ""
-    },
-    {
-      "id": "seed-010",
-      "ts": "2026-07-17T02:45:00Z",
-      "type": "volunteer",
-      "priority": "medium",
-      "status": "open",
-      "county": "Multi",
-      "place": "Hill Country region \u2014 staging via vetted orgs",
-      "lat": 29.85,
-      "lon": -99.4,
-      "summary": "Cajun Navy deployed to Center Point; other volunteer capacity routes via vetted orgs \u2014 DO NOT self-deploy",
-      "details": "2,350 state responders deployed; 85+ boats, 21 aircraft, ambulance strike teams. Team Rubicon and Red Cross intake open.",
-      "source": {
-        "platform": "news",
-        "handle": "Team Rubicon",
-        "url": "https://teamrubiconusa.org/news-and-stories/how-to-help-texas-flood-victims-and-survivors/"
-      },
-      "contact": "teamrubiconusa.org / 1-800-RED-CROSS"
-    },
-    {
-      "id": "seed-011",
-      "ts": "2026-07-16T13:45:00Z",
-      "type": "shelter",
-      "priority": "high",
-      "status": "open",
-      "county": "Uvalde",
-      "place": "Uvalde \u2014 residents cut off needing shelter placement",
-      "lat": 29.2166,
-      "lon": -99.775,
-      "summary": "Residents displaced by Leona/Nueces/Frio flooding need shelter placement \u2014 three city shelters plus Red Cross Fairplex open",
-      "details": "See Resources tab for addresses: Flores Elementary, Dalton Elementary, SW Texas Junior College, Red Cross at Uvalde County Fairplex.",
-      "source": {
-        "platform": "official",
-        "handle": "Uvalde County OEM via KUT",
-        "url": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
-      },
-      "contact": "Uvalde County OEM"
-    },
-    {
-      "id": "seed-012",
-      "ts": "2026-07-16T10:45:00Z",
-      "type": "wellness",
-      "priority": "high",
-      "status": "open",
-      "county": "Uvalde",
-      "place": "Knippa area (east of Uvalde)",
-      "lat": 29.2919,
-      "lon": -99.6317,
-      "summary": "Knippa under flash flood emergency \u2014 welfare checks needed once access restored",
-      "details": "Uvalde and the Knippa area under flash flood emergency: historic and catastrophic flooding imminent or occurring.",
-      "source": {
-        "platform": "official",
-        "handle": "NWS via KXAN",
-        "url": "https://www.kxan.com/news/texas/flash-flood-emergency-in-texas-thursday-july-16-2026/"
-      },
-      "contact": "Uvalde County Sheriff"
-    },
-    {
-      "id": "seed-018",
-      "ts": "2026-07-17T13:34:00Z",
-      "type": "info",
-      "priority": "high",
-      "status": "open",
-      "county": "Multi",
-      "place": "All flooded river corridors (Guadalupe, Pedernales, Nueces, Frio)",
-      "lat": 30.02,
-      "lon": -99.02,
-      "summary": "Rain winding down for all \u2014 dry by the weekend; flood threat shifts fully downstream: Crystal City/Asherton/Cotulla (Nueces), Derby/Fowlerton/Choke Canyon (Frio), Spring Branch (Guadalupe), Stockdale/Falls City/Kenedy (Cibolo/San Antonio R.)",
-      "details": "KSAT 8 AM CT: rain winding down everywhere; crests continue moving through lower basins into the weekend. Statewide: 2,000+ responders working, 230+ rescues so far (Texas Tribune live blog).",
-      "source": {
-        "platform": "news",
-        "handle": "KSAT / Texas Tribune",
-        "url": "https://www.ksat.com/weather/2026/07/17/update-rain-is-winding-down-for-all-flooding-still-possible-downstream-along-rivers/"
-      },
-      "contact": ""
-    },
-    {
-      "id": "seed-019",
-      "ts": "2026-07-17T10:25:00Z",
-      "type": "equipment",
-      "priority": "medium",
-      "status": "open",
-      "county": "Kerr",
-      "place": "Kerrville \u2014 Arcadia Loop bridge / citywide utilities",
-      "lat": 30.043,
-      "lon": -99.155,
-      "summary": "Kerrville utilities recovering: outages down 98\u219239 (2,181 customers); Arcadia Loop bridge has a 15-20 ft deep hole with a major water line break \u2014 Arcadia Loop homes temporarily without water",
-      "details": "KPUB restoration underway (98\u219239 outages). Central Texas Electric Co-op: 1,000+ meters still out across Gillespie/Kerr/Kendall rural areas. Arcadia Loop bridge 15-20 ft hole + water main break.",
-      "source": {
-        "platform": "news",
-        "handle": "KUT live blog",
-        "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-      },
-      "contact": "Kerrville Public Utility"
-    },
-    {
-      "id": "seed-015",
-      "ts": "2026-07-16T16:40:00Z",
-      "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
-      "county": "Kendall",
-      "place": "Comfort \u2014 low-lying areas along the Guadalupe",
-      "lat": 29.9683,
-      "lon": -98.9053,
-      "summary": "Comfort taking the brunt: Guadalupe crested 37.08 ft \u2014 SURPASSING the July 2025 record (35.64 ft) \u2014 evacuate low-lying areas; flood sirens activated twice",
-      "details": "Kendall County reports NO fatalities or missing; two official water rescues + dozens assisted to a voluntary evacuation center at a school north of Comfort. Comfort crest was top-3 on record (above July 2025).",
-      "source": {
-        "platform": "official",
-        "handle": "Kendall County / NWS via Fox Weather & KUT",
-        "url": "https://www.foxweather.com/weather-news/texas-flash-flood-emergency-uvalde-kerr-hill-country-july-2026"
-      },
-      "contact": "Kendall County OEM"
-    },
-    {
-      "id": "seed-016",
-      "ts": "2026-07-16T15:50:00Z",
-      "type": "evacuation",
-      "priority": "high",
-      "status": "in-progress",
-      "county": "Kerr",
-      "place": "Buckhorn Lake Resort (near I-10) and Ingram RV Park",
-      "lat": 30.0605,
-      "lon": -99.2205,
-      "summary": "Buckhorn Lake Resort and Ingram RV Park evacuating guests \u2014 RV parks along the Guadalupe are highest-risk occupancies",
-      "details": "Reunification at Calvary Temple Church, 3000 Loop 534, Kerrville.",
-      "source": {
-        "platform": "news",
-        "handle": "KUT live blog",
-        "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-      },
-      "contact": ""
-    },
-    {
-      "id": "seed-017",
-      "ts": "2026-07-16T17:10:00Z",
-      "type": "info",
-      "priority": "high",
-      "status": "open",
-      "county": "Burnet",
-      "place": "Colorado River below Wirtz and Starcke dams (Marble Falls, Kingsland corridor)",
-      "lat": 30.5552,
-      "lon": -98.3378,
-      "summary": "LCRA opening floodgates at Wirtz and Starcke dams TODAY \u2014 expect fast flows and rapid rises downstream on the Colorado; clear riverbanks and low crossings now",
-      "details": "Pre-position awareness for Marble Falls/Kingsland; Sandy Creek near Kingsland gauge already forecast to reach action stage.",
-      "source": {
-        "platform": "official",
-        "handle": "LCRA via KUT",
-        "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-      },
-      "contact": "LCRA / Burnet County OEM"
-    },
-    {
-      "id": "seed-014",
-      "ts": "2026-07-17T03:35:00Z",
-      "type": "cutoff",
-      "priority": "high",
-      "status": "open",
-      "county": "Uvalde",
-      "place": "Uvalde \u2014 city and surrounding areas isolated",
-      "lat": 29.2097,
-      "lon": -99.7862,
-      "radiusMi": 6,
-      "summary": "Uvalde access INTERMITTENT: US 90 into the county reopened then re-closed at E Main St; Garner Field Rd one lane each direction \u2014 verify drivetexas.org before every trip",
-      "details": "TDEM (Chief Nim Kidd): food and water being delivered to cut-off parts of Uvalde. 85+ boats, 20 aircraft, 200 high-profile vehicles deployed statewide. Shelters: Flores Elementary, SW Texas College, Dalton Elementary, Red Cross Fairplex. Overlay radius is an operator estimate.",
-      "source": {
-        "platform": "official",
-        "handle": "Uvalde County OEM via AP",
-        "url": "https://www.news4jax.com/news/national/2026/07/16/texas-flooding-surges-from-huge-rainstorms-as-rescuers-pull-people-from-rising-waters/"
-      },
-      "contact": "Uvalde County OEM"
-    },
-    {
-      "id": "seed-013",
-      "ts": "2026-07-17T03:30:00Z",
-      "type": "animal",
-      "priority": "low",
-      "status": "resolved",
-      "county": "Kendall",
-      "place": "Comfort \u2014 riverside properties",
-      "lat": 29.9683,
-      "lon": -98.9053,
-      "summary": "RESOLVED (unconfirmed): Comfort livestock lead \u2014 no confirmation after 16h of monitoring; close as unverified",
-      "details": "Pattern from July 2025 event; unconfirmed for this event. Treat as monitoring lead for animal-rescue groups, verify before tasking.",
-      "source": {
-        "platform": "field",
-        "handle": "monitoring lead (unverified)",
-        "url": ""
-      },
-      "contact": ""
-    }
-  ]
+ "generated": "2026-07-17T12:36:00Z",
+ "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
+ "requests": [
+  {
+   "id": "seed-036",
+   "ts": "2026-07-17T17:08:57Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "open",
+   "county": "Kimble",
+   "place": "Junction \u2014 Llano River",
+   "lat": 30.4894,
+   "lon": -99.772,
+   "summary": "Junction crest PASSED at ~30.3 ft (high moderate \u2014 the 31.3 MAJOR forecast did not verify); Llano now forecast to fall to ~26 ft \u2014 stay clear of riverbanks during recession",
+   "details": "NWPS JNCT2 12:08 PM CT: observed 30.27 moderate at/just past crest, forecast now a falling limb to ~26 ft. Peak came in ~1 ft under the major threshold. Bank instability and debris hazards persist during recession; downstream Llano reaches still rising.",
+   "source": {
+    "platform": "official",
+    "handle": "NOAA NWPS",
+    "url": "https://water.noaa.gov/gauges/JNCT2"
+   }
+  },
+  {
+   "id": "seed-035",
+   "ts": "2026-07-17T16:16:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "open",
+   "county": "Uvalde",
+   "place": "Concan / Garner State Park corridor \u2014 Frio River",
+   "lat": 29.4886,
+   "lon": -99.7042,
+   "summary": "Frio River at Concan crested MAJOR (~15.4 ft) \u2014 Garner State Park corridor flooding; avoid river crossings, campground/low-water areas dangerous",
+   "details": "NWPS CONT2-area gauge: observed 12.76 moderate and peaking ~15.4 major around 11 AM CT. Westward storm round now flooding the upper Frio. Verify park/campground status before any routing.",
+   "source": {
+    "platform": "official",
+    "handle": "NOAA NWPS",
+    "url": "https://water.noaa.gov/gauges/CONT2"
+   }
+  },
+  {
+   "id": "seed-034",
+   "ts": "2026-07-17T16:16:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "open",
+   "county": "Crockett",
+   "place": "Ozona and surrounding areas \u2014 east-central Crockett County",
+   "lat": 30.7102,
+   "lon": -101.206,
+   "summary": "FLASH FLOOD EMERGENCY EXTENDED: Ozona/Crockett Co through 2:15 PM CT \u2014 flash flooding ongoing; second extension of the westward round",
+   "details": "NWS San Angelo extended the Crockett Co emergency-worded warning to 2:15 PM (prior 11:45). Sutton/Sonora emergency runs to 1:15 PM. Johnson Draw caution stands.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS San Angelo via api.weather.gov",
+    "url": "https://api.weather.gov/alerts/active?area=TX"
+   },
+   "contact": "Crockett County Sheriff / 911"
+  },
+  {
+   "id": "seed-033",
+   "ts": "2026-07-17T16:28:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "open",
+   "county": "Karnes",
+   "place": "Falls City \u2014 Cibolo Creek (FM 791 / CR area)",
+   "lat": 28.98,
+   "lon": -98.02,
+   "summary": "Falls City DOWNGRADE: Cibolo crest revised DOWN to 23.6 ft moderate ~midnight tonight (was 25.2 major) \u2014 still prep low-lying Cibolo properties, but record threat has passed",
+   "details": "NWPS FCTT2 11:25 AM CT: observed 19.65 minor rising, forecast 23.6 moderate 05:00Z (~12 AM CT). Second downward revision; livestock-loss reach note stands.",
+   "source": {
+    "platform": "official",
+    "handle": "NOAA NWPS FCTT2",
+    "url": "https://water.noaa.gov/gauges/FCTT2"
+   }
+  },
+  {
+   "id": "seed-032",
+   "ts": "2026-07-17T15:13:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "open",
+   "county": "Sutton",
+   "place": "Sonora \u2014 Sutton County (western Edwards Plateau)",
+   "lat": 30.5671,
+   "lon": -100.6434,
+   "summary": "FLASH FLOOD EMERGENCY EXTENDED for Sonora \u2014 new emergency-worded warning through 1:15 PM CT; continued dangerous flooding on saturated ground, avoid all low crossings",
+   "details": "NWS San Angelo re-issued emergency wording 10:06 AM CT (prior 7:12 AM round expires 10:15). Westward-shift round continuing; Dry Devils River drainages remain dangerous. Ozona/Crockett emergency also active through 11:45 AM.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS San Angelo via api.weather.gov",
+    "url": "https://api.weather.gov/alerts/active?area=TX"
+   },
+   "contact": "Sutton County Sheriff / 911"
+  },
+  {
+   "id": "seed-031",
+   "ts": "2026-07-17T16:28:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "open",
+   "county": "Dimmit",
+   "place": "Asherton \u2014 Nueces River (Dimmit Co.)",
+   "lat": 28.4419,
+   "lon": -99.7625,
+   "summary": "ASHERTON ESCALATION: Nueces forecast crest revised UP to 30.2 ft MAJOR ~7 AM Saturday \u2014 4.5 ft ABOVE the 1991 record (25.7); obs 24.83 rising; prepare for record-shattering flooding",
+   "details": "NWPS ASRT2 11:25 AM CT: observed 24.83 (moderate, already near record), forecast 30.2 MAJOR 2026-07-18 12:00Z. Massive upward revision from 25.8. FM 190 and low floodplain sections will be far exceeded; Zavala/Dimmit OEMs coordinate evacuations (Facebook-only comms).",
+   "source": {
+    "platform": "official",
+    "handle": "NOAA NWPS ASRT2",
+    "url": "https://water.noaa.gov/gauges/ASRT2"
+   },
+   "contact": "Dimmit County OEM"
+  },
+  {
+   "id": "seed-029",
+   "ts": "2026-07-17T09:26:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "open",
+   "county": "Zavala",
+   "place": "Crystal City \u2014 Nueces River downstream corridor",
+   "lat": 28.6852,
+   "lon": -99.8281,
+   "summary": "Crystal City: roads flooding as the record Nueces wave arrives \u2014 mobile-home residents evacuated; at 21 ft the lowest homes on the east edge flood; NWS warns of DISASTROUS widespread lowland flooding",
+   "details": "FM 582 near Rock Quarry Rd flooded; some motels offering evacuee discounts (Mayor Pro Tem Marquez). US 57 closed I-35 to Zavala Co. Wave continues downstream toward Asherton (forecast moderate 25.8).",
+   "source": {
+    "platform": "official",
+    "handle": "NWS forecast + Zavala Co Fire/Rescue LSR via IEM",
+    "url": "https://water.noaa.gov/gauges/uvlt2"
+   },
+   "contact": "Zavala County OEM"
+  },
+  {
+   "id": "seed-030",
+   "ts": "2026-07-17T13:34:00Z",
+   "type": "animal",
+   "priority": "medium",
+   "status": "open",
+   "county": "Multi",
+   "place": "Region-wide \u2014 ranch and farm country",
+   "lat": 29.6,
+   "lon": -99.5,
+   "summary": "AGRICULTURAL EMERGENCY: hundreds of livestock reported trapped/drowned along the Pedernales and Cibolo near Falls City, and Frio/Nueces near Uvalde \u2014 TDA relief active",
+   "details": "KSAT 7/17: reports of hundreds of livestock trapped and potentially drowned along Pedernales River and Cibolo Creek near Falls City; similar out of Frio and Nueces near Uvalde. TDA agricultural emergency (Commissioner Miller) activates state recovery resources for producers.",
+   "source": {
+    "platform": "news",
+    "handle": "KSAT",
+    "url": "https://www.ksat.com/weather/2026/07/17/update-rain-is-winding-down-for-all-flooding-still-possible-downstream-along-rivers/"
+   },
+   "contact": "Texas Dept. of Agriculture / county AgriLife"
+  },
+  {
+   "id": "seed-028",
+   "ts": "2026-07-17T07:17:00Z",
+   "type": "supplies",
+   "priority": "high",
+   "status": "open",
+   "county": "Comal",
+   "place": "Canyon Lake \u2014 water system service area",
+   "lat": 29.8752,
+   "lon": -98.2625,
+   "summary": "BOIL WATER NOTICE for Canyon Lake: flood debris/sediment spiked turbidity at the Canyon Lake Shores Treatment Plant intake \u2014 bottled/potable water staging may be needed",
+   "details": "Issued to protect public health during elevated turbidity. Coordinate potable water for shelters and vulnerable residents in the service area.",
+   "source": {
+    "platform": "official",
+    "handle": "Water utility via My Canyon Lake",
+    "url": "https://mycanyonlake.com/flood-debris-heads-for-spring-branch-guadalupe-river-will-crest-over-rebecca-creek-overnight/"
+   },
+   "contact": "Comal County OEM / water utility"
+  },
+  {
+   "id": "seed-027",
+   "ts": "2026-07-17T07:17:00Z",
+   "type": "animal",
+   "priority": "medium",
+   "status": "open",
+   "county": "Kerr",
+   "place": "Kerr County wildlife rescue facility (Guadalupe corridor, location approx.)",
+   "lat": 30.033,
+   "lon": -99.16,
+   "summary": "Kerr County wildlife rescue facility torn apart by floodwaters \u2014 displaced animals; animal-rescue coordination and temporary housing needed",
+   "details": "Video via KSAT. Coordinate through Kerr County animal control / vetted animal-rescue orgs; do not self-deploy to the damaged site.",
+   "source": {
+    "platform": "news",
+    "handle": "KSAT",
+    "url": "https://www.ksat.com/news/local/2026/07/16/watch-floodwaters-tear-apart-kerr-county-wildlife-rescue-facility/"
+   },
+   "contact": "Kerr County Animal Services"
+  },
+  {
+   "id": "seed-026",
+   "ts": "2026-07-17T04:30:00Z",
+   "type": "evacuation",
+   "priority": "medium",
+   "status": "in-progress",
+   "county": "Wilson",
+   "place": "San Antonio River near Elmendorf (Bexar/Wilson Co.)",
+   "lat": 29.2564,
+   "lon": -98.3331,
+   "summary": "Elmendorf: San Antonio River crest (38.7 ft) has PASSED and is receding \u2014 below flood stage late Friday morning; lowland impacts persist below San Antonio to below Floresville",
+   "details": "Isolated livestock/structures, flooded secondary roads, low bridges, irrigation pumps, oil-field pump jacks and tank batteries. Wilson Co voluntary-evacuation advisory still posted.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS / Wilson County EM via Wilson County News",
+    "url": "https://www.wilsoncountynews.com/articles/flood-warning-issued-for-san-antonio-river-in-wilson-bexar-counties/"
+   },
+   "contact": "Wilson County OEM"
+  },
+  {
+   "id": "seed-024",
+   "ts": "2026-07-17T01:45:00Z",
+   "type": "road",
+   "priority": "critical",
+   "status": "open",
+   "county": "Uvalde",
+   "place": "US-90 corridor \u2014 Sabinal / Uvalde / Hondo to Del Rio",
+   "lat": 29.3214,
+   "lon": -99.4692,
+   "summary": "US 90 CLOSED both directions at Sabinal and west of Uvalde \u2014 pavement torn up in places; corridor flooding Hondo to Del Rio; US 57, FM 140, FM 3352, FM 1581 also closed",
+   "details": "TxDOT: at least 125 roadways affected and 87 CLOSED across Central Texas due to flooding, damage and debris. Frio/Uvalde/Zavala closures include US 57, FM 140, FM 3352, FM 1581. Route via drivetexas.org; assume low crossings impassable.",
+   "source": {
+    "platform": "official",
+    "handle": "Sabinal Mayor / TxDOT via KSAT & KENS5",
+    "url": "https://www.ksat.com/weather/2026/07/16/portions-of-us-highway-90-in-west-bexar-county-uvalde-county-closed-due-to-ongoing-flooding/"
+   },
+   "contact": ""
+  },
+  {
+   "id": "seed-025",
+   "ts": "2026-07-17T00:10:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "in-progress",
+   "county": "Medina",
+   "place": "D'Hanis \u2014 Seco Creek",
+   "lat": 29.3266,
+   "lon": -99.2853,
+   "summary": "Flash flood emergency was issued for D'Hanis as Seco Creek rose rapidly (now receding) \u2014 evacuee shelter established by Medina County and City of Hondo",
+   "details": "Verify all D'Hanis residents accounted for as water recedes. Shelter location via Medina County OEM / City of Hondo.",
+   "source": {
+    "platform": "official",
+    "handle": "Medina County OEM via KENS5",
+    "url": "https://www.kens5.com/article/news/local/greg-abbott-flooding-flash-emergency-response-texas-national-guard-blackhawk-dps-swiftwater-rescue-helicopters-highwater-vehicles/273-72364290-08d6-4db9-b979-fd4b04a7737c"
+   },
+   "contact": "Medina County OEM"
+  },
+  {
+   "id": "seed-023",
+   "ts": "2026-07-17T14:42:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "open",
+   "county": "Wilson",
+   "place": "Sutherland Springs / Falls City \u2014 Cibolo Creek (Wilson & Karnes Co.)",
+   "lat": 29.2727,
+   "lon": -98.0561,
+   "summary": "Sutherland Springs FALLING (33.9 ft) \u2014 forecast secondary bump CANCELED (fcst revised to 33.1); homes-cutoff avoided; FM 539-south roadway still submerged until further drop",
+   "details": "NWPS SUPT2 9:40 AM CT: observed 33.9 (moderate) and falling, forecast 33.1 \u2014 the ~35.5 morning re-rise did not materialize. Keep the card open for the roadway; downgrade posture to damage-assessment as it clears.",
+   "source": {
+    "platform": "official",
+    "handle": "NOAA NWPS SUPT2",
+    "url": "https://water.noaa.gov/gauges/SUPT2"
+   },
+   "contact": "Wilson County OEM / Karnes County OEM"
+  },
+  {
+   "id": "seed-021",
+   "ts": "2026-07-16T22:45:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "resolved",
+   "county": "Guadalupe",
+   "place": "Schertz \u2014 Cibolo Creek corridor (incl. Pecan Grove RV Park)",
+   "lat": 29.5522,
+   "lon": -98.2697,
+   "summary": "RESOLVED: Schertz lifted its Cibolo Creek evacuation order at 3 PM; barricades being removed, debris clearing underway",
+   "details": "Overnight severe weather passed; residents asked for patience during cleanup. The flood wave is now downstream \u2014 see Sutherland Springs card.",
+   "source": {
+    "platform": "official",
+    "handle": "City of Schertz via KENS5",
+    "url": "https://www.kens5.com/article/weather/severe-weather/texas-schertz-disaster-declaration-cibolo-creek-flooding-evacuations/273-a618d120-454a-473a-abbf-40f539e3d40d"
+   },
+   "contact": "Schertz EM / Guadalupe County OEM"
+  },
+  {
+   "id": "seed-022",
+   "ts": "2026-07-16T21:10:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "open",
+   "county": "Bandera",
+   "place": "Medina River RV parks \u2014 Bandera County",
+   "lat": 29.7266,
+   "lon": -99.0737,
+   "summary": "Evacuations ORDERED for Medina River RV parks as the river rises toward forecast MAJOR flood at Bandera",
+   "details": "At 24 ft major flooding reaches Pioneer RV Park below Hwy 173; at 25 ft all campsites flood. Crest forecast 24.2 ft (previous record 24.5 ft, June 1997). Silver Sage open as overnight emergency shelter for Bandera County.",
+   "source": {
+    "platform": "official",
+    "handle": "Bandera County via CBS Austin",
+    "url": "https://cbsaustin.com/news/local/evacuations-ordered-for-medina-river-rv-parks-in-bandera-county-flooding-road-closures-rain-heavy-rainfall"
+   },
+   "contact": "Bandera County OEM"
+  },
+  {
+   "id": "seed-020",
+   "ts": "2026-07-17T08:26:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "in-progress",
+   "county": "Comal",
+   "place": "Spring Branch / Canyon Lake / Guadalupe River State Park corridor",
+   "lat": 29.888,
+   "lon": -98.414,
+   "summary": "Spring Branch crest has PASSED \u2014 Guadalupe fell out of flood categories and is receding fast; damage assessment and re-entry checks begin along the Canyon Lake corridor",
+   "details": "Boil water notice remains for Canyon Lake service area. Verify campground/park re-entry only with officials.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS via KUT/Fox Weather live coverage",
+    "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+   },
+   "contact": "Comal County OEM"
+  },
+  {
+   "id": "seed-001",
+   "ts": "2026-07-17T03:30:00Z",
+   "type": "rescue",
+   "priority": "critical",
+   "status": "resolved",
+   "county": "Uvalde",
+   "place": "City of Uvalde \u2014 multiple locations",
+   "lat": 29.2097,
+   "lon": -99.7862,
+   "summary": "RESOLVED: Uvalde vehicle-entrapment phase over \u2014 waters receding in the city, 230+ rescues completed statewide, no new entrapments reported Friday morning",
+   "details": "Police report trapped people are communicating with the emergency dispatch center so crews can reach them. All major highways and streets near rivers, creeks and sloughs in Uvalde closed. 40+ rescued by Texas Game Wardens in Uvalde County area.",
+   "source": {
+    "platform": "official",
+    "handle": "Uvalde PD / Uvalde County OEM via AP",
+    "url": "https://www.news4jax.com/news/national/2026/07/16/texas-flooding-surges-from-huge-rainstorms-as-rescuers-pull-people-from-rising-waters/"
+   },
+   "contact": "911 (life-threatening only)"
+  },
+  {
+   "id": "seed-002",
+   "ts": "2026-07-17T03:35:00Z",
+   "type": "rescue",
+   "priority": "critical",
+   "status": "in-progress",
+   "county": "Uvalde",
+   "place": "Uvalde County \u2014 Nueces/Leona/Frio river areas",
+   "lat": 29.14,
+   "lon": -99.84,
+   "summary": "Uvalde County: rescue phase winding down as Nueces/Frio crests pass \u2014 shift to welfare checks and resupply of cut-off pockets",
+   "details": "Nueces below Uvalde falling from ~27.8 ft record-area crest; Frio below Dry Frio falling. TDEM resupply running. Officials still ask residents to stay off roads.",
+   "source": {
+    "platform": "official",
+    "handle": "Uvalde County officials via Texas Tribune",
+    "url": "https://www.texastribune.org/2026/07/14/texas-weather-castastrophic-flooding-forecast/"
+   },
+   "contact": "911"
+  },
+  {
+   "id": "seed-003",
+   "ts": "2026-07-16T09:30:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "in-progress",
+   "county": "Kerr",
+   "place": "Ingram \u2014 Guadalupe River corridor",
+   "lat": 30.0771,
+   "lon": -99.2403,
+   "summary": "Volunteer firefighters evacuating residents overnight; ongoing calls about rising water",
+   "details": "Ingram code enforcement: damage more significant than the 2025 July 4 floods; overturned RVs and vehicles in debris fields, branches in downed power lines. Damage assessment begins as water recedes.",
+   "source": {
+    "platform": "news",
+    "handle": "AP via CBS Texas",
+    "url": "https://www.cbsnews.com/texas/news/texas-hill-country-flooding-rescues-july-16-2026/"
+   },
+   "contact": "Ingram VFD via Kerr County dispatch"
+  },
+  {
+   "id": "seed-004",
+   "ts": "2026-07-16T20:15:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "open",
+   "county": "Kerr",
+   "place": "Kerrville \u2014 Quinlan Creek corridor",
+   "lat": 30.052,
+   "lon": -99.131,
+   "summary": "Kerrville: most high water has receded \u2014 shelter-in-place continues, STAY OFF STREETS so responders can work; main bridge across the city still closed",
+   "details": "KPD via Facebook ~evening. Second, lower wave expected down the river system this afternoon. Water conservation still in effect (Arcadia Loop line break).",
+   "source": {
+    "platform": "official",
+    "handle": "City of Kerrville",
+    "url": "https://cbsaustin.com/news/local/flash-flood-emergency-declared-for-kerrville-area-as-catastrophic-flooding-prompts-rescues"
+   },
+   "contact": "Kerrville EOC"
+  },
+  {
+   "id": "seed-005",
+   "ts": "2026-07-16T20:30:00Z",
+   "type": "rescue",
+   "priority": "critical",
+   "status": "resolved",
+   "county": "Kerr",
+   "place": "Camp Mystic / South Fork Guadalupe, near Hunt",
+   "lat": 30.0055,
+   "lon": -99.371,
+   "summary": "RESOLVED: all Kerr County camps confirmed campers safe; Camp Mystic-area flash flood emergency has expired",
+   "details": "Kerr County Sheriff confirmed no camper casualties; the event's single confirmed fatality (near Center Point) was not a camper.",
+   "source": {
+    "platform": "news",
+    "handle": "KSLA",
+    "url": "https://www.ksla.com/2026/07/16/flash-flood-emergency-issued-camp-mystic-disaster-area-rivers-rise-southern-texas/"
+   },
+   "contact": "Kerr County dispatch"
+  },
+  {
+   "id": "seed-006",
+   "ts": "2026-07-16T22:40:00Z",
+   "type": "wellness",
+   "priority": "high",
+   "status": "open",
+   "county": "Kerr",
+   "place": "Center Point \u2014 Guadalupe River",
+   "lat": 29.9447,
+   "lon": -99.0364,
+   "summary": "Death toll now 2: man swept away in an RV near Comfort; 74-year-old man swept away driving in Uvalde \u2014 welfare checks continue Center Point\u2013Comfort",
+   "details": "Fatalities: a man ~65 at Center Point and a 74-year-old man in Uvalde (vehicle). One positive from 2025 lessons: new sirens + proactive evacuations cleared 80+ campers from riverside campgrounds before the water arrived.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS Austin/San Antonio via Texas Tribune",
+    "url": "https://www.texastribune.org/2026/07/14/texas-weather-castastrophic-flooding-forecast/"
+   },
+   "contact": "Kerr County Sheriff"
+  },
+  {
+   "id": "seed-007",
+   "ts": "2026-07-17T01:35:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "open",
+   "county": "Blanco",
+   "place": "Pedernales River \u2014 central Blanco / southern Gillespie",
+   "lat": 30.2411,
+   "lon": -98.5628,
+   "summary": "Flash flood emergency: large and deadly flood wave moving down the Pedernales; riverside residents must move to high ground",
+   "details": "Flood wave reached Johnson City 3:41 PM Thu; gauge now falling (20.1 ft from 24.3 peak). Blanco County FF emergency still active \u2014 many roads around the river remain closed; 30+ rescued near Fredericksburg Thursday morning.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS via KXAN",
+    "url": "https://www.kxan.com/news/texas/flash-flood-emergency-in-texas-thursday-july-16-2026/"
+   },
+   "contact": "Blanco County OEM"
+  },
+  {
+   "id": "seed-008",
+   "ts": "2026-07-16T13:30:00Z",
+   "type": "supplies",
+   "priority": "medium",
+   "status": "open",
+   "county": "Kerr",
+   "place": "Kerrville \u2014 citywide",
+   "lat": 30.0474,
+   "lon": -99.1403,
+   "summary": "Kerrville Surface Water Plant offline \u2014 city asks residents to minimize water use; bottled water staging may be needed",
+   "details": "City says no issues with water supply, request is preventative while the plant is offline.",
+   "source": {
+    "platform": "official",
+    "handle": "City of Kerrville",
+    "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+   },
+   "contact": "City of Kerrville"
+  },
+  {
+   "id": "seed-009",
+   "ts": "2026-07-17T00:15:00Z",
+   "type": "road",
+   "priority": "high",
+   "status": "open",
+   "county": "Kerr",
+   "place": "Highway 39 (Kerr County) / I-10",
+   "lat": 30.07,
+   "lon": -99.3,
+   "summary": "Kerr County bridge infrastructure heavily damaged: Sidney Baker St Bridge CLOSED (barge lodged underneath); Anderson Ranch, Ingram Hills Rd and Henderson Branch bridges WASHED OUT; Hwy 39 buckled Hunt\u2013Ingram",
+   "details": "Bridges: Sidney Baker closed (barge); Anderson Ranch, Ingram Hills, Henderson Branch washed out; Main St + Water St bridges debris-covered (Town Creek); Hwy 39 stabilized. Kerrville+Kerr Co+Gillespie local disasters declared; federal request PENDING.",
+   "source": {
+    "platform": "news",
+    "handle": "News4SA",
+    "url": "https://news4sanantonio.com/news/local/flooding-closes-highway-39-in-kerr-county-i-10-shut-down-after-major-crash"
+   },
+   "contact": ""
+  },
+  {
+   "id": "seed-010",
+   "ts": "2026-07-17T02:45:00Z",
+   "type": "volunteer",
+   "priority": "medium",
+   "status": "open",
+   "county": "Multi",
+   "place": "Hill Country region \u2014 staging via vetted orgs",
+   "lat": 29.85,
+   "lon": -99.4,
+   "summary": "Cajun Navy deployed to Center Point; other volunteer capacity routes via vetted orgs \u2014 DO NOT self-deploy",
+   "details": "2,350 state responders deployed; 85+ boats, 21 aircraft, ambulance strike teams. Team Rubicon and Red Cross intake open.",
+   "source": {
+    "platform": "news",
+    "handle": "Team Rubicon",
+    "url": "https://teamrubiconusa.org/news-and-stories/how-to-help-texas-flood-victims-and-survivors/"
+   },
+   "contact": "teamrubiconusa.org / 1-800-RED-CROSS"
+  },
+  {
+   "id": "seed-011",
+   "ts": "2026-07-16T13:45:00Z",
+   "type": "shelter",
+   "priority": "high",
+   "status": "open",
+   "county": "Uvalde",
+   "place": "Uvalde \u2014 residents cut off needing shelter placement",
+   "lat": 29.2166,
+   "lon": -99.775,
+   "summary": "Residents displaced by Leona/Nueces/Frio flooding need shelter placement \u2014 three city shelters plus Red Cross Fairplex open",
+   "details": "See Resources tab for addresses: Flores Elementary, Dalton Elementary, SW Texas Junior College, Red Cross at Uvalde County Fairplex.",
+   "source": {
+    "platform": "official",
+    "handle": "Uvalde County OEM via KUT",
+    "url": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
+   },
+   "contact": "Uvalde County OEM"
+  },
+  {
+   "id": "seed-012",
+   "ts": "2026-07-16T10:45:00Z",
+   "type": "wellness",
+   "priority": "high",
+   "status": "open",
+   "county": "Uvalde",
+   "place": "Knippa area (east of Uvalde)",
+   "lat": 29.2919,
+   "lon": -99.6317,
+   "summary": "Knippa under flash flood emergency \u2014 welfare checks needed once access restored",
+   "details": "Uvalde and the Knippa area under flash flood emergency: historic and catastrophic flooding imminent or occurring.",
+   "source": {
+    "platform": "official",
+    "handle": "NWS via KXAN",
+    "url": "https://www.kxan.com/news/texas/flash-flood-emergency-in-texas-thursday-july-16-2026/"
+   },
+   "contact": "Uvalde County Sheriff"
+  },
+  {
+   "id": "seed-018",
+   "ts": "2026-07-17T13:34:00Z",
+   "type": "info",
+   "priority": "high",
+   "status": "open",
+   "county": "Multi",
+   "place": "All flooded river corridors (Guadalupe, Pedernales, Nueces, Frio)",
+   "lat": 30.02,
+   "lon": -99.02,
+   "summary": "Rain winding down for all \u2014 dry by the weekend; flood threat shifts fully downstream: Crystal City/Asherton/Cotulla (Nueces), Derby/Fowlerton/Choke Canyon (Frio), Spring Branch (Guadalupe), Stockdale/Falls City/Kenedy (Cibolo/San Antonio R.)",
+   "details": "KSAT 8 AM CT: rain winding down everywhere; crests continue moving through lower basins into the weekend. Statewide: 2,000+ responders working, 230+ rescues so far (Texas Tribune live blog).",
+   "source": {
+    "platform": "news",
+    "handle": "KSAT / Texas Tribune",
+    "url": "https://www.ksat.com/weather/2026/07/17/update-rain-is-winding-down-for-all-flooding-still-possible-downstream-along-rivers/"
+   },
+   "contact": ""
+  },
+  {
+   "id": "seed-019",
+   "ts": "2026-07-17T10:25:00Z",
+   "type": "equipment",
+   "priority": "medium",
+   "status": "open",
+   "county": "Kerr",
+   "place": "Kerrville \u2014 Arcadia Loop bridge / citywide utilities",
+   "lat": 30.043,
+   "lon": -99.155,
+   "summary": "Kerrville utilities recovering: outages down 98\u219239 (2,181 customers); Arcadia Loop bridge has a 15-20 ft deep hole with a major water line break \u2014 Arcadia Loop homes temporarily without water",
+   "details": "KPUB restoration underway (98\u219239 outages). Central Texas Electric Co-op: 1,000+ meters still out across Gillespie/Kerr/Kendall rural areas. Arcadia Loop bridge 15-20 ft hole + water main break.",
+   "source": {
+    "platform": "news",
+    "handle": "KUT live blog",
+    "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+   },
+   "contact": "Kerrville Public Utility"
+  },
+  {
+   "id": "seed-015",
+   "ts": "2026-07-16T16:40:00Z",
+   "type": "evacuation",
+   "priority": "critical",
+   "status": "open",
+   "county": "Kendall",
+   "place": "Comfort \u2014 low-lying areas along the Guadalupe",
+   "lat": 29.9683,
+   "lon": -98.9053,
+   "summary": "Comfort taking the brunt: Guadalupe crested 37.08 ft \u2014 SURPASSING the July 2025 record (35.64 ft) \u2014 evacuate low-lying areas; flood sirens activated twice",
+   "details": "Kendall County reports NO fatalities or missing; two official water rescues + dozens assisted to a voluntary evacuation center at a school north of Comfort. Comfort crest was top-3 on record (above July 2025).",
+   "source": {
+    "platform": "official",
+    "handle": "Kendall County / NWS via Fox Weather & KUT",
+    "url": "https://www.foxweather.com/weather-news/texas-flash-flood-emergency-uvalde-kerr-hill-country-july-2026"
+   },
+   "contact": "Kendall County OEM"
+  },
+  {
+   "id": "seed-016",
+   "ts": "2026-07-16T15:50:00Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "in-progress",
+   "county": "Kerr",
+   "place": "Buckhorn Lake Resort (near I-10) and Ingram RV Park",
+   "lat": 30.0605,
+   "lon": -99.2205,
+   "summary": "Buckhorn Lake Resort and Ingram RV Park evacuating guests \u2014 RV parks along the Guadalupe are highest-risk occupancies",
+   "details": "Reunification at Calvary Temple Church, 3000 Loop 534, Kerrville.",
+   "source": {
+    "platform": "news",
+    "handle": "KUT live blog",
+    "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+   },
+   "contact": ""
+  },
+  {
+   "id": "seed-017",
+   "ts": "2026-07-16T17:10:00Z",
+   "type": "info",
+   "priority": "high",
+   "status": "open",
+   "county": "Burnet",
+   "place": "Colorado River below Wirtz and Starcke dams (Marble Falls, Kingsland corridor)",
+   "lat": 30.5552,
+   "lon": -98.3378,
+   "summary": "LCRA opening floodgates at Wirtz and Starcke dams TODAY \u2014 expect fast flows and rapid rises downstream on the Colorado; clear riverbanks and low crossings now",
+   "details": "Pre-position awareness for Marble Falls/Kingsland; Sandy Creek near Kingsland gauge already forecast to reach action stage.",
+   "source": {
+    "platform": "official",
+    "handle": "LCRA via KUT",
+    "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+   },
+   "contact": "LCRA / Burnet County OEM"
+  },
+  {
+   "id": "seed-014",
+   "ts": "2026-07-17T03:35:00Z",
+   "type": "cutoff",
+   "priority": "high",
+   "status": "open",
+   "county": "Uvalde",
+   "place": "Uvalde \u2014 city and surrounding areas isolated",
+   "lat": 29.2097,
+   "lon": -99.7862,
+   "radiusMi": 6,
+   "summary": "Uvalde access INTERMITTENT: US 90 into the county reopened then re-closed at E Main St; Garner Field Rd one lane each direction \u2014 verify drivetexas.org before every trip",
+   "details": "TDEM (Chief Nim Kidd): food and water being delivered to cut-off parts of Uvalde. 85+ boats, 20 aircraft, 200 high-profile vehicles deployed statewide. Shelters: Flores Elementary, SW Texas College, Dalton Elementary, Red Cross Fairplex. Overlay radius is an operator estimate.",
+   "source": {
+    "platform": "official",
+    "handle": "Uvalde County OEM via AP",
+    "url": "https://www.news4jax.com/news/national/2026/07/16/texas-flooding-surges-from-huge-rainstorms-as-rescuers-pull-people-from-rising-waters/"
+   },
+   "contact": "Uvalde County OEM"
+  },
+  {
+   "id": "seed-013",
+   "ts": "2026-07-17T03:30:00Z",
+   "type": "animal",
+   "priority": "low",
+   "status": "resolved",
+   "county": "Kendall",
+   "place": "Comfort \u2014 riverside properties",
+   "lat": 29.9683,
+   "lon": -98.9053,
+   "summary": "RESOLVED (unconfirmed): Comfort livestock lead \u2014 no confirmation after 16h of monitoring; close as unverified",
+   "details": "Pattern from July 2025 event; unconfirmed for this event. Treat as monitoring lead for animal-rescue groups, verify before tasking.",
+   "source": {
+    "platform": "field",
+    "handle": "monitoring lead (unverified)",
+    "url": ""
+   },
+   "contact": ""
+  }
+ ]
 }

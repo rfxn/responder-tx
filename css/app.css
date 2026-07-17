@@ -736,9 +736,13 @@ main { flex: 1; display: flex; min-height: 0; }
   .tiles { display: none; }
   /* non-flooding gauges are pure clutter on a phone map */
   .leaflet-marker-pane .gauge-hit.hit-none { display: none; }
-  .controls { margin-left: auto; }
-  .controls button { min-height: 34px; padding: 4px 8px; font-size: 12px; }
-  .refresh-meta { min-width: 80px; }
+  /* phone header: icon-only controls in one uncramped row; brand + time get their space */
+  .controls { margin-left: auto; gap: 5px; }
+  .controls .ctl-lbl { display: none; } /* icon-only — ⟳ 🔗 🚗 ☀️ */
+  .controls button { min-height: 36px; min-width: 40px; padding: 4px 7px; font-size: 15px; }
+  #update-chip { font-size: 11.5px; } /* the one control that keeps its words when shown */
+  .refresh-meta { min-width: 0; font-size: 10px; }
+  #refresh-count { display: none; } /* drop the "next in" countdown on phones — the time is enough */
   main { flex-direction: column; }
   #map { order: -1; height: 42vh; flex: none; }
   #sidebar {

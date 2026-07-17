@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.66.0",
+      "date": "2026-07-17",
+      "line": "Mobile header decluttered: Refresh/Share/Drive/theme are icon-only on phones (one uncramped row, big tap targets), the 'next in' countdown is hidden, and the app name gets room — desktop keeps full labels"
+    },
+    {
       "v": "v0.65.0",
       "date": "2026-07-17",
       "line": "Owner tweaks: Gauges tab opens to the gauge list (Crest Wave now a collapsed toggle); offline-save is now a subtle ⬇ button (green when cached) and caches 2 deeper zoom levels so you can zoom in offline"

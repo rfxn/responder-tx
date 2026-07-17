@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.65.0';
+const APP_VERSION = 'v0.66.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -137,7 +137,7 @@ function syncLabelBoost() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('respondertx.theme', theme);
-  $('#theme-toggle').textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+  $('#theme-toggle').innerHTML = theme === 'dark' ? '☀️ <span class="ctl-lbl">Light</span>' : '🌙 <span class="ctl-lbl">Dark</span>';
   if (state.map) {
     // Streets base is theme-neutral: keep it in place, theme then only affects UI chrome
     if (state.activeBase !== 'streets' && state.activeBase !== theme) {

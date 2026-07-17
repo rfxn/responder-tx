@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.66.0 — 2026-07-17 (owner: declutter the mobile header)
+- Phone header is no longer crowded: the Refresh / Share / Drive / theme controls become icon-only (⟳ 🔗 🚗 ☀️) on phones so they fit one uncramped row with real tap targets (36px) — labels stay on desktop; aria-labels keep them accessible
+- The "next in Xs" refresh countdown is hidden on phones (the "updated H:MM" time is enough) and the meta is tightened, giving the "Responder TX" name room to breathe
 ## v0.65.0 — 2026-07-17 (owner chat: crest view not default, offline subtler + expanded)
 - Gauges tab opens to the gauge list again: the 🌊 Crest Wave section is now a collapsed toggle (shows "N rivers · N pts") instead of leading the tab — one tap to expand, state remembered
 - Offline map control is now subtle: a small ⬇ button matching the zoom/layer controls (turns green when tiles are cached), expanding its save/status/clear panel only on tap — no more prominent box over the map

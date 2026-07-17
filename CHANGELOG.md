@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.53.0 — 2026-07-17 (13:23 cycle: speakable short IDs)
+- Every feed card now carries a radio-speakable reference (R-036 style — seeds keep their number, field intakes hash to 3 characters, stable across reloads): tap the badge to copy, shown in map popups, and prefixed on every SITREP critical line so "flag R-036" works over radio/SMS; curator resolves by ID from chat
+- LSR short-IDs deferred: IEM report identity isn't stable enough across refreshes to promise a speakable reference yet
 ## v0.52.0 — 2026-07-17 (13:08 cycle: light-theme sunlight contrast)
 - Light theme retuned for direct-sunlight readability (the field case for light mode): darker secondary ink and muted text, stronger hairlines/borders, and dedicated light-mode severity/category colors — the dark theme's pale amber (watch/action), orange (warning/minor), and gray tokens washed out on white; category dots, sev text, threat rows, and the ticker now hold contrast outdoors
 ## v0.51.0 — 2026-07-17 (12:53 cycle: GPS-wait feedback)

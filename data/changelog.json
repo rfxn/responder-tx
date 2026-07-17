@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.53.0",
+      "date": "2026-07-17",
+      "line": "Radio-speakable IDs on every feed card (R-036 style): tap to copy, shown in popups, prefixed on SITREP critical lines — 'flag R-036' now works over radio/SMS"
+    },
+    {
       "v": "v0.52.0",
       "date": "2026-07-17",
       "line": "Light theme retuned for sunlight: darker inks, stronger hairlines, and light-mode severity colors — ambers/oranges/grays no longer wash out on white"

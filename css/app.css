@@ -521,6 +521,12 @@ main { flex: 1; display: flex; min-height: 0; }
 
 .locate-btn { font-size: 18px; }
 
+.card .head .sid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; font-weight: 700;
+  color: var(--accent); border: 1px solid var(--border); border-radius: 5px;
+  padding: 1px 5px; cursor: copy; flex: 0 0 auto;
+}
+
 #gps-wait {
   position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 950;
   background: var(--surface-1); border: 1px solid var(--accent); border-radius: 999px;

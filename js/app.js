@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.52.0';
+const APP_VERSION = 'v0.53.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1116,6 +1116,15 @@ function updateFiltersBadge() {
   $('#filters-toggle').classList.toggle('on', n > 0 || !$('#req-filters').hidden);
 }
 
+// radio-speakable stable reference ("flag R-036"); local intakes hash to 3 base36 chars
+function shortId(id) {
+  const m = /^seed-0*(\d+)$/.exec(id);
+  if (m) return `R-${m[1].padStart(3, '0')}`;
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `R-${(h % 46656).toString(36).toUpperCase().padStart(3, '0')}`;
+}
+
 function renderRequests() {
   updateFiltersBadge();
   const reqs = sortRequests(allRequests());
@@ -1143,6 +1152,7 @@ function renderRequests() {
     const hasPos = Number.isFinite(r.lat) && Number.isFinite(r.lon);
     div.innerHTML =
       `<div class="head"><span>${TYPE_GLYPH[r.type] || '📍'}</span><span class="type-chip">${esc(r.type)} · ${esc(r.priority)}</span>` +
+      `<span class="sid" title="Radio reference — tap to copy">${shortId(r.id)}</span>` +
       `<span class="when"><span class="fresh-dot ${freshClass(r.ts)}"></span> ${esc(fmtWhen(r.ts))}</span></div>` +
       `<div class="summary">${esc(r.summary)}</div>` +
       `<div class="meta">📍 ${esc(r.place)} (${esc(r.county)} Co.)${r.contact ? ` · ☎ ${esc(r.contact)}` : ''}` +
@@ -1156,6 +1166,10 @@ function renderRequests() {
       '</div>';
     div.addEventListener('click', (ev) => {
       if (ev.target.closest('a')) return;
+      if (ev.target.classList.contains('sid')) {
+        copyText(shortId(r.id)).then(() => { ev.target.textContent = 'copied ✓'; setTimeout(() => { ev.target.textContent = shortId(r.id); }, 1200); });
+        return;
+      }
       if (ev.target.classList.contains('nav-act')) { window.open(`https://maps.google.com/?q=${r.lat},${r.lon}`, '_blank', 'noopener'); return; }
       if (ev.target.classList.contains('copy-act')) {
         copyText(`${r.lat}, ${r.lon} · USNG ${toUSNG(r.lat, r.lon)}`).then(() => { ev.target.textContent = 'copied ✓'; setTimeout(() => { ev.target.textContent = 'copy coords'; }, 1500); });
@@ -1193,7 +1207,7 @@ function renderRequests() {
     const m = L.marker([r.lat, r.lon], { icon });
     m.bindPopup(`<div class="popup-title">${TYPE_GLYPH[r.type] || ''} ${esc(r.type.toUpperCase())} — ${esc(r.priority)}</div>` +
       `<div>${esc(r.summary)}</div>` +
-      `<div class="popup-meta">${esc(r.place)} · ${esc(r.status)} · ${esc(fmtWhen(r.ts))}</div>` +
+      `<div class="popup-meta">${shortId(r.id)} · ${esc(r.place)} · ${esc(r.status)} · ${esc(fmtWhen(r.ts))}</div>` +
       `<div class="popup-meta">USNG ${esc(toUSNG(r.lat, r.lon))} · ${r.lat.toFixed(4)}, ${r.lon.toFixed(4)}</div>` +
       (r.source && r.source.url ? `<div class="popup-link"><a href="${esc(r.source.url)}" target="_blank" rel="noopener">source →</a></div>` : ''));
     state.layers.requests.addLayer(m);
@@ -1338,7 +1352,7 @@ function buildSitrep() {
   L.push(`ACTIVE CRITICAL (${crit.length}):`);
   for (const r of crit.slice(0, 10)) {
     const pos = Number.isFinite(r.lat) ? ` [USNG ${toUSNG(r.lat, r.lon)}]` : '';
-    L.push(`  [${r.type.toUpperCase()}] ${r.summary} — ${r.place}, ${r.county} Co.${pos} (${fmtWhen(r.ts).split(' · ')[0]})`);
+    L.push(`  [${shortId(r.id)}] [${r.type.toUpperCase()}] ${r.summary} — ${r.place}, ${r.county} Co.${pos} (${fmtWhen(r.ts).split(' · ')[0]})`);
   }
   L.push(`ACTIVE NOTICES TOTAL: ${reqs.length} · board ${APP_VERSION}`);
   L.push('Not a dispatch product. Life-threatening emergencies: 911.');

@@ -522,11 +522,21 @@ main { flex: 1; display: flex; min-height: 0; }
 .locate-btn { font-size: 18px; }
 
 /* offline tile save — bottomleft, stacked under the legend */
-.offline-ctl {
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-  padding: 7px 9px; font: 11.5px system-ui, sans-serif; color: var(--ink-1);
-  max-width: 210px; box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+.offline-ctl { font: 11.5px system-ui, sans-serif; color: var(--ink-1); }
+/* subtle: a small square toggle matching the zoom/layer controls; panel expands on tap */
+.off-toggle {
+  width: 34px; height: 34px; padding: 0; font-size: 16px; line-height: 1; border-radius: 7px;
+  background: var(--surface-1); border: 1px solid var(--border); color: var(--ink-2);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.3);
 }
+.off-toggle.open { color: var(--accent); border-color: var(--accent); }
+.off-toggle.has-cache { color: var(--good); border-color: var(--good); } /* something is cached */
+.off-panel {
+  margin-top: 6px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 9px; max-width: 214px; box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+}
+.off-panel[hidden] { display: none; }
+.off-panel-head { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: var(--ink-2); margin-bottom: 6px; text-transform: uppercase; }
 .offline-ctl .off-save { width: 100%; min-height: 0; padding: 5px 8px; font-size: 12px; font-weight: 650; }
 .offline-ctl .off-save:disabled { opacity: 0.6; cursor: progress; }
 .offline-ctl .off-status { margin-top: 5px; color: var(--ink-2); font-size: 11px; line-height: 1.35; }
@@ -606,6 +616,15 @@ main { flex: 1; display: flex; min-height: 0; }
 
 #wave-list { border-bottom: 1px solid var(--hairline); padding-bottom: 8px; margin-bottom: 6px; }
 #wave-list[hidden] { display: none; }
+.wave-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 9px; min-height: 0; text-align: left; font-size: 12px; font-weight: 700;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; color: var(--ink-1);
+}
+.wave-toggle.open { border-color: var(--accent); }
+.wave-count { font-size: 10.5px; font-weight: 600; color: var(--ink-muted); flex: 0 0 auto; white-space: nowrap; }
+.wave-body[hidden] { display: none; }
+.wave-body { margin-top: 4px; }
 .wave-river { font-size: 12px; font-weight: 700; color: var(--ink-1); margin: 8px 2px 3px; }
 .wave-hint { font-size: 10px; font-weight: 500; color: var(--ink-muted); }
 .wave-row {

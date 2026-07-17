@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.65.0 — 2026-07-17 (owner chat: crest view not default, offline subtler + expanded)
+- Gauges tab opens to the gauge list again: the 🌊 Crest Wave section is now a collapsed toggle (shows "N rivers · N pts") instead of leading the tab — one tap to expand, state remembered
+- Offline map control is now subtle: a small ⬇ button matching the zoom/layer controls (turns green when tiles are cached), expanding its save/status/clear panel only on tap — no more prominent box over the map
+- Offline save expanded: now caches the current view plus TWO deeper zoom levels (was one) so you can zoom in offline, same 1500-tile cap and CARTO-friendly bounds
 ## v0.64.0 — 2026-07-17 (next-wave W9: offline map tiles for canyon dead zones)
 - NEW "⬇ Save map offline" control (bottom-left, above the legend): caches the current map view — this zoom plus one deeper — into IndexedDB so the basemap keeps drawing when signal drops in the Hill Country canyons; works over plain LAN http (no Service Worker, which http can't use), custom cache-first tile layer (~140 lines, no bundler, no new vendored dep)
 - When the network fails, cached tiles render automatically from IndexedDB — the active base (and its place-label boost) route through the offline layer; the saved-tile count persists across reloads (read from IndexedDB on boot) and a "Clear offline cache" affordance is offered once anything is stored

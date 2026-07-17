@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.64.0';
+const APP_VERSION = 'v0.65.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -238,6 +238,8 @@ function refreshOfflineStatus() {
     if (s) { s.textContent = n > 0 ? `✓ ${n} tiles saved` : 'No tiles saved yet'; s.classList.remove('over'); }
     const clr = $('#off-clear');
     if (clr) clr.hidden = n === 0;
+    const toggle = $('#off-toggle');
+    if (toggle) toggle.classList.toggle('has-cache', n > 0); // subtle filled state when something is cached
     return n;
   }).catch(() => {});
 }
@@ -248,7 +250,8 @@ async function saveViewportOffline() {
   if (!layers.length || !statusEl) return;
   const z0 = state.map.getZoom();
   const maxZ = Math.min(...layers.map((l) => l.options.maxZoom || 19));
-  const zooms = z0 + 1 <= maxZ ? [z0, z0 + 1] : [z0];
+  // owner: expand offline depth — cache this zoom + up to two deeper for usable offline zoom-in
+  const zooms = [z0, z0 + 1, z0 + 2].filter((z) => z <= maxZ);
   const jobs = [];
   for (const z of zooms) for (const c of viewportTileCoords(z)) for (const l of layers) jobs.push({ l, c });
   if (jobs.length > OFFLINE_TILE_CAP) {
@@ -277,7 +280,7 @@ async function saveViewportOffline() {
   await Promise.all(Array.from({ length: 6 }, worker));
   if (saveBtn) saveBtn.disabled = false;
   const total = await refreshOfflineStatus();
-  statusEl.textContent = `✓ ${total} tiles saved — this view is available offline`;
+  statusEl.textContent = `✓ ${total} tiles saved (${zooms.length} zoom levels) — available offline`;
 }
 
 async function clearOfflineCache() {
@@ -292,12 +295,22 @@ function initOfflineControl() {
   const ctl = L.control({ position: 'bottomleft' });
   ctl.onAdd = () => {
     const div = L.DomUtil.create('div', 'offline-ctl');
-    div.innerHTML = '<button class="off-save" title="Cache the current map view (this zoom + one deeper) for use with no signal">⬇ Save map offline</button>' +
+    // subtle by default: a small ⬇ toggle; the panel (save/status/clear) expands only on tap
+    div.innerHTML = '<button class="off-toggle" id="off-toggle" title="Offline map — save this area to view with no signal">⬇</button>' +
+      '<div class="off-panel" id="off-panel" hidden>' +
+      '<div class="off-panel-head">Offline map</div>' +
+      '<button class="off-save" title="Cache the current view + 2 deeper zooms for use with no signal">⬇ Save this area</button>' +
       '<div class="off-status" id="off-status">…</div>' +
-      '<div class="off-note">Basemap only — gauge/alert data still needs a connection.</div>' +
-      '<button class="off-clear" id="off-clear" hidden>Clear offline cache</button>';
+      '<div class="off-note">Basemap only — live gauge/alert data still needs a connection.</div>' +
+      '<button class="off-clear" id="off-clear" hidden>Clear offline cache</button>' +
+      '</div>';
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
+    L.DomEvent.on(div.querySelector('#off-toggle'), 'click', () => {
+      const p = div.querySelector('#off-panel');
+      p.hidden = !p.hidden;
+      div.querySelector('#off-toggle').classList.toggle('open', !p.hidden);
+    });
     L.DomEvent.on(div.querySelector('.off-save'), 'click', saveViewportOffline);
     L.DomEvent.on(div.querySelector('#off-clear'), 'click', clearOfflineCache);
     return div;
@@ -1267,23 +1280,36 @@ function renderWave() {
   const rivers = waveRivers();
   if (!rivers.length) { el.innerHTML = ''; el.hidden = true; return; }
   el.hidden = false;
+  // collapsed by default (owner: the gauge list, not the crest view, is what opens) — state persists
+  const open = localStorage.getItem('respondertx.waveOpen') === '1';
   const now = Date.now();
-  let html = '<div class="section-title">🌊 CREST WAVE — when the crest reaches each point</div>';
+  let body = '';
   for (const [river, gs] of rivers) {
-    html += `<div class="wave-river">${esc(river)} <span class="wave-hint">crest arrival order →</span></div>`;
+    body += `<div class="wave-river">${esc(river)} <span class="wave-hint">crest arrival order →</span></div>`;
     for (const g of gs) {
       const f = g.status.forecast;
       const fCat = gaugeForecastCat(g);
       const past = new Date(f.validTime).getTime() < now;
       const site = g.name.slice(riverOf(g.name).length).trim() || g.name;
-      html += `<button class="wave-row" data-lid="${esc(g.lid)}">` +
+      body += `<button class="wave-row" data-lid="${esc(g.lid)}">` +
         `<span class="wave-dot" style="background:var(--cat-${fCat})"></span>` +
         `<span class="wave-site">${esc(site)}</span>` +
         `<span class="wave-stage" style="color:var(--cat-${fCat})">${f.primary} ft ${esc(fCat)}</span>` +
         `<span class="wave-eta ${past ? 'past' : ''}">${past ? 'crested' : 'crest'} ${esc(fmtWhen(f.validTime))}</span></button>`;
     }
   }
-  el.innerHTML = html;
+  const nGauges = rivers.reduce((s, [, gs]) => s + gs.length, 0);
+  el.innerHTML = `<button class="wave-toggle${open ? ' open' : ''}" id="wave-toggle">` +
+    `<span>🌊 Crest wave — when the crest reaches each point</span>` +
+    `<span class="wave-count">${rivers.length} rivers · ${nGauges} pts ${open ? '▾' : '▸'}</span></button>` +
+    `<div class="wave-body"${open ? '' : ' hidden'}>${body}</div>`;
+  $('#wave-toggle').addEventListener('click', () => {
+    const nowOpen = $('.wave-body').hasAttribute('hidden');
+    $('.wave-body').hidden = !nowOpen;
+    localStorage.setItem('respondertx.waveOpen', nowOpen ? '1' : '0');
+    $('#wave-toggle').classList.toggle('open', nowOpen);
+    $('.wave-count').textContent = `${rivers.length} rivers · ${nGauges} pts ${nowOpen ? '▾' : '▸'}`;
+  });
   el.querySelectorAll('.wave-row').forEach((b) => b.addEventListener('click', () => {
     const g = state.gauges.find((x) => x.lid === b.dataset.lid);
     if (g) focusGauge(g);

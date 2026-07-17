@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.65.0",
+      "date": "2026-07-17",
+      "line": "Owner tweaks: Gauges tab opens to the gauge list (Crest Wave now a collapsed toggle); offline-save is now a subtle ⬇ button (green when cached) and caches 2 deeper zoom levels so you can zoom in offline"
+    },
+    {
       "v": "v0.64.0",
       "date": "2026-07-17",
       "line": "NEW ⬇ Save map offline (bottom-left): caches the current view + one zoom deeper into IndexedDB so the basemap keeps drawing in canyon dead zones — works on plain LAN http, no Service Worker; basemap only, gauge/alert data still needs a connection"

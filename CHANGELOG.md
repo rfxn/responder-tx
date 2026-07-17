@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.36.0 — 2026-07-17 (reassessment round: surface what the board already knows)
+- Threat strip gains the two facts the board knew but never showed: "⏱ next crest in Xm/h {river}" chip (soonest rising-gauge forecast, tap to fly there) and an FF-emergency clock line ("Sutton → 1:15 PM · Crockett → 11:45 AM")
+- Honesty-leak fix: degraded boot no longer sticks on "refreshing…" — the early-return path now sets the degraded note and renders source health
+- Alert cards are never dead taps: zone alerts without geometry fall back to cached zone polys, else open the full alert text
+- Aging: in-progress immortality removed (nothing escapes the clock) + per-type timeouts (info/volunteer 12h, default 24h); meaningless "open" badges dropped from cards
+- Public mirror honesty: intake form on the mirror now states saves are device-only and never reach the ops session
+- Reframe vocabulary sweep completed: legend, empty-state, SITREP "ACTIVE CRITICAL", Social workflow text, More tooltip, dead STATUSES/filter code — repo grep clean
+- Alerts sort by recency within severity; fresh-eyes reassessment verdict: "converging" — remaining items queued (USGS auto-fallback, gauges snapshot for public cold-start, Drive Mode view, MRMS scale)
 ## v0.35.0 — 2026-07-17 (radar scrub + location beacon)
 - Radar time-scrub: RainViewer past-hour frames + forward nowcast projection (when published; labeled "+Nm PROJECTED", amber) with play/pause loop and slider over the map; replaces the static NEXRAD layer; maxNativeZoom 7 upscaling (free-tier tiles placeholder above z7); frames refresh with the 3-min cycle while enabled; ?radar=1 deep link
 - All radar/rainfall layers now OFF by default (owner directive) — explicit enable via layer control ("Radar scrub (-1h → +30m)", MRMS 1h/24h)

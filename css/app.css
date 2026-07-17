@@ -143,6 +143,10 @@ main { flex: 1; display: flex; min-height: 0; }
 .threat-chip.warn { border-color: var(--sev-warning); }
 .threat-chip.good { border-color: var(--good); }
 .threat-chip:hover { background: var(--surface-2); }
+.strip-sub {
+  width: 100%; font-size: 11px; font-weight: 650;
+  color: var(--sev-emergency); letter-spacing: 0.01em;
+}
 
 .cutoff-circle {
   stroke: var(--sev-emergency); fill: var(--sev-emergency);

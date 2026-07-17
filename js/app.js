@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.35.0';
+const APP_VERSION = 'v0.36.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -18,6 +18,7 @@ const CONFIG = {
   staleMins: 360,
   smartHalfLifeMins: 360,
   agedCardMins: 1440,
+  agedCardMinsByType: { info: 720, volunteer: 720 },
   agedLsrMins: 180,
   histDays: 7,
   lsrHours: 12,
@@ -36,7 +37,7 @@ const CAT_LABEL = { major: 'MAJOR flood', moderate: 'Moderate flood', minor: 'Mi
 const CAT_SIZE = { major: 18, moderate: 15, minor: 12, action: 10, none: 8 };
 const TYPE_GLYPH = { rescue: '🆘', evacuation: '🏃', medical: '⚕️', supplies: '📦', shelter: '🏠', animal: '🐾', wellness: '💬', volunteer: '🤝', equipment: '🛠️', road: '🚧', cutoff: '⛔', info: 'ℹ️' };
 const LIFE_SAFETY_TYPES = ['rescue', 'evacuation', 'medical', 'cutoff'];
-const STATUSES = ['unverified', 'open', 'in-progress', 'resolved'];
+
 const PRIORITIES = ['critical', 'high', 'medium', 'low'];
 const LS_KEY = 'respondertx.store.v1';
 
@@ -53,7 +54,7 @@ const state = {
   usgsSites: [],
   lsrs: [],
   zoneGeomCache: new Map(),
-  filters: { type: '', status: '', county: '', q: '', window: '', dist: '' },
+  filters: { type: '', county: '', q: '', window: '', dist: '' },
   sort: 'smart',
   myPos: null,
   posLayer: null,
@@ -194,7 +195,7 @@ function initMap() {
       '<div><span class="sw" style="width:10px">▲</span>forecast to rise</div>' +
       '<div><span class="sw" style="width:10px;color:var(--good)">▼</span>observed falling</div>' +
       '<div><span class="sw fcst-ring cat-moderate" style="width:10px;height:10px"></span>forecast crest (RFC)</div>' +
-      '<div class="lg-title" style="margin-top:6px">Reports & requests</div>' +
+      '<div class="lg-title" style="margin-top:6px">Reports & notices</div>' +
       '<div><span style="margin-right:6px">💧</span>storm report (LSR)</div>' +
       '<div><span style="margin-right:6px">🆘</span>marker glyph = need type</div>';
     L.DomEvent.disableClickPropagation(div);
@@ -307,7 +308,7 @@ async function fetchAlerts() {
   const floods = (data.features || []).filter((f) => /flood/i.test(f.properties.event || ''));
   floods.forEach((f) => { f._sev = alertSeverity(f.properties); });
   const rank = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
-  floods.sort((a, b) => rank[a._sev] - rank[b._sev]);
+  floods.sort((a, b) => rank[a._sev] - rank[b._sev] || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
   const emergencies = floods.filter((f) => f._sev === 'emergency');
   const fresh = emergencies.filter((f) => !state.knownEmergencyIds.has(f.id));
   emergencies.forEach((f) => state.knownEmergencyIds.add(f.id));
@@ -398,8 +399,16 @@ function renderAlertList() {
     div.addEventListener('click', () => {
       if (f.geometry) {
         const b = L.geoJSON(f.geometry).getBounds();
-        if (b.isValid()) state.map.fitBounds(b, { maxZoom: 10 });
+        if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
       }
+      // zone alerts ship null geometry — reuse cached zone polys, else open the alert text (never a dead tap)
+      const z = (f.properties.affectedZones || [])[0];
+      const g = z && state.zoneGeomCache.get(z);
+      if (g) {
+        const b = L.geoJSON(g).getBounds();
+        if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
+      }
+      window.open(f.id, '_blank', 'noopener');
     });
     el.appendChild(div);
   }
@@ -815,8 +824,8 @@ function recordAlertHist() {
   }
   saveHist();
 }
-// notices are alerts, not tickets: resolved (curator-set) suppresses immediately, everything else times out
-const cardAged = (r) => r.status === 'resolved' || (r.status !== 'in-progress' && ageMins(r.ts) > CONFIG.agedCardMins);
+// notices are alerts, not tickets: resolved (curator-set) suppresses immediately, everything else times out — nothing is immortal
+const cardAged = (r) => r.status === 'resolved' || ageMins(r.ts) > (CONFIG.agedCardMinsByType[r.type] || CONFIG.agedCardMins);
 const lsrFreshCutoffMins = () => (state.filters.window ? +state.filters.window : CONFIG.agedLsrMins);
 
 /* ---------- assistance requests ---------- */
@@ -905,7 +914,7 @@ function renderRequests() {
       (state.myPos && hasPos ? ` · ${distMi(state.myPos.lat, state.myPos.lng, r.lat, r.lon).toFixed(1)} mi` : '') + '</div>' +
       (r.details ? `<div class="meta" style="margin-top:3px">${esc(r.details)}</div>` : '') +
       `<div class="badges">${isNew ? '<span class="badge new-chip">NEW</span>' : ''}` +
-      `<span class="badge status-${esc(r.status)}">${esc(r.status)}</span>` +
+      (r.status !== 'open' ? `<span class="badge status-${esc(r.status)}">${esc(r.status)}</span>` : '') +
       (cardAged(r) ? '<span class="badge aged-chip">aged — suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale — re-verify</span>' : '')) +
       `<span class="badge">${srcLink}</span>` +
       (hasPos ? `<button class="badge act nav-act">navigate</button><button class="badge act copy-act">copy coords</button>` : '') +
@@ -929,7 +938,7 @@ function renderRequests() {
     });
     el.appendChild(div);
   }
-  if (!visible.length) el.innerHTML = '<div class="card">No requests match the current filters.</div>';
+  if (!visible.length) el.innerHTML = '<div class="card">No notices match the current filters.</div>';
 
   state.layers.requests.clearLayers();
   state.reqMarkers = {};
@@ -1091,7 +1100,7 @@ function buildSitrep() {
   const falling = state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
   if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => g.name.split(' at ')[0].split(' near ')[0]).slice(0, 6).join('; ')})`);
   if (cutoffs.length) L.push(`CUT-OFF AREAS: ${cutoffs.map((r) => `${r.place} (${r.county} Co.)`).join('; ')}`);
-  L.push(`OPEN CRITICAL (${crit.length}):`);
+  L.push(`ACTIVE CRITICAL (${crit.length}):`);
   for (const r of crit.slice(0, 10)) {
     const pos = Number.isFinite(r.lat) ? ` [USNG ${toUSNG(r.lat, r.lon)}]` : '';
     L.push(`  [${r.type.toUpperCase()}] ${r.summary} — ${r.place}, ${r.county} Co.${pos} (${fmtWhen(r.ts).split(' · ')[0]})`);
@@ -1171,7 +1180,7 @@ function renderMonitors() {
     '<div class="section-title">Comms — scanner audio & community nets</div>' +
     (state.resources.comms || []).map(monitorGroupHtml).join('') +
     '<div class="section-title">Workflow</div>' +
-    '<div class="resource-item">1. Sweep each search every 15–30 min. 2. For actionable posts, click “+ New request”, click the map to drop the pin, paste the post URL as source. 3. Verify (cross-reference official channels or call back) before tasking. 4. Anything life-threatening → relay to 911/EOC immediately; this board does not dispatch.</div>';
+    '<div class="resource-item">1. Sweep each search every 15–30 min. 2. For actionable posts, tap “＋ New notice”, click the map to drop the pin, paste the post URL as source. 3. Verify (cross-reference official channels or call back) before tasking. 4. Anything life-threatening → relay to 911/EOC immediately; this board does not dispatch.</div>';
 }
 
 /* ---------- threat-to-life strip ---------- */
@@ -1215,6 +1224,29 @@ function renderThreatStrip() {
     b.innerHTML = `${c.glyph} <strong>${c.n}</strong> ${esc(c.label)}`;
     b.addEventListener('click', c.act);
     el.appendChild(b);
+  }
+  // the board knows crest timing and emergency clocks — surface them at glance level
+  const soonest = state.gauges
+    .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
+    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
+  if (soonest) {
+    const b = document.createElement('button');
+    b.className = 'threat-chip major';
+    const river = soonest.name.split(' at ')[0].split(' near ')[0].split(' below ')[0];
+    b.innerHTML = `⏱ next crest <strong>${esc(fmtWhen(soonest.status.forecast.validTime).split(' · ')[0])}</strong> ${esc(river.slice(0, 18))}`;
+    b.addEventListener('click', () => state.map.setView([soonest.latitude, soonest.longitude], 11));
+    el.appendChild(b);
+  }
+  const emergAlerts = state.alerts.filter((a) => a._sev === 'emergency');
+  if (emergAlerts.length) {
+    const sub = document.createElement('div');
+    sub.className = 'strip-sub';
+    sub.textContent = 'FF EMERG: ' + emergAlerts.map((a) => {
+      const where = (a.properties.areaDesc || '?').split(';')[0].replace(/, TX$/, '');
+      const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
+      return `${where} → ${until}`;
+    }).join(' · ');
+    el.appendChild(sub);
   }
 }
 
@@ -1292,7 +1324,9 @@ async function refresh() {
   const failed = results.filter((r) => r.status === 'rejected');
   state.refreshAt = Date.now() + CONFIG.refreshMs;
   if (failed.length && (!state.alerts.length || !state.gauges.length)) {
-    hydrateFromCache();
+    const hydrated = hydrateFromCache();
+    renderSourceHealth();
+    if (!hydrated) $('#refresh-note').textContent = `degraded: ${failed.map((f) => f.reason.message).join('; ')}`;
     return;
   }
   if (!failed.length) saveCache();
@@ -1457,13 +1491,17 @@ async function boot() {
 
   // ops chat is a LAN-only construct: UI code (js/chat.js) loads only when the
   // local backend answers — the public mirror ships neither the file nor a route
+  const markMirror = () => {
+    $('#new-request-form .hint').textContent =
+      'Read-only mirror: notices added here save to THIS DEVICE ONLY — they do not reach the ops session. Click the map to set the pin.';
+  };
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (d && d.chat) {
       const s = document.createElement('script');
       s.src = 'js/chat.js';
       document.body.appendChild(s);
-    }
-  }).catch(() => { /* no LAN backend — chat stays absent */ });
+    } else markMirror();
+  }).catch(markMirror);
   const rainParam = new URLSearchParams(location.search).get('rain');
   if (rainParam === '1h') state.layers.mrms1h.addTo(state.map);
   else if (rainParam === '24h') state.layers.mrms24h.addTo(state.map);

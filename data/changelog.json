@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.36.0",
+      "date": "2026-07-17",
+      "line": "Threat strip now shows NEXT CREST timing + FF-emergency expiry clocks; degraded-boot honesty fix; alert cards never dead-tap; per-type aging (nothing immortal); mirror intake labeled device-only; vocabulary sweep clean"
+    },
+    {
       "v": "v0.35.0",
       "date": "2026-07-17",
       "line": "Radar time-scrub (past 1h + projected frames when published, play/loop, ?radar=1); radar/rainfall layers now OFF by default \u2014 explicit enable; unmissable YOU location beacon (double-ping ring + tag)"

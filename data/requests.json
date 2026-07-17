@@ -3,6 +3,24 @@
  "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
  "requests": [
   {
+   "id": "seed-039",
+   "ts": "2026-07-17T22:32:41Z",
+   "type": "road",
+   "priority": "critical",
+   "status": "open",
+   "county": "Uvalde",
+   "place": "FM 481 (Old Eagle Pass Rd) at Nueces River, SW of Uvalde",
+   "lat": 29.129,
+   "lon": -100.018,
+   "summary": "BRIDGE DESTROYED: FM 481 (Old Eagle Pass Rd) Nueces River bridge washed out \u2014 Uvalde\u2194Eagle Pass link severed; expect long detours",
+   "details": "TxDPS: a section of the FM 481 bridge over the Nueces southwest of Uvalde was washed away after up to 20 in of rain in Uvalde Co. FM 481 links US 90 (Uvalde) to US 57 (toward Eagle Pass) \u2014 closure forces lengthy detours for residents, ranchers, ag and commercial traffic. Do not approach the washout. Use TxDOT DriveTexas for detours.",
+   "source": {
+    "platform": "news",
+    "handle": "Spectrum News / TxDPS",
+    "url": "https://spectrumlocalnews.com/tx/south-texas-el-paso/news/2026/07/17/parts-of-texas-face-threats-of-dangerous-flooding"
+   }
+  },
+  {
    "id": "seed-038",
    "ts": "2026-07-17T22:19:02Z",
    "type": "info",
@@ -151,16 +169,16 @@
   },
   {
    "id": "seed-029",
-   "ts": "2026-07-17T09:26:00Z",
+   "ts": "2026-07-17T22:32:41Z",
    "type": "evacuation",
-   "priority": "high",
+   "priority": "critical",
    "status": "open",
    "county": "Zavala",
    "place": "Crystal City \u2014 Nueces River downstream corridor",
    "lat": 28.6852,
    "lon": -99.8281,
-   "summary": "Crystal City: roads flooding as the record Nueces wave arrives \u2014 mobile-home residents evacuated; at 21 ft the lowest homes on the east edge flood; NWS warns of DISASTROUS widespread lowland flooding",
-   "details": "FM 582 near Rock Quarry Rd flooded; some motels offering evacuee discounts (Mayor Pro Tem Marquez). US 57 closed I-35 to Zavala Co. Wave continues downstream toward Asherton (forecast moderate 25.8).",
+   "summary": "Zavala Co EVACUATIONS as the Nueces wave arrives: Curtis Bourne Rd (Crystal City) told to evacuate; Averhoff Landing & Chula Vista subdivisions prepare \u2014 Asherton major flooding forecast, FM 190 / Hwy 85 may go impassable",
+   "details": "Zavala County Sheriff: floodwaters expected to reach homes near Curtis Bourne Rd (Crystal City); Averhoff Landing and Chula Vista residents warned to prepare. Downstream Nueces wave; NWS forecasts major flooding near Asherton, river possibly >1 mi wide over FM 190, Hwy 85 impassable. Follow county evacuation orders; never drive flooded roads.",
    "source": {
     "platform": "official",
     "handle": "NWS forecast + Zavala Co Fire/Rescue LSR via IEM",

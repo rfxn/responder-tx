@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-17T21:48:39Z",
+ "generated": "2026-07-17T22:32:41Z",
  "source": "Curator-maintained from official statements (county OEM / TxDOT / KUT). Verify current status before routing \u2014 conditions change fast.",
  "crossings": [
   {
@@ -41,6 +41,16 @@
    "reason": "Multiple low-water crossings flagged during evacuations; receding but debris-laden",
    "updated_at": "2026-07-17T21:48:39Z",
    "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
+  },
+  {
+   "id": "x-fm481-nueces",
+   "name": "FM 481 (Old Eagle Pass Rd) bridge at Nueces River",
+   "lat": 29.129,
+   "lon": -100.018,
+   "status": "longterm",
+   "reason": "Bridge section WASHED OUT \u2014 impassable, long-term closure; Uvalde\u2194Eagle Pass detour via US 90/US 57",
+   "updated_at": "2026-07-17T22:32:41Z",
+   "source": "https://spectrumlocalnews.com/tx/south-texas-el-paso/news/2026/07/17/parts-of-texas-face-threats-of-dangerous-flooding"
   }
  ],
  "authoritative": "https://drivetexas.org/"

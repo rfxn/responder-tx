@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.36.0';
+const APP_VERSION = 'v0.37.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1314,6 +1314,26 @@ function hydrateFromCache() {
   return true;
 }
 
+// cold-start fallback: ops cycles publish a ≤15-min NWPS snapshot — fresh public visitors survive rate-limit windows
+async function hydrateGaugesSnapshot() {
+  if (state.gauges.length) return false;
+  try {
+    const d = await fetch(`data/gauges-snapshot.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
+    if (!d || !d.gauges || !d.gauges.length) return false;
+    state.gauges = d.gauges.filter((g) => {
+      const c = g.status && g.status.observed && g.status.observed.floodCategory;
+      return c && !['out_of_service', 'obs_not_current', 'not_defined'].includes(c);
+    });
+    state.snapshotAt = new Date(d.generated).getTime();
+    recordTrends();
+    renderGauges();
+    renderForecastList();
+    renderTiles();
+    $('#refresh-note').textContent = `gauges from snapshot · ${fmtWhen(d.generated)}`;
+    return true;
+  } catch { return false; } // snapshot absent (old deploy) — nothing to hydrate
+}
+
 async function refresh() {
   $('#refresh-note').textContent = 'refreshing…';
   if (state.refreshRadar) state.refreshRadar();
@@ -1325,8 +1345,9 @@ async function refresh() {
   state.refreshAt = Date.now() + CONFIG.refreshMs;
   if (failed.length && (!state.alerts.length || !state.gauges.length)) {
     const hydrated = hydrateFromCache();
+    const snapped = await hydrateGaugesSnapshot();
     renderSourceHealth();
-    if (!hydrated) $('#refresh-note').textContent = `degraded: ${failed.map((f) => f.reason.message).join('; ')}`;
+    if (!hydrated && !snapped) $('#refresh-note').textContent = `degraded: ${failed.map((f) => f.reason.message).join('; ')}`;
     return;
   }
   if (!failed.length) saveCache();
@@ -1370,6 +1391,12 @@ function renderDataAgeBar() {
   el.hidden = false;
   el.className = worst.age > 15 ? 'red' : 'amber';
   const label = worst.k === 'gauges' ? 'GAUGE' : 'ALERT';
+  if (worst.k === 'gauges' && state.snapshotAt) {
+    const snapAge = Math.round((Date.now() - state.snapshotAt) / 60000);
+    el.className = snapAge > 30 ? 'red' : 'amber';
+    el.textContent = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD — live NWPS feed failing`;
+    return;
+  }
   el.textContent = worst.age === Infinity
     ? `⚠ ${label} DATA NEVER LOADED — numbers on this board exclude it`
     : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD — refresh failing; treat as stale`;

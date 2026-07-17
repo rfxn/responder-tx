@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.59.0",
+      "date": "2026-07-17",
+      "line": "Shared links now unfurl with a branded card + description on X/Facebook/iMessage/Slack (Open Graph + Twitter meta); evergreen by design so cached social images never show stale counts"
+    },
+    {
       "v": "v0.58.0",
       "date": "2026-07-17",
       "line": "NEW 🌊 Crest-Wave tracker (Gauges tab): each river's gauges in crest-arrival order with forecast ETAs — 'when does the wave reach my town' for the multi-day downstream progression; taps fly the map"

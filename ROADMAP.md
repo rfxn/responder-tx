@@ -91,10 +91,9 @@ record-crest + downstream-wave + east-recovery phase):
 - ~~**W2. Record-Watch**~~ — SHIPPED v0.57.0 (crest-of-record context: threat
   chip + gauge card line + SITREP; data/records.json from NWPS historic crests;
   honest margin-to-record, no invented breaks). Next: W1.
-- **W3. OG share-card unfurl** — Pages Function renders a dynamic OG image
-  (emergency count, next crest, record watch) so Share links look good on
-  X/FB — cheapest permanent growth lever. Cost M. functions/og/, index head
-  meta. Public-read, aggregate-only (no PII). **[infra]**
+- ~~**W3. OG share-card unfurl**~~ — SHIPPED v0.59.0 (evergreen branded
+  og-card.png + og:*/twitter: meta; chose evergreen over live-stats because
+  social caches og:image for days — a stats card would go stale/dishonest).
 - **W4. Low-water crossing inventory + layer** — curator open/closed/caution
   crossings, the operational currency of flood SAR. Cost M. data/crossings.json
   + map layer. Aging + reframe (curator data, not tap-cycle). **[data]**

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.49.0",
+      "date": "2026-07-17",
+      "line": "Intake accepts typed coordinates: the lat/lon field is now editable — radio-relayed decimal coords parse, validate, pin, and pan the map; phones scroll the map into view when the form opens"
+    },
+    {
       "v": "v0.48.0",
       "date": "2026-07-17",
       "line": "NEW 🔗 Share button: one tap copies a link that reproduces your exact view — map position/zoom, active tab, Feed + Alerts filters, basemap, theme; phones get the native share sheet"

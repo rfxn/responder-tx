@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.48.0';
+const APP_VERSION = 'v0.49.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1869,7 +1869,26 @@ async function boot() {
       $('#safety-modal').hidden = true;
     });
   }
-  $('#toggle-form').addEventListener('click', () => $('#new-request-form').classList.toggle('open'));
+  $('#toggle-form').addEventListener('click', () => {
+    const open = $('#new-request-form').classList.toggle('open');
+    // pin-drop needs the map on screen — phones scroll it into view when intake opens
+    if (open && window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+  });
+  // radio-relayed coords arrive as text — typed "lat, lon" is a first-class pin source
+  $('#f-latlon').addEventListener('change', () => {
+    const raw = $('#f-latlon').value.trim();
+    if (!raw) { state.pendingLatLng = null; return; }
+    const m = raw.match(/(-?\d{1,2}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)/);
+    const lat = m ? +m[1] : NaN, lng = m ? +m[2] : NaN;
+    if (!m || !(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) {
+      $('#f-latlon').value = 'unparsed — type decimal "lat, lon"';
+      state.pendingLatLng = null;
+      return;
+    }
+    state.pendingLatLng = L.latLng(lat, lng);
+    $('#f-latlon').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    state.map.setView(state.pendingLatLng, Math.max(state.map.getZoom(), 11));
+  });
   $('#f-geocode').addEventListener('click', geocodePlace);
   $('#new-request-form').addEventListener('submit', submitRequest);
   $('#export-btn').addEventListener('click', exportRequests);

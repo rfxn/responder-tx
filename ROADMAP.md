@@ -63,9 +63,8 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
    light-theme sunlight contrast, #14 threat-strip chip cap + recovery-chip
    label) — direct "UX is terrible" strikes; all S, all CSS/small-JS. Cost S.
    Deps: none. **[ux]**.
-5. **#9 Dead-tap alert cards** — zone-geometry bounds (zoneGeomCache) or open
-   the alert text link; alert cards that do nothing on tap teach the user to
-   stop tapping. Cost S/M. Deps: none. **[ux]**.
+5. ~~**#9 Dead-tap alert cards**~~ — DONE (verified in code 7/17 12:15: geometry
+   → zoneGeomCache → window.open fallback in renderAlertList; never a dead tap).
 6. **RFC forecast-max layer** — every gauge's 5-day max category statewide,
    10KB, hollow-ring markers, on by default; the single best anticipation layer
    not yet shipped. Gotchas: non-ISO issued_time parse; dedupe lids vs NWPS.
@@ -78,10 +77,9 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
 9. **#15 MRMS legend color-scale strip + radar dim on overlayadd** — rainfall
    layers shipped without a scale are unreadable in the field. Cost M. Deps:
    none. **[ux]**.
-10. **#17 Editable #f-latlon + scroll-map-into-view on form open** — radio-
-    relayed coords are how field reports arrive; intake persists (LAN, feeds
-    the curator) even under the reframe. Cost M. Deps: reframe wording (item 1).
-    **[ux]**.
+10. ~~**#17 Editable #f-latlon + scroll-map-into-view on form open**~~ — SHIPPED
+    v0.49.0 (typed "lat, lon" parses/validates/pins + map pans; phones scroll
+    the map into view when intake opens).
 
 ### Community/social track addendum (2026-07-17 11:45 owner directive)
 

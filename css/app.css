@@ -527,6 +527,9 @@ main { flex: 1; display: flex; min-height: 0; }
   padding: 1px 5px; cursor: copy; flex: 0 0 auto;
 }
 
+.record-line.near { color: var(--cat-major); font-weight: 600; }
+.record-line.at { color: var(--sev-emergency); }
+
 #gps-wait {
   position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 950;
   background: var(--surface-1); border: 1px solid var(--accent); border-radius: 999px;

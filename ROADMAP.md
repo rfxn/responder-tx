@@ -89,10 +89,9 @@ record-crest + downstream-wave + east-recovery phase):
   ("when does the wave reach my town" — the 48h headline question). Cost M.
   data/event.json basins + renderForecastList/new renderWave. Honesty: real
   NWPS validTime only; interpolation labeled estimate. **[views/data]**
-- **W2. Record-Watch pane + THREAT chip** — gauges forecast to break their
-  historical crest, with margin + countdown (Asherton +4.5 ft over 1991 is
-  tonight's headline). Cost S/M. NEW data/records.json (curated, cited),
-  renderThreatStrip + forecast badges + SITREP line. **[data/ux]**
+- ~~**W2. Record-Watch**~~ — SHIPPED v0.57.0 (crest-of-record context: threat
+  chip + gauge card line + SITREP; data/records.json from NWPS historic crests;
+  honest margin-to-record, no invented breaks). Next: W1.
 - **W3. OG share-card unfurl** — Pages Function renders a dynamic OG image
   (emergency count, next crest, record watch) so Share links look good on
   X/FB — cheapest permanent growth lever. Cost M. functions/og/, index head

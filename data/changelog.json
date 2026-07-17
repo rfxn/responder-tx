@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.57.0",
+      "date": "2026-07-17",
+      "line": "NEW crest-of-record watch: gauges forecast near/above their all-time NWPS record crest are flagged in the threat module, on gauge cards, and in SITREP — honest margin-to-record, never an invented 'record-breaking' claim"
+    },
+    {
       "v": "v0.56.0",
       "date": "2026-07-17",
       "line": "Your view is now remembered: feed + alert filters, sort, aged toggle, and active tab persist across hard refreshes and app updates (shared-link URLs still win for their load)"

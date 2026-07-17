@@ -114,7 +114,7 @@
   },
   {
    "id": "seed-031",
-   "ts": "2026-07-17T16:28:00Z",
+   "ts": "2026-07-17T21:34:16Z",
    "type": "evacuation",
    "priority": "critical",
    "status": "open",
@@ -122,8 +122,8 @@
    "place": "Asherton \u2014 Nueces River (Dimmit Co.)",
    "lat": 28.4419,
    "lon": -99.7625,
-   "summary": "ASHERTON ESCALATION: Nueces forecast crest revised UP to 30.2 ft MAJOR ~7 AM Saturday \u2014 4.5 ft ABOVE the 1991 record (25.7); obs 24.83 rising; prepare for record-shattering flooding",
-   "details": "NWPS ASRT2 11:25 AM CT: observed 24.83 (moderate, already near record), forecast 30.2 MAJOR 2026-07-18 12:00Z. Massive upward revision from 25.8. FM 190 and low floodplain sections will be far exceeded; Zavala/Dimmit OEMs coordinate evacuations (Facebook-only comms).",
+   "summary": "ASHERTON: Nueces forecast crest ~30 ft MAJOR ~Sat evening \u2014 above the modern (1991) record but ~3 ft below the 1935 all-time crest of record (33 ft); still major, record-tier flooding for the current gauge era",
+   "details": "NWPS ASRT2: forecast ~30 ft MAJOR (major stage 27). Context: exceeds the 1991-era record (~25.7 ft) but remains below the NWPS all-time historic crest of 33 ft (Jun 1935). Zavala/Dimmit OEMs coordinating evacuations; FM 190 and low floodplain sections flood well before the crest. Both record figures are real \u2014 see the Gauges tab crest-of-record line.",
    "source": {
     "platform": "official",
     "handle": "NOAA NWPS ASRT2",

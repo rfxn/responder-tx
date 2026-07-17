@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.57.0 — 2026-07-17 (next-wave W2: Record-Watch — crest-of-record context)
+- NEW crest-of-record context: gauges forecast within 5 ft of (or above) their all-time NWPS crest of record now show it — a "⚑ near crest of record" row in the threat module, a per-gauge record line on the Gauges tab ("record 33 ft (1935); forecast 3 ft below"), and a bracketed note on SITREP rising lines
+- Data: new curated data/records.json built from NOAA NWPS historic crests (cited, dated); absence-tolerant so older deploys degrade cleanly
+- Honesty guard: the feature reports the forecast's MARGIN to the record and only says "AT/ABOVE" when the forecast actually meets it — no "record-breaking" claims where none exist; reconciled the Asherton card to carry both the 1991 modern record and the 1935 all-time crest (both real, different eras)
 ## v0.56.0 — 2026-07-17 (owner request: persist view settings across refresh)
 - Your view now survives hard refreshes and app updates: feed filters (type/county/sort/time window/distance/search), the aged toggle, alert filters (severity/text), and the active tab are saved to the browser and restored on next load — no more re-setting filters after every deploy-triggered reload
 - Precedence preserved: a shared/deep-link URL (?tab=, ?ft=, ?theme=, etc.) still wins for that load; theme, basemap, and filters-panel open-state already persisted and continue to

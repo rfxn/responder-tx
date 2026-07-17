@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.56.0';
+const APP_VERSION = 'v0.57.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -584,6 +584,26 @@ function gaugeRising(g) {
   return f !== null && CAT_RANK[f] > CAT_RANK[gaugeCat(g)];
 }
 
+// crest-of-record context (data/records.json = NWPS historic crests). Honest by design:
+// reports the forecast's margin to the all-time crest, never claims a break unless fcst ≥ record.
+const RECORD_NEAR_FT = 5;
+function recordContext(g) {
+  const rec = state.records && state.records[g.lid];
+  const f = g.status && g.status.forecast;
+  if (!rec || !f || !(f.primary > 0) || !(rec.record_ft > 0)) return null;
+  const margin = +(rec.record_ft - f.primary).toFixed(1); // >0 fcst below record, ≤0 at/above
+  const year = (rec.record_date || '').slice(0, 4);
+  return { recFt: rec.record_ft, year, margin, atOrAbove: margin <= 0, near: margin > 0 && margin <= RECORD_NEAR_FT };
+}
+// gauges whose forecast is within RECORD_NEAR_FT of (or above) their crest of record
+function recordWatchGauges() {
+  return state.gauges.filter((g) => {
+    if (!gaugeRising(g)) return false;
+    const rc = recordContext(g);
+    return rc && (rc.atOrAbove || rc.near);
+  });
+}
+
 /* observed trend: accumulated across refreshes in localStorage — no extra API calls */
 const TREND_KEY = 'respondertx.trend.v1';
 function recordTrends() {
@@ -953,9 +973,23 @@ function gaugeCardDiv(g) {
     `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
     `<div class="meta">OBS ${o.primary} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
     (fCat ? `<div class="meta">crest ${f.primary} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(fCat)}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
+    recordLineHtml(g) +
     (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
   div.addEventListener('click', (ev) => { if (ev.target.closest('a')) return; focusGauge(g); });
   return div;
+}
+
+// one honest line: at/above the crest of record, or N ft below it (with year)
+function recordLineHtml(g) {
+  const rc = recordContext(g);
+  if (!rc) return '';
+  if (rc.atOrAbove) {
+    return `<div class="meta record-line at"><strong>⚑ AT/ABOVE CREST OF RECORD</strong> — record ${rc.recFt} ft (${esc(rc.year)}); forecast ${Math.abs(rc.margin)} ft over</div>`;
+  }
+  if (rc.near) {
+    return `<div class="meta record-line near">⚑ approaching crest of record — record ${rc.recFt} ft (${esc(rc.year)}); forecast ${rc.margin} ft below</div>`;
+  }
+  return '';
 }
 
 function renderGaugesTab() {
@@ -1360,7 +1394,11 @@ function buildSitrep() {
     const tr = gaugeTrend(g.lid);
     L.push(`  MAJOR ${g.name} — ${g.status.observed.primary} ft${tr ? ` (${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr)` : ''}`);
   }
-  for (const g of toMajor) L.push(`  RISING ${g.name} — fcst crest ${g.status.forecast.primary} ft ${fmtWhen(g.status.forecast.validTime)}`);
+  for (const g of toMajor) {
+    const rc = recordContext(g);
+    const recBit = rc ? (rc.atOrAbove ? ` [⚑ ${Math.abs(rc.margin)} ft OVER ${rc.recFt} ft record ${rc.year}]` : rc.near ? ` [⚑ ${rc.margin} ft below ${rc.recFt} ft record ${rc.year}]` : '') : '';
+    L.push(`  RISING ${g.name} — fcst crest ${g.status.forecast.primary} ft ${fmtWhen(g.status.forecast.validTime)}${recBit}`);
+  }
   const falling = state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
   if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')})`);
   if (cutoffs.length) L.push(`CUT-OFF AREAS: ${cutoffs.map((r) => `${r.place} (${r.county} Co.)`).join('; ')}`);
@@ -1562,6 +1600,7 @@ function renderThreatStrip() {
     { n: cutoffs.length, cls: 'emergency', label: 'cut-off areas', glyph: '⛔', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     { n: majors.length, cls: 'major', label: 'MAJOR gauges', glyph: '●', act: () => fitTo(majors.map((g) => [g.latitude, g.longitude])) },
     { n: toMajor.length, cls: 'major', label: 'rising to major', glyph: '▲', act: () => fitTo(toMajor.map((g) => [g.latitude, g.longitude])) },
+    (() => { const rw = recordWatchGauges(); return { n: rw.length, cls: rw.some((g) => recordContext(g).atOrAbove) ? 'emergency' : 'major', label: 'near crest of record', glyph: '⚑', act: () => { fitTo(rw.map((g) => [g.latitude, g.longitude])); document.querySelector('.tabs button[data-tab="tab-gauges"]').click(); } }; })(),
     { n: roads.length, cls: 'warn', label: 'roads blocked', glyph: '🚧', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     {
       n: state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').length,
@@ -1722,6 +1761,10 @@ async function loadSeeds() {
       fetch(`data/requests.json${bust}`).then((r) => r.json()),
       fetch(`data/resources.json${bust}`).then((r) => r.json()),
     ]);
+    // crest-of-record context — absence-tolerant (older deploys shipped no records.json)
+    if (!state.records) {
+      state.records = (await fetch(`data/records.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) || {}).records || {};
+    }
     markHealthy('seeds');
     const hash = JSON.stringify([reqs, res]);
     if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll

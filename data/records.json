@@ -1,0 +1,37 @@
+{
+ "generated": "2026-07-17T21:29:36Z",
+ "source": "NOAA NWPS flood.crests.historic (all-time crest of record at each gauge)",
+ "note": "Record = highest crest in the NWPS period of record. Datum shifts across decades can affect very old crests; treat as context, not a datum-exact guarantee.",
+ "records": {
+  "ASRT2": {
+   "name": "Nueces River near Asherton",
+   "record_ft": 33.0,
+   "record_date": "1935-06-17"
+  },
+  "DBYT2": {
+   "name": "Frio River near Derby",
+   "record_ft": 29.45,
+   "record_date": "1932-07-04"
+  },
+  "TIDT2": {
+   "name": "Frio River at Tilden",
+   "record_ft": 30.06,
+   "record_date": "2002-07-10"
+  },
+  "JNCT2": {
+   "name": "Llano River near Junction",
+   "record_ft": 43.3,
+   "record_date": "1935-06-14"
+  },
+  "CNCT2": {
+   "name": "Frio River at Concan",
+   "record_ft": 34.4,
+   "record_date": "1932-07-01"
+  },
+  "UDET2": {
+   "name": "Frio River below Dry Frio near Uvalde",
+   "record_ft": 35.0,
+   "record_date": "1894-01-01"
+  }
+ }
+}

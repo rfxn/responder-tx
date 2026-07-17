@@ -2,7 +2,10 @@
 """Responder TX LAN server: static files + POST /api/chat|/api/notes -> data/*.jsonl."""
 import json
 import os
+import re
+import threading
 import time
+import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -10,6 +13,11 @@ INBOX = os.path.join(ROOT, 'data', 'chat-inbox.jsonl')
 NOTES_INBOX = os.path.join(ROOT, 'data', 'notes-inbox.jsonl')
 NOTE_KINDS = ('marker', 'general', 'comment')
 NOTE_CATS = ('info', 'hazard', 'road', 'water', 'photo')
+GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
+NWPS_BASE = 'https://api.water.noaa.gov/nwps/v1/gauges/'
+GAUGE_TTL = 180
+_gauge_cache = {}
+_gauge_lock = threading.Lock()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -23,7 +31,36 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        m = GAUGE_RE.match(self.path)
+        if m:
+            self._gauge_proxy(m.group(1).upper(), m.group(2))
+            return
         super().do_GET()
+
+    # NWPS hydrograph proxy with a 3-min in-memory cache — popup reopens and
+    # multi-viewer LANs stop hammering api.water.noaa.gov (it 429s under load)
+    def _gauge_proxy(self, lid, kind):
+        key = lid + '/' + kind
+        now = time.time()
+        with _gauge_lock:
+            hit = _gauge_cache.get(key)
+        body = hit[1] if hit and now - hit[0] < GAUGE_TTL else None
+        if body is None:
+            url = NWPS_BASE + lid + ('' if kind == 'detail' else '/stageflow/observed')
+            try:
+                req = urllib.request.Request(url, headers={'Accept': 'application/json'})
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    body = r.read()
+            except OSError:
+                self.send_error(502)
+                return
+            with _gauge_lock:
+                _gauge_cache[key] = (now, body)
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         if self.path == '/api/chat':

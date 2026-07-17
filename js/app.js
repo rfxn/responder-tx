@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.46.0';
+const APP_VERSION = 'v0.47.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -643,17 +643,22 @@ const sparkCache = new Map();
 function cachedJson(url, ttlMs = 180000) {
   const hit = sparkCache.get(url);
   if (hit && Date.now() - hit.t < ttlMs) return hit.p;
-  const p = fetch(url).then((r) => r.json());
+  const p = fetch(url).then((r) => { if (!r.ok) throw new Error(`http ${r.status}`); return r.json(); });
   sparkCache.set(url, { t: Date.now(), p });
   p.catch(() => sparkCache.delete(url));
   return p;
 }
 
+// same-origin /api/gauge proxy (CF edge / server.py, both 3-min cached) first; direct NOAA on miss
+function gaugeJson(lid, kind, directUrl) {
+  return cachedJson(`api/gauge/${lid}/${kind}`).catch(() => cachedJson(directUrl));
+}
+
 async function drawSparkline(g, canvas, note) {
   try {
     const [detail, series] = await Promise.all([
-      cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}`),
-      cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/observed`),
+      gaugeJson(g.lid, 'detail', `${CONFIG.nwpsBase}/gauges/${g.lid}`),
+      gaugeJson(g.lid, 'series', `${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/observed`),
     ]);
     const cutoff = Date.now() - CONFIG.sparkHours * 3600000;
     let pts = (series.data || []).filter((p) => new Date(p.validTime).getTime() >= cutoff && p.primary > -999);

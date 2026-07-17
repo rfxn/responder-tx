@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.47.0 — 2026-07-17 (owner directive: our-side gauge hydrograph caching)
+- Gauge graphs now load through our own cached proxy instead of hitting NOAA per viewer: same-origin /api/gauge/<lid>/<detail|series> served by a Cloudflare Pages Function on the public mirror (edge-cached 3 min, cache-API + s-maxage) and by server.py on the LAN board (in-memory 3-min cache — 269ms cold → <1ms warm measured); browser falls back to direct NOAA automatically if the proxy is unavailable
+- cachedJson now rejects on non-OK responses instead of parsing error pages — fallback chains fire correctly
 ## v0.46.0 — 2026-07-17 (owner directives: calmer fallback warnings + one-time safety modal)
 - Snapshot fallback is no longer alarmist: the "GAUGES FROM SNAPSHOT" bar now appears only when the snapshot is ≥30 min old (a fresh snapshot is a working state, not a warning); amber 30-60 min, red beyond
 - The data-age warning bar is now dismissable (✕) on desktop and mobile — dismissal holds until the failing source or severity changes, so escalations still break through

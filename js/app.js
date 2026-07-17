@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.41.0';
+const APP_VERSION = 'v0.42.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1594,6 +1594,7 @@ async function refresh() {
   }
   if (!failed.length) saveCache();
   renderSourceHealth();
+  checkAppVersion();
   $('#refresh-note').textContent = failed.length
     ? `degraded: ${failed.map((f) => f.reason.message).join('; ')}`
     : `updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
@@ -1613,6 +1614,15 @@ function renderSourceHealth() {
       const when = t ? `${Math.round(age)}m ago` : 'never';
       return `<span class="badge"><span class="fresh-dot ${cls}"></span> ${esc(label)} · ${when}</span>`;
     }).join('') + '</div>';
+}
+
+// long-lived tabs run old code forever — tell them when a newer build shipped (never auto-reload mid-use)
+async function checkAppVersion() {
+  try {
+    const d = await fetch(`data/changelog.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
+    const latest = d && d.versions && d.versions[0] && d.versions[0].v;
+    if (latest && latest !== APP_VERSION) $('#update-chip').hidden = false;
+  } catch { /* offline — no update signal */ }
 }
 
 function tickCountdown() {
@@ -1713,6 +1723,7 @@ async function boot() {
   $('#theme-toggle').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
   $('#refresh-now').addEventListener('click', refresh);
+  $('#update-chip').addEventListener('click', () => location.reload());
   $('#toggle-form').addEventListener('click', () => $('#new-request-form').classList.toggle('open'));
   $('#f-geocode').addEventListener('click', geocodePlace);
   $('#new-request-form').addEventListener('submit', submitRequest);

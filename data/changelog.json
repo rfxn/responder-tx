@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.42.0",
+      "date": "2026-07-17",
+      "line": "Stale-tab fix: open tabs now show a green 'Updated \u2014 tap to reload' chip when a newer build ships (no auto-reload); ticker slowed ~30% per owner feedback"
+    },
+    {
       "v": "v0.41.0",
       "date": "2026-07-17",
       "line": "NEW Gauges tab (rising \u2192 in-flood \u2192 falling buckets, by-river grouping, crest timing) + scrolling actionable ticker; fresh-load 'NEVER LOADED' flash fixed (instant snapshot hydration); Ozona extended 2:15 PM; Frio/Llano MAJOR crest cards"

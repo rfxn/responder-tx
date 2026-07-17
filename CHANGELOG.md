@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.42.0 — 2026-07-17 (11:23 cycle: stale-tab update chip + ticker pacing)
+- Long-lived tabs now learn about new builds: each 3-min refresh compares the deployed changelog version against the running APP_VERSION and shows a pulsing "⬆ Updated — tap to reload" chip on divergence (never auto-reloads mid-use) — closes the cache story after the owner's tab sat on v0.39 through three deploys
+- Ticker slowed ~30% (40s → 58s loop) per owner feedback
+- Data: Ozona/Crockett emergency extended again to 2:15 PM confirmed in feed; Junction (Llano) 29.21 ft rising on 31.3 major forecast — card current; snapshot refreshed
 ## v0.41.0 — 2026-07-17 (Gauges tab + ticker + fresh-load honesty fix)
 - NEW Gauges tab (agent-built, merged): monitored gauges bucketed by actionability — ▲ RISING (soonest crest first) → ● IN FLOOD NOW → ▼ FALLING, normal gauges collapsed; "By priority / By river" grouping (NWPS carries no county field); cards show obs+category, trend ft/hr, forecast crest with timing, NWPS link; tap flies the map and opens the gauge popup; red tab badge on majors
 - NEW actionable ticker under the header: recency-biased marquee of FF-emergency countdowns, rising-to-flood crests (category-colored), MAJOR holds, fresh storm reports, newest critical notice; pauses on touch, honors reduced-motion, every segment tap-navigates; becomes the phone's glance surface

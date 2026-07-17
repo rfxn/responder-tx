@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "v": "v0.33.0",
+      "date": "2026-07-17",
+      "line": "Notices, not requests: no manual status/archive management \u2014 curator resolves via data, resolved auto-suppresses, everything ages out; Feed tab, Active notices tile, New notice intake"
+    },
+    {
+      "v": "v0.32.0",
+      "date": "2026-07-17",
+      "line": "Chat gated LAN-only: public mirror has no chat route, code, or data \u2014 UI loads only when the local server's /api/ping answers"
+    },
+    {
       "v": "v0.31.0",
       "date": "2026-07-17",
       "line": "PUBLIC LAUNCH: live at https://responder.rfxn.com (Cloudflare Pages, SSL) + open source at github.com/rfxn/responder-tx; HTTPS unlocks geolocation/clipboard/PWA install; public mirror is read-only (chat send stays LAN)"

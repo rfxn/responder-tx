@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.31.0';
+const APP_VERSION = 'v0.33.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -157,7 +157,7 @@ function initMap() {
     'River gauges (NOAA)': state.layers.gauges,
     'Storm reports (LSR)': state.layers.lsrs,
     'Aged storm reports (history)': state.layers.lsrsAged,
-    'Assistance requests': state.layers.requests,
+    'Notices (curated + field)': state.layers.requests,
     'Shelters': state.layers.shelters,
   }, { collapsed: true }).addTo(state.map);
 
@@ -652,7 +652,8 @@ function recordAlertHist() {
   }
   saveHist();
 }
-const cardAged = (r) => r.status !== 'in-progress' && ageMins(r.ts) > CONFIG.agedCardMins;
+// notices are alerts, not tickets: resolved (curator-set) suppresses immediately, everything else times out
+const cardAged = (r) => r.status === 'resolved' || (r.status !== 'in-progress' && ageMins(r.ts) > CONFIG.agedCardMins);
 const lsrFreshCutoffMins = () => (state.filters.window ? +state.filters.window : CONFIG.agedLsrMins);
 
 /* ---------- assistance requests ---------- */
@@ -672,15 +673,6 @@ function allRequests(includeArchived = false) {
 // aged cards drop out of counts, strip, SITREP, and default views — still in exports and the aged toggle
 function activeRequests() { return allRequests().filter((r) => !cardAged(r)); }
 
-function archiveResolved() {
-  const resolved = allRequests().filter((r) => r.status === 'resolved');
-  if (!resolved.length) { alert('No unarchived resolved cards.'); return; }
-  if (!confirm(`Archive ${resolved.length} resolved card(s)? They leave the feed/map but stay in JSON/GeoJSON/AAR exports.`)) return;
-  state.store.archived.push(...resolved.map((r) => r.id));
-  saveStore();
-  renderRequests();
-}
-
 function smartScore(r) {
   return (PRI_WEIGHT[r.priority] || 1) * Math.pow(0.5, ageMins(r.ts) / CONFIG.smartHalfLifeMins);
 }
@@ -698,7 +690,6 @@ function sortRequests(reqs) {
 function requestVisible(r) {
   const f = state.filters;
   if (f.type && r.type !== f.type) return false;
-  if (f.status && r.status !== f.status) return false;
   if (f.county && r.county !== f.county) return false;
   if (f.window && ageMins(r.ts) > +f.window) return false;
   if (f.dist && state.myPos && Number.isFinite(r.lat)
@@ -712,7 +703,7 @@ function requestVisible(r) {
 
 function updateFiltersBadge() {
   const f = state.filters;
-  const n = ['type', 'status', 'county', 'q', 'window', 'dist'].filter((k) => f[k]).length
+  const n = ['type', 'county', 'q', 'window', 'dist'].filter((k) => f[k]).length
     + (state.sort !== 'smart' ? 1 : 0) + (state.showAged ? 1 : 0);
   $('#filters-toggle').textContent = n ? `☰ Filters (${n})` : '☰ Filters';
   $('#filters-toggle').classList.toggle('on', n > 0 || !$('#req-filters').hidden);
@@ -752,14 +743,12 @@ function renderRequests() {
       (r.details ? `<div class="meta" style="margin-top:3px">${esc(r.details)}</div>` : '') +
       `<div class="badges">${isNew ? '<span class="badge new-chip">NEW</span>' : ''}` +
       `<span class="badge status-${esc(r.status)}">${esc(r.status)}</span>` +
-      (cardAged(r) ? '<span class="badge aged-chip">aged &gt;24h — suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale — re-verify</span>' : '')) +
+      (cardAged(r) ? '<span class="badge aged-chip">aged — suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale — re-verify</span>' : '')) +
       `<span class="badge">${srcLink}</span>` +
-      `<button class="badge advance act" title="Advance status">status →</button>` +
       (hasPos ? `<button class="badge act nav-act">navigate</button><button class="badge act copy-act">copy coords</button>` : '') +
       '</div>';
     div.addEventListener('click', (ev) => {
       if (ev.target.closest('a')) return;
-      if (ev.target.classList.contains('advance')) { advanceStatus(r.id); return; }
       if (ev.target.classList.contains('nav-act')) { window.open(`https://maps.google.com/?q=${r.lat},${r.lon}`, '_blank', 'noopener'); return; }
       if (ev.target.classList.contains('copy-act')) {
         copyText(`${r.lat}, ${r.lon} · USNG ${toUSNG(r.lat, r.lon)}`).then(() => { ev.target.textContent = 'copied ✓'; setTimeout(() => { ev.target.textContent = 'copy coords'; }, 1500); });
@@ -809,23 +798,6 @@ function renderRequests() {
   renderTiles();
 }
 
-// guarded transitions — resolved is terminal (explicit reopen), confirm before resolving: 26px badges mis-fire on bumpy roads
-function advanceStatus(id) {
-  const r = allRequests().find((x) => x.id === id);
-  if (!r) return;
-  let next;
-  if (r.status === 'resolved') {
-    if (!confirm(`Reopen this RESOLVED card as unverified?\n"${r.summary.slice(0, 90)}"`)) return;
-    next = 'unverified';
-  } else {
-    next = STATUSES[STATUSES.indexOf(r.status) + 1];
-    if (next === 'resolved' && !confirm(`Mark RESOLVED?\n"${r.summary.slice(0, 90)}"`)) return;
-  }
-  state.store.overrides[id] = Object.assign({}, state.store.overrides[id], { status: next });
-  saveStore();
-  renderRequests();
-}
-
 async function geocodePlace() {
   const place = $('#f-place').value.trim();
   if (!place) { $('#f-latlon').value = 'enter a place name first'; return; }
@@ -850,7 +822,7 @@ function submitRequest(ev) {
     ts: new Date().toISOString(),
     type: $('#f-type').value,
     priority: $('#f-priority').value,
-    status: $('#f-status').value,
+    status: 'open',
     county: $('#f-county').value.trim() || 'Unknown',
     place: $('#f-place').value.trim(),
     lat: ll ? +ll.lat.toFixed(5) : NaN,
@@ -961,7 +933,7 @@ function buildSitrep() {
     const pos = Number.isFinite(r.lat) ? ` [USNG ${toUSNG(r.lat, r.lon)}]` : '';
     L.push(`  [${r.type.toUpperCase()}] ${r.summary} — ${r.place}, ${r.county} Co.${pos} (${fmtWhen(r.ts).split(' · ')[0]})`);
   }
-  L.push(`OPEN REQUESTS TOTAL: ${reqs.length} · board ${APP_VERSION}`);
+  L.push(`ACTIVE NOTICES TOTAL: ${reqs.length} · board ${APP_VERSION}`);
   L.push('Not a dispatch product. Life-threatening emergencies: 911.');
   return L.join('\n');
 }
@@ -1260,16 +1232,14 @@ async function boot() {
   $('#export-geo-btn').addEventListener('click', exportGeoJSON);
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
-  $('#archive-btn').addEventListener('click', archiveResolved);
   $('#banner-dismiss').addEventListener('click', dismissEmergencyBanner);
   $('#banner-text').addEventListener('click', () => {
     dismissEmergencyBanner();
     document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
   });
   $('#import-file').addEventListener('change', (e) => { if (e.target.files[0]) importRequests(e.target.files[0]); e.target.value = ''; });
-  ['#flt-type', '#flt-status', '#flt-county'].forEach((sel) => $(sel).addEventListener('change', () => {
+  ['#flt-type', '#flt-county'].forEach((sel) => $(sel).addEventListener('change', () => {
     state.filters.type = $('#flt-type').value;
-    state.filters.status = $('#flt-status').value;
     state.filters.county = $('#flt-county').value;
     renderRequests();
   }));

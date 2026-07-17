@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.33.0 — 2026-07-17 (reframe: notices, not requests)
+- Requests reframed as alerts/notices (owner directive): no manual status management — no "status →" cycling, no archive chore, no status filter/intake field; curator (the ops session) resolves via data updates and resolved cards auto-suppress to the aged/history layer immediately; everything else ages out on the 24h timeout as before
+- Renames: Requests tab → Feed, "Open requests" tile → "Active notices", "+ New request" → "+ New notice" (field capture keeps working), map layer → "Notices (curated + field)", SITREP "OPEN REQUESTS TOTAL" → "ACTIVE NOTICES TOTAL"
+- Exports (JSON/GeoJSON/AAR) unchanged — full history including aged/resolved stays exportable
+
+## v0.32.0 — 2026-07-17 (chat gated to LAN-only)
+- Ops chat is now strictly a local construct: UI extracted to js/chat.js, injected only after the LAN server answers GET /api/ping (server.py beacon); public mirror ships NO chat route, code, markup, styles, or data
+- data/chat-outbox.json un-tracked from the public repo; deploys strip js/chat.js and all chat data from the artifact
+- LAN behavior unchanged: same panel, send, action feed, unread badge, ?chat=1 deep link
 ## v0.31.0 — 2026-07-17 (public launch)
 - LIVE on the public internet: https://responder.rfxn.com — Cloudflare Pages behind Cloudflare SSL (HTTP/2, valid cert), plus https://responder-tx.pages.dev
 - Open-sourced: https://github.com/rfxn/responder-tx (public repo; LAN-internal files excluded — HANDOFF, chat inbox/cursor)

@@ -21,7 +21,7 @@
       <div class="tile alert-tile" id="tile-emergency"><div class="label">Flash flood emergencies</div><div class="value">–</div></div>
       <div class="tile" id="tile-warnings"><div class="label">Flood warnings (TX)</div><div class="value">–</div></div>
       <div class="tile" id="tile-gauges"><div class="label">Gauges in flood</div><div class="value">–</div></div>
-      <div class="tile" id="tile-open"><div class="label">Open requests</div><div class="value">–</div></div>
+      <div class="tile" id="tile-open"><div class="label">Active notices</div><div class="value">–</div></div>
     </div>
     <div class="controls">
       <button id="refresh-now" title="Refresh live layers">⟳ Refresh</button>
@@ -39,7 +39,7 @@
       <div id="data-age-bar" hidden></div>
       <div id="threat-strip"></div>
       <div class="tabs">
-        <button class="active" data-tab="tab-requests">Requests <span class="count" id="requests-count">0</span></button>
+        <button class="active" data-tab="tab-requests">Feed <span class="count" id="requests-count">0</span></button>
         <button data-tab="tab-alerts">Alerts <span class="count" id="alerts-count">0</span></button>
         <button data-tab="tab-monitor">Social</button>
         <button data-tab="tab-resources">Resources</button>
@@ -47,7 +47,7 @@
 
       <div class="tab-body active" id="tab-requests">
         <div class="feed-actions">
-          <button class="primary" id="toggle-form">＋ New request</button>
+          <button class="primary" id="toggle-form" title="Capture a field observation or triaged post onto the board">＋ New notice</button>
           <button id="sitrep-btn" title="Copy a plain-text situation report for radio/SMS/email handoff">📋 SITREP</button>
           <button id="filters-toggle" title="Show/hide filters and sort">☰ Filters</button>
           <button id="more-toggle" title="Export, import, archive">⋯ More</button>
@@ -56,7 +56,6 @@
           <button id="export-btn">Export JSON</button>
           <button id="export-geo-btn" title="GeoJSON for CalTopo / SARTopo">Export GeoJSON</button>
           <button id="aar-btn" title="Markdown after-action export: stats, chronological card log, situation snapshot">Export AAR</button>
-          <button id="archive-btn" title="Move resolved cards out of the feed/map (kept in exports)">Archive resolved</button>
           <label for="import-file" style="display:inline-block"><span class="badge" style="cursor:pointer;padding:5px 10px;font-size:12px">Import JSON</span></label>
           <input type="file" id="import-file" accept="application/json" style="display:none">
         </div>
@@ -75,9 +74,6 @@
             <select id="f-priority">
               <option value="critical">Critical</option><option value="high" selected>High</option>
               <option value="medium">Medium</option><option value="low">Low</option>
-            </select>
-            <select id="f-status">
-              <option value="unverified" selected>Unverified</option><option value="open">Open (verified)</option>
             </select>
           </div>
           <div class="row">
@@ -115,11 +111,6 @@
             <option value="wellness">Wellness</option><option value="volunteer">Volunteer</option>
             <option value="equipment">Equipment</option><option value="road">Road blocked</option>
             <option value="cutoff">Cut-off area</option><option value="info">Info</option>
-          </select>
-          <select id="flt-status">
-            <option value="">All statuses</option>
-            <option value="unverified">Unverified</option><option value="open">Open</option>
-            <option value="in-progress">In progress</option><option value="resolved">Resolved</option>
           </select>
           <select id="flt-county"><option value="">All counties</option></select>
           <select id="flt-sort" title="Sort order">

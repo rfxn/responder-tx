@@ -9,9 +9,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.43.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.43.0">
-  <link rel="stylesheet" href="css/app.css?v=0.43.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.45.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.45.0">
+  <link rel="stylesheet" href="css/app.css?v=0.45.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.45.0">
 </head>
 <body>
   <header>
@@ -176,6 +177,8 @@
     </div>
   </main>
 
+  <div id="notes-flyout" hidden></div>
+
   <div id="changelog-modal" hidden>
     <div class="modal-box">
       <div class="modal-head"><strong>What's new</strong><button id="changelog-close" title="Close">✕</button></div>
@@ -185,8 +188,9 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.43.0"></script>
-  <script src="js/usng.js?v=0.43.0"></script>
-  <script src="js/app.js?v=0.43.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.45.0"></script>
+  <script src="js/usng.js?v=0.45.0"></script>
+  <script src="js/app.js?v=0.45.0"></script>
+  <script src="js/notes.js?v=0.45.0"></script>
 </body>
 </html>

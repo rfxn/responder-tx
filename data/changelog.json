@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.45.0",
+      "date": "2026-07-17",
+      "line": "NEW 📍 Field Notes: community/responder annotation flyout — drop-pin map notes with categories, comment threads, general posts, shareable ?note= deep links; the public mirror shows notes read-only"
+    },
+    {
       "v": "v0.43.0",
       "date": "2026-07-17",
       "line": "Nav package: merged zoom/locate bar (un-jumbled corner), AO quick-jump chips (Kerr, Uvalde/Frio, Sonora/Ozona, Cibolo, Full AO), tappable KPI tiles, 911 line pinned to phone viewport bottom"

@@ -1,6 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
-## v0.43.0 — 2026-07-17 (nav/UX package — the researched reorg lands)
+## v0.45.0 — 2026-07-17 (Field Notes — community + responder annotation board)
+- NEW 📍 Field Notes flyout (agent-built): chronological annotation board over the map — right-side panel on desktop, full-width bottom sheet on phones; teal "📍 Notes" button stacks above the map legend
+- Three note kinds: pinned map notes (drop-pin mode → tap the map → mini-compose with info/hazard/road/water-level/photo-worthy category), flat comment threads on any note, and general no-location board posts
+- Teal teardrop pins (visually distinct from gauge/need markers) with a popup thread + reply/copy-link; every note is shareable — ?note=<id> deep links open the flyout, focus the note, and fly the map to its pin
+- Persistence: POST /api/notes appends to data/notes-inbox.jsonl on the LAN server (chat-inbox pattern, kind/category/coord validation); client merges curated data/notes.json so published notes survive to the mirror; the public mirror detects the missing API and degrades honestly to "Read-only public mirror — notes viewable only"
+- Compose carries the safety line (Life-threatening emergency → call 911; notes are unverified community input) and asks only an optional display name — no PII solicited; server.py gains a PORT env override for side-by-side test instances
 - Top-left corner is one organized unit: zoom + locate merged into a single 3-button control bar (was two disconnected stacked boxes); 42px touch targets on phones
 - AO quick-jump chips along the map top edge: Full AO, Kerr/Guadalupe, Uvalde/Frio-Nueces, Sonora/Ozona, Cibolo corridor — one tap fits the map; collapses behind a 🗺 toggle on phones
 - KPI tiles are now actionable: tap emergencies/warnings → Alerts, gauges → Gauges tab, notices → Feed (keyboard-accessible, hover affordance)

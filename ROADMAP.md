@@ -65,15 +65,12 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
    sunlight contrast SHIPPED v0.52.0 — batch complete.
 5. ~~**#9 Dead-tap alert cards**~~ — DONE (verified in code 7/17 12:15: geometry
    → zoneGeomCache → window.open fallback in renderAlertList; never a dead tap).
-6. **RFC forecast-max layer** — every gauge's 5-day max category statewide,
-   10KB, hollow-ring markers, on by default; the single best anticipation layer
-   not yet shipped. Gotchas: non-ISO issued_time parse; dedupe lids vs NWPS.
-   Cost S. Deps: none. **[data]**.
-7. **Leaflet.markercluster (vendored)** — hard prerequisite for USGS-IV's 224
-   dots; disableClusteringAtZoom at ops zooms. Cost S. Deps: none. **[data]**.
-8. **Saved AO quick-jump presets** — 3–5 pinned map extents as one-tap buttons
-   (Watch Duty pattern); the owner re-pans to the same basins all day. Cost S.
-   Deps: none. **[views]**.
+6. ~~**RFC forecast-max layer**~~ — DONE pre-v0.44 (fetchFcstMax + fcstMax
+   layer live in app.js; shipped v0.34 as forecast-crest rings).
+7. ~~**Leaflet.markercluster (vendored)**~~ — DONE (vendored in js/vendor/,
+   used by USGS layer).
+8. ~~**Saved AO quick-jump presets**~~ — DONE v0.43 (AO chips: Full AO, Kerr,
+   Uvalde/Frio, Sonora/Ozona, Cibolo).
 9. **#15 MRMS legend color-scale strip + radar dim on overlayadd** — rainfall
    layers shipped without a scale are unreadable in the field. Cost M. Deps:
    none. **[ux]**.

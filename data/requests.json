@@ -3,6 +3,24 @@
  "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
  "requests": [
   {
+   "id": "seed-037",
+   "ts": "2026-07-17T17:58:25Z",
+   "type": "evacuation",
+   "priority": "high",
+   "status": "open",
+   "county": "Frio",
+   "place": "Lower Frio River \u2014 Derby / Tilden reaches",
+   "lat": 28.7659,
+   "lon": -99.1281,
+   "summary": "LOWER FRIO WAVE: Derby forecast 21 ft MAJOR overnight (~1 AM Sat); Tilden forecast 28 ft MAJOR by Tue \u2014 the Uvalde-area water is propagating downstream; riverside ranches/low crossings have hours (Derby) to days (Tilden) of lead time",
+   "details": "NWPS 12:58 PM CT: DBYT2 obs 13.18 moderate rising, fcst 21.0 MAJOR 2026-07-18 06:00Z; TIDT2 obs 1.87 (not yet flooding), fcst 28.0 MAJOR 2026-07-21. Same water that crested Concan/Uvalde. Use the lead time: move equipment/livestock, plan crossing closures.",
+   "source": {
+    "platform": "official",
+    "handle": "NOAA NWPS",
+    "url": "https://water.noaa.gov/gauges/DBYT2"
+   }
+  },
+  {
    "id": "seed-036",
    "ts": "2026-07-17T17:08:57Z",
    "type": "evacuation",

@@ -152,7 +152,7 @@ function applyTheme(theme) {
 /* ---------- map ---------- */
 
 function initMap() {
-  state.map = L.map('map', { zoomControl: true }).setView(CONFIG.center, CONFIG.zoom);
+  state.map = L.map('map', { zoomControl: false }).setView(CONFIG.center, CONFIG.zoom);
   const attrib = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
   state.baseLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
   state.baseLayers.light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
@@ -261,20 +261,21 @@ function initMap() {
     $('#f-latlon').value = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
   });
 
-  const LocateControl = L.Control.extend({
-    options: { position: 'topleft' },
-    onAdd() {
-      const bar = L.DomUtil.create('div', 'leaflet-bar');
+  // one bar for + / − / ⌖ — two stacked boxes read as clutter over the NW warning polygons
+  const NavControl = L.Control.Zoom.extend({
+    onAdd(map) {
+      const bar = L.Control.Zoom.prototype.onAdd.call(this, map);
       const a = L.DomUtil.create('a', 'locate-btn', bar);
       a.href = '#'; a.title = 'My location'; a.textContent = '⌖';
       L.DomEvent.on(a, 'click', (e) => {
         L.DomEvent.stop(e);
-        state.map.locate({ enableHighAccuracy: true, maximumAge: 30000 });
+        map.locate({ enableHighAccuracy: true, maximumAge: 30000 });
       });
       return bar;
     },
   });
-  state.map.addControl(new LocateControl());
+  state.map.addControl(new NavControl({ position: 'topleft' }));
+  initAoJump();
   state.map.on('locationfound', (e) => {
     state.myPos = e.latlng;
     if (state.posLayer) state.map.removeLayer(state.posLayer);
@@ -297,6 +298,30 @@ function initMap() {
   const declutter = () => state.map.getContainer().classList.toggle('z-low', state.map.getZoom() < 9);
   state.map.on('zoomend', declutter);
   declutter();
+}
+
+/* ---------- AO quick-jump — pills along the map top edge, never another stacked box ---------- */
+
+const AO_PRESETS = [
+  ['Full AO', [[28.0, -101.2], [31.1, -97.0]]],
+  ['Kerr/Guadalupe', [[29.85, -99.6], [30.2, -98.9]]],
+  ['Uvalde/Frio-Nueces', [[28.9, -100.1], [29.6, -99.4]]],
+  ['Sonora/Ozona', [[30.3, -101.4], [30.95, -100.3]]],
+  ['Cibolo corridor', [[28.9, -98.4], [29.4, -97.9]]],
+];
+
+function initAoJump() {
+  const jump = L.DomUtil.create('div', 'ao-jump', state.map.getContainer());
+  const tog = L.DomUtil.create('button', 'ao-toggle', jump);
+  tog.textContent = '🗺'; tog.title = 'Area quick-jump presets';
+  L.DomEvent.on(tog, 'click', () => jump.classList.toggle('open'));
+  for (const [label, bounds] of AO_PRESETS) {
+    const b = L.DomUtil.create('button', 'ao-chip', jump);
+    b.textContent = label;
+    L.DomEvent.on(b, 'click', () => state.map.fitBounds(bounds));
+  }
+  L.DomEvent.disableClickPropagation(jump);
+  L.DomEvent.disableScrollPropagation(jump);
 }
 
 /* ---------- radar time-scrub (RainViewer: past ~1h + nowcast projection when published) ---------- */
@@ -1720,6 +1745,12 @@ async function boot() {
     document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
     document.querySelectorAll('.tab-body').forEach((t) => t.classList.toggle('active', t.id === b.dataset.tab));
   }));
+  // header tiles mirror the threat-strip act() targets — passive numbers are dead UI
+  const goTab = (tab) => document.querySelector(`.tabs button[data-tab="${tab}"]`).click();
+  for (const [id, tab] of [['#tile-emergency', 'tab-alerts'], ['#tile-warnings', 'tab-alerts'], ['#tile-gauges', 'tab-gauges'], ['#tile-open', 'tab-requests']]) {
+    $(id).addEventListener('click', () => goTab(tab));
+    $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTab(tab); } });
+  }
   $('#theme-toggle').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
   $('#refresh-now').addEventListener('click', refresh);

@@ -156,10 +156,14 @@ function initMap() {
   state.baseLayers.light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
   state.baseLayers.streets = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19 });
 
-  // label boost pane: above radar tiles (200) and alert polygons (400), below markers (600)
+  // label boost pane: above radar (350) and alert polygons (400), below markers (600)
   state.map.createPane('labels');
   state.map.getPane('labels').style.zIndex = 450;
   state.map.getPane('labels').style.pointerEvents = 'none';
+  // radar pane: control autoZIndex raises base layers above tilePane radar, so radar needs its own pane
+  state.map.createPane('radar');
+  state.map.getPane('radar').style.zIndex = 350;
+  state.map.getPane('radar').style.pointerEvents = 'none';
   state.layers.labelBoost = L.tileLayer(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
 
   const bustSrc = (url) => url + '?_=' + Math.floor(Date.now() / 300000);
@@ -309,11 +313,13 @@ async function fetchRadarFrames() {
   const r = state.radar;
   state.layers.radar.clearLayers();
   r.frameLayers = r.frames.map((f) => L.tileLayer(`${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
-    opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, attribution: 'Radar: RainViewer',
+    pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, attribution: 'Radar: RainViewer',
   }));
   r.frameLayers.forEach((l) => state.layers.radar.addLayer(l)); // all mounted once — playback is opacity-only
   $('#rs-slider').max = r.frames.length - 1;
-  setRadarFrame(keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx : r.nowIdx);
+  const rf = parseInt(new URLSearchParams(location.search).get('rf'), 10); // debug/deep-link: initial frame index
+  setRadarFrame(keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx
+    : rf >= 0 && rf < r.frames.length ? rf : r.nowIdx);
   if (wasPlaying) toggleRadarPlay();
 }
 
@@ -321,7 +327,7 @@ function setRadarFrame(i) {
   const r = state.radar;
   if (!r || !r.frames.length) return;
   r.idx = Math.max(0, Math.min(i, r.frames.length - 1));
-  r.frameLayers.forEach((l, j) => l.setOpacity(j === r.idx ? 0.6 : 0));
+  r.frameLayers.forEach((l, j) => l.setOpacity(j === r.idx ? 0.75 : 0)); // 0.75: 0.6 washed out over the bright Streets base
   $('#rs-slider').value = r.idx;
   const dMin = Math.round((r.frames[r.idx].time - r.frames[r.nowIdx].time) / 60);
   const projected = r.idx >= r.castStart;

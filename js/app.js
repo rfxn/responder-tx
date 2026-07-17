@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.39.0';
+const APP_VERSION = 'v0.40.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1287,7 +1287,8 @@ function renderThreatStrip() {
   }
   // the board knows crest timing and emergency clocks — surface them at glance level
   const soonest = state.gauges
-    .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
+    .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor
+      && new Date(g.status.forecast.validTime) > new Date()) // a crest already past is not "next"
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
   if (soonest) {
     const b = document.createElement('button');

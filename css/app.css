@@ -521,6 +521,23 @@ main { flex: 1; display: flex; min-height: 0; }
 
 .locate-btn { font-size: 18px; }
 
+/* offline tile save — bottomleft, stacked under the legend */
+.offline-ctl {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 9px; font: 11.5px system-ui, sans-serif; color: var(--ink-1);
+  max-width: 210px; box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+}
+.offline-ctl .off-save { width: 100%; min-height: 0; padding: 5px 8px; font-size: 12px; font-weight: 650; }
+.offline-ctl .off-save:disabled { opacity: 0.6; cursor: progress; }
+.offline-ctl .off-status { margin-top: 5px; color: var(--ink-2); font-size: 11px; line-height: 1.35; }
+.offline-ctl .off-status.over { color: var(--sev-warning); font-weight: 650; }
+.offline-ctl .off-note { margin-top: 4px; color: var(--ink-muted); font-size: 10px; line-height: 1.3; }
+.offline-ctl .off-clear {
+  margin-top: 6px; width: 100%; min-height: 0; padding: 3px 6px; font-size: 10.5px;
+  color: var(--ink-muted); background: none; border: 1px dashed var(--border); border-radius: 6px;
+}
+.offline-ctl .off-clear:hover { color: var(--accent); border-color: var(--accent); }
+
 .card .head .sid {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; font-weight: 700;
   color: var(--accent); border: 1px solid var(--border); border-radius: 5px;
@@ -746,6 +763,8 @@ main { flex: 1; display: flex; min-height: 0; }
     font-size: 18px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.35);
   }
   .ao-toggle:active, .ao-jump.open .ao-toggle { border-color: var(--accent); }
+  .offline-ctl { max-width: 168px; padding: 6px 8px; opacity: 0.95; }
+  .offline-ctl .off-note { font-size: 9.5px; }
 }
 
 /* gauges tab — bucketed by actionability */

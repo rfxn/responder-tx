@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.63.0';
+const APP_VERSION = 'v0.64.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -149,14 +149,171 @@ function applyTheme(theme) {
   }
 }
 
+/* ---------- offline tiles (IndexedDB — works on plain LAN http, no Service Worker) ---------- */
+
+// Basemap tiles only. Data (gauges/alerts) is never cached — staleness stays governed by the data-age bar.
+const OFFLINE_TILE_CAP = 1500; // per-save ceiling — respects CARTO/OSM usage; over cap → user zooms in
+
+const OfflineTiles = (() => {
+  const DB = 'respondertx-offline', STORE = 'tiles';
+  let dbp = null;
+  function db() {
+    if (dbp) return dbp;
+    dbp = new Promise((resolve, reject) => {
+      let rq;
+      try { rq = indexedDB.open(DB, 1); } catch (e) { reject(e); return; }
+      rq.onupgradeneeded = () => { if (!rq.result.objectStoreNames.contains(STORE)) rq.result.createObjectStore(STORE); };
+      rq.onsuccess = () => resolve(rq.result);
+      rq.onerror = () => reject(rq.error);
+    });
+    return dbp;
+  }
+  const run = (mode, fn) => db().then((d) => new Promise((resolve, reject) => {
+    const store = d.transaction(STORE, mode).objectStore(STORE);
+    const rq = fn(store);
+    rq.onsuccess = () => resolve(rq.result);
+    rq.onerror = () => reject(rq.error);
+  }));
+  return {
+    available: () => typeof indexedDB !== 'undefined',
+    get: (key) => run('readonly', (s) => s.get(key)).then((v) => v || null),
+    has: (key) => run('readonly', (s) => s.count(key)).then((n) => n > 0),
+    put: (key, blob) => run('readwrite', (s) => s.put(blob, key)),
+    count: () => run('readonly', (s) => s.count()),
+    clear: () => run('readwrite', (s) => s.clear()),
+  };
+})();
+
+// Cache-first tile layer: serves a stored blob when present, else the network; the template
+// string namespaces keys so each base (and each label variant via setUrl) has its own tiles.
+const OfflineTileLayer = L.TileLayer.extend({
+  initialize(url, options) {
+    L.TileLayer.prototype.initialize.call(this, url, options);
+    this.on('tileunload', (e) => {
+      if (e.tile && e.tile._objurl) { URL.revokeObjectURL(e.tile._objurl); e.tile._objurl = null; }
+    });
+  },
+  offlineKey(coords) { return `${this._url}|${coords.z}/${coords.x}/${coords.y}`; },
+  createTile(coords, done) {
+    const tile = document.createElement('img');
+    tile.setAttribute('role', 'presentation');
+    tile.alt = '';
+    L.DomEvent.on(tile, 'load', L.Util.bind(this._tileOnLoad, this, done, tile));
+    L.DomEvent.on(tile, 'error', L.Util.bind(this._tileOnError, this, done, tile));
+    const netUrl = this.getTileUrl(coords);
+    OfflineTiles.get(this.offlineKey(coords)).then((blob) => {
+      if (blob) { tile._objurl = URL.createObjectURL(blob); tile.src = tile._objurl; }
+      else { tile.src = netUrl; }
+    }).catch(() => { tile.src = netUrl; });
+    return tile;
+  },
+});
+
+function offlineTile(url, opts) { return new OfflineTileLayer(url, opts); }
+
+// getTileUrl() locks z to the layer's live zoom, so build save URLs directly to reach z+1
+function offlineTileUrl(layer, c) {
+  const subs = layer.options.subdomains || 'abc';
+  return L.Util.template(layer._url, { s: subs[Math.abs(c.x + c.y) % subs.length], x: c.x, y: c.y, z: c.z, r: '' });
+}
+
+function activeOfflineLayers() {
+  const out = [];
+  state.map.eachLayer((l) => { if (l instanceof OfflineTileLayer) out.push(l); });
+  return out;
+}
+
+function viewportTileCoords(z) {
+  const b = state.map.getBounds();
+  const nw = state.map.project(b.getNorthWest(), z).divideBy(256).floor();
+  const se = state.map.project(b.getSouthEast(), z).divideBy(256).floor();
+  const out = [];
+  for (let x = nw.x; x <= se.x; x++) for (let y = nw.y; y <= se.y; y++) out.push({ x, y, z });
+  return out;
+}
+
+function refreshOfflineStatus() {
+  return OfflineTiles.count().then((n) => {
+    const s = $('#off-status');
+    if (s) { s.textContent = n > 0 ? `✓ ${n} tiles saved` : 'No tiles saved yet'; s.classList.remove('over'); }
+    const clr = $('#off-clear');
+    if (clr) clr.hidden = n === 0;
+    return n;
+  }).catch(() => {});
+}
+
+async function saveViewportOffline() {
+  const layers = activeOfflineLayers();
+  const statusEl = $('#off-status');
+  if (!layers.length || !statusEl) return;
+  const z0 = state.map.getZoom();
+  const maxZ = Math.min(...layers.map((l) => l.options.maxZoom || 19));
+  const zooms = z0 + 1 <= maxZ ? [z0, z0 + 1] : [z0];
+  const jobs = [];
+  for (const z of zooms) for (const c of viewportTileCoords(z)) for (const l of layers) jobs.push({ l, c });
+  if (jobs.length > OFFLINE_TILE_CAP) {
+    statusEl.textContent = `This area needs ${jobs.length} tiles (cap ${OFFLINE_TILE_CAP}) — zoom in, then save`;
+    statusEl.classList.add('over');
+    return;
+  }
+  const saveBtn = document.querySelector('.off-save');
+  if (saveBtn) saveBtn.disabled = true;
+  statusEl.classList.remove('over');
+  let done = 0;
+  let idx = 0;
+  const worker = async () => {
+    while (idx < jobs.length) {
+      const { l, c } = jobs[idx++];
+      const key = l.offlineKey(c);
+      try {
+        if (!(await OfflineTiles.has(key))) {
+          const r = await fetch(offlineTileUrl(l, c), { mode: 'cors' });
+          if (r.ok) await OfflineTiles.put(key, await r.blob());
+        }
+      } catch (e) { /* skip unreachable/blocked tile — partial cache is still useful offline */ }
+      statusEl.textContent = `Saving ${++done}/${jobs.length}…`;
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  if (saveBtn) saveBtn.disabled = false;
+  const total = await refreshOfflineStatus();
+  statusEl.textContent = `✓ ${total} tiles saved — this view is available offline`;
+}
+
+async function clearOfflineCache() {
+  try { await OfflineTiles.clear(); } catch (e) { /* ignore — nothing to clear */ }
+  await refreshOfflineStatus();
+  const s = $('#off-status');
+  if (s) s.textContent = 'Offline cache cleared';
+}
+
+function initOfflineControl() {
+  if (!OfflineTiles.available()) return;
+  const ctl = L.control({ position: 'bottomleft' });
+  ctl.onAdd = () => {
+    const div = L.DomUtil.create('div', 'offline-ctl');
+    div.innerHTML = '<button class="off-save" title="Cache the current map view (this zoom + one deeper) for use with no signal">⬇ Save map offline</button>' +
+      '<div class="off-status" id="off-status">…</div>' +
+      '<div class="off-note">Basemap only — gauge/alert data still needs a connection.</div>' +
+      '<button class="off-clear" id="off-clear" hidden>Clear offline cache</button>';
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    L.DomEvent.on(div.querySelector('.off-save'), 'click', saveViewportOffline);
+    L.DomEvent.on(div.querySelector('#off-clear'), 'click', clearOfflineCache);
+    return div;
+  };
+  ctl.addTo(state.map);
+  refreshOfflineStatus();
+}
+
 /* ---------- map ---------- */
 
 function initMap() {
   state.map = L.map('map', { zoomControl: false }).setView(CONFIG.center, CONFIG.zoom);
   const attrib = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
-  state.baseLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
-  state.baseLayers.light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
-  state.baseLayers.streets = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19 });
+  state.baseLayers.dark = offlineTile('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
+  state.baseLayers.light = offlineTile('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
+  state.baseLayers.streets = offlineTile('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19 });
 
   // label boost pane: above radar (350) and alert polygons (400), below markers (600)
   state.map.createPane('labels');
@@ -166,7 +323,7 @@ function initMap() {
   state.map.createPane('radar');
   state.map.getPane('radar').style.zIndex = 350;
   state.map.getPane('radar').style.pointerEvents = 'none';
-  state.layers.labelBoost = L.tileLayer(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
+  state.layers.labelBoost = offlineTile(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
 
   const bustSrc = (url) => url + '?_=' + Math.floor(Date.now() / 300000);
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
@@ -263,6 +420,7 @@ function initMap() {
     return div;
   };
   legend.addTo(state.map);
+  initOfflineControl();
 
   state.map.on('click', (e) => {
     if (!$('#new-request-form').classList.contains('open')) return;

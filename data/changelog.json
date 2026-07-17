@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.63.0",
+      "date": "2026-07-17",
+      "line": "NEW public RSS feed (/feed.xml — emergencies, forecast crests, notices) + subscribable crest calendar (/crests.ics); follow the event in any reader or calendar app, no account needed"
+    },
+    {
       "v": "v0.62.0",
       "date": "2026-07-17",
       "line": "NEW full-screen hydrograph (tap ⤢ in a gauge popup, or ?hydro=<lid>): 24h observed + NWPS forecast trace, flood-stage bands, crest-of-record line, now marker, dated axes"

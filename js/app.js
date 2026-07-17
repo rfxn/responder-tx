@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.62.0';
+const APP_VERSION = 'v0.63.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1754,7 +1754,10 @@ function renderResources() {
     '<div class="section-title">Hotlines</div>' +
     r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> — ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
     '<div class="section-title">Authoritative data & live coverage</div>' +
-    r.dataLinks.map((d) => `<div class="resource-item"><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`).join('');
+    r.dataLinks.map((d) => `<div class="resource-item"><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`).join('') +
+    '<div class="section-title">Follow / subscribe (public, no account)</div>' +
+    '<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">📡 RSS feed</a> — emergencies, forecast crests, active notices in any reader</div>' +
+    '<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">📅 Crest calendar (.ics)</a> — subscribe to add forecast MAJOR crests to your calendar</div>';
 
   state.layers.shelters.clearLayers();
   for (const s of r.shelters) {

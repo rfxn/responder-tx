@@ -1,5 +1,7 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.51.0 — 2026-07-17 (12:53 cycle: GPS-wait feedback)
+- Tapping ⌖ (or enabling a distance filter) now shows a pulsing "acquiring GPS fix…" chip on the map and lights the locate button until the fix lands or fails — no more dead air during the 5-30s GPS wait; locates now carry a 20s timeout so failures actually report instead of hanging silently
 ## v0.50.0 — 2026-07-17 (12:38 cycle: MRMS rainfall legend)
 - Rainfall layers finally carry a scale: turning on MRMS 1h/24h shows a color-ramp legend on the map (blue→cyan→green→yellow→orange→red, endpoints sampled from the live IEM q2 tiles) labeled light→extreme; title tracks which accumulation window is active; hides when the layers go off
 - Labels stay qualitative on purpose — IEM does not publish the inch-value breakpoints for this ramp, and inventing numbers would be dishonest; warmer = heavier is the field read

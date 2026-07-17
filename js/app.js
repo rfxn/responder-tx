@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.50.0';
+const APP_VERSION = 'v0.51.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -269,6 +269,12 @@ function initMap() {
   });
 
   // one bar for + / − / ⌖ — two stacked boxes read as clutter over the NW warning polygons
+  const gpsWait = window.gpsWait = (on) => {
+    const btn = document.querySelector('.locate-btn');
+    if (btn) btn.classList.toggle('locating', on);
+    const chip = $('#gps-wait');
+    if (chip) chip.hidden = !on;
+  };
   const NavControl = L.Control.Zoom.extend({
     onAdd(map) {
       const bar = L.Control.Zoom.prototype.onAdd.call(this, map);
@@ -276,7 +282,8 @@ function initMap() {
       a.href = '#'; a.title = 'My location'; a.textContent = '⌖';
       L.DomEvent.on(a, 'click', (e) => {
         L.DomEvent.stop(e);
-        map.locate({ enableHighAccuracy: true, maximumAge: 30000 });
+        gpsWait(true);
+        map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
       });
       return bar;
     },
@@ -284,6 +291,7 @@ function initMap() {
   state.map.addControl(new NavControl({ position: 'topleft' }));
   initAoJump();
   state.map.on('locationfound', (e) => {
+    gpsWait(false);
     state.myPos = e.latlng;
     if (state.posLayer) state.map.removeLayer(state.posLayer);
     state.posLayer = L.layerGroup([
@@ -300,7 +308,10 @@ function initMap() {
     state.map.setView(e.latlng, Math.max(state.map.getZoom(), 12));
     renderRequests();
   });
-  state.map.on('locationerror', () => { $('#refresh-note').textContent = 'location unavailable (permission or no GPS)'; });
+  state.map.on('locationerror', () => {
+    gpsWait(false);
+    $('#refresh-note').textContent = 'location unavailable (permission or no GPS)';
+  });
 
   const declutter = () => state.map.getContainer().classList.toggle('z-low', state.map.getZoom() < 9);
   state.map.on('zoomend', declutter);
@@ -1931,7 +1942,10 @@ async function boot() {
   });
   $('#flt-dist').addEventListener('change', () => {
     state.filters.dist = $('#flt-dist').value;
-    if (state.filters.dist && !state.myPos) state.map.locate({ enableHighAccuracy: true, maximumAge: 30000 });
+    if (state.filters.dist && !state.myPos) {
+      gpsWait(true);
+      state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+    }
     renderRequests();
   });
 

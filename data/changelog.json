@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.51.0",
+      "date": "2026-07-17",
+      "line": "GPS feedback: locate taps and distance filters show a pulsing 'acquiring GPS fix…' chip until the fix lands or times out (20s) — no more silent waiting"
+    },
+    {
       "v": "v0.50.0",
       "date": "2026-07-17",
       "line": "MRMS rainfall layers now show a color-scale legend on the map (ramp sampled from the live tiles, light→extreme) — no more guessing what the colors mean in the field"

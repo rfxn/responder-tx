@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.43.0';
+const APP_VERSION = 'v0.44.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1414,17 +1414,25 @@ function renderThreatStrip() {
   ].filter((c) => c.n > 0);
   if (!chips.length) {
     el.innerHTML = state.alertsLoadedOnce
-      ? '<span class="strip-label" style="color:var(--good)">✓ NO ACTIVE LIFE-SAFETY SIGNALS</span><span style="font-size:11px;color:var(--ink-2)">recovery posture — verify before re-entry; fraud watch active (Monitor tab)</span>'
+      ? '<div class="strip-ok"><span class="ok-line">✓ NO ACTIVE LIFE-SAFETY SIGNALS</span><span class="ok-sub">recovery posture — verify before re-entry; fraud watch active (Monitor tab)</span></div>'
       : '';
     return;
   }
-  el.innerHTML = '<span class="strip-label">THREAT TO LIFE</span>';
+  el.innerHTML = '';
+  if (chips.some((c) => c.cls === 'emergency')) {
+    const h = document.createElement('div');
+    h.className = 'threat-head';
+    h.textContent = 'THREAT TO LIFE';
+    el.appendChild(h);
+  }
+  const grid = document.createElement('div');
+  grid.className = 'threat-grid';
   for (const c of chips) {
     const b = document.createElement('button');
-    b.className = `threat-chip ${c.cls}`;
-    b.innerHTML = `${c.glyph} <strong>${c.n}</strong> ${esc(c.label)}`;
+    b.className = `stat-row ${c.cls}`;
+    b.innerHTML = `<span class="glyph">${c.glyph}</span><span class="num">${c.n}</span><span class="lbl">${esc(c.label)}</span>`;
     b.addEventListener('click', c.act);
-    el.appendChild(b);
+    grid.appendChild(b);
   }
   // the board knows crest timing and emergency clocks — surface them at glance level
   const soonest = state.gauges
@@ -1433,22 +1441,33 @@ function renderThreatStrip() {
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
   if (soonest) {
     const b = document.createElement('button');
-    b.className = 'threat-chip major';
+    b.className = 'stat-row major crest';
     const river = riverOf(soonest.name);
-    b.innerHTML = `⏱ next crest <strong>${esc(fmtWhen(soonest.status.forecast.validTime).split(' · ')[0])}</strong> ${esc(river.slice(0, 18))}`;
+    b.innerHTML = `<span class="glyph">⏱</span><span class="num">${esc(fmtWhen(soonest.status.forecast.validTime).split(' · ')[0])}</span><span class="lbl">next crest</span><span class="riv">· ${esc(river.slice(0, 22))}</span>`;
     b.addEventListener('click', () => state.map.setView([soonest.latitude, soonest.longitude], 11));
-    el.appendChild(b);
+    grid.appendChild(b);
   }
+  el.appendChild(grid);
   const emergAlerts = state.alerts.filter((a) => a._sev === 'emergency');
   if (emergAlerts.length) {
-    const sub = document.createElement('div');
-    sub.className = 'strip-sub';
-    sub.textContent = 'FF EMERG: ' + emergAlerts.map((a) => {
+    const row = document.createElement('div');
+    row.className = 'ffe-row';
+    const tag = document.createElement('span');
+    tag.className = 'ffe-tag';
+    tag.textContent = 'FF EMERG';
+    row.appendChild(tag);
+    const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
+    for (const a of emergAlerts) {
       const where = (a.properties.areaDesc || '?').split(';')[0].replace(/, TX$/, '');
       const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
-      return `${where} → ${until}`;
-    }).join(' · ');
-    el.appendChild(sub);
+      const b = document.createElement('button');
+      b.className = 'ffe-chip';
+      b.title = 'Open Alerts tab';
+      b.innerHTML = `${esc(where)} <span class="until">→ ${esc(until)}</span>`;
+      b.addEventListener('click', goAlerts);
+      row.appendChild(b);
+    }
+    el.appendChild(row);
   }
 }
 

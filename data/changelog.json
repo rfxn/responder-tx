@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.37.0",
+      "date": "2026-07-17",
+      "line": "Gauge snapshot fallback (public survives NWPS outages, honest snapshot-age bar); place labels now readable OVER radar (boost pane); OSM Streets base layer (?base=osm)"
+    },
+    {
       "v": "v0.36.0",
       "date": "2026-07-17",
       "line": "Threat strip now shows NEXT CREST timing + FF-emergency expiry clocks; degraded-boot honesty fix; alert cards never dead-tap; per-type aging (nothing immortal); mirror intake labeled device-only; vocabulary sweep clean"

@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.37.0 — 2026-07-17 (10:35 cycle: snapshot resilience + readable maps)
+- Gauge snapshot fallback: every ops cycle publishes data/gauges-snapshot.json (≤15 min old); fresh public visitors hydrate from it when NWPS rate-limits, with an honest amber/red "GAUGES FROM SNAPSHOT N MIN OLD" bar — proven live during this cycle's NWPS 429 window
+- Place-label boost (agent-built, merged): CARTO label overlay in a dedicated pane ABOVE radar/alert washes with dark-mode brightness filter — city/county names now readable over heavy echoes (screenshot-proven on the storm core); theme-aware, toggleable
+- Streets base layer: OSM standard as a third base (Dark / Light / Streets) for street-level detail; label variant tracks the basemap surface; ?base=osm deep link
+- Both FF emergencies steady (Sutton 1:15 PM, Crockett 11:45 AM); NWPS healthy at sweep time
 ## v0.36.0 — 2026-07-17 (reassessment round: surface what the board already knows)
 - Threat strip gains the two facts the board knew but never showed: "⏱ next crest in Xm/h {river}" chip (soonest rising-gauge forecast, tap to fly there) and an FF-emergency clock line ("Sutton → 1:15 PM · Crockett → 11:45 AM")
 - Honesty-leak fix: degraded boot no longer sticks on "refreshing…" — the early-return path now sets the degraded note and renders source health

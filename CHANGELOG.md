@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.55.0 — 2026-07-17 (product vet pass: radio-ID share-link + wobble fixes)
+- Fix (field bug): a shared/deep radio-ID link (?fq=R-031) now flies the map to the card and opens its popup on load — previously the fly-to fired before seeds loaded and left the map statewide; re-applied after the board data lands
+- Fix: typing a multi-digit radio ID no longer wobbles the map through intermediate matches (R-03 → R-003) — fly-to now requires the complete 3-character code
+- Verified (full adversarial UAT this cycle): threat module, safety modal, snapshot discipline, cached hydrographs (LAN + edge), Share View, radio IDs, hidden Notes, typed-coord intake, GPS chip, light-theme contrast, MRMS legend, and public-mirror chat-hygiene all pass; seed-013 empty source URL confirmed a correctly-exempt field card, not a defect
 ## v0.54.0 — 2026-07-17 (owner chat directives: radio-ID search + Notes hidden)
 - Radio-ID search (owner request): the Feed search now matches short IDs, and typing an exact ID ("R-031", "r031") flies the map to that card and opens its popup — phones scroll the map into view; new 🔍 ID button opens search pre-focused for gloved one-tap entry
 - Field Notes hidden for now (owner request): the 📍 Notes button and flyout no longer load by default — ?notes=1 / ?note= deep links still work for testing, server /api/notes stays live, nothing deleted

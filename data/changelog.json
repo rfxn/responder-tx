@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.55.0",
+      "date": "2026-07-17",
+      "line": "Product vet pass: shared radio-ID links (?fq=R-031) now fly the map to the card on load; multi-digit ID typing no longer wobbles through intermediate matches; full UAT of every feature passed"
+    },
+    {
       "v": "v0.54.0",
       "date": "2026-07-17",
       "line": "Radio-ID search: type R-031 (or tap 🔍 ID) and the board filters to the card AND flies the map to its pin; Field Notes hidden for now per owner — deep links still work"

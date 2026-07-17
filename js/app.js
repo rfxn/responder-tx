@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.54.0';
+const APP_VERSION = 'v0.55.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1125,6 +1125,21 @@ function shortId(id) {
   return `R-${(h % 46656).toString(36).toUpperCase().padStart(3, '0')}`;
 }
 
+// exact, complete radio-ID ("R-031" / "r031") flies the map to that card's pin and opens it.
+// requires the full 3-char code so mid-typing "R-03" doesn't wobble to R-003 first.
+function flyToRadioId(raw) {
+  const m = /^r-?([0-9a-z]{3})$/i.exec(String(raw || '').trim());
+  if (!m) return false;
+  const want = `R-${m[1].toUpperCase()}`;
+  const hit = allRequests().find((r) => shortId(r.id) === want);
+  if (!hit || !Number.isFinite(hit.lat)) return false;
+  state.map.setView([hit.lat, hit.lon], 12);
+  const mk = state.reqMarkers[hit.id];
+  if (mk) mk.openPopup();
+  if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+  return true;
+}
+
 function renderRequests() {
   updateFiltersBadge();
   const reqs = sortRequests(allRequests());
@@ -1948,18 +1963,7 @@ async function boot() {
   $('#flt-q').addEventListener('input', () => {
     state.filters.q = $('#flt-q').value;
     renderRequests();
-    // exact radio-ID entry ("R-031", "r031") flies the map to the card and opens its popup
-    const m = /^r-?([0-9a-z]{2,3})$/i.exec(state.filters.q.trim());
-    if (m) {
-      const want = `R-${m[1].toUpperCase().padStart(3, '0')}`;
-      const hit = allRequests().find((r) => shortId(r.id) === want);
-      if (hit && Number.isFinite(hit.lat)) {
-        state.map.setView([hit.lat, hit.lon], 12);
-        const mk = state.reqMarkers[hit.id];
-        if (mk) mk.openPopup();
-        if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
-      }
-    }
+    flyToRadioId(state.filters.q);
   });
   $('#flt-sort').addEventListener('change', () => { state.sort = $('#flt-sort').value; renderRequests(); });
   $('#flt-alert-sev').addEventListener('change', renderAlertList);
@@ -2044,6 +2048,8 @@ async function boot() {
   state.bootAt = Date.now();
   hydrateGaugesSnapshot();
   const ok = await loadSeeds();
+  // a shared ?fq=R-031 link fires before seeds exist — re-fly once the cards are on the board
+  if (ok) flyToRadioId(new URLSearchParams(location.search).get('fq'));
   if (!ok) {
     $('#request-list').innerHTML = '<div class="card">Failed to load seed data. Serve over HTTP (see README), not file://.</div>';
     state.resources = state.resources || { shelters: [], hotlines: [], monitors: [], comms: [], dataLinks: [] };

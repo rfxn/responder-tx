@@ -78,6 +78,37 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
     v0.49.0 (typed "lat, lon" parses/validates/pins + map pans; phones scroll
     the map into view when intake opens).
 
+### Next-wave feature backlog (2026-07-17 1:15 PM — product-owner pass)
+
+Owner directive: "you are the product owner, move this forward, don't be
+afraid of new features." Ranked next-wave (agent gap-analysis, event now in
+record-crest + downstream-wave + east-recovery phase):
+
+- **W1. Down-basin crest-wave tracker** — order each river's gauges
+  upstream→downstream, show the crest passing with per-gauge forecast ETAs
+  ("when does the wave reach my town" — the 48h headline question). Cost M.
+  data/event.json basins + renderForecastList/new renderWave. Honesty: real
+  NWPS validTime only; interpolation labeled estimate. **[views/data]**
+- **W2. Record-Watch pane + THREAT chip** — gauges forecast to break their
+  historical crest, with margin + countdown (Asherton +4.5 ft over 1991 is
+  tonight's headline). Cost S/M. NEW data/records.json (curated, cited),
+  renderThreatStrip + forecast badges + SITREP line. **[data/ux]**
+- **W3. OG share-card unfurl** — Pages Function renders a dynamic OG image
+  (emergency count, next crest, record watch) so Share links look good on
+  X/FB — cheapest permanent growth lever. Cost M. functions/og/, index head
+  meta. Public-read, aggregate-only (no PII). **[infra]**
+- **W4. Low-water crossing inventory + layer** — curator open/closed/caution
+  crossings, the operational currency of flood SAR. Cost M. data/crossings.json
+  + map layer. Aging + reframe (curator data, not tap-cycle). **[data]**
+- **W5. Drive Mode ?view=drive** — one-thumb huge-type nearest-threats glance
+  list (truck/gloves/glare). Cost M. new view region. 911 line stays. **[views]**
+- **W6. Full-screen hydrograph** — tap sparkline → big chart w/ flood bands +
+  forecast trace + record line. Cost S/M. drawSparkline extract + modal. **[ux]**
+- **W7. Per-item share** (gauge/alert/card focus= deep links + Web Share). S. **[ux]**
+- **W8. Public RSS/Atom + ICS crest calendar** — zero-backend follow. S. **[infra]**
+- **W9. Offline AO tile pre-cache** (leaflet.offline) — canyon dead zones. M. **[data]**
+- Blocker for parallel app.js lanes (W1/W2/W6/W7): the NOW#3 module split.
+
 ### Community/social track addendum (2026-07-17 11:45 owner directive)
 
 Owner directive: iterate for first responders, community, social, communication,

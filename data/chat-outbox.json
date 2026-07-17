@@ -49,6 +49,16 @@
       "ts": "2026-07-17T14:42:56Z",
       "role": "action",
       "text": "v0.30.0 (9:42 cycle): gauge markers tappable one-thumbed (32px hit areas), phone map drops non-flooding gauges. GOOD NEWS: Sutherland Springs secondary bump canceled \u2014 falling 33.9, fcst 33.1; homes-cutoff avoided for good. Both FF emergencies still active (Sutton 10:15, Ozona 11:45)."
+    },
+    {
+      "ts": "2026-07-17T14:55:55Z",
+      "role": "claude",
+      "text": "LIVE: https://responder.rfxn.com \u2014 SSL, Cloudflare Pages, loading confirmed. Repo: github.com/rfxn/responder-tx (public). On HTTPS your phone now gets geolocation (distance filters/locate-me), real clipboard, and add-to-home-screen. The public mirror is read-only: chat sends and new-request intake persist only on the LAN board; the mirror refreshes when each release cycle pushes. Crons resumed with deploy built in."
+    },
+    {
+      "ts": "2026-07-17T14:55:55Z",
+      "role": "action",
+      "text": "v0.31.0: created rfxn/responder-tx (GitHub), Cloudflare Pages project responder-tx, DNS responder.rfxn.com (proxied CNAME), verified HTTP/2 200 + TLS cert on both URLs. Release cycles now push + redeploy so the live mirror stays current."
     }
   ]
 }

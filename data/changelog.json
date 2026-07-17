@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.31.0",
+      "date": "2026-07-17",
+      "line": "PUBLIC LAUNCH: live at https://responder.rfxn.com (Cloudflare Pages, SSL) + open source at github.com/rfxn/responder-tx; HTTPS unlocks geolocation/clipboard/PWA install; public mirror is read-only (chat send stays LAN)"
+    },
+    {
       "v": "v0.30.0",
       "date": "2026-07-17",
       "line": "Gauge dots now have 32px tap areas (one-thumb friendly); non-flooding gauges hidden on phone; Sutherland Springs secondary bump CANCELED \u2014 falling at 33.9, forecast 33.1"

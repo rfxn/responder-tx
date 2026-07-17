@@ -1,5 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.31.0 — 2026-07-17 (public launch)
+- LIVE on the public internet: https://responder.rfxn.com — Cloudflare Pages behind Cloudflare SSL (HTTP/2, valid cert), plus https://responder-tx.pages.dev
+- Open-sourced: https://github.com/rfxn/responder-tx (public repo; LAN-internal files excluded — HANDOFF, chat inbox/cursor)
+- HTTPS unlocks the secure-context features the LAN board couldn't have: geolocation (locate-me + distance filters now work on phones), native clipboard, PWA add-to-home-screen
+- Public mirror is read-only: chat send + new-request intake persist only on the LAN board; mirror data refreshes on every release-cycle push; chat panel shows the action feed
+- Release cycles now commit, push to GitHub, and redeploy Pages — the live mirror stays current automatically
 ## v0.30.0 — 2026-07-17 (9:42 AM fast cycle)
 - Gauge markers get 32px invisible hit areas (visual dots unchanged) — 8-18px dots were untappable one-thumbed; non-flooding gauges hidden entirely on phone maps (UX audit #5)
 - Data: Sutherland Springs secondary bump CANCELED — falling at 33.9, forecast revised 35.5 → 33.1; card de-escalated to roadway watch (NWPS SUPT2)

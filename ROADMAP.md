@@ -1,217 +1,287 @@
-# Responder TX — Product Roadmap
+# Responder TX — MASTER ROADMAP (draft, 2026-07-17)
 
-Owner optics: a SAR team lead or first responder, likely on a phone in a
-truck, intermittent connectivity, gloves, sunlight glare. Every feature is
-judged by: *does this help someone decide where to go and what to expect in
-under 10 seconds?*
+Consolidates: owner directives 1–6, UX-audit remainder, OSS borrow-list,
+data-integration specs, live-resource additions, post-research backlog.
+Supersedes those sections once integrated. Volatile status lives in
+CHANGELOG/HANDOFF, not here.
 
-## Product assessment (v0.1 baseline, 2026-07-16)
+---
 
-**Strengths**: live federal layers (alerts/gauges) with zero backend; cited
-seed feed; human-gated triage; export/import handoff; dark ops theme.
+## (a) Product thesis
 
-**Gaps from the field:**
+- **Who:** a first responder / SAR lead working an active flood from a truck —
+  gloved, glare-lit, intermittently connected — plus anyone watching the public
+  mirror.
+- **What:** a zero-backend live operating picture that fuses authoritative
+  hazard layers with a curator-maintained **alert feed** — nothing on the board
+  asks the responder to manage state; alerts age out or are resolved by the
+  curator via data updates, and everything suppressed stays retrievable history.
+- **Why:** in flash floods the decision is "where do I go and what do I expect"
+  in under 10 seconds; the board's job is anticipation (forecast-first),
+  recency (aging everywhere), and honesty (stale data never masquerades as live).
 
-1. **Mobile is an afterthought** — 420px sidebar logic, small targets, no
-   locate-me, no navigate-to-pin. A responder can't thumb this in a truck.
-2. **No recency bias** — a 6h-old card looks identical to a 5-min-old one;
-   stale flash-flood intel is dangerous intel.
-3. **No anticipation** — NWPS *forecast* categories (already in the API
-   response) are unsurfaced; teams should pre-position where MAJOR is
-   *forecast*, not react after crest.
-4. **No ground truth** — trained-spotter/official Local Storm Reports exist,
-   free and CORS-open (IEM), with remarks like "Nueces River overtopping FM
-   1025 bridge". Not shown.
-5. **No radar** — the single most-checked layer during flash flooding.
-6. **No threat-to-life synthesis** — emergencies, rescue requests, major
-   gauges are separate lists; nobody fuses them for you at 3am.
-7. **Roads/isolation invisible** — impassable crossings and cut-off
-   communities are the operational currency of flood SAR; no iconography,
-   no overlay, no alternate-route affordance.
-8. **Comms blind** — no path to county dispatch/EMS scanner audio (
-   Broadcastify feeds exist for all 9 affected counties), Zello nets, or
-   community rescue platforms (CrowdSource Rescue).
-9. **Degraded-network behavior** — a failed poll blanks nothing today (good)
-   but shows no "as of" staleness, and a fresh page load with no signal shows
-   an empty board.
+---
 
-## Release plan
+## Standing invariants (definition-of-done for every item below)
 
-### v0.2 — Field usability + recency engine ✅
-- Mobile-first layout: map-on-top, sticky tabs, ≥44px touch targets,
-  horizontally scrolling stat tiles.
-- Freshness everywhere: age-colored dots, `re-verify` badge on stale
-  unresolved cards (>6h), `NEW` chip since last visit.
-- Sort control: **smart (priority × freshness decay)** default, newest,
-  priority.
-- Locate-me control + distance filter (10/25/50 mi); time-window filter.
-- Per-card **Navigate** (Google Maps) and **Copy coords** actions.
-- Last-good-data cache with "as of" stamp for degraded connectivity.
+1. **Aging everywhere (directive 1):** every new layer/feature ships with a
+   default timeout, auto-suppression off map/panes, and a retrievable persisted
+   history view. No exceptions — shelters, crossings, HWMs, notes, chips, all
+   of it. Suppress ≠ delete.
+2. **Reframe vocabulary (directive 5):** no "request", no manual
+   acknowledge/status anywhere new. Items are alerts; lifecycle is
+   active → aging → resolved(history), driven by the curator or the clock.
+3. **Public mirror hygiene (directive 3):** zero chat vestige on
+   responder.rfxn.com — no FAB, no panel, no chat.js, no outbox fetch. Build a
+   deploy-time strip and verify with a grep of the deployed archive each cycle.
+4. Existing invariants hold: 911 disclaimer, source citations, wall-clock
+   timestamps, PII rules, USNG accuracy, copyText fallback, screenshot check.
 
-### v0.3 — Anticipation + ground truth layers ✅
-- NEXRAD composite reflectivity radar overlay (IEM tiles, 5-min refresh).
-- IEM Local Storm Reports: map layer + "Ground truth" list, flood-filtered,
-  recency-sorted, road mentions highlighted.
-- Gauge forecast surfacing: ▲ rising markers, forecast crest/category in
-  popups, "Forecast to flood" pre-positioning list, rising count in tile.
+---
 
-### v0.4 — Threat-to-life operating picture ✅
-- **Life-safety board**: fused, ranked view — flash-flood emergencies,
-  rescue/evac requests, rescue-flagged LSRs, major + rising-to-major gauges.
-- **Road & isolation iconography**: `road-blocked` (🚧) and `cut-off area`
-  (⛔ + hatched radius overlay, pulsing) request types; road-name extraction
-  (FM/RR/US/SH/I-/CR) from LSR remarks and card text as filter chips.
-- Alert severity/county filters; LSR type filter; zoom decluttering.
+## (b) Ranked tracks — NOW / NEXT / LATER
 
-### v0.5 — Comms, community & interop ✅
-- **Comms tab**: Broadcastify live scanner feeds per county (all 9 mapped),
-  OpenMHz, Zello SAR nets, CrowdSource Rescue, PulsePoint coverage note.
-- **GeoJSON export** alongside JSON — drops straight into CalTopo/SARTopo.
-- PWA manifest (add-to-home-screen); docs refresh.
+Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish ·
+**[infra]** infra. Cost S/M/L. Ranked top-down within each horizon.
 
-### v0.6+ — Backlog (needs infra or partnerships)
-- **Shared state backend** (multi-operator sync; export/import is interim).
-- **HTTPS + service worker** → true offline shell + install prompt (SW
-  requires a secure context; LAN HTTP won't register one).
-- **TxDOT road closures as a live layer** — DriveTexas has no stable public
-  API (500s on probe) and `gis.txdot.gov` ArcGIS REST is unreachable
-  (probed 7/16); pursue via TxDOT/district data-share or Waze for Cities
-  (partner feed). Deep link remains the interim.
-- **PulsePoint** — incident feed is encrypted and agency-opt-in; pursue as a
-  partnership/data-share, not a scrape. Same posture for Broadcastify's
-  official API (auth-gated).
-- **X filtered-stream ingest worker** feeding the triage queue (STRATEGY §3).
-- ~~USNG/MGRS grid readout on pins~~ — shipped v0.9 (validated vs python
-  mgrs, ±1 m on 27 bbox points).
-- ~~Geocoding assist on intake (Nominatim)~~ — shipped v0.7. what3words
-  display still open (needs API key).
-- **CrowdSource Rescue liaison**: mirror open tickets with consent.
-- Multi-event support: event config presets (bbox/center/query packs).
+### NOW (this and the next few 15-min cycles)
 
-## Status after the July 2026 event sprint (v0.2 → v0.24)
+1. **Reframe completion sweep — "Feed", alerts-not-requests** — the board's
+   mental model matches how the owner actually uses it: read, drive, done. Cost
+   M. Deps: none (in flight). **[ux]** — owns index.html + app.js this window.
+   Full downstream enumeration in §Reframe implications below; the sweep is not
+   done until every bullet there is resolved and a repo-wide grep for
+   request/acknowledge/status vocabulary is clean.
+2. **Public-mirror chat strip (deploy-time)** — directive 3 compliance; a
+   public page with a dead chat button is worse than none. Cost S. Deps: none.
+   **[infra]** — touches deploy recipe + a build exclusion list, not app code.
+3. **Module split of js/app.js** (layers / feed / views / exports / ui) — the
+   single-file monolith is the #1 blocker to parallel agent development
+   (directive 6); every track currently collides on app.js. Cost M. Deps: none;
+   do before fan-out widens. **[infra]** (one agent, exclusive app.js lock).
+4. **UX-audit remainder, batched small items** (#10 GPS-wait chip, #11
+   light-theme sunlight contrast, #14 threat-strip chip cap + recovery-chip
+   label) — direct "UX is terrible" strikes; all S, all CSS/small-JS. Cost S.
+   Deps: none. **[ux]**.
+5. **#9 Dead-tap alert cards** — zone-geometry bounds (zoneGeomCache) or open
+   the alert text link; alert cards that do nothing on tap teach the user to
+   stop tapping. Cost S/M. Deps: none. **[ux]**.
+6. **RFC forecast-max layer** — every gauge's 5-day max category statewide,
+   10KB, hollow-ring markers, on by default; the single best anticipation layer
+   not yet shipped. Gotchas: non-ISO issued_time parse; dedupe lids vs NWPS.
+   Cost S. Deps: none. **[data]**.
+7. **Leaflet.markercluster (vendored)** — hard prerequisite for USGS-IV's 224
+   dots; disableClusteringAtZoom at ops zooms. Cost S. Deps: none. **[data]**.
+8. **Saved AO quick-jump presets** — 3–5 pinned map extents as one-tap buttons
+   (Watch Duty pattern); the owner re-pans to the same basins all day. Cost S.
+   Deps: none. **[views]**.
+9. **#15 MRMS legend color-scale strip + radar dim on overlayadd** — rainfall
+   layers shipped without a scale are unreadable in the field. Cost M. Deps:
+   none. **[ux]**.
+10. **#17 Editable #f-latlon + scroll-map-into-view on form open** — radio-
+    relayed coords are how field reports arrive; intake persists (LAN, feeds
+    the curator) even under the reframe. Cost M. Deps: reframe wording (item 1).
+    **[ux]**.
 
-All bounded backlog items shipped during the event: mobile-first UX, recency
-engine, radar/LSR/forecast layers, threat-to-life strip with road/isolation
-iconography, comms + scanner feeds, GeoJSON/AAR/SITREP exports, USNG
-(validated ±1 m), geocoded intake with duplicate guard, live seed refresh,
-source-health panel, print stylesheet, event-config externalization, archive
-workflow, emergency banner, visibility-aware polling. Remaining work is
-infra- or partnership-gated (see v0.6+ backlog above) — the top three by
-value: **shared multi-operator state**, **HTTPS for true offline PWA**, and
-an **X filtered-stream ingest worker** feeding the triage queue.
+### NEXT (today/tomorrow horizon)
 
-## UX-audit backlog (2026-07-17 agent audit of v0.27; ⚠ items + declutter shipped v0.28-v0.29)
+11. **USGS IV gauge fallback layer** — 5-min data, extra gauges, health-degrade
+    fallback when NWPS lags/429s (already observed live). bBox query, neutral
+    markers (raw stage has NO flood-stage context — never fake a category), off
+    by default, dedupe vs NWPS within 0.3 mi. Cost M. Deps: #7 markercluster.
+    **[data]**.
+12. **FEMA NSS open-shelters poller** — no CORS → 15-min server-side cron
+    writes data/shelters-live.json; lowercase field names, geometry.x/y for
+    null lat/lon; merge live-over-curated by normalized name;
+    absence-tolerant fetch. Live shelter status is a top field question in
+    recovery phase. Cost M. Deps: none (server-side, no app.js contention).
+    **[data]**.
+13. **Low-water crossing inventory** (ctxfloods data model: id, name, latlng,
+    status open/closed/caution/longterm, reason, updated_at + append-only
+    history) — curator-maintained data file, NOT operator tap-to-cycle
+    (reframe: status changes are curator data updates); owner reports via
+    intake/chat. The operational currency of flood SAR. Cost M. Deps: reframe
+    (item 1) for lifecycle wording. **[data]**.
+14. **Speakable short IDs (R-014) on feed items + LSRs** — radio-friendly
+    references ("responder, flag R-014") since the owner can't tap-manage;
+    curator resolves by ID from chat. Replaces the old "status pin colors" half
+    of this item (statuses are gone). Cost S. Deps: reframe. **[ux]**.
+15. **Inundation 5-day-max polygons** — where water WILL be; the layer the
+    board still lacks. Mandatory params maxAllowableOffset=0.002 &
+    geometryPrecision=4 (server 500s without); 1.96MB → lazy-load on
+    overlayadd, hourly, EXPERIMENTAL/NWM caveat in popup. Cost M. Deps: none.
+    **[data]**.
+16. **leaflet.offline tile pre-cache** — offline AO tiles via IndexedDB, no
+    service worker needed; dead zones are routine in the Hill Country. Point at
+    CARTO (not OSM bulk policy). Cost M. Deps: #3 module split helpful.
+    **[infra]**.
+17. **Radar/rain time scrubber** — IEM timestamped archive, last 1–2h loop;
+    "is it building or collapsing" at a glance. Cost M. Deps: none. **[views]**.
+18. **Leaflet.PolylineMeasure (vendored)** — distance + bearings for radio
+    relay. Cost S. Deps: none. **[views]**.
+19. **Watchlist star (per-item follow)** — local-only pin-to-top of feed items;
+    the surviving half of the old "follow + note log" (notes move curator-side
+    under the reframe). Cost S. Deps: reframe. **[ux]**.
+20. **Verified live-resource adds** — CrowdSourceRescue activation, iSTAT,
+    DriveTexas closures note, SARiverFlood HALT, BEXARflood, vetted relief
+    funds; UNVERIFIED items (VOST TX, event Zello, 2026 Broadcastify IDs) only
+    with a check or an "availability varies" flag. Cost S. Deps: none —
+    data-file only. **[data]** (resources.json owner).
 
-Remaining, ranked (item numbers from the audit):
-- #5 Gauge tap targets: iconSize [32,32] transparent hit area around the dot; hide cat-none gauges on ≤768px (S)
-- #9 Dead-tap alert cards: reuse zoneGeomCache for bounds on zone-based warnings, else open alert text link (S/M)
-- #10 Distance filter without GPS fix: inline "⌖ waiting for location — showing ALL" chip + reset on locationerror (S)
-- #11 Light-theme sunlight contrast: darken --ink-muted→#5d5c56 / --ink-2→#41403c in light; fillOpacity 0.18 for warning+; tinted threat-chip backgrounds (S)
-- #14 Threat strip: cap 4 chips + "+N" overflow on phone; move ▼ recovery chip under its own label (S)
-- #15 MRMS layers need an in/hr color-scale strip in the legend + dim radar to 0.2 on overlayadd (M)
-- #17 Editable #f-latlon (radio-relayed coords) + scroll map into view when form opens (M)
+### LATER (post-event or gated)
 
-## OSS borrow-list (2026-07-17 mining agent; licenses verified, vendor from GitHub)
+21. **CoCoRaHS daily precip reports** (S, [data]) — JSON-with-html-content-type
+    parse gotcha.
+22. **OpenFEMA declarations chip** (S, [data]) — IA/PA per county drives
+    recovery resources; pairs with Recovery view (#V3).
+23. **USGS STN HWM hook** (S, [data]) — no 2026 TX event exists yet; ship only
+    the event.json stnEventId hook + daily Events.json poll; SensorViews is
+    dead (404).
+24. **usng.js swap-in** (S, [infra]) — only if datum edge cases surface; ours
+    is validated ±1 m.
+25. **Multi-event config presets** (M, [infra]) — event.json packs
+    (bbox/center/query packs); the board outlives this flood.
+26. **HTTPS-origin service worker / full offline PWA** (M, [infra]) — now
+    partially unlocked by responder.rfxn.com; leaflet.offline (#16) first, SW
+    shell second.
+27. **Shared multi-operator state** (L, [infra]) — the public mirror + curator
+    model has lowered urgency (one writer, many readers); revisit if a second
+    operator joins.
+28. **X filtered-stream ingest worker → curator triage queue** (L, [infra]) —
+    paid API; still never auto-publish.
+29. **Partnership-gated:** TxDOT/DriveTexas closures feed (watch HCRS_Edit_AGO
+    during the event — CORS * but 0 features on probe), PulsePoint,
+    Broadcastify official API, CrowdSource Rescue liaison, LCRA Hydromet
+    (email them), what3words key.
+30. **leaflet-sidebar-v2 / fullscreen** (S, [views]) — with EOC wall view (#V4).
 
-1. leaflet.offline (allartk, v3.2.0 2025) — offline tile cache via IndexedDB, NO
-   service worker needed = works on LAN http. Pre-cache AO tiles before dead
-   zones. Point at CARTO tiles not OSM (bulk-download policy). (M — top value)
-2. Leaflet.markercluster (MIT, stable) — needed before USGS-IV's 224 dots land;
-   disableClusteringAtZoom for ops zooms (S)
-3. leaflet-locatecontrol (MIT, active) — note Chrome gates geolocation on http;
-   works in Firefox / chrome flag (S)
-4. Leaflet.PolylineMeasure — distance + BEARINGS for radio relay; vendor master (S)
-5. usng.js (codice, MIT) — swap-in if our converter needs datum edge cases (S)
-6. leaflet-sidebar-v2 (noerw fork), brunob/leaflet.fullscreen — EOC wall-screen
-   niceties (S, defer)
-7. ctxfloods-backend (cityofaustin, MIT, dead project, data model is the steal):
-   crossings as {id,name,latlng,status: open/closed/caution/longterm, reason,
-   updated_at, updated_by} + append-only history — use for our crossing layer
-8. TAK concept: stale-time on every hand-placed marker (aligns with our aging)
+**Dropped/obsoleted by the reframe:**
+- Post-research #15 *alert-fatigue ack tiering* — "ack-required" contradicts
+  no-manual-acknowledge. Salvage only the auto-unmute-on-escalation idea as a
+  curator-side rule, maybe a local per-item mute later; no ack UI ever.
+- *Status pin colors* (half of R-014) — no statuses to color; freshness/severity
+  carry the pin encoding.
+- *Archive-resolved button* (v0.19) — auto-suppression of curator-resolved
+  items replaces manual archive; keep the history pane, retire the button.
+- *Guarded status changes* (v0.29 ⚠#2) — the confirm/reopen flow goes away with
+  the status buttons; the guard pattern was right, the surface no longer exists.
+- Dead ends stay dead (don't re-probe): Waze georss, poweroutage.us, GBRA
+  Contrail, TWDB hub, FLASH, TDEM API.
 
-## Data-integration specs (2026-07-17 spec agent; CORRECTED vs first sweep — full fetch sketches in the agent report, gotchas here are load-bearing)
+---
 
-Ranked for this event:
-1. USGS IV: bBox (NOT stateCd) = 341KB/224 sites; parameterCd=00065,
-   modifiedSince=PT2H; CORS *; dedupe vs NWPS within 0.3mi; neutral markers
-   (raw stage has NO flood-stage context — never fake a category); layer off
-   by default; needs markercluster first
-2. RFC forecast-max: 10KB statewide; issued_time is "YYYY-MM-DD HH:MM:SS UTC"
-   (not ISO — parse manually); dedupe lids vs NWPS; hollow-ring markers in
-   cat colors; on by default
-3. FEMA NSS shelters poller (no CORS): field names NOW LOWERCASE
-   (shelter_name); lat/lon often null — use geometry.x/y; 15-min cron →
-   data/shelters-live.json {generated, source, shelters[]}; merge = live
-   overrides curated on normalized-name match, curated note/source kept;
-   absence-tolerant fetch (upgrade path)
-4. Inundation 5-day max: server 500s WITHOUT maxAllowableOffset=0.002&
-   geometryPrecision=4 (mandatory); 1.96MB → lazy-load on overlayadd, hourly;
-   caveat EXPERIMENTAL/NWM in popup; PNG export fallback exists
-5. USGS STN HWMs: NO 2026 TX event exists yet — poll Events.json daily, ship
-   only the event.json stnEventId hook; SensorViews endpoint is dead (404)
+## Reframe implications — full downstream enumeration (directive 5)
 
-## Live-resource additions (2026-07-17, vetted; add to Monitor/Social + Resources)
+The sweep (NOW #1) must resolve every line; grep-verify afterward.
 
-Verified: CrowdSourceRescue ACTIVATED (crowdsourcerescue.org/hill-country,
-credentialed SAR only); iSTAT damage.tdem.texas.gov (official); DriveTexas
-(Hwy 90 Hondo–Del Rio closed, US 57 closed); SARiverFlood.org HALT sensors
-(Wilson/Karnes!); BEXARflood.org; Tribune how-to-help aggregator; Hill Country
-Flood Relief Fund (CFHC, launched 7/16 for THIS event); rebuildtx.org
-summer-2026 fund; uwtexas.org/floodrelief. UNVERIFIED (don't link without
-check): VOST TX, event Zello channels, 2026 Broadcastify feeds (2025 IDs may
-be dead — flag "availability varies").
+1. **Tab + vocabulary:** Requests → **Feed** everywhere: tab label, headers,
+   empty-states, buttons, aria-labels, in-app changelog wording, README/
+   STRATEGY/ROADMAP prose. Keep `data/requests.json` filename + export `status`
+   field for one release as a compat shim, then migrate to `feed.json` with an
+   absence-tolerant loader (upgrade-path rule).
+2. **Status UI removal:** no mark-resolved / in-progress / reopen buttons on
+   cards; lifecycle is curator-written in data. The v0.29 confirm-guard code is
+   removed with it.
+3. **Lifecycle model:** `active → aging (auto, timeout) → resolved (curator) →
+   history`. Curator-resolved items auto-suppress to the history layer
+   immediately (with the resolution note); aged items suppress at timeout as
+   today. History stays retrievable (aged toggle + history panes).
+4. **Filters:** status filter (open/in-progress/resolved) → lifecycle filter
+   (active / aging / history). Smart sort (urgency × freshness), NEW chips,
+   type/county/age/distance/text filters all survive unchanged.
+5. **Threat strip:** "critical life-safety requests" chip → "critical alerts";
+   all counts include ACTIVE items only (aging + resolved excluded — verify the
+   counting path post-sweep).
+6. **SITREP:** "top open criticals" → "active critical alerts"; drop any
+   request/status phrasing; resolved-this-shift line becomes
+   "resolved since last SITREP (curator)"; RECOVERY line unchanged.
+7. **Intake form role:** it is now a **field report** submission (LAN-only) —
+   input to the curator, not a direct feed publisher. Submitted reports appear
+   as `unverified` alerts pending curator confirmation, or route via chat.
+   Wording, button labels, and the "verify" affordances change accordingly.
+   Public mirror keeps zero intake (already true).
+8. **Duplicate guard:** "same-type open request within 3 mi" → "same-type
+   ACTIVE alert within 3 mi"; also becomes a curator-side check on data
+   updates, since the curator is now the main writer.
+9. **Exports:** JSON export field `status` maps to lifecycle (compat note in
+   README); import merge "newest status wins" → "newest lifecycle wins,
+   curator-resolved is terminal"; GeoJSON properties renamed alert/lifecycle;
+   AAR "by status" statistics → "by lifecycle/type"; exports must still include
+   full history (aging invariant).
+10. **Stale re-verify badge:** stays, but it is a **curator cue** (re-verify
+    the intel) not an owner action prompt; wording adjusts.
+11. **STRATEGY.md §4 + §6 rewrite:** the Monitor/Triage/Liaison
+    status-advancing workflow becomes the **curator model** — Claude session
+    curates, verifies, resolves via data updates; liaison-to-911 rule
+    unchanged.
+12. **Docs + action feed:** README field-workflow section, in-app changelog
+    entry announcing the reframe, chat action-feed entries use alert
+    vocabulary.
+13. **Aging interplay:** default timeouts per alert class stay; curator can
+    extend/refresh a timeout by updating the item (touching `updated_at`
+    restarts the clock) — that IS the "still active" signal now.
 
-## Post-research backlog (2026-07-17 research sweep — endpoints verified by curl, ideas from Watch Duty / TAK / CalTopo / CrisisCleanup / ATX Floods survey)
+---
 
-Shipped this sweep (v0.26.0): aging/suppression timeouts (TAK stale-time
-pattern), in-app changelog, ops-session chat with recent-actions feed.
+## (c) Views — proposed new views (build under [views])
 
-Ordered by value ÷ cost for a solo field responder; all client-side unless noted:
+The board has one map+tabs view. These are distinct *lenses* over the same
+data; after the module split each is a separate JS file (parallel-safe).
 
-1. **MRMS rainfall accumulation layer** (S) — IEM tiles, one-line add via the
-   existing radar pattern: `q2-n1p-900913` (1h) / `q2-p24h-900913` (24h),
-   CORS-open. "How much fell where" predicts which crossings go under next.
-2. **NOAA forecast-max + inundation polygons** (M) — `maps.water.noaa.gov`
-   ArcGIS REST, CORS-safe (reflects Origin): `rfc/rfc_max_forecast` (every
-   gauge's 5-day max stage/category — 42 TX hits on probe) and
-   `rfc_based_5day_max_inundation_extent` (69 polygons in Hill Country bbox
-   on probe). Shows where water WILL be — the layer the board lacks.
-3. **USGS instantaneous values fallback** (S) — `waterservices.usgs.gov/nwis/iv`
-   CORS `*`, 5-min sensor data, fresher than NWPS and covers extra gauges;
-   health-degrade fallback when api.water.noaa.gov lags.
-4. **Saved AO quick-jump presets** (S) — Watch Duty pattern: 3-5 pinned
-   map extents as one-tap buttons.
-5. **Short speakable card IDs (R-014) + status pin colors** (S) —
-   CrisisCleanup/CrowdSource Rescue pattern; radio-friendly ticket numbers.
-6. **Data-age banner escalation** (S) — amber/red "data as of HH:MM" when
-   fetch age grows (CalTopo offline-truth pattern; extends source-health).
-7. **CoCoRaHS daily precip + significant-weather reports** (S) —
-   `data.cocorahs.org/export/exportreports.aspx` CORS `*` (note: JSON body
-   with text/html content-type — parse manually).
-8. **OpenFEMA declarations chip** (S) — CORS `*`; IA/PA status per county
-   drives what recovery resources exist.
-9. **FEMA NSS open-shelters live layer** (M) — `gis.fema.gov` NSS/OpenShelters;
-   NO CORS header → cron-poller writes `data/shelters-live.json`.
-10. **USGS STN high-water marks / rapid-deployment gauges** (M) — CORS `*`;
-    temporary event sensors that never appear in NWPS.
-11. **Low-water crossing inventory w/ tap-to-cycle status** (M) — ATX Floods /
-    Bexar HALT pattern; static crossing JSON + operator-set open/rising/closed.
-12. **Radar time scrubber** (M) — IEM timestamped tile archive, last 1-2h loop.
-13. **Per-card follow + append-only note log** (M) — Watch Duty incident-feed
-    pattern; notes with relative timestamps, gray-not-delete.
-14. **DriveTexas closures** (blocked-ish) — drivetexas.org blocks datacenter
-    IPs; `HCRS_Edit_AGO` FeatureServer is CORS `*` but 0 features on probe —
-    watch it during this event; TxDOT open-data portal for a real feed.
-15. Alert-fatigue tiering (M) — ack-required only for FF emergencies; per-alert
-    mute with auto-unmute on escalation (Watch Duty threshold pattern).
+- **V1. Drive Mode (glance view)** — `?view=drive`. One-thumb, huge type,
+  GPS-anchored: nearest active threats (crossings, emergencies, MAJOR gauges)
+  as a ranked list with distance + bearing, auto-refreshing, no map pan needed.
+  Optionally speech-synthesis on new critical within N mi. *Highest value:*
+  this is literally the owner's context (phone, truck, glare). Cost M.
+- **V2. Basin Focus** — `?view=basin=guadalupe`. Single-river corridor:
+  gauges ordered upstream→downstream with observed/forecast category strip,
+  the crest wave visualized as it moves down-basin, alerts + feed items
+  filtered to the basin. Answers "when does the wave reach me". Cost M
+  (needs a small basin→lid ordering table in event.json). 
+- **V3. Recovery Dashboard** — `?view=recovery`. Falling in-flood gauges,
+  reopened roads/crossings, shelter status, boil-water/utility cards,
+  declarations chip (item 22), scam-watch links. The event is entering this
+  phase now; recovery posture currently hides inside SITREP lines. Cost M.
+- **V4. EOC Wall** — `?view=wall`. Full-screen auto-rotating panels (map w/
+  threat extent → feed criticals → forecast list), big type, no interaction,
+  print-stylesheet tokens reused, fullscreen plugin (item 30). Cost S/M.
+- **V5. Timeline / Replay** — `?view=timeline`. Scrub the event: radar archive
+  (item 17) + alert/feed history layers on one time axis; doubles as the AAR
+  review tool and directly exploits the everything-is-history aging
+  architecture. Cost L — build last, after V1–V3 prove the view framework.
 
-Dead ends (verified, don't re-probe): Waze georss (403/partnership),
-poweroutage.us (paid API), LCRA Hydromet (apiKey; email them), GBRA Contrail
-(unreachable from this host), TWDB hub hosts (DNS), FLASH (token), TDEM (no API).
+Recommended order: V1 → V3 → V2 → V4 → V5. V1/V2/V3 first — field value now;
+V4/V5 serve the room and the after-action.
 
-## Operating cadence
+---
 
-Release cycles run continuously during the event: assess → build → headless
-test (phone + desktop viewports) → ship → update CHANGELOG → reassess.
-Data-source candidates are validated (CORS, fields, latency) before they
-enter a cycle. Nothing ships without a rendered-screenshot check.
+## (d) Parallelization map (directive 6)
+
+**Precondition:** NOW #3 module split. Until it lands, js/app.js is a single
+mutex — exactly one agent may hold it per cycle; everything else must be
+data-file, server-side, css, or docs work.
+
+Concurrent-safe lanes (disjoint files):
+
+| Lane | Agent track | Files owned | Items |
+|---|---|---|---|
+| A | [ux] | index.html, js/feed.js*, css | Reframe sweep (#1), UX batch (#4, #5, #9, #10 audit items), #14 speakable IDs, #19 watchlist |
+| B | [data] client | js/layers-*.js*, vendored libs | RFC forecast-max (#6), markercluster (#7), USGS IV (#11), inundation (#15), scrubber (#17) |
+| C | [data] server | server.py/cron, data/shelters-live.json, data/resources.json, data/crossings.json | Shelters poller (#12), crossings inventory (#13), resource adds (#20) |
+| D | [infra] | deploy recipe, pkg/build scripts, sw/offline | Chat strip (#2), leaflet.offline (#16), HTTPS SW (#26) |
+| E | [views] | js/views/*.js* (new files) | AO presets (#8), V1–V5, PolylineMeasure (#18) |
+| F | docs | README/STRATEGY/CHANGELOG*, data/changelog.json | Reframe doc rewrite (implications #11–12) |
+
+(* = post-split filenames; before the split, lanes A/B/E collapse into one.)
+
+Shared-file ownership rules (per global dispatch conventions): CHANGELOG.md,
+data/changelog.json, and chat-outbox.json have exactly ONE owner per cycle —
+the cycle controller writes them, agents report entries in their results.
+index.html tab scaffolding: lane A owns it; lanes B/E request hook points via
+the controller rather than editing directly. Verify no two dispatched lanes
+list the same file before fan-out.
+
+Suggested first parallel wave (one 15-min cycle, post-split):
+A = reframe sweep · B = RFC forecast-max + markercluster · C = shelters
+poller · D = public chat strip. Second wave: A = UX batch · B = USGS IV ·
+C = crossings · E = Drive Mode (V1).

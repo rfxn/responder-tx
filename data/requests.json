@@ -22,7 +22,7 @@
   },
   {
    "id": "seed-038",
-   "ts": "2026-07-17T22:19:02Z",
+   "ts": "2026-07-17T23:29:03Z",
    "type": "info",
    "priority": "high",
    "status": "open",
@@ -30,12 +30,12 @@
    "place": "Texas Hill Country \u2014 regional",
    "lat": 30.05,
    "lon": -99.14,
-   "summary": "FLASH FLOOD EMERGENCY PHASE ENDED ~5:15 PM: no active TX flash-flood emergencies for the first time in this event \u2014 board shifts to ANTICIPATION + RECOVERY posture",
-   "details": "The last catastrophic-tagged emergency (Ozona/Crockett Co) expired at 5:15 PM CT and was not renewed; the only remaining TX flash flood warning is a base-level one near El Paso, outside this event. Threat now is downstream/forecast, not immediate: Asherton crest ~30 ft MAJOR Sat evening (still below the 1935 record), lower-Frio wave to Derby overnight and Tilden Mon. Stay out of receding rivers and off flooded crossings during recovery.",
+   "summary": "RECOVERY + DOWNSTREAM WATCH: no active TX flash-flood emergencies, but officials warn of danger the NEXT 24-48 HRS as the Nueces crest walks downstream \u2014 the Nueces is the greatest ongoing threat",
+   "details": "Gov. Abbott (Uvalde, 5 PM CT): rain easing but floodwaters moving downstream will keep rivers rising and threatening communities for 24-48 hrs; Nueces is currently the greatest threat. 570+ rescued statewide+local (90+ boats, 20 aircraft, 200 high-profile vehicles). Board is in anticipation/recovery posture: Asherton major crest ~30 ft Sat evening (>1 mi wide forecast, FM 190/Hwy 85 impassable), Derby 16.2 rising to 21 overnight, Tilden Mon. Stay out of receding rivers and off flooded crossings.",
    "source": {
     "platform": "official",
-    "handle": "NWS active alerts",
-    "url": "https://www.weather.gov/ewx/"
+    "handle": "Gov. Abbott presser / Texas Tribune",
+    "url": "https://www.texastribune.org/2026/07/16/texas-weather-castastrophic-flooding-forecast/"
    }
   },
   {

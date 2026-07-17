@@ -100,8 +100,9 @@ record-crest + downstream-wave + east-recovery phase):
 - ~~**W5. Drive Mode ?view=drive**~~ — SHIPPED v0.61.0 (full-screen big-type
   nearest-hazards list ranked by distance+bearing; crossings/life-safety/major
   gauges; sticky 911/Turn-Around-Don't-Drown; tap-to-fly).
-- **W6. Full-screen hydrograph** — tap sparkline → big chart w/ flood bands +
-  forecast trace + record line. Cost S/M. drawSparkline extract + modal. **[ux]**
+- ~~**W6. Full-screen hydrograph**~~ — SHIPPED v0.62.0 (⤢ button + ?hydro=
+  deep link → obs+forecast+flood-bands+record-line chart; record line visually
+  confirms the honest framing).
 - **W7. Per-item share** (gauge/alert/card focus= deep links + Web Share). S. **[ux]**
 - **W8. Public RSS/Atom + ICS crest calendar** — zero-backend follow. S. **[infra]**
 - **W9. Offline AO tile pre-cache** (leaflet.offline) — canyon dead zones. M. **[data]**

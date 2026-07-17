@@ -530,6 +530,21 @@ main { flex: 1; display: flex; min-height: 0; }
 .record-line.near { color: var(--cat-major); font-weight: 600; }
 .record-line.at { color: var(--sev-emergency); }
 
+.popup-expand {
+  display: block; width: 100%; margin: 6px 0 2px; padding: 7px; font-size: 12px; font-weight: 600;
+  background: var(--surface-2); color: var(--accent); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+}
+#hydro-modal { position: fixed; inset: 0; z-index: 1500; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
+#hydro-modal[hidden] { display: none; }
+.hydro-box { width: min(96vw, 960px); }
+#hydro-canvas-wrap { padding: 10px 12px; }
+#hydro-canvas { width: 100%; height: auto; display: block; }
+#hydro-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 2px 14px 8px; font-size: 11.5px; color: var(--ink-2); }
+#hydro-legend .hl { display: inline-flex; align-items: center; gap: 5px; }
+#hydro-legend .hl i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+#hydro-legend .hl i.dashed { border-top: 2px dashed var(--ink-1); background: none; height: 0; }
+#hydro-note { padding: 0 14px 12px; }
+
 /* Drive Mode — big type, high contrast, one-thumb; overrides theme to dark for glare */
 #drive-mode {
   position: fixed; inset: 0; z-index: 1600; background: #0c0c0b; color: #fff;

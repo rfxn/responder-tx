@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.61.0';
+const APP_VERSION = 'v0.62.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -633,6 +633,11 @@ function gaugeTrend(lid) {
 function renderGauges() {
   state.layers.gauges.clearLayers();
   state.gaugeMarkers = {};
+  // ?hydro=<lid> deep link — open the full hydrograph once its gauge is loaded (once)
+  if (state.pendingHydro) {
+    const g = state.gauges.find((x) => x.lid === state.pendingHydro);
+    if (g) { state.pendingHydro = null; openHydro(g); }
+  }
   for (const g of state.gauges) {
     const cat = gaugeCat(g);
     const rising = gaugeRising(g);
@@ -674,9 +679,95 @@ function gaugePopup(g) {
     trendLine +
     forecastLine +
     `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">Loading ${CONFIG.sparkHours}h stage history…</div></div>` +
+    `<button class="popup-expand" data-lid="${esc(g.lid)}">⤢ Full hydrograph (obs + forecast + record)</button>` +
     `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">NOAA gauge page (forecast) →</a></div>`;
   drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
+  el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
   return el;
+}
+
+// full-screen hydrograph: observed history + forecast trace + flood-stage bands + crest-of-record line
+async function openHydro(g) {
+  $('#hydro-modal').hidden = false;
+  $('#hydro-title').textContent = g.name;
+  const note = $('#hydro-note');
+  note.textContent = 'Loading observed + forecast…';
+  try {
+    const [detail, obs, fcst] = await Promise.all([
+      gaugeJson(g.lid, 'detail', `${CONFIG.nwpsBase}/gauges/${g.lid}`),
+      gaugeJson(g.lid, 'series', `${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/observed`),
+      cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/forecast`).catch(() => ({ data: [] })),
+    ]);
+    drawHydro(g, detail, obs.data || [], fcst.data || []);
+  } catch { note.textContent = 'Hydrograph data unavailable right now.'; }
+}
+
+function drawHydro(g, detail, obsData, fcstData) {
+  const now = Date.now();
+  const back = now - 24 * 3600000; // 24h observed history
+  const obs = obsData.filter((p) => new Date(p.validTime).getTime() >= back && p.primary > -999)
+    .map((p) => ({ t: new Date(p.validTime).getTime(), v: p.primary }));
+  const fcst = fcstData.filter((p) => p.primary > -999).map((p) => ({ t: new Date(p.validTime).getTime(), v: p.primary }));
+  if (obs.length < 2 && fcst.length < 2) { $('#hydro-note').textContent = 'No recent stage data.'; return; }
+  const cats = (detail.flood && detail.flood.categories) || {};
+  const stages = FLOOD_CATS.map((c) => ({ c, v: cats[c] && cats[c].stage })).filter((s) => s.v > 0);
+  const rec = state.records && state.records[g.lid];
+  const allV = obs.concat(fcst).map((p) => p.v).concat(stages.map((s) => s.v)).concat(rec ? [rec.record_ft] : []);
+  const allT = obs.concat(fcst).map((p) => p.t);
+  const minV = Math.min(...allV), maxV = Math.max(...allV), padV = (maxV - minV) * 0.08 || 1;
+  const minT = Math.min(...allT), maxT = Math.max(...allT);
+  const cv = $('#hydro-canvas'), ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height, mL = 46, mR = 16, mT = 16, mB = 34;
+  const x = (t) => mL + ((t - minT) / (maxT - minT || 1)) * (W - mL - mR);
+  const y = (v) => H - mB - ((v - (minV - padV)) / ((maxV + padV) - (minV - padV))) * (H - mT - mB);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = cssVar('--surface-1'); ctx.fillRect(0, 0, W, H);
+
+  // flood-stage bands (translucent) + labels
+  const bandTop = { major: maxV + padV, moderate: cats.major && cats.major.stage, minor: cats.moderate && cats.moderate.stage, action: cats.minor && cats.minor.stage };
+  for (const s of stages) {
+    const top = bandTop[s.c] || (maxV + padV);
+    ctx.fillStyle = cssVar(`--cat-${s.c}`) + '22';
+    ctx.fillRect(mL, y(top), W - mL - mR, y(s.v) - y(top));
+    ctx.strokeStyle = cssVar(`--cat-${s.c}`); ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(mL, y(s.v)); ctx.lineTo(W - mR, y(s.v)); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = cssVar(`--cat-${s.c}`); ctx.font = '11px system-ui';
+    ctx.fillText(`${s.c} ${s.v}ft`, mL + 4, y(s.v) - 3);
+  }
+  // record-of-crest line
+  if (rec && rec.record_ft > 0) {
+    ctx.strokeStyle = cssVar('--ink-1'); ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]);
+    ctx.beginPath(); ctx.moveTo(mL, y(rec.record_ft)); ctx.lineTo(W - mR, y(rec.record_ft)); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = cssVar('--ink-1'); ctx.font = 'bold 11px system-ui';
+    ctx.fillText(`⚑ crest of record ${rec.record_ft}ft (${(rec.record_date || '').slice(0, 4)})`, mL + 4, y(rec.record_ft) - 3);
+  }
+  // now marker
+  if (now >= minT && now <= maxT) {
+    ctx.strokeStyle = cssVar('--ink-muted'); ctx.lineWidth = 1; ctx.setLineDash([1, 3]);
+    ctx.beginPath(); ctx.moveTo(x(now), mT); ctx.lineTo(x(now), H - mB); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = cssVar('--ink-muted'); ctx.font = '10px system-ui'; ctx.fillText('now', x(now) + 3, mT + 10);
+  }
+  // axes: y ticks + x day/hour ticks
+  ctx.fillStyle = cssVar('--ink-2'); ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) { const v = (minV - padV) + (i / 4) * ((maxV + padV) - (minV - padV)); ctx.fillText(v.toFixed(0), mL - 4, y(v) + 3); }
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) { const t = minT + (i / 4) * (maxT - minT); ctx.fillText(new Date(t).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric' }), x(t), H - mB + 16); }
+  ctx.textAlign = 'left';
+  // observed (solid accent) + forecast (dashed purple)
+  const drawTrace = (pts, color, dash) => {
+    if (pts.length < 2) return; ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.lineJoin = ctx.lineCap = 'round'; ctx.setLineDash(dash);
+    ctx.beginPath(); pts.forEach((p, i) => { i ? ctx.lineTo(x(p.t), y(p.v)) : ctx.moveTo(x(p.t), y(p.v)); }); ctx.stroke(); ctx.setLineDash([]);
+  };
+  drawTrace(obs, cssVar('--accent'), []);
+  if (obs.length && fcst.length) fcst.unshift(obs[obs.length - 1]); // join obs→forecast
+  drawTrace(fcst, cssVar('--cat-major'), [6, 4]);
+
+  $('#hydro-legend').innerHTML =
+    '<span class="hl"><i style="background:var(--accent)"></i>observed (24h)</span>' +
+    '<span class="hl"><i style="background:var(--cat-major)"></i>forecast</span>' +
+    (rec ? '<span class="hl"><i class="dashed"></i>crest of record</span>' : '') +
+    '<span class="hl">shaded = flood-stage bands</span>';
+  $('#hydro-note').innerHTML = `Observed + NWPS forecast · <a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">NOAA gauge page →</a>`;
 }
 
 // 3-min TTL promise cache — popup close/reopen redraws instantly; failures evict so retry works
@@ -2140,6 +2231,8 @@ async function boot() {
   const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } renderDriveMode(); };
   $('#drive-btn').addEventListener('click', enterDrive);
   $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; });
+  $('#hydro-close').addEventListener('click', () => { $('#hydro-modal').hidden = true; });
+  $('#hydro-modal').addEventListener('click', (e) => { if (e.target.id === 'hydro-modal') $('#hydro-modal').hidden = true; });
   $('#drive-loc').addEventListener('click', () => { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });
   $('#update-chip').addEventListener('click', () => location.reload());
   $('#data-age-bar').addEventListener('click', (e) => {
@@ -2290,6 +2383,8 @@ async function boot() {
   applyShareParams(new URLSearchParams(location.search)); // URL share-params win for this load
   state.viewReady = true;
   if (new URLSearchParams(location.search).get('view') === 'drive') $('#drive-btn').click();
+  const hydroParam = new URLSearchParams(location.search).get('hydro');
+  if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
   state.bootAt = Date.now();

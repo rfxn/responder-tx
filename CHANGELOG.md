@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.62.0 — 2026-07-17 (next-wave W6: full-screen hydrograph)
+- NEW full hydrograph: the gauge popup gains a "⤢ Full hydrograph" button (and ?hydro=<lid> deep link) opening a big chart with 24h observed history + the NWPS forecast trace (dashed), translucent flood-stage bands (action/minor/moderate/major), the crest-of-record line, a "now" marker, and dated axes
+- The record line visually confirms the honest framing — you can see the forecast peak sit below the all-time crest of record instead of taking anyone's word for it
+- Reuses the 3-min cached gauge proxy for observed; forecast fetched on demand; scales from desktop to phone
 ## v0.61.0 — 2026-07-17 (next-wave W5: Drive Mode)
 - NEW 🚗 Drive Mode (header button or ?view=drive): a full-screen, big-type, high-contrast glance list built for the truck — nearest hazards (closed/caution crossings, critical life-safety + road notices, MAJOR gauges) ranked by distance + compass bearing from your GPS, with the active FF-emergency banner and next-major-crest countdown on top
 - Auto-refreshes with the board's 3-min cycle; tap any row to exit and fly the map there; ⌖ Locate ranks by distance; sticky "Turn Around, Don't Drown — never enter flooded roads" + 911 line always visible

@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.83.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.83.0">
-  <link rel="stylesheet" href="css/app.css?v=0.83.0">
-  <link rel="stylesheet" href="css/notes.css?v=0.83.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.84.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.84.0">
+  <link rel="stylesheet" href="css/app.css?v=0.84.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.84.0">
 </head>
 <body>
   <header>
@@ -212,12 +212,16 @@
       <div id="pb-badge" hidden>⏮ <span data-i18n="playback.pill">PLAYBACK</span> · <span id="pb-badge-t"></span></div>
       <button id="pb-pill" title="Historical playback: replay the event over 3/7/14 days" data-i18n-title="playback.open">⏮</button>
       <div id="playback-bar" hidden>
+        <button id="pb-caption" hidden title="Event story caption: tap to pause" data-i18n-title="playback.story.tap"></button>
         <div class="pb-chips">
           <button class="pb-chip" data-days="3">3d</button>
           <button class="pb-chip" data-days="7">7d</button>
           <button class="pb-chip" data-days="14">14d</button>
         </div>
+        <button id="pb-back" title="Step back one frame" data-i18n-title="playback.step.back">⏪</button>
         <button id="pb-play" title="Play / pause playback" data-i18n-title="playback.play">▶</button>
+        <button id="pb-fwd" title="Step forward one frame" data-i18n-title="playback.step.fwd">⏩</button>
+        <button id="pb-speed" title="Playback speed: 0.5× / 1× / 2× / 4×" data-i18n-title="playback.speed.title">1×</button>
         <div id="pb-slider-wrap">
           <div id="pb-ticks"></div>
           <input type="range" id="pb-slider" min="0" max="0" value="0" title="Scrub the event timeline" data-i18n-title="playback.scrub">
@@ -225,6 +229,8 @@
         <span id="pb-time" class="live" data-i18n="playback.live">LIVE</span>
         <button id="pb-now" title="Return to live conditions" data-i18n="playback.now" data-i18n-title="playback.now.title">NOW</button>
         <button id="pb-close" title="Close playback" data-i18n-title="playback.close">✕</button>
+        <div id="pb-hud" hidden title="Frame stats: gauges in flood · warnings · top mover; tap for detail" data-i18n-title="playback.hud.title"></div>
+        <div id="pb-hud-detail" hidden></div>
         <div id="pb-note"></div>
       </div>
     </div>
@@ -313,16 +319,16 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.83.0"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.83.0"></script>
-  <script src="js/usng.js?v=0.83.0"></script>
-  <script src="js/i18n.js?v=0.83.0"></script>
-  <script src="js/core.js?v=0.83.0"></script>
-  <script src="js/map.js?v=0.83.0"></script>
-  <script src="js/sources.js?v=0.83.0"></script>
-  <script src="js/panels.js?v=0.83.0"></script>
-  <script src="js/board.js?v=0.83.0"></script>
-  <script src="js/boot.js?v=0.83.0"></script>
-  <script src="js/notes.js?v=0.83.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.84.0"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.84.0"></script>
+  <script src="js/usng.js?v=0.84.0"></script>
+  <script src="js/i18n.js?v=0.84.0"></script>
+  <script src="js/core.js?v=0.84.0"></script>
+  <script src="js/map.js?v=0.84.0"></script>
+  <script src="js/sources.js?v=0.84.0"></script>
+  <script src="js/panels.js?v=0.84.0"></script>
+  <script src="js/board.js?v=0.84.0"></script>
+  <script src="js/boot.js?v=0.84.0"></script>
+  <script src="js/notes.js?v=0.84.0"></script>
 </body>
 </html>

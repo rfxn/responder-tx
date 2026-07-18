@@ -17,7 +17,7 @@ function hydrateFromCache() {
   if (!state.gauges.length && c.gauges) { state.gauges = c.gauges; renderGauges(); renderGaugesTab(); }
   if (!state.alerts.length && c.alertsSlim) { state.alerts = c.alertsSlim; renderAlertList(); }
   renderTiles();
-  $('#refresh-note').textContent = `offline — cached as of ${fmtWhen(new Date(c.ts).toISOString())}`;
+  $('#refresh-note').textContent = `offline · cached as of ${fmtWhen(new Date(c.ts).toISOString())}`;
   return true;
 }
 
@@ -142,12 +142,12 @@ function renderDataAgeBar() {
     const snapAge = Math.round((Date.now() - state.snapshotAt) / 60000);
     if (snapAge < 30) { el.hidden = true; return; } // owner: a fresh snapshot is a working state, not a warning
     cls = snapAge >= 60 ? 'red' : 'amber';
-    text = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD — live NWPS feed failing${usgsNote}`;
+    text = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD: live NWPS feed failing${usgsNote}`;
   } else {
     cls = worst.age > 15 ? 'red' : 'amber';
     text = (worst.age === Infinity
-      ? `⚠ ${label} DATA NEVER LOADED — numbers on this board exclude it`
-      : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD — refresh failing; treat as stale`) + (worst.k === 'gauges' ? usgsNote : '');
+      ? `⚠ ${label} DATA NEVER LOADED: numbers on this board exclude it`
+      : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD: refresh failing; treat as stale`) + (worst.k === 'gauges' ? usgsNote : '');
   }
   const key = `${worst.k}|${cls}`; // dismissal holds until the failing source or severity changes
   if (sessionStorage.getItem('respondertx.ageBarDismiss') === key) { el.hidden = true; return; }
@@ -301,7 +301,7 @@ async function boot() {
     const m = raw.match(/(-?\d{1,2}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)/);
     const lat = m ? +m[1] : NaN, lng = m ? +m[2] : NaN;
     if (!m || !(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) {
-      $('#f-latlon').value = 'unparsed — type decimal "lat, lon"';
+      $('#f-latlon').value = 'unparsed; type decimal "lat, lon"';
       state.pendingLatLng = null;
       return;
     }
@@ -366,7 +366,7 @@ async function boot() {
   $('#find-id').addEventListener('click', () => {
     $('#req-filters').hidden = false;
     const q = $('#flt-q');
-    q.placeholder = 'Type a radio ID — R-031';
+    q.placeholder = 'Type a radio ID, e.g. R-031';
     q.focus();
     q.select();
   });
@@ -412,7 +412,7 @@ async function boot() {
   // local backend answers — the public mirror ships neither the file nor a route
   const markMirror = () => {
     $('#new-request-form .hint').textContent =
-      'Read-only mirror: notices added here save to THIS DEVICE ONLY — they do not reach the ops session. Click the map to set the pin.';
+      'Read-only mirror: notices added here save to THIS DEVICE ONLY; they do not reach the ops session. Click the map to set the pin.';
   };
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (d && d.chat) {

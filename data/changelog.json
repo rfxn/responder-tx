@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.81.1",
+      "date": "2026-07-18",
+      "line": "Readability pass: swept unnecessary em-dashes out of all on-screen text (EN and ES) in favor of plain commas, colons, and the board's usual · separator, and switched SITREP/AAR text exports to plain hyphens for radio/SMS paste; the 📊 Crest summary view is now one tap away via a chip at the top of the Gauges tab (still in ⋯ More too); the header subtitle is now \"Life Safety & Response Feed\" (ES: \"Seguridad de vida y respuesta\")."
+    },
+    {
       "v": "v0.81.0",
       "date": "2026-07-18",
       "line": "Source tagging (official vs curated): signals with ambiguous provenance now carry a small badge — blue OFFICIAL for machine-fed authoritative feeds (NWS, NWPS, IEM, TxDOT/TDEM, TxGIO, USGS) and amber CURATED for operator-maintained data (notice cards, tracked crossings) — on feed cards, crossing lists and popups, road-layer popups, and the curated-driven threat chips, with tooltips explaining each; SITREP lines gain (official)/(curated) suffixes so provenance survives copy-paste."

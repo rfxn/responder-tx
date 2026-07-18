@@ -16,7 +16,7 @@ function renderForecastList() {
     div.style.borderLeftColor = `var(--cat-${fCat})`;
     div.innerHTML = `<div class="head"><span>▲</span><span class="type-chip">${esc(CAT_LABEL[gaugeCat(g)])} → <span style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span></span>` +
       `<span class="when">crest ${esc(fmtWhen(f.validTime))}</span></div>` +
-      `<div class="summary">${esc(g.name)} — forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)}</div>`;
+      `<div class="summary">${esc(g.name)}: forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)}</div>`;
     div.addEventListener('click', () => state.map.setView([g.latitude, g.longitude], 11));
     el.appendChild(div);
   }
@@ -33,7 +33,7 @@ function focusGauge(g) {
 }
 
 function gaugeGlyphHtml(g) {
-  if (gaugeObsStale(g)) return '<span class="stale-glyph" title="stale — no current data">⏱</span>';
+  if (gaugeObsStale(g)) return '<span class="stale-glyph" title="stale: no current data">⏱</span>';
   if (gaugeRising(g)) return `<span style="color:var(--cat-${gaugeForecastCat(g)})">▲</span>`;
   const cat = gaugeCat(g);
   if (cat === 'none') return '<span style="color:var(--cat-none)">○</span>';
@@ -56,7 +56,7 @@ function gaugeCardDiv(g) {
   div.innerHTML = `<div class="head">${gaugeGlyphHtml(g)}<span class="g-name">${esc(g.name)}</span>` +
     `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
     `<div class="meta">OBS ${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
-    (stale ? `<div class="meta stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
+    (stale ? `<div class="meta stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     (fCat ? `<div class="meta">crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(fCat)}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
     recordLineHtml(g) +
     (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
@@ -69,10 +69,10 @@ function recordLineHtml(g) {
   const rc = recordContext(g);
   if (!rc) return '';
   if (rc.atOrAbove) {
-    return `<div class="meta record-line at"><strong>⚑ AT/ABOVE CREST OF RECORD</strong> — record ${rc.recFt} ft (${esc(rc.year)}); forecast ${Math.abs(rc.margin)} ft over</div>`;
+    return `<div class="meta record-line at"><strong>⚑ AT/ABOVE CREST OF RECORD</strong>: record ${rc.recFt} ft (${esc(rc.year)}); forecast ${Math.abs(rc.margin)} ft over</div>`;
   }
   if (rc.near) {
-    return `<div class="meta record-line near">⚑ approaching crest of record — record ${rc.recFt} ft (${esc(rc.year)}); forecast ${rc.margin} ft below</div>`;
+    return `<div class="meta record-line near">⚑ approaching crest of record: record ${rc.recFt} ft (${esc(rc.year)}); forecast ${rc.margin} ft below</div>`;
   }
   return '';
 }
@@ -204,7 +204,7 @@ function renderDriveMode() {
     .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.moderate && new Date(g.status.forecast.validTime) > new Date())
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
   $('#drive-threat').innerHTML =
-    (emerg.length ? `<div class="dt-emerg">⚠ ${emerg.length} ${esc(t('drive.emerg'))} — ${esc(emerg.map((a) => a.properties.areaDesc).join('; '))}</div>` : '') +
+    (emerg.length ? `<div class="dt-emerg">⚠ ${emerg.length} ${esc(t('drive.emerg'))}: ${esc(emerg.map((a) => a.properties.areaDesc).join('; '))}</div>` : '') +
     (soonest ? `<div class="dt-crest">${esc(t('drive.nextcrest'))} ${esc(riverOf(soonest.name))} ${esc(fmtWhen(soonest.status.forecast.validTime))}</div>` : '') +
     (state.myPos ? '' : `<div class="dt-nogps">${esc(t('drive.nogps'))}</div>`);
   const items = driveItems();
@@ -230,7 +230,7 @@ function crestRecordHtml(g) {
   const year = (r.record_date || '').slice(0, 4);
   const rel = r.exceeded ? t('summary.rec.exceeded') : t('summary.rec.reached').replace('{p}', r.peak_pct);
   const cls = r.exceeded ? ' at' : r.approached ? ' near' : '';
-  return `<div class="sum-rec${cls}">⚑ ${esc(t('summary.rec.record'))} ${fmtNum(r.record_ft)} ft (${esc(year)}) — ${esc(rel)}</div>`;
+  return `<div class="sum-rec${cls}">⚑ ${esc(t('summary.rec.record'))} ${fmtNum(r.record_ft)} ft (${esc(year)}) · ${esc(rel)}</div>`;
 }
 
 function crestRowHtml(g) {
@@ -303,6 +303,12 @@ function renderGaugesTab() {
     b.addEventListener('click', () => { state.gaugeGroup = key; renderGaugesTab(); });
     bar.appendChild(b);
   }
+  // one-tap crest summary (owner ask) — same view the ⋯ More menu opens
+  const sum = document.createElement('button');
+  sum.textContent = t('summary.menu');
+  sum.title = t('summary.menu.title');
+  sum.addEventListener('click', openCrestSummary);
+  bar.appendChild(sum);
   el.appendChild(bar);
 
   const section = (title, list) => {
@@ -336,7 +342,7 @@ function renderGaugesTab() {
     const btn = document.createElement('button');
     btn.className = 'aged-toggle';
     btn.textContent = normalStale
-      ? `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges — ${normal.length - normalStale} normal · ${normalStale} stale`
+      ? `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges: ${normal.length - normalStale} normal · ${normalStale} stale`
       : `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges normal`;
     btn.addEventListener('click', () => { state.showNormalGauges = !state.showNormalGauges; renderGaugesTab(); });
     el.appendChild(btn);
@@ -351,20 +357,20 @@ function renderResources() {
   if (!r) return;
   const el = $('#resources-body');
   el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
-    r.shelters.map((s) => `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. — ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`).join('') +
+    r.shelters.map((s) => `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`).join('') +
     `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
-    r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> — ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
+    r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
     `<div class="section-title">${esc(t('res.data'))}</div>` +
     r.dataLinks.map((d) => `<div class="resource-item"><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`).join('') +
     `<div class="section-title">${esc(t('res.follow'))}</div>` +
-    `<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">${esc(t('res.rss'))}</a> — ${esc(t('res.rss.note'))}</div>` +
-    `<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">${esc(t('res.ics'))}</a> — ${esc(t('res.ics.note'))}</div>`;
+    `<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">${esc(t('res.rss'))}</a> · ${esc(t('res.rss.note'))}</div>` +
+    `<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">${esc(t('res.ics'))}</a> · ${esc(t('res.ics.note'))}</div>`;
 
   state.layers.shelters.clearLayers();
   for (const s of r.shelters) {
     const icon = L.divIcon({ className: '', html: '<div class="shelter-icon">🏠</div>', iconSize: [24, 24] });
     const m = L.marker([s.lat, s.lon], { icon });
-    m.bindPopup(`<div class="popup-title">🏠 ${esc(s.name)}</div><div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div><div class="popup-meta">Location approximate — confirm before routing.</div>`);
+    m.bindPopup(`<div class="popup-title">🏠 ${esc(s.name)}</div><div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div><div class="popup-meta">Location approximate; confirm before routing.</div>`);
     state.layers.shelters.addLayer(m);
   }
 }
@@ -501,7 +507,7 @@ function tickerItems() {
   for (const a of state.alerts.filter((x) => x._sev === 'emergency' && new Date(x.properties.expires) > new Date())) {
     const where = (a.properties.areaDesc || '?').split(';')[0].replace(/, TX$/, '');
     const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
-    emerg.push({ text: `⚠ FF EMERGENCY ${where} — until ${until}`, color: 'var(--sev-emergency)', act: goAlerts });
+    emerg.push({ text: `⚠ FF EMERGENCY ${where} · until ${until}`, color: 'var(--sev-emergency)', act: goAlerts });
   }
   const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
@@ -629,8 +635,8 @@ function renderCrossings() {
         list.map((c) => {
           const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
           const staleH = c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity;
-          const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">stale ${Math.round(staleH)}h — reverify</span>` : '';
-          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong> — ${esc(c.name)} ${srcBadge('curated')}` +
+          const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">stale ${Math.round(staleH)}h · reverify</span>` : '';
+          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong>: ${esc(c.name)} ${srcBadge('curated')}` +
             `<div class="addr">${esc(c.reason || '')} · updated ${esc(fmtWhen(c.updated_at))}${stale}${c.source && safeUrl(c.source) !== '#' ? ` <a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">src</a>` : ''}</div></div>`;
         }).join('') +
         `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
@@ -641,7 +647,7 @@ function renderCrossings() {
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     const icon = L.divIcon({ className: '', html: `<div class="crossing-icon" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([c.lat, c.lon], { icon });
-    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} — crossing</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
+    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} · crossing</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
       `<div class="popup-meta">${esc(c.reason || '')}</div>` +
       `<div class="popup-meta">Updated ${esc(fmtWhen(c.updated_at))} · verify before routing</div>` +
       (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">source →</a></div>` : ''));
@@ -655,7 +661,7 @@ function renderCrossings() {
 function reopenedItemHtml(r, aged) {
   const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
   const nav = r.vertex ? ` data-lat="${r.vertex[0]}" data-lon="${r.vertex[1]}"` : '';
-  return `<div class="resource-item reopened${aged ? ' aged' : ''}"${nav}><strong>✓ ${esc(t('reopen.flag'))}</strong> — ${esc(prettyRoute(r.route_name) || 'Road')}` +
+  return `<div class="resource-item reopened${aged ? ' aged' : ''}"${nav}><strong>✓ ${esc(t('reopen.flag'))}</strong>: ${esc(prettyRoute(r.route_name) || 'Road')}` +
     `<div class="addr">${esc(t('reopen.was'))}: ${esc(ct.label)} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))} · <a href="https://drivetexas.org/" target="_blank" rel="noopener">src</a></div></div>`;
 }
 

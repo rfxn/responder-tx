@@ -85,7 +85,7 @@ function dismissEmergencyBanner() {
 
 function alertPopupHtml(f) {
   const p = f.properties;
-  return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? ' — <span style="color:var(--sev-emergency);font-weight:700">FLASH FLOOD EMERGENCY</span>' : ''}</div>` +
+  return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? ': <span style="color:var(--sev-emergency);font-weight:700">FLASH FLOOD EMERGENCY</span>' : ''}</div>` +
     `<div class="popup-meta">${esc(p.areaDesc || '')}</div>` +
     `<div class="popup-meta">Expires: ${esc(fmtWhen(p.expires))}</div>` +
     `<div class="popup-link"><a href="${esc(f.id)}" target="_blank" rel="noopener">Full alert text →</a></div>`;
@@ -314,7 +314,7 @@ function gaugePopup(g) {
   const f = g.status.forecast;
   const fCat = gaugeForecastCat(g);
   const forecastLine = fCat
-    ? `<div class="popup-meta">${gaugeRising(g) ? '▲ RISING — ' : ''}Forecast: ${fmtNum(f.primary)} ${esc(f.primaryUnit)} — <span class="cat-word" style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span> @ ${esc(fmtWhen(f.validTime))}</div>`
+    ? `<div class="popup-meta">${gaugeRising(g) ? '▲ RISING · ' : ''}Forecast: ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span> @ ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   const tr = gaugeTrend(g.lid);
   const trendLine = tr
@@ -322,7 +322,7 @@ function gaugePopup(g) {
     : '';
   el.innerHTML = `<div class="popup-title">${esc(g.name)}</div>` +
     `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(CAT_LABEL[cat])}</span> · ${fmtNum(o.primary)} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
-    (stale ? `<div class="popup-meta stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
+    (stale ? `<div class="popup-meta stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     trendLine +
     forecastLine +
     `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">Loading ${CONFIG.sparkHours}h stage history…</div></div>` +
@@ -528,7 +528,7 @@ function renderFcstMax() {
     });
     const m = L.marker([lat, lon], { icon });
     m.bindPopup(`<div class="popup-title">${esc(p.nws_name)}</div>` +
-      `<div class="popup-meta">Forecast max: ${fmtNum(p.max_value)} ft — <span class="cat-word" style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span> (5-day)</div>` +
+      `<div class="popup-meta">Forecast max: ${fmtNum(p.max_value)} ft · <span class="cat-word" style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span> (5-day)</div>` +
       `<div class="popup-meta">Issued ${esc(fmtWhen(fcstIssuedIso(p.issued_time)))}</div>` +
       `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(p.nws_lid)}" target="_blank" rel="noopener">NOAA gauge page →</a></div>`);
     state.layers.fcstMax.addLayer(m);
@@ -567,7 +567,7 @@ function renderUsgsIv() {
     const m = L.marker([s.lat, s.lon], { icon });
     // raw stage has no flood-stage thresholds here — never imply a category
     m.bindPopup(`<div class="popup-title">${esc(s.name)}</div>` +
-      `<div class="popup-meta">Stage: ${s.ft} ft @ ${esc(fmtWhen(s.t))} — raw reading, no flood-stage context</div>` +
+      `<div class="popup-meta">Stage: ${s.ft} ft @ ${esc(fmtWhen(s.t))} · raw reading, no flood-stage context</div>` +
       `<div class="popup-link"><a href="https://waterdata.usgs.gov/monitoring-location/${esc(s.site)}" target="_blank" rel="noopener">USGS site page →</a></div>`);
     state.layers.usgs.addLayer(m);
   }
@@ -670,9 +670,9 @@ function reopenedRoads() {
 
 function reopenedPopupHtml(r) {
   const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
-  return `<div class="popup-title" style="color:var(--good)">✓ ${esc(t('reopen.flag'))} — ${esc(prettyRoute(r.route_name) || 'Road')}</div>` +
+  return `<div class="popup-title" style="color:var(--good)">✓ ${esc(t('reopen.flag'))}: ${esc(prettyRoute(r.route_name) || 'Road')}</div>` +
     `<div class="popup-meta">${esc(t('reopen.was'))}: ${esc(ct.label)} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))}</div>` +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · cleared from the live feed — verify before routing</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · cleared from the live feed; verify before routing</div>`;
 }
 
 function roadPopupHtml(p) {
@@ -688,7 +688,7 @@ function roadPopupHtml(p) {
     (dscr ? `<div class="popup-meta">${esc(dscr)}</div>` : '') +
     (p.start_time ? `<div class="popup-meta">Since ${esc(fmtWhen(p.start_time))}</div>` : '') +
     (detour ? '<div class="popup-meta">Detour available</div>' : '') +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee — verify before routing</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee; verify before routing</div>`;
 }
 
 function renderRoadClosures() {
@@ -722,7 +722,7 @@ function renderRoadClosures() {
 /* ---------- TxGIO low-water-crossing location inventory (LOCATIONS, not live status) ---------- */
 
 const LWC_ATTRIB = 'Low-water crossings: TxGIO (Texas Geographic Information Office)';
-const LWC_FOOTER = 'Crossing location inventory (TxGIO) — NOT live flood status; check conditions before crossing.';
+const LWC_FOOTER = 'Crossing location inventory (TxGIO): NOT live flood status; check conditions before crossing.';
 
 // lazy: fetched once on first overlayadd; ~3.7k points paginated (maxRecordCount 2000), canvas-rendered
 async function fetchLwc() {
@@ -797,7 +797,7 @@ function highlightRoads(text) {
 }
 
 function lsrPopupHtml(e) {
-  return `<div class="popup-title">💧 ${esc(e.typetext)}${e.magnitude ? ` — ${esc(e.magnitude)} ${esc(e.unit || '')}` : ''}</div>` +
+  return `<div class="popup-title">💧 ${esc(e.typetext)}${e.magnitude ? `: ${esc(e.magnitude)} ${esc(e.unit || '')}` : ''}</div>` +
     `<div class="popup-meta">${esc(e.city)}, ${esc(e.county)} Co. · ${esc(e.source)} · ${esc(fmtWhen(e.t))}</div>` +
     (e.remark ? `<div style="margin-top:4px">${highlightRoads(e.remark)}</div>` : '') +
     `<div class="popup-link"><a href="https://maps.google.com/?q=${e.lat},${e.lon}" target="_blank" rel="noopener">navigate →</a> · USNG ${esc(toUSNG(e.lat, e.lon))}</div>`;
@@ -842,7 +842,7 @@ function renderLsrs() {
   }
 
   const el = $('#lsr-list');
-  el.innerHTML = '<div class="section-title">Ground truth — storm reports (spotter/official)</div>';
+  el.innerHTML = '<div class="section-title">Ground truth: storm reports (spotter/official)</div>';
   if (!fresh.length) el.innerHTML += `<div class="card">No flood storm reports in TX in the last ${Math.round(cutoff / 60)}h.</div>`;
   const lsrCap = state.showAllLsrs ? 30 : 5;
   for (const e of fresh.slice(0, lsrCap)) el.appendChild(lsrCardDiv(e, false));

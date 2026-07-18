@@ -5,6 +5,7 @@ import os
 import re
 import threading
 import time
+import urllib.parse
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -16,6 +17,8 @@ NOTE_CATS = ('info', 'hazard', 'road', 'water', 'photo')
 GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
 NWPS_BASE = 'https://api.water.noaa.gov/nwps/v1/gauges/'
 GAUGE_TTL = 180
+DENY_PREFIXES = ('/.git', '/.rdf', '/.claude')
+DENY_PATHS = ('/HANDOFF.md', '/data/chat-inbox.jsonl', '/data/.chat-cursor', '/data/notes-inbox.jsonl')
 _gauge_cache = {}
 _gauge_lock = threading.Lock()
 
@@ -34,6 +37,11 @@ class Handler(SimpleHTTPRequestHandler):
         m = GAUGE_RE.match(self.path)
         if m:
             self._gauge_proxy(m.group(1).upper(), m.group(2))
+            return
+        # repo internals and agent inboxes must never be served to the LAN
+        path = self.path.split('?', 1)[0]
+        if path.startswith(DENY_PREFIXES) or path in DENY_PATHS:
+            self.send_error(404)
             return
         super().do_GET()
 
@@ -71,6 +79,16 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(404)
 
     def _read_body(self):
+        # CSRF guard: cross-origin simple requests can't set application/json, and a
+        # browser-forged POST carries an Origin that won't match our Host
+        ctype = self.headers.get('Content-Type', '')
+        if ctype.split(';')[0].strip().lower() != 'application/json':
+            self.send_error(415)
+            return None
+        origin = self.headers.get('Origin')
+        if origin and urllib.parse.urlsplit(origin).netloc != self.headers.get('Host', ''):
+            self.send_error(403)
+            return None
         n = int(self.headers.get('Content-Length', 0))
         if not 0 < n <= 65536:
             self.send_error(413)

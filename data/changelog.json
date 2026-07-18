@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.77.0",
+      "date": "2026-07-18",
+      "line": "Bug-fix release from a code audit: idle clients now repaint aging badges and crossing status flips (without losing your scroll position), map-popup source links are gated to http(s) only, overlapping refreshes are queued instead of racing, the LAN server rejects cross-origin POSTs and stops serving repo internals, and one bad feature in a feed can no longer blank that whole source for the cycle."
+    },
+    {
       "v": "v0.76.5",
       "date": "2026-07-18",
       "line": "The map attribution footer now collapses to a small tap-to-open ⓘ instead of a full-width bar — it was crowding the legend on landscape/short phones. Tap ⓘ to see the full credits (OSM, CARTO, Leaflet, TxDOT DriveTexas / TDEM); they're preserved (required by the map providers and our citation rule) but no longer sit over the map."

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.76.5';
+const APP_VERSION = 'v0.77.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -683,8 +683,8 @@ async function renderAlertPolys() {
   let zoneFetchBudget = CONFIG.maxZoneGeomFetches;
   // reverse severity order: least-severe drawn first, emergencies land on top
   for (const f of state.alerts.slice().reverse()) {
-    // recency: never draw an alert the NWS no longer lists as open — expired drops off, open (expires in future, any age) stays
-    if (new Date(f.properties.expires) < new Date()) continue;
+    // recency: never draw an alert the NWS no longer lists as open — expired drops off, open (expires in future, any age) stays; missing expires = still active (new Date(null) is epoch)
+    if (f.properties.expires && new Date(f.properties.expires) < new Date()) continue;
     let geom = f.geometry;
     if (!geom && f._sev !== 'advisory' && zoneFetchBudget > 0) {
       const zones = f.properties.affectedZones || [];
@@ -1141,6 +1141,7 @@ async function fetchFcstMax() {
   // NWPS gauges already show their own forecast — keep only lids this board lacks
   const nwpsLids = new Set(state.gauges.map((g) => g.lid));
   state.fcstMax = (data.features || []).filter((f) => {
+    if (!f.geometry || !Array.isArray(f.geometry.coordinates)) return false;
     const [lon, lat] = f.geometry.coordinates;
     return inGaugeBbox(lat, lon) && !nwpsLids.has(f.properties.nws_lid);
   });
@@ -1333,7 +1334,7 @@ function renderLwc(features) {
     const c = f.geometry && f.geometry.coordinates;
     if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
     const m = L.circleMarker([c[1], c[0]], { renderer: canvas, radius: 3.5, color: '#2b8ce8', weight: 1, fillColor: '#5ab0ff', fillOpacity: 0.5, attribution: LWC_ATTRIB });
-    m.bindPopup(lwcPopupHtml(f.properties));
+    m.bindPopup(() => lwcPopupHtml(f.properties)); // lazy — 3.7k eager popup strings stall the layer toggle
     layer.addLayer(m);
   }
 }
@@ -1388,7 +1389,7 @@ function lsrCardDiv(e, aged) {
 function renderLsrs() {
   // live layer is hard-capped at lsrMaxHours regardless of a wider window filter — older reports route to lsrsAged (history), never delete
   const cutoff = Math.min(lsrFreshCutoffMins(), CONFIG.lsrMaxHours * 60);
-  const live = state.lsrs.map((f) => {
+  const live = state.lsrs.filter((f) => f.geometry && Array.isArray(f.geometry.coordinates)).map((f) => {
     const [lon, lat] = f.geometry.coordinates;
     const p = f.properties;
     return { t: p.valid, lat, lon, typetext: p.typetext, magnitude: p.magnitude, unit: p.unit, city: p.city, county: p.county, source: p.source, remark: p.remark };
@@ -1738,6 +1739,7 @@ function saveHist() {
 }
 function recordLsrHist() {
   for (const f of state.lsrs) {
+    if (!f.geometry || !Array.isArray(f.geometry.coordinates)) continue;
     const p = f.properties;
     const [lon, lat] = f.geometry.coordinates;
     state.hist.lsrs[`${p.valid}|${lat}|${lon}`] = {
@@ -1919,7 +1921,7 @@ function renderRequests() {
       `<div>${esc(r.summary)}</div>` +
       `<div class="popup-meta">${shortId(r.id)} · ${esc(r.place)} · ${esc(r.status)} · ${esc(fmtWhen(r.ts))}</div>` +
       `<div class="popup-meta">USNG ${esc(toUSNG(r.lat, r.lon))} · ${r.lat.toFixed(4)}, ${r.lon.toFixed(4)}</div>` +
-      (r.source && r.source.url ? `<div class="popup-link"><a href="${esc(r.source.url)}" target="_blank" rel="noopener">source →</a></div>` : ''));
+      (r.source && r.source.url && safeUrl(r.source.url) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(r.source.url))}" target="_blank" rel="noopener">source →</a></div>` : ''));
     state.layers.requests.addLayer(m);
     state.reqMarkers[r.id] = m;
   }
@@ -2240,7 +2242,7 @@ function importRequests(file) {
       for (const r of incoming) {
         if (!r.id || !r.summary) continue;
         if (known.has(r.id)) {
-          const cur = allRequests().find((x) => x.id === r.id);
+          const cur = allRequests(true).find((x) => x.id === r.id); // include archived — `known` does, and an archived id would leave cur undefined
           if (new Date(r.ts) >= new Date(cur.ts) && r.status !== cur.status) {
             state.store.overrides[r.id] = Object.assign({}, state.store.overrides[r.id], { status: r.status });
             updated++;
@@ -2594,7 +2596,7 @@ function tickerItems() {
     majors.push({ text: `● ${riverOf(g.name)} MAJOR ${fmtNum(g.status.observed.primary)} ft${trendBit}`, color: 'var(--cat-major)', act: () => focusGauge(g) });
   }
   const tail = [];
-  const freshLsrs = state.lsrs.filter((f) => ageMins(f.properties.valid) <= lsrFreshCutoffMins()).slice(0, 2);
+  const freshLsrs = state.lsrs.filter((f) => f.geometry && Array.isArray(f.geometry.coordinates) && ageMins(f.properties.valid) <= lsrFreshCutoffMins()).slice(0, 2);
   for (const f of freshLsrs) {
     const p = f.properties;
     const [lon, lat] = f.geometry.coordinates;
@@ -2668,14 +2670,20 @@ async function loadSeeds() {
     if (!state.records) {
       state.records = (await fetch(`data/records.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) || {}).records || {};
     }
-    // low-water crossings — absence-tolerant; refetched each cycle for status changes
-    state.crossings = (await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) || {}).crossings || [];
+    // low-water crossings — absence-tolerant; refetched each cycle for status changes; transient failure keeps last-good, never wipes to []
+    const xing = await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (xing && Array.isArray(xing.crossings)) state.crossings = xing.crossings;
+    else state.crossings = state.crossings || [];
     markHealthy('seeds');
-    const hash = JSON.stringify([reqs, res]);
-    if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
-    state.seedHash = hash;
     state.seedRequests = reqs.requests || [];
     state.resources = res;
+    // hash = content + per-card aging fingerprint: identical seeds skip the re-render (scroll guard),
+    // but aged/stale/fresh-bucket transitions on idle clients still repaint list, tiles, and crossings
+    const agingFp = allRequests().map((r) => [r.id, cardAged(r) ? 1 : 0, r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins ? 1 : 0, freshClass(r.ts)]);
+    const crossingFp = state.crossings.map((c) => (c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity) > CROSSING_STALE_H ? 1 : 0);
+    const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp]);
+    if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
+    state.seedHash = hash;
     renderRequests();
     renderResources();
     renderCrossings();
@@ -2704,7 +2712,7 @@ function renderCrossings() {
           const staleH = c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity;
           const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">stale ${Math.round(staleH)}h — reverify</span>` : '';
           return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong> — ${esc(c.name)}` +
-            `<div class="addr">${esc(c.reason || '')} · updated ${esc(fmtWhen(c.updated_at))}${stale} <a href="${esc(c.source)}" target="_blank" rel="noopener">src</a></div></div>`;
+            `<div class="addr">${esc(c.reason || '')} · updated ${esc(fmtWhen(c.updated_at))}${stale}${c.source && safeUrl(c.source) !== '#' ? ` <a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">src</a>` : ''}</div></div>`;
         }).join('') +
         `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
       : '';
@@ -2717,7 +2725,7 @@ function renderCrossings() {
     m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} — crossing</div><div>${esc(c.name)}</div>` +
       `<div class="popup-meta">${esc(c.reason || '')}</div>` +
       `<div class="popup-meta">Updated ${esc(fmtWhen(c.updated_at))} · verify before routing</div>` +
-      (c.source ? `<div class="popup-link"><a href="${esc(c.source)}" target="_blank" rel="noopener">source →</a></div>` : ''));
+      (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">source →</a></div>` : ''));
     layer.addLayer(m);
   }
 }
@@ -2766,29 +2774,37 @@ async function hydrateGaugesSnapshot() {
 }
 
 async function refresh() {
-  $('#refresh-note').textContent = 'refreshing…';
-  if (state.refreshRadar) state.refreshRadar();
-  const gaugesP = fetchGauges();
-  // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
-  const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
-  const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds(), fetchRoadClosures()]);
-  const SOURCE_NAMES = ['NWS alerts', 'NWPS gauges', 'RFC forecast', 'USGS stage', 'storm reports', 'board data', 'TxDOT roads'];
-  const failed = results.filter((r) => r.status === 'rejected');
-  const failedNames = results.map((r, i) => (r.status === 'rejected' ? SOURCE_NAMES[i] : null)).filter(Boolean).join(', ');
-  state.refreshAt = Date.now() + CONFIG.refreshMs;
-  if (failed.length && (!state.alerts.length || !state.gauges.length)) {
-    const hydrated = hydrateFromCache();
-    const snapped = await hydrateGaugesSnapshot();
+  // in-flight guard: overlapping triggers (interval, #refresh-now, visibility catch-up) queue one trailing run instead of racing
+  if (state.refreshBusy) { state.refreshQueued = true; return; }
+  state.refreshBusy = true;
+  try {
+    $('#refresh-note').textContent = 'refreshing…';
+    if (state.refreshRadar) state.refreshRadar();
+    const gaugesP = fetchGauges();
+    // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
+    const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
+    const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds(), fetchRoadClosures()]);
+    const SOURCE_NAMES = ['NWS alerts', 'NWPS gauges', 'RFC forecast', 'USGS stage', 'storm reports', 'board data', 'TxDOT roads'];
+    const failed = results.filter((r) => r.status === 'rejected');
+    const failedNames = results.map((r, i) => (r.status === 'rejected' ? SOURCE_NAMES[i] : null)).filter(Boolean).join(', ');
+    state.refreshAt = Date.now() + CONFIG.refreshMs;
+    if (failed.length && (!state.alerts.length || !state.gauges.length)) {
+      const hydrated = hydrateFromCache();
+      const snapped = await hydrateGaugesSnapshot();
+      renderSourceHealth();
+      if (!hydrated && !snapped) $('#refresh-note').textContent = `degraded: ${failedNames}`;
+      return;
+    }
+    if (!failed.length) saveCache();
     renderSourceHealth();
-    if (!hydrated && !snapped) $('#refresh-note').textContent = `degraded: ${failedNames}`;
-    return;
+    checkAppVersion();
+    $('#refresh-note').textContent = failed.length
+      ? `degraded: ${failedNames}`
+      : `updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
+  } finally {
+    state.refreshBusy = false;
+    if (state.refreshQueued) { state.refreshQueued = false; refresh(); }
   }
-  if (!failed.length) saveCache();
-  renderSourceHealth();
-  checkAppVersion();
-  $('#refresh-note').textContent = failed.length
-    ? `degraded: ${failedNames}`
-    : `updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
 }
 
 function markHealthy(source) { state.sourceHealth[source] = Date.now(); }
@@ -2866,6 +2882,9 @@ function renderDataAgeBar() {
   const key = `${worst.k}|${cls}`; // dismissal holds until the failing source or severity changes
   if (sessionStorage.getItem('respondertx.ageBarDismiss') === key) { el.hidden = true; return; }
   el.hidden = false;
+  const sig = `${key}|${text}`; // ticks every second — only touch the DOM when the rendered content changes
+  if (el.dataset.sig === sig) return;
+  el.dataset.sig = sig;
   el.className = cls;
   el.dataset.key = key;
   el.innerHTML = `<span>${esc(text)}</span><button class="age-bar-x" title="Dismiss until this changes">✕</button>`;

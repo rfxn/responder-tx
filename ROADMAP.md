@@ -130,7 +130,7 @@ they're cheap correctness/discoverability fixes on shipped features:
   official/community marker. Cost S/M. honesty win. **[ux]**
 - **A5. Public onboarding** — dismissible "how to read this board" + richer
   legend (LSR/RFC/USNG/glyphs) for the lay mirror visitor. Cost S. **[ux]**
-- **A6. Collapse desktop map legend to a pill** (reuse mobile pattern; it
+- ~~**A6. Collapse desktop map legend to a pill**~~ SHIPPED v0.71.0. (reuse mobile pattern; it
   covers the SW marker cluster). Cost S. **[ux]**
 - **A7. deploy.sh** — script the HANDOFF deploy recipe (strip chat.js, empty
   outbox, grep archive for 'chat' before wrangler). Cost S. **[infra]**

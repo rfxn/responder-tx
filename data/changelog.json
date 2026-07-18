@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.71.0",
+      "date": "2026-07-18",
+      "line": "Map legend now collapses to a small pill on desktop too (click to expand) — it was covering the busiest corner of the map (Eagle Pass/Del Rio cluster)"
+    },
+    {
       "v": "v0.70.0",
       "date": "2026-07-18",
       "line": "Bottom-sheet fixes: the Min/Half/Full buttons are now a small pill (not oversized), and the sheet no longer hijacks the 911 footer or version tag — the map flexibly fills the space so Full/Half keep the footer at the bottom"

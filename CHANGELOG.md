@@ -1,5 +1,7 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.71.0 — 2026-07-18 (reassessment A6: collapsible map legend)
+- The map legend now collapses to a small "River gauge status ▸" pill on desktop too (was mobile-only) — it was permanently covering the Eagle Pass/Del Rio marker cluster, i.e. the most active corner of the map; click the pill to expand the full key, click again to collapse
 ## v0.70.0 — 2026-07-18 (owner fixes: bottom-sheet buttons + footer)
 - Fix: the Min/Half/Full buttons were oversized and eating screen space — now a small centered pill that barely uses any room
 - Fix: the sheet was hijacking the 911 footer and version tag — root cause was a stale CSS rule pinning the map at 42vh, so the Full sheet overflowed the viewport and shoved the footer off-screen. The map now flexibly fills whatever the sheet leaves, so the 911 line + version tag sit correctly at the bottom in Half and Full, and the three sizes all resize cleanly

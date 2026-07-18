@@ -220,6 +220,56 @@ function renderDriveMode() {
   }));
 }
 
+/* ---------- crest summary — after-action peak-stage view (?view=summary) ---------- */
+
+const fmtCT = (iso) => `${new Date(iso).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} CT`;
+
+function crestRecordHtml(g) {
+  const r = g.record;
+  if (!r) return '';
+  const year = (r.record_date || '').slice(0, 4);
+  const rel = r.exceeded ? t('summary.rec.exceeded') : t('summary.rec.reached').replace('{p}', r.peak_pct);
+  const cls = r.exceeded ? ' at' : r.approached ? ' near' : '';
+  return `<div class="sum-rec${cls}">⚑ ${esc(t('summary.rec.record'))} ${fmtNum(r.record_ft)} ft (${esc(year)}) — ${esc(rel)}</div>`;
+}
+
+function crestRowHtml(g) {
+  const cat = g.peak_category;
+  const badges =
+    `<span class="badge" style="border-color:var(--cat-${esc(cat)});color:var(--cat-${esc(cat)});font-weight:700">${esc(cat.toUpperCase())}</span>` +
+    (g.stale ? ` <span class="badge stale-note">⏱ ${esc(t('summary.stale'))}</span>` : '') +
+    (g.ongoing ? ` <span class="badge" style="border-color:var(--good);color:var(--good)">${esc(t('summary.ongoing'))}</span>` : '');
+  const windowEnd = g.last_in_flood === 'ongoing' ? esc(t('summary.ongoing')) : esc(fmtCT(g.last_in_flood));
+  return '<tr>' +
+    `<td><div class="sum-name">${esc(g.name)}</div><div class="sum-lid">${esc(g.lid)}</div>${crestRecordHtml(g)}</td>` +
+    `<td><div class="sum-stage" style="color:var(--cat-${esc(cat)})">${fmtNum(g.peak)} ${esc(g.unit)}</div>${badges}</td>` +
+    `<td><div class="sum-when">${esc(fmtCT(g.peak_time))}</div></td>` +
+    `<td><div class="sum-window">${esc(fmtCT(g.first_in_flood))} →<br>${windowEnd}</div></td>` +
+    '</tr>';
+}
+
+async function openCrestSummary() {
+  $('#summary-view').hidden = false;
+  const el = $('#summary-body');
+  el.innerHTML = `<div class="sum-quiet">${esc(t('changelog.loading'))}</div>`;
+  let d = null;
+  try { d = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null)); }
+  catch { d = null; } // absent on older deploys or offline — quiet line below, never a crash
+  if (!d || !Array.isArray(d.gauges) || !d.gauges.length) {
+    el.innerHTML = `<div class="sum-quiet">${esc(t('summary.none'))}</div>`;
+    return;
+  }
+  const w = d.window || {};
+  el.innerHTML =
+    '<div class="sum-head">' +
+    `<div class="sum-event">${esc(t('summary.event'))} ${esc(d.event || '')} · ${esc(t('summary.generated'))} ${esc(fmtCT(d.generated))}</div>` +
+    `<div class="sum-sub">${esc(t('summary.sub'))}</div>` +
+    `<div class="sum-cite">${esc(t('summary.source'))}${w.first ? ` · ${esc(fmtCT(w.first))} → ${esc(fmtCT(w.last))}` : ''}</div>` +
+    '</div>' +
+    `<table class="sum-table"><thead><tr><th>${esc(t('summary.col.gauge'))}</th><th>${esc(t('summary.col.peak'))}</th><th>${esc(t('summary.col.when'))}</th><th>${esc(t('summary.col.window'))}</th></tr></thead>` +
+    `<tbody>${d.gauges.map(crestRowHtml).join('')}</tbody></table>`;
+}
+
 function renderGaugesTab() {
   renderWave();
   const el = $('#gauge-list');

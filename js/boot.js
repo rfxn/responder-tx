@@ -315,6 +315,8 @@ async function boot() {
   $('#export-geo-btn').addEventListener('click', exportGeoJSON);
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
+  $('#summary-btn').addEventListener('click', openCrestSummary);
+  $('#summary-exit').addEventListener('click', () => { $('#summary-view').hidden = true; });
   // ticker halves are duplicated markup — delegate clicks by item index instead of per-node listeners
   $('#ticker').addEventListener('click', (e) => {
     const it = e.target.closest('.ticker-item');
@@ -391,7 +393,7 @@ async function boot() {
   // Escape closes the top-most open overlay
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#drive-mode', '#safety-modal']) {
+    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#summary-view', '#drive-mode', '#safety-modal']) {
       const m = $(id);
       if (m && !m.hidden) { m.hidden = true; break; }
     }
@@ -433,7 +435,9 @@ async function boot() {
   }
   applyShareParams(new URLSearchParams(location.search)); // URL share-params win for this load
   state.viewReady = true;
-  if (new URLSearchParams(location.search).get('view') === 'drive') $('#drive-btn').click();
+  const viewParam = new URLSearchParams(location.search).get('view');
+  if (viewParam === 'drive') $('#drive-btn').click();
+  else if (viewParam === 'summary') $('#summary-btn').click();
   const hydroParam = new URLSearchParams(location.search).get('hydro');
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
 

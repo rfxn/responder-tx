@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.82.0",
+      "date": "2026-07-18",
+      "line": "Historical playback (the flagship ask): a collapsible bottom timeline bar over the map replays the event over 3d / 7d / 14d — drag the scrub or press ▶ (~8 fps) to watch gauge conditions rise and recover, with ▲ chapter marks at each major crest (tap to jump), a CT timestamp readout, and a NOW button that snaps back to live instantly; gauges replay from a new committed archive (data/history.json, one frame per 15 min, stale sensors badged) and radar replays from IEM's archived NEXRAD tiles when the radar layer is on; alerts, roads, crossings, and reports have no per-frame archive and stay live — the bar says so, and an amber PLAYBACK pill plus a dimmed threat strip make historical frames unmistakable. Open it from the ⏮ pill by the map controls, ▶ Playback in ⋯ More, or ?playback=1."
+    },
+    {
       "v": "v0.81.1",
       "date": "2026-07-18",
       "line": "Readability pass: swept unnecessary em-dashes out of all on-screen text (EN and ES) in favor of plain commas, colons, and the board's usual · separator, and switched SITREP/AAR text exports to plain hyphens for radio/SMS paste; the 📊 Crest summary view is now one tap away via a chip at the top of the Gauges tab (still in ⋯ More too); the header subtitle is now \"Life Safety & Response Feed\" (ES: \"Seguridad de vida y respuesta\")."

@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.75.1 — 2026-07-18 (owner: shorten + genericize the brand subtitle)
+- Change: brand subtitle shortened from "Hill Country flood event · live NWS / NOAA / USGS · community assistance feed" to "First Responder & Life Safety Feed" — the old copy was long and named a single TX/Hill-Country event; the board is being built to manage multiple AOs and separate statewide events over time, so the header subtitle no longer pins to one event (localized EN/ES, the Spanish reads "Primeros respondedores y seguridad de vida"); all local asset ?v= stamps bumped to 0.75.1 with the version
+
 ## v0.75.0 — 2026-07-18 (table-stakes T4: Spanish localization (EN/ES) + a11y)
 - NEW EN/ES language toggle (🌐 header control, next to the theme toggle; icon-only on phones like the other controls) — the flood-affected Hill Country / South TX population is heavily Hispanic and the public mirror was English-only; the app UI chrome now renders in Spanish or English, choice persisted in localStorage (respondertx.lang), defaulting to the browser language when it is es-* and accepting a ?lang=es deep link; document.documentElement.lang is set to the active locale and aria-labels/titles localize with it
 - Locale table lives in a new js/i18n.js (a flat EN/ES string map keyed by short ids, a t(key) helper, and an applyI18n() that drives data-i18n / -html / -title / -aria / -ph attributes) — static index.html strings apply once on boot and the app's own render paths call t() so a live toggle re-localizes the board without a reload

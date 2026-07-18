@@ -11,7 +11,7 @@
 
   const I18N = {
     en: {
-      'brand.sub': 'Hill Country flood event · live NWS / NOAA / USGS · community assistance feed',
+      'brand.sub': 'First Responder & Life Safety Feed',
 
       'tile.emergencies': 'Flash flood emergencies',
       'tile.warnings': 'Flood warnings (TX)',
@@ -184,7 +184,7 @@
     },
 
     es: {
-      'brand.sub': 'Emergencia de inundación en Hill Country · datos en vivo NWS / NOAA / USGS · canal de asistencia comunitaria',
+      'brand.sub': 'Primeros respondedores y seguridad de vida',
 
       'tile.emergencies': 'Emergencias de inundación repentina',
       'tile.warnings': 'Avisos de inundación (TX)',

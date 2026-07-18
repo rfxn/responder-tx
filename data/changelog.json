@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.1",
+      "date": "2026-07-18",
+      "line": "Brand subtitle shortened + genericized: 'Hill Country flood event · live NWS/NOAA/USGS · community assistance feed' → 'First Responder & Life Safety Feed' (ES: 'Primeros respondedores y seguridad de vida'). The board is being built to manage multiple AOs and separate statewide events, so the header no longer names one single event."
+    },
+    {
       "v": "v0.75.0",
       "date": "2026-07-18",
       "line": "NEW Spanish/English toggle (🌐 in the header): the app's own UI now speaks Spanish or English for the heavily Hispanic flood-affected area — tabs, the threat-to-life module, the safety modal, the 911 disclaimer, Drive Mode and the 'Am I at risk?' honesty box. Safety copy uses standard NWS/FEMA Spanish ('llame al 911', 'Dé la vuelta, no se ahogue', 'no es un sistema de despacho'); live NWS/NOAA/USGS gauge and alert data stays in English. Choice is remembered and ?lang=es deep-links. Also: 'Am I at risk?' is now hidden by default (still reachable at ?risk=1) — this is a responder/public-info board, not a consumer address lookup"
@@ -168,27 +173,27 @@
     {
       "v": "v0.42.0",
       "date": "2026-07-17",
-      "line": "Stale-tab fix: open tabs now show a green 'Updated \u2014 tap to reload' chip when a newer build ships (no auto-reload); ticker slowed ~30% per owner feedback"
+      "line": "Stale-tab fix: open tabs now show a green 'Updated — tap to reload' chip when a newer build ships (no auto-reload); ticker slowed ~30% per owner feedback"
     },
     {
       "v": "v0.41.0",
       "date": "2026-07-17",
-      "line": "NEW Gauges tab (rising \u2192 in-flood \u2192 falling buckets, by-river grouping, crest timing) + scrolling actionable ticker; fresh-load 'NEVER LOADED' flash fixed (instant snapshot hydration); Ozona extended 2:15 PM; Frio/Llano MAJOR crest cards"
+      "line": "NEW Gauges tab (rising → in-flood → falling buckets, by-river grouping, crest timing) + scrolling actionable ticker; fresh-load 'NEVER LOADED' flash fixed (instant snapshot hydration); Ozona extended 2:15 PM; Frio/Llano MAJOR crest cards"
     },
     {
       "v": "v0.40.0",
       "date": "2026-07-17",
-      "line": "Radar suppression FIXED \u2014 frames were being painted over by the Streets base (z-index bug); radar now lives in its own pane above every base; opacity 0.75; past crests dropped from the next-crest chip"
+      "line": "Radar suppression FIXED — frames were being painted over by the Streets base (z-index bug); radar now lives in its own pane above every base; opacity 0.75; past crests dropped from the next-crest chip"
     },
     {
       "v": "v0.39.0",
       "date": "2026-07-17",
-      "line": "Streets (OSM) now the default basemap; radar scrub covers the full 2h history with fluid crossfade playback (no redraw); honest future-cast label \u2014 free feed dropped nowcast, alternative source hunt queued"
+      "line": "Streets (OSM) now the default basemap; radar scrub covers the full 2h history with fluid crossfade playback (no redraw); honest future-cast label — free feed dropped nowcast, alternative source hunt queued"
     },
     {
       "v": "v0.38.0",
       "date": "2026-07-17",
-      "line": "USGS raw-stage layer auto-enables when the NWPS feed dies (and stands down on recovery) \u2014 the fallback the board held is now automatic; snapshot refreshed"
+      "line": "USGS raw-stage layer auto-enables when the NWPS feed dies (and stands down on recovery) — the fallback the board held is now automatic; snapshot refreshed"
     },
     {
       "v": "v0.37.0",
@@ -203,22 +208,22 @@
     {
       "v": "v0.35.0",
       "date": "2026-07-17",
-      "line": "Radar time-scrub (past 1h + projected frames when published, play/loop, ?radar=1); radar/rainfall layers now OFF by default \u2014 explicit enable; unmissable YOU location beacon (double-ping ring + tag)"
+      "line": "Radar time-scrub (past 1h + projected frames when published, play/loop, ?radar=1); radar/rainfall layers now OFF by default — explicit enable; unmissable YOU location beacon (double-ping ring + tag)"
     },
     {
       "v": "v0.34.0",
       "date": "2026-07-17",
-      "line": "Cache fix for the public mirror (versioned assets + no-store data \u2014 fixes 'no data' on stale edge caches); NEW: RFC forecast-crest rings layer + clustered USGS raw-stage layer (224 sites, off by default); Sonora emergency EXTENDED to 1:15 PM"
+      "line": "Cache fix for the public mirror (versioned assets + no-store data — fixes 'no data' on stale edge caches); NEW: RFC forecast-crest rings layer + clustered USGS raw-stage layer (224 sites, off by default); Sonora emergency EXTENDED to 1:15 PM"
     },
     {
       "v": "v0.33.0",
       "date": "2026-07-17",
-      "line": "Notices, not requests: no manual status/archive management \u2014 curator resolves via data, resolved auto-suppresses, everything ages out; Feed tab, Active notices tile, New notice intake"
+      "line": "Notices, not requests: no manual status/archive management — curator resolves via data, resolved auto-suppresses, everything ages out; Feed tab, Active notices tile, New notice intake"
     },
     {
       "v": "v0.32.0",
       "date": "2026-07-17",
-      "line": "Chat gated LAN-only: public mirror has no chat route, code, or data \u2014 UI loads only when the local server's /api/ping answers"
+      "line": "Chat gated LAN-only: public mirror has no chat route, code, or data — UI loads only when the local server's /api/ping answers"
     },
     {
       "v": "v0.31.0",
@@ -228,7 +233,7 @@
     {
       "v": "v0.30.0",
       "date": "2026-07-17",
-      "line": "Gauge dots now have 32px tap areas (one-thumb friendly); non-flooding gauges hidden on phone; Sutherland Springs secondary bump CANCELED \u2014 falling at 33.9, forecast 33.1"
+      "line": "Gauge dots now have 32px tap areas (one-thumb friendly); non-flooding gauges hidden on phone; Sutherland Springs secondary bump CANCELED — falling at 33.9, forecast 33.1"
     },
     {
       "v": "v0.29.0",
@@ -238,17 +243,17 @@
     {
       "v": "v0.28.0",
       "date": "2026-07-17",
-      "line": "NEW Ozona/Crockett FF EMERGENCY carded (PDS wording); UX declutter \u2014 4-button feed, collapsible filters, More menu, tap-to-expand mobile legend; card taps open the map popup; gauges tile shows 'no data' instead of false 0; banner auto-expires; 30-min release cadence"
+      "line": "NEW Ozona/Crockett FF EMERGENCY carded (PDS wording); UX declutter — 4-button feed, collapsible filters, More menu, tap-to-expand mobile legend; card taps open the map popup; gauges tile shows 'no data' instead of false 0; banner auto-expires; 30-min release cadence"
     },
     {
       "v": "v0.27.0",
       "date": "2026-07-17",
-      "line": "Rainfall layers: MRMS 1h/24h accumulation tiles in the layer control (?rain=24h deep link); Falls City crest revised \u2014 25.2 ft MAJOR tonight ~10 PM (below record, a day earlier); Sutherland Springs secondary-bump watch; livestock-loss reports carded"
+      "line": "Rainfall layers: MRMS 1h/24h accumulation tiles in the layer control (?rain=24h deep link); Falls City crest revised — 25.2 ft MAJOR tonight ~10 PM (below record, a day earlier); Sutherland Springs secondary-bump watch; livestock-loss reports carded"
     },
     {
       "v": "v0.26.0",
       "date": "2026-07-17",
-      "line": "Aging timeouts: cards >24h and storm reports >3h auto-suppress to toggleable aged/history layers (nothing deleted); alert history pane; in-app changelog (tap the version); \ud83d\udcac ops chat wired to the live Claude session with recent-actions feed"
+      "line": "Aging timeouts: cards >24h and storm reports >3h auto-suppress to toggleable aged/history layers (nothing deleted); alert history pane; in-app changelog (tap the version); 💬 ops chat wired to the live Claude session with recent-actions feed"
     },
     {
       "v": "v0.25.0",
@@ -278,7 +283,7 @@
     {
       "v": "v0.20.0",
       "date": "2026-07-17",
-      "line": "Event config externalized to data/event.json \u2014 board re-points to future events by swapping one file"
+      "line": "Event config externalized to data/event.json — board re-points to future events by swapping one file"
     },
     {
       "v": "v0.19.0",
@@ -288,7 +293,7 @@
     {
       "v": "v0.18.0",
       "date": "2026-07-17",
-      "line": "Export AAR: markdown after-action bundle \u2014 stats, chronological card log, situation snapshot"
+      "line": "Export AAR: markdown after-action bundle — stats, chronological card log, situation snapshot"
     },
     {
       "v": "v0.17.0",
@@ -303,7 +308,7 @@
     {
       "v": "v0.15.0",
       "date": "2026-07-17",
-      "line": "\u25bc falling (recovery) chip in threat strip \u2014 taps to recovering gauges"
+      "line": "▼ falling (recovery) chip in threat strip — taps to recovering gauges"
     },
     {
       "v": "v0.14.0",
@@ -313,7 +318,7 @@
     {
       "v": "v0.13.0",
       "date": "2026-07-17",
-      "line": "New-emergency pulsing banner + \ud83d\udd34 tab flag for overnight monitoring"
+      "line": "New-emergency pulsing banner + 🔴 tab flag for overnight monitoring"
     },
     {
       "v": "v0.12.0",
@@ -323,27 +328,27 @@
     {
       "v": "v0.11.0",
       "date": "2026-07-16",
-      "line": "\ud83d\udccb SITREP generator: one-tap plain-text situation report for radio/SMS/email handoff"
+      "line": "📋 SITREP generator: one-tap plain-text situation report for radio/SMS/email handoff"
     },
     {
       "v": "v0.10.0",
       "date": "2026-07-16",
-      "line": "Gauge trend engine: ft/hr trends from accumulated stage history; falling gauges get green \u25bc"
+      "line": "Gauge trend engine: ft/hr trends from accumulated stage history; falling gauges get green ▼"
     },
     {
       "v": "v0.9.0",
       "date": "2026-07-16",
-      "line": "USNG/MGRS grids (SAR-standard) on popups and copy-coords, validated \u00b11 m"
+      "line": "USNG/MGRS grids (SAR-standard) on popups and copy-coords, validated ±1 m"
     },
     {
       "v": "v0.8.0",
       "date": "2026-07-16",
-      "line": "Seeds re-fetched every 3 min with change detection \u2014 live clients pick up curated updates"
+      "line": "Seeds re-fetched every 3 min with change detection — live clients pick up curated updates"
     },
     {
       "v": "v0.7.0",
       "date": "2026-07-16",
-      "line": "Intake geocoding assist via Nominatim (find place \u2192 drop pin \u2192 verify)"
+      "line": "Intake geocoding assist via Nominatim (find place → drop pin → verify)"
     },
     {
       "v": "v0.6.0",
@@ -368,7 +373,7 @@
     {
       "v": "v0.2.0",
       "date": "2026-07-16",
-      "line": "Mobile-first layout: map-on-top, \u226542px touch targets"
+      "line": "Mobile-first layout: map-on-top, ≥42px touch targets"
     },
     {
       "v": "v0.1.0",

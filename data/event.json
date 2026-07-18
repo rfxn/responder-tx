@@ -1,6 +1,5 @@
 {
   "name": "Responder TX",
-  "subtitle": "Hill Country flood event · live NWS / NOAA / USGS · community assistance feed",
   "center": [29.75, -99.35],
   "zoom": 8,
   "gaugeBbox": { "xmin": -101.2, "ymin": 28.0, "xmax": -97.0, "ymax": 31.1 }

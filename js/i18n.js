@@ -206,6 +206,11 @@
       'summary.rec.record': 'record',
       'summary.rec.reached': 'reached {p}%',
       'summary.rec.exceeded': 'EXCEEDED',
+
+      'src.official': 'OFFICIAL',
+      'src.official.title': 'Machine-fed from an authoritative source',
+      'src.curated': 'CURATED',
+      'src.curated.title': 'Verified and maintained by the board operator',
     },
 
     es: {
@@ -404,6 +409,11 @@
       'summary.rec.record': 'récord',
       'summary.rec.reached': 'alcanzó {p}%',
       'summary.rec.exceeded': 'SUPERADO',
+
+      'src.official': 'OFICIAL',
+      'src.official.title': 'Alimentado automáticamente desde una fuente oficial',
+      'src.curated': 'CURADO',
+      'src.curated.title': 'Verificado y mantenido por el operador del panel',
     },
   };
 

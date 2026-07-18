@@ -113,7 +113,7 @@ function renderRequests() {
       `<div class="badges">${isNew ? '<span class="badge new-chip">NEW</span>' : ''}` +
       (r.status !== 'open' ? `<span class="badge status-${esc(r.status)}">${esc(r.status)}</span>` : '') +
       (cardAged(r) ? '<span class="badge aged-chip">aged — suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale — re-verify</span>' : '')) +
-      `<span class="badge">${srcLink}</span>` +
+      `<span class="badge">${srcLink}</span>` + srcBadge('curated') +
       (hasPos ? `<button class="badge act nav-act">navigate</button><button class="badge act copy-act">copy coords</button>` : '') +
       '</div>';
     div.addEventListener('click', (ev) => {
@@ -510,8 +510,8 @@ function buildSitrep() {
   const cutoffs = reqs.filter((r) => r.type === 'cutoff');
   const L = [];
   L.push(`RESPONDER TX SITREP — ${now} CT`);
-  L.push(`THREAT: ${emerg.length} flash flood emergencies${emerg.length ? ` (${emerg.map((a) => a.properties.areaDesc).join(' | ')})` : ''}; ${warnings} flood warnings statewide`);
-  L.push(`GAUGES: ${majors.length} at MAJOR, ${toMajor.length} forecast to reach major`);
+  L.push(`THREAT: ${emerg.length} flash flood emergencies${emerg.length ? ` (${emerg.map((a) => a.properties.areaDesc).join(' | ')})` : ''}; ${warnings} flood warnings statewide (official)`);
+  L.push(`GAUGES: ${majors.length} at MAJOR, ${toMajor.length} forecast to reach major (official)`);
   for (const g of majors) {
     const tr = gaugeTrend(g.lid);
     L.push(`  MAJOR ${g.name} — ${g.status.observed.primary} ft${tr ? ` (${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr)` : ''}`);
@@ -522,14 +522,14 @@ function buildSitrep() {
     L.push(`  RISING ${g.name} — fcst crest ${g.status.forecast.primary} ft ${fmtWhen(g.status.forecast.validTime)}${recBit}`);
   }
   const falling = state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
-  if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')})`);
-  if (cutoffs.length) L.push(`CUT-OFF AREAS: ${cutoffs.map((r) => `${r.place} (${r.county} Co.)`).join('; ')}`);
-  L.push(`ACTIVE CRITICAL (${crit.length}):`);
+  if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')}) (official)`);
+  if (cutoffs.length) L.push(`CUT-OFF AREAS: ${cutoffs.map((r) => `${r.place} (${r.county} Co.)`).join('; ')} (curated)`);
+  L.push(`ACTIVE CRITICAL (${crit.length}) (curated):`);
   for (const r of crit.slice(0, 10)) {
     const pos = Number.isFinite(r.lat) ? ` [USNG ${toUSNG(r.lat, r.lon)}]` : '';
     L.push(`  [${shortId(r.id)}] [${r.type.toUpperCase()}] ${r.summary} — ${r.place}, ${r.county} Co.${pos} (${fmtWhen(r.ts).split(' · ')[0]})`);
   }
-  L.push(`ACTIVE NOTICES TOTAL: ${reqs.length} · board ${APP_VERSION}`);
+  L.push(`ACTIVE NOTICES TOTAL: ${reqs.length} (curated) · board ${APP_VERSION}`);
   L.push('Not a dispatch product. Life-threatening emergencies: 911.');
   return L.join('\n');
 }

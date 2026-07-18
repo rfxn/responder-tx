@@ -411,12 +411,13 @@ function renderThreatStrip() {
   const toMajor = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major');
   const chips = [
     { n: emergencies, cls: 'emergency', label: t('threat.ffemerg'), glyph: '⚠', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
-    { n: lifeReqs.length, cls: 'emergency', label: t('threat.life'), glyph: '🆘', act: () => fitTo(lifeReqs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
-    { n: cutoffs.length, cls: 'emergency', label: t('threat.cutoff'), glyph: '⛔', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
+    { n: lifeReqs.length, cls: 'emergency', label: t('threat.life'), glyph: '🆘', src: 'curated', act: () => fitTo(lifeReqs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
+    { n: cutoffs.length, cls: 'emergency', label: t('threat.cutoff'), glyph: '⛔', src: 'curated', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     { n: majors.length, cls: 'major', label: t('threat.major'), glyph: '●', act: () => fitTo(majors.map((g) => [g.latitude, g.longitude])) },
     { n: toMajor.length, cls: 'major', label: t('threat.tomajor'), glyph: '▲', act: () => fitTo(toMajor.map((g) => [g.latitude, g.longitude])) },
     (() => { const rw = recordWatchGauges(); return { n: rw.length, cls: rw.some((g) => recordContext(g).atOrAbove) ? 'emergency' : 'major', label: t('threat.record'), glyph: '⚑', act: () => { fitTo(rw.map((g) => [g.latitude, g.longitude])); document.querySelector('.tabs button[data-tab="tab-gauges"]').click(); } }; })(),
-    { n: roads.length, cls: 'warn', label: t('threat.roads'), glyph: '🚧', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
+    // roads chip counts operator road-notice cards (requests.json), not the DriveTexas feed — curated
+    { n: roads.length, cls: 'warn', label: t('threat.roads'), glyph: '🚧', src: 'curated', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     {
       n: state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').length,
       cls: 'good', label: t('threat.falling'), glyph: '▼',
@@ -446,7 +447,9 @@ function renderThreatStrip() {
   for (const c of chips) {
     const b = document.createElement('button');
     b.className = `stat-row ${c.cls}`;
-    b.innerHTML = `<span class="glyph">${c.glyph}</span><span class="num">${c.n}</span><span class="lbl">${esc(c.label)}</span>`;
+    b.innerHTML = `<span class="glyph">${c.glyph}</span><span class="num">${c.n}</span><span class="lbl">${esc(c.label)}</span>` +
+      (c.src ? srcBadge(c.src, 'src-mini') : '');
+    if (c.src) b.title = t(`src.${c.src}.title`);
     b.addEventListener('click', c.act);
     grid.appendChild(b);
   }
@@ -627,7 +630,7 @@ function renderCrossings() {
           const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
           const staleH = c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity;
           const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">stale ${Math.round(staleH)}h — reverify</span>` : '';
-          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong> — ${esc(c.name)}` +
+          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong> — ${esc(c.name)} ${srcBadge('curated')}` +
             `<div class="addr">${esc(c.reason || '')} · updated ${esc(fmtWhen(c.updated_at))}${stale}${c.source && safeUrl(c.source) !== '#' ? ` <a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">src</a>` : ''}</div></div>`;
         }).join('') +
         `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
@@ -638,7 +641,7 @@ function renderCrossings() {
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     const icon = L.divIcon({ className: '', html: `<div class="crossing-icon" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([c.lat, c.lon], { icon });
-    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} — crossing</div><div>${esc(c.name)}</div>` +
+    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} — crossing</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
       `<div class="popup-meta">${esc(c.reason || '')}</div>` +
       `<div class="popup-meta">Updated ${esc(fmtWhen(c.updated_at))} · verify before routing</div>` +
       (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">source →</a></div>` : ''));
@@ -669,7 +672,7 @@ function renderReopenedRoads() {
   if (!fresh.length && !aged.length) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="section-title">${esc(t('reopen.title'))}</div>` +
     fresh.map((r) => reopenedItemHtml(r, false)).join('') +
-    `<div class="resource-item" style="border-bottom:none;font-size:11px;color:var(--ink-muted)">${esc(ROAD_ATTRIB)}</div>`;
+    `<div class="resource-item" style="border-bottom:none;font-size:11px;color:var(--ink-muted)">${srcBadge('official')} ${esc(ROAD_ATTRIB)}</div>`;
   if (aged.length) {
     const btn = document.createElement('button');
     btn.className = 'aged-toggle';

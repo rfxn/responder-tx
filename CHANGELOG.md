@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.82.1 — 2026-07-18
+
+- [Change] Gauge section headers: "Forecast to flood" and "Rising" drop the
+  "pre-position ahead of these" phrasing, EN+ES; counts unchanged (owner ask)
+
 ## v0.82.0 — 2026-07-18 (historical playback)
 - [New] `scripts/gen-history.py`: release-time generator that walks the committed history of `data/gauges-snapshot.json` (113 commits) and writes `data/history.json` — one compact frame per snapshot (thinned to at most one per 15 min: 98 frames, 196 KB, window Jul 17 15:31Z → Jul 18 22:25Z) holding observed stage + flood-category code per gauge (0=none 1=action 2=minor 3=moderate 4=major; stale observations >12h behind the snapshot are encoded as a negative code so the client badges them — catches the frozen BTVT2 sensor across all 98 frames); gauges the live board hides (out_of_service / obs_not_current / not_defined) are omitted, nothing is interpolated; per-commit parsing is skip-and-count, never fatal; a `gaugeIndex` (lid → name/lat/lon) keeps frames small; if the payload ever exceeds 600 KB, frames older than 3 days automatically thin to 30-min spacing (not needed at 196 KB)
 - [New] historical playback (owner flagship ask): a collapsible bottom timeline bar over the map — collapsed to a small ⏮ pill by the map controls; expanded it offers 3d / 7d / 14d range chips (clipped to the archive, with an honest "archive starts …" note when the window predates it), a draggable time scrub, ▶/⏸ play at ~8 fps (requestAnimationFrame-throttled), a live CT timestamp readout, and a NOW button that snaps every layer back to live instantly; entry points: the ⏮ pill, "▶ Playback" in ⋯ More, and a `?playback=1` deep link; if `data/history.json` is absent (older deploy) the pill shows a "history unavailable" tooltip and playback never opens — no crash

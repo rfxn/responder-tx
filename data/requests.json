@@ -1,20 +1,20 @@
 {
-  "generated": "2026-07-18T14:58:00Z",
+  "generated": "2026-07-18T15:58:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
       "id": "seed-042",
-      "ts": "2026-07-18T14:58:00Z",
+      "ts": "2026-07-18T15:58:00Z",
       "type": "evacuation",
-      "priority": "critical",
+      "priority": "high",
       "status": "open",
       "county": "Val Verde",
       "place": "Pecos River — Langtry / Central Val Verde",
       "lat": 29.8028,
       "lon": -101.4458,
-      "summary": "PECOS AT LANGTRY — CLIMBING TO MAJOR: Langtry (LTRT2) now 16.66 ft MODERATE and still rising (2.5→11.9→16.7 over the morning) toward a forecast 21.7 ft MAJOR crest ~1 PM CDT (major stage 20). NWS Austin FFWs for Central + East Central Val Verde until 11:15 AM. Life-threatening flash flooding — stay off the river bottom and low crossings.",
+      "summary": "PECOS AT LANGTRY — crested LOWER than forecast: Langtry (LTRT2) peaked ~16.7 ft MODERATE and is now easing (15.83) — well short of the 21.7 ft MAJOR the model forecast for ~1 PM, which is not verifying (obs receding). NWS Austin FFWs for Val Verde run until 11:15 AM CDT. Still moderate flooding; low crossings can be wet.",
       "details": [
-        "NWPS LTRT2 9:57 AM CT: observed 16.66 ft (moderate) and climbing — the Pecos wave has moved into the Langtry reach and is tracking its forecast, up from 2.5 ft at 7 AM to 11.9 (minor) at 9 AM to 16.66 (moderate) now, headed for ~21.7 ft MAJOR around 1 PM CT (major 20 ft). Two NWS Austin/San Antonio flash-flood warnings run until 11:15 AM (Central Val Verde river wave + East Central heavy rain). Same water that crested Pandale (~15.9 ft) overnight. Do NOT cross low-water crossings; move people, vehicles, livestock off the Pecos bottom in the Langtry/Comstock reach."
+        "NWPS LTRT2 10:57 AM CT: observed 15.83 ft (moderate) and falling — the Pecos wave rose to ~16.66 ft moderate mid-morning and is now easing rather than continuing to the 21.7 ft MAJOR forecast crest (which would need +6 ft in ~2h while the gauge is dropping). Consistent with the overnight pattern where the model over-forecast and the crests came in lower. Two NWS Austin/San Antonio flash-flood warnings remain until 11:15 AM (Central Val Verde river reach + East Central heavy rain). Same water that crested Pandale (~15.9 ft) overnight. Low-water crossings in the Langtry/Comstock reach may still be flooded on the falling limb — do not cross; the acute rise has passed."
       ],
       "source": {
         "platform": "official",

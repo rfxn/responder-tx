@@ -384,13 +384,18 @@ function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
   return line.charAt(0).toUpperCase() + line.slice(1) + '.';
 }
 
-function runRiskCheck(lat, lon, label) {
-  dropRiskPin(lat, lon, label);
+// shared computation — the address modal and the map point inspector both consume this
+function riskAssess(lat, lon) {
   const gauges = nearestGauges(lat, lon, RISK_GAUGE_MI, 3);
   const nearAlerts = state.alerts.filter((f) => alertNearPoint(f, lat, lon));
   const xCross = nearestCrossing(lat, lon, 12);
   const nNotice = nearestNotice(lat, lon, RISK_NEAR_MI);
-  const read = riskOverallRead(nearAlerts, gauges, xCross, nNotice);
+  return { gauges, nearAlerts, xCross, nNotice, read: riskOverallRead(nearAlerts, gauges, xCross, nNotice) };
+}
+
+function runRiskCheck(lat, lon, label) {
+  dropRiskPin(lat, lon, label);
+  const { gauges, nearAlerts, xCross, nNotice, read } = riskAssess(lat, lon);
 
   const mi = t('risk.mi');
   let html = '<div class="risk-card">';
@@ -439,6 +444,68 @@ function runRiskCheck(lat, lon, label) {
     addPlace({ label, lat: +lat.toFixed(5), lon: +lon.toFixed(5) });
     saveBtn.textContent = '★ Saved';
     saveBtn.disabled = true;
+  });
+}
+
+/* ---------- point inspector — long-press (touch) / right-click via Leaflet contextmenu ---------- */
+
+function inspectContent(lat, lon) {
+  const { gauges, nearAlerts, xCross, nNotice, read } = riskAssess(lat, lon);
+  const mi = t('risk.mi');
+  const usng = toUSNG(lat, lon);
+  const usngLbl = `USNG ${usng} 📋`;
+  const div = document.createElement('div');
+  div.className = 'inspect-card';
+  let html = `<div class="inspect-head"><span class="inspect-t">${esc(t('inspect.title'))}</span>` +
+    `<button class="inspect-x" title="${esc(t('risk.close'))}" aria-label="${esc(t('risk.close'))}">✕</button></div>`;
+  html += `<button class="inspect-usng" title="${esc(t('inspect.copy'))}">${esc(usngLbl)}</button>`;
+  html += `<div class="inspect-read">${esc(read)}</div>`;
+  if (nearAlerts.length) {
+    const worst = nearAlerts.slice().sort((a, b) => SEV_ORDER.indexOf(a._sev) - SEV_ORDER.indexOf(b._sev))[0];
+    html += `<div class="inspect-line sev-${worst._sev}">⚠ ${esc(worst.properties.event)} · ${esc(t('risk.until'))} ${esc(fmtWhen(worst.properties.expires).split(' · ')[0])}</div>`;
+  } else {
+    html += `<div class="inspect-line quiet">${esc(t('inspect.noalert'))}</div>`;
+  }
+  if (gauges.length) {
+    const { g, dist } = gauges[0];
+    const stale = gaugeObsStale(g);
+    const cat = gaugeObsCat(g);
+    const tr = stale ? null : gaugeTrend(g.lid);
+    const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
+    html += `<button class="inspect-line inspect-gauge" data-lid="${esc(g.lid)}">● ${esc(g.name)} · ${dist.toFixed(1)} ${esc(mi)} · ` +
+      `<span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${stale ? ' ⏱' : trendBit}</button>`;
+  }
+  if (xCross) {
+    const st = CROSSING_STATUS[xCross.c.status];
+    html += `<div class="inspect-line"><span style="color:${st.color}">${st.glyph} ${esc(st.label)}</span> ${esc(xCross.c.name)} · ${xCross.dist.toFixed(1)} ${esc(mi)}</div>`;
+  }
+  if (nNotice) {
+    html += `<div class="inspect-line">${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.summary.slice(0, 60))} · ${nNotice.dist.toFixed(1)} ${esc(mi)}</div>`;
+  }
+  html += `<div class="inspect-note">${esc(t('inspect.note'))}</div>`;
+  div.innerHTML = html;
+  const usngBtn = div.querySelector('.inspect-usng');
+  usngBtn.addEventListener('click', () => {
+    copyText(`${usng} · ${lat.toFixed(5)}, ${lon.toFixed(5)}`).then(
+      () => { usngBtn.textContent = t('inspect.copied'); setTimeout(() => { usngBtn.textContent = usngLbl; }, 1400); },
+      () => { /* clipboard denied — the string stays visible for manual copy */ });
+  });
+  div.querySelector('.inspect-x').addEventListener('click', () => state.map.closePopup());
+  const gb = div.querySelector('.inspect-gauge');
+  if (gb) gb.addEventListener('click', () => {
+    const g = state.gauges.find((x) => x.lid === gb.dataset.lid);
+    if (g) focusGauge(g);
+  });
+  return div;
+}
+
+function initPointInspector() {
+  state.map.on('contextmenu', (e) => {
+    // autoPan OFF: the map must never move under the pressed point (Windy's redesign mistake)
+    L.popup({ autoPan: false, closeButton: false, className: 'inspect-pop', maxWidth: 300 })
+      .setLatLng(e.latlng)
+      .setContent(inspectContent(e.latlng.lat, e.latlng.lng))
+      .openOn(state.map);
   });
 }
 

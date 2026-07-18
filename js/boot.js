@@ -208,6 +208,7 @@ function relocalizeDynamic() {
   if (state.resources) { renderResources(); renderMonitors(); }
   renderCrossings();
   renderSourceHealth();
+  renderLayerPills();
 }
 
 async function boot() {
@@ -216,6 +217,7 @@ async function boot() {
   await loadEventConfig();
   applyI18n(document);
   initMap();
+  initPointInspector();
   applyTheme(document.documentElement.getAttribute('data-theme'));
   loadStore();
   loadHist();

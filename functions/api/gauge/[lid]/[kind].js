@@ -7,7 +7,7 @@ const UPSTREAM = {
 export async function onRequestGet(context) {
   const lid = String(context.params.lid || '').toUpperCase();
   const kind = String(context.params.kind || '');
-  if (!/^[A-Z0-9]{3,8}$/.test(lid) || !UPSTREAM[kind]) {
+  if (!/^[A-Z0-9]{3,8}$/.test(lid) || !Object.prototype.hasOwnProperty.call(UPSTREAM, kind)) {
     return new Response('bad request', { status: 400 });
   }
   const cache = caches.default;

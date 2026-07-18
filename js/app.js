@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.4';
+const APP_VERSION = 'v0.75.5';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -86,6 +86,10 @@ const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// coerce trusted-gov feed numbers before innerHTML — a non-numeric value falls back to an escaped string
+const fmtNum = (v) => (Number.isFinite(+v) ? +v : esc(String(v)));
+// esc() blocks attribute-breakout but not javascript:/data: schemes — gate hrefs to http(s)
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u)) ? String(u) : '#');
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 // navigator.clipboard needs a secure context — LAN http:// serving does not have one
@@ -921,14 +925,14 @@ function gaugePopup(g) {
   const f = g.status.forecast;
   const fCat = gaugeForecastCat(g);
   const forecastLine = fCat
-    ? `<div class="popup-meta">${gaugeRising(g) ? '▲ RISING — ' : ''}Forecast: ${f.primary} ${esc(f.primaryUnit)} — <span class="cat-word" style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span> @ ${esc(fmtWhen(f.validTime))}</div>`
+    ? `<div class="popup-meta">${gaugeRising(g) ? '▲ RISING — ' : ''}Forecast: ${fmtNum(f.primary)} ${esc(f.primaryUnit)} — <span class="cat-word" style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span> @ ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   const tr = gaugeTrend(g.lid);
   const trendLine = tr
     ? `<div class="popup-meta">Trend: ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→ steady'} (last ~hour)</div>`
     : '';
   el.innerHTML = `<div class="popup-title">${esc(g.name)}</div>` +
-    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(CAT_LABEL[cat])}</span> · ${o.primary} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
+    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(CAT_LABEL[cat])}</span> · ${fmtNum(o.primary)} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
     (stale ? `<div class="popup-meta stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     trendLine +
     forecastLine +
@@ -1134,7 +1138,7 @@ function renderFcstMax() {
     });
     const m = L.marker([lat, lon], { icon });
     m.bindPopup(`<div class="popup-title">${esc(p.nws_name)}</div>` +
-      `<div class="popup-meta">Forecast max: ${p.max_value} ft — <span class="cat-word" style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span> (5-day)</div>` +
+      `<div class="popup-meta">Forecast max: ${fmtNum(p.max_value)} ft — <span class="cat-word" style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span> (5-day)</div>` +
       `<div class="popup-meta">Issued ${esc(fmtWhen(fcstIssuedIso(p.issued_time)))}</div>` +
       `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(p.nws_lid)}" target="_blank" rel="noopener">NOAA gauge page →</a></div>`);
     state.layers.fcstMax.addLayer(m);
@@ -1282,7 +1286,7 @@ function renderForecastList() {
     div.style.borderLeftColor = `var(--cat-${fCat})`;
     div.innerHTML = `<div class="head"><span>▲</span><span class="type-chip">${esc(CAT_LABEL[gaugeCat(g)])} → <span style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span></span>` +
       `<span class="when">crest ${esc(fmtWhen(f.validTime))}</span></div>` +
-      `<div class="summary">${esc(g.name)} — forecast crest ${f.primary} ${esc(f.primaryUnit)}</div>`;
+      `<div class="summary">${esc(g.name)} — forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)}</div>`;
     div.addEventListener('click', () => state.map.setView([g.latitude, g.longitude], 11));
     el.appendChild(div);
   }
@@ -1321,9 +1325,9 @@ function gaugeCardDiv(g) {
   const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   div.innerHTML = `<div class="head">${gaugeGlyphHtml(g)}<span class="g-name">${esc(g.name)}</span>` +
     `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
-    `<div class="meta">OBS ${o.primary} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
+    `<div class="meta">OBS ${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
     (stale ? `<div class="meta stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
-    (fCat ? `<div class="meta">crest ${f.primary} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(fCat)}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
+    (fCat ? `<div class="meta">crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(fCat)}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
     recordLineHtml(g) +
     (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
   div.addEventListener('click', (ev) => { if (ev.target.closest('a')) return; focusGauge(g); });
@@ -1381,7 +1385,7 @@ function renderWave() {
       body += `<button class="wave-row" data-lid="${esc(g.lid)}">` +
         `<span class="wave-dot" style="background:var(--cat-${fCat})"></span>` +
         `<span class="wave-site">${esc(site)}</span>` +
-        `<span class="wave-stage" style="color:var(--cat-${fCat})">${f.primary} ft ${esc(fCat)}</span>` +
+        `<span class="wave-stage" style="color:var(--cat-${fCat})">${fmtNum(f.primary)} ft ${esc(fCat)}</span>` +
         `<span class="wave-eta ${past ? 'past' : ''}">${past ? 'crested' : 'crest'} ${esc(fmtWhen(f.validTime))}</span></button>`;
     }
   }
@@ -1484,6 +1488,8 @@ function renderGaugesTab() {
     .sort((a, b) => CAT_RANK[gaugeCat(b)] - CAT_RANK[gaugeCat(a)] || b.status.observed.primary - a.status.observed.primary);
   const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !risingLids.has(g.lid))
     .sort((a, b) => a.name.localeCompare(b.name));
+  // gaugeCat maps stale sensors to 'none', so this bucket mixes truly-normal and dead gauges — count them apart for an honest label
+  const normalStale = normal.filter(gaugeObsStale).length;
 
   el.innerHTML = '';
   const bar = document.createElement('div');
@@ -1527,7 +1533,9 @@ function renderGaugesTab() {
   if (normal.length) {
     const btn = document.createElement('button');
     btn.className = 'aged-toggle';
-    btn.textContent = `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges normal`;
+    btn.textContent = normalStale
+      ? `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges — ${normal.length - normalStale} normal · ${normalStale} stale`
+      : `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges normal`;
     btn.addEventListener('click', () => { state.showNormalGauges = !state.showNormalGauges; renderGaugesTab(); });
     el.appendChild(btn);
     if (state.showNormalGauges) for (const g of normal) el.appendChild(gaugeCardDiv(g));
@@ -1668,7 +1676,7 @@ function renderRequests() {
     const div = document.createElement('div');
     div.className = `card pri-${r.priority}${cardAged(r) ? ' aged' : ''}`;
     const src = r.source || {};
-    const srcLink = src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.platform || 'source')}: ${esc(src.handle || src.url)}</a>` : esc(`${src.platform || ''} ${src.handle || ''}`.trim());
+    const srcLink = src.url ? `<a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener">${esc(src.platform || 'source')}: ${esc(src.handle || src.url)}</a>` : esc(`${src.platform || ''} ${src.handle || ''}`.trim());
     const isNew = state.lastSeen && new Date(r.ts).getTime() > state.lastSeen;
     const needsReverify = r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins;
     const hasPos = Number.isFinite(r.lat) && Number.isFinite(r.lon);
@@ -1921,11 +1929,11 @@ function riskGaugeLine(x) {
   const tr = stale ? null : gaugeTrend(g.lid);
   const trendBit = tr ? ` · ${tr.dir === 'up' ? '↑ rising' : tr.dir === 'down' ? '↓ falling' : '→ steady'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   const fcst = fCat
-    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${f.primary} ${esc(f.primaryUnit)} — <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
+    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)} — <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   return `<button class="risk-gauge" data-lid="${esc(g.lid)}">` +
     `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} ${esc(t('risk.mi'))}</span></div>` +
-    `<div class="rg-now">${esc(t('risk.now'))} ${o.primary} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${trendBit}</div>` +
+    `<div class="rg-now">${esc(t('risk.now'))} ${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${trendBit}</div>` +
     (stale ? `<div class="rg-now stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     fcst + '</button>';
 }
@@ -2220,7 +2228,7 @@ function restoreViewState() {
   $('#flt-alert-sev').value = v.as || '';
   $('#flt-alert-q').value = v.aq || '';
   if (v.ft || v.fc || v.fq || v.fw || v.fd || (v.fs && v.fs !== 'smart') || v.aged) $('#req-filters').hidden = false;
-  if (v.tab && v.tab !== 'tab-requests') {
+  if (v.tab && v.tab !== 'tab-requests' && /^[a-z-]+$/.test(v.tab)) {
     const btn = document.querySelector(`.tabs button[data-tab="${v.tab}"]`);
     if (btn) btn.click();
   }
@@ -2259,11 +2267,11 @@ function renderResources() {
   if (!r) return;
   const el = $('#resources-body');
   el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
-    r.shelters.map((s) => `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. — ${esc(s.note)} <a href="${esc(s.source)}" target="_blank" rel="noopener">src</a></div></div>`).join('') +
+    r.shelters.map((s) => `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. — ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`).join('') +
     `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
     r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> — ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
     `<div class="section-title">${esc(t('res.data'))}</div>` +
-    r.dataLinks.map((d) => `<div class="resource-item"><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`).join('') +
+    r.dataLinks.map((d) => `<div class="resource-item"><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`).join('') +
     `<div class="section-title">${esc(t('res.follow'))}</div>` +
     `<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">${esc(t('res.rss'))}</a> — ${esc(t('res.rss.note'))}</div>` +
     `<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">${esc(t('res.ics'))}</a> — ${esc(t('res.ics.note'))}</div>`;
@@ -2280,7 +2288,7 @@ function renderResources() {
 function monitorGroupHtml(g) {
   return `<div class="monitor-group"><div class="section-title">${esc(g.group)}</div>` +
     (g.note ? `<div class="resource-item" style="border-bottom:none;font-size:12px;color:var(--ink-2)">${esc(g.note)}</div>` : '') +
-    g.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">↗ ${esc(l.label)}</a>`).join('') + '</div>';
+    g.links.map((l) => `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">↗ ${esc(l.label)}</a>`).join('') + '</div>';
 }
 
 function renderMonitors() {
@@ -2403,7 +2411,7 @@ function tickerItems() {
   for (const g of state.gauges.filter((x) => gaugeCat(x) === 'major' && !gaugeRising(x))) {
     const tr = gaugeTrend(g.lid);
     const trendBit = tr ? ` ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
-    majors.push({ text: `● ${riverOf(g.name)} MAJOR ${g.status.observed.primary} ft${trendBit}`, color: 'var(--cat-major)', act: () => focusGauge(g) });
+    majors.push({ text: `● ${riverOf(g.name)} MAJOR ${fmtNum(g.status.observed.primary)} ft${trendBit}`, color: 'var(--cat-major)', act: () => focusGauge(g) });
   }
   const tail = [];
   const freshLsrs = state.lsrs.filter((f) => ageMins(f.properties.valid) <= lsrFreshCutoffMins()).slice(0, 2);
@@ -2560,6 +2568,7 @@ async function hydrateGaugesSnapshot() {
   if (state.gauges.length) return false;
   try {
     const d = await fetch(`data/gauges-snapshot.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
+    if (state.gauges.length) return false; // a live NWPS refresh resolved during the fetch — never revert fresh gauges to snapshot
     if (!d || !d.gauges || !d.gauges.length) return false;
     state.gauges = d.gauges.filter((g) => {
       const c = g.status && g.status.observed && g.status.observed.floodCategory;
@@ -2899,8 +2908,17 @@ async function boot() {
   $('#app-version').textContent = APP_VERSION;
   if (localStorage.getItem('respondertx.lastVersion') !== APP_VERSION) $('#app-version').classList.add('has-new');
   $('#app-version').addEventListener('click', openChangelog);
+  $('#app-version').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChangelog(); } });
   $('#changelog-close').addEventListener('click', () => { $('#changelog-modal').hidden = true; });
   $('#changelog-modal').addEventListener('click', (e) => { if (e.target.id === 'changelog-modal') $('#changelog-modal').hidden = true; });
+  // Escape closes the top-most open overlay
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#drive-mode', '#safety-modal']) {
+      const m = $(id);
+      if (m && !m.hidden) { m.hidden = true; break; }
+    }
+  });
 
   $('#rs-play').addEventListener('click', toggleRadarPlay);
   $('#rs-slider').addEventListener('input', () => { stopRadarPlay(); setRadarFrame(+$('#rs-slider').value); });
@@ -2931,7 +2949,8 @@ async function boot() {
   else if (rainParam === '24h') state.layers.mrms24h.addTo(state.map);
 
   const tabParam = new URLSearchParams(location.search).get('tab');
-  if (tabParam) {
+  // guard the selector interpolation — a crafted ?tab= (e.g. %22%5D) would throw a DOMException and abort boot()
+  if (tabParam && /^[a-z-]+$/.test(tabParam)) {
     const btn = document.querySelector(`.tabs button[data-tab="tab-${tabParam}"]`);
     if (btn) btn.click();
   }

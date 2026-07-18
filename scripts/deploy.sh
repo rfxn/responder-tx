@@ -17,8 +17,8 @@ done
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
 # --- Pre-flight: four-way version agreement ---
-version=$(grep -oP "APP_VERSION = '\K[^']+" js/app.js) || fail "cannot extract APP_VERSION from js/app.js"
-[ -n "$version" ] || fail "APP_VERSION extracted from js/app.js is empty"
+version=$(grep -oP "APP_VERSION = '\K[^']+" js/core.js) || fail "cannot extract APP_VERSION from js/core.js"
+[ -n "$version" ] || fail "APP_VERSION extracted from js/core.js is empty"
 stamp_version="${version#v}"
 
 stamps=$(grep -o '?v=[^"]*' index.html) || fail "no ?v= stamps found in index.html"

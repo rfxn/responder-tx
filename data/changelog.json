@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.78.0",
+      "date": "2026-07-18",
+      "line": "Under-the-hood maintenance: the app's single 3,200-line script was split into six modules (core, map, sources, panels, board, boot) to keep development manageable — no visible or behavioral changes."
+    },
+    {
       "v": "v0.77.0",
       "date": "2026-07-18",
       "line": "Bug-fix release from a code audit: idle clients now repaint aging badges and crossing status flips (without losing your scroll position), map-popup source links are gated to http(s) only, overlapping refreshes are queued instead of racing, the LAN server rejects cross-origin POSTs and stops serving repo internals, and one bad feature in a feed can no longer blank that whole source for the cycle."

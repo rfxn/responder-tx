@@ -71,9 +71,10 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
    used by USGS layer).
 8. ~~**Saved AO quick-jump presets**~~ — DONE v0.43 (AO chips: Full AO, Kerr,
    Uvalde/Frio, Sonora/Ozona, Cibolo).
-9. **#15 MRMS legend color-scale strip + radar dim on overlayadd** — rainfall
-   layers shipped without a scale are unreadable in the field. Cost M. Deps:
-   none. **[ux]**.
+9. ~~**#15 MRMS legend color-scale strip**~~ — DONE (verified 7/18: `.mrms-ramp`
+   gradient + light/moderate/heavy/extreme `.mrms-labels`, title shows 1h/24h,
+   shown on overlayadd via updateMrmsLegend). Optional remainder: dim base tiles
+   on radar overlayadd for contrast — marginal, deferred. **[ux]**.
 10. ~~**#17 Editable #f-latlon + scroll-map-into-view on form open**~~ — SHIPPED
     v0.49.0 (typed "lat, lon" parses/validates/pins + map pans; phones scroll
     the map into view when intake opens).

@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.81.1">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.81.1">
-  <link rel="stylesheet" href="css/app.css?v=0.81.1">
-  <link rel="stylesheet" href="css/notes.css?v=0.81.1">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.82.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.82.0">
+  <link rel="stylesheet" href="css/app.css?v=0.82.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.82.0">
 </head>
 <body>
   <header>
@@ -86,6 +86,7 @@
           <button id="export-geo-btn" title="GeoJSON for CalTopo / SARTopo">Export GeoJSON</button>
           <button id="aar-btn" title="Markdown after-action export: stats, chronological card log, situation snapshot">Export AAR</button>
           <button id="summary-btn" title="Event crest summary: peak stage per gauge, for after-action review" data-i18n="summary.menu" data-i18n-title="summary.menu.title">📊 Crest summary</button>
+          <button id="playback-btn" title="Historical playback: replay the event over 3/7/14 days" data-i18n="playback.menu" data-i18n-title="playback.open">▶ Playback</button>
           <label for="import-file" style="display:inline-block"><span class="badge" style="cursor:pointer;padding:5px 10px;font-size:12px">Import JSON</span></label>
           <input type="file" id="import-file" accept="application/json" style="display:none">
         </div>
@@ -208,6 +209,24 @@
         <input type="range" id="rs-slider" min="0" max="0" value="0" step="1" title="Scrub radar: past hour → projection" data-i18n-title="radar.scrub">
         <span id="rs-label">–</span>
       </div>
+      <div id="pb-badge" hidden>⏮ <span data-i18n="playback.pill">PLAYBACK</span> · <span id="pb-badge-t"></span></div>
+      <button id="pb-pill" title="Historical playback: replay the event over 3/7/14 days" data-i18n-title="playback.open">⏮</button>
+      <div id="playback-bar" hidden>
+        <div class="pb-chips">
+          <button class="pb-chip" data-days="3">3d</button>
+          <button class="pb-chip" data-days="7">7d</button>
+          <button class="pb-chip" data-days="14">14d</button>
+        </div>
+        <button id="pb-play" title="Play / pause playback" data-i18n-title="playback.play">▶</button>
+        <div id="pb-slider-wrap">
+          <div id="pb-ticks"></div>
+          <input type="range" id="pb-slider" min="0" max="0" value="0" title="Scrub the event timeline" data-i18n-title="playback.scrub">
+        </div>
+        <span id="pb-time" class="live" data-i18n="playback.live">LIVE</span>
+        <button id="pb-now" title="Return to live conditions" data-i18n="playback.now" data-i18n-title="playback.now.title">NOW</button>
+        <button id="pb-close" title="Close playback" data-i18n-title="playback.close">✕</button>
+        <div id="pb-note"></div>
+      </div>
     </div>
     <div id="sheet-handle" role="group" aria-label="Resize panel (phone only)">
       <button data-sheet="sheet-full" title="Full screen: panel covers the map" aria-label="Full screen" data-i18n-title="sheet.full" data-i18n-aria="sheet.full.aria">▲</button>
@@ -285,15 +304,15 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.81.1"></script>
-  <script src="js/usng.js?v=0.81.1"></script>
-  <script src="js/i18n.js?v=0.81.1"></script>
-  <script src="js/core.js?v=0.81.1"></script>
-  <script src="js/map.js?v=0.81.1"></script>
-  <script src="js/sources.js?v=0.81.1"></script>
-  <script src="js/panels.js?v=0.81.1"></script>
-  <script src="js/board.js?v=0.81.1"></script>
-  <script src="js/boot.js?v=0.81.1"></script>
-  <script src="js/notes.js?v=0.81.1"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.82.0"></script>
+  <script src="js/usng.js?v=0.82.0"></script>
+  <script src="js/i18n.js?v=0.82.0"></script>
+  <script src="js/core.js?v=0.82.0"></script>
+  <script src="js/map.js?v=0.82.0"></script>
+  <script src="js/sources.js?v=0.82.0"></script>
+  <script src="js/panels.js?v=0.82.0"></script>
+  <script src="js/board.js?v=0.82.0"></script>
+  <script src="js/boot.js?v=0.82.0"></script>
+  <script src="js/notes.js?v=0.82.0"></script>
 </body>
 </html>

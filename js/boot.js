@@ -403,6 +403,10 @@ async function boot() {
   $('#rs-slider').addEventListener('input', () => { stopRadarPlay(); setRadarFrame(+$('#rs-slider').value); });
   if (new URLSearchParams(location.search).get('radar') === '1') state.layers.radar.addTo(state.map);
 
+  initPlaybackControls();
+  $('#playback-btn').addEventListener('click', openPlayback);
+  if (new URLSearchParams(location.search).get('playback') === '1') openPlayback();
+
   $('#disclaimer').addEventListener('click', (e) => {
     if (e.target.id === 'app-version') return;
     if (window.innerWidth <= 768) $('#disclaimer').classList.toggle('open');

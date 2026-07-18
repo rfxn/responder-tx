@@ -499,3 +499,298 @@ function toggleRadarPlay() {
   r.timer = setInterval(() => setRadarFrame((r.idx + 1) % r.frames.length), 700);
 }
 
+/* ---------- historical playback (v0.82) — replay archived gauge frames over 3d/7d/14d ----------
+   Honest by design: only layers with a real archive replay (gauges from data/history.json,
+   radar from IEM archive tiles); alerts/roads/LSRs stay live and the bar says so. */
+
+const PB_RADAR_URL = (stamp) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${stamp}/{z}/{x}/{y}.png`;
+const PB_FPS_MS = 125; // ~8 fps
+const PB_CAT_NAMES = ['none', 'action', 'minor', 'moderate', 'major'];
+
+// frame code: 0..4 = none..major; negative = stale observation, encoded -(code+1)
+function pbDecode(code) {
+  const stale = code < 0;
+  return { stale, cat: PB_CAT_NAMES[stale ? -code - 1 : code] || 'none' };
+}
+
+async function loadPlaybackData() {
+  if (state.pbData) return state.pbData;
+  const res = await fetch(`data/history.json?_=${Math.floor(Date.now() / 300000)}`);
+  if (!res.ok) throw new Error(`history HTTP ${res.status}`);
+  const d = await res.json();
+  if (!Array.isArray(d.frames) || !d.frames.length) throw new Error('empty history');
+  d.frames.forEach((f) => { f._t = new Date(f.t).getTime(); });
+  state.pbData = d;
+  // chapter marks: major-peak gauges from the crest summary, most significant first (best-effort)
+  try {
+    const cs = await fetch(`data/crest-summary.json?_=${Math.floor(Date.now() / 300000)}`).then((r) => (r.ok ? r.json() : null));
+    state.pbChapters = ((cs && cs.gauges) || []).filter((g) => g.peak_category === 'major').slice(0, 8);
+  } catch { state.pbChapters = []; }
+  return d;
+}
+
+async function openPlayback() {
+  const pill = $('#pb-pill');
+  try { await loadPlaybackData(); } catch {
+    pill.classList.add('pb-disabled');
+    pill.title = t('playback.unavail');
+    $('#refresh-note').textContent = t('playback.unavail');
+    return;
+  }
+  if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0 };
+  $('#playback-bar').hidden = false;
+  pill.classList.add('open');
+  document.body.classList.add('pb-bar-open');
+  setPlaybackRange(state.pb.days);
+}
+
+function closePlayback() {
+  if (!state.pb) return;
+  playbackGoLive();
+  $('#playback-bar').hidden = true;
+  $('#pb-pill').classList.remove('open');
+  document.body.classList.remove('pb-bar-open');
+}
+
+function togglePlayback() {
+  if (state.pb && !$('#playback-bar').hidden) closePlayback();
+  else openPlayback();
+}
+
+// window = chosen 3/7/14d clipped to the archive — never fake empty frames before the archive starts
+function setPlaybackRange(days) {
+  const pb = state.pb, frames = state.pbData.frames;
+  pb.days = days;
+  pb.loT = Math.max(Date.now() - days * 86400000, frames[0]._t);
+  pb.hiT = frames[frames.length - 1]._t;
+  document.querySelectorAll('.pb-chip').forEach((b) => b.classList.toggle('on', +b.dataset.days === days));
+  const sl = $('#pb-slider');
+  sl.min = pb.loT;
+  sl.max = pb.hiT;
+  sl.step = 60000;
+  renderPlaybackTicks();
+  if (pb.live) { sl.value = pb.hiT; updatePlaybackReadout(); } else setPlaybackFrame(pb.idx);
+  updatePlaybackNote();
+}
+
+function pbFrameAt(tMs) {
+  const frames = state.pbData.frames;
+  let best = 0;
+  for (let i = 0; i < frames.length; i++) { if (frames[i]._t <= tMs) best = i; else break; }
+  return Math.max(best, pbFirstIdx());
+}
+function pbFirstIdx() {
+  const frames = state.pbData.frames;
+  for (let i = 0; i < frames.length; i++) { if (frames[i]._t >= state.pb.loT) return i; }
+  return frames.length - 1;
+}
+
+function renderPlaybackTicks() {
+  const pb = state.pb;
+  const el = $('#pb-ticks');
+  el.innerHTML = '';
+  for (const g of state.pbChapters || []) {
+    const pt = new Date(g.peak_time).getTime();
+    if (!(pt >= pb.loT && pt <= pb.hiT)) continue;
+    const b = document.createElement('button');
+    b.className = 'pb-tick';
+    b.textContent = '▲';
+    b.style.left = `${((pt - pb.loT) / (pb.hiT - pb.loT || 1)) * 100}%`;
+    b.title = `${g.name} crest ${g.peak} ${g.unit || 'ft'}`;
+    b.addEventListener('click', () => { stopPlaybackPlay(); setPlaybackFrame(pbFrameAt(pt)); });
+    el.appendChild(b);
+  }
+}
+
+// build once per session: one marker per archived gauge, mutated per frame (8 fps re-create would churn)
+function pbEnsureMarkers() {
+  if (state.pbMarkers) return;
+  state.layers.pbGauges = state.layers.pbGauges || L.layerGroup();
+  state.pbMarkers = {};
+  for (const [lid, gi] of Object.entries(state.pbData.gaugeIndex)) {
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="gauge-hit"><div class="gauge-icon cat-none" style="width:8px;height:8px"></div></div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+    const m = L.marker([gi.lat, gi.lon], { icon });
+    m.bindPopup(() => pbPopup(lid), { minWidth: 240 });
+    state.layers.pbGauges.addLayer(m);
+    state.pbMarkers[lid] = m;
+  }
+}
+
+function pbPopup(lid) {
+  const pb = state.pb;
+  const frame = state.pbData.frames[pb.idx];
+  const gi = state.pbData.gaugeIndex[lid];
+  const rec = frame.gauges[lid];
+  if (!rec) return '';
+  const { stale, cat } = pbDecode(rec[1]);
+  return `<div class="popup-title">${esc(gi.name)}</div>` +
+    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(CAT_LABEL[cat])}</span> · ${fmtNum(rec[0])} ft</div>` +
+    (stale ? `<div class="popup-meta stale-note">⏱ ${esc(t('playback.stale'))}</div>` : '') +
+    `<div class="popup-meta" style="color:var(--sev-warning);font-weight:700">⏮ ${esc(t('playback.pill'))} · ${esc(fmtCT(frame.t))}</div>`;
+}
+
+function pbPaintMarkers(frame) {
+  for (const [lid, m] of Object.entries(state.pbMarkers)) {
+    const el = m.getElement();
+    if (!el) continue;
+    const rec = frame.gauges[lid];
+    if (!rec) { el.style.display = 'none'; continue; }
+    el.style.display = '';
+    const { stale, cat } = pbDecode(rec[1]);
+    const hit = el.firstChild;
+    hit.className = `gauge-hit${cat === 'none' && !stale ? ' hit-none' : ''}`;
+    const dot = hit.firstChild;
+    dot.className = `gauge-icon ${stale ? 'stale' : `cat-${cat}`}`;
+    const size = stale ? 11 : CAT_SIZE[cat];
+    dot.style.width = `${size}px`;
+    dot.style.height = `${size}px`;
+    m.setZIndexOffset(cat === 'major' ? 1000 : 0);
+  }
+}
+
+// engage: swap the live gauge layer for archive markers, badge the view, archive the radar if it's on
+function playbackEngage() {
+  const pb = state.pb;
+  if (!pb.live) return;
+  pb.live = false;
+  pbEnsureMarkers();
+  pb.gaugesWereOn = state.map.hasLayer(state.layers.gauges);
+  if (pb.gaugesWereOn) state.map.removeLayer(state.layers.gauges);
+  state.layers.pbGauges.addTo(state.map);
+  document.body.classList.add('pb-on');
+  $('#pb-badge').hidden = false;
+  $('#pb-now').classList.add('armed');
+  if (state.map.hasLayer(state.layers.radar)) {
+    pb.radarWasIdx = state.radar ? state.radar.idx : -1;
+    stopRadarPlay();
+    if (state.radar) state.radar.frameLayers.forEach((l) => l.setOpacity(0));
+    pb.radarLayer = L.tileLayer(PB_RADAR_URL(pbRadarStamp()), {
+      pane: 'radar', opacity: 0.75, maxNativeZoom: 8, maxZoom: 19, attribution: 'Radar archive: IEM NEXRAD',
+    }).addTo(state.map);
+  }
+  updatePlaybackNote();
+}
+
+// NOW: instant, total restore of the live picture
+function playbackGoLive() {
+  const pb = state.pb;
+  if (!pb || pb.live) return;
+  stopPlaybackPlay();
+  pb.live = true;
+  if (state.map.hasLayer(state.layers.pbGauges)) state.map.removeLayer(state.layers.pbGauges);
+  if (pb.gaugesWereOn && !state.map.hasLayer(state.layers.gauges)) state.layers.gauges.addTo(state.map);
+  if (pb.radarLayer) { state.map.removeLayer(pb.radarLayer); pb.radarLayer = null; }
+  if (pb.radarWasIdx >= 0 && state.radar) setRadarFrame(pb.radarWasIdx);
+  pb.radarWasIdx = -1;
+  document.body.classList.remove('pb-on');
+  $('#pb-badge').hidden = true;
+  $('#pb-now').classList.remove('armed');
+  $('#pb-slider').value = pb.hiT;
+  updatePlaybackReadout();
+  updatePlaybackNote();
+}
+
+function pbRadarStamp() {
+  const frame = state.pbData.frames[state.pb.idx];
+  const d = new Date(Math.floor(frame._t / 300000) * 300000); // IEM archive is 5-min steps
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
+}
+
+function setPlaybackFrame(i) {
+  const pb = state.pb, frames = state.pbData.frames;
+  playbackEngage();
+  pb.idx = Math.max(pbFirstIdx(), Math.min(i, frames.length - 1));
+  const frame = frames[pb.idx];
+  pbPaintMarkers(frame);
+  if (pb.radarLayer) {
+    const stamp = pbRadarStamp();
+    if (stamp !== pb.radarStamp) { pb.radarStamp = stamp; pb.radarLayer.setUrl(PB_RADAR_URL(stamp)); }
+  }
+  $('#pb-slider').value = frame._t;
+  updatePlaybackReadout();
+}
+
+function updatePlaybackReadout() {
+  const pb = state.pb;
+  if (pb.live) {
+    $('#pb-time').textContent = t('playback.live');
+    $('#pb-time').classList.add('live');
+    return;
+  }
+  const frame = state.pbData.frames[pb.idx];
+  $('#pb-time').textContent = fmtCT(frame.t);
+  $('#pb-time').classList.remove('live');
+  $('#pb-badge-t').textContent = fmtCT(frame.t);
+}
+
+// truth line: which layers replay vs stay live, incl. the viewer's own 7d alert history at frame time
+function updatePlaybackNote() {
+  const pb = state.pb;
+  let note = pb.live ? t('playback.note.idle')
+    : `${t('playback.note.replay')}${pb.radarLayer ? t('playback.note.radar') : ''} · ${t('playback.note.live')}`;
+  if (!pb.live) {
+    const ft = state.pbData.frames[pb.idx]._t;
+    const n = Object.values(state.hist.alerts || {}).filter((a) => {
+      const s = new Date(a.t).getTime(), e = a.expires ? new Date(a.expires).getTime() : 0;
+      return s <= ft && e >= ft;
+    }).length;
+    if (n) note += ` · ${t('playback.note.alerthist').replace('{n}', n)}`;
+    if (state.pbData.frames[pbFirstIdx()]._t > Date.now() - pb.days * 86400000 + 60000) {
+      note += ` · ${t('playback.note.start').replace('{t}', fmtCT(state.pbData.frames[0].t))}`;
+    }
+  }
+  $('#pb-note').textContent = note;
+}
+
+function stopPlaybackPlay() {
+  const pb = state.pb;
+  if (!pb) return;
+  pb.playing = false;
+  if (pb.raf) { cancelAnimationFrame(pb.raf); pb.raf = null; }
+  $('#pb-play').textContent = '▶';
+}
+
+function togglePlaybackPlay() {
+  const pb = state.pb;
+  if (!pb) return;
+  if (pb.playing) { stopPlaybackPlay(); return; }
+  if (pb.live || pb.idx >= state.pbData.frames.length - 1) setPlaybackFrame(pbFirstIdx()); // play from window start
+  pb.playing = true;
+  $('#pb-play').textContent = '⏸';
+  pb.lastStep = 0;
+  const step = (ts) => {
+    if (!pb.playing) return;
+    if (ts - pb.lastStep >= PB_FPS_MS) {
+      pb.lastStep = ts;
+      if (pb.idx >= state.pbData.frames.length - 1) { stopPlaybackPlay(); updatePlaybackNote(); return; }
+      setPlaybackFrame(pb.idx + 1);
+      updatePlaybackNote();
+    }
+    pb.raf = requestAnimationFrame(step);
+  };
+  pb.raf = requestAnimationFrame(step);
+}
+
+function initPlaybackControls() {
+  $('#pb-pill').addEventListener('click', togglePlayback);
+  $('#pb-play').addEventListener('click', togglePlaybackPlay);
+  $('#pb-now').addEventListener('click', playbackGoLive);
+  $('#pb-close').addEventListener('click', closePlayback);
+  $('#pb-slider').addEventListener('input', () => {
+    stopPlaybackPlay();
+    setPlaybackFrame(pbFrameAt(+$('#pb-slider').value));
+    updatePlaybackNote();
+  });
+  document.querySelectorAll('.pb-chip').forEach((b) => b.addEventListener('click', () => {
+    stopPlaybackPlay();
+    setPlaybackRange(+b.dataset.days);
+    updatePlaybackNote();
+  }));
+}
+

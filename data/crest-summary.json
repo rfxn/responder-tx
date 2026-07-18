@@ -1,0 +1,275 @@
+{
+ "generated": "2026-07-18T21:58:01Z",
+ "event": "July 2026",
+ "window": {
+  "first": "2026-07-17T15:31:40Z",
+  "last": "2026-07-18T21:55:00Z"
+ },
+ "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive",
+ "gauges": [
+  {
+   "lid": "ASRT2",
+   "name": "Nueces River near Asherton",
+   "peak": 31.43,
+   "peak_time": "2026-07-18T21:10:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 33.0,
+    "record_date": "1935-06-17",
+    "peak_pct": 95.2,
+    "exceeded": false,
+    "approached": true
+   },
+   "stale": false
+  },
+  {
+   "lid": "BTVT2",
+   "name": "West Nueces River at Brackettville",
+   "peak": 22.86,
+   "peak_time": "2026-07-17T15:31:40Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": true
+  },
+  {
+   "lid": "JNXT2",
+   "name": "Devils River at Cauthorn Ranch near Juno",
+   "peak": 22.5,
+   "peak_time": "2026-07-18T12:59:30Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-18T09:58:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": false
+  },
+  {
+   "lid": "BKCT2",
+   "name": "Devils River at Bakers Crossing near Juno",
+   "peak": 21.15,
+   "peak_time": "2026-07-18T17:43:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-18T14:43:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": false
+  },
+  {
+   "lid": "DBYT2",
+   "name": "Frio River near Derby",
+   "peak": 20.51,
+   "peak_time": "2026-07-18T16:35:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 29.45,
+    "record_date": "1932-07-04",
+    "peak_pct": 69.6,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
+   "lid": "PDAT2",
+   "name": "Pecos River at Pandale Crossing",
+   "peak": 15.93,
+   "peak_time": "2026-07-18T03:58:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-18T03:25:00Z",
+   "last_in_flood": "2026-07-18T15:43:00Z",
+   "ongoing": false,
+   "stale": false
+  },
+  {
+   "lid": "SUPT2",
+   "name": "Cibolo Creek at Sutherland Springs",
+   "peak": 33.13,
+   "peak_time": "2026-07-17T15:31:40Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-18T02:42:54Z",
+   "ongoing": false,
+   "stale": false
+  },
+  {
+   "lid": "SRRT2",
+   "name": "San Antonio River at SH 72 near Runge",
+   "peak": 33.02,
+   "peak_time": "2026-07-18T21:55:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-18T03:00:40Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": false
+  },
+  {
+   "lid": "JNCT2",
+   "name": "Llano River near Junction",
+   "peak": 30.27,
+   "peak_time": "2026-07-17T17:08:23Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-18T07:43:00Z",
+   "ongoing": false,
+   "record": {
+    "record_ft": 43.3,
+    "record_date": "1935-06-14",
+    "peak_pct": 69.9,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
+   "lid": "MLRT2",
+   "name": "Llano River near Mason",
+   "peak": 26.32,
+   "peak_time": "2026-07-18T01:31:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-18T08:58:00Z",
+   "ongoing": false,
+   "stale": false
+  },
+  {
+   "lid": "FCTT2",
+   "name": "Cibolo Creek near Falls City",
+   "peak": 23.48,
+   "peak_time": "2026-07-18T02:42:54Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-18T20:27:00Z",
+   "ongoing": false,
+   "stale": false
+  },
+  {
+   "lid": "LLAT2",
+   "name": "Llano River at Llano",
+   "peak": 20.83,
+   "peak_time": "2026-07-18T04:28:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": false
+  },
+  {
+   "lid": "EPPT2",
+   "name": "Rio Grande at Eagle Pass",
+   "peak": 19.38,
+   "peak_time": "2026-07-17T23:46:09Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-18T09:28:00Z",
+   "ongoing": false,
+   "stale": false
+  },
+  {
+   "lid": "LTRT2",
+   "name": "Pecos River near Langtry",
+   "peak": 16.66,
+   "peak_time": "2026-07-18T14:58:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-18T13:58:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": false
+  },
+  {
+   "lid": "UVLT2",
+   "name": "Nueces River below Uvalde",
+   "peak": 16.04,
+   "peak_time": "2026-07-17T15:31:40Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-18T08:43:00Z",
+   "ongoing": false,
+   "stale": false
+  },
+  {
+   "lid": "UVAT2",
+   "name": "Nueces River at Laguna",
+   "peak": 15.9,
+   "peak_time": "2026-07-17T21:18:21Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-18T05:43:00Z",
+   "ongoing": false,
+   "stale": false
+  },
+  {
+   "lid": "CNCT2",
+   "name": "Frio River at Concan",
+   "peak": 12.76,
+   "peak_time": "2026-07-17T15:31:40Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-17T18:16:04Z",
+   "ongoing": false,
+   "record": {
+    "record_ft": 34.4,
+    "record_date": "1932-07-01",
+    "peak_pct": 37.1,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
+   "lid": "UDET2",
+   "name": "Frio River below Dry Frio near Uvalde",
+   "peak": 12.94,
+   "peak_time": "2026-07-17T18:16:04Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T17:12:58Z",
+   "last_in_flood": "2026-07-17T22:58:04Z",
+   "ongoing": false,
+   "record": {
+    "record_ft": 35.0,
+    "record_date": "1894-01-01",
+    "peak_pct": 37.0,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
+   "lid": "HNTT2",
+   "name": "Guadalupe River at Hunt",
+   "peak": 10.93,
+   "peak_time": "2026-07-17T15:31:40Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T15:31:40Z",
+   "last_in_flood": "2026-07-17T18:16:04Z",
+   "ongoing": false,
+   "stale": false
+  }
+ ],
+ "skipped_commits": 0
+}

@@ -693,12 +693,35 @@ main { flex: 1; display: flex; min-height: 0; }
 #hydro-legend .hl i.dashed { border-top: 2px dashed var(--ink-1); background: none; height: 0; }
 #hydro-note { padding: 0 14px 12px; }
 
-/* Drive Mode — big type, high contrast, one-thumb; overrides theme to dark for glare */
-#drive-mode {
+/* Drive Mode — big type, high contrast, one-thumb; overrides theme to dark for glare.
+   The crest-summary view shares the same full-screen dark chrome. */
+#drive-mode, #summary-view {
   position: fixed; inset: 0; z-index: 1600; background: #0c0c0b; color: #fff;
   display: flex; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
-#drive-mode[hidden] { display: none; }
+#drive-mode[hidden], #summary-view[hidden] { display: none; }
+
+#summary-body { padding: 6px 14px 14px; flex: 1 1 auto; }
+.sum-head { padding: 8px 2px 4px; }
+.sum-event { font-size: 15px; font-weight: 800; }
+.sum-sub { font-size: 13px; color: #b9b8b1; margin-top: 2px; }
+.sum-cite { font-size: 11.5px; color: #8a897f; margin-top: 4px; line-height: 1.35; }
+.sum-quiet { color: #b9b8b1; font-size: 14px; padding: 14px 2px; }
+.sum-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
+.sum-table th {
+  text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #8a897f; padding: 4px 6px 4px 0; border-bottom: 1px solid #2c2c2a;
+}
+.sum-table td { padding: 8px 6px 8px 0; border-bottom: 1px solid #222220; vertical-align: top; line-height: 1.35; }
+.sum-name { font-weight: 700; }
+.sum-lid { font-size: 11px; color: #8a897f; }
+.sum-stage { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sum-when, .sum-window { font-size: 11.5px; color: #b9b8b1; font-variant-numeric: tabular-nums; }
+.sum-rec { font-size: 11px; color: #b9b8b1; margin-top: 3px; }
+.sum-rec.near { color: var(--cat-major); font-weight: 600; }
+.sum-rec.at { color: var(--sev-emergency); font-weight: 700; }
+/* the view is hardcoded dark like Drive Mode — badges can't ride the theme vars */
+.sum-table .badge { display: inline-block; margin-top: 3px; background: #1a1a19; border-color: #3a3a37; color: #c9c8c0; }
 .drive-head {
   display: flex; align-items: center; gap: 10px; padding: 12px 14px;
   border-bottom: 1px solid #2c2c2a; position: sticky; top: 0; background: #0c0c0b; z-index: 2;

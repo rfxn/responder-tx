@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.80.0",
+      "date": "2026-07-18",
+      "line": "Event crest summary (after-action part 1): a new read-only crest summary view (⋯ More → 📊 Crest summary, or ?view=summary) shows every gauge that reached flood stage this event with its peak stage, category, peak time (CT), in-flood window, and crest-of-record comparison (Asherton peaked at 95% of the 1935 record), built from the board's committed 15-minute snapshot archive by a new release-time generator; frozen-sensor peaks are badged STALE and gauges still in flood are marked ongoing."
+    },
+    {
       "v": "v0.79.0",
       "date": "2026-07-18",
       "line": "Recovery posture, part 1: the board now tracks road closures that clear from the live DriveTexas feed and surfaces them as ✓ REOPENED — green markers on the map, a 'Recently reopened roads' list in Resources, and low-priority ✓ rows in Drive Mode (aging out of view after 12h, kept 7 days). And when the AO goes fully quiet — no in-AO alerts, no gauges in flood, no closures — the threat strip shows a calm 'No active flood threat in the AO — monitoring N gauges' line instead of sitting empty."

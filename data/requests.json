@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-18T07:58:00Z",
+  "generated": "2026-07-18T12:13:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
@@ -24,17 +24,17 @@
     },
     {
       "id": "seed-040",
-      "ts": "2026-07-18T06:13:00Z",
+      "ts": "2026-07-18T12:13:00Z",
       "type": "evacuation",
-      "priority": "critical",
-      "status": "open",
+      "priority": "low",
+      "status": "resolved",
       "county": "Val Verde",
       "place": "Pecos River — Pandale Crossing → NW Val Verde",
       "lat": 30.125,
       "lon": -101.5722,
-      "summary": "PECOS RIVER — Pandale Crossing (PDAT2) AT CREST, holding MAJOR ~15.4 ft: it topped out near 15.9, well under the earlier 18.5 forecast, and NWPS has now revised the crest down to ~15 ft — threat easing. NWS Austin FFW for NW Val Verde still active until 7 AM CDT. Downstream Langtry forecast ~18 ft MODERATE by Sat afternoon. Stay off the river bottom.",
+      "summary": "PECOS RIVER — RESOLVED: the wave crested at Pandale Crossing (~15.9 ft MAJOR overnight, well under the 18.5 ft model forecast) and has receded to MINOR (8.38 ft, heading to no-flooding). The NWS Val Verde flash-flood warning expired at 7 AM CDT. Acute threat passed; residual high water may linger at low crossings.",
       "details": [
-        "NWPS PDAT2 1:12 AM CT: observed 15.37 ft MAJOR (major stage 15 ft), at crest — peaked ~15.9 and the model has revised its forecast crest DOWN from 18.5 to ~15.1 ft, i.e. the over-forecast did not verify (a recurring theme tonight; the 'highest since 1974' language was on the old forecast). Still in major and the NWS Austin/San Antonio FFW for NW Val Verde runs until 7 AM CDT, so treat the crossing as impassable. Downstream Langtry (LTRT2) still low, wave forecast ~18 ft MODERATE by Sat afternoon. Do not attempt low crossings."
+        "NWPS PDAT2 7:12 AM CT: observed 8.38 ft (minor) and falling, forecast to drop to ~4.8 ft no-flooding by midday — the Pecos flood wave has crested and is in recovery. It peaked ~15.9 ft MAJOR overnight, below the 18.5 ft (and earlier '1974-level') model forecast. The NWS Austin/San Antonio flash-flood warning for NW Val Verde expired at 7:00 AM CDT with no renewal. Low-water crossings may stay wet on the falling limb, but the acute flash-flood threat has passed."
       ],
       "source": {
         "platform": "official",

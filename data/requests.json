@@ -1,20 +1,20 @@
 {
-  "generated": "2026-07-18T04:21:30Z",
+  "generated": "2026-07-18T04:58:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
       "id": "seed-041",
-      "ts": "2026-07-18T04:21:30Z",
+      "ts": "2026-07-18T04:58:00Z",
       "type": "evacuation",
-      "priority": "critical",
+      "priority": "high",
       "status": "open",
       "county": "Mason",
       "place": "Llano River — Mason → Llano",
       "lat": 30.7205,
       "lon": -99.171,
-      "summary": "LLANO RIVER — NWS FLOOD WARNING (Mason & Llano Co.): near Mason (MLRT2) 22.54 ft rising to a forecast 30.7 ft MAJOR crest ~midnight CDT; downstream at Llano (LLAT2) 20.5 ft MODERATE, forecast 25 ft MAJOR ~4 AM CDT. Active Hill Country river wave, upstream-first (Mason → Llano). Move off the river bottom and low crossings now.",
+      "summary": "LLANO RIVER — Mason (MLRT2) crested LOWER than forecast: observed peaked ~22.5 ft (MINOR) and is now RECEDING (21.46 ft); the forecast 30.7 ft MAJOR has not verified. NWS Flood Warnings still in effect for Mason & Llano. Downstream at Llano (LLAT2) 20.83 ft MODERATE, still forecast ~25 ft MAJOR ~4 AM CDT — watch whether it also under-runs. Stay off the river bottom; crossings may still be flooded.",
       "details": [
-        "NWS Flood Warnings are in effect for Mason and Llano counties. NWPS 11:16 PM CT: Llano River near Mason (MLRT2) observed 22.54 ft (minor) rising sharply to a forecast 30.7 ft MAJOR crest ~12 AM CDT Sat; Llano River at Llano (LLAT2) observed 20.5 ft (moderate), forecast 25 ft MAJOR ~4 AM CDT as the wave moves downstream. Mason crests first, then Llano ~4 hours later. Move people, vehicles, and livestock off the Llano bottom; do not cross low-water crossings — Turn Around, Don't Drown."
+        "Honest read at 11:57 PM CT: NWPS Llano River near Mason (MLRT2) observed 21.46 ft (minor) and falling — it peaked around 22.5 ft (minor) over the last half hour and did NOT approach the 30.7 ft MAJOR crest the model forecast for ~midnight, which has not materialized. NWS Flood Warnings remain active for Mason and Llano counties. Downstream, Llano River at Llano (LLAT2) is 20.83 ft (moderate) with a 25 ft MAJOR forecast crest ~4 AM CDT — treat that as still-pending and watch whether it also comes in under forecast. Low-water crossings in the reach may remain flooded on the falling limb; do not cross."
       ],
       "source": {
         "platform": "official",

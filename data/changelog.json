@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.76.2",
+      "date": "2026-07-18",
+      "line": "Road-hazard layer now excludes construction-driven closures — TxDOT codes some construction shutdowns as 'Closure'/'Damage' (not 'Construction'), so they slipped past our condition filter and showed as red closure lines; a server-side description filter now drops 'closed due to construction' entries (4 of 102 in the AO this cycle) so the board stays flood-relevant. Null-safe: a closure with no description is still shown."
+    },
+    {
       "v": "v0.76.1",
       "date": "2026-07-18",
       "line": "Map legend now keys the v0.76.0 road-hazard line colors — a new 'Roads (DriveTexas)' section shows red = Road CLOSED, magenta = Flooded / high water, amber = Road damage, with colors pulled straight from ROAD_COND so they can't drift from the map. Small usability fix so the live road-closure lines are self-explanatory in the field."

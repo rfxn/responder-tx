@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.76.2 — 2026-07-18 (road layer: exclude construction-driven closures)
+- Change: the live TDEM DriveTexas road-hazard query now also excludes construction-driven closures that TxDOT codes as `Closure`/`Damage` rather than `Construction` (owner request — the board is flood-relevant only); added `AND (description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')` to the server-side `where` so "roadway closed due to construction" bridge/lane closures no longer render as red closure lines (dropped 4 of 102 AO records this cycle); null-safe so a closure with no description text is still shown rather than hidden
+
 ## v0.76.1 — 2026-07-18 (map legend: road-hazard line colors)
 - New: the on-map legend now carries a "Roads (DriveTexas)" section keying the three road-hazard line colors added in v0.76.0 — red = Road CLOSED, magenta = Flooded / high water, amber = Road damage — with swatch colors and labels pulled straight from the `ROAD_COND` map so they can never drift from the rendered lines; a field user seeing colored lines on the map now has the key inline
 

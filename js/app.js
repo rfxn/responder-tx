@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.76.1';
+const APP_VERSION = 'v0.76.2';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1223,7 +1223,8 @@ const roadCondActive = (f) => { const e = f.properties && f.properties.end_time;
 function roadParams(outFields) {
   const b = CONFIG.gaugeBbox;
   return new URLSearchParams({
-    where: "condition IN ('Flooding','Closure','Damage')",
+    // exclude construction-driven closures coded as Closure/Damage (owner: flood-relevant only); null-safe keeps unlabeled closures
+    where: "condition IN ('Flooding','Closure','Damage') AND (description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')",
     geometry: `${b.xmin},${b.ymin},${b.xmax},${b.ymax}`,
     geometryType: 'esriGeometryEnvelope',
     inSR: '4326',

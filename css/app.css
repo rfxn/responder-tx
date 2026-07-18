@@ -390,6 +390,8 @@ main { flex: 1; display: flex; min-height: 0; }
 .gauge-icon.cat-moderate { background: var(--cat-moderate); }
 .gauge-icon.cat-major { background: var(--cat-major); animation: pulse 1.6s infinite; }
 .gauge-icon.cat-none { background: var(--cat-none); opacity: 0.7; }
+/* dead/stale sensor — greyed + dashed, no pulse; suppressed from flood signals but kept on the map */
+.gauge-icon.stale { background: var(--cat-none); opacity: 0.5; border-style: dashed; box-shadow: none; animation: none; }
 
 .req-icon {
   display: flex; align-items: center; justify-content: center;
@@ -485,6 +487,9 @@ main { flex: 1; display: flex; min-height: 0; }
 
 /* aged/suppressed items — dimmed, retrievable, never deleted */
 .card.aged { opacity: 0.55; border-left-style: dashed; }
+.card.gauge-card.stale { opacity: 0.72; border-left-style: dashed; }
+.stale-note { color: var(--ink-muted); font-weight: 600; }
+.stale-glyph { color: var(--ink-muted); }
 .badge.aged-chip { border-color: var(--ink-muted); color: var(--ink-muted); }
 .aged-toggle {
   display: block; width: 100%; text-align: center;

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.4",
+      "date": "2026-07-18",
+      "line": "Recency filter for dead gauges: a frozen sensor (West Nueces at Brackettville, obs stuck ~60h at MAJOR while its own forecast read no-flooding) no longer counts as an active flood gauge — a 12h staleness cutoff now suppresses stale readings from the in-flood KPI, threat strip, crest-wave, and record-watch, while the gauge stays visible and badged STALE (suppress, not delete). Fresh gauges are unaffected."
+    },
+    {
       "v": "v0.75.3",
       "date": "2026-07-18",
       "line": "Mobile polish: the Feed tab's action-button strip (New notice / SITREP / Filters / ID / More) is condensed to a shorter, tighter row on phones, and the default bottom-sheet now cheats a 60/40 split so the map takes the dominant ~60% and the feed panel ~40%."

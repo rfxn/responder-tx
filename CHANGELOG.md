@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.76.3 — 2026-07-18 (Drive Mode uses the live road-closure data)
+- New: Drive Mode's big-type nearest-hazard glance list now includes the live TDEM DriveTexas road closures/flooding/damage (owner ask) alongside the existing closed/caution crossings, life-safety/road notices, and major/rising gauges — each closure is ranked by distance using the line vertex NEAREST the driver (midpoint when no GPS), shown with a condition glyph (⛔ closed · 🌊 flooded · ⚠ damage), the prettified route (`FM0481`→`FM 481`), and the condition label; ranked below closed crossings and critical incidents so hard stops still lead the list; the 14-item cap and distance sort keep the ~100-closure AO volume manageable
+
 ## v0.76.2 — 2026-07-18 (road layer: exclude construction-driven closures)
 - Change: the live TDEM DriveTexas road-hazard query now also excludes construction-driven closures that TxDOT codes as `Closure`/`Damage` rather than `Construction` (owner request — the board is flood-relevant only); added `AND (description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')` to the server-side `where` so "roadway closed due to construction" bridge/lane closures no longer render as red closure lines (dropped 4 of 102 AO records this cycle); null-safe so a closure with no description text is still shown rather than hidden
 

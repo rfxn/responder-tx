@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.76.2';
+const APP_VERSION = 'v0.76.3';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1578,7 +1578,7 @@ function bearing(fromLat, fromLon, toLat, toLon) {
   return COMPASS[Math.round((((Math.atan2(y, x) / toR) + 360) % 360) / 45) % 8];
 }
 
-// hazards a driver cares about: closed/caution crossings, life-safety + road/cutoff notices, major/rising gauges
+// hazards a driver cares about: closed/caution crossings, life-safety + road/cutoff notices, major/rising gauges, live TxDOT road closures
 function driveItems() {
   const items = [];
   for (const c of (state.crossings || [])) {
@@ -1596,6 +1596,21 @@ function driveItems() {
     items.push({ glyph: '●', color: 'var(--cat-major)', name: g.name, sub: gaugeCat(g) === 'major' ? 'MAJOR flood now' : 'rising to MAJOR', lat: g.latitude, lon: g.longitude, rank: 1 });
   }
   const p = state.myPos;
+  // live TxDOT road closures/flooding/damage — representative point = line vertex nearest the driver (midpoint if no GPS)
+  for (const f of ((state.roadClosures && state.roadClosures.lines) || [])) {
+    const geo = f.geometry;
+    if (!geo || !geo.coordinates) continue;
+    const verts = geo.type === 'MultiLineString' ? geo.coordinates.flat() : geo.coordinates;
+    let pt = null;
+    if (p) {
+      let best = Infinity;
+      for (const c of verts) { if (!Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue; const dd = distMi(p.lat, p.lng, c[1], c[0]); if (dd < best) { best = dd; pt = c; } }
+    } else { pt = verts[Math.floor(verts.length / 2)]; }
+    if (!pt || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
+    const ct = roadCondType(f.properties);
+    const cond = f.properties.condition;
+    items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${ct.label} · ${prettyRoute(f.properties.route_name) || 'road'}`, sub: 'TxDOT DriveTexas', lat: pt[1], lon: pt[0], rank: cond === 'Damage' ? 2 : 1 });
+  }
   if (p) {
     for (const it of items) { it.dist = distMi(p.lat, p.lng, it.lat, it.lon); it.brng = bearing(p.lat, p.lng, it.lat, it.lon); }
     items.sort((a, b) => a.dist - b.dist);

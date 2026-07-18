@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.76.3",
+      "date": "2026-07-18",
+      "line": "Drive Mode now uses the live road-closure data: its nearest-hazard glance list includes the TDEM DriveTexas closures/flooded/damaged roads (⛔/🌊/⚠) ranked by distance to the closest point on each closure, alongside crossings, life-safety notices, and major gauges — so a driver sees the nearest flooded/closed road, not just gauges and curated crossings."
+    },
+    {
       "v": "v0.76.2",
       "date": "2026-07-18",
       "line": "Road-hazard layer now excludes construction-driven closures — TxDOT codes some construction shutdowns as 'Closure'/'Damage' (not 'Construction'), so they slipped past our condition filter and showed as red closure lines; a server-side description filter now drops 'closed due to construction' entries (4 of 102 in the AO this cycle) so the board stays flood-relevant. Null-safe: a closure with no description is still shown."

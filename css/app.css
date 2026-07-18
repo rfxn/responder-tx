@@ -682,6 +682,19 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 .mrms-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-muted); margin-top: 2px; }
 
+#inun-legend {
+  position: absolute; bottom: 84px; right: 84px; z-index: 900; /* stacks above the rainfall legend */
+  background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
+  padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+#inun-legend[hidden] { display: none; }
+#inun-legend-title { font-size: 11px; font-weight: 700; color: var(--ink-2); display: block; margin-bottom: 3px; }
+.inun-sw {
+  display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px;
+  vertical-align: -1px; background: rgba(0,110,199,0.55); border: 1px solid rgba(0,110,199,0.9);
+}
+.inun-note { font-size: 10px; line-height: 1.35; color: var(--ink-muted); }
+
 /* AO quick-jump — pills along the map top edge next to the nav bar */
 .ao-jump {
   position: absolute; top: 10px; left: 54px; right: 56px; z-index: 1000;

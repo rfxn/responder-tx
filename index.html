@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.72.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.72.0">
-  <link rel="stylesheet" href="css/app.css?v=0.72.0">
-  <link rel="stylesheet" href="css/notes.css?v=0.72.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.73.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.73.0">
+  <link rel="stylesheet" href="css/app.css?v=0.73.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.73.0">
 </head>
 <body>
   <header>
@@ -196,6 +196,10 @@
         <div class="mrms-ramp"></div>
         <div class="mrms-labels"><span>light</span><span>moderate</span><span>heavy</span><span>extreme</span></div>
       </div>
+      <div id="inun-legend" hidden>
+        <span id="inun-legend-title"><span class="inun-sw"></span>Flood inundation — NWM model estimate</span>
+        <div class="inun-note">NWS/NWPS National Water Model analysis (experimental) — a modeled estimate, <strong>not observed</strong> conditions. Zoom to street level to see extent · updated hourly.</div>
+      </div>
       <div id="radar-scrub" hidden>
         <button id="rs-play" title="Play / pause the radar loop">▶</button>
         <input type="range" id="rs-slider" min="0" max="0" value="0" step="1" title="Scrub radar: past hour → projection">
@@ -250,9 +254,9 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.72.0"></script>
-  <script src="js/usng.js?v=0.72.0"></script>
-  <script src="js/app.js?v=0.72.0"></script>
-  <script src="js/notes.js?v=0.72.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.73.0"></script>
+  <script src="js/usng.js?v=0.73.0"></script>
+  <script src="js/app.js?v=0.73.0"></script>
+  <script src="js/notes.js?v=0.73.0"></script>
 </body>
 </html>

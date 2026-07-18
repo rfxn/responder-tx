@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.8",
+      "date": "2026-07-18",
+      "line": "Live TxDOT DriveTexas road layer — 'Road closures / high water (TxDOT)' toggle (on by default) fetches HCRS_CC flood-relevant conditions (Closed/Flood/Damage) over the AO, in-browser CORS, refreshes on cycle, ages out cleared closures via COND_END_TS, and degrades to an empty layer if the feed is down."
+    },
+    {
       "v": "v0.75.7",
       "date": "2026-07-18",
       "line": "'New notice' intake button suppressed by default per owner ('for now') — code + form kept intact, revealed by ?intake=1 (same gating as ?risk=1 / ?notes=1); static hidden attr so no boot flash."

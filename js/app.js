@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.7';
+const APP_VERSION = 'v0.75.8';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -27,6 +27,9 @@ const CONFIG = {
   // hard live-map cap: a storm report older than this ages out of the live layer into lsrsAged, even if the window filter is wider
   lsrMaxHours: 24,
   lsrUrl: 'https://mesonet.agron.iastate.edu/geojson/lsr.geojson',
+  // TxDOT DriveTexas HCRS live road conditions (CORS-open, no key). Layer 1 = line segments, 0 = points.
+  hcrsLineUrl: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/HCRS_CC/FeatureServer/1/query',
+  hcrsPointUrl: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/HCRS_CC/FeatureServer/0/query',
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   mrms1hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-n1p-900913/{z}/{x}/{y}.png',
   mrms24hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-p24h-900913/{z}/{x}/{y}.png',
@@ -437,6 +440,8 @@ function initMap() {
   state.layers.requests = L.layerGroup().addTo(state.map);
   state.layers.shelters = L.layerGroup().addTo(state.map);
   state.layers.crossings = L.layerGroup().addTo(state.map);
+  // TxDOT DriveTexas live road conditions — flood-relevant F/Z/D only, first-class toggle (owner request), on by default
+  state.layers.roadClosures = L.layerGroup().addTo(state.map);
   L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
@@ -456,6 +461,7 @@ function initMap() {
     'Notices (curated + field)': state.layers.requests,
     'Shelters': state.layers.shelters,
     'Low-water crossings': state.layers.crossings,
+    'Road closures / high water (TxDOT)': state.layers.roadClosures,
   }, { collapsed: true }).addTo(state.map);
 
   const legend = L.control({ position: 'bottomleft' });
@@ -1184,6 +1190,89 @@ function renderUsgsIv() {
       `<div class="popup-meta">Stage: ${s.ft} ft @ ${esc(fmtWhen(s.t))} — raw reading, no flood-stage context</div>` +
       `<div class="popup-link"><a href="https://waterdata.usgs.gov/monitoring-location/${esc(s.site)}" target="_blank" rel="noopener">USGS site page →</a></div>`);
     state.layers.usgs.addLayer(m);
+  }
+}
+
+/* ---------- TxDOT DriveTexas live road conditions (closed / high-water / damage) ---------- */
+
+const ROAD_ATTRIB = 'Road conditions: TxDOT DriveTexas (drivetexas.org)';
+// F/Z/D only — the flood-relevant subset. Z=Closed and F=Flood are prominent reds, D=Damage a distinct amber.
+const ROAD_COND = {
+  Z: { label: 'Road CLOSED', color: '#e5342f' },
+  F: { label: 'Flooded / high water', color: '#d81b8c' },
+  D: { label: 'Road damage', color: '#e8912b' },
+};
+const ROAD_COND_FALLBACK = { label: 'Road condition', color: '#e8912b' };
+const roadCondType = (p) => ROAD_COND[p && p.CNSTRNT_TYPE_CD] || ROAD_COND_FALLBACK;
+const stripHtml = (s) => String(s ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+// active = ongoing: keep when COND_END_TS is missing/empty, drop when it is a past epoch-ms (cleared closure)
+const roadCondActive = (f) => { const e = f.properties && f.properties.COND_END_TS; return !(e && e < Date.now()); };
+
+function roadParams(outFields) {
+  const b = CONFIG.gaugeBbox;
+  return new URLSearchParams({
+    where: "CNSTRNT_TYPE_CD IN ('F','Z','D')",
+    geometry: `${b.xmin},${b.ymin},${b.xmax},${b.ymax}`,
+    geometryType: 'esriGeometryEnvelope',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outSR: '4326',
+    outFields,
+    f: 'geojson',
+  });
+}
+
+async function fetchRoadClosures() {
+  const lineFields = 'CNSTRNT_TYPE_CD,RTE_NM,RDWAY_NM,COND_DSCR,COND_LMT_FROM_DSCR,COND_LMT_TO_DSCR,COND_START_TS,COND_END_TS,CNSTRNT_DETOUR_FLAG,TRVL_DRCT_CD';
+  const pointFields = 'CNSTRNT_TYPE_CD,RTE_NM,RDWAY_NM,COND_DSCR,LMT_FROM_DSCR,LMT_TO_DSCR,COND_START_TS,COND_END_TS,CNSTRNT_DETOUR_FLAG,TRVL_DRCT_CD';
+  const getJson = async (url, what) => { const r = await fetch(url); if (!r.ok) throw new Error(`TxDOT ${what} HTTP ${r.status}`); return r.json(); };
+  const [lineData, pointData] = await Promise.all([
+    getJson(`${CONFIG.hcrsLineUrl}?${roadParams(lineFields)}`, 'lines'),
+    getJson(`${CONFIG.hcrsPointUrl}?${roadParams(pointFields)}`, 'points'),
+  ]);
+  state.roadClosures = {
+    lines: (lineData.features || []).filter(roadCondActive),
+    points: (pointData.features || []).filter(roadCondActive),
+  };
+  markHealthy('roads');
+  renderRoadClosures();
+}
+
+function roadPopupHtml(p) {
+  const ct = roadCondType(p);
+  const road = [p.RTE_NM, p.RDWAY_NM].map((s) => String(s || '').trim()).filter(Boolean).join(' · ') || 'Road';
+  const from = p.COND_LMT_FROM_DSCR || p.LMT_FROM_DSCR || '';
+  const to = p.COND_LMT_TO_DSCR || p.LMT_TO_DSCR || '';
+  const dscr = stripHtml(p.COND_DSCR);
+  const detour = ['Y', '1', 'TRUE'].includes(String(p.CNSTRNT_DETOUR_FLAG || '').toUpperCase());
+  return `<div class="popup-title" style="color:${ct.color}">${esc(ct.label)}</div>` +
+    `<div class="popup-meta"><strong>${esc(road)}</strong></div>` +
+    ((from || to) ? `<div class="popup-meta">${esc(from)}${from && to ? ' → ' : ''}${esc(to)}</div>` : '') +
+    (dscr ? `<div class="popup-meta">${esc(dscr)}</div>` : '') +
+    (p.COND_START_TS ? `<div class="popup-meta">Since ${esc(fmtWhen(new Date(p.COND_START_TS).toISOString()))}</div>` : '') +
+    (detour ? '<div class="popup-meta">Detour available</div>' : '') +
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee — verify before routing</div>`;
+}
+
+function renderRoadClosures() {
+  const layer = state.layers.roadClosures;
+  if (!layer) return;
+  layer.clearLayers();
+  const rc = state.roadClosures || { lines: [], points: [] };
+  for (const f of rc.lines) {
+    if (!f.geometry) continue;
+    const ct = roadCondType(f.properties);
+    const gj = L.geoJSON(f, { style: { color: ct.color, weight: 5, opacity: 0.9 }, attribution: ROAD_ATTRIB });
+    gj.bindPopup(roadPopupHtml(f.properties));
+    layer.addLayer(gj);
+  }
+  for (const f of rc.points) {
+    const c = f.geometry && f.geometry.coordinates;
+    if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
+    const ct = roadCondType(f.properties);
+    const m = L.circleMarker([c[1], c[0]], { radius: 7, color: '#fff', weight: 1.5, fillColor: ct.color, fillOpacity: 0.95, attribution: ROAD_ATTRIB });
+    m.bindPopup(roadPopupHtml(f.properties));
+    layer.addLayer(m);
   }
 }
 
@@ -2596,8 +2685,8 @@ async function refresh() {
   const gaugesP = fetchGauges();
   // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
   const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
-  const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds()]);
-  const SOURCE_NAMES = ['NWS alerts', 'NWPS gauges', 'RFC forecast', 'USGS stage', 'storm reports', 'board data'];
+  const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds(), fetchRoadClosures()]);
+  const SOURCE_NAMES = ['NWS alerts', 'NWPS gauges', 'RFC forecast', 'USGS stage', 'storm reports', 'board data', 'TxDOT roads'];
   const failed = results.filter((r) => r.status === 'rejected');
   const failedNames = results.map((r, i) => (r.status === 'rejected' ? SOURCE_NAMES[i] : null)).filter(Boolean).join(', ');
   state.refreshAt = Date.now() + CONFIG.refreshMs;
@@ -2621,7 +2710,7 @@ function markHealthy(source) { state.sourceHealth[source] = Date.now(); }
 function renderSourceHealth() {
   const el = $('#source-health');
   if (!el) return;
-  const sources = [['alerts', 'NWS alerts'], ['gauges', 'NOAA gauges'], ['fcstMax', 'RFC forecast max'], ['usgs', 'USGS raw stage'], ['lsrs', 'Storm reports'], ['seeds', 'Board data']];
+  const sources = [['alerts', 'NWS alerts'], ['gauges', 'NOAA gauges'], ['fcstMax', 'RFC forecast max'], ['usgs', 'USGS raw stage'], ['lsrs', 'Storm reports'], ['seeds', 'Board data'], ['roads', 'TxDOT roads']];
   el.innerHTML = '<div class="section-title">Data source health</div>' +
     '<div class="filters" style="margin-bottom:12px">' + sources.map(([k, label]) => {
       const t = state.sourceHealth[k];

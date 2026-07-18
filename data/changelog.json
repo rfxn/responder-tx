@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.7",
+      "date": "2026-07-18",
+      "line": "'New notice' intake button suppressed by default per owner ('for now') — code + form kept intact, revealed by ?intake=1 (same gating as ?risk=1 / ?notes=1); static hidden attr so no boot flash."
+    },
+    {
       "v": "v0.75.6",
       "date": "2026-07-18",
       "line": "Map recency for flash-flood iconography: the alert-polygon draw loop skips any NWS alert whose expires time is in the past, so a stale/expired alert can no longer linger on the map after a failed refresh — alerts still open (expires in the future, any age) keep drawing, so an open FF EMERGENCY/WARNING is never hidden. New lsrMaxHours=24 hard cap on live storm-report (💧) markers: a report older than 24h routes to the existing aged/history layer instead of the live layer even when the window filter is wider — suppress, not delete."

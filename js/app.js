@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.6';
+const APP_VERSION = 'v0.75.7';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -2822,6 +2822,8 @@ async function boot() {
     // pin-drop needs the map on screen — phones scroll it into view when intake opens
     if (open && window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
   });
+  // owner: "New notice" intake suppressed by default; ?intake=1 reveals it (code + form kept intact)
+  if (new URLSearchParams(location.search).has('intake')) $('#toggle-form').hidden = false;
   // radio-relayed coords arrive as text — typed "lat, lon" is a first-class pin source
   $('#f-latlon').addEventListener('change', () => {
     const raw = $('#f-latlon').value.trim();

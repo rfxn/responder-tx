@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.75.7 — 2026-07-18 (owner: suppress "New notice" intake by default)
+- Change: the Feed tab's "＋ New notice" intake button is now hidden by default per owner ("suppress for now") — the code and the intake form stay fully intact, revealed by the `?intake=1` deep link (same gating pattern as "Am I at risk?" ?risk=1 and Field Notes ?notes=1); the button carries a static `hidden` attribute so it never flashes on boot, and a `?intake=1` check un-hides it
+
 ## v0.75.6 — 2026-07-18 (map recency: age out stale flash-flood iconography)
 - Change: the map alert-polygon draw loop (`renderAlertPolys`) now skips any NWS flood alert whose `properties.expires` is in the past (`new Date(f.properties.expires) < new Date()`) — on a failed refresh `state.alerts` keeps the prior set, so an alert that has since expired could linger as a polygon; expired alerts no longer draw, while every alert still open (expires in the future, regardless of how long ago it was issued) keeps rendering, so an open FF EMERGENCY / FF WARNING is never suppressed
 - New: `CONFIG.lsrMaxHours: 24` hard live-map cap on IEM storm-report (💧 LSR) markers — `renderLsrs` now caps the live cutoff at `Math.min(lsrFreshCutoffMins(), lsrMaxHours * 60)`, so a report older than 24h routes to the existing `lsrsAged` history layer (off by default, kept `histDays`) instead of the live `lsrs` layer even when the user's window filter is wider than 24h; suppress ≠ delete, aged reports stay reachable, and reports within the cutoff render live unchanged

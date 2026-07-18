@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-18T16:38:00Z",
+  "generated": "2026-07-18T17:28:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
@@ -100,7 +100,7 @@
     },
     {
       "id": "seed-037",
-      "ts": "2026-07-18T16:38:00Z",
+      "ts": "2026-07-18T17:28:00Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -108,9 +108,9 @@
       "place": "Lower Frio River — Derby / Tilden reaches",
       "lat": 28.7659,
       "lon": -99.1281,
-      "summary": "LOWER FRIO — Derby (DBYT2) RISING through 20.5 ft MAJOR (was 18.95 ft overnight); NWPS now forecasts the crest ~21.1 ft MAJOR around 1 PM CT — trimmed from the earlier ~21.8 ft. Riverside ranches, low crossings, and equipment in the Derby reach stay flooded through the day.",
+      "summary": "LOWER FRIO — Derby (DBYT2) HOLDING ~20.5 ft MAJOR and running BELOW its ~21.1 ft forecast crest: observed has been flat at 20.4–20.5 for 2+ hours (20.48 at 11:30 AM CT), so the model looks to be over-forecasting again. Still solid MAJOR flooding — riverside ranches, low crossings, and equipment in the Derby reach stay flooded — but the acute rise has stalled short of the forecast.",
       "details": [
-        "NWPS DBYT2 10:30 AM CT: observed 20.51 ft MAJOR (major stage 17), still climbing from the 18.95 ft overnight reading; forecast crest ~21.1 ft around 1 PM CT (18:00Z), trimmed slightly from the earlier ~21.8 ft call. Last of the overnight waves still building — keep equipment and livestock off the Derby river bottom and avoid low crossings through the early-afternoon crest."
+        "NWPS DBYT2 11:30 AM CT: observed 20.48 ft MAJOR (major stage 17), essentially flat since ~9 AM (20.4–20.51 band) versus the ~21.1 ft crest NWPS still forecasts around 1 PM CT — consistent with the other overnight over-forecasts that under-ran. Treat 21.1 as an upper bound, not a lock. Keep equipment and livestock off the Derby river bottom and avoid low crossings; MAJOR-stage water persists on the falling/flat limb even if it never reaches the forecast peak."
       ],
       "source": {
         "platform": "official",

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.3';
+const APP_VERSION = 'v0.75.4';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -16,6 +16,8 @@ const CONFIG = {
   maxZoneGeomFetches: 12,
   sparkHours: 48,
   staleMins: 360,
+  // obs older than this = dead sensor; long enough for 1-6h rural reporters, short enough to catch frozen gauges (BTVT2 froze 60h at MAJOR)
+  gaugeStaleHours: 12,
   smartHalfLifeMins: 360,
   agedCardMins: 1440,
   agedCardMinsByType: { info: 720, volunteer: 720 },
@@ -802,9 +804,25 @@ async function fetchGauges() {
   renderTiles();
 }
 
-function gaugeCat(g) {
+// a sensor is stale/dead when its last observation is missing/unparseable or older than the
+// recency cutoff — a frozen gauge keeps reporting a real floodCategory, so obs-age is the only tell
+function gaugeObsStale(g) {
+  const iso = g.status && g.status.observed && g.status.observed.validTime;
+  if (!iso) return true;
+  const m = ageMins(iso);
+  return Number.isNaN(m) || m > CONFIG.gaugeStaleHours * 60;
+}
+
+// raw observed category — DISPLAY source of truth (popup/list/marker still show the frozen reading, badged stale)
+function gaugeObsCat(g) {
   const c = g.status.observed.floodCategory;
   return FLOOD_CATS.includes(c) ? c : 'none';
+}
+
+// flood-signal gate: a stale sensor never counts as in-flood, so every count/threat/tile that keys
+// off gaugeCat (KPI tile, threat strip, sitrep, ticker, drive mode) drops dead gauges automatically
+function gaugeCat(g) {
+  return gaugeObsStale(g) ? 'none' : gaugeObsCat(g);
 }
 
 const riverOf = (name) => String(name || '').split(/ (?:at|near|below|above) /)[0];
@@ -815,6 +833,7 @@ function gaugeForecastCat(g) {
 }
 
 function gaugeRising(g) {
+  if (gaugeObsStale(g)) return false; // no trustworthy baseline — keep dead gauges out of rising/record-watch
   const f = gaugeForecastCat(g);
   return f !== null && CAT_RANK[f] > CAT_RANK[gaugeCat(g)];
 }
@@ -871,16 +890,17 @@ function renderGauges() {
     if (g) { state.pendingHydro = null; openHydro(g); }
   }
   for (const g of state.gauges) {
+    const stale = gaugeObsStale(g);
     const cat = gaugeCat(g);
     const rising = gaugeRising(g);
-    const size = CAT_SIZE[cat];
+    const size = stale ? 11 : CAT_SIZE[cat];
     const trend = gaugeTrend(g.lid);
     const falling = cat !== 'none' && trend && trend.dir === 'down';
     // 32px hit area around the visual dot — 8-18px dots are untappable one-thumbed (UX audit #5)
     const icon = L.divIcon({
       className: '',
-      html: `<div class="gauge-hit${cat === 'none' ? ' hit-none' : ''}">` +
-        `<div class="gauge-icon cat-${cat}" style="width:${size}px;height:${size}px"></div>` +
+      html: `<div class="gauge-hit${cat === 'none' && !stale ? ' hit-none' : ''}">` +
+        `<div class="gauge-icon ${stale ? 'stale' : `cat-${cat}`}" style="width:${size}px;height:${size}px"></div>` +
         (rising ? `<span class="rise-arrow cat-${gaugeForecastCat(g)}">▲</span>` : '') +
         (falling ? '<span class="fall-arrow">▼</span>' : '') + '</div>',
       iconSize: [32, 32],
@@ -895,7 +915,8 @@ function renderGauges() {
 
 function gaugePopup(g) {
   const o = g.status.observed;
-  const cat = gaugeCat(g);
+  const stale = gaugeObsStale(g);
+  const cat = gaugeObsCat(g);
   const el = document.createElement('div');
   const f = g.status.forecast;
   const fCat = gaugeForecastCat(g);
@@ -907,7 +928,8 @@ function gaugePopup(g) {
     ? `<div class="popup-meta">Trend: ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→ steady'} (last ~hour)</div>`
     : '';
   el.innerHTML = `<div class="popup-title">${esc(g.name)}</div>` +
-    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span> · ${o.primary} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
+    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(CAT_LABEL[cat])}</span> · ${o.primary} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
+    (stale ? `<div class="popup-meta stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     trendLine +
     forecastLine +
     `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">Loading ${CONFIG.sparkHours}h stage history…</div></div>` +
@@ -1277,6 +1299,7 @@ function focusGauge(g) {
 }
 
 function gaugeGlyphHtml(g) {
+  if (gaugeObsStale(g)) return '<span class="stale-glyph" title="stale — no current data">⏱</span>';
   if (gaugeRising(g)) return `<span style="color:var(--cat-${gaugeForecastCat(g)})">▲</span>`;
   const cat = gaugeCat(g);
   if (cat === 'none') return '<span style="color:var(--cat-none)">○</span>';
@@ -1285,19 +1308,21 @@ function gaugeGlyphHtml(g) {
 }
 
 function gaugeCardDiv(g) {
-  const cat = gaugeCat(g);
+  const stale = gaugeObsStale(g);
+  const cat = gaugeObsCat(g);
   const o = g.status.observed;
-  const tr = gaugeTrend(g.lid);
+  const tr = stale ? null : gaugeTrend(g.lid);
   const fCat = gaugeForecastCat(g);
   const f = g.status.forecast;
   const site = g.name.slice(riverOf(g.name).length).trim();
   const div = document.createElement('div');
-  div.className = `card gauge-card${cat === 'none' && !gaugeRising(g) ? ' aged' : ''}`;
-  div.style.borderLeftColor = `var(--cat-${cat})`;
+  div.className = `card gauge-card${stale ? ' stale' : (cat === 'none' && !gaugeRising(g) ? ' aged' : '')}`;
+  div.style.borderLeftColor = stale ? 'var(--cat-none)' : `var(--cat-${cat})`;
   const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   div.innerHTML = `<div class="head">${gaugeGlyphHtml(g)}<span class="g-name">${esc(g.name)}</span>` +
     `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
-    `<div class="meta">OBS ${o.primary} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
+    `<div class="meta">OBS ${o.primary} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
+    (stale ? `<div class="meta stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     (fCat ? `<div class="meta">crest ${f.primary} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(fCat)}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
     recordLineHtml(g) +
     (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
@@ -1323,6 +1348,7 @@ function recordLineHtml(g) {
 // pure NWPS validTime data — no interpolation between gauges (would be fake precision).
 function waveRivers() {
   const withCrest = state.gauges.filter((g) => {
+    if (gaugeObsStale(g)) return false; // dead sensor — its crest wave is not trustworthy live data
     const f = g.status && g.status.forecast;
     return f && f.validTime && f.primary > 0 && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.action;
   });
@@ -1887,18 +1913,20 @@ function alertNearPoint(f, lat, lon) {
 
 function riskGaugeLine(x) {
   const { g, dist } = x;
-  const cat = gaugeCat(g);
+  const stale = gaugeObsStale(g);
+  const cat = gaugeObsCat(g);
   const fCat = gaugeForecastCat(g);
   const f = g.status.forecast;
   const o = g.status.observed;
-  const tr = gaugeTrend(g.lid);
+  const tr = stale ? null : gaugeTrend(g.lid);
   const trendBit = tr ? ` · ${tr.dir === 'up' ? '↑ rising' : tr.dir === 'down' ? '↓ falling' : '→ steady'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   const fcst = fCat
     ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${f.primary} ${esc(f.primaryUnit)} — <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   return `<button class="risk-gauge" data-lid="${esc(g.lid)}">` +
     `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} ${esc(t('risk.mi'))}</span></div>` +
-    `<div class="rg-now">${esc(t('risk.now'))} ${o.primary} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${cat})">${esc(catLabel(cat))}</span>${trendBit}</div>` +
+    `<div class="rg-now">${esc(t('risk.now'))} ${o.primary} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${trendBit}</div>` +
+    (stale ? `<div class="rg-now stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     fcst + '</button>';
 }
 
@@ -1913,7 +1941,8 @@ function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
   }
   if (gauges.length) {
     const { g, dist } = gauges[0];
-    let s = `${t('risk.read.nearest')} ${riverOf(g.name)} (${dist.toFixed(1)} ${mi}) ${t('risk.read.is')} ${catLabel(gaugeCat(g))}`;
+    const nearStale = gaugeObsStale(g);
+    let s = `${t('risk.read.nearest')} ${riverOf(g.name)} (${dist.toFixed(1)} ${mi}) ${t('risk.read.is')} ${catLabel(gaugeObsCat(g))}${nearStale ? ` (stale — last obs ${fmtWhen(g.status.observed.validTime).split(' · ')[0]})` : ''}`;
     if (gaugeRising(g)) s += ` ${t('risk.read.forecast')} ${catLabel(gaugeForecastCat(g))} ${fmtWhen(g.status.forecast.validTime)}`;
     parts.push(s);
   } else {

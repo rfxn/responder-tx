@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.9",
+      "date": "2026-07-18",
+      "line": "Mobile-landscape usability fix: a phone held sideways used to fall into the full desktop layout (its 844–932px landscape width cleared the app's only WIDTH breakpoint) and showed no feed cards on a viewport with no vertical room. A new height-based landscape query now puts phones held sideways into a map-favoring side-by-side split — compact icon header, a narrow scrollable feed sidebar, the map filling ~60%, and a short one-line 911 footer that still taps open to the full notice; tablets and all portrait layouts are unchanged. The map now also re-tiles cleanly on device rotation."
+    },
+    {
       "v": "v0.75.8",
       "date": "2026-07-18",
       "line": "Live TxDOT DriveTexas road layer — 'Road closures / high water (TxDOT)' toggle (on by default) fetches HCRS_CC flood-relevant conditions (Closed/Flood/Damage) over the AO, in-browser CORS, refreshes on cycle, ages out cleared closures via COND_END_TS, and degrades to an empty layer if the feed is down."

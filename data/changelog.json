@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.76.0",
+      "date": "2026-07-18",
+      "line": "Live road-hazard source swap: the 'Road closures / high water (TxDOT)' layer now pulls from the live TDEM DriveTexas API instead of the TxDOT HCRS_CC service, which had been frozen since Aug 2020 so the layer never showed live closures — ~100 flood-relevant hazard lines (Closure/Flooding/Damage) now render live in the AO, including the destroyed Nueces River bridge on FM 481; all fields remapped to the DriveTexas schema (full-word conditions, ISO end_time aging, numeric detour_flag) and attributed to TxDOT DriveTexas / TDEM. New 'Low-water crossings (locations · not live status)' overlay (off by default, lazy-loaded, canvas-rendered) plots 3,753 TxGIO crossing LOCATIONS across the AO — every popup and the label make clear it is a static inventory with NO live flood status. Both layers stay out of the offline cache and all KPI/threat counts and degrade to empty if their feed is down."
+    },
+    {
       "v": "v0.75.9",
       "date": "2026-07-18",
       "line": "Mobile-landscape usability fix: a phone held sideways used to fall into the full desktop layout (its 844–932px landscape width cleared the app's only WIDTH breakpoint) and showed no feed cards on a viewport with no vertical room. A new height-based landscape query now puts phones held sideways into a map-favoring side-by-side split — compact icon header, a narrow scrollable feed sidebar, the map filling ~60%, and a short one-line 911 footer that still taps open to the full notice; tablets and all portrait layouts are unchanged. The map now also re-tiles cleanly on device rotation."

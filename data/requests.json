@@ -1,10 +1,10 @@
 {
-  "generated": "2026-07-18T06:13:00Z",
+  "generated": "2026-07-18T06:28:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
       "id": "seed-041",
-      "ts": "2026-07-18T04:58:00Z",
+      "ts": "2026-07-18T06:28:00Z",
       "type": "evacuation",
       "priority": "high",
       "status": "open",
@@ -12,9 +12,9 @@
       "place": "Llano River — Mason → Llano",
       "lat": 30.7205,
       "lon": -99.171,
-      "summary": "LLANO RIVER — Mason (MLRT2) crested LOWER than forecast: observed peaked ~22.5 ft (MINOR) and is now RECEDING (21.46 ft); the forecast 30.7 ft MAJOR has not verified. NWS Flood Warnings still in effect for Mason & Llano. Downstream at Llano (LLAT2) 20.83 ft MODERATE, still forecast ~25 ft MAJOR ~4 AM CDT — watch whether it also under-runs. Stay off the river bottom; crossings may still be flooded.",
+      "summary": "LLANO RIVER — wave CRESTED BELOW FORECAST and is now FALLING on both gauges: Mason (MLRT2) peaked ~22.5 ft (minor), Llano (LLAT2) peaked ~20.8 and is receding (19.88, moderate) — the 25-30 ft MAJOR model crests did NOT verify. NWS Flood Warnings (Mason/Llano) may still run on the falling limb; low crossings can stay flooded. Threat easing.",
       "details": [
-        "Honest read at 11:57 PM CT: NWPS Llano River near Mason (MLRT2) observed 21.46 ft (minor) and falling — it peaked around 22.5 ft (minor) over the last half hour and did NOT approach the 30.7 ft MAJOR crest the model forecast for ~midnight, which has not materialized. NWS Flood Warnings remain active for Mason and Llano counties. Downstream, Llano River at Llano (LLAT2) is 20.83 ft (moderate) with a 25 ft MAJOR forecast crest ~4 AM CDT — treat that as still-pending and watch whether it also comes in under forecast. Low-water crossings in the reach may remain flooded on the falling limb; do not cross."
+        "Honest read 1:27 AM CT: the Llano wave under-ran its forecast on BOTH gauges. Mason (MLRT2) peaked ~22.5 ft MINOR (fcst was 29-30 MAJOR, since revised to ~27.7 MODERATE) and is receding (20.05). Llano at Llano (LLAT2) peaked ~20.8 ft MODERATE and is now falling (19.88) — well under its 25 ft MAJOR forecast (~4 AM), which will not verify. NWS Flood Warnings for Mason & Llano counties may remain active on the recession; low-water crossings can stay flooded even as the river drops. Do not cross flooded crossings; otherwise the acute threat has passed peak."
       ],
       "source": {
         "platform": "official",
@@ -80,7 +80,7 @@
     },
     {
       "id": "seed-037",
-      "ts": "2026-07-18T01:32:46Z",
+      "ts": "2026-07-18T06:28:00Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -88,9 +88,9 @@
       "place": "Lower Frio River — Derby / Tilden reaches",
       "lat": 28.7659,
       "lon": -99.1281,
-      "summary": "LOWER FRIO WAVE ARRIVING: Derby now AT MAJOR (17.0 ft, crossed from moderate) — the Uvalde-area crest reached Derby on schedule; Tilden downstream still forecast ~27.7 ft MAJOR by Mon",
+      "summary": "LOWER FRIO — Derby (DBYT2) climbing through MAJOR (18.95 ft), the last active crest of the event: NWPS forecasts ~21 ft MAJOR ~7 AM CDT. Same water that moved down from Uvalde/Concan. Riverside ranches, low crossings, and equipment in the Derby reach are flooding.",
       "details": [
-        "NWPS DBYT2 8:31 PM CT: observed 17.04 ft MAJOR (major stage 17), rising toward the 21 ft forecast crest overnight (~1 AM Sat). Same water that crested Concan/Uvalde. Riverside ranches/low crossings in the Derby reach are now flooding; Tilden (TIDT2) forecast ~27.7 ft MAJOR ~Mon still ahead. Move equipment/livestock, close low crossings."
+        "NWPS DBYT2 1:27 AM CT: observed 18.95 ft MAJOR (major stage 17) and still rising toward a forecast ~21 ft crest ~7 AM CDT Sat — the one gauge in the AO still climbing while the Pecos and Llano waves have crested/receded. Move equipment and livestock off the Derby river bottom; close and avoid low crossings. Watch whether it, too, comes in under forecast."
       ],
       "source": {
         "platform": "official",

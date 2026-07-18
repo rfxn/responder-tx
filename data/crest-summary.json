@@ -1,17 +1,17 @@
 {
- "generated": "2026-07-18T22:10:18Z",
+ "generated": "2026-07-18T22:25:34Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-17T15:31:40Z",
-  "last": "2026-07-18T21:55:00Z"
+  "last": "2026-07-18T22:10:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive",
  "gauges": [
   {
    "lid": "ASRT2",
    "name": "Nueces River near Asherton",
-   "peak": 31.43,
-   "peak_time": "2026-07-18T21:10:00Z",
+   "peak": 31.48,
+   "peak_time": "2026-07-18T22:10:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-17T15:31:40Z",
@@ -20,7 +20,7 @@
    "record": {
     "record_ft": 33.0,
     "record_date": "1935-06-17",
-    "peak_pct": 95.2,
+    "peak_pct": 95.4,
     "exceeded": false,
     "approached": true
    },

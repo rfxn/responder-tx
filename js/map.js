@@ -318,7 +318,7 @@ function initMap() {
   state.layers.cameras = L.markerClusterGroup
     ? L.markerClusterGroup({ disableClusteringAtZoom: 12, maxClusterRadius: 46 })
     : L.layerGroup();
-  L.control.layers({
+  state.layerCtl = L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
     'Streets (OSM)': state.baseLayers.streets,
@@ -397,6 +397,7 @@ function initMap() {
   });
   state.map.addControl(new NavControl({ position: 'topleft' }));
   initAoJump();
+  initLayerPills();
   state.map.on('locationfound', (e) => {
     gpsWait(false);
     state.myPos = e.latlng;
@@ -449,6 +450,43 @@ function initAoJump() {
   }
   L.DomEvent.disableClickPropagation(jump);
   L.DomEvent.disableScrollPropagation(jump);
+}
+
+/* ---------- active-layer pills — name each non-default overlay that is ON; hidden at rest ---------- */
+
+const PILL_LAYERS = [
+  ['radar', 'layers.radar'],
+  ['mrms1h', 'layers.rain1h'],
+  ['mrms24h', 'layers.rain24h'],
+  ['inundation', 'layers.inun'],
+  ['usgs', 'layers.usgs'],
+  ['lsrsAged', 'layers.lsrhist'],
+  ['lwc', 'layers.lwc'],
+  ['cameras', 'layers.cams'],
+];
+
+function renderLayerPills() {
+  const el = document.getElementById('layer-pills');
+  if (!el) return;
+  const on = PILL_LAYERS.filter(([k]) => state.layers[k] && state.map.hasLayer(state.layers[k]));
+  if (!on.length) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = on.map(([k, key]) =>
+    `<button class="layer-pill" data-layer="${k}" title="${esc(t('layers.off'))}">${esc(t(key))} <span class="lp-x">✕</span></button>`).join('') +
+    `<button class="layer-pill lp-add" title="${esc(t('layers.more'))}">＋</button>`;
+  el.querySelectorAll('.layer-pill[data-layer]').forEach((b) =>
+    b.addEventListener('click', () => state.map.removeLayer(state.layers[b.dataset.layer])));
+  el.querySelector('.lp-add').addEventListener('click', () => { if (state.layerCtl) state.layerCtl.expand(); });
+}
+
+function initLayerPills() {
+  const el = L.DomUtil.create('div', 'layer-pills', state.map.getContainer());
+  el.id = 'layer-pills';
+  el.hidden = true;
+  L.DomEvent.disableClickPropagation(el);
+  L.DomEvent.disableScrollPropagation(el);
+  // the layers control fires these for programmatic adds too (?radar=1, auto-USGS fallback, deep links)
+  state.map.on('overlayadd overlayremove', renderLayerPills);
 }
 
 /* ---------- radar time-scrub (RainViewer: past ~1h + nowcast projection when published) ---------- */

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.85.0",
+      "date": "2026-07-18",
+      "line": "UX quick wins: (1) long-press or right-click anywhere on the map to inspect that point \u2014 a compact card shows the plain-language risk read, nearest gauge, active alert, nearest closed crossing/notice, and the USNG grid (tap to copy) without the map moving under you; (2) a one-sentence plain-language headline now tops the threat strip (\"Asherton MAJOR flood cresting near record \u00b7 Devils River wave rising at Pafford Crossing\u2026\") \u2014 tap to expand on phones; (3) when a non-default map layer is on (radar, rain, cameras\u2026), slim pills over the map name it \u2014 tap a pill to turn the layer off, \uff0b opens all layers; the row disappears when nothing extra is on."
+    },
+    {
       "v": "v0.84.0",
       "date": "2026-07-18",
       "line": "Playback story mode: playback now tells the story of the event. Archived NWS warning polygons (official products from IEM's storm-based warning archive) roll in and fade on the map at the exact times they were valid, in the same colors as live alerts, with an 'NWS warning archive via IEM' label; a tap-to-pause caption strip above the timeline narrates gauge rises/falls, crests with crest-of-record context (Asherton crests 31.48 ft \u00b7 95% of the 1935 record), warning issue/expiry, and road reopenings; play now defaults to a slower ~2 frames/sec with a 0.5\u00d7/1\u00d7/2\u00d7/4\u00d7 speed control and \u23ea/\u23e9 one-frame step buttons, and at slow speeds markers glide between frames (a visual transition only; the timestamp always shows the real frame time); a one-line HUD reads gauges in flood by category, warnings active, and the top mover (tap to expand). Live alert polys swap out while replaying and snap back on NOW."

@@ -424,6 +424,61 @@ function quietState() {
   return !openInAO.length && !inFlood.length && !(state.roadClosures.lines || []).length;
 }
 
+/* plain-language headline — one sentence derived from the same computed signals the
+   chips/tiles use; never editorializes beyond the data. Quiet state keeps its own line. */
+function headlineParts() {
+  const parts = [];
+  const now = new Date();
+  const openInAO = (sev) => state.alerts.filter((f) => f._sev === sev && alertInAO(f)
+    && !(f.properties.expires && new Date(f.properties.expires) < now)).length;
+  const emergN = openInAO('emergency');
+  if (emergN) parts.push(t('headline.ffe').replace('{n}', emergN));
+  const inFlood = state.gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
+  if (inFlood.length) {
+    const rcRank = (g) => { const rc = recordContext(g); return rc && (rc.atOrAbove || rc.near) ? 1 : 0; };
+    const worst = inFlood.slice().sort((a, b) => (CAT_RANK[gaugeCat(b)] - CAT_RANK[gaugeCat(a)])
+      || (rcRank(b) - rcRank(a)) || (b.status.observed.primary - a.status.observed.primary))[0];
+    const rc = recordContext(worst);
+    const tr = gaugeTrend(worst.lid);
+    const st = tr && tr.dir === 'down' ? t('headline.st.falling')
+      : rc && rc.atOrAbove ? t('headline.st.overrecord')
+        : rc && rc.near ? t('headline.st.record')
+          : tr && tr.dir === 'up' ? t('headline.st.rising') : t('headline.st.steady');
+    parts.push(t('headline.gauge').replace('{site}', pbShortName(worst.name) || riverOf(worst.name))
+      .replace('{cat}', catLabel(gaugeCat(worst))).replace('{st}', st));
+  }
+  const wave = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major')
+    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
+  if (wave) parts.push(t('headline.wave').replace('{river}', riverOf(wave.name)).replace('{site}', pbShortName(wave.name)));
+  const warnN = openInAO('warning');
+  if (warnN) parts.push(t('headline.warnN').replace('{n}', warnN));
+  else if (!emergN && state.alertsLoadedOnce) parts.push(t('headline.warn0'));
+  const roadN = ((state.roadClosures && state.roadClosures.lines) || []).length;
+  if (roadN) parts.push(t('headline.roads').replace('{n}', roadN));
+  const dirs = inFlood.map((g) => (gaugeTrend(g.lid) || {}).dir).filter(Boolean);
+  if (dirs.length) { // no trend baseline yet (fresh browser) — say nothing rather than guess
+    const down = dirs.filter((d) => d === 'down').length;
+    const up = dirs.filter((d) => d === 'up').length;
+    parts.push(t(down > up ? 'headline.trend.down' : up > down ? 'headline.trend.up' : 'headline.trend.steady'));
+  }
+  return parts;
+}
+
+function headlineHtml() {
+  const parts = headlineParts();
+  if (!parts.length) return '';
+  return `<button id="threat-headline" class="threat-headline${state.headlineOpen ? ' open' : ''}" ` +
+    `title="${esc(t('headline.title'))}">${esc(parts.join(' · '))}</button>`;
+}
+
+function bindHeadline(el) {
+  const hb = el.querySelector('#threat-headline');
+  if (hb) hb.addEventListener('click', () => {
+    state.headlineOpen = !state.headlineOpen;
+    hb.classList.toggle('open', state.headlineOpen);
+  });
+}
+
 function renderThreatStrip() {
   const el = $('#threat-strip');
   const reqs = activeRequests().filter((r) => r.status !== 'resolved');
@@ -456,10 +511,13 @@ function renderThreatStrip() {
       el.innerHTML = `<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
       return;
     }
-    el.innerHTML = `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
+    el.innerHTML = headlineHtml()
+      + `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
+    bindHeadline(el);
     return;
   }
-  el.innerHTML = '';
+  el.innerHTML = headlineHtml();
+  bindHeadline(el);
   if (chips.some((c) => c.cls === 'emergency')) {
     const h = document.createElement('div');
     h.className = 'threat-head';

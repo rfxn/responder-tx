@@ -172,6 +172,15 @@ main { flex: 1; display: flex; min-height: 0; }
 
 #threat-strip { background: var(--surface-2); }
 #threat-strip:not(:empty) { padding: 7px 10px 8px; border-bottom: 1px solid var(--hairline); }
+/* plain-language headline — one line, ellipsized; tap expands the full sentence */
+.threat-headline {
+  display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 4px 8px; min-height: 0;
+  background: var(--surface-1); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--ink-1); line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.threat-headline.open { white-space: normal; }
+.threat-headline:hover { border-color: var(--accent); }
 .threat-head {
   display: flex; align-items: center; gap: 8px;
   font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
@@ -849,6 +858,48 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 .inun-note { font-size: 10px; line-height: 1.35; color: var(--ink-muted); }
 
+/* active-layer pills — under the AO chips; hidden entirely when only default layers are on */
+.layer-pills {
+  position: absolute; top: 46px; left: 54px; right: 56px; z-index: 990;
+  display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap;
+  pointer-events: none;
+}
+.layer-pills[hidden] { display: none; }
+.layer-pill {
+  pointer-events: auto; white-space: nowrap; min-height: 0;
+  font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  background: var(--surface-1); border: 1px solid var(--accent); color: var(--ink-1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.layer-pill .lp-x { color: var(--ink-muted); font-size: 10px; }
+.layer-pill:hover .lp-x { color: var(--sev-emergency); }
+.layer-pill.lp-add { border-color: var(--border); color: var(--ink-2); font-weight: 700; }
+.layer-pill.lp-add:hover { border-color: var(--accent); color: var(--accent); }
+/* playback: the amber ⏮ badge owns the top-center band — group the pills directly beneath it */
+body.pb-on .layer-pills { top: 84px; }
+
+/* point inspector popup (long-press / right-click) */
+.inspect-pop .leaflet-popup-content { margin: 8px 10px; min-width: 216px; }
+.inspect-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.inspect-t { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); flex: 1; }
+.inspect-x { min-height: 0; padding: 1px 7px; font-size: 12px; background: none; border: none; color: var(--ink-muted); cursor: pointer; }
+.inspect-x:hover { color: var(--sev-emergency); }
+.inspect-usng {
+  display: block; width: 100%; text-align: left; min-height: 0; padding: 4px 8px; margin-bottom: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; font-weight: 700;
+  color: var(--accent); background: var(--surface-2); border: 1px dashed var(--border); border-radius: 6px; cursor: copy;
+}
+.inspect-read { font-size: 12px; line-height: 1.4; margin-bottom: 4px; }
+.inspect-line {
+  display: block; width: 100%; text-align: left; font-size: 11.5px; color: var(--ink-2);
+  padding: 3px 0; border: none; background: none; min-height: 0; line-height: 1.35;
+}
+.inspect-line.sev-emergency { color: var(--sev-emergency); font-weight: 700; }
+.inspect-line.sev-warning { color: var(--sev-warning); font-weight: 600; }
+button.inspect-gauge { cursor: pointer; color: var(--ink-1); }
+button.inspect-gauge:hover { color: var(--accent); }
+.inspect-note { font-size: 10px; color: var(--ink-muted); margin-top: 4px; line-height: 1.3; }
+
 /* AO quick-jump — pills along the map top edge next to the nav bar */
 .ao-jump {
   position: absolute; top: 10px; left: 54px; right: 56px; z-index: 1000;
@@ -958,6 +1009,7 @@ main { flex: 1; display: flex; min-height: 0; }
   /* threat module collapses to 1-2 scrollable rows — sidebar space belongs to the feed */
   #threat-strip:not(:empty) { padding: 5px 8px 6px; }
   .threat-head { display: none; }
+  .threat-headline { min-height: 34px; }
   .threat-grid {
     display: flex; flex-wrap: nowrap; gap: 5px;
     overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
@@ -988,6 +1040,8 @@ main { flex: 1; display: flex; min-height: 0; }
   .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
   /* AO presets collapse behind 🗺 — five pills would bury the 42vh map */
   .ao-jump { left: 62px; right: 62px; }
+  .layer-pills { left: 62px; right: 62px; }
+  .layer-pill { min-height: 30px; }
   .ao-jump:not(.open) .ao-chip { display: none; }
   .ao-toggle {
     display: block; pointer-events: auto; width: 42px; padding: 0;

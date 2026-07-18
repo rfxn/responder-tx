@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-18T16:16:00Z",
+  "generated": "2026-07-18T16:38:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
@@ -100,7 +100,7 @@
     },
     {
       "id": "seed-037",
-      "ts": "2026-07-18T07:13:00Z",
+      "ts": "2026-07-18T16:38:00Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -108,9 +108,9 @@
       "place": "Lower Frio River — Derby / Tilden reaches",
       "lat": 28.7659,
       "lon": -99.1281,
-      "summary": "LOWER FRIO — Derby (DBYT2) holding MAJOR (18.95 ft); its crest has been pushed LATER and a bit higher: NWPS now forecasts ~21.8 ft MAJOR around 1 PM CDT Sat (was ~7 AM). The Frio wave is moving slower than first modeled. Riverside ranches, low crossings, and equipment in the Derby reach stay flooded through the day.",
+      "summary": "LOWER FRIO — Derby (DBYT2) RISING through 20.5 ft MAJOR (was 18.95 ft overnight); NWPS now forecasts the crest ~21.1 ft MAJOR around 1 PM CT — trimmed from the earlier ~21.8 ft. Riverside ranches, low crossings, and equipment in the Derby reach stay flooded through the day.",
       "details": [
-        "NWPS DBYT2 2:12 AM CT: observed 18.95 ft MAJOR (major stage 17), holding, with the forecast crest revised to ~21.8 ft around 1 PM CDT Sat — several hours later than the earlier ~7 AM call, i.e. a slower/steadier rise (the over-forecasts elsewhere tonight all came in low). This is the last of the overnight waves still building. Keep equipment and livestock off the Derby river bottom and avoid low crossings through the day; the crest is now a daytime-Saturday event."
+        "NWPS DBYT2 10:30 AM CT: observed 20.51 ft MAJOR (major stage 17), still climbing from the 18.95 ft overnight reading; forecast crest ~21.1 ft around 1 PM CT (18:00Z), trimmed slightly from the earlier ~21.8 ft call. Last of the overnight waves still building — keep equipment and livestock off the Derby river bottom and avoid low crossings through the early-afternoon crest."
       ],
       "source": {
         "platform": "official",
@@ -175,7 +175,7 @@
     },
     {
       "id": "seed-033",
-      "ts": "2026-07-17T16:28:00Z",
+      "ts": "2026-07-18T16:38:00Z",
       "type": "evacuation",
       "priority": "high",
       "status": "open",
@@ -183,8 +183,8 @@
       "place": "Falls City — Cibolo Creek (FM 791 / CR area)",
       "lat": 28.98,
       "lon": -98.02,
-      "summary": "Falls City DOWNGRADE: Cibolo crest revised DOWN to 23.6 ft moderate ~midnight tonight (was 25.2 major) — still prep low-lying Cibolo properties, but record threat has passed",
-      "details": "NWPS FCTT2 11:25 AM CT: observed 19.65 minor rising, forecast 23.6 moderate 05:00Z (~12 AM CT). Second downward revision; livestock-loss reach note stands.",
+      "summary": "Falls City EASING: the Cibolo crest came in well UNDER the revised 23.6 ft — observed only ~19.9 ft MINOR at 10:15 AM CT and forecast to fall to ~19.5 ft. Another over-forecast that under-ran; the record/moderate threat has passed, though low-lying Cibolo bottoms may stay wet.",
+      "details": "NWPS FCTT2 10:15 AM CT: observed 19.92 ft MINOR, forecast 19.5 ft minor 17:00Z (~12 PM CT) — the crest topped out at minor, well below the 23.6 ft moderate (and the earlier 25.2 ft major) forecasts. Livestock-loss reach note stands but the acute threat has passed.",
       "source": {
         "platform": "official",
         "handle": "NOAA NWPS FCTT2",
@@ -212,7 +212,7 @@
     },
     {
       "id": "seed-031",
-      "ts": "2026-07-17T21:34:16Z",
+      "ts": "2026-07-18T16:38:00Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -220,8 +220,8 @@
       "place": "Asherton — Nueces River (Dimmit Co.)",
       "lat": 28.4419,
       "lon": -99.7625,
-      "summary": "ASHERTON: Nueces forecast crest ~30 ft MAJOR ~Sat evening — above the modern (1991) record but ~3 ft below the 1935 all-time crest of record (33 ft); still major, record-tier flooding for the current gauge era",
-      "details": "NWPS ASRT2: forecast ~30 ft MAJOR (major stage 27). Context: exceeds the 1991-era record (~25.7 ft) but remains below the NWPS all-time historic crest of 33 ft (Jun 1935). Zavala/Dimmit OEMs coordinating evacuations; FM 190 and low floodplain sections flood well before the crest. Both record figures are real — see the Gauges tab crest-of-record line.",
+      "summary": "ASHERTON: the Nueces wave has ARRIVED — observed 31.05 ft MAJOR at 10:30 AM CT, cresting just above the ~30 ft forecast (rise has flattened over the last 2h). NWPS holds it ~30.9 ft into this evening. Record-tier for the modern (1991) gauge era; still ~2 ft below the 1935 all-time crest of record (33 ft).",
+      "details": "NWPS ASRT2 10:30 AM CT: observed 31.05 ft MAJOR (major stage 27), rise flattening (30.77→31.05 over the last ~2h) — essentially at crest; forecast holds ~30.9 ft MAJOR through ~7 PM CT. Exceeds the 1991-era record (~25.7 ft) but below the all-time 33 ft (Jun 1935). Zavala/Dimmit OEMs coordinating evacuations; FM 190 and low floodplain sections flood well before the crest. Both record figures are real — see the Gauges tab crest-of-record line.",
       "source": {
         "platform": "official",
         "handle": "NOAA NWPS ASRT2",

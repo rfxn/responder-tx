@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.72.0 — 2026-07-18 (owner: resize control off the panel, onto a floating pill)
+- The Min/Half/Full resize control no longer takes a horizontal strip at the top of the panel — it's now a small floating vertical pill (▲ full / ↕ half / ▼ min) in the bottom-right, above the chat button, consuming zero panel space and visible in every state
+- Because the control floats, Minimize now collapses the panel to nothing — a true full-screen map; the threat module + tabs reclaim the space the old strip used
 ## v0.71.0 — 2026-07-18 (reassessment A6: collapsible map legend)
 - The map legend now collapses to a small "River gauge status ▸" pill on desktop too (was mobile-only) — it was permanently covering the Eagle Pass/Del Rio marker cluster, i.e. the most active corner of the map; click the pill to expand the full key, click again to collapse
 ## v0.70.0 — 2026-07-18 (owner fixes: bottom-sheet buttons + footer)

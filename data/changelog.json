@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.72.0",
+      "date": "2026-07-18",
+      "line": "Resize control moved off the panel strip onto a small floating ▲/↕/▼ pill (bottom-right, above the chat button) — zero panel space, and Minimize is now a true full-screen map"
+    },
+    {
       "v": "v0.71.0",
       "date": "2026-07-18",
       "line": "Map legend now collapses to a small pill on desktop too (click to expand) — it was covering the busiest corner of the map (Eagle Pass/Del Rio cluster)"

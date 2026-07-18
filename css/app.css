@@ -451,6 +451,10 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 /* legend swatches are chrome, never subject to marker declutter/pulse */
 .map-legend .gauge-icon { display: inline-block !important; animation: none; opacity: 1; }
+/* attribution collapsed to a tap-to-open ⓘ pill (owner: the bar crowded the legend on short screens); credits preserved on tap */
+.leaflet-control-attribution { max-width: 22px; overflow: hidden; white-space: nowrap; cursor: pointer; }
+.leaflet-control-attribution.attr-open { max-width: min(92vw, 560px); white-space: normal; }
+.leaflet-control-attribution .attr-i { font-weight: 700; color: #0a58ca; padding: 0 1px; }
 
 .rise-arrow {
   position: absolute; top: -10px; right: -7px;

@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.76.5 — 2026-07-18 (collapse the map attribution bar to a ⓘ)
+- Change: the Leaflet attribution footer was crowding the bottom-left legend and eating scarce space on short/landscape phones (owner report), so it now collapses to a small tap-to-open ⓘ pill instead of a full-width bar; tapping ⓘ expands the complete credits (OpenStreetMap, CARTO, Leaflet, and the TxDOT DriveTexas / TDEM road-data citation) and tapping again collapses it — the credits are preserved (map-provider ToS + our source-citation invariant both require them) but no longer sit persistently over the map; attribution links still open normally when expanded
+
 ## v0.76.4 — 2026-07-18 (fix: expanded map legend clipped on short screens)
 - Fix: on landscape phones (and when the bottom sheet is expanded) the map legend's expanded state was taller than the short map and got clipped at both ends — the "River gauge status" title above the top and the lower rows below — a regression surfaced by the v0.76.1 Roads section making the legend taller (owner report); the open legend now caps at `calc(100dvh - 120px)` with `overflow-y:auto` (+`overscroll-behavior:contain`) so it scrolls from the title down instead of clipping, and `L.DomEvent.disableScrollPropagation` keeps that scroll from zooming the map; portrait and desktop are unchanged (the cap only bites on short viewports)
 

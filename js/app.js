@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.76.4';
+const APP_VERSION = 'v0.76.5';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -357,6 +357,10 @@ const ArcGISExportLayer = L.TileLayer.extend({
 
 function initMap() {
   state.map = L.map('map', { zoomControl: false }).setView(CONFIG.center, CONFIG.zoom);
+  // collapse the attribution bar to a tap-to-open ⓘ — it otherwise crowds the legend on short screens; OSM/CARTO/TxDOT credits stay one tap away (ToS + source-citation intact)
+  state.map.attributionControl.setPrefix('<span class="attr-i" title="Map & data sources">ⓘ</span>');
+  const attrEl = state.map.attributionControl.getContainer();
+  L.DomEvent.on(attrEl, 'click', (e) => { if (e.target.tagName === 'A') return; L.DomEvent.stop(e); attrEl.classList.toggle('attr-open'); });
   const attrib = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
   state.baseLayers.dark = offlineTile('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
   state.baseLayers.light = offlineTile('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });

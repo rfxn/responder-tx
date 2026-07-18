@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.76.5",
+      "date": "2026-07-18",
+      "line": "The map attribution footer now collapses to a small tap-to-open ⓘ instead of a full-width bar — it was crowding the legend on landscape/short phones. Tap ⓘ to see the full credits (OSM, CARTO, Leaflet, TxDOT DriveTexas / TDEM); they're preserved (required by the map providers and our citation rule) but no longer sit over the map."
+    },
+    {
       "v": "v0.76.4",
       "date": "2026-07-18",
       "line": "Fix: the expanded map legend was clipped on landscape phones / when the sheet is expanded — too tall for the short map (worse after v0.76.1 added the Roads rows), cutting off the title and bottom rows. The open legend now caps its height and scrolls (title-first) instead of clipping, and scrolling it no longer zooms the map. Portrait and desktop unchanged."

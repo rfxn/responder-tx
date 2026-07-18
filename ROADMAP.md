@@ -78,6 +78,42 @@ Agent tracks: **[data]** data-layers · **[views]** views · **[ux]** UX-polish 
     v0.49.0 (typed "lat, lon" parses/validates/pins + map pans; phones scroll
     the map into view when intake opens).
 
+### Table-stakes gaps (2026-07-17 7:48 PM — competitive reassessment)
+
+Owner directive: reassess vs comparable apps, define table stakes, keep iterating.
+Competitive scan (Watch Duty flood, PulsePoint, CalTopo/SARTopo, Zello, Citizen,
+FEMA, NWPS/water.noaa.gov, RiverApp, Genasys/Zonehaven, Perimeter, Ladris OEZ,
+FloodMapp, Google Flood Hub, what3words, Red Cross). We HAVE most table stakes
+(alerts, gauges+forecast, radar, crossings, shelters, curated feed, field UX,
+share/deep-links/RSS/ICS, honesty, USNG, offline tiles, exports). Ranked GAPS:
+
+- **T1. Street-level flood inundation layer (NWPS FIM/CatFIM)** — spatial
+  extent/depth overlay you scroll by flood stage; "which roads go under at the
+  forecast crest." Free official WMS/raster like MRMS/RFC. Label modeled vs
+  observed, cite NWPS. Cost S-M. **[data]** — TOP PICK (see the water).
+- **T2. "Am I at risk?" address lookup + saved my-places** — geocode an address
+  (reuse Nominatim) → nearest gauges/category/forecast/alerts/crossings at that
+  point; save home/work. Pure client, no PII logging. Cost M. **[views]**
+- **T3. Web-push threshold alerts** — VAPID service worker + Cloudflare KV +
+  cron Worker: "alert me when gauge LID hits Y ft / county → FF-Emergency,"
+  silent-override. Store endpoint+threshold only, no identity; not a WEA/911
+  replacement. Cost M-L. **[infra]** — the one universal table stake we lack.
+- **T4. Spanish localization (+ a11y pass)** — extract UI + safety strings to a
+  locale file, professional ES (NWS data stays EN), lang/ARIA. High equity for
+  South TX public mirror. Cost M. **[ux]**
+- **T5. Evacuation zones w/ status + "safe to return"** — mirror authoritative
+  zone status (Genasys/OEZ where available; else NWS polygons we already draw);
+  never invent an order. Cost M-L, data-gated. **[data]**
+- **T6. Live river/road/traffic cameras** in crossing + gauge popups (TxDOT/USGS
+  public cams; timestamp so stale ≠ live). Cost S-M. **[data]**
+- **T7. Crowdsourced field reports → curator moderation queue** (write path +
+  anti-abuse + PII scrub; label verified vs pending — avoid Citizen's pitfall).
+  Cost L. **[infra]**
+- **T8. Day-by-day incident replay** for AAR/FEMA reimbursement (UI over retained
+  snapshots). Cost M. **[views]**
+Ship-3 verdict: T1 inundation, T2 address risk-lookup, T3 push alerts
+(+ T4 Spanish as the cheap high-equity 4th). Self-audit findings fold in next.
+
 ### Next-wave feature backlog (2026-07-17 1:15 PM — product-owner pass)
 
 Owner directive: "you are the product owner, move this forward, don't be

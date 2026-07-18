@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.67.0",
+      "date": "2026-07-17",
+      "line": "Mobile bottom-sheet: tap the grabber to slide the feed/alerts panel between peek (map full-screen), half, and full (panel covers the map for full-screen scroll) — the map is finally fully viewable on phones"
+    },
+    {
       "v": "v0.66.0",
       "date": "2026-07-17",
       "line": "Mobile header decluttered: Refresh/Share/Drive/theme are icon-only on phones (one uncramped row, big tap targets), the 'next in' countdown is hidden, and the app name gets room — desktop keeps full labels"

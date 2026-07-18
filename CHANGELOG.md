@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.67.0 — 2026-07-17 (owner: mobile bottom-sheet for the feed/alerts panel)
+- On phones the feed/alerts/threat panel is now a bottom sheet with a grabber handle: tap to cycle PEEK (collapsed to the bottom, map ~full-screen) → HALF (the old split) → FULL (slides up to cover the map for a full-screen scroll of alerts/feed) — state persists, and the map re-tiles after each resize
+- ?sheet=peek|half|full deep link opens straight to a panel size; tapping a tab from peek auto-expands to half so you see the content; desktop layout unchanged
 ## v0.66.0 — 2026-07-17 (owner: declutter the mobile header)
 - Phone header is no longer crowded: the Refresh / Share / Drive / theme controls become icon-only (⟳ 🔗 🚗 ☀️) on phones so they fit one uncramped row with real tap targets (36px) — labels stay on desktop; aria-labels keep them accessible
 - The "next in Xs" refresh countdown is hidden on phones (the "updated H:MM" time is enough) and the meta is tightened, giving the "Responder TX" name room to breathe

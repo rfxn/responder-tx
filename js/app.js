@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.66.0';
+const APP_VERSION = 'v0.67.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1863,6 +1863,29 @@ function applyShareParams(q) {
   apply('#flt-alert-q', 'aq', 'input');
 }
 
+// mobile bottom-sheet: the sidebar (feed/alerts/threat) slides between peek (map-full),
+// half (default split), and full (covers the map for full scroll). Handle taps cycle states.
+const SHEET_STATES = ['sheet-half', 'sheet-full', 'sheet-peek'];
+function setSheet(stateCls) {
+  const main = document.querySelector('main');
+  main.classList.remove(...SHEET_STATES);
+  main.classList.add(stateCls);
+  localStorage.setItem('respondertx.sheet', stateCls);
+  const hint = document.querySelector('#sheet-handle .sheet-hint');
+  if (hint) hint.textContent = { 'sheet-peek': 'map ▲ tap to expand', 'sheet-half': 'split ↕', 'sheet-full': 'full ▼ tap to shrink' }[stateCls];
+  if (state.map) setTimeout(() => state.map.invalidateSize(), 260); // re-tile after the height transition
+}
+function initSheet() {
+  const param = new URLSearchParams(location.search).get('sheet'); // ?sheet=peek|half|full deep link
+  const wanted = param ? `sheet-${param}` : localStorage.getItem('respondertx.sheet');
+  setSheet(SHEET_STATES.includes(wanted) ? wanted : 'sheet-half');
+  $('#sheet-handle').addEventListener('click', () => {
+    const main = document.querySelector('main');
+    const cur = SHEET_STATES.find((s) => main.classList.contains(s)) || 'sheet-half';
+    setSheet(SHEET_STATES[(SHEET_STATES.indexOf(cur) + 1) % SHEET_STATES.length]);
+  });
+}
+
 // persist the user's view (feed + alert filters, sort, aged toggle, active tab) across
 // hard refreshes and app updates. URL share-params still win for their load (applied after).
 const VIEW_KEY = 'respondertx.view';
@@ -2404,7 +2427,9 @@ async function boot() {
     document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
     document.querySelectorAll('.tab-body').forEach((t) => t.classList.toggle('active', t.id === b.dataset.tab));
     if (state.viewReady) saveViewState(); // skip during boot restore/URL apply — only real user taps
+    if (window.innerWidth <= 768 && document.querySelector('main').classList.contains('sheet-peek')) setSheet('sheet-half');
   }));
+  initSheet();
   // header tiles mirror the threat-strip act() targets — passive numbers are dead UI
   const goTab = (tab) => document.querySelector(`.tabs button[data-tab="${tab}"]`).click();
   for (const [id, tab] of [['#tile-emergency', 'tab-alerts'], ['#tile-warnings', 'tab-alerts'], ['#tile-gauges', 'tab-gauges'], ['#tile-open', 'tab-requests']]) {

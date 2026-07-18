@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.73.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.73.0">
-  <link rel="stylesheet" href="css/app.css?v=0.73.0">
-  <link rel="stylesheet" href="css/notes.css?v=0.73.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.74.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.74.0">
+  <link rel="stylesheet" href="css/app.css?v=0.74.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.74.0">
 </head>
 <body>
   <header>
@@ -44,6 +44,7 @@
       <button id="update-chip" hidden title="A newer board version is live — reloads this tab">⬆ Updated — tap to reload</button>
       <button id="refresh-now" title="Refresh live layers" aria-label="Refresh live layers">⟳ <span class="ctl-lbl">Refresh</span></button>
       <button id="share-btn" class="primary" title="Copy a link that reproduces this exact view — map position, tab, filters, basemap" aria-label="Share this view">🔗 <span class="ctl-lbl">Share</span></button>
+      <button id="risk-btn" title="Type an address to see the nearest gauges, alerts, and closed crossings at that point" aria-label="Am I at risk? Address flood check">🏠 <span class="ctl-lbl">Am I at risk?</span></button>
       <button id="drive-btn" title="Drive Mode — big-type nearest-hazards glance list for the road" aria-label="Drive Mode">🚗 <span class="ctl-lbl">Drive</span></button>
       <button id="theme-toggle" aria-label="Toggle light/dark theme">☀️ <span class="ctl-lbl">Light</span></button>
       <div class="refresh-meta"><div id="refresh-note">loading…</div><div id="refresh-count"></div></div>
@@ -252,11 +253,30 @@
     </div>
   </div>
 
+  <div id="risk-modal" hidden>
+    <div class="modal-box risk-box">
+      <div class="modal-head"><strong>🏠 Am I at risk? — address flood check</strong><button id="risk-close" title="Close">✕</button></div>
+      <div class="risk-body">
+        <form id="risk-form" class="risk-inputrow">
+          <input id="risk-addr" placeholder="Type an address or place — e.g. Concan, TX" autocomplete="off" autocapitalize="words" enterkeyhint="search">
+          <button type="submit" class="primary" id="risk-go">Check</button>
+        </form>
+        <div id="risk-saved"></div>
+        <div id="risk-result"></div>
+        <div class="risk-honesty">
+          <strong>Guidance only — not a flood determination.</strong> Life-threatening emergency: call <strong>911</strong>.
+          This reads live NWS/NOAA/USGS data near a point; it never says you are safe. A missing nearby gauge or alert does not mean no risk — verify locally.
+          Your address is used only on this device to place the pin and is never logged or transmitted.
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.73.0"></script>
-  <script src="js/usng.js?v=0.73.0"></script>
-  <script src="js/app.js?v=0.73.0"></script>
-  <script src="js/notes.js?v=0.73.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.74.0"></script>
+  <script src="js/usng.js?v=0.74.0"></script>
+  <script src="js/app.js?v=0.74.0"></script>
+  <script src="js/notes.js?v=0.74.0"></script>
 </body>
 </html>

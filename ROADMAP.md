@@ -97,9 +97,17 @@ share/deep-links/RSS/ICS, honesty, USNG, offline tiles, exports). Ranked GAPS:
   dedicated legend, and the attribution; cites NOAA/NWPS. Live NWPS FIM/CatFIM
   is per-gauge static libraries + this CONUS aggregate — the aggregate was the
   right single-overlay fit. **[data]**
-- **T2. "Am I at risk?" address lookup + saved my-places** — geocode an address
-  (reuse Nominatim) → nearest gauges/category/forecast/alerts/crossings at that
-  point; save home/work. Pure client, no PII logging. Cost M. **[views]**
+- ~~**T2. "Am I at risk?" address lookup + saved my-places**~~ SHIPPED v0.74.0. —
+  header "🏠 Am I at risk?" control → geocode the typed address (existing Nominatim
+  geocoder) → a risk-glance card at that point: nearest river gauges within 15 mi
+  (current stage + category, forecast crest + timing + trend), any active NWS flood
+  alert whose polygon/zone bbox contains/nears the point, nearest closed/caution
+  crossing + nearest road/cut-off notice, and one derived overall-read line; flies
+  the map + drops a distinct "YOUR PLACE" marker. SAVE MY-PLACES to localStorage
+  (respondertx.places) for one-tap re-check. Pure client, no backend, no identity;
+  framed as guidance not a determination, never says "you are safe", says so when no
+  gauge/alert is near, cites NWS/NOAA/USGS; the address is used only on-device to
+  place the pin and is never logged or transmitted (no PII). **[views]**
 - **T3. Web-push threshold alerts** — VAPID service worker + Cloudflare KV +
   cron Worker: "alert me when gauge LID hits Y ft / county → FF-Emergency,"
   silent-override. Store endpoint+threshold only, no identity; not a WEA/911

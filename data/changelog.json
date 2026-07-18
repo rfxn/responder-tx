@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.74.0",
+      "date": "2026-07-18",
+      "line": "NEW '🏠 Am I at risk?' address check (header): type an address → geocoded to a point → a risk-glance card of the nearest river gauges (stage, category, forecast crest, trend) within 15 mi, any active NWS flood alert covering the point, and the nearest closed crossing / road notice, with one plain-language read line; flies the map and drops a 'YOUR PLACE' marker, and one tap saves the place for re-checking later. Guidance only — not a flood determination; it never says you're safe; your address is used only on your device to place the pin and is never logged or transmitted"
+    },
+    {
       "v": "v0.73.0",
       "date": "2026-07-18",
       "line": "NEW street-level flood inundation overlay (layer control, off by default): NOAA/NWPS National Water Model inundation extent — the 'which roads go under' picture — shown as a translucent blue extent when you zoom to street level; labelled a MODELED estimate (experimental), not observed conditions, cites NOAA/NWPS and updates hourly"

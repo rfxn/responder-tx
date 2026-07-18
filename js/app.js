@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.76.3';
+const APP_VERSION = 'v0.76.4';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -489,6 +489,7 @@ function initMap() {
       '<div><span style="margin-right:6px">💧</span>storm report (LSR)</div>' +
       '<div><span style="margin-right:6px">🆘</span>marker glyph = need type</div>';
     L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div); // scrolling the (now scrollable) expanded legend must not zoom the map
     L.DomEvent.on(div, 'click', () => div.classList.toggle('open')); // mobile: collapsed to title pill by default
     return div;
   };

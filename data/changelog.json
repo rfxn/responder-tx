@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.76.4",
+      "date": "2026-07-18",
+      "line": "Fix: the expanded map legend was clipped on landscape phones / when the sheet is expanded — too tall for the short map (worse after v0.76.1 added the Roads rows), cutting off the title and bottom rows. The open legend now caps its height and scrolls (title-first) instead of clipping, and scrolling it no longer zooms the map. Portrait and desktop unchanged."
+    },
+    {
       "v": "v0.76.3",
       "date": "2026-07-18",
       "line": "Drive Mode now uses the live road-closure data: its nearest-hazard glance list includes the TDEM DriveTexas closures/flooded/damaged roads (⛔/🌊/⚠) ranked by distance to the closest point on each closure, alongside crossings, life-safety notices, and major gauges — so a driver sees the nearest flooded/closed road, not just gauges and curated crossings."

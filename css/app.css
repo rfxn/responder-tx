@@ -440,6 +440,8 @@ main { flex: 1; display: flex; min-height: 0; }
 .map-legend:not(.open) > *:not(:first-child) { display: none; }
 .map-legend:not(.open) > .lg-title:first-child::after { content: ' ▸'; color: var(--accent); font-weight: 700; }
 .map-legend.open > .lg-title:first-child::after { content: ' ▾'; color: var(--ink-muted); }
+/* short maps (landscape phone, expanded sheet) can't fit the full expanded legend — cap + scroll instead of clipping the title/rows */
+.map-legend.open { max-height: calc(100dvh - 120px); overflow-y: auto; overscroll-behavior: contain; }
 .map-legend .sw {
   display: inline-block; border-radius: 50%; margin-right: 6px; vertical-align: middle;
   border: 1.5px solid var(--surface-1); box-shadow: 0 0 0 1px var(--border);

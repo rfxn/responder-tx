@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.76.4 — 2026-07-18 (fix: expanded map legend clipped on short screens)
+- Fix: on landscape phones (and when the bottom sheet is expanded) the map legend's expanded state was taller than the short map and got clipped at both ends — the "River gauge status" title above the top and the lower rows below — a regression surfaced by the v0.76.1 Roads section making the legend taller (owner report); the open legend now caps at `calc(100dvh - 120px)` with `overflow-y:auto` (+`overscroll-behavior:contain`) so it scrolls from the title down instead of clipping, and `L.DomEvent.disableScrollPropagation` keeps that scroll from zooming the map; portrait and desktop are unchanged (the cap only bites on short viewports)
+
 ## v0.76.3 — 2026-07-18 (Drive Mode uses the live road-closure data)
 - New: Drive Mode's big-type nearest-hazard glance list now includes the live TDEM DriveTexas road closures/flooding/damage (owner ask) alongside the existing closed/caution crossings, life-safety/road notices, and major/rising gauges — each closure is ranked by distance using the line vertex NEAREST the driver (midpoint when no GPS), shown with a condition glyph (⛔ closed · 🌊 flooded · ⚠ damage), the prettified route (`FM0481`→`FM 481`), and the condition label; ranked below closed crossings and critical incidents so hard stops still lead the list; the 14-item cap and distance sort keep the ~100-closure AO volume manageable
 

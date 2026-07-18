@@ -1,10 +1,10 @@
 {
-  "generated": "2026-07-18T13:13:30Z",
+  "generated": "2026-07-18T13:28:30Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
       "id": "seed-042",
-      "ts": "2026-07-18T13:13:30Z",
+      "ts": "2026-07-18T13:28:30Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -12,9 +12,9 @@
       "place": "Pecos River — Langtry / Central Val Verde",
       "lat": 29.8028,
       "lon": -101.4458,
-      "summary": "PECOS WAVE AT LANGTRY — NEW FFW: NWS Austin flash-flood warning for Central Val Verde until 11:15 AM CDT. Pecos River at Langtry (LTRT2) rising to MAJOR flood stage — NWPS forecast 21.7 ft MAJOR by ~1 PM (major stage 20); NWS reports flash flooding already occurring, heavy rain. The overnight Pandale wave is arriving downstream. Life-threatening; get off the river bottom and low crossings now.",
+      "summary": "VAL VERDE — TWO FLASH-FLOOD WARNINGS (both until 11:15 AM CDT): (1) Central Val Verde — Pecos River at Langtry (LTRT2) rising to MAJOR (NWPS fcst 21.7 ft ~1 PM), the overnight Pandale wave arriving downstream; (2) East Central Val Verde — heavy rain producing flash flooding. Life-threatening flash flooding; stay off the river bottom and low crossings across the county.",
       "details": [
-        "NWS Austin/San Antonio FFW issued 8:07 AM CT (until 11:15 AM CT): 'Pecos River at Langtry is going to major flood stage. Flash flooding is already occurring… life-threatening flash flooding.' NWPS LTRT2 forecast 21.7 ft MAJOR ~1 PM CT (major 20 ft); the last gauge obs (2.52 ft, 7:15 AM) predates the wave, so expect a sharp rise. Same Pecos flood water that crested Pandale (~15.9 ft) overnight, now reaching the Langtry reach — do not attempt low-water crossings; move people, vehicles, livestock off the river bottom."
+        "NWS Austin/San Antonio, both until 11:15 AM CT: FFW #1 (8:07 AM) Central Val Verde — 'Pecos River at Langtry going to major flood stage, flash flooding already occurring'; NWPS LTRT2 fcst 21.7 ft MAJOR ~1 PM (major 20 ft); the last gauge obs (2.52 ft) predates the wave — expect a sharp rise. FFW #2 (8:16 AM) East Central Val Verde — heavy rain producing flash flooding (a separate rain-driven cell). Same system as the overnight Pecos wave (crested Pandale ~15.9 ft). Do not attempt low-water crossings; move people, vehicles, livestock off the river bottom and out of low spots."
       ],
       "source": {
         "platform": "official",

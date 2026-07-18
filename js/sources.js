@@ -613,7 +613,66 @@ async function fetchRoadClosures() {
   // keep points: [] so renderRoadClosures's points loop stays safe (DriveTexas API is lines-only)
   state.roadClosures = { lines: (data.features || []).filter(roadCondActive), points: [] };
   markHealthy('roads');
+  updateRoadMemory(state.roadClosures.lines);
   renderRoadClosures();
+  renderReopenedRoads();
+  renderTiles();
+}
+
+/* ---------- recently-reopened roads — a closure leaving the live feed IS the recovery signal ---------- */
+
+const ROADS_KEY = 'respondertx.roads.v1';
+const roadHash = (s) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
+// identity from route+condition+limits only — a description edit must not read as a reopening
+const roadId = (p) => roadHash([p.route_name, p.condition, p.from_limit, p.to_limit].map((v) => String(v ?? '')).join('|'));
+
+function roadVertex(geo) {
+  if (!geo || !Array.isArray(geo.coordinates)) return null;
+  const c = geo.type === 'MultiLineString' ? geo.coordinates[0] && geo.coordinates[0][0] : geo.coordinates[0];
+  return Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]) ? [c[1], c[0]] : null;
+}
+
+function roadMemory() {
+  if (!state.roadMemory) {
+    try { state.roadMemory = Object.assign({ seen: {}, reopened: {} }, JSON.parse(localStorage.getItem(ROADS_KEY) || '{}')); }
+    catch { state.roadMemory = { seen: {}, reopened: {} }; }
+  }
+  return state.roadMemory;
+}
+
+// diff only a non-empty successful fetch — a failed or empty response must never mark everything reopened
+function updateRoadMemory(lines) {
+  if (!lines.length) return;
+  const mem = roadMemory();
+  const now = new Date().toISOString();
+  const live = new Set();
+  for (const f of lines) {
+    const p = f.properties || {};
+    const id = roadId(p);
+    live.add(id);
+    mem.seen[id] = { id, route_name: p.route_name, condition: p.condition, lastSeen: now, vertex: roadVertex(f.geometry) };
+    delete mem.reopened[id];
+  }
+  for (const id of Object.keys(mem.seen)) {
+    if (!live.has(id)) { mem.reopened[id] = Object.assign({}, mem.seen[id], { reopenedAt: now }); delete mem.seen[id]; }
+  }
+  const cutoff = Date.now() - CONFIG.histDays * 86400000;
+  for (const id of Object.keys(mem.reopened)) { if (new Date(mem.reopened[id].reopenedAt).getTime() < cutoff) delete mem.reopened[id]; }
+  try { localStorage.setItem(ROADS_KEY, JSON.stringify(mem)); } catch { /* quota — reopened memory is best-effort */ }
+}
+
+// suppress-not-delete: >reopenedAgeHours ages out of the default view, kept histDays behind the toggle
+function reopenedRoads() {
+  const all = Object.values(roadMemory().reopened).sort((a, b) => new Date(b.reopenedAt) - new Date(a.reopenedAt));
+  const cut = CONFIG.reopenedAgeHours * 60;
+  return { fresh: all.filter((r) => ageMins(r.reopenedAt) <= cut), aged: all.filter((r) => ageMins(r.reopenedAt) > cut) };
+}
+
+function reopenedPopupHtml(r) {
+  const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
+  return `<div class="popup-title" style="color:var(--good)">✓ ${esc(t('reopen.flag'))} — ${esc(prettyRoute(r.route_name) || 'Road')}</div>` +
+    `<div class="popup-meta">${esc(t('reopen.was'))}: ${esc(ct.label)} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))}</div>` +
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(ROAD_ATTRIB)} · cleared from the live feed — verify before routing</div>`;
 }
 
 function roadPopupHtml(p) {
@@ -650,6 +709,12 @@ function renderRoadClosures() {
     const ct = roadCondType(f.properties);
     const m = L.circleMarker([c[1], c[0]], { radius: 7, color: '#fff', weight: 1.5, fillColor: ct.color, fillOpacity: 0.95, attribution: ROAD_ATTRIB });
     m.bindPopup(roadPopupHtml(f.properties));
+    layer.addLayer(m);
+  }
+  for (const r of reopenedRoads().fresh) {
+    if (!r.vertex) continue;
+    const m = L.circleMarker(r.vertex, { radius: 6, color: '#fff', weight: 1.5, fillColor: cssVar('--good') || '#0ca30c', fillOpacity: 0.9, attribution: ROAD_ATTRIB });
+    m.bindPopup(reopenedPopupHtml(r));
     layer.addLayer(m);
   }
 }

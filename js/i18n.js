@@ -126,6 +126,8 @@
       'threat.ffemergtag': 'FF EMERG',
       'threat.okline': '✓ NO ACTIVE LIFE-SAFETY SIGNALS',
       'threat.oksub': 'recovery posture — verify before re-entry; fraud watch active (Social tab)',
+      'quiet.line': '✓ No active flood threat in the AO',
+      'quiet.sub': 'monitoring {n} gauges · {m} normal — live feeds updating',
 
       'cat.major': 'MAJOR flood',
       'cat.moderate': 'Moderate flood',
@@ -161,6 +163,10 @@
       'mon.workflow.head': 'Workflow',
       'cross.title': 'Low-water crossings (curator-tracked — verify before routing)',
       'cross.drivetx': '↗ TxDOT DriveTexas — authoritative statewide closures',
+      'reopen.title': '✓ Recently reopened roads (DriveTexas) — cleared from the live feed; verify before routing',
+      'reopen.flag': 'REOPENED',
+      'reopen.was': 'was',
+      'reopen.at': 'reopened',
 
       'leg.rain': 'Rainfall (MRMS)',
       'leg.light': 'light',
@@ -299,6 +305,8 @@
       'threat.ffemergtag': 'EMERG. FF',
       'threat.okline': '✓ SIN SEÑALES ACTIVAS DE PELIGRO PARA LA VIDA',
       'threat.oksub': 'postura de recuperación — verifique antes de reingresar; vigilancia de fraude activa (pestaña Social)',
+      'quiet.line': '✓ Sin amenaza activa de inundación en el área de operaciones',
+      'quiet.sub': 'monitoreando {n} medidores · {m} normales — datos en vivo actualizándose',
 
       'cat.major': 'inundación MAYOR',
       'cat.moderate': 'inundación moderada',
@@ -334,6 +342,10 @@
       'mon.workflow.head': 'Flujo de trabajo',
       'cross.title': 'Cruces de bajo nivel (seguidos por el curador — verifique antes de circular)',
       'cross.drivetx': '↗ TxDOT DriveTexas — cierres oficiales en todo el estado',
+      'reopen.title': '✓ Caminos reabiertos recientemente (DriveTexas) — fuera del feed en vivo; verifique antes de circular',
+      'reopen.flag': 'REABIERTO',
+      'reopen.was': 'era',
+      'reopen.at': 'reabierto',
 
       'leg.rain': 'Lluvia (MRMS)',
       'leg.light': 'ligera',

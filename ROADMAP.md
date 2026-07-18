@@ -112,9 +112,12 @@ share/deep-links/RSS/ICS, honesty, USNG, offline tiles, exports). Ranked GAPS:
   cron Worker: "alert me when gauge LID hits Y ft / county → FF-Emergency,"
   silent-override. Store endpoint+threshold only, no identity; not a WEA/911
   replacement. Cost M-L. **[infra]** — the one universal table stake we lack.
-- **T4. Spanish localization (+ a11y pass)** — extract UI + safety strings to a
-  locale file, professional ES (NWS data stays EN), lang/ARIA. High equity for
-  South TX public mirror. Cost M. **[ux]**
+- ~~**T4. Spanish localization (+ a11y pass)**~~ SHIPPED v0.75.0. — EN/ES toggle
+  (🌐 header control, ?lang=es deep link, localStorage-persisted, browser-default);
+  js/i18n.js locale table + t()/applyI18n over data-i18n attributes; UI chrome +
+  safety strings localized with standard NWS/FEMA Spanish ("llame al 911", "Dé la
+  vuelta, no se ahogue", "no es un sistema de despacho"); live NWS/NOAA/USGS data
+  stays EN; document.lang + ARIA track the locale. Cost M. **[ux]**
 - **T5. Evacuation zones w/ status + "safe to return"** — mirror authoritative
   zone status (Genasys/OEZ where available; else NWS polygons we already draw);
   never invent an order. Cost M-L, data-gated. **[data]**

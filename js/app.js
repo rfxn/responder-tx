@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.74.0';
+const APP_VERSION = 'v0.75.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -37,6 +37,8 @@ const ROAD_RE = /\b(?:FM|RM|RR|CR|SH|US|IH?|LOOP|HWY)[-\s]?\d+\b/gi;
 
 const FLOOD_CATS = ['action', 'minor', 'moderate', 'major'];
 const CAT_LABEL = { major: 'MAJOR flood', moderate: 'Moderate flood', minor: 'Minor flood', action: 'Near flood (action)', none: 'No flooding' };
+// localized severity word for the public "Am I at risk?" modal; map popups/cards keep the English feed vocabulary
+const catLabel = (cat) => t('cat.' + cat);
 const CAT_SIZE = { major: 18, moderate: 15, minor: 12, action: 10, none: 8 };
 const TYPE_GLYPH = { rescue: '🆘', evacuation: '🏃', medical: '⚕️', supplies: '📦', shelter: '🏠', animal: '🐾', wellness: '💬', volunteer: '🤝', equipment: '🛠️', road: '🚧', cutoff: '⛔', info: 'ℹ️' };
 const LIFE_SAFETY_TYPES = ['rescue', 'evacuation', 'medical', 'cutoff'];
@@ -140,7 +142,9 @@ function syncLabelBoost() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('respondertx.theme', theme);
-  $('#theme-toggle').innerHTML = theme === 'dark' ? '☀️ <span class="ctl-lbl">Light</span>' : '🌙 <span class="ctl-lbl">Dark</span>';
+  $('#theme-toggle').innerHTML = theme === 'dark'
+    ? `☀️ <span class="ctl-lbl">${esc(t('ctl.theme.light'))}</span>`
+    : `🌙 <span class="ctl-lbl">${esc(t('ctl.theme.dark'))}</span>`;
   if (state.map) {
     // Streets base is theme-neutral: keep it in place, theme then only affects UI chrome
     if (state.activeBase !== 'streets' && state.activeBase !== theme) {
@@ -731,11 +735,11 @@ function alertCardDiv(f) {
 
 function renderAlertList() {
   const el = $('#alert-list');
-  el.innerHTML = '<div class="section-title">NWS flood alerts — Hill Country AO first</div>';
+  el.innerHTML = `<div class="section-title">${esc(t('sec.alerts'))}</div>`;
   const sevF = $('#flt-alert-sev').value, qF = $('#flt-alert-q').value.toLowerCase();
   const shown = state.alerts.filter((f) => (!sevF || f._sev === sevF)
     && (!qF || `${f.properties.event} ${f.properties.areaDesc}`.toLowerCase().includes(qF)));
-  if (!shown.length) { el.innerHTML += '<div class="card">No alerts match.</div>'; return; }
+  if (!shown.length) { el.innerHTML += `<div class="card">${esc(t('sec.alerts.empty'))}</div>`; return; }
   // AO-relevant alerts first; the rest fold into "elsewhere in TX" so a Big Bend FFW can't sit on top
   const inAO = shown.filter(alertInAO), elsewhere = shown.filter((f) => !alertInAO(f));
   for (const f of inAO) el.appendChild(alertCardDiv(f));
@@ -1245,8 +1249,8 @@ function renderForecastList() {
     .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
     .sort((a, b) => CAT_RANK[gaugeForecastCat(b)] - CAT_RANK[gaugeForecastCat(a)]
       || new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
-  el.innerHTML = '<div class="section-title">Forecast to flood — pre-position ahead of these crests</div>';
-  if (!rising.length) { el.innerHTML += '<div class="card">No gauges currently forecast to rise into flood.</div>'; return; }
+  el.innerHTML = `<div class="section-title">${esc(t('sec.forecast'))}</div>`;
+  if (!rising.length) { el.innerHTML += `<div class="card">${esc(t('sec.forecast.empty'))}</div>`; return; }
   for (const g of rising) {
     const fCat = gaugeForecastCat(g);
     const f = g.status.forecast;
@@ -1356,7 +1360,7 @@ function renderWave() {
   }
   const nGauges = rivers.reduce((s, [, gs]) => s + gs.length, 0);
   el.innerHTML = `<button class="wave-toggle${open ? ' open' : ''}" id="wave-toggle">` +
-    `<span>🌊 Crest wave — when the crest reaches each point</span>` +
+    `<span>${esc(t('sec.wave'))}</span>` +
     `<span class="wave-count">${rivers.length} rivers · ${nGauges} pts ${open ? '▾' : '▸'}</span></button>` +
     `<div class="wave-body"${open ? '' : ' hidden'}>${body}</div>`;
   $('#wave-toggle').addEventListener('click', () => {
@@ -1417,16 +1421,16 @@ function renderDriveMode() {
     .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.moderate && new Date(g.status.forecast.validTime) > new Date())
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
   $('#drive-threat').innerHTML =
-    (emerg.length ? `<div class="dt-emerg">⚠ ${emerg.length} FLASH FLOOD EMERGENCY — ${esc(emerg.map((a) => a.properties.areaDesc).join('; '))}</div>` : '') +
-    (soonest ? `<div class="dt-crest">▲ Next major crest — ${esc(riverOf(soonest.name))} ${esc(fmtWhen(soonest.status.forecast.validTime))}</div>` : '') +
-    (state.myPos ? '' : '<div class="dt-nogps">Tap ⌖ Locate to rank hazards by distance from you</div>');
+    (emerg.length ? `<div class="dt-emerg">⚠ ${emerg.length} ${esc(t('drive.emerg'))} — ${esc(emerg.map((a) => a.properties.areaDesc).join('; '))}</div>` : '') +
+    (soonest ? `<div class="dt-crest">${esc(t('drive.nextcrest'))} ${esc(riverOf(soonest.name))} ${esc(fmtWhen(soonest.status.forecast.validTime))}</div>` : '') +
+    (state.myPos ? '' : `<div class="dt-nogps">${esc(t('drive.nogps'))}</div>`);
   const items = driveItems();
   $('#drive-list').innerHTML = items.length ? items.map((it) => {
-    const distBit = it.dist != null ? `<span class="d-dist">${it.dist.toFixed(1)} mi ${it.brng}</span>` : '';
+    const distBit = it.dist != null ? `<span class="d-dist">${it.dist.toFixed(1)} ${esc(t('risk.mi'))} ${it.brng}</span>` : '';
     return `<button class="drive-row" data-lat="${it.lat}" data-lon="${it.lon}">` +
       `<span class="d-glyph" style="color:${it.color}">${it.glyph}</span>` +
       `<span class="d-body"><span class="d-name">${esc(it.name)}</span><span class="d-sub">${esc(it.sub)}</span></span>${distBit}</button>`;
-  }).join('') : '<div class="dt-nogps">No mapped hazards right now — stay alert, verify roads.</div>';
+  }).join('') : `<div class="dt-nogps">${esc(t('drive.nohaz'))}</div>`;
   $('#drive-list').querySelectorAll('.drive-row').forEach((b) => b.addEventListener('click', () => {
     $('#drive-mode').hidden = true;
     state.map.setView([+b.dataset.lat, +b.dataset.lon], 13);
@@ -1457,7 +1461,7 @@ function renderGaugesTab() {
   el.innerHTML = '';
   const bar = document.createElement('div');
   bar.className = 'filters group-toggle';
-  for (const [key, label] of [['priority', 'By priority'], ['river', 'By river']]) {
+  for (const [key, label] of [['priority', t('sec.gauge.bypri')], ['river', t('sec.gauge.byriver')]]) {
     const b = document.createElement('button');
     b.textContent = label;
     b.classList.toggle('on', state.gaugeGroup === key);
@@ -1483,14 +1487,14 @@ function renderGaugesTab() {
     }
     for (const [river, list] of groups) section(`${river} (${list.length})`, list);
   } else {
-    if (rising.length) section(`▲ Rising — pre-position ahead of these (${rising.length})`, rising);
-    if (holding.length) section(`● In flood now (${holding.length})`, holding);
-    if (falling.length) section(`▼ Falling — recovery (${falling.length})`, falling);
+    if (rising.length) section(`${t('sec.gauge.rising')} (${rising.length})`, rising);
+    if (holding.length) section(`${t('sec.gauge.inflood')} (${holding.length})`, holding);
+    if (falling.length) section(`${t('sec.gauge.falling')} (${falling.length})`, falling);
   }
   if (!rising.length && !holding.length && !falling.length) {
     const none = document.createElement('div');
     none.className = 'card';
-    none.textContent = state.gauges.length ? 'No monitored gauges in or forecast to flood.' : 'Gauge data not loaded yet.';
+    none.textContent = state.gauges.length ? t('sec.gauge.empty') : t('sec.gauge.noload');
     el.appendChild(none);
   }
   if (normal.length) {
@@ -1631,7 +1635,7 @@ function renderRequests() {
   const counties = [...new Set(reqs.map((r) => r.county))].sort();
   const cSel = $('#flt-county');
   const cur = cSel.value;
-  cSel.innerHTML = '<option value="">All counties</option>' + counties.map((c) => `<option${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
+  cSel.innerHTML = `<option value="">${esc(t('feed.allcounties'))}</option>` + counties.map((c) => `<option${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
 
   for (const r of visible) {
     const div = document.createElement('div');
@@ -1678,7 +1682,7 @@ function renderRequests() {
     });
     el.appendChild(div);
   }
-  if (!visible.length) el.innerHTML = '<div class="card">No notices match the current filters.</div>';
+  if (!visible.length) el.innerHTML = `<div class="card">${esc(t('feed.empty'))}</div>`;
 
   state.layers.requests.clearLayers();
   state.reqMarkers = {};
@@ -1799,8 +1803,8 @@ function renderSavedPlaces() {
   const el = $('#risk-saved');
   const arr = loadPlaces();
   if (!arr.length) { el.innerHTML = ''; return; }
-  el.innerHTML = '<div class="rs-title">Saved places — tap to re-check</div>' +
-    arr.map((p, i) => `<span class="rs-chip"><button class="rs-go" data-i="${i}">🏠 ${esc(p.label)}</button><button class="rs-x" data-i="${i}" title="Remove saved place" aria-label="Remove">✕</button></span>`).join('');
+  el.innerHTML = `<div class="rs-title">${esc(t('risk.saved.title'))}</div>` +
+    arr.map((p, i) => `<span class="rs-chip"><button class="rs-go" data-i="${i}">🏠 ${esc(p.label)}</button><button class="rs-x" data-i="${i}" title="${esc(t('risk.saved.remove'))}" aria-label="${esc(t('risk.saved.removearia'))}">✕</button></span>`).join('');
   el.querySelectorAll('.rs-go').forEach((b) => b.addEventListener('click', () => {
     const p = loadPlaces()[+b.dataset.i];
     if (p) { $('#risk-addr').value = p.label; runRiskCheck(p.lat, p.lon, p.label); }
@@ -1826,21 +1830,21 @@ async function runRiskFromInput() {
   const raw = $('#risk-addr').value.trim();
   if (!raw) return;
   const out = $('#risk-result');
-  out.innerHTML = '<div class="risk-card"><div class="risk-quiet">Looking up address…</div></div>';
+  out.innerHTML = `<div class="risk-card"><div class="risk-quiet">${esc(t('risk.looking'))}</div></div>`;
   // bias to the board's AO when no state is named; the query is never stored or transmitted beyond this geocode
   const q = /\b(tx|texas)\b/i.test(raw) ? raw : `${raw}, Texas`;
   try {
     const hit = await nominatimSearch(q);
-    if (!hit) { out.innerHTML = '<div class="risk-card"><div class="risk-quiet">Address not found — add a city or ZIP, or drop the pin on the map directly.</div></div>'; return; }
+    if (!hit) { out.innerHTML = `<div class="risk-card"><div class="risk-quiet">${esc(t('risk.notfound'))}</div></div>`; return; }
     runRiskCheck(hit.lat, hit.lon, placeLabel(raw, hit));
-  } catch { out.innerHTML = '<div class="risk-card"><div class="risk-quiet">Lookup failed — check your connection and retry.</div></div>'; }
+  } catch { out.innerHTML = `<div class="risk-card"><div class="risk-quiet">${esc(t('risk.lookupfail'))}</div></div>`; }
 }
 
 function dropRiskPin(lat, lon, label) {
   if (state.riskMarker) state.map.removeLayer(state.riskMarker);
   state.riskMarker = L.marker([lat, lon], {
-    icon: L.divIcon({ className: '', html: '<div class="risk-pin"><div class="risk-pin-dot"></div><div class="risk-pin-label">YOUR PLACE</div></div>', iconSize: [40, 46], iconAnchor: [20, 40] }),
-    title: label || 'Your place', zIndexOffset: 2100,
+    icon: L.divIcon({ className: '', html: `<div class="risk-pin"><div class="risk-pin-dot"></div><div class="risk-pin-label">${esc(t('risk.pinlabel'))}</div></div>`, iconSize: [40, 46], iconAnchor: [20, 40] }),
+    title: label || t('risk.pintitle'), zIndexOffset: 2100,
   }).addTo(state.map);
   state.map.setView([lat, lon], 12);
 }
@@ -1889,31 +1893,33 @@ function riskGaugeLine(x) {
   const tr = gaugeTrend(g.lid);
   const trendBit = tr ? ` · ${tr.dir === 'up' ? '↑ rising' : tr.dir === 'down' ? '↓ falling' : '→ steady'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   const fcst = fCat
-    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${f.primary} ${esc(f.primaryUnit)} — <span style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span> · ${esc(fmtWhen(f.validTime))}</div>`
+    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${f.primary} ${esc(f.primaryUnit)} — <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   return `<button class="risk-gauge" data-lid="${esc(g.lid)}">` +
-    `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} mi</span></div>` +
-    `<div class="rg-now">Now ${o.primary} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span>${trendBit}</div>` +
+    `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} ${esc(t('risk.mi'))}</span></div>` +
+    `<div class="rg-now">${esc(t('risk.now'))} ${o.primary} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${cat})">${esc(catLabel(cat))}</span>${trendBit}</div>` +
     fcst + '</button>';
 }
 
-// one derived line — never invents; each clause restates data already shown above
+// one derived line — never invents; each clause restates data already shown above.
+// connectives localize; embedded feed data (event names, rivers) stays English.
 function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
+  const mi = t('risk.mi');
   const parts = [];
   if (nearAlerts.length) {
     const worst = nearAlerts.slice().sort((a, b) => SEV_ORDER.indexOf(a._sev) - SEV_ORDER.indexOf(b._sev))[0];
-    parts.push(`Active ${worst.properties.event}${worst._sev === 'emergency' ? ' — FLASH FLOOD EMERGENCY' : ''} covers this area`);
+    parts.push(`${worst.properties.event}${worst._sev === 'emergency' ? ` — ${t('risk.read.emerg')}` : ''} ${t('risk.read.covers')}`);
   }
   if (gauges.length) {
     const { g, dist } = gauges[0];
-    let s = `nearest gauge ${riverOf(g.name)} (${dist.toFixed(1)} mi) is ${CAT_LABEL[gaugeCat(g)]}`;
-    if (gaugeRising(g)) s += ` and forecast to reach ${CAT_LABEL[gaugeForecastCat(g)]} ${fmtWhen(g.status.forecast.validTime)}`;
+    let s = `${t('risk.read.nearest')} ${riverOf(g.name)} (${dist.toFixed(1)} ${mi}) ${t('risk.read.is')} ${catLabel(gaugeCat(g))}`;
+    if (gaugeRising(g)) s += ` ${t('risk.read.forecast')} ${catLabel(gaugeForecastCat(g))} ${fmtWhen(g.status.forecast.validTime)}`;
     parts.push(s);
   } else {
-    parts.push(`no river gauge within ${RISK_GAUGE_MI} mi`);
+    parts.push(`${t('risk.read.nogauge')} ${RISK_GAUGE_MI} ${mi}`);
   }
-  if (xCross) parts.push(`nearest ${CROSSING_STATUS[xCross.c.status].label.toLowerCase()} crossing ${xCross.dist.toFixed(1)} mi`);
-  if (nNotice) parts.push(`nearest ${nNotice.r.type} notice ${nNotice.dist.toFixed(1)} mi`);
+  if (xCross) parts.push(`${t('risk.read.crosspre')} ${t('xword.' + xCross.c.status)} ${t('risk.read.crosspost')} ${xCross.dist.toFixed(1)} ${mi}`);
+  if (nNotice) parts.push(`${t('risk.read.noticepre')} ${t('ntype.' + nNotice.r.type)} ${t('risk.read.noticepost')} ${nNotice.dist.toFixed(1)} ${mi}`);
   const line = parts.join('; ');
   return line.charAt(0).toUpperCase() + line.slice(1) + '.';
 }
@@ -1926,38 +1932,39 @@ function runRiskCheck(lat, lon, label) {
   const nNotice = nearestNotice(lat, lon, RISK_NEAR_MI);
   const read = riskOverallRead(nearAlerts, gauges, xCross, nNotice);
 
+  const mi = t('risk.mi');
   let html = '<div class="risk-card">';
   html += `<div class="risk-place"><span class="rp-pin">🏠</span><span class="rp-label">${esc(label)}</span>` +
-    '<button class="rp-save" title="Save this place for one-tap re-check">☆ Save</button></div>';
+    `<button class="rp-save" title="${esc(t('risk.save.title'))}">${esc(t('risk.save'))}</button></div>`;
   html += `<div class="risk-read">${esc(read)}</div>`;
 
   if (nearAlerts.length) {
-    html += `<div class="risk-sec"><div class="risk-sec-t">⚠ Active NWS flood alert${nearAlerts.length > 1 ? 's' : ''} at this point</div>`;
+    html += `<div class="risk-sec"><div class="risk-sec-t">${esc(nearAlerts.length > 1 ? t('risk.sec.alertsN') : t('risk.sec.alerts1'))}</div>`;
     for (const f of nearAlerts.slice(0, 3)) {
       html += `<div class="risk-alert sev-${f._sev}"><strong>${esc(f.properties.event)}</strong>` +
         `<div class="ra-area">${esc(f.properties.areaDesc || '')}</div>` +
-        `<div class="ra-meta">until ${esc(fmtWhen(f.properties.expires))}</div></div>`;
+        `<div class="ra-meta">${esc(t('risk.until'))} ${esc(fmtWhen(f.properties.expires))}</div></div>`;
     }
     html += '</div>';
   } else {
-    html += '<div class="risk-sec"><div class="risk-quiet">No active NWS flood alert covers this point right now — that does <strong>not</strong> mean no risk; verify locally.</div></div>';
+    html += `<div class="risk-sec"><div class="risk-quiet">${t('risk.noalert')}</div></div>`;
   }
 
-  html += `<div class="risk-sec"><div class="risk-sec-t">River gauges within ${RISK_GAUGE_MI} mi</div>`;
+  html += `<div class="risk-sec"><div class="risk-sec-t">${esc(t('risk.sec.gauges'))} ${RISK_GAUGE_MI} ${esc(mi)}</div>`;
   if (gauges.length) html += gauges.map(riskGaugeLine).join('');
-  else html += `<div class="risk-quiet">No river gauge within ${RISK_GAUGE_MI} mi — absence of a nearby gauge does <strong>not</strong> mean no risk; verify locally.</div>`;
+  else html += `<div class="risk-quiet">${esc(t('risk.read.nogauge'))} ${RISK_GAUGE_MI} ${esc(mi)} — ${t('risk.nogauge')}</div>`;
   html += '</div>';
 
-  html += '<div class="risk-sec"><div class="risk-sec-t">Roads &amp; crossings nearby</div>';
+  html += `<div class="risk-sec"><div class="risk-sec-t">${t('risk.sec.roads')}</div>`;
   if (xCross) {
     const st = CROSSING_STATUS[xCross.c.status];
-    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${st.label}</span> — ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} mi</span></div>`;
+    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${st.label}</span> — ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} ${esc(mi)}</span></div>`;
   }
   if (nNotice) {
-    html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.type)}</span> — ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} mi</span></div>`;
+    html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.type)}</span> — ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} ${esc(mi)}</span></div>`;
   }
-  if (!xCross && !nNotice) html += '<div class="risk-quiet">No tracked closed crossing or road notice within a few miles — still verify locally before routing; conditions change fast.</div>';
-  html += '<div class="risk-tip">Tip: toggle the “Flood inundation — NWM model” map layer to see the modeled extent near this point (a modeled estimate, not observed).</div>';
+  if (!xCross && !nNotice) html += `<div class="risk-quiet">${esc(t('risk.noroad'))}</div>`;
+  html += `<div class="risk-tip">${esc(t('risk.tip'))}</div>`;
   html += '</div>';
 
   html += '</div>';
@@ -2221,15 +2228,15 @@ function renderResources() {
   const r = state.resources;
   if (!r) return;
   const el = $('#resources-body');
-  el.innerHTML = '<div class="section-title">Open shelters (from official statements)</div>' +
+  el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
     r.shelters.map((s) => `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. — ${esc(s.note)} <a href="${esc(s.source)}" target="_blank" rel="noopener">src</a></div></div>`).join('') +
-    '<div class="section-title">Hotlines</div>' +
+    `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
     r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> — ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
-    '<div class="section-title">Authoritative data & live coverage</div>' +
+    `<div class="section-title">${esc(t('res.data'))}</div>` +
     r.dataLinks.map((d) => `<div class="resource-item"><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`).join('') +
-    '<div class="section-title">Follow / subscribe (public, no account)</div>' +
-    '<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">📡 RSS feed</a> — emergencies, forecast crests, active notices in any reader</div>' +
-    '<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">📅 Crest calendar (.ics)</a> — subscribe to add forecast MAJOR crests to your calendar</div>';
+    `<div class="section-title">${esc(t('res.follow'))}</div>` +
+    `<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">${esc(t('res.rss'))}</a> — ${esc(t('res.rss.note'))}</div>` +
+    `<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">${esc(t('res.ics'))}</a> — ${esc(t('res.ics.note'))}</div>`;
 
   state.layers.shelters.clearLayers();
   for (const s of r.shelters) {
@@ -2248,11 +2255,11 @@ function monitorGroupHtml(g) {
 
 function renderMonitors() {
   const el = $('#monitor-body');
-  el.innerHTML = '<div class="section-title">Live social searches — open in new tab, triage into the feed</div>' +
+  el.innerHTML = `<div class="section-title">${esc(t('mon.social'))}</div>` +
     state.resources.monitors.map(monitorGroupHtml).join('') +
-    '<div class="section-title">Comms — scanner audio & community nets</div>' +
+    `<div class="section-title">${esc(t('mon.comms'))}</div>` +
     (state.resources.comms || []).map(monitorGroupHtml).join('') +
-    '<div class="section-title">Workflow</div>' +
+    `<div class="section-title">${esc(t('mon.workflow.head'))}</div>` +
     '<div class="resource-item">1. Sweep each search every 15–30 min. 2. For actionable posts, tap “＋ New notice”, click the map to drop the pin, paste the post URL as source. 3. Verify (cross-reference official channels or call back) before tasking. 4. Anything life-threatening → relay to 911/EOC immediately; this board does not dispatch.</div>';
 }
 
@@ -2272,22 +2279,22 @@ function renderThreatStrip() {
   const majors = state.gauges.filter((g) => gaugeCat(g) === 'major');
   const toMajor = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major');
   const chips = [
-    { n: emergencies, cls: 'emergency', label: 'FF emergencies', glyph: '⚠', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
-    { n: lifeReqs.length, cls: 'emergency', label: 'critical life-safety', glyph: '🆘', act: () => fitTo(lifeReqs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
-    { n: cutoffs.length, cls: 'emergency', label: 'cut-off areas', glyph: '⛔', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
-    { n: majors.length, cls: 'major', label: 'MAJOR gauges', glyph: '●', act: () => fitTo(majors.map((g) => [g.latitude, g.longitude])) },
-    { n: toMajor.length, cls: 'major', label: 'rising to major', glyph: '▲', act: () => fitTo(toMajor.map((g) => [g.latitude, g.longitude])) },
-    (() => { const rw = recordWatchGauges(); return { n: rw.length, cls: rw.some((g) => recordContext(g).atOrAbove) ? 'emergency' : 'major', label: 'near crest of record', glyph: '⚑', act: () => { fitTo(rw.map((g) => [g.latitude, g.longitude])); document.querySelector('.tabs button[data-tab="tab-gauges"]').click(); } }; })(),
-    { n: roads.length, cls: 'warn', label: 'roads blocked', glyph: '🚧', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
+    { n: emergencies, cls: 'emergency', label: t('threat.ffemerg'), glyph: '⚠', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
+    { n: lifeReqs.length, cls: 'emergency', label: t('threat.life'), glyph: '🆘', act: () => fitTo(lifeReqs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
+    { n: cutoffs.length, cls: 'emergency', label: t('threat.cutoff'), glyph: '⛔', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
+    { n: majors.length, cls: 'major', label: t('threat.major'), glyph: '●', act: () => fitTo(majors.map((g) => [g.latitude, g.longitude])) },
+    { n: toMajor.length, cls: 'major', label: t('threat.tomajor'), glyph: '▲', act: () => fitTo(toMajor.map((g) => [g.latitude, g.longitude])) },
+    (() => { const rw = recordWatchGauges(); return { n: rw.length, cls: rw.some((g) => recordContext(g).atOrAbove) ? 'emergency' : 'major', label: t('threat.record'), glyph: '⚑', act: () => { fitTo(rw.map((g) => [g.latitude, g.longitude])); document.querySelector('.tabs button[data-tab="tab-gauges"]').click(); } }; })(),
+    { n: roads.length, cls: 'warn', label: t('threat.roads'), glyph: '🚧', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     {
       n: state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').length,
-      cls: 'good', label: 'falling (recovery)', glyph: '▼',
+      cls: 'good', label: t('threat.falling'), glyph: '▼',
       act: () => fitTo(state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').map((g) => [g.latitude, g.longitude])),
     },
   ].filter((c) => c.n > 0);
   if (!chips.length) {
     el.innerHTML = state.alertsLoadedOnce
-      ? '<div class="strip-ok"><span class="ok-line">✓ NO ACTIVE LIFE-SAFETY SIGNALS</span><span class="ok-sub">recovery posture — verify before re-entry; fraud watch active (Monitor tab)</span></div>'
+      ? `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`
       : '';
     return;
   }
@@ -2295,7 +2302,7 @@ function renderThreatStrip() {
   if (chips.some((c) => c.cls === 'emergency')) {
     const h = document.createElement('div');
     h.className = 'threat-head';
-    h.textContent = 'THREAT TO LIFE';
+    h.textContent = t('threat.headline');
     el.appendChild(h);
   }
   const grid = document.createElement('div');
@@ -2316,7 +2323,7 @@ function renderThreatStrip() {
     const b = document.createElement('button');
     b.className = 'stat-row major crest';
     const river = riverOf(soonest.name);
-    b.innerHTML = `<span class="glyph">⏱</span><span class="num">${esc(fmtWhen(soonest.status.forecast.validTime).split(' · ')[0])}</span><span class="lbl">next crest</span><span class="riv">· ${esc(river.slice(0, 22))}</span>`;
+    b.innerHTML = `<span class="glyph">⏱</span><span class="num">${esc(fmtWhen(soonest.status.forecast.validTime).split(' · ')[0])}</span><span class="lbl">${esc(t('threat.nextcrest'))}</span><span class="riv">· ${esc(river.slice(0, 22))}</span>`;
     b.addEventListener('click', () => state.map.setView([soonest.latitude, soonest.longitude], 11));
     grid.appendChild(b);
   }
@@ -2327,7 +2334,7 @@ function renderThreatStrip() {
     row.className = 'ffe-row';
     const tag = document.createElement('span');
     tag.className = 'ffe-tag';
-    tag.textContent = 'FF EMERG';
+    tag.textContent = t('threat.ffemergtag');
     row.appendChild(tag);
     const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
     for (const a of emergAlerts) {
@@ -2473,7 +2480,7 @@ function renderCrossings() {
   const el = $('#crossings-body');
   if (el) {
     el.innerHTML = list.length
-      ? '<div class="section-title">Low-water crossings (curator-tracked — verify before routing)</div>' +
+      ? `<div class="section-title">${esc(t('cross.title'))}</div>` +
         list.map((c) => {
           const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
           const staleH = c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity;
@@ -2481,7 +2488,7 @@ function renderCrossings() {
           return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong> — ${esc(c.name)}` +
             `<div class="addr">${esc(c.reason || '')} · updated ${esc(fmtWhen(c.updated_at))}${stale} <a href="${esc(c.source)}" target="_blank" rel="noopener">src</a></div></div>`;
         }).join('') +
-        '<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">↗ TxDOT DriveTexas — authoritative statewide closures</a></div>'
+        `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
       : '';
   }
   for (const c of list) {
@@ -2671,17 +2678,35 @@ async function loadEventConfig() {
     if (ev.gaugeBbox) CONFIG.gaugeBbox = ev.gaugeBbox;
     if (ev.name) { document.querySelector('.brand h1').textContent = ev.name; state.baseTitle = ev.name; }
     if (ev.subtitle) {
-      const sub = document.querySelector('.brand .sub');
-      sub.innerHTML = '<span class="live-dot"></span>';
-      sub.appendChild(document.createTextNode(ev.subtitle));
+      const st = document.querySelector('.brand .sub-text');
+      if (st) {
+        // a curator subtitle that differs from the default is their own words — don't localize it
+        if (ev.subtitle !== I18N.en['brand.sub']) st.removeAttribute('data-i18n');
+        st.textContent = ev.subtitle;
+      }
     }
   } catch { /* keep built-in CONFIG defaults */ }
+}
+
+// re-render the localized dynamic surfaces after a live language switch (setLang already
+// re-applied the static strings and document.lang)
+function relocalizeDynamic() {
+  applyTheme(document.documentElement.getAttribute('data-theme'));
+  renderTiles();
+  renderAlertList();
+  renderForecastList();
+  renderGaugesTab();
+  renderRequests();
+  if (state.resources) { renderResources(); renderMonitors(); }
+  renderCrossings();
+  renderSourceHealth();
 }
 
 async function boot() {
   const themeParam = new URLSearchParams(location.search).get('theme');
   applyTheme(themeParam || localStorage.getItem('respondertx.theme') || 'dark');
   await loadEventConfig();
+  applyI18n(document);
   initMap();
   applyTheme(document.documentElement.getAttribute('data-theme'));
   loadStore();
@@ -2703,6 +2728,13 @@ async function boot() {
   }
   $('#theme-toggle').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+  const updateLangToggle = () => { $('#lang-lbl').textContent = getLang() === 'es' ? 'EN' : 'ES'; };
+  updateLangToggle();
+  $('#lang-toggle').addEventListener('click', () => {
+    setLang(getLang() === 'es' ? 'en' : 'es');
+    updateLangToggle();
+    relocalizeDynamic();
+  });
   $('#refresh-now').addEventListener('click', refresh);
   $('#share-btn').addEventListener('click', (e) => shareView(e.target));
   const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } renderDriveMode(); };
@@ -2715,10 +2747,15 @@ async function boot() {
     $('#drive-hint-x').addEventListener('click', dismissHint);
   }
   $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; });
+  // owner directive: "Am I at risk?" hidden by default — first-responder/public-info tool, not a
+  // consumer address lookup. Code + modal stay intact; ?risk=1 reveals the button and opens the modal.
+  const riskEnabled = new URLSearchParams(location.search).has('risk');
+  if (!riskEnabled) $('#risk-btn').hidden = true;
   $('#risk-btn').addEventListener('click', openRiskCheck);
   $('#risk-close').addEventListener('click', () => { $('#risk-modal').hidden = true; });
   $('#risk-modal').addEventListener('click', (e) => { if (e.target.id === 'risk-modal') $('#risk-modal').hidden = true; });
   $('#risk-form').addEventListener('submit', (e) => { e.preventDefault(); runRiskFromInput(); });
+  if (riskEnabled) { $('#risk-btn').hidden = false; openRiskCheck(); }
   $('#hydro-close').addEventListener('click', () => { $('#hydro-modal').hidden = true; });
   $('#hydro-modal').addEventListener('click', (e) => { if (e.target.id === 'hydro-modal') $('#hydro-modal').hidden = true; });
   $('#drive-loc').addEventListener('click', () => { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });

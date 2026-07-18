@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.0",
+      "date": "2026-07-18",
+      "line": "NEW Spanish/English toggle (🌐 in the header): the app's own UI now speaks Spanish or English for the heavily Hispanic flood-affected area — tabs, the threat-to-life module, the safety modal, the 911 disclaimer, Drive Mode and the 'Am I at risk?' honesty box. Safety copy uses standard NWS/FEMA Spanish ('llame al 911', 'Dé la vuelta, no se ahogue', 'no es un sistema de despacho'); live NWS/NOAA/USGS gauge and alert data stays in English. Choice is remembered and ?lang=es deep-links. Also: 'Am I at risk?' is now hidden by default (still reachable at ?risk=1) — this is a responder/public-info board, not a consumer address lookup"
+    },
+    {
       "v": "v0.74.0",
       "date": "2026-07-18",
       "line": "NEW '🏠 Am I at risk?' address check (header): type an address → geocoded to a point → a risk-glance card of the nearest river gauges (stage, category, forecast crest, trend) within 15 mi, any active NWS flood alert covering the point, and the nearest closed crossing / road notice, with one plain-language read line; flies the map and drops a 'YOUR PLACE' marker, and one tap saves the place for re-checking later. Guidance only — not a flood determination; it never says you're safe; your address is used only on your device to place the pin and is never logged or transmitted"

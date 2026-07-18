@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.70.0 — 2026-07-18 (owner fixes: bottom-sheet buttons + footer)
+- Fix: the Min/Half/Full buttons were oversized and eating screen space — now a small centered pill that barely uses any room
+- Fix: the sheet was hijacking the 911 footer and version tag — root cause was a stale CSS rule pinning the map at 42vh, so the Full sheet overflowed the viewport and shoved the footer off-screen. The map now flexibly fills whatever the sheet leaves, so the 911 line + version tag sit correctly at the bottom in Half and Full, and the three sizes all resize cleanly
 ## v0.69.0 — 2026-07-18 (reassessment quick-wins: AO-first alerts + discoverable Drive Mode)
 - Alerts tab now leads with Hill Country AO alerts and folds the rest into "N flood alerts elsewhere in TX" — a Big Bend / far-West-TX warning can no longer sort above your area just for being newer (alerts are fetched statewide; this ranks by relevance, geometry-vs-AO-bbox)
 - Drive Mode is now discoverable: its 🚗 control gets a distinct teal accent, and a one-time dismissible hint points to it on first visit — the field's best view no longer hides behind an unlabeled icon

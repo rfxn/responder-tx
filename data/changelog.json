@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.6",
+      "date": "2026-07-18",
+      "line": "Map recency for flash-flood iconography: the alert-polygon draw loop skips any NWS alert whose expires time is in the past, so a stale/expired alert can no longer linger on the map after a failed refresh — alerts still open (expires in the future, any age) keep drawing, so an open FF EMERGENCY/WARNING is never hidden. New lsrMaxHours=24 hard cap on live storm-report (💧) markers: a report older than 24h routes to the existing aged/history layer instead of the live layer even when the window filter is wider — suppress, not delete."
+    },
+    {
       "v": "v0.75.5",
       "date": "2026-07-18",
       "line": "Security + quality hardening pass: a crafted ?tab= URL param can no longer throw an invalid-selector exception that blanked the board on load; edge gauge-proxy rejects prototype-chain kinds cleanly; the cold-start snapshot no longer overwrites fresher live gauges in a race; gauge feed numbers are coerced and off-site links scheme-gated to http(s) as defense-in-depth; added nosniff / Referrer-Policy / X-Frame-Options headers; Escape now closes modals and the version tag is keyboard-focusable; the 'normal' gauge bucket labels stale sensors distinctly. (CSP deferred — the board loads many external tile/API origins and a strict policy could not be fully verified safe.)"

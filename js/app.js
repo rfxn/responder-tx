@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.5';
+const APP_VERSION = 'v0.75.6';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -24,6 +24,8 @@ const CONFIG = {
   agedLsrMins: 180,
   histDays: 7,
   lsrHours: 12,
+  // hard live-map cap: a storm report older than this ages out of the live layer into lsrsAged, even if the window filter is wider
+  lsrMaxHours: 24,
   lsrUrl: 'https://mesonet.agron.iastate.edu/geojson/lsr.geojson',
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   mrms1hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-n1p-900913/{z}/{x}/{y}.png',
@@ -660,6 +662,8 @@ async function renderAlertPolys() {
   let zoneFetchBudget = CONFIG.maxZoneGeomFetches;
   // reverse severity order: least-severe drawn first, emergencies land on top
   for (const f of state.alerts.slice().reverse()) {
+    // recency: never draw an alert the NWS no longer lists as open — expired drops off, open (expires in future, any age) stays
+    if (new Date(f.properties.expires) < new Date()) continue;
     let geom = f.geometry;
     if (!geom && f._sev !== 'advisory' && zoneFetchBudget > 0) {
       const zones = f.properties.affectedZones || [];
@@ -1222,7 +1226,8 @@ function lsrCardDiv(e, aged) {
 }
 
 function renderLsrs() {
-  const cutoff = lsrFreshCutoffMins();
+  // live layer is hard-capped at lsrMaxHours regardless of a wider window filter — older reports route to lsrsAged (history), never delete
+  const cutoff = Math.min(lsrFreshCutoffMins(), CONFIG.lsrMaxHours * 60);
   const live = state.lsrs.map((f) => {
     const [lon, lat] = f.geometry.coordinates;
     const p = f.properties;

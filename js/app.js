@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.76.0';
+const APP_VERSION = 'v0.76.1';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -480,6 +480,11 @@ function initMap() {
       '<div><span class="sw" style="width:10px">▲</span>forecast to rise</div>' +
       '<div><span class="sw" style="width:10px;color:var(--good)">▼</span>observed falling</div>' +
       '<div><span class="sw fcst-ring cat-moderate" style="width:10px;height:10px"></span>forecast crest (RFC)</div>' +
+      '<div class="lg-title" style="margin-top:6px">Roads (DriveTexas)</div>' +
+      ['Closure', 'Flooding', 'Damage'].map((k) => {
+        const rc = ROAD_COND[k];
+        return `<div><span class="sw sw-line" style="background:${rc.color}"></span>${esc(rc.label)}</div>`;
+      }).join('') +
       '<div class="lg-title" style="margin-top:6px">Reports & notices</div>' +
       '<div><span style="margin-right:6px">💧</span>storm report (LSR)</div>' +
       '<div><span style="margin-right:6px">🆘</span>marker glyph = need type</div>';

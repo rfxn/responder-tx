@@ -444,6 +444,9 @@ main { flex: 1; display: flex; min-height: 0; }
   display: inline-block; border-radius: 50%; margin-right: 6px; vertical-align: middle;
   border: 1.5px solid var(--surface-1); box-shadow: 0 0 0 1px var(--border);
 }
+.map-legend .sw-line {
+  width: 14px; height: 4px; border-radius: 1px; border: 0; box-shadow: none;
+}
 /* legend swatches are chrome, never subject to marker declutter/pulse */
 .map-legend .gauge-icon { display: inline-block !important; animation: none; opacity: 1; }
 

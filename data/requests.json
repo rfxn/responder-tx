@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-18T04:59:40Z",
+  "generated": "2026-07-18T06:13:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
     {
@@ -24,7 +24,7 @@
     },
     {
       "id": "seed-040",
-      "ts": "2026-07-18T04:59:40Z",
+      "ts": "2026-07-18T06:13:00Z",
       "type": "evacuation",
       "priority": "critical",
       "status": "open",
@@ -32,9 +32,9 @@
       "place": "Pecos River — Pandale Crossing → NW Val Verde",
       "lat": 30.125,
       "lon": -101.5722,
-      "summary": "PECOS RIVER — Pandale Crossing (PDAT2) holding MAJOR near its crest: observed 15.37 ft (peaked ~15.9), running below the 18.5 ft forecast crest. NWS Austin FFW for NW Val Verde until 7 AM CDT. Downstream Langtry (LTRT2) forecast ~18 ft MODERATE by Sat afternoon. Life-threatening flash flooding; stay off the river bottom.",
+      "summary": "PECOS RIVER — Pandale Crossing (PDAT2) AT CREST, holding MAJOR ~15.4 ft: it topped out near 15.9, well under the earlier 18.5 forecast, and NWPS has now revised the crest down to ~15 ft — threat easing. NWS Austin FFW for NW Val Verde still active until 7 AM CDT. Downstream Langtry forecast ~18 ft MODERATE by Sat afternoon. Stay off the river bottom.",
       "details": [
-        "NWPS PDAT2 11:57 PM CT: observed 15.37 ft MAJOR (major stage 15 ft), easing slightly off a ~15.9 ft peak and running below the model's 18.5 ft forecast crest — near crest, holding in major. NWS Austin/San Antonio FFW (until 7 AM CDT) remains active for NW Val Verde; it cited a possible highest Pecos crest since 1974 on the forecast — watch whether obs verify it (they're under forecast so far). Downstream Langtry (LTRT2) still ~2.6 ft, wave forecast to reach ~18 ft MODERATE by Sat afternoon. Do not attempt low crossings; move off the river bottom."
+        "NWPS PDAT2 1:12 AM CT: observed 15.37 ft MAJOR (major stage 15 ft), at crest — peaked ~15.9 and the model has revised its forecast crest DOWN from 18.5 to ~15.1 ft, i.e. the over-forecast did not verify (a recurring theme tonight; the 'highest since 1974' language was on the old forecast). Still in major and the NWS Austin/San Antonio FFW for NW Val Verde runs until 7 AM CDT, so treat the crossing as impassable. Downstream Langtry (LTRT2) still low, wave forecast ~18 ft MODERATE by Sat afternoon. Do not attempt low crossings."
       ],
       "source": {
         "platform": "official",

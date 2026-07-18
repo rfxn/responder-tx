@@ -154,6 +154,9 @@ main { flex: 1; display: flex; min-height: 0; }
 /* Drive Mode is the field's key view — give its control a distinct accent so it reads as a feature, not a utility */
 #drive-btn { border-color: var(--note-teal, #14b8a6); color: var(--note-teal, #14b8a6); }
 #drive-btn:hover { background: color-mix(in srgb, var(--note-teal, #14b8a6) 14%, var(--surface-2)); }
+/* the address risk-check is the public entry point — accent it so it reads as a headline feature */
+#risk-btn { border-color: var(--accent); color: var(--accent); font-weight: 650; }
+#risk-btn:hover { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
 #drive-hint {
   position: fixed; top: 54px; right: 10px; z-index: 1250; max-width: min(92vw, 340px);
   display: flex; align-items: center; gap: 8px; padding: 9px 11px;
@@ -538,6 +541,82 @@ main { flex: 1; display: flex; min-height: 0; }
   font-weight: 800; color: var(--sev-emergency); text-align: center; letter-spacing: 0.03em;
 }
 #safety-ack { margin: 6px 16px 16px; }
+
+/* ---- "Am I at risk?" address check ---- */
+#risk-modal {
+  position: fixed; inset: 0; z-index: 1450;
+  background: rgba(0, 0, 0, 0.42);
+  display: flex; align-items: center; justify-content: center;
+}
+#risk-modal[hidden] { display: none; }
+.risk-box { width: min(94vw, 520px); }
+.risk-body { overflow-y: auto; padding: 12px 14px; }
+.risk-inputrow { display: flex; gap: 8px; margin-bottom: 4px; }
+#risk-addr {
+  flex: 1 1 auto; padding: 9px 11px; font-size: 14px; border-radius: 8px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-1);
+}
+#risk-go { flex: 0 0 auto; padding: 9px 16px; font-weight: 650; }
+#risk-saved:not(:empty) { margin: 8px 0 4px; }
+.rs-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); margin-bottom: 5px; }
+.rs-chip { display: inline-flex; align-items: stretch; margin: 0 6px 6px 0; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.rs-go { padding: 5px 11px; font-size: 12px; background: var(--surface-2); color: var(--ink-1); border: none; border-radius: 0; }
+.rs-go:hover { color: var(--accent); }
+.rs-x { padding: 5px 8px; font-size: 11px; background: var(--surface-2); color: var(--ink-muted); border: none; border-left: 1px solid var(--hairline); border-radius: 0; }
+.rs-x:hover { color: var(--sev-emergency); }
+
+.risk-card { margin-top: 8px; }
+.risk-place { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+.rp-pin { font-size: 17px; flex: 0 0 auto; }
+.rp-label { flex: 1 1 auto; font-weight: 650; font-size: 13.5px; color: var(--ink-1); line-height: 1.3; min-width: 0; word-break: break-word; }
+.rp-save { flex: 0 0 auto; padding: 4px 10px; font-size: 12px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); }
+.rp-save:disabled { color: var(--good); border-color: var(--good); opacity: 1; }
+.risk-read {
+  padding: 10px 12px; margin-bottom: 10px; border-radius: 8px; line-height: 1.4;
+  background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  font-size: 13px; color: var(--ink-1); font-weight: 550;
+}
+.risk-sec { margin-bottom: 10px; }
+.risk-sec-t { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); margin-bottom: 5px; }
+.risk-quiet { font-size: 12px; color: var(--ink-2); line-height: 1.45; padding: 6px 0; }
+.risk-tip { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; margin-top: 6px; }
+.risk-alert {
+  padding: 8px 10px; margin-bottom: 6px; border-radius: 7px; font-size: 12.5px;
+  background: var(--surface-2); border-left: 3px solid var(--sev-warning);
+}
+.risk-alert.sev-emergency { border-left-color: var(--sev-emergency); }
+.risk-alert.sev-watch { border-left-color: var(--cat-action); }
+.ra-area { color: var(--ink-2); font-size: 11.5px; margin-top: 2px; line-height: 1.35; }
+.ra-meta { color: var(--ink-muted); font-size: 11px; margin-top: 2px; }
+.risk-gauge {
+  display: block; width: 100%; text-align: left; padding: 8px 10px; margin-bottom: 6px;
+  border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-1);
+}
+.risk-gauge:hover { border-color: var(--accent); }
+.rg-top { display: flex; gap: 8px; align-items: baseline; }
+.rg-name { flex: 1 1 auto; font-weight: 650; font-size: 12.5px; min-width: 0; }
+.rg-dist { flex: 0 0 auto; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.rg-now { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.rg-fcst { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.risk-road { font-size: 12.5px; color: var(--ink-1); padding: 4px 0; display: flex; gap: 6px; align-items: baseline; }
+.rr-dist { margin-left: auto; flex: 0 0 auto; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.risk-honesty {
+  margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 11.5px; line-height: 1.5;
+  color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--border);
+}
+
+/* "your place" map marker — distinct from the GPS "YOU" dot */
+.risk-pin { position: relative; display: flex; flex-direction: column; align-items: center; }
+.risk-pin-dot {
+  width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--accent); border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.risk-pin-dot::before { content: "🏠"; transform: rotate(45deg); font-size: 14px; }
+.risk-pin-label {
+  margin-top: 2px; font-size: 9px; font-weight: 800; letter-spacing: 0.03em; color: #fff;
+  background: var(--accent); padding: 1px 5px; border-radius: 4px; white-space: nowrap;
+}
 
 .locate-btn { font-size: 18px; }
 

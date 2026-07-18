@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.73.0';
+const APP_VERSION = 'v0.74.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1710,6 +1710,15 @@ function renderRequests() {
   renderTiles();
 }
 
+// Nominatim forward-geocode — shared by the curator intake form and the address risk-check.
+// The address stays on-device: only this one geocode call leaves the browser; nothing is logged.
+async function nominatimSearch(q) {
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`);
+  const hits = await res.json();
+  if (!hits.length) return null;
+  return { lat: +hits[0].lat, lon: +hits[0].lon, label: hits[0].display_name || '' };
+}
+
 async function geocodePlace() {
   const place = $('#f-place').value.trim();
   if (!place) { $('#f-latlon').value = 'enter a place name first'; return; }
@@ -1717,11 +1726,10 @@ async function geocodePlace() {
   const q = `${place}${county ? `, ${county} County` : ''}, Texas`;
   $('#f-latlon').value = 'looking up…';
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`);
-    const hits = await res.json();
-    if (!hits.length) { $('#f-latlon').value = 'not found — click the map instead'; return; }
-    state.pendingLatLng = L.latLng(+hits[0].lat, +hits[0].lon);
-    $('#f-latlon').value = `${(+hits[0].lat).toFixed(4)}, ${(+hits[0].lon).toFixed(4)} (geocoded — verify)`;
+    const hit = await nominatimSearch(q);
+    if (!hit) { $('#f-latlon').value = 'not found — click the map instead'; return; }
+    state.pendingLatLng = L.latLng(hit.lat, hit.lon);
+    $('#f-latlon').value = `${hit.lat.toFixed(4)}, ${hit.lon.toFixed(4)} (geocoded — verify)`;
     state.map.setView(state.pendingLatLng, 12);
   } catch { $('#f-latlon').value = 'lookup failed — click the map instead'; }
 }
@@ -1760,6 +1768,211 @@ function submitRequest(ev) {
   state.pendingLatLng = null;
   $('#new-request-form').classList.remove('open');
   renderRequests();
+}
+
+/* ---------- "Am I at risk?" address check + saved my-places (client-only, no PII) ---------- */
+
+const PLACES_KEY = 'respondertx.places';
+const RISK_GAUGE_MI = 15; // nearest-gauge search radius
+const RISK_NEAR_MI = 6;   // "within a few mi" for road/cutoff notices
+const SEV_ORDER = ['emergency', 'warning', 'watch', 'advisory'];
+
+function loadPlaces() {
+  try { return JSON.parse(localStorage.getItem(PLACES_KEY)) || []; } catch { return []; }
+}
+function savePlaces(arr) {
+  try { localStorage.setItem(PLACES_KEY, JSON.stringify(arr.slice(0, 12))); } catch { /* quota — saved places are best-effort */ }
+}
+function addPlace(p) {
+  const arr = loadPlaces().filter((x) => distMi(x.lat, x.lon, p.lat, p.lon) > 0.2);
+  arr.unshift(p);
+  savePlaces(arr);
+  renderSavedPlaces();
+}
+function removePlace(idx) {
+  const arr = loadPlaces();
+  arr.splice(idx, 1);
+  savePlaces(arr);
+  renderSavedPlaces();
+}
+function renderSavedPlaces() {
+  const el = $('#risk-saved');
+  const arr = loadPlaces();
+  if (!arr.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="rs-title">Saved places — tap to re-check</div>' +
+    arr.map((p, i) => `<span class="rs-chip"><button class="rs-go" data-i="${i}">🏠 ${esc(p.label)}</button><button class="rs-x" data-i="${i}" title="Remove saved place" aria-label="Remove">✕</button></span>`).join('');
+  el.querySelectorAll('.rs-go').forEach((b) => b.addEventListener('click', () => {
+    const p = loadPlaces()[+b.dataset.i];
+    if (p) { $('#risk-addr').value = p.label; runRiskCheck(p.lat, p.lon, p.label); }
+  }));
+  el.querySelectorAll('.rs-x').forEach((b) => b.addEventListener('click', () => removePlace(+b.dataset.i)));
+}
+
+function openRiskCheck() {
+  $('#risk-modal').hidden = false;
+  renderSavedPlaces();
+  const inp = $('#risk-addr');
+  inp.focus();
+  inp.select();
+}
+
+function placeLabel(typed, hit) {
+  const t = typed.trim();
+  if (t.length <= 42) return t;
+  return (hit.label || t).split(',').slice(0, 2).join(',').trim();
+}
+
+async function runRiskFromInput() {
+  const raw = $('#risk-addr').value.trim();
+  if (!raw) return;
+  const out = $('#risk-result');
+  out.innerHTML = '<div class="risk-card"><div class="risk-quiet">Looking up address…</div></div>';
+  // bias to the board's AO when no state is named; the query is never stored or transmitted beyond this geocode
+  const q = /\b(tx|texas)\b/i.test(raw) ? raw : `${raw}, Texas`;
+  try {
+    const hit = await nominatimSearch(q);
+    if (!hit) { out.innerHTML = '<div class="risk-card"><div class="risk-quiet">Address not found — add a city or ZIP, or drop the pin on the map directly.</div></div>'; return; }
+    runRiskCheck(hit.lat, hit.lon, placeLabel(raw, hit));
+  } catch { out.innerHTML = '<div class="risk-card"><div class="risk-quiet">Lookup failed — check your connection and retry.</div></div>'; }
+}
+
+function dropRiskPin(lat, lon, label) {
+  if (state.riskMarker) state.map.removeLayer(state.riskMarker);
+  state.riskMarker = L.marker([lat, lon], {
+    icon: L.divIcon({ className: '', html: '<div class="risk-pin"><div class="risk-pin-dot"></div><div class="risk-pin-label">YOUR PLACE</div></div>', iconSize: [40, 46], iconAnchor: [20, 40] }),
+    title: label || 'Your place', zIndexOffset: 2100,
+  }).addTo(state.map);
+  state.map.setView([lat, lon], 12);
+}
+
+function nearestGauges(lat, lon, maxMi, n) {
+  return state.gauges
+    .filter((g) => Number.isFinite(g.latitude) && Number.isFinite(g.longitude))
+    .map((g) => ({ g, dist: distMi(lat, lon, g.latitude, g.longitude) }))
+    .filter((x) => x.dist <= maxMi)
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, n);
+}
+function nearestCrossing(lat, lon, maxMi) {
+  return (state.crossings || [])
+    .filter((c) => c.status !== 'open' && Number.isFinite(c.lat) && Number.isFinite(c.lon))
+    .map((c) => ({ c, dist: distMi(lat, lon, c.lat, c.lon) }))
+    .filter((x) => x.dist <= maxMi)
+    .sort((a, b) => a.dist - b.dist)[0] || null;
+}
+function nearestNotice(lat, lon, maxMi) {
+  return activeRequests()
+    .filter((r) => r.status !== 'resolved' && (r.type === 'cutoff' || r.type === 'road')
+      && Number.isFinite(r.lat) && Number.isFinite(r.lon))
+    .map((r) => ({ r, dist: distMi(lat, lon, r.lat, r.lon) }))
+    .filter((x) => x.dist <= maxMi)
+    .sort((a, b) => a.dist - b.dist)[0] || null;
+}
+// point-in-bbox (with small pad) against the alert polygon/zone bounds — "contains or is near"
+function alertNearPoint(f, lat, lon) {
+  const geom = f.geometry || (f.properties.affectedZones || []).map((z) => state.zoneGeomCache.get(z)).find(Boolean);
+  if (!geom) return false;
+  try {
+    const gb = L.geoJSON(geom).getBounds();
+    const pad = 0.05;
+    return lat >= gb.getSouth() - pad && lat <= gb.getNorth() + pad
+      && lon >= gb.getWest() - pad && lon <= gb.getEast() + pad;
+  } catch { return false; }
+}
+
+function riskGaugeLine(x) {
+  const { g, dist } = x;
+  const cat = gaugeCat(g);
+  const fCat = gaugeForecastCat(g);
+  const f = g.status.forecast;
+  const o = g.status.observed;
+  const tr = gaugeTrend(g.lid);
+  const trendBit = tr ? ` · ${tr.dir === 'up' ? '↑ rising' : tr.dir === 'down' ? '↓ falling' : '→ steady'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
+  const fcst = fCat
+    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${f.primary} ${esc(f.primaryUnit)} — <span style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span> · ${esc(fmtWhen(f.validTime))}</div>`
+    : '';
+  return `<button class="risk-gauge" data-lid="${esc(g.lid)}">` +
+    `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} mi</span></div>` +
+    `<div class="rg-now">Now ${o.primary} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span>${trendBit}</div>` +
+    fcst + '</button>';
+}
+
+// one derived line — never invents; each clause restates data already shown above
+function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
+  const parts = [];
+  if (nearAlerts.length) {
+    const worst = nearAlerts.slice().sort((a, b) => SEV_ORDER.indexOf(a._sev) - SEV_ORDER.indexOf(b._sev))[0];
+    parts.push(`Active ${worst.properties.event}${worst._sev === 'emergency' ? ' — FLASH FLOOD EMERGENCY' : ''} covers this area`);
+  }
+  if (gauges.length) {
+    const { g, dist } = gauges[0];
+    let s = `nearest gauge ${riverOf(g.name)} (${dist.toFixed(1)} mi) is ${CAT_LABEL[gaugeCat(g)]}`;
+    if (gaugeRising(g)) s += ` and forecast to reach ${CAT_LABEL[gaugeForecastCat(g)]} ${fmtWhen(g.status.forecast.validTime)}`;
+    parts.push(s);
+  } else {
+    parts.push(`no river gauge within ${RISK_GAUGE_MI} mi`);
+  }
+  if (xCross) parts.push(`nearest ${CROSSING_STATUS[xCross.c.status].label.toLowerCase()} crossing ${xCross.dist.toFixed(1)} mi`);
+  if (nNotice) parts.push(`nearest ${nNotice.r.type} notice ${nNotice.dist.toFixed(1)} mi`);
+  const line = parts.join('; ');
+  return line.charAt(0).toUpperCase() + line.slice(1) + '.';
+}
+
+function runRiskCheck(lat, lon, label) {
+  dropRiskPin(lat, lon, label);
+  const gauges = nearestGauges(lat, lon, RISK_GAUGE_MI, 3);
+  const nearAlerts = state.alerts.filter((f) => alertNearPoint(f, lat, lon));
+  const xCross = nearestCrossing(lat, lon, 12);
+  const nNotice = nearestNotice(lat, lon, RISK_NEAR_MI);
+  const read = riskOverallRead(nearAlerts, gauges, xCross, nNotice);
+
+  let html = '<div class="risk-card">';
+  html += `<div class="risk-place"><span class="rp-pin">🏠</span><span class="rp-label">${esc(label)}</span>` +
+    '<button class="rp-save" title="Save this place for one-tap re-check">☆ Save</button></div>';
+  html += `<div class="risk-read">${esc(read)}</div>`;
+
+  if (nearAlerts.length) {
+    html += `<div class="risk-sec"><div class="risk-sec-t">⚠ Active NWS flood alert${nearAlerts.length > 1 ? 's' : ''} at this point</div>`;
+    for (const f of nearAlerts.slice(0, 3)) {
+      html += `<div class="risk-alert sev-${f._sev}"><strong>${esc(f.properties.event)}</strong>` +
+        `<div class="ra-area">${esc(f.properties.areaDesc || '')}</div>` +
+        `<div class="ra-meta">until ${esc(fmtWhen(f.properties.expires))}</div></div>`;
+    }
+    html += '</div>';
+  } else {
+    html += '<div class="risk-sec"><div class="risk-quiet">No active NWS flood alert covers this point right now — that does <strong>not</strong> mean no risk; verify locally.</div></div>';
+  }
+
+  html += `<div class="risk-sec"><div class="risk-sec-t">River gauges within ${RISK_GAUGE_MI} mi</div>`;
+  if (gauges.length) html += gauges.map(riskGaugeLine).join('');
+  else html += `<div class="risk-quiet">No river gauge within ${RISK_GAUGE_MI} mi — absence of a nearby gauge does <strong>not</strong> mean no risk; verify locally.</div>`;
+  html += '</div>';
+
+  html += '<div class="risk-sec"><div class="risk-sec-t">Roads &amp; crossings nearby</div>';
+  if (xCross) {
+    const st = CROSSING_STATUS[xCross.c.status];
+    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${st.label}</span> — ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} mi</span></div>`;
+  }
+  if (nNotice) {
+    html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.type)}</span> — ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} mi</span></div>`;
+  }
+  if (!xCross && !nNotice) html += '<div class="risk-quiet">No tracked closed crossing or road notice within a few miles — still verify locally before routing; conditions change fast.</div>';
+  html += '<div class="risk-tip">Tip: toggle the “Flood inundation — NWM model” map layer to see the modeled extent near this point (a modeled estimate, not observed).</div>';
+  html += '</div>';
+
+  html += '</div>';
+  const out = $('#risk-result');
+  out.innerHTML = html;
+  out.querySelectorAll('.risk-gauge').forEach((b) => b.addEventListener('click', () => {
+    const g = state.gauges.find((x) => x.lid === b.dataset.lid);
+    if (g) { $('#risk-modal').hidden = true; focusGauge(g); }
+  }));
+  const saveBtn = out.querySelector('.rp-save');
+  saveBtn.addEventListener('click', () => {
+    addPlace({ label, lat: +lat.toFixed(5), lon: +lon.toFixed(5) });
+    saveBtn.textContent = '★ Saved';
+    saveBtn.disabled = true;
+  });
 }
 
 function downloadBlob(text, mime, name) {
@@ -2502,6 +2715,10 @@ async function boot() {
     $('#drive-hint-x').addEventListener('click', dismissHint);
   }
   $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; });
+  $('#risk-btn').addEventListener('click', openRiskCheck);
+  $('#risk-close').addEventListener('click', () => { $('#risk-modal').hidden = true; });
+  $('#risk-modal').addEventListener('click', (e) => { if (e.target.id === 'risk-modal') $('#risk-modal').hidden = true; });
+  $('#risk-form').addEventListener('submit', (e) => { e.preventDefault(); runRiskFromInput(); });
   $('#hydro-close').addEventListener('click', () => { $('#hydro-modal').hidden = true; });
   $('#hydro-modal').addEventListener('click', (e) => { if (e.target.id === 'hydro-modal') $('#hydro-modal').hidden = true; });
   $('#drive-loc').addEventListener('click', () => { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });

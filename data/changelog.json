@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.5",
+      "date": "2026-07-18",
+      "line": "Security + quality hardening pass: a crafted ?tab= URL param can no longer throw an invalid-selector exception that blanked the board on load; edge gauge-proxy rejects prototype-chain kinds cleanly; the cold-start snapshot no longer overwrites fresher live gauges in a race; gauge feed numbers are coerced and off-site links scheme-gated to http(s) as defense-in-depth; added nosniff / Referrer-Policy / X-Frame-Options headers; Escape now closes modals and the version tag is keyboard-focusable; the 'normal' gauge bucket labels stale sensors distinctly. (CSP deferred — the board loads many external tile/API origins and a strict policy could not be fully verified safe.)"
+    },
+    {
       "v": "v0.75.4",
       "date": "2026-07-18",
       "line": "Recency filter for dead gauges: a frozen sensor (West Nueces at Brackettville, obs stuck ~60h at MAJOR while its own forecast read no-flooding) no longer counts as an active flood gauge — a 12h staleness cutoff now suppresses stale readings from the in-flood KPI, threat strip, crest-wave, and record-watch, while the gauge stays visible and badged STALE (suppress, not delete). Fresh gauges are unaffected."

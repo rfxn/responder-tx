@@ -6,7 +6,7 @@ METHOD:PUBLISH
 X-WR-CALNAME:Responder TX — forecast river crests
 BEGIN:VEVENT
 UID:crest-BKCT2-20260718T160000Z@responder.rfxn.com
-DTSTAMP:20260718T134325Z
+DTSTAMP:20260718T135908Z
 DTSTART:20260718T160000Z
 DTEND:20260718T170000Z
 SUMMARY:MAJOR crest — Devils River at Bakers Crossing near Juno (22.2 ft)
@@ -15,16 +15,16 @@ URL:https://responder.rfxn.com/?hydro=BKCT2
 END:VEVENT
 BEGIN:VEVENT
 UID:crest-LTRT2-20260718T180000Z@responder.rfxn.com
-DTSTAMP:20260718T134325Z
+DTSTAMP:20260718T135908Z
 DTSTART:20260718T180000Z
 DTEND:20260718T190000Z
 SUMMARY:MAJOR crest — Pecos River near Langtry (21.7 ft)
-DESCRIPTION:Forecast MAJOR crest 21.7 ft (observed 2.52 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 21.7 ft (observed 11.86 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://responder.rfxn.com/?hydro=LTRT2
 END:VEVENT
 BEGIN:VEVENT
 UID:crest-CMKT2-20260719T010000Z@responder.rfxn.com
-DTSTAMP:20260718T134325Z
+DTSTAMP:20260718T135908Z
 DTSTART:20260719T010000Z
 DTEND:20260719T020000Z
 SUMMARY:MAJOR crest — Devils River at Pafford Crossing near Comstock (14.6 ft)
@@ -32,17 +32,17 @@ DESCRIPTION:Forecast MAJOR crest 14.6 ft (observed 2.41 ft). NOAA NWPS. Not a di
 URL:https://responder.rfxn.com/?hydro=CMKT2
 END:VEVENT
 BEGIN:VEVENT
-UID:crest-TIDT2-20260721T120000Z@responder.rfxn.com
-DTSTAMP:20260718T134325Z
-DTSTART:20260721T120000Z
-DTEND:20260721T130000Z
-SUMMARY:MAJOR crest — Frio River at Tilden (27.7 ft)
-DESCRIPTION:Forecast MAJOR crest 27.7 ft (observed 1.86 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+UID:crest-TIDT2-20260722T060000Z@responder.rfxn.com
+DTSTAMP:20260718T135908Z
+DTSTART:20260722T060000Z
+DTEND:20260722T070000Z
+SUMMARY:MAJOR crest — Frio River at Tilden (27.8 ft)
+DESCRIPTION:Forecast MAJOR crest 27.8 ft (observed 1.86 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://responder.rfxn.com/?hydro=TIDT2
 END:VEVENT
 BEGIN:VEVENT
 UID:crest-COTT2-20260723T000000Z@responder.rfxn.com
-DTSTAMP:20260718T134325Z
+DTSTAMP:20260718T135908Z
 DTSTART:20260723T000000Z
 DTEND:20260723T010000Z
 SUMMARY:MAJOR crest — Nueces River at Cotulla (20.5 ft)

@@ -235,6 +235,10 @@ main { flex: 1; display: flex; min-height: 0; }
 .strip-ok { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .strip-ok .ok-line { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--good); }
 .strip-ok .ok-sub { font-size: 11px; color: var(--ink-2); }
+.strip-ok.quiet {
+  border-left: 3px solid var(--good); padding: 3px 0 3px 8px;
+  background: color-mix(in srgb, var(--good) 6%, transparent);
+}
 
 .cutoff-circle {
   stroke: var(--sev-emergency); fill: var(--sev-emergency);
@@ -332,6 +336,10 @@ main { flex: 1; display: flex; min-height: 0; }
 .resource-item { padding: 7px 2px; border-bottom: 1px solid var(--hairline); font-size: 13px; }
 .resource-item .addr { color: var(--ink-2); font-size: 12px; }
 .resource-item a { color: var(--accent); text-decoration: none; }
+.resource-item.reopened { border-left: 3px solid var(--good); padding-left: 8px; cursor: pointer; }
+.resource-item.reopened strong { color: var(--good); }
+.resource-item.reopened.aged { opacity: 0.65; border-left-color: var(--ink-muted); }
+.resource-item.reopened.aged strong { color: var(--ink-muted); }
 .monitor-group { margin-bottom: 12px; }
 .monitor-group a { display: block; padding: 5px 2px; color: var(--accent); text-decoration: none; font-size: 12.5px; }
 .monitor-group a:hover { text-decoration: underline; }

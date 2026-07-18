@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.79.0",
+      "date": "2026-07-18",
+      "line": "Recovery posture, part 1: the board now tracks road closures that clear from the live DriveTexas feed and surfaces them as ✓ REOPENED — green markers on the map, a 'Recently reopened roads' list in Resources, and low-priority ✓ rows in Drive Mode (aging out of view after 12h, kept 7 days). And when the AO goes fully quiet — no in-AO alerts, no gauges in flood, no closures — the threat strip shows a calm 'No active flood threat in the AO — monitoring N gauges' line instead of sitting empty."
+    },
+    {
       "v": "v0.78.0",
       "date": "2026-07-18",
       "line": "Under-the-hood maintenance: the app's single 3,200-line script was split into six modules (core, map, sources, panels, board, boot) to keep development manageable — no visible or behavioral changes."

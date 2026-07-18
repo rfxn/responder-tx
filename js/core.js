@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.78.0';
+const APP_VERSION = 'v0.79.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -23,6 +23,7 @@ const CONFIG = {
   agedCardMinsByType: { info: 720, volunteer: 720 },
   agedLsrMins: 180,
   histDays: 7,
+  reopenedAgeHours: 12,
   lsrHours: 12,
   // hard live-map cap: a storm report older than this ages out of the live layer into lsrsAged, even if the window filter is wider
   lsrMaxHours: 24,
@@ -83,6 +84,8 @@ const state = {
   hist: { lsrs: {}, alerts: {} },
   showAged: false,
   showAgedLsrs: false,
+  showAgedReopened: false,
+  roadMemory: null,
   showAlertHist: false,
   showNormalGauges: false,
   gaugeGroup: 'priority',

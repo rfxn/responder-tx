@@ -166,6 +166,12 @@ function driveItems() {
     items.push({ glyph: '●', color: 'var(--cat-major)', name: g.name, sub: gaugeCat(g) === 'major' ? 'MAJOR flood now' : 'rising to MAJOR', lat: g.latitude, lon: g.longitude, rank: 1 });
   }
   const p = state.myPos;
+  // recovery: recently reopened roads tail the list as low-priority ✓ entries — never competing with hazards for slots
+  const cleared = [];
+  for (const r of reopenedRoads().fresh) {
+    if (!r.vertex) continue;
+    cleared.push({ glyph: '✓', color: 'var(--good)', name: `${t('reopen.flag')} · ${prettyRoute(r.route_name) || 'road'}`, sub: `TxDOT DriveTexas · ${t('reopen.at')} ${relWhen(r.reopenedAt)}`, lat: r.vertex[0], lon: r.vertex[1], rank: 3 });
+  }
   // live TxDOT road closures/flooding/damage — representative point = line vertex nearest the driver (midpoint if no GPS)
   for (const f of ((state.roadClosures && state.roadClosures.lines) || [])) {
     const geo = f.geometry;
@@ -182,12 +188,13 @@ function driveItems() {
     items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${ct.label} · ${prettyRoute(f.properties.route_name) || 'road'}`, sub: 'TxDOT DriveTexas', lat: pt[1], lon: pt[0], rank: cond === 'Damage' ? 2 : 1 });
   }
   if (p) {
-    for (const it of items) { it.dist = distMi(p.lat, p.lng, it.lat, it.lon); it.brng = bearing(p.lat, p.lng, it.lat, it.lon); }
+    for (const it of items.concat(cleared)) { it.dist = distMi(p.lat, p.lng, it.lat, it.lon); it.brng = bearing(p.lat, p.lng, it.lat, it.lon); }
     items.sort((a, b) => a.dist - b.dist);
+    cleared.sort((a, b) => a.dist - b.dist);
   } else {
     items.sort((a, b) => a.rank - b.rank);
   }
-  return items.slice(0, 14);
+  return items.slice(0, 14).concat(cleared.slice(0, 4));
 }
 
 function renderDriveMode() {
@@ -334,6 +341,15 @@ function fitTo(latlngs) {
   if (latlngs.length) state.map.fitBounds(L.latLngBounds(latlngs).pad(0.25), { maxZoom: 10 });
 }
 
+// AO truly quiet: zero in-AO open alerts, zero gauges at minor+ (same stale-gated gaugeCat the
+// chips use), zero active road closures — and the gauge/road feeds must have actually loaded
+function quietState() {
+  if (!state.gauges.length || !state.roadClosures) return false;
+  const openInAO = state.alerts.filter((f) => alertInAO(f) && !(f.properties.expires && new Date(f.properties.expires) < new Date()));
+  const inFlood = state.gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
+  return !openInAO.length && !inFlood.length && !(state.roadClosures.lines || []).length;
+}
+
 function renderThreatStrip() {
   const el = $('#threat-strip');
   const reqs = activeRequests().filter((r) => r.status !== 'resolved');
@@ -358,9 +374,14 @@ function renderThreatStrip() {
     },
   ].filter((c) => c.n > 0);
   if (!chips.length) {
-    el.innerHTML = state.alertsLoadedOnce
-      ? `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`
-      : '';
+    if (!state.alertsLoadedOnce) { el.innerHTML = ''; return; }
+    if (quietState()) {
+      const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !gaugeObsStale(g)).length;
+      const sub = t('quiet.sub').replace('{n}', state.gauges.length).replace('{m}', normal);
+      el.innerHTML = `<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
     return;
   }
   el.innerHTML = '';
@@ -573,5 +594,43 @@ function renderCrossings() {
       (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">source →</a></div>` : ''));
     layer.addLayer(m);
   }
+  renderReopenedRoads();
+}
+
+/* ---------- recently reopened roads — recovery view of the DriveTexas feed ---------- */
+
+function reopenedItemHtml(r, aged) {
+  const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
+  const nav = r.vertex ? ` data-lat="${r.vertex[0]}" data-lon="${r.vertex[1]}"` : '';
+  return `<div class="resource-item reopened${aged ? ' aged' : ''}"${nav}><strong>✓ ${esc(t('reopen.flag'))}</strong> — ${esc(prettyRoute(r.route_name) || 'Road')}` +
+    `<div class="addr">${esc(t('reopen.was'))}: ${esc(ct.label)} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))} · <a href="https://drivetexas.org/" target="_blank" rel="noopener">src</a></div></div>`;
+}
+
+function renderReopenedRoads() {
+  const host = $('#crossings-body');
+  if (!host) return;
+  let el = $('#reopened-roads');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'reopened-roads';
+    host.parentNode.insertBefore(el, host.nextSibling);
+  }
+  const { fresh, aged } = reopenedRoads();
+  if (!fresh.length && !aged.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="section-title">${esc(t('reopen.title'))}</div>` +
+    fresh.map((r) => reopenedItemHtml(r, false)).join('') +
+    `<div class="resource-item" style="border-bottom:none;font-size:11px;color:var(--ink-muted)">${esc(ROAD_ATTRIB)}</div>`;
+  if (aged.length) {
+    const btn = document.createElement('button');
+    btn.className = 'aged-toggle';
+    btn.textContent = `${state.showAgedReopened ? '▾ hide' : '▸ show'} ${aged.length} reopened >${CONFIG.reopenedAgeHours}h ago (kept ${CONFIG.histDays}d)`;
+    btn.addEventListener('click', () => { state.showAgedReopened = !state.showAgedReopened; renderReopenedRoads(); });
+    el.appendChild(btn);
+    if (state.showAgedReopened) el.insertAdjacentHTML('beforeend', aged.map((r) => reopenedItemHtml(r, true)).join(''));
+  }
+  el.querySelectorAll('.resource-item.reopened[data-lat]').forEach((d) => d.addEventListener('click', (ev) => {
+    if (ev.target.closest('a')) return;
+    state.map.setView([+d.dataset.lat, +d.dataset.lon], 12);
+  }));
 }
 

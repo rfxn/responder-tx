@@ -3,36 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Responder TX — Hill Country Flood Ops</title>
+  <title>Responder TX: Hill Country Flood Ops</title>
   <meta name="theme-color" content="#1a1a19">
-  <meta name="description" content="Live Texas Hill Country flood operating picture: river gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts, radar, and field-reported notices. Situational awareness — not a dispatch system. Life-threatening emergency: call 911.">
+  <meta name="description" content="Live Texas Hill Country flood operating picture: river gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts, radar, and field-reported notices. Situational awareness, not a dispatch system. Life-threatening emergency: call 911.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Responder TX">
-  <meta property="og:title" content="Responder TX — Texas Hill Country Flood Ops">
-  <meta property="og:description" content="Live flood operating picture: gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts. Situational awareness, not a dispatch system — call 911 for emergencies.">
+  <meta property="og:title" content="Responder TX: Texas Hill Country Flood Ops">
+  <meta property="og:description" content="Live flood operating picture: gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts. Situational awareness, not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://responder.rfxn.com/">
   <meta property="og:image" content="https://responder.rfxn.com/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Responder TX — Texas Hill Country Flood Ops">
-  <meta name="twitter:description" content="Live flood operating picture: gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts. Not a dispatch system — call 911 for emergencies.">
+  <meta name="twitter:title" content="Responder TX: Texas Hill Country Flood Ops">
+  <meta name="twitter:description" content="Live flood operating picture: gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts. Not a dispatch system; call 911 for emergencies.">
   <meta name="twitter:image" content="https://responder.rfxn.com/og-card.png">
-  <link rel="alternate" type="application/rss+xml" title="Responder TX — flood alerts &amp; crests" href="/feed.xml">
+  <link rel="alternate" type="application/rss+xml" title="Responder TX: flood alerts &amp; crests" href="/feed.xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.81.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.81.0">
-  <link rel="stylesheet" href="css/app.css?v=0.81.0">
-  <link rel="stylesheet" href="css/notes.css?v=0.81.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.81.1">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.81.1">
+  <link rel="stylesheet" href="css/app.css?v=0.81.1">
+  <link rel="stylesheet" href="css/notes.css?v=0.81.1">
 </head>
 <body>
   <header>
     <div class="brand">
       <h1>Responder TX</h1>
-      <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">First Responder &amp; Life Safety Feed</span></div>
+      <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Life Safety &amp; Response Feed</span></div>
     </div>
     <div class="tiles">
       <div class="tile alert-tile" id="tile-emergency" role="button" tabindex="0" title="Open Alerts tab" data-i18n-title="tile.title.alerts"><div class="label" data-i18n="tile.emergencies">Flash flood emergencies</div><div class="value">–</div></div>
@@ -41,11 +41,11 @@
       <div class="tile" id="tile-open" role="button" tabindex="0" title="Open Feed tab" data-i18n-title="tile.title.feed"><div class="label" data-i18n="tile.notices">Active notices</div><div class="value">–</div></div>
     </div>
     <div class="controls">
-      <button id="update-chip" hidden title="A newer board version is live — reloads this tab" data-i18n="ctl.update" data-i18n-title="ctl.update.title">⬆ Updated — tap to reload</button>
+      <button id="update-chip" hidden title="A newer board version is live; reloads this tab" data-i18n="ctl.update" data-i18n-title="ctl.update.title">⬆ Updated · tap to reload</button>
       <button id="refresh-now" title="Refresh live layers" aria-label="Refresh live layers" data-i18n-title="ctl.refresh.title" data-i18n-aria="ctl.refresh.title">⟳ <span class="ctl-lbl" data-i18n="ctl.refresh">Refresh</span></button>
-      <button id="share-btn" class="primary" title="Copy a link that reproduces this exact view — map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
+      <button id="share-btn" class="primary" title="Copy a link that reproduces this exact view: map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
       <button id="risk-btn" hidden title="Type an address to see the nearest gauges, alerts, and closed crossings at that point" aria-label="Am I at risk? Address flood check" data-i18n-title="ctl.risk.title" data-i18n-aria="ctl.risk.aria">🏠 <span class="ctl-lbl" data-i18n="ctl.risk">Am I at risk?</span></button>
-      <button id="drive-btn" title="Drive Mode — big-type nearest-hazards glance list for the road" aria-label="Drive Mode" data-i18n-title="ctl.drive.title" data-i18n-aria="ctl.drive.aria">🚗 <span class="ctl-lbl" data-i18n="ctl.drive">Drive</span></button>
+      <button id="drive-btn" title="Drive Mode: big-type nearest-hazards glance list for the road" aria-label="Drive Mode" data-i18n-title="ctl.drive.title" data-i18n-aria="ctl.drive.aria">🚗 <span class="ctl-lbl" data-i18n="ctl.drive">Drive</span></button>
       <button id="theme-toggle" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
       <button id="lang-toggle" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
       <div class="refresh-meta"><div id="refresh-note">loading…</div><div id="refresh-count"></div></div>
@@ -53,7 +53,7 @@
   </header>
 
   <div id="drive-hint" hidden>
-    <span data-i18n-html="hint.drive">🚗 <strong>Drive Mode</strong> — big-type nearest hazards, ranked by distance, for the road</span>
+    <span data-i18n-html="hint.drive">🚗 <strong>Drive Mode</strong>: big-type nearest hazards, ranked by distance, for the road</span>
     <button id="drive-hint-go" data-i18n="hint.open">Open</button><button id="drive-hint-x" title="Dismiss" aria-label="Dismiss" data-i18n-title="hint.dismiss" data-i18n-aria="hint.dismiss">✕</button>
   </div>
   <div id="ticker" hidden><div class="ticker-track" id="ticker-track"></div></div>
@@ -78,14 +78,14 @@
           <button class="primary" id="toggle-form" hidden title="Capture a field observation or triaged post onto the board">＋ New notice</button>
           <button id="sitrep-btn" title="Copy a plain-text situation report for radio/SMS/email handoff">📋 SITREP</button>
           <button id="filters-toggle" title="Show/hide filters and sort">☰ Filters</button>
-          <button id="find-id" title="Find a card by radio ID (e.g. R-031) — types into search and flies the map to it">🔍 ID</button>
+          <button id="find-id" title="Find a card by radio ID (e.g. R-031); types into search and flies the map to it">🔍 ID</button>
           <button id="more-toggle" title="Export / import">⋯ More</button>
         </div>
         <div class="feed-actions" id="more-menu" hidden>
           <button id="export-btn">Export JSON</button>
           <button id="export-geo-btn" title="GeoJSON for CalTopo / SARTopo">Export GeoJSON</button>
           <button id="aar-btn" title="Markdown after-action export: stats, chronological card log, situation snapshot">Export AAR</button>
-          <button id="summary-btn" title="Event crest summary — peak stage per gauge, for after-action review" data-i18n="summary.menu" data-i18n-title="summary.menu.title">📊 Crest summary</button>
+          <button id="summary-btn" title="Event crest summary: peak stage per gauge, for after-action review" data-i18n="summary.menu" data-i18n-title="summary.menu.title">📊 Crest summary</button>
           <label for="import-file" style="display:inline-block"><span class="badge" style="cursor:pointer;padding:5px 10px;font-size:12px">Import JSON</span></label>
           <input type="file" id="import-file" accept="application/json" style="display:none">
         </div>
@@ -115,7 +115,7 @@
             <input id="f-latlon" placeholder="Click map, 🔎, or type: 29.2810, -99.7862" inputmode="decimal">
           </div>
           <div class="row"><input id="f-summary" placeholder="One-line summary *" required></div>
-          <textarea id="f-details" placeholder="Details — who/what/where, water conditions, access notes"></textarea>
+          <textarea id="f-details" placeholder="Details: who/what/where, water conditions, access notes"></textarea>
           <div class="row">
             <select id="f-source">
               <option value="x">X</option><option value="facebook">Facebook</option>
@@ -160,7 +160,7 @@
             <option value="25">&lt; 25 mi of me</option>
             <option value="50">&lt; 50 mi of me</option>
           </select>
-          <button id="flt-aged" title="Cards idle >24h auto-suppress off the board — toggle to view them" style="display:none">aged 0</button>
+          <button id="flt-aged" title="Cards idle >24h auto-suppress off the board; toggle to view them" style="display:none">aged 0</button>
           <input type="search" id="flt-q" placeholder="Search…">
         </div>
         <div id="request-list"></div>
@@ -200,8 +200,8 @@
         <div class="mrms-labels"><span data-i18n="leg.light">light</span><span data-i18n="leg.moderate">moderate</span><span data-i18n="leg.heavy">heavy</span><span data-i18n="leg.extreme">extreme</span></div>
       </div>
       <div id="inun-legend" hidden>
-        <span id="inun-legend-title"><span class="inun-sw"></span>Flood inundation — NWM model estimate</span>
-        <div class="inun-note" data-i18n-html="leg.inun.note">NWS/NWPS National Water Model analysis (experimental) — a modeled estimate, <strong>not observed</strong> conditions. Zoom to street level to see extent · updated hourly.</div>
+        <span id="inun-legend-title"><span class="inun-sw"></span>Flood inundation: NWM model estimate</span>
+        <div class="inun-note" data-i18n-html="leg.inun.note">NWS/NWPS National Water Model analysis (experimental): a modeled estimate, <strong>not observed</strong> conditions. Zoom to street level to see extent · updated hourly.</div>
       </div>
       <div id="radar-scrub" hidden>
         <button id="rs-play" title="Play / pause the radar loop" data-i18n-title="radar.play">▶</button>
@@ -209,10 +209,10 @@
         <span id="rs-label">–</span>
       </div>
     </div>
-    <div id="sheet-handle" role="group" aria-label="Resize panel — phone only">
-      <button data-sheet="sheet-full" title="Full screen — panel covers the map" aria-label="Full screen" data-i18n-title="sheet.full" data-i18n-aria="sheet.full.aria">▲</button>
+    <div id="sheet-handle" role="group" aria-label="Resize panel (phone only)">
+      <button data-sheet="sheet-full" title="Full screen: panel covers the map" aria-label="Full screen" data-i18n-title="sheet.full" data-i18n-aria="sheet.full.aria">▲</button>
       <button data-sheet="sheet-half" title="Half screen" aria-label="Half screen" data-i18n-title="sheet.half" data-i18n-aria="sheet.half">↕</button>
-      <button data-sheet="sheet-peek" title="Minimize — map full screen" aria-label="Minimize panel" data-i18n-title="sheet.peek" data-i18n-aria="sheet.peek.aria">▼</button>
+      <button data-sheet="sheet-peek" title="Minimize: map full screen" aria-label="Minimize panel" data-i18n-title="sheet.peek" data-i18n-aria="sheet.peek.aria">▼</button>
     </div>
   </main>
 
@@ -224,28 +224,28 @@
         <p data-i18n-html="safety.p1">This board coordinates volunteer monitoring and situational awareness. It is <strong>not a dispatch system</strong> and is not monitored by emergency services. Verify before acting.</p>
         <p class="no-deploy" data-i18n="safety.nodeploy">⛔ DO NOT SELF-DEPLOY into warned or flooded areas</p>
       </div>
-      <button id="safety-ack" class="primary" data-i18n="safety.ack">I understand — I will not self-deploy</button>
+      <button id="safety-ack" class="primary" data-i18n="safety.ack">I understand. I will not self-deploy</button>
     </div>
   </div>
 
   <div id="drive-mode" hidden>
     <div class="drive-head">
-      <span class="drive-title" data-i18n="drive.title">🚗 DRIVE MODE — nearest hazards</span>
+      <span class="drive-title" data-i18n="drive.title">🚗 DRIVE MODE: nearest hazards</span>
       <button id="drive-loc" title="Use my location to rank by distance" data-i18n="drive.locate" data-i18n-title="drive.locate.title">⌖ Locate</button>
       <button id="drive-exit" title="Exit Drive Mode" data-i18n="drive.exit" data-i18n-title="drive.exit.title">✕ Exit</button>
     </div>
     <div id="drive-threat"></div>
     <div id="drive-list"></div>
-    <div class="drive-911" data-i18n="drive.footer">⚠ Life-threatening emergency → call 911 · Turn Around, Don't Drown — never enter flooded roads</div>
+    <div class="drive-911" data-i18n="drive.footer">⚠ Life-threatening emergency → call 911 · Turn Around, Don't Drown: never enter flooded roads</div>
   </div>
 
   <div id="summary-view" hidden>
     <div class="drive-head">
-      <span class="drive-title" data-i18n="summary.title">📊 CREST SUMMARY — event peaks</span>
+      <span class="drive-title" data-i18n="summary.title">📊 CREST SUMMARY: event peaks</span>
       <button id="summary-exit" title="Close crest summary" data-i18n="drive.exit" data-i18n-title="summary.exit.title">✕ Exit</button>
     </div>
     <div id="summary-body"></div>
-    <div class="drive-911" data-i18n="drive.footer">⚠ Life-threatening emergency → call 911 · Turn Around, Don't Drown — never enter flooded roads</div>
+    <div class="drive-911" data-i18n="drive.footer">⚠ Life-threatening emergency → call 911 · Turn Around, Don't Drown: never enter flooded roads</div>
   </div>
 
   <div id="hydro-modal" hidden>
@@ -266,17 +266,17 @@
 
   <div id="risk-modal" hidden>
     <div class="modal-box risk-box">
-      <div class="modal-head"><strong data-i18n="risk.head">🏠 Am I at risk? — address flood check</strong><button id="risk-close" title="Close" data-i18n-title="risk.close">✕</button></div>
+      <div class="modal-head"><strong data-i18n="risk.head">🏠 Am I at risk? Address flood check</strong><button id="risk-close" title="Close" data-i18n-title="risk.close">✕</button></div>
       <div class="risk-body">
         <form id="risk-form" class="risk-inputrow">
-          <input id="risk-addr" placeholder="Type an address or place — e.g. Concan, TX" data-i18n-ph="risk.ph" autocomplete="off" autocapitalize="words" enterkeyhint="search">
+          <input id="risk-addr" placeholder="Type an address or place, e.g. Concan, TX" data-i18n-ph="risk.ph" autocomplete="off" autocapitalize="words" enterkeyhint="search">
           <button type="submit" class="primary" id="risk-go" data-i18n="risk.go">Check</button>
         </form>
         <div id="risk-saved"></div>
         <div id="risk-result"></div>
         <div class="risk-honesty" data-i18n-html="risk.honesty">
-          <strong>Guidance only — not a flood determination.</strong> Life-threatening emergency: call <strong>911</strong>.
-          This reads live NWS/NOAA/USGS data near a point; it never says you are safe. A missing nearby gauge or alert does not mean no risk — verify locally.
+          <strong>Guidance only, not a flood determination.</strong> Life-threatening emergency: call <strong>911</strong>.
+          This reads live NWS/NOAA/USGS data near a point; it never says you are safe. A missing nearby gauge or alert does not mean no risk; verify locally.
           Your address is used only on this device to place the pin and is never logged or transmitted.
         </div>
       </div>
@@ -285,15 +285,15 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.81.0"></script>
-  <script src="js/usng.js?v=0.81.0"></script>
-  <script src="js/i18n.js?v=0.81.0"></script>
-  <script src="js/core.js?v=0.81.0"></script>
-  <script src="js/map.js?v=0.81.0"></script>
-  <script src="js/sources.js?v=0.81.0"></script>
-  <script src="js/panels.js?v=0.81.0"></script>
-  <script src="js/board.js?v=0.81.0"></script>
-  <script src="js/boot.js?v=0.81.0"></script>
-  <script src="js/notes.js?v=0.81.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.81.1"></script>
+  <script src="js/usng.js?v=0.81.1"></script>
+  <script src="js/i18n.js?v=0.81.1"></script>
+  <script src="js/core.js?v=0.81.1"></script>
+  <script src="js/map.js?v=0.81.1"></script>
+  <script src="js/sources.js?v=0.81.1"></script>
+  <script src="js/panels.js?v=0.81.1"></script>
+  <script src="js/board.js?v=0.81.1"></script>
+  <script src="js/boot.js?v=0.81.1"></script>
+  <script src="js/notes.js?v=0.81.1"></script>
 </body>
 </html>

@@ -52,7 +52,7 @@
     '<div class="nf-head"><div><strong>📍 Field Notes</strong>' +
     '<div class="nf-sub">community + responder annotations · unverified</div></div>' +
     '<button id="nf-close" title="Close">✕</button></div>' +
-    '<div class="nf-ro" id="nf-ro" hidden><strong>Read-only public mirror</strong> — notes viewable only. ' +
+    '<div class="nf-ro" id="nf-ro" hidden><strong>Read-only public mirror</strong>: notes viewable only. ' +
     'Posting works on the LAN ops board.</div>' +
     '<div class="nf-actions" id="nf-actions">' +
     '<button id="nf-new" class="primary">＋ General note</button>' +
@@ -62,7 +62,7 @@
     '<div class="row" id="nf-cat-row"><select id="nf-cat">' +
     Object.keys(NOTE_CATS).map((c) => `<option value="${c}">${NOTE_CATS[c]} ${NOTE_CAT_LABEL[c]}</option>`).join('') +
     '</select></div>' +
-    '<textarea id="nf-text" rows="3" placeholder="What are you seeing? Conditions, water level, road status, hazards — no personal details."></textarea>' +
+    '<textarea id="nf-text" rows="3" placeholder="What are you seeing? Conditions, water level, road status, hazards. No personal details."></textarea>' +
     '<div class="row"><input id="nf-name" maxlength="40" placeholder="Display name / handle (optional)"></div>' +
     `<div class="nf-disc">⚠ ${DISCLAIMER}</div>` +
     '<div class="row"><button id="nf-post" class="primary">Post</button><button id="nf-cancel">Cancel</button></div></div>' +
@@ -71,7 +71,7 @@
 
   const fab = document.createElement('button');
   fab.id = 'notes-fab';
-  fab.title = 'Field Notes — community + responder annotations';
+  fab.title = 'Field Notes: community + responder annotations';
   fab.innerHTML = '📍 Notes <span class="nf-badge" id="nf-badge"></span>';
   const mapEl = document.getElementById('map');
 
@@ -271,7 +271,7 @@
     localStorage.setItem('respondertx.noteName', name);
     const entry = { id: newId(), ts: new Date().toISOString(), kind: N.composeKind, text, name };
     if (N.composeKind === 'marker') {
-      if (!N.pendingLL) { $n('#nf-status').textContent = 'Pin location missing — use 📍 Drop pin.'; return; }
+      if (!N.pendingLL) { $n('#nf-status').textContent = 'Pin location missing. Use 📍 Drop pin.'; return; }
       entry.cat = $n('#nf-cat').value;
       entry.lat = +N.pendingLL.lat.toFixed(5);
       entry.lon = +N.pendingLL.lng.toFixed(5);
@@ -290,7 +290,7 @@
       renderMarkers();
       if (entry.kind === 'marker') focusNote(entry.id);
     } catch (e) {
-      $n('#nf-status').textContent = `Post failed (${e.message}) — read-only mirror or LAN server down.`;
+      $n('#nf-status').textContent = `Post failed (${e.message}); read-only mirror or LAN server down.`;
       setWritable(false);
     }
   }
@@ -315,9 +315,9 @@
 
   fab.addEventListener('click', () => openFlyout());
   $n('#nf-close').addEventListener('click', () => openFlyout(false));
-  $n('#nf-new').addEventListener('click', () => openCompose('general', 'General note — no location'));
+  $n('#nf-new').addEventListener('click', () => openCompose('general', 'General note (no location)'));
   $n('#nf-pin').addEventListener('click', () => {
-    if (!getMap()) { $n('#nf-status').textContent = 'Map unavailable — general notes only.'; return; }
+    if (!getMap()) { $n('#nf-status').textContent = 'Map unavailable; general notes only.'; return; }
     setPinMode(true);
   });
   pinHint.querySelector('#nf-pin-cancel').addEventListener('click', () => { setPinMode(false); openFlyout(true); });

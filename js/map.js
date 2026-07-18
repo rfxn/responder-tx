@@ -137,7 +137,7 @@ async function saveViewportOffline() {
   const jobs = [];
   for (const z of zooms) for (const c of viewportTileCoords(z)) for (const l of layers) jobs.push({ l, c });
   if (jobs.length > OFFLINE_TILE_CAP) {
-    statusEl.textContent = `This area needs ${jobs.length} tiles (cap ${OFFLINE_TILE_CAP}) — zoom in, then save`;
+    statusEl.textContent = `This area needs ${jobs.length} tiles (cap ${OFFLINE_TILE_CAP}); zoom in, then save`;
     statusEl.classList.add('over');
     return;
   }
@@ -162,7 +162,7 @@ async function saveViewportOffline() {
   await Promise.all(Array.from({ length: 6 }, worker));
   if (saveBtn) saveBtn.disabled = false;
   const total = await refreshOfflineStatus();
-  statusEl.textContent = `✓ ${total} tiles saved (${zooms.length} zoom levels) — available offline`;
+  statusEl.textContent = `✓ ${total} tiles saved (${zooms.length} zoom levels) · available offline`;
 }
 
 async function clearOfflineCache() {
@@ -178,12 +178,12 @@ function initOfflineControl() {
   ctl.onAdd = () => {
     const div = L.DomUtil.create('div', 'offline-ctl');
     // subtle by default: a small ⬇ toggle; the panel (save/status/clear) expands only on tap
-    div.innerHTML = '<button class="off-toggle" id="off-toggle" title="Offline map — save this area to view with no signal">⬇</button>' +
+    div.innerHTML = '<button class="off-toggle" id="off-toggle" title="Offline map: save this area to view with no signal">⬇</button>' +
       '<div class="off-panel" id="off-panel" hidden>' +
       '<div class="off-panel-head">Offline map</div>' +
       '<button class="off-save" title="Cache the current view + 2 deeper zooms for use with no signal">⬇ Save this area</button>' +
       '<div class="off-status" id="off-status">…</div>' +
-      '<div class="off-note">Basemap only — live gauge/alert data still needs a connection.</div>' +
+      '<div class="off-note">Basemap only; live gauge/alert data still needs a connection.</div>' +
       '<button class="off-clear" id="off-clear" hidden>Clear offline cache</button>' +
       '</div>';
     L.DomEvent.disableClickPropagation(div);
@@ -322,7 +322,7 @@ function initMap() {
     'Radar scrub (-1h → +30m)': state.layers.radar,
     'Rainfall 1h (MRMS)': state.layers.mrms1h,
     'Rainfall 24h (MRMS)': state.layers.mrms24h,
-    'Flood inundation — NWM model (est.)': state.layers.inundation,
+    'Flood inundation: NWM model (est.)': state.layers.inundation,
     'Flood alerts (NWS)': state.layers.alerts,
     'River gauges (NOAA)': state.layers.gauges,
     'Forecast crests (RFC max)': state.layers.fcstMax,

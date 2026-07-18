@@ -104,7 +104,7 @@ function renderRequests() {
     const hasPos = Number.isFinite(r.lat) && Number.isFinite(r.lon);
     div.innerHTML =
       `<div class="head"><span>${TYPE_GLYPH[r.type] || '📍'}</span><span class="type-chip">${esc(r.type)} · ${esc(r.priority)}</span>` +
-      `<span class="sid" title="Radio reference — tap to copy">${shortId(r.id)}</span>` +
+      `<span class="sid" title="Radio reference: tap to copy">${shortId(r.id)}</span>` +
       `<span class="when"><span class="fresh-dot ${freshClass(r.ts)}"></span> ${esc(fmtWhen(r.ts))}</span></div>` +
       `<div class="summary">${esc(r.summary)}</div>` +
       `<div class="meta">📍 ${esc(r.place)} (${esc(r.county)} Co.)${r.contact ? ` · ☎ ${esc(r.contact)}` : ''}` +
@@ -112,7 +112,7 @@ function renderRequests() {
       (r.details ? `<div class="meta" style="margin-top:3px">${esc(r.details)}</div>` : '') +
       `<div class="badges">${isNew ? '<span class="badge new-chip">NEW</span>' : ''}` +
       (r.status !== 'open' ? `<span class="badge status-${esc(r.status)}">${esc(r.status)}</span>` : '') +
-      (cardAged(r) ? '<span class="badge aged-chip">aged — suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale — re-verify</span>' : '')) +
+      (cardAged(r) ? '<span class="badge aged-chip">aged · suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale · re-verify</span>' : '')) +
       `<span class="badge">${srcLink}</span>` + srcBadge('curated') +
       (hasPos ? `<button class="badge act nav-act">navigate</button><button class="badge act copy-act">copy coords</button>` : '') +
       '</div>';
@@ -149,7 +149,7 @@ function renderRequests() {
     if (r.type === 'cutoff' && r.radiusMi > 0 && !resolved) {
       state.layers.requests.addLayer(L.circle([r.lat, r.lon], {
         radius: r.radiusMi * 1609.34, className: 'cutoff-circle', weight: 2, fillOpacity: 0.07,
-      }).bindPopup(`<div class="popup-title">⛔ CUT-OFF AREA (est.)</div><div>${esc(r.summary)}</div><div class="popup-meta">~${r.radiusMi} mi isolation footprint — operator estimate</div>`));
+      }).bindPopup(`<div class="popup-title">⛔ CUT-OFF AREA (est.)</div><div>${esc(r.summary)}</div><div class="popup-meta">~${r.radiusMi} mi isolation footprint · operator estimate</div>`));
     }
     const icon = L.divIcon({
       className: '',
@@ -157,7 +157,7 @@ function renderRequests() {
       iconSize: [26, 26], iconAnchor: [4, 26],
     });
     const m = L.marker([r.lat, r.lon], { icon });
-    m.bindPopup(`<div class="popup-title">${TYPE_GLYPH[r.type] || ''} ${esc(r.type.toUpperCase())} — ${esc(r.priority)}</div>` +
+    m.bindPopup(`<div class="popup-title">${TYPE_GLYPH[r.type] || ''} ${esc(r.type.toUpperCase())} · ${esc(r.priority)}</div>` +
       `<div>${esc(r.summary)}</div>` +
       `<div class="popup-meta">${shortId(r.id)} · ${esc(r.place)} · ${esc(r.status)} · ${esc(fmtWhen(r.ts))}</div>` +
       `<div class="popup-meta">USNG ${esc(toUSNG(r.lat, r.lon))} · ${r.lat.toFixed(4)}, ${r.lon.toFixed(4)}</div>` +
@@ -188,11 +188,11 @@ async function geocodePlace() {
   $('#f-latlon').value = 'looking up…';
   try {
     const hit = await nominatimSearch(q);
-    if (!hit) { $('#f-latlon').value = 'not found — click the map instead'; return; }
+    if (!hit) { $('#f-latlon').value = 'not found, click the map instead'; return; }
     state.pendingLatLng = L.latLng(hit.lat, hit.lon);
-    $('#f-latlon').value = `${hit.lat.toFixed(4)}, ${hit.lon.toFixed(4)} (geocoded — verify)`;
+    $('#f-latlon').value = `${hit.lat.toFixed(4)}, ${hit.lon.toFixed(4)} (geocoded, verify)`;
     state.map.setView(state.pendingLatLng, 12);
-  } catch { $('#f-latlon').value = 'lookup failed — click the map instead'; }
+  } catch { $('#f-latlon').value = 'lookup failed, click the map instead'; }
 }
 
 function submitRequest(ev) {
@@ -220,7 +220,7 @@ function submitRequest(ev) {
       && Number.isFinite(x.lat) && distMi(x.lat, x.lon, r.lat, r.lon) < 3);
     if (dup) {
       const dist = distMi(dup.lat, dup.lon, r.lat, r.lon).toFixed(1);
-      if (!confirm(`Possible duplicate — same type ${dist} mi away (${dup.status}):\n"${dup.summary.slice(0, 100)}"\n\nAdd anyway?`)) return;
+      if (!confirm(`Possible duplicate: same type ${dist} mi away (${dup.status}):\n"${dup.summary.slice(0, 100)}"\n\nAdd anyway?`)) return;
     }
   }
   state.store.added.push(r);
@@ -351,12 +351,12 @@ function riskGaugeLine(x) {
   const tr = stale ? null : gaugeTrend(g.lid);
   const trendBit = tr ? ` · ${tr.dir === 'up' ? '↑ rising' : tr.dir === 'down' ? '↓ falling' : '→ steady'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   const fcst = fCat
-    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)} — <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
+    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   return `<button class="risk-gauge" data-lid="${esc(g.lid)}">` +
     `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} ${esc(t('risk.mi'))}</span></div>` +
     `<div class="rg-now">${esc(t('risk.now'))} ${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${trendBit}</div>` +
-    (stale ? `<div class="rg-now stale-note">⏱ STALE — no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
+    (stale ? `<div class="rg-now stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     fcst + '</button>';
 }
 
@@ -367,12 +367,12 @@ function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
   const parts = [];
   if (nearAlerts.length) {
     const worst = nearAlerts.slice().sort((a, b) => SEV_ORDER.indexOf(a._sev) - SEV_ORDER.indexOf(b._sev))[0];
-    parts.push(`${worst.properties.event}${worst._sev === 'emergency' ? ` — ${t('risk.read.emerg')}` : ''} ${t('risk.read.covers')}`);
+    parts.push(`${worst.properties.event}${worst._sev === 'emergency' ? `: ${t('risk.read.emerg')}` : ''} ${t('risk.read.covers')}`);
   }
   if (gauges.length) {
     const { g, dist } = gauges[0];
     const nearStale = gaugeObsStale(g);
-    let s = `${t('risk.read.nearest')} ${riverOf(g.name)} (${dist.toFixed(1)} ${mi}) ${t('risk.read.is')} ${catLabel(gaugeObsCat(g))}${nearStale ? ` (stale — last obs ${fmtWhen(g.status.observed.validTime).split(' · ')[0]})` : ''}`;
+    let s = `${t('risk.read.nearest')} ${riverOf(g.name)} (${dist.toFixed(1)} ${mi}) ${t('risk.read.is')} ${catLabel(gaugeObsCat(g))}${nearStale ? ` (stale, last obs ${fmtWhen(g.status.observed.validTime).split(' · ')[0]})` : ''}`;
     if (gaugeRising(g)) s += ` ${t('risk.read.forecast')} ${catLabel(gaugeForecastCat(g))} ${fmtWhen(g.status.forecast.validTime)}`;
     parts.push(s);
   } else {
@@ -412,16 +412,16 @@ function runRiskCheck(lat, lon, label) {
 
   html += `<div class="risk-sec"><div class="risk-sec-t">${esc(t('risk.sec.gauges'))} ${RISK_GAUGE_MI} ${esc(mi)}</div>`;
   if (gauges.length) html += gauges.map(riskGaugeLine).join('');
-  else html += `<div class="risk-quiet">${esc(t('risk.read.nogauge'))} ${RISK_GAUGE_MI} ${esc(mi)} — ${t('risk.nogauge')}</div>`;
+  else html += `<div class="risk-quiet">${esc(t('risk.read.nogauge'))} ${RISK_GAUGE_MI} ${esc(mi)}; ${t('risk.nogauge')}</div>`;
   html += '</div>';
 
   html += `<div class="risk-sec"><div class="risk-sec-t">${t('risk.sec.roads')}</div>`;
   if (xCross) {
     const st = CROSSING_STATUS[xCross.c.status];
-    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${st.label}</span> — ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} ${esc(mi)}</span></div>`;
+    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${st.label}</span>: ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} ${esc(mi)}</span></div>`;
   }
   if (nNotice) {
-    html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.type)}</span> — ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} ${esc(mi)}</span></div>`;
+    html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.type)}</span>: ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} ${esc(mi)}</span></div>`;
   }
   if (!xCross && !nNotice) html += `<div class="risk-quiet">${esc(t('risk.noroad'))}</div>`;
   html += `<div class="risk-tip">${esc(t('risk.tip'))}</div>`;
@@ -509,17 +509,17 @@ function buildSitrep() {
   const crit = sortRequests(reqs.filter((r) => r.priority === 'critical'));
   const cutoffs = reqs.filter((r) => r.type === 'cutoff');
   const L = [];
-  L.push(`RESPONDER TX SITREP — ${now} CT`);
+  L.push(`RESPONDER TX SITREP - ${now} CT`);
   L.push(`THREAT: ${emerg.length} flash flood emergencies${emerg.length ? ` (${emerg.map((a) => a.properties.areaDesc).join(' | ')})` : ''}; ${warnings} flood warnings statewide (official)`);
   L.push(`GAUGES: ${majors.length} at MAJOR, ${toMajor.length} forecast to reach major (official)`);
   for (const g of majors) {
     const tr = gaugeTrend(g.lid);
-    L.push(`  MAJOR ${g.name} — ${g.status.observed.primary} ft${tr ? ` (${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr)` : ''}`);
+    L.push(`  MAJOR ${g.name} - ${g.status.observed.primary} ft${tr ? ` (${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr)` : ''}`);
   }
   for (const g of toMajor) {
     const rc = recordContext(g);
     const recBit = rc ? (rc.atOrAbove ? ` [⚑ ${Math.abs(rc.margin)} ft OVER ${rc.recFt} ft record ${rc.year}]` : rc.near ? ` [⚑ ${rc.margin} ft below ${rc.recFt} ft record ${rc.year}]` : '') : '';
-    L.push(`  RISING ${g.name} — fcst crest ${g.status.forecast.primary} ft ${fmtWhen(g.status.forecast.validTime)}${recBit}`);
+    L.push(`  RISING ${g.name} - fcst crest ${g.status.forecast.primary} ft ${fmtWhen(g.status.forecast.validTime)}${recBit}`);
   }
   const falling = state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
   if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')}) (official)`);
@@ -527,7 +527,7 @@ function buildSitrep() {
   L.push(`ACTIVE CRITICAL (${crit.length}) (curated):`);
   for (const r of crit.slice(0, 10)) {
     const pos = Number.isFinite(r.lat) ? ` [USNG ${toUSNG(r.lat, r.lon)}]` : '';
-    L.push(`  [${shortId(r.id)}] [${r.type.toUpperCase()}] ${r.summary} — ${r.place}, ${r.county} Co.${pos} (${fmtWhen(r.ts).split(' · ')[0]})`);
+    L.push(`  [${shortId(r.id)}] [${r.type.toUpperCase()}] ${r.summary} - ${r.place}, ${r.county} Co.${pos} (${fmtWhen(r.ts).split(' · ')[0]})`);
   }
   L.push(`ACTIVE NOTICES TOTAL: ${reqs.length} (curated) · board ${APP_VERSION}`);
   L.push('Not a dispatch product. Life-threatening emergencies: 911.');
@@ -661,7 +661,7 @@ function exportAAR() {
   const count = (fn) => reqs.reduce((m, r) => { const k = fn(r); m[k] = (m[k] || 0) + 1; return m; }, {});
   const fmtCounts = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ');
   const L = [];
-  L.push(`# Responder TX — After-Action Export`);
+  L.push(`# Responder TX - After-Action Export`);
   L.push(`Generated ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT · board ${APP_VERSION}`);
   L.push('');
   L.push(`## Card statistics (${reqs.length} total)`);
@@ -672,7 +672,7 @@ function exportAAR() {
   L.push('## Chronological card log');
   for (const r of reqs) {
     const t = new Date(r.ts).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    L.push(`- **${t} CT** [${r.type}/${r.priority}/${r.status}] ${r.summary} — ${r.place} (${r.county} Co.)${r.source && r.source.url ? ` [src](${r.source.url})` : ''}`);
+    L.push(`- **${t} CT** [${r.type}/${r.priority}/${r.status}] ${r.summary} - ${r.place} (${r.county} Co.)${r.source && r.source.url ? ` [src](${r.source.url})` : ''}`);
   }
   L.push('');
   L.push('## Situation snapshot at export');

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.8';
+const APP_VERSION = 'v0.75.9';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -2853,6 +2853,12 @@ async function boot() {
     if (window.innerWidth <= 768 && document.querySelector('main').classList.contains('sheet-peek')) setSheet('sheet-half');
   }));
   initSheet();
+  // device rotation reflows the map container — Leaflet needs invalidateSize or tiles stay grey
+  let resizeT;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => { if (state.map) state.map.invalidateSize(); }, 200);
+  });
   // header tiles mirror the threat-strip act() targets — passive numbers are dead UI
   const goTab = (tab) => document.querySelector(`.tabs button[data-tab="${tab}"]`).click();
   for (const [id, tab] of [['#tile-emergency', 'tab-alerts'], ['#tile-warnings', 'tab-alerts'], ['#tile-gauges', 'tab-gauges'], ['#tile-open', 'tab-requests']]) {

@@ -928,6 +928,59 @@ main { flex: 1; display: flex; min-height: 0; }
   .offline-ctl .off-note { font-size: 9.5px; }
 }
 
+/* phone held sideways (short + landscape) — the ≤768 WIDTH query misses 844–932px-wide
+   phones, dumping them into the too-tall desktop layout. Force a map-favoring side-by-side
+   split. Placed AFTER the ≤768 block so equal-specificity rules win the 667×375 overlap. */
+@media (max-height: 500px) and (orientation: landscape) {
+  header { padding: 3px 8px; gap: 8px; flex-wrap: nowrap; }
+  .brand { min-width: 0; flex: 0 1 auto; }
+  .brand h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand .sub { display: none; }
+  .tiles { display: none; }
+  #ticker { display: none; }
+  .controls { margin-left: auto; gap: 5px; }
+  .controls .ctl-lbl { display: none; }
+  .controls button { min-height: 34px; min-width: 38px; padding: 4px 7px; font-size: 15px; }
+  .refresh-meta { min-width: 0; font-size: 10px; }
+  #refresh-count { display: none; }
+
+  main { flex-direction: row; }
+  #map { order: 0; flex: 1 1 auto; min-height: 0; }
+  #sheet-handle { display: none; }
+
+  /* narrow scrollable sidebar (map-favoring). MUST override all three sheet-state rules —
+     main.sheet-half #sidebar is specificity (1,1,1); a bare #sidebar (1,0,0) loses. */
+  main.sheet-peek #sidebar,
+  main.sheet-half #sidebar,
+  main.sheet-full #sidebar,
+  #sidebar {
+    flex: 0 0 auto; width: 40vw; min-width: 260px; max-width: 340px;
+    height: auto; overflow: hidden;
+    border-top: none; border-right: 1px solid var(--hairline);
+  }
+
+  #threat-strip:not(:empty) { padding: 4px 8px 5px; }
+  .threat-head { display: none; }
+  .threat-grid {
+    display: flex; flex-wrap: nowrap; gap: 5px;
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .threat-grid::-webkit-scrollbar { display: none; }
+  .stat-row { flex: 0 0 auto; padding: 3px 8px 3px 6px; font-size: 11px; }
+  .stat-row .num { font-size: 13px; }
+  .ffe-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .ffe-row::-webkit-scrollbar { display: none; }
+
+  .tabs button { padding: 8px 8px; font-size: 13px; }
+  .tab-body { padding: 8px 10px; }
+
+  /* keep the short 911 line on screen; tap-to-open still reveals the full notice (never a blank) */
+  .disclaimer { padding: 5px 10px; }
+  .disclaimer:not(.open) .disc-full { display: none; }
+  .disclaimer:not(.open) .disc-short { display: inline; }
+  .disclaimer.open .disc-short { display: none; }
+}
+
 /* gauges tab — bucketed by actionability */
 .group-toggle button { font-size: 12px; padding: 4px 10px; }
 .group-toggle button.on { border-color: var(--accent); color: var(--accent); }

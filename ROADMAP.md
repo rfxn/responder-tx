@@ -116,11 +116,11 @@ Ship-3 verdict: T1 inundation, T2 address risk-lookup, T3 push alerts
 
 Self-audit quick-wins (2026-07-17, ranked value/effort) — ship these FIRST,
 they're cheap correctness/discoverability fixes on shipped features:
-- **A1. AO-filter the Alerts tab** — alerts fetch is statewide+recency-sorted;
+- ~~**A1. AO-filter the Alerts tab**~~ SHIPPED v0.69.0. — alerts fetch is statewide+recency-sorted;
   a Brewster/Big Bend FFW (~250 mi out) sorts ABOVE Hill Country warnings.
   Group out-of-AO alerts into an "elsewhere in TX" fold (bbox test on areaDesc/
   geometry). Cost S. HIGH (trust every session). **[ux]**
-- **A2. Make Drive Mode discoverable** — the best view for the truck persona
+- ~~**A2. Make Drive Mode discoverable**~~ SHIPPED v0.69.0 (teal accent + one-time hint). — the best view for the truck persona
   hides behind an unlabeled 🚗 icon; add a labeled/persistent entry + one-time
   hint. Cost S. HIGH. **[ux]**
 - **A3. Declutter desktop** — 4 KPI tiles duplicate the threat module; fold them

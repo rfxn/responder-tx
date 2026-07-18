@@ -151,6 +151,21 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 #map { flex: 1; background: var(--page); }
 #sheet-handle { display: none; } /* mobile-only bottom-sheet grabber (shown in the phone media query) */
+/* Drive Mode is the field's key view — give its control a distinct accent so it reads as a feature, not a utility */
+#drive-btn { border-color: var(--note-teal, #14b8a6); color: var(--note-teal, #14b8a6); }
+#drive-btn:hover { background: color-mix(in srgb, var(--note-teal, #14b8a6) 14%, var(--surface-2)); }
+#drive-hint {
+  position: fixed; top: 54px; right: 10px; z-index: 1250; max-width: min(92vw, 340px);
+  display: flex; align-items: center; gap: 8px; padding: 9px 11px;
+  background: var(--surface-1); border: 1px solid var(--note-teal, #14b8a6); border-left-width: 4px;
+  border-radius: 9px; font-size: 12.5px; color: var(--ink-1); box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  animation: pulse 2.4s 2;
+}
+#drive-hint[hidden] { display: none; }
+#drive-hint span { flex: 1; line-height: 1.35; }
+#drive-hint button { min-height: 0; padding: 4px 9px; font-size: 12px; flex: 0 0 auto; }
+#drive-hint #drive-hint-go { background: var(--note-teal, #14b8a6); color: #fff; border-color: transparent; font-weight: 700; }
+#drive-hint #drive-hint-x { background: none; border: none; color: var(--ink-muted); padding: 4px 6px; }
 
 #threat-strip { background: var(--surface-2); }
 #threat-strip:not(:empty) { padding: 7px 10px 8px; border-bottom: 1px solid var(--hairline); }

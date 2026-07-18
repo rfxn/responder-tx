@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.69.0",
+      "date": "2026-07-18",
+      "line": "Alerts tab now puts Hill Country AO alerts first and folds far-away TX warnings into an 'elsewhere' group (no more Big Bend warning on top); Drive Mode made discoverable (teal accent + one-time hint)"
+    },
+    {
       "v": "v0.68.0",
       "date": "2026-07-18",
       "line": "Mobile panel fix: explicit ▼ Min / ↕ Half / ▲ Full buttons (always visible) replace the hard-to-find grabber — jump straight to any size, always easy to bring the panel back"

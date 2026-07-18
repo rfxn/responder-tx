@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.68.0';
+const APP_VERSION = 'v0.69.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -659,37 +659,61 @@ function alertPopupHtml(f) {
     `<div class="popup-link"><a href="${esc(f.id)}" target="_blank" rel="noopener">Full alert text →</a></div>`;
 }
 
+// in area-of-operations? geometry bounds must intersect the gauge bbox (padded).
+// zone alerts w/o geometry are kept in-AO (don't hide) — better a false include than a hidden warning.
+function alertInAO(f) {
+  const geom = f.geometry || (f.properties.affectedZones || []).map((z) => state.zoneGeomCache.get(z)).find(Boolean);
+  if (!geom) return true;
+  const b = CONFIG.gaugeBbox, pad = 0.3;
+  try {
+    const gb = L.geoJSON(geom).getBounds();
+    return gb.getEast() >= b.xmin - pad && gb.getWest() <= b.xmax + pad
+      && gb.getNorth() >= b.ymin - pad && gb.getSouth() <= b.ymax + pad;
+  } catch { return true; }
+}
+
+function alertCardDiv(f) {
+  const p = f.properties;
+  const div = document.createElement('div');
+  div.className = `card alert-card sev-${f._sev}`;
+  div.innerHTML = `<div class="event">${esc(p.event)}${f._sev === 'emergency' ? '<span class="emergency-flag">EMERGENCY</span>' : ''}</div>` +
+    `<div class="areas">${esc(p.areaDesc || '')}</div>` +
+    `<div class="meta" style="margin-top:3px;font-size:11px;color:var(--ink-muted)">` +
+    (p.sent ? `<span class="fresh-dot ${freshClass(p.sent)}"></span> sent ${esc(fmtWhen(p.sent))} · ` : '') +
+    `until ${esc(fmtWhen(p.expires))} · <a href="${esc(f.id)}" target="_blank" rel="noopener" style="color:var(--accent)">text</a></div>`;
+  div.addEventListener('click', () => {
+    if (f.geometry) {
+      const b = L.geoJSON(f.geometry).getBounds();
+      if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
+    }
+    const z = (f.properties.affectedZones || [])[0];
+    const g = z && state.zoneGeomCache.get(z);
+    if (g) {
+      const b = L.geoJSON(g).getBounds();
+      if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
+    }
+    window.open(f.id, '_blank', 'noopener');
+  });
+  return div;
+}
+
 function renderAlertList() {
   const el = $('#alert-list');
-  el.innerHTML = '<div class="section-title">NWS flood alerts (statewide)</div>';
+  el.innerHTML = '<div class="section-title">NWS flood alerts — Hill Country AO first</div>';
   const sevF = $('#flt-alert-sev').value, qF = $('#flt-alert-q').value.toLowerCase();
   const shown = state.alerts.filter((f) => (!sevF || f._sev === sevF)
     && (!qF || `${f.properties.event} ${f.properties.areaDesc}`.toLowerCase().includes(qF)));
   if (!shown.length) { el.innerHTML += '<div class="card">No alerts match.</div>'; return; }
-  for (const f of shown) {
-    const p = f.properties;
-    const div = document.createElement('div');
-    div.className = `card alert-card sev-${f._sev}`;
-    div.innerHTML = `<div class="event">${esc(p.event)}${f._sev === 'emergency' ? '<span class="emergency-flag">EMERGENCY</span>' : ''}</div>` +
-      `<div class="areas">${esc(p.areaDesc || '')}</div>` +
-      `<div class="meta" style="margin-top:3px;font-size:11px;color:var(--ink-muted)">` +
-      (p.sent ? `<span class="fresh-dot ${freshClass(p.sent)}"></span> sent ${esc(fmtWhen(p.sent))} · ` : '') +
-      `until ${esc(fmtWhen(p.expires))} · <a href="${esc(f.id)}" target="_blank" rel="noopener" style="color:var(--accent)">text</a></div>`;
-    div.addEventListener('click', () => {
-      if (f.geometry) {
-        const b = L.geoJSON(f.geometry).getBounds();
-        if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
-      }
-      // zone alerts ship null geometry — reuse cached zone polys, else open the alert text (never a dead tap)
-      const z = (f.properties.affectedZones || [])[0];
-      const g = z && state.zoneGeomCache.get(z);
-      if (g) {
-        const b = L.geoJSON(g).getBounds();
-        if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
-      }
-      window.open(f.id, '_blank', 'noopener');
-    });
-    el.appendChild(div);
+  // AO-relevant alerts first; the rest fold into "elsewhere in TX" so a Big Bend FFW can't sit on top
+  const inAO = shown.filter(alertInAO), elsewhere = shown.filter((f) => !alertInAO(f));
+  for (const f of inAO) el.appendChild(alertCardDiv(f));
+  if (elsewhere.length) {
+    const btn = document.createElement('button');
+    btn.className = 'aged-toggle';
+    btn.textContent = `${state.showAlertsElsewhere ? '▾ hide' : '▸ show'} ${elsewhere.length} flood alert${elsewhere.length > 1 ? 's' : ''} elsewhere in TX`;
+    btn.addEventListener('click', () => { state.showAlertsElsewhere = !state.showAlertsElsewhere; renderAlertList(); });
+    el.appendChild(btn);
+    if (state.showAlertsElsewhere) for (const f of elsewhere) el.appendChild(alertCardDiv(f));
   }
   const emergN = state.alerts.filter((f) => f._sev === 'emergency').length;
   const alertsBadge = $('#alerts-count');
@@ -2438,6 +2462,13 @@ async function boot() {
   $('#share-btn').addEventListener('click', (e) => shareView(e.target));
   const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } renderDriveMode(); };
   $('#drive-btn').addEventListener('click', enterDrive);
+  // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon
+  if (!localStorage.getItem('respondertx.driveHintSeen')) {
+    const dismissHint = () => { $('#drive-hint').hidden = true; localStorage.setItem('respondertx.driveHintSeen', '1'); };
+    setTimeout(() => { if (!localStorage.getItem('respondertx.driveHintSeen')) $('#drive-hint').hidden = false; }, 3500);
+    $('#drive-hint-go').addEventListener('click', () => { dismissHint(); enterDrive(); });
+    $('#drive-hint-x').addEventListener('click', dismissHint);
+  }
   $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; });
   $('#hydro-close').addEventListener('click', () => { $('#hydro-modal').hidden = true; });
   $('#hydro-modal').addEventListener('click', (e) => { if (e.target.id === 'hydro-modal') $('#hydro-modal').hidden = true; });

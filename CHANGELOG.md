@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.75.2 — 2026-07-18 (extend gauge coverage west to the Pecos / Val Verde)
+- Change: extended the gauge/AO bounding box west from -101.2 to -102.0 so the active Pecos River flood wave (Pandale Crossing PDAT2, Langtry LTRT2) now renders as live gauge dots with hydrographs — the life-threatening NW Val Verde flooding under an active NWS FFW sat just outside the prior coverage edge; the wider box also lets the Val Verde alert register as in-AO (alertInAO reads CONFIG.gaugeBbox)
+- NEW "Val Verde/Pecos" AO quick-jump chip (map top-edge presets) framing the active flood reach (Pandale → NW Val Verde); the "Full AO" quick-jump was widened to the new -102.0 west edge to match, and the public snapshot fallback was regenerated with the wider bbox (226 gauges, now including PDAT2/LTRT2/BTNT2/SPCT2)
+
 ## v0.75.1 — 2026-07-18 (owner: shorten + genericize the brand subtitle)
 - Change: brand subtitle shortened from "Hill Country flood event · live NWS / NOAA / USGS · community assistance feed" to "First Responder & Life Safety Feed" — the old copy was long and named a single TX/Hill-Country event; the board is being built to manage multiple AOs and separate statewide events over time, so the header subtitle no longer pins to one event (localized EN/ES, the Spanish reads "Primeros respondedores y seguridad de vida"); all local asset ?v= stamps bumped to 0.75.1 with the version
 

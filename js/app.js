@@ -1,13 +1,13 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.1';
+const APP_VERSION = 'v0.75.2';
 
 const CONFIG = {
   center: [29.75, -99.35],
   zoom: 8,
   // Hill Country + Uvalde/Nueces basins; widen if the event spreads
   // widened 7/16 PM: Nueces wave moving downstream + LCRA floodgate releases on the Colorado
-  gaugeBbox: { xmin: -101.2, ymin: 28.0, xmax: -97.0, ymax: 31.1 },
+  gaugeBbox: { xmin: -102.0, ymin: 28.0, xmax: -97.0, ymax: 31.1 },
   alertsUrl: 'https://api.weather.gov/alerts/active?area=TX',
   nwpsBase: 'https://api.water.noaa.gov/nwps/v1',
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
@@ -531,9 +531,10 @@ function initMap() {
 /* ---------- AO quick-jump — pills along the map top edge, never another stacked box ---------- */
 
 const AO_PRESETS = [
-  ['Full AO', [[28.0, -101.2], [31.1, -97.0]]],
+  ['Full AO', [[28.0, -102.0], [31.1, -97.0]]],
   ['Kerr/Guadalupe', [[29.85, -99.6], [30.2, -98.9]]],
   ['Uvalde/Frio-Nueces', [[28.9, -100.1], [29.6, -99.4]]],
+  ['Val Verde/Pecos', [[29.3, -101.9], [30.35, -100.8]]],
   ['Sonora/Ozona', [[30.3, -101.4], [30.95, -100.3]]],
   ['Cibolo corridor', [[28.9, -98.4], [29.4, -97.9]]],
 ];

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.2",
+      "date": "2026-07-18",
+      "line": "Extended gauge coverage west to the Pecos: the AO bounding box now runs to -102.0 (was -101.2), so tonight's Val Verde flood wave — Pandale Crossing (PDAT2, MAJOR forecast) and Langtry (LTRT2) — shows as live gauge dots with hydrographs instead of sitting off the map's west edge. Added a 'Val Verde/Pecos' quick-jump chip and widened the 'Full AO' view to match."
+    },
+    {
       "v": "v0.75.1",
       "date": "2026-07-18",
       "line": "Brand subtitle shortened + genericized: 'Hill Country flood event · live NWS/NOAA/USGS · community assistance feed' → 'First Responder & Life Safety Feed' (ES: 'Primeros respondedores y seguridad de vida'). The board is being built to manage multiple AOs and separate statewide events, so the header no longer names one single event."

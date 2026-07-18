@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.84.0",
+      "date": "2026-07-18",
+      "line": "Playback story mode: playback now tells the story of the event. Archived NWS warning polygons (official products from IEM's storm-based warning archive) roll in and fade on the map at the exact times they were valid, in the same colors as live alerts, with an 'NWS warning archive via IEM' label; a tap-to-pause caption strip above the timeline narrates gauge rises/falls, crests with crest-of-record context (Asherton crests 31.48 ft \u00b7 95% of the 1935 record), warning issue/expiry, and road reopenings; play now defaults to a slower ~2 frames/sec with a 0.5\u00d7/1\u00d7/2\u00d7/4\u00d7 speed control and \u23ea/\u23e9 one-frame step buttons, and at slow speeds markers glide between frames (a visual transition only; the timestamp always shows the real frame time); a one-line HUD reads gauges in flood by category, warnings active, and the top mover (tap to expand). Live alert polys swap out while replaying and snap back on NOW."
+    },
+    {
       "v": "v0.83.0",
       "date": "2026-07-18",
       "line": "New map layer: road & river cameras. 656 TxDOT live traffic cams (HLS video, LIVE badge, not recorded) + 9 USGS HIVIS river cams (15-min stills with capture time, STALE badge past 45 min) \u2014 off by default, clustered \ud83d\udcf7 markers, one-tap viewer that closes with \u2715, tap-outside, or Escape. Drive Mode shows the 2 nearest cams; a gauge within 2 km of a river cam (Wimberley/Blanco) links straight to it. A camera shows one spot at one moment \u2014 verify before routing."

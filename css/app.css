@@ -1084,7 +1084,7 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 #pb-pill.pb-disabled { opacity: 0.45; cursor: not-allowed; }
 body.pb-bar-open #pb-pill { display: none; } /* the bar's ✕ takes over while expanded */
-body.pb-bar-open #radar-scrub { bottom: 96px; } /* radar scrub rides above the timeline bar */
+body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar scrub rides above the (taller, v0.84) timeline bar + caption */
 #playback-bar {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 1150;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -1120,6 +1120,32 @@ body.pb-bar-open #radar-scrub { bottom: 96px; } /* radar scrub rides above the t
 }
 #pb-badge[hidden] { display: none; }
 body.pb-on #threat-strip { opacity: 0.45; filter: grayscale(0.35); } /* playback dims the live threat read */
+
+/* playback story mode (v0.84): caption strip, HUD, speed + frame-step controls */
+#pb-caption {
+  position: absolute; bottom: calc(100% + 10px); left: 10px; max-width: min(460px, calc(100% - 20px));
+  z-index: 1160; text-align: left; cursor: pointer; min-height: 0;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border: 1px solid var(--border); border-left: 3px solid var(--sev-warning);
+  border-radius: 8px; padding: 6px 10px;
+  font-size: 12.5px; line-height: 1.35; color: var(--ink-1);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+}
+#pb-caption[hidden] { display: none; }
+#pb-caption.cap-in { animation: pb-cap-in 0.35s ease; }
+@keyframes pb-cap-in { from { opacity: 0; transform: translateY(5px); } }
+#pb-back, #pb-fwd { min-height: 0; padding: 4px 8px; font-size: 12px; }
+#pb-speed { min-height: 0; padding: 4px 9px; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+#pb-hud {
+  flex-basis: 100%; font-size: 11px; font-weight: 700; color: var(--ink-2); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+}
+#pb-hud[hidden], #pb-hud-detail[hidden] { display: none; }
+#pb-hud-detail { flex-basis: 100%; font-size: 10.5px; color: var(--ink-muted); line-height: 1.4; }
+.pb-alert-poly.sev-sv { stroke: #e0b13f; fill: #e0b13f; }
+.pb-alert-poly.sev-to { stroke: #c04ae2; fill: #c04ae2; }
+/* slow-speed visual tween between archive frames — opacity/size/color only, never data values */
+body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s ease, background-color 0.45s ease, opacity 0.45s ease; }
 
 @media (max-width: 768px) {
   /* thumb-zone targets: the bar lives at the bottom of the map, one-handed reach */

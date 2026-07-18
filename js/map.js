@@ -510,8 +510,140 @@ function toggleRadarPlay() {
    radar from IEM archive tiles); alerts/roads/LSRs stay live and the bar says so. */
 
 const PB_RADAR_URL = (stamp) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${stamp}/{z}/{x}/{y}.png`;
-const PB_FPS_MS = 125; // ~8 fps
+const PB_BASE_FRAME_MS = 500; // 1x is ~2 fps — slow enough to read the story (owner ask)
+const PB_SPEEDS = [0.5, 1, 2, 4];
 const PB_CAT_NAMES = ['none', 'action', 'minor', 'moderate', 'major'];
+
+/* archived NWS storm-based warnings — OFFICIAL products via IEM sbw.geojson (CORS-open).
+   Cached per 15-min bucket (LRU); each poly's polygon_begin/end governs per-frame visibility,
+   so frames between fetches honestly reuse the cached set. */
+const PB_SBW_URL = (iso) => `https://mesonet.agron.iastate.edu/geojson/sbw.geojson?ts=${encodeURIComponent(iso)}`;
+const PB_SBW_BUCKET_MS = 900000;
+const PB_SBW_LRU = 40;
+const PB_SBW_FLOOD = ['FF', 'FA', 'FL'];
+const pbSbw = { buckets: new Map(), inflight: new Map(), warnEvents: new Map(), renderKey: '', visibleN: null };
+
+function pbSbwSev(p) {
+  if (p.phenomena === 'SV' || p.phenomena === 'TO') return p.phenomena.toLowerCase();
+  if (p.is_emergency) return 'emergency';
+  return p.significance === 'Y' ? 'advisory' : 'warning';
+}
+
+function pbSbwInAO(geom) {
+  const b = CONFIG.gaugeBbox, pad = 0.3;
+  let w = Infinity, e = -Infinity, s = Infinity, n = -Infinity;
+  const walk = (c) => {
+    if (typeof c[0] === 'number') { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); }
+    else c.forEach(walk);
+  };
+  try { walk(geom.coordinates); } catch { return false; }
+  return e >= b.xmin - pad && w <= b.xmax + pad && n >= b.ymin - pad && s <= b.ymax + pad;
+}
+
+const pbSbwKey = (p) => `${p.wfo}|${p.phenomena}|${p.significance}|${p.eventid}|${p.year}`;
+
+function pbSbwStore(bucket, features) {
+  const keep = [];
+  for (const f of features) {
+    const p = f.properties || {};
+    const flood = PB_SBW_FLOOD.includes(p.phenomena);
+    if (!flood && p.phenomena !== 'SV' && p.phenomena !== 'TO') continue;
+    if (!f.geometry || !pbSbwInAO(f.geometry)) continue;
+    f._b0 = new Date(p.polygon_begin || p.issue).getTime();
+    f._b1 = new Date(p.polygon_end || p.expire).getTime();
+    keep.push(f);
+    if (flood) {
+      const k = pbSbwKey(p);
+      const ev = pbSbw.warnEvents.get(k) || { issue: Infinity, expire: -Infinity, ps: p.ps, wfo: p.wfo };
+      ev.issue = Math.min(ev.issue, new Date(p.issue).getTime());
+      ev.expire = Math.max(ev.expire, new Date(p.expire).getTime());
+      pbSbw.warnEvents.set(k, ev);
+    }
+  }
+  pbSbw.buckets.set(bucket, keep);
+  while (pbSbw.buckets.size > PB_SBW_LRU) pbSbw.buckets.delete(pbSbw.buckets.keys().next().value);
+  pbStoryRebuild();
+  return keep;
+}
+
+function pbSbwFetch(bucket) {
+  if (pbSbw.inflight.has(bucket)) return pbSbw.inflight.get(bucket);
+  const iso = new Date(bucket).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const p = fetch(PB_SBW_URL(iso))
+    .then((r) => { if (!r.ok) throw new Error(`sbw HTTP ${r.status}`); return r.json(); })
+    .then((d) => pbSbwStore(bucket, d.features || []))
+    .finally(() => pbSbw.inflight.delete(bucket));
+  pbSbw.inflight.set(bucket, p);
+  return p;
+}
+
+// dragging debounces to settle (never per-pixel); play fetches at most one bucket at a time
+function pbSbwSchedule() {
+  const pb = state.pb;
+  if (!pb || pb.live) return;
+  pbSbwRender(); // whatever cached polys cover this frame, immediately
+  const bucket = Math.floor(state.pbData.frames[pb.idx]._t / PB_SBW_BUCKET_MS) * PB_SBW_BUCKET_MS;
+  if (pbSbw.buckets.has(bucket)) {
+    const v = pbSbw.buckets.get(bucket);
+    pbSbw.buckets.delete(bucket); pbSbw.buckets.set(bucket, v); // LRU touch
+    return;
+  }
+  clearTimeout(pb.sbwTimer);
+  if (pb.playing && pbSbw.inflight.size) return; // stay polite to IEM at 2-8 fps
+  pb.sbwTimer = setTimeout(() => {
+    pbSbwFetch(bucket)
+      .then(() => { if (state.pb && !state.pb.live) { pbSbwRender(); pbUpdateHud(); } })
+      .catch(() => { /* archive fetch failed — warning polys simply absent for this bucket */ });
+  }, pb.playing ? 0 : 250);
+}
+
+function pbSbwRender() {
+  const pb = state.pb;
+  if (!pb || pb.live || !state.layers.pbAlerts) return;
+  const ft = state.pbData.frames[pb.idx]._t;
+  const best = new Map(); // per warning: the cached copy from the bucket nearest the frame
+  for (const [bk, feats] of pbSbw.buckets) {
+    const d = Math.abs(bk - ft);
+    for (const f of feats) {
+      if (!(f._b0 <= ft && ft <= f._b1)) continue;
+      const k = pbSbwKey(f.properties);
+      const cur = best.get(k);
+      if (!cur || d < cur.d) best.set(k, { f, d });
+    }
+  }
+  pbSbw.visibleN = pbSbw.buckets.size ? best.size : null;
+  const key = Array.from(best.keys()).sort().join(',');
+  if (key === pbSbw.renderKey) return;
+  pbSbw.renderKey = key;
+  state.layers.pbAlerts.clearLayers();
+  const order = { advisory: 0, sv: 1, to: 2, warning: 3, emergency: 4 }; // most severe drawn last, lands on top
+  const feats = Array.from(best.values()).map((x) => x.f)
+    .sort((a, b) => (order[pbSbwSev(a.properties)] || 0) - (order[pbSbwSev(b.properties)] || 0));
+  for (const f of feats) {
+    const sev = pbSbwSev(f.properties);
+    const storm = sev === 'sv' || sev === 'to';
+    const layer = L.geoJSON({ type: 'Feature', geometry: f.geometry }, {
+      style: {
+        className: `alert-poly pb-alert-poly sev-${sev}`,
+        weight: sev === 'emergency' ? 2.5 : 1.5,
+        fillOpacity: sev === 'emergency' ? 0.22 : storm ? 0.06 : 0.10,
+        opacity: 0.9,
+        dashArray: storm ? '6 4' : null,
+      },
+    });
+    layer.bindPopup(() => pbSbwPopup(f.properties));
+    state.layers.pbAlerts.addLayer(layer);
+  }
+}
+
+function pbSbwPopup(p) {
+  const sev = pbSbwSev(p);
+  return `<div class="popup-title">${esc(p.ps || 'NWS warning')}${sev === 'emergency' ? ': <span style="color:var(--sev-emergency);font-weight:700">FLASH FLOOD EMERGENCY</span>' : ''}</div>` +
+    `<div class="popup-meta">NWS ${esc(p.wfo || '')} · ${esc(fmtCT(p.polygon_begin || p.issue))} → ${esc(fmtCT(p.polygon_end || p.expire))}</div>` +
+    `<div class="popup-meta">${srcBadge('official')} ${esc(t('playback.warnarchive'))}</div>` +
+    `<div class="popup-meta" style="color:var(--sev-warning);font-weight:700">⏮ ${esc(t('playback.pill'))} · ${esc(fmtCT(state.pbData.frames[state.pb.idx].t))}</div>` +
+    (p.href ? `<div class="popup-link"><a href="${safeUrl(p.href)}" target="_blank" rel="noopener">IEM product page →</a></div>` : '');
+}
 
 // frame code: 0..4 = none..major; negative = stale observation, encoded -(code+1)
 function pbDecode(code) {
@@ -530,9 +662,152 @@ async function loadPlaybackData() {
   // chapter marks: major-peak gauges from the crest summary, most significant first (best-effort)
   try {
     const cs = await fetch(`data/crest-summary.json?_=${Math.floor(Date.now() / 300000)}`).then((r) => (r.ok ? r.json() : null));
-    state.pbChapters = ((cs && cs.gauges) || []).filter((g) => g.peak_category === 'major').slice(0, 8);
-  } catch { state.pbChapters = []; }
+    state.pbCrests = (cs && cs.gauges) || [];
+    state.pbChapters = state.pbCrests.filter((g) => g.peak_category === 'major').slice(0, 8);
+  } catch { state.pbCrests = []; state.pbChapters = []; }
   return d;
+}
+
+/* story engine — gauge category transitions (frame diffs) + moderate/major crests (crest summary)
+   + warning lifecycle (SBW cache) + road reopenings (this device's DriveTexas store), merged into
+   one time-sorted caption track. Derived data only, nothing interpolated. */
+function pbBuildStory() {
+  const frames = state.pbData.frames, pb = state.pb;
+  const ev = [];
+  const first = pbFirstIdx();
+  for (let i = first + 1; i < frames.length; i++) {
+    const cur = frames[i], prev = frames[i - 1];
+    for (const [lid, rec] of Object.entries(cur.gauges)) {
+      const p = prev.gauges[lid];
+      if (!p || rec[1] < 0 || p[1] < 0 || rec[1] === p[1]) continue; // stale obs: no honest transition
+      const gi = state.pbData.gaugeIndex[lid];
+      if (!gi) continue;
+      const up = rec[1] > p[1];
+      ev.push({
+        t: cur._t, iso: cur.t, pri: rec[1],
+        text: t(up ? 'playback.story.rise' : 'playback.story.fall')
+          .replace('{name}', gi.name).replace('{cat}', catLabel(PB_CAT_NAMES[rec[1]])).replace('{v}', rec[0]),
+      });
+    }
+  }
+  for (const g of state.pbCrests || []) {
+    if (g.stale || !['moderate', 'major'].includes(g.peak_category)) continue;
+    const pt = new Date(g.peak_time).getTime();
+    if (!(pt >= pb.loT && pt <= pb.hiT)) continue;
+    let txt = t('playback.story.crest').replace('{name}', g.name).replace('{v}', g.peak);
+    const r = g.record;
+    if (r && r.record_ft > 0) {
+      txt += t(r.exceeded ? 'playback.story.recordover' : 'playback.story.record')
+        .replace('{p}', r.peak_pct).replace('{y}', String(r.record_date || '').slice(0, 4));
+    }
+    ev.push({ t: pt, iso: g.peak_time, pri: 6, text: txt });
+  }
+  try {
+    for (const r of Object.values(roadMemory().reopened)) {
+      const rt = new Date(r.reopenedAt).getTime();
+      if (!(rt >= pb.loT && rt <= pb.hiT)) continue;
+      ev.push({ t: rt, iso: r.reopenedAt, pri: 3, text: t('playback.story.reopen').replace('{road}', prettyRoute(r.route_name) || 'road') });
+    }
+  } catch { /* road memory unavailable — reopen captions simply absent */ }
+  state.pbStoryBase = ev;
+  pbStoryRebuild();
+}
+
+function pbStoryRebuild() {
+  const pb = state.pb;
+  if (!pb || !state.pbStoryBase) return;
+  const ev = state.pbStoryBase.slice();
+  for (const w of pbSbw.warnEvents.values()) {
+    if (w.issue >= pb.loT && w.issue <= pb.hiT) {
+      ev.push({ t: w.issue, iso: new Date(w.issue).toISOString(), pri: 5, text: t('playback.story.warnissued').replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'AO') });
+    }
+    if (w.expire >= pb.loT && w.expire <= pb.hiT) {
+      ev.push({ t: w.expire, iso: new Date(w.expire).toISOString(), pri: 2, text: t('playback.story.warnexpired').replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'AO') });
+    }
+  }
+  ev.sort((a, b) => a.t - b.t || a.pri - b.pri); // equal-time ties: highest significance last, wins nearest-past
+  state.pbStory = ev;
+  if (!pb.live) pbUpdateCaption(); // capKey change-detection keeps an unchanged caption from re-flashing
+}
+
+function pbUpdateCaption() {
+  const pb = state.pb, el = $('#pb-caption');
+  if (!el) return;
+  if (!pb || pb.live || !state.pbStory) { el.hidden = true; return; }
+  const ft = state.pbData.frames[pb.idx]._t;
+  let ev = null;
+  for (const e of state.pbStory) { if (e.t <= ft) ev = e; else break; }
+  if (!ev) { el.hidden = true; return; }
+  el.hidden = false;
+  const key = `${ev.t}|${ev.text}`;
+  if (key === pb.capKey) return;
+  pb.capKey = key;
+  el.textContent = `${fmtCT(ev.iso)}: ${ev.text}`;
+  el.classList.remove('cap-in');
+  void el.offsetWidth; // restart the entry transition
+  el.classList.add('cap-in');
+}
+
+const pbShortName = (name) => { const m = String(name || '').split(/ (?:at|near|below|above) /); return (m[1] || m[0] || '').trim(); };
+
+function pbTopMovers(k) {
+  const pb = state.pb, frames = state.pbData.frames;
+  if (pb.idx <= pbFirstIdx()) return [];
+  const cur = frames[pb.idx], prev = frames[pb.idx - 1];
+  const dtH = (cur._t - prev._t) / 3600000;
+  if (dtH <= 0) return [];
+  const out = [];
+  for (const [lid, rec] of Object.entries(cur.gauges)) {
+    const p = prev.gauges[lid];
+    if (!p || rec[1] < 0 || p[1] < 0) continue;
+    const rate = (rec[0] - p[0]) / dtH;
+    if (Math.abs(rate) < 0.1) continue;
+    const gi = state.pbData.gaugeIndex[lid];
+    out.push({ name: pbShortName(gi && gi.name), rate });
+  }
+  out.sort((a, b) => Math.abs(b.rate) - Math.abs(a.rate));
+  return out.slice(0, k);
+}
+
+const pbMoverTxt = (m) => `${m.rate > 0 ? '▲' : '▼'} ${esc(m.name)} ${m.rate > 0 ? '+' : ''}${m.rate.toFixed(1)} ft/hr`;
+
+function pbUpdateHud() {
+  const pb = state.pb, el = $('#pb-hud');
+  if (!el) return;
+  if (!pb || pb.live) { el.hidden = true; $('#pb-hud-detail').hidden = true; return; }
+  el.hidden = false;
+  const frame = state.pbData.frames[pb.idx];
+  const n = { major: 0, moderate: 0, minor: 0, action: 0 };
+  for (const rec of Object.values(frame.gauges)) { if (rec[1] > 0) n[PB_CAT_NAMES[rec[1]]]++; }
+  const mv = pbTopMovers(1)[0];
+  el.innerHTML =
+    `<span style="color:var(--cat-major)">MAJ ${n.major}</span> · ` +
+    `<span style="color:var(--cat-moderate)">MOD ${n.moderate}</span> · ` +
+    `<span style="color:var(--cat-minor)">MIN ${n.minor}</span> · ` +
+    `<span>⚠ ${pbSbw.visibleN === null ? '–' : pbSbw.visibleN}</span>` +
+    (mv ? ` · <span>${pbMoverTxt(mv)}</span>` : '');
+}
+
+function pbToggleHudDetail() {
+  const pb = state.pb, d = $('#pb-hud-detail');
+  if (!pb || pb.live) return;
+  d.hidden = !d.hidden;
+  if (d.hidden) return;
+  const movers = pbTopMovers(3);
+  const ft = state.pbData.frames[pb.idx]._t;
+  const warns = [], seen = new Set();
+  for (const feats of pbSbw.buckets.values()) {
+    for (const f of feats) {
+      if (!(f._b0 <= ft && ft <= f._b1)) continue;
+      const k = pbSbwKey(f.properties);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      warns.push(`${f.properties.ps || 'NWS warning'} · ${f.properties.wfo || ''}`);
+    }
+  }
+  d.innerHTML =
+    `<div><strong>${esc(t('playback.hud.movers'))}</strong>: ${movers.length ? movers.map(pbMoverTxt).join(' · ') : esc(t('playback.hud.none'))}</div>` +
+    `<div><strong>${esc(t('playback.hud.warns'))}</strong>: ${warns.length ? warns.map((w) => esc(w)).join(' · ') : esc(t('playback.hud.none'))}</div>`;
 }
 
 async function openPlayback() {
@@ -543,11 +818,18 @@ async function openPlayback() {
     $('#refresh-note').textContent = t('playback.unavail');
     return;
   }
-  if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0 };
+  if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, speed: 1, capKey: null };
   $('#playback-bar').hidden = false;
+  $('#pb-speed').textContent = `${state.pb.speed}×`;
   pill.classList.add('open');
   document.body.classList.add('pb-bar-open');
   setPlaybackRange(state.pb.days);
+  const pbt = Date.parse(new URLSearchParams(location.search).get('pbt') || ''); // deep link: jump to a moment
+  if (Number.isFinite(pbt) && !state.pbtApplied) {
+    state.pbtApplied = true;
+    setPlaybackFrame(pbFrameAt(pbt));
+    updatePlaybackNote();
+  }
 }
 
 function closePlayback() {
@@ -575,6 +857,7 @@ function setPlaybackRange(days) {
   sl.max = pb.hiT;
   sl.step = 60000;
   renderPlaybackTicks();
+  pbBuildStory();
   if (pb.live) { sl.value = pb.hiT; updatePlaybackReadout(); } else setPlaybackFrame(pb.idx);
   updatePlaybackNote();
 }
@@ -616,7 +899,7 @@ function pbEnsureMarkers() {
   for (const [lid, gi] of Object.entries(state.pbData.gaugeIndex)) {
     const icon = L.divIcon({
       className: '',
-      html: '<div class="gauge-hit"><div class="gauge-icon cat-none" style="width:8px;height:8px"></div></div>',
+      html: '<div class="gauge-hit pb-ghit"><div class="gauge-icon cat-none" style="width:8px;height:8px"></div></div>',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
@@ -649,7 +932,7 @@ function pbPaintMarkers(frame) {
     el.style.display = '';
     const { stale, cat } = pbDecode(rec[1]);
     const hit = el.firstChild;
-    hit.className = `gauge-hit${cat === 'none' && !stale ? ' hit-none' : ''}`;
+    hit.className = `gauge-hit pb-ghit${cat === 'none' && !stale ? ' hit-none' : ''}`;
     const dot = hit.firstChild;
     dot.className = `gauge-icon ${stale ? 'stale' : `cat-${cat}`}`;
     const size = stale ? 11 : CAT_SIZE[cat];
@@ -659,7 +942,7 @@ function pbPaintMarkers(frame) {
   }
 }
 
-// engage: swap the live gauge layer for archive markers, badge the view, archive the radar if it's on
+// engage: swap the live gauge + alert layers for archive layers, badge the view, archive the radar if it's on
 function playbackEngage() {
   const pb = state.pb;
   if (!pb.live) return;
@@ -668,6 +951,13 @@ function playbackEngage() {
   pb.gaugesWereOn = state.map.hasLayer(state.layers.gauges);
   if (pb.gaugesWereOn) state.map.removeLayer(state.layers.gauges);
   state.layers.pbGauges.addTo(state.map);
+  pb.alertsWereOn = state.map.hasLayer(state.layers.alerts);
+  if (pb.alertsWereOn) state.map.removeLayer(state.layers.alerts);
+  state.layers.pbAlerts = state.layers.pbAlerts || L.layerGroup();
+  state.layers.pbAlerts.addTo(state.map);
+  pbSbw.renderKey = '';
+  pbSbw.visibleN = null;
+  document.body.classList.toggle('pb-tween', pb.speed <= 1);
   document.body.classList.add('pb-on');
   $('#pb-badge').hidden = false;
   $('#pb-now').classList.add('armed');
@@ -690,12 +980,26 @@ function playbackGoLive() {
   pb.live = true;
   if (state.map.hasLayer(state.layers.pbGauges)) state.map.removeLayer(state.layers.pbGauges);
   if (pb.gaugesWereOn && !state.map.hasLayer(state.layers.gauges)) state.layers.gauges.addTo(state.map);
+  // archived warning polys clear instantly — never linger over the live picture
+  if (state.layers.pbAlerts) {
+    state.layers.pbAlerts.clearLayers();
+    if (state.map.hasLayer(state.layers.pbAlerts)) state.map.removeLayer(state.layers.pbAlerts);
+  }
+  if (pb.alertsWereOn && !state.map.hasLayer(state.layers.alerts)) state.layers.alerts.addTo(state.map);
+  clearTimeout(pb.sbwTimer);
+  pbSbw.renderKey = '';
+  pbSbw.visibleN = null;
   if (pb.radarLayer) { state.map.removeLayer(pb.radarLayer); pb.radarLayer = null; }
   if (pb.radarWasIdx >= 0 && state.radar) setRadarFrame(pb.radarWasIdx);
   pb.radarWasIdx = -1;
   document.body.classList.remove('pb-on');
+  document.body.classList.remove('pb-tween');
   $('#pb-badge').hidden = true;
   $('#pb-now').classList.remove('armed');
+  $('#pb-caption').hidden = true;
+  $('#pb-hud').hidden = true;
+  $('#pb-hud-detail').hidden = true;
+  pb.capKey = null;
   $('#pb-slider').value = pb.hiT;
   updatePlaybackReadout();
   updatePlaybackNote();
@@ -720,6 +1024,9 @@ function setPlaybackFrame(i) {
   }
   $('#pb-slider').value = frame._t;
   updatePlaybackReadout();
+  pbSbwSchedule();
+  pbUpdateHud();
+  pbUpdateCaption();
 }
 
 function updatePlaybackReadout() {
@@ -739,7 +1046,7 @@ function updatePlaybackReadout() {
 function updatePlaybackNote() {
   const pb = state.pb;
   let note = pb.live ? t('playback.note.idle')
-    : `${t('playback.note.replay')}${pb.radarLayer ? t('playback.note.radar') : ''} · ${t('playback.note.live')}`;
+    : `${t('playback.note.replay')}${t('playback.note.warn')}${pb.radarLayer ? t('playback.note.radar') : ''} · ${t('playback.note.live')}`;
   if (!pb.live) {
     const ft = state.pbData.frames[pb.idx]._t;
     const n = Object.values(state.hist.alerts || {}).filter((a) => {
@@ -772,7 +1079,7 @@ function togglePlaybackPlay() {
   pb.lastStep = 0;
   const step = (ts) => {
     if (!pb.playing) return;
-    if (ts - pb.lastStep >= PB_FPS_MS) {
+    if (ts - pb.lastStep >= PB_BASE_FRAME_MS / pb.speed) {
       pb.lastStep = ts;
       if (pb.idx >= state.pbData.frames.length - 1) { stopPlaybackPlay(); updatePlaybackNote(); return; }
       setPlaybackFrame(pb.idx + 1);
@@ -783,11 +1090,33 @@ function togglePlaybackPlay() {
   pb.raf = requestAnimationFrame(step);
 }
 
+function pbCycleSpeed() {
+  const pb = state.pb;
+  if (!pb) return;
+  pb.speed = PB_SPEEDS[(PB_SPEEDS.indexOf(pb.speed) + 1) % PB_SPEEDS.length];
+  $('#pb-speed').textContent = `${pb.speed}×`;
+  // 0.5-1x: tween marker size/color between frames — visual transition only, readout stays the real frame time
+  document.body.classList.toggle('pb-tween', pb.speed <= 1 && !pb.live);
+}
+
+function pbStepFrame(d) {
+  const pb = state.pb;
+  if (!pb) return;
+  stopPlaybackPlay();
+  setPlaybackFrame((pb.live ? state.pbData.frames.length - 1 : pb.idx) + d);
+  updatePlaybackNote();
+}
+
 function initPlaybackControls() {
   $('#pb-pill').addEventListener('click', togglePlayback);
   $('#pb-play').addEventListener('click', togglePlaybackPlay);
   $('#pb-now').addEventListener('click', playbackGoLive);
   $('#pb-close').addEventListener('click', closePlayback);
+  $('#pb-speed').addEventListener('click', pbCycleSpeed);
+  $('#pb-back').addEventListener('click', () => pbStepFrame(-1));
+  $('#pb-fwd').addEventListener('click', () => pbStepFrame(1));
+  $('#pb-caption').addEventListener('click', stopPlaybackPlay); // tap the caption = pause
+  $('#pb-hud').addEventListener('click', pbToggleHudDetail);
   $('#pb-slider').addEventListener('input', () => {
     stopPlaybackPlay();
     setPlaybackFrame(pbFrameAt(+$('#pb-slider').value));

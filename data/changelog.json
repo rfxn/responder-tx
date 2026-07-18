@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.81.0",
+      "date": "2026-07-18",
+      "line": "Source tagging (official vs curated): signals with ambiguous provenance now carry a small badge — blue OFFICIAL for machine-fed authoritative feeds (NWS, NWPS, IEM, TxDOT/TDEM, TxGIO, USGS) and amber CURATED for operator-maintained data (notice cards, tracked crossings) — on feed cards, crossing lists and popups, road-layer popups, and the curated-driven threat chips, with tooltips explaining each; SITREP lines gain (official)/(curated) suffixes so provenance survives copy-paste."
+    },
+    {
       "v": "v0.80.0",
       "date": "2026-07-18",
       "line": "Event crest summary (after-action part 1): a new read-only crest summary view (⋯ More → 📊 Crest summary, or ?view=summary) shows every gauge that reached flood stage this event with its peak stage, category, peak time (CT), in-flood window, and crest-of-record comparison (Asherton peaked at 95% of the 1935 record), built from the board's committed 15-minute snapshot archive by a new release-time generator; frozen-sensor peaks are badged STALE and gauges still in flood are marked ongoing."

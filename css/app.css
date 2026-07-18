@@ -317,6 +317,9 @@ main { flex: 1; display: flex; min-height: 0; }
 .badge.status-in-progress { border-color: var(--accent); }
 .badge.status-verified { border-color: var(--good); }
 .badge.status-resolved { color: var(--ink-muted); text-decoration: line-through; }
+.badge.src-official { border-color: var(--accent); color: var(--accent); font-weight: 650; letter-spacing: 0.04em; }
+.badge.src-curated { border-color: var(--cat-action); color: var(--cat-action); font-weight: 650; letter-spacing: 0.04em; }
+.badge.src-mini { font-size: 9px; padding: 0 5px; flex: 0 0 auto; align-self: center; }
 
 .section-title { font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); margin: 14px 0 6px; }
 .section-title:first-child { margin-top: 0; }

@@ -672,7 +672,7 @@ function reopenedPopupHtml(r) {
   const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
   return `<div class="popup-title" style="color:var(--good)">✓ ${esc(t('reopen.flag'))} — ${esc(prettyRoute(r.route_name) || 'Road')}</div>` +
     `<div class="popup-meta">${esc(t('reopen.was'))}: ${esc(ct.label)} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))}</div>` +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(ROAD_ATTRIB)} · cleared from the live feed — verify before routing</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · cleared from the live feed — verify before routing</div>`;
 }
 
 function roadPopupHtml(p) {
@@ -688,7 +688,7 @@ function roadPopupHtml(p) {
     (dscr ? `<div class="popup-meta">${esc(dscr)}</div>` : '') +
     (p.start_time ? `<div class="popup-meta">Since ${esc(fmtWhen(p.start_time))}</div>` : '') +
     (detour ? '<div class="popup-meta">Detour available</div>' : '') +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee — verify before routing</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee — verify before routing</div>`;
 }
 
 function renderRoadClosures() {
@@ -774,7 +774,7 @@ function lwcPopupHtml(p) {
     .filter(([, v]) => String(v || '').trim());
   return `<div class="popup-title">${esc(road)}</div>` +
     rows.map(([k, v]) => `<div class="popup-meta">${esc(k)}: ${esc(String(v).trim())}</div>`).join('') +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(LWC_FOOTER)}</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(LWC_FOOTER)}</div>`;
 }
 
 /* ---------- IEM local storm reports (ground truth) ---------- */

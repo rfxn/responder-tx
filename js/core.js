@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.80.0';
+const APP_VERSION = 'v0.81.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -100,6 +100,10 @@ const fmtNum = (v) => (Number.isFinite(+v) ? +v : esc(String(v)));
 // esc() blocks attribute-breakout but not javascript:/data: schemes — gate hrefs to http(s)
 const safeUrl = (u) => (/^https?:\/\//i.test(String(u)) ? String(u) : '#');
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// provenance badge: OFFICIAL = machine-fed authoritative feed, CURATED = operator-maintained
+const srcBadge = (kind, extraCls) =>
+  `<span class="badge src-${kind}${extraCls ? ` ${extraCls}` : ''}" title="${esc(t(`src.${kind}.title`))}">${esc(t(`src.${kind}`))}</span>`;
 
 // navigator.clipboard needs a secure context — LAN http:// serving does not have one
 function copyText(text) {

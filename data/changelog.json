@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.75.3",
+      "date": "2026-07-18",
+      "line": "Mobile polish: the Feed tab's action-button strip (New notice / SITREP / Filters / ID / More) is condensed to a shorter, tighter row on phones, and the default bottom-sheet now cheats a 60/40 split so the map takes the dominant ~60% and the feed panel ~40%."
+    },
+    {
       "v": "v0.75.2",
       "date": "2026-07-18",
       "line": "Extended gauge coverage west to the Pecos: the AO bounding box now runs to -102.0 (was -101.2), so tonight's Val Verde flood wave — Pandale Crossing (PDAT2, MAJOR forecast) and Langtry (LTRT2) — shows as live gauge dots with hydrographs instead of sitting off the map's west edge. Added a 'Val Verde/Pecos' quick-jump chip and widened the 'Full AO' view to match."

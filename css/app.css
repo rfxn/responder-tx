@@ -878,7 +878,7 @@ main { flex: 1; display: flex; min-height: 0; }
   /* sheet height per state; map (flex:1) takes the rest. Full fits the viewport so the 911 footer stays put.
      the resize control floats (fixed), so peek can collapse the panel to nothing — map truly full-screen */
   main.sheet-peek #sidebar { flex: 0 0 auto; height: 0; border-top: none; }
-  main.sheet-half #sidebar { flex: 0 0 auto; height: 54vh; }
+  main.sheet-half #sidebar { flex: 0 0 auto; height: 37vh; } /* mid/default: ~60/40 map-favoring split (header chrome excluded) */
   main.sheet-full #sidebar { flex: 0 0 auto; height: calc(100dvh - 120px); }
   /* threat module collapses to 1-2 scrollable rows — sidebar space belongs to the feed */
   #threat-strip:not(:empty) { padding: 5px 8px 6px; }
@@ -900,6 +900,10 @@ main { flex: 1; display: flex; min-height: 0; }
   .disclaimer:not(.open) .disc-short { display: inline; }
   .disclaimer.open .disc-short { display: none; }
   button, select { min-height: 42px; }
+  /* condense the feed-actions strip on phones — shorter buttons reclaim vertical real estate, still tappable */
+  .feed-actions { gap: 4px; margin-bottom: 6px; }
+  .feed-actions button { min-height: 34px; padding: 3px 9px; font-size: 11.5px; line-height: 1.1; }
+  #more-menu { padding: 6px; }
   .filters select, .filters input[type="search"] { min-height: 36px; }
   .card { padding: 10px 12px; }
   .badge { padding: 4px 9px; font-size: 11.5px; }

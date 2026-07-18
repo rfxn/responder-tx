@@ -112,7 +112,30 @@ share/deep-links/RSS/ICS, honesty, USNG, offline tiles, exports). Ranked GAPS:
 - **T8. Day-by-day incident replay** for AAR/FEMA reimbursement (UI over retained
   snapshots). Cost M. **[views]**
 Ship-3 verdict: T1 inundation, T2 address risk-lookup, T3 push alerts
-(+ T4 Spanish as the cheap high-equity 4th). Self-audit findings fold in next.
+(+ T4 Spanish as the cheap high-equity 4th).
+
+Self-audit quick-wins (2026-07-17, ranked value/effort) — ship these FIRST,
+they're cheap correctness/discoverability fixes on shipped features:
+- **A1. AO-filter the Alerts tab** — alerts fetch is statewide+recency-sorted;
+  a Brewster/Big Bend FFW (~250 mi out) sorts ABOVE Hill Country warnings.
+  Group out-of-AO alerts into an "elsewhere in TX" fold (bbox test on areaDesc/
+  geometry). Cost S. HIGH (trust every session). **[ux]**
+- **A2. Make Drive Mode discoverable** — the best view for the truck persona
+  hides behind an unlabeled 🚗 icon; add a labeled/persistent entry + one-time
+  hint. Cost S. HIGH. **[ux]**
+- **A3. Declutter desktop** — 4 KPI tiles duplicate the threat module; fold them
+  in (mobile already hides tiles). Cost M. **[ux]**
+- **A4. Tag authoritative vs curated** — official (NOAA/NWS) vs community
+  (curated cards) share identical styling in the threat module; add a small
+  official/community marker. Cost S/M. honesty win. **[ux]**
+- **A5. Public onboarding** — dismissible "how to read this board" + richer
+  legend (LSR/RFC/USNG/glyphs) for the lay mirror visitor. Cost S. **[ux]**
+- **A6. Collapse desktop map legend to a pill** (reuse mobile pattern; it
+  covers the SW marker cluster). Cost S. **[ux]**
+- **A7. deploy.sh** — script the HANDOFF deploy recipe (strip chat.js, empty
+  outbox, grep archive for 'chat' before wrangler). Cost S. **[infra]**
+- **A8. Bury LSRs less** — spotter/official storm reports (freshest ground
+  truth) render last in Alerts; rank higher. Cost S. **[ux]**
 
 ### Next-wave feature backlog (2026-07-17 1:15 PM — product-owner pass)
 

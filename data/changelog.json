@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.68.0",
+      "date": "2026-07-18",
+      "line": "Mobile panel fix: explicit ▼ Min / ↕ Half / ▲ Full buttons (always visible) replace the hard-to-find grabber — jump straight to any size, always easy to bring the panel back"
+    },
+    {
       "v": "v0.67.0",
       "date": "2026-07-17",
       "line": "Mobile bottom-sheet: tap the grabber to slide the feed/alerts panel between peek (map full-screen), half, and full (panel covers the map for full-screen scroll) — the map is finally fully viewable on phones"

@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.67.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.67.0">
-  <link rel="stylesheet" href="css/app.css?v=0.67.0">
-  <link rel="stylesheet" href="css/notes.css?v=0.67.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.68.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.68.0">
+  <link rel="stylesheet" href="css/app.css?v=0.68.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.68.0">
 </head>
 <body>
   <header>
@@ -57,7 +57,11 @@
   </div>
   <main>
     <div id="sidebar">
-      <button id="sheet-handle" title="Resize the panel: peek / half / full" aria-label="Resize the feed panel"><span class="grabber"></span><span class="sheet-hint"></span></button>
+      <div id="sheet-handle" role="group" aria-label="Panel size">
+        <button data-sheet="sheet-peek" title="Minimize — map full screen" aria-label="Minimize panel">▼ Min</button>
+        <button data-sheet="sheet-half" title="Half screen" aria-label="Half screen">↕ Half</button>
+        <button data-sheet="sheet-full" title="Full screen — panel covers the map" aria-label="Full screen">▲ Full</button>
+      </div>
       <div id="data-age-bar" hidden></div>
       <div id="threat-strip"></div>
       <div class="tabs">
@@ -242,9 +246,9 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.67.0"></script>
-  <script src="js/usng.js?v=0.67.0"></script>
-  <script src="js/app.js?v=0.67.0"></script>
-  <script src="js/notes.js?v=0.67.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.68.0"></script>
+  <script src="js/usng.js?v=0.68.0"></script>
+  <script src="js/app.js?v=0.68.0"></script>
+  <script src="js/notes.js?v=0.68.0"></script>
 </body>
 </html>

@@ -738,19 +738,22 @@ main { flex: 1; display: flex; min-height: 0; }
   /* non-flooding gauges are pure clutter on a phone map */
   .leaflet-marker-pane .gauge-hit.hit-none { display: none; }
   /* phone header: icon-only controls in one uncramped row; brand + time get their space */
-  /* bottom-sheet: sidebar slides between peek / half / full; only #map height varies, sidebar fills the rest */
+  /* bottom-sheet: explicit Min/Half/Full segmented control (always visible atop the sheet);
+     the sheet's height is set per state so the buttons are always reachable — even from Min. */
   #sheet-handle {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 6px 0 5px; min-height: 0; border: none; border-radius: 0;
-    background: var(--surface-1); border-bottom: 1px solid var(--hairline); cursor: pointer;
+    display: flex; gap: 6px; width: 100%; padding: 6px 8px; flex: 0 0 auto;
+    background: var(--surface-1); border-bottom: 1px solid var(--hairline);
   }
-  #sheet-handle .grabber { width: 40px; height: 4px; border-radius: 3px; background: var(--ink-muted); flex: 0 0 auto; }
-  #sheet-handle .sheet-hint { font-size: 10px; color: var(--ink-muted); font-weight: 600; letter-spacing: 0.02em; }
-  #map { transition: height 0.25s ease; }
-  main.sheet-peek #map { height: 82vh; }
-  main.sheet-half #map { height: 42vh; }
-  main.sheet-full #map { height: 7vh; }
-  main.sheet-full #sheet-handle { position: sticky; top: 0; z-index: 5; }
+  #sheet-handle button {
+    flex: 1; min-height: 34px; padding: 4px 6px; font-size: 12px; font-weight: 700;
+    background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); border-radius: 7px;
+  }
+  #sheet-handle button.on { background: var(--accent); color: #fff; border-color: transparent; }
+  #sidebar { transition: height 0.25s ease; overflow: hidden; }
+  main.sheet-peek #sidebar { flex: 0 0 auto; height: 48px; }         /* just the control bar — map full */
+  main.sheet-half #sidebar { flex: 0 0 auto; height: 56vh; }
+  main.sheet-full #sidebar { flex: 0 0 auto; height: calc(100dvh - 96px); } /* covers the map */
+  #map { flex: 1 1 auto; height: auto; }                              /* fills whatever the sheet leaves */
 
   .controls { margin-left: auto; gap: 5px; }
   .controls .ctl-lbl { display: none; } /* icon-only — ⟳ 🔗 🚗 ☀️ */

@@ -1,5 +1,8 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.68.0 — 2026-07-18 (owner fix: intuitive bottom-sheet buttons)
+- Fix: from the fully-collapsed panel the old grabber was hard to find/expand. The bottom sheet now has an explicit always-visible "▼ Min / ↕ Half / ▲ Full" segmented control — each button jumps straight to that size, so it's never ambiguous and always easy to bring the panel back
+- Min collapses to just the ~48px control bar (map full-screen), Half is the split, Full covers the map; the active size is highlighted and remembered; map re-tiles after each change
 ## v0.67.0 — 2026-07-17 (owner: mobile bottom-sheet for the feed/alerts panel)
 - On phones the feed/alerts/threat panel is now a bottom sheet with a grabber handle: tap to cycle PEEK (collapsed to the bottom, map ~full-screen) → HALF (the old split) → FULL (slides up to cover the map for a full-screen scroll of alerts/feed) — state persists, and the map re-tiles after each resize
 - ?sheet=peek|half|full deep link opens straight to a panel size; tapping a tab from peek auto-expands to half so you see the content; desktop layout unchanged

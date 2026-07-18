@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.67.0';
+const APP_VERSION = 'v0.68.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -1865,25 +1865,21 @@ function applyShareParams(q) {
 
 // mobile bottom-sheet: the sidebar (feed/alerts/threat) slides between peek (map-full),
 // half (default split), and full (covers the map for full scroll). Handle taps cycle states.
-const SHEET_STATES = ['sheet-half', 'sheet-full', 'sheet-peek'];
+const SHEET_STATES = ['sheet-peek', 'sheet-half', 'sheet-full'];
 function setSheet(stateCls) {
   const main = document.querySelector('main');
   main.classList.remove(...SHEET_STATES);
   main.classList.add(stateCls);
   localStorage.setItem('respondertx.sheet', stateCls);
-  const hint = document.querySelector('#sheet-handle .sheet-hint');
-  if (hint) hint.textContent = { 'sheet-peek': 'map ▲ tap to expand', 'sheet-half': 'split ↕', 'sheet-full': 'full ▼ tap to shrink' }[stateCls];
+  document.querySelectorAll('#sheet-handle button').forEach((b) => b.classList.toggle('on', b.dataset.sheet === stateCls));
   if (state.map) setTimeout(() => state.map.invalidateSize(), 260); // re-tile after the height transition
 }
 function initSheet() {
   const param = new URLSearchParams(location.search).get('sheet'); // ?sheet=peek|half|full deep link
   const wanted = param ? `sheet-${param}` : localStorage.getItem('respondertx.sheet');
   setSheet(SHEET_STATES.includes(wanted) ? wanted : 'sheet-half');
-  $('#sheet-handle').addEventListener('click', () => {
-    const main = document.querySelector('main');
-    const cur = SHEET_STATES.find((s) => main.classList.contains(s)) || 'sheet-half';
-    setSheet(SHEET_STATES[(SHEET_STATES.indexOf(cur) + 1) % SHEET_STATES.length]);
-  });
+  document.querySelectorAll('#sheet-handle button').forEach((b) =>
+    b.addEventListener('click', () => setSheet(b.dataset.sheet)));
 }
 
 // persist the user's view (feed + alert filters, sort, aged toggle, active tab) across

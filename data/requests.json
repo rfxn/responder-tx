@@ -1,7 +1,27 @@
 {
-  "generated": "2026-07-18T03:58:00Z",
+  "generated": "2026-07-18T04:17:00Z",
   "note": "Seed set compiled from public reporting and official statements on 2026-07-16. Every entry cites its source. Operators add/verify/resolve entries in-app; exports merge by id.",
   "requests": [
+    {
+      "id": "seed-041",
+      "ts": "2026-07-18T04:17:00Z",
+      "type": "evacuation",
+      "priority": "high",
+      "status": "open",
+      "county": "Mason",
+      "place": "Llano River — Mason → Llano",
+      "lat": 30.7205,
+      "lon": -99.171,
+      "summary": "LLANO RIVER RISING TO MAJOR: near Mason (MLRT2) 22.54 ft MINOR now, NWPS forecast 30.7 ft MAJOR ~midnight CDT; downstream at Llano (LLAT2) 20.5 ft MODERATE, forecast 25 ft MAJOR ~4 AM CDT. New Hill Country river wave — no FFW issued yet, but NWPS forecasts MAJOR crests upstream-first (Mason → Llano). Stay off the river bottom and low crossings.",
+      "details": [
+        "NWPS 11:16 PM CT: Llano River near Mason (MLRT2) observed 22.54 ft (minor) rising sharply to a forecast 30.7 ft MAJOR crest ~12 AM CDT Sat; Llano River at Llano (LLAT2) observed 20.5 ft (moderate), forecast 25 ft MAJOR ~4 AM CDT as the wave moves downstream. North Llano/Llano near Junction (JCTT2/JNCT2) at action/minor. No Flash Flood Warning posted for this reach yet — this is forecast-driven anticipation from the gauges. Move people, vehicles, and livestock off the Llano bottom in Mason and Llano counties; do not cross low-water crossings."
+      ],
+      "source": {
+        "platform": "official",
+        "handle": "NOAA NWPS MLRT2 / LLAT2",
+        "url": "https://water.noaa.gov/gauges/MLRT2"
+      }
+    },
     {
       "id": "seed-040",
       "ts": "2026-07-18T03:58:00Z",

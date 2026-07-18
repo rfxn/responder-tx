@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.73.0",
+      "date": "2026-07-18",
+      "line": "NEW street-level flood inundation overlay (layer control, off by default): NOAA/NWPS National Water Model inundation extent — the 'which roads go under' picture — shown as a translucent blue extent when you zoom to street level; labelled a MODELED estimate (experimental), not observed conditions, cites NOAA/NWPS and updates hourly"
+    },
+    {
       "v": "v0.72.0",
       "date": "2026-07-18",
       "line": "Resize control moved off the panel strip onto a small floating ▲/↕/▼ pill (bottom-right, above the chat button) — zero panel space, and Minimize is now a true full-screen map"

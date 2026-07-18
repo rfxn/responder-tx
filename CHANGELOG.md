@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.73.0 — 2026-07-18 (table-stakes T1: street-level flood inundation layer)
+- NEW "Flood inundation — NWM model (est.)" map overlay (layer control, OFF by default — hazard layers are explicit-enable): NOAA/NWPS National Water Model Analysis-and-Assimilation inundation extent — the street-level "which roads/blocks go under" picture that gauge numbers alone can't show; renders as a translucent blue extent hugging the river channels once you zoom to street level (the source only draws below ~1:400k, i.e. z≈11+)
+- Source: maps.water.noaa.gov nwm/ana_inundation_extent MapServer (layer 0), consumed as ArcGIS dynamic-export tiles (per-tile Web-Mercator bbox) in core Leaflet — no esri-leaflet dependency; it's live model DATA so it's deliberately kept out of the offline-tile cache, and it cache-busts hourly to match the service's hourly update
+- Honesty guard: the layer name, a dedicated on-map legend, and the map attribution all state this is a MODELED estimate from the NWM analysis (experimental) — NOT observed conditions — cite NOAA/NWPS, and note the hourly update; the data-age framing is unchanged (this layer is live and refreshes with the cycle, stale ≠ live)
 ## v0.72.0 — 2026-07-18 (owner: resize control off the panel, onto a floating pill)
 - The Min/Half/Full resize control no longer takes a horizontal strip at the top of the panel — it's now a small floating vertical pill (▲ full / ↕ half / ▼ min) in the bottom-right, above the chat button, consuming zero panel space and visible in every state
 - Because the control floats, Minimize now collapses the panel to nothing — a true full-screen map; the threat module + tabs reclaim the space the old strip used

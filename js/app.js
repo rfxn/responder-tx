@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.72.0';
+const APP_VERSION = 'v0.73.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -26,6 +26,9 @@ const CONFIG = {
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   mrms1hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-n1p-900913/{z}/{x}/{y}.png',
   mrms24hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-p24h-900913/{z}/{x}/{y}.png',
+  // NWPS/NWM Analysis-and-Assimilation flood inundation extent (experimental, hourly). Layer 0
+  // draws only at street scale (< ~1:400k, z≈11+). MODELED estimate, not observed — labelled as such.
+  inunExportUrl: 'https://maps.water.noaa.gov/server/rest/services/nwm/ana_inundation_extent/MapServer/export?bboxSR=3857&imageSR=3857&size=256,256&dpi=96&layers=show:0&format=png32&transparent=true&f=image',
 };
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
@@ -319,6 +322,21 @@ function initOfflineControl() {
   refreshOfflineStatus();
 }
 
+/* ---------- ArcGIS dynamic-export overlay (per-tile bbox) ---------- */
+
+// Consumes an ArcGIS MapServer `export` endpoint as XYZ tiles: each tile's Web-Mercator
+// bbox is appended per request. Used for the NWM inundation overlay (no esri-leaflet dep).
+// Kept off the OfflineTileLayer path on purpose — this is live model DATA, never cached.
+const ArcGISExportLayer = L.TileLayer.extend({
+  getTileUrl(coords) {
+    const b = this._tileCoordsToBounds(coords);
+    const sw = L.CRS.EPSG3857.project(b.getSouthWest());
+    const ne = L.CRS.EPSG3857.project(b.getNorthEast());
+    const bbox = [sw.x, sw.y, ne.x, ne.y].join(',');
+    return `${this._url}&bbox=${bbox}&_t=${Math.floor(Date.now() / 3600000)}`; // hourly cache-bust
+  },
+});
+
 /* ---------- map ---------- */
 
 function initMap() {
@@ -344,10 +362,21 @@ function initMap() {
   state.layers.radar = L.layerGroup();
   state.layers.mrms1h = L.tileLayer(bustSrc(CONFIG.mrms1hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
   state.layers.mrms24h = L.tileLayer(bustSrc(CONFIG.mrms24hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
+  // MODELED flood extent (not observed) — off by default (hazard layers explicit-enable, owner directive)
+  state.layers.inundation = new ArcGISExportLayer(CONFIG.inunExportUrl, {
+    opacity: 0.72, maxZoom: 19,
+    attribution: 'Flood inundation: NWM analysis (experimental) &copy; NOAA/NWPS',
+  });
+  state.inunBucket = Math.floor(Date.now() / 3600000);
   state.refreshRadar = () => {
     state.layers.mrms1h.setUrl(bustSrc(CONFIG.mrms1hUrl));
     state.layers.mrms24h.setUrl(bustSrc(CONFIG.mrms24hUrl));
     if (state.map.hasLayer(state.layers.radar)) fetchRadarFrames().catch(() => { /* keep last frames */ });
+    const bucket = Math.floor(Date.now() / 3600000); // inundation updates hourly — redraw only on the hour
+    if (bucket !== state.inunBucket) {
+      state.inunBucket = bucket;
+      if (state.map.hasLayer(state.layers.inundation)) state.layers.inundation.redraw();
+    }
   };
   const updateMrmsLegend = () => {
     const on1 = state.map.hasLayer(state.layers.mrms1h), on24 = state.map.hasLayer(state.layers.mrms24h);
@@ -356,12 +385,14 @@ function initMap() {
   };
   state.map.on('overlayadd', (e) => {
     if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
+    if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = false;
     fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
   });
   state.map.on('overlayremove', (e) => {
     if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
+    if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = true;
     stopRadarPlay();
@@ -403,6 +434,7 @@ function initMap() {
     'Radar scrub (-1h → +30m)': state.layers.radar,
     'Rainfall 1h (MRMS)': state.layers.mrms1h,
     'Rainfall 24h (MRMS)': state.layers.mrms24h,
+    'Flood inundation — NWM model (est.)': state.layers.inundation,
     'Flood alerts (NWS)': state.layers.alerts,
     'River gauges (NOAA)': state.layers.gauges,
     'Forecast crests (RFC max)': state.layers.fcstMax,

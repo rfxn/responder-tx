@@ -87,10 +87,16 @@ FloodMapp, Google Flood Hub, what3words, Red Cross). We HAVE most table stakes
 (alerts, gauges+forecast, radar, crossings, shelters, curated feed, field UX,
 share/deep-links/RSS/ICS, honesty, USNG, offline tiles, exports). Ranked GAPS:
 
-- **T1. Street-level flood inundation layer (NWPS FIM/CatFIM)** — spatial
-  extent/depth overlay you scroll by flood stage; "which roads go under at the
-  forecast crest." Free official WMS/raster like MRMS/RFC. Label modeled vs
-  observed, cite NWPS. Cost S-M. **[data]** — TOP PICK (see the water).
+- ~~**T1. Street-level flood inundation layer (NWPS FIM/CatFIM)**~~ SHIPPED
+  v0.73.0. — "Flood inundation — NWM model (est.)" overlay, off by default;
+  NOAA/NWPS National Water Model AnA inundation extent
+  (maps.water.noaa.gov nwm/ana_inundation_extent MapServer layer 0) as
+  ArcGIS dynamic-export tiles in core Leaflet, hourly cache-bust, kept off the
+  offline cache; renders the "which roads go under" extent at street zoom
+  (z≈11+). Labelled a MODELED estimate (not observed) in the layer name, a
+  dedicated legend, and the attribution; cites NOAA/NWPS. Live NWPS FIM/CatFIM
+  is per-gauge static libraries + this CONUS aggregate — the aggregate was the
+  right single-overlay fit. **[data]**
 - **T2. "Am I at risk?" address lookup + saved my-places** — geocode an address
   (reuse Nominatim) → nearest gauges/category/forecast/alerts/crossings at that
   point; save home/work. Pure client, no PII logging. Cost M. **[views]**

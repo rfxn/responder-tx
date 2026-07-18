@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.75.3 — 2026-07-18 (owner: condense mobile feed-actions strip + 60/40 mid-sheet split)
+- Change: condensed the Feed tab's `.feed-actions` button strip on phones (≤768px) — buttons drop from the shared 42px min-height to 34px with tighter padding/font (11.5px) and the row gap/margin shrink, so the "＋ New notice · 📋 SITREP · ☰ Filters · 🔍 ID · ⋯ More" strip (and the Export/Import `#more-menu` row) is noticeably shorter and reclaims vertical list space; buttons keep their icons + labels and stay tappable, desktop layout untouched
+- Change: mid/default bottom-sheet now cheats a 60/40 map-favoring split — `main.sheet-half #sidebar` height cut from 54vh to 37vh so the map takes ~60% of the map+panel area in the default state and the feed panel ~40% (measured 500x900: map 494px / panel 333px ≈ 59.7/40.3, header chrome sits outside the split); the peek/full states, the floating ▲/↕/▼ sheet-handle cycle, and the anchored 911 disclaimer footer are unchanged
+
 ## v0.75.2 — 2026-07-18 (extend gauge coverage west to the Pecos / Val Verde)
 - Change: extended the gauge/AO bounding box west from -101.2 to -102.0 so the active Pecos River flood wave (Pandale Crossing PDAT2, Langtry LTRT2) now renders as live gauge dots with hydrographs — the life-threatening NW Val Verde flooding under an active NWS FFW sat just outside the prior coverage edge; the wider box also lets the Val Verde alert register as in-AO (alertInAO reads CONFIG.gaugeBbox)
 - NEW "Val Verde/Pecos" AO quick-jump chip (map top-edge presets) framing the active flood reach (Pandale → NW Val Verde); the "Full AO" quick-jump was widened to the new -102.0 west edge to match, and the public snapshot fallback was regenerated with the wider bbox (226 gauges, now including PDAT2/LTRT2/BTNT2/SPCT2)

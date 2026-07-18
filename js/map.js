@@ -270,6 +270,7 @@ function initMap() {
     if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
+    if (e.layer === state.layers.cameras) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = false;
     fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
@@ -313,6 +314,10 @@ function initMap() {
   state.layers.roadClosures = L.layerGroup().addTo(state.map);
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
   state.layers.lwc = L.layerGroup();
+  // road & river cameras — OFF by default, lazy-loaded, clustered (~650 markers); plain group if the plugin failed
+  state.layers.cameras = L.markerClusterGroup
+    ? L.markerClusterGroup({ disableClusteringAtZoom: 12, maxClusterRadius: 46 })
+    : L.layerGroup();
   L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
@@ -334,6 +339,7 @@ function initMap() {
     'Low-water crossings': state.layers.crossings,
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
+    'Cameras: road & river (TxDOT/USGS)': state.layers.cameras,
   }, { collapsed: true }).addTo(state.map);
 
   const legend = L.control({ position: 'bottomleft' });

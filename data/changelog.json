@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.83.0",
+      "date": "2026-07-18",
+      "line": "New map layer: road & river cameras. 656 TxDOT live traffic cams (HLS video, LIVE badge, not recorded) + 9 USGS HIVIS river cams (15-min stills with capture time, STALE badge past 45 min) \u2014 off by default, clustered \ud83d\udcf7 markers, one-tap viewer that closes with \u2715, tap-outside, or Escape. Drive Mode shows the 2 nearest cams; a gauge within 2 km of a river cam (Wimberley/Blanco) links straight to it. A camera shows one spot at one moment \u2014 verify before routing."
+    },
+    {
       "v": "v0.82.1",
       "date": "2026-07-18",
       "line": "Gauge section headers trimmed: 'Forecast to flood' and 'Rising' drop the pre-position phrasing (owner ask)."

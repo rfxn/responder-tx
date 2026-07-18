@@ -272,6 +272,9 @@ async function boot() {
   if (riskEnabled) { $('#risk-btn').hidden = false; openRiskCheck(); }
   $('#hydro-close').addEventListener('click', () => { $('#hydro-modal').hidden = true; });
   $('#hydro-modal').addEventListener('click', (e) => { if (e.target.id === 'hydro-modal') $('#hydro-modal').hidden = true; });
+  // camera viewer: ✕ / tap-outside / Escape all route through closeCamViewer so the stream is destroyed
+  $('#cam-close').addEventListener('click', closeCamViewer);
+  $('#cam-viewer').addEventListener('click', (e) => { if (e.target.id === 'cam-viewer') closeCamViewer(); });
   $('#drive-loc').addEventListener('click', () => { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });
   $('#update-chip').addEventListener('click', () => location.reload());
   $('#data-age-bar').addEventListener('click', (e) => {
@@ -393,6 +396,7 @@ async function boot() {
   // Escape closes the top-most open overlay
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (!$('#cam-viewer').hidden) { closeCamViewer(); return; } // must tear down the player, not just hide
     for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#summary-view', '#drive-mode', '#safety-modal']) {
       const m = $(id);
       if (m && !m.hidden) { m.hidden = true; break; }
@@ -444,6 +448,13 @@ async function boot() {
   else if (viewParam === 'summary') $('#summary-btn').click();
   const hydroParam = new URLSearchParams(location.search).get('hydro');
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
+  // ?cams=1 enables the camera layer; ?cam=<camId|name> deep-links straight into the viewer
+  if (new URLSearchParams(location.search).get('cams') === '1') state.layers.cameras.addTo(state.map);
+  const camParam = new URLSearchParams(location.search).get('cam');
+  if (camParam) {
+    state.pendingCam = camParam;
+    loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
+  }
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
   state.bootAt = Date.now();

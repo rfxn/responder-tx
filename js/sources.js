@@ -330,6 +330,16 @@ function gaugePopup(g) {
     `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">NOAA gauge page (forecast) →</a></div>`;
   drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
   el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
+  // eyes-on pairing: a HIVIS cam within 2 km gets a view link (inventory lazy-loads on first popup)
+  loadCameras().then(() => {
+    const cam = nearestRiverCam(g.latitude, g.longitude, 2);
+    if (!cam || !el.isConnected || el.querySelector('.cam-gauge-link')) return;
+    const btn = document.createElement('button');
+    btn.className = 'popup-expand cam-gauge-link';
+    btn.textContent = `${t('cam.rivercam')} · ${t('cam.view')}`;
+    btn.addEventListener('click', () => openCamViewer(cam, 'river'));
+    el.insertBefore(btn, el.querySelector('.popup-link'));
+  }).catch(() => { /* inventory unavailable — popup simply lacks the cam link */ });
   return el;
 }
 
@@ -775,6 +785,169 @@ function lwcPopupHtml(p) {
   return `<div class="popup-title">${esc(road)}</div>` +
     rows.map(([k, v]) => `<div class="popup-meta">${esc(k)}: ${esc(String(v).trim())}</div>`).join('') +
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(LWC_FOOTER)}</div>`;
+}
+
+/* ---------- road & river cameras (TxDOT HLS live + USGS HIVIS stills) ---------- */
+
+const CAM_ATTRIB_TXDOT = 'Traffic cameras: TxDOT (Lonestar/DriveTexas)';
+const CAM_ATTRIB_USGS = 'River cameras: USGS HIVIS (public domain, provisional)';
+const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
+const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
+const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
+
+// lazy: inventory is a committed snapshot, fetched once on first layer enable / Drive Mode / gauge popup
+function loadCameras() {
+  if (state.camerasP) return state.camerasP;
+  state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
+    .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
+    .then((d) => {
+      state.cameras = { txdot: d.txdot || [], river: d.river || [] };
+      renderCameras();
+      return state.cameras;
+    });
+  state.camerasP.catch(() => { state.camerasP = null; }); // failed fetch — allow retry on next trigger
+  return state.camerasP;
+}
+
+function camTitle(c, kind) {
+  return kind === 'river' ? c.name : (c.description || prettyRoute(c.route) || c.name || 'Traffic camera');
+}
+
+function renderCameras() {
+  const layer = state.layers.cameras;
+  if (!layer || !state.cameras) return;
+  layer.clearLayers();
+  const marks = [];
+  const add = (c, kind) => {
+    if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) return;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="cam-icon${kind === 'river' ? ' cam-river' : ''}">📷</div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11],
+    });
+    const m = L.marker([c.lat, c.lon], { icon, attribution: kind === 'river' ? CAM_ATTRIB_USGS : CAM_ATTRIB_TXDOT });
+    m.bindPopup(() => camPopup(c, kind), { minWidth: 230 });
+    marks.push(m);
+  };
+  for (const c of state.cameras.txdot) add(c, 'txdot');
+  for (const c of state.cameras.river) add(c, 'river');
+  if (layer.addLayers) layer.addLayers(marks); // markercluster bulk add
+  else marks.forEach((m) => layer.addLayer(m));
+  // ?cam=<name|camId> deep link — open the viewer once the inventory is in (once)
+  if (state.pendingCam) {
+    const want = state.pendingCam;
+    state.pendingCam = null;
+    const rv = state.cameras.river.find((c) => c.camId === want || c.name === want);
+    const tx = rv ? null : state.cameras.txdot.find((c) => c.name === want);
+    if (rv) openCamViewer(rv, 'river');
+    else if (tx) openCamViewer(tx, 'txdot');
+  }
+}
+
+function camPopup(c, kind) {
+  const el = document.createElement('div');
+  const sub = kind === 'river'
+    ? `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`
+    : `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t('cam.traffic'))}`;
+  el.innerHTML = `<div class="popup-title">📷 ${esc(camTitle(c, kind))}</div>` +
+    `<div class="popup-meta">${sub}</div>` +
+    `<button class="popup-expand cam-view-btn">${esc(t('cam.view'))}</button>` +
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(kind === 'river' ? CAM_ATTRIB_USGS : CAM_ATTRIB_TXDOT)} · ${esc(t('cam.verify'))}</div>`;
+  el.querySelector('.cam-view-btn').addEventListener('click', () => openCamViewer(c, kind));
+  return el;
+}
+
+function nearestRiverCam(lat, lon, maxKm) {
+  if (!state.cameras) return null;
+  let best = null, bestMi = maxKm * 0.621371;
+  for (const c of state.cameras.river) {
+    const d = distMi(lat, lon, c.lat, c.lon);
+    if (d < bestMi) { bestMi = d; best = c; }
+  }
+  return best;
+}
+
+function openCamViewer(c, kind) {
+  camViewerTeardown();
+  $('#cam-viewer').hidden = false;
+  $('#cam-title').textContent = `📷 ${camTitle(c, kind)}`;
+  const stage = $('#cam-stage'), meta = $('#cam-meta'), note = $('#cam-note');
+  if (kind === 'txdot') {
+    const url = safeUrl(c.httpsurl);
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.txdot.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
+    const video = document.createElement('video');
+    video.muted = true; video.autoplay = true; video.playsInline = true; video.controls = true;
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      stage.appendChild(video);
+      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
+      video.src = url;
+    } else if (window.Hls && Hls.isSupported()) {
+      stage.appendChild(video);
+      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
+      state.camHls = new Hls({ maxBufferLength: 15 });
+      state.camHls.loadSource(url);
+      state.camHls.attachMedia(video);
+    } else {
+      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`;
+    }
+  } else {
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.usgs.note'))} · ${esc(CAM_ATTRIB_USGS)}`;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    loadRiverStill(c, stage, meta).catch(() => {
+      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
+    });
+  }
+}
+
+// newest still via a client-side S3 listing: keys sort chronologically; the trailing
+// "<camId>_newest.jpg" pointer key carries no timestamp, so only ___<stamp>Z.jpg keys qualify
+async function loadRiverStill(c, stage, meta) {
+  const pfx = `720/${c.camId}/`;
+  const after = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10); // 2d back: covers UTC-midnight + slow cams, stays ≤ ~400 keys
+  const url = `${HIVIS_S3}/?list-type=2&prefix=${encodeURIComponent(pfx)}` +
+    `&start-after=${encodeURIComponent(`${pfx}${c.camId}___${after}T00`)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HIVIS S3 HTTP ${res.status}`);
+  const xml = await res.text();
+  const keys = [...xml.matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => m[1]).filter((k) => CAM_KEY_RE.test(k));
+  if (!keys.length) throw new Error('no recent imagery');
+  const key = keys[keys.length - 1];
+  // capture time parsed FROM THE KEY: <camId>___YYYY-MM-DDTHH-MM-SSZ.jpg
+  const iso = key.slice(-24, -4).replace(/T(\d{2})-(\d{2})-(\d{2})Z/, 'T$1:$2:$3Z');
+  const img = document.createElement('img');
+  img.alt = camTitle(c, 'river');
+  img.addEventListener('load', () => {
+    const stale = ageMins(iso) > CAM_STALE_MINS;
+    meta.innerHTML = (stale
+      ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
+      : `<span class="cam-badge still">${esc(t('cam.still'))}</span>`) +
+      `<span class="cam-time">${esc(t('cam.captured'))} ${esc(fmtWhen(iso))}</span>` +
+      (stale ? `<span class="cam-stale-note">${esc(t('cam.stale.note'))}</span>` : '');
+  });
+  img.addEventListener('error', () => {
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
+  });
+  img.src = `${HIVIS_S3}/${encodeURI(key)}`;
+  stage.innerHTML = '';
+  stage.appendChild(img);
+}
+
+// stop/destroy the player — a closed viewer must never keep a stream open
+function camViewerTeardown() {
+  if (state.camHls) {
+    try { state.camHls.destroy(); } catch { /* already detached */ }
+    state.camHls = null;
+  }
+  const v = $('#cam-stage video');
+  if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  $('#cam-stage').innerHTML = '';
+  $('#cam-meta').innerHTML = '';
+  $('#cam-note').innerHTML = '';
+}
+
+function closeCamViewer() {
+  camViewerTeardown();
+  $('#cam-viewer').hidden = true;
 }
 
 /* ---------- IEM local storm reports (ground truth) ---------- */

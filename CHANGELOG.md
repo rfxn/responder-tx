@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.83.0 — 2026-07-18 (road & river cameras)
+
+- [New] `scripts/gen-cameras.py`: build-time generator (stdlib only) that writes the committed inventory `data/cameras.json` — 656 TxDOT traffic cameras in the AO from the MapLarge `appgeo/cameraPoint` table (bbox WKT query, paginated at 1000; stores name/route/description/lat/lon plus the verbatim `httpsurl` HLS playlist — stream subdomains vary per camera and are never constructed) and 9 USGS HIVIS river cameras from the NIMS inventory API filtered to the AO (camId/name/nwisId/lat/lon; includes the Blanco River at Wimberley, Fischer Store Rd, and Crabapple Rd cams plus the San Antonio River/Medina Lake/Olmos Dam cluster); output carries a `generated` stamp and per-source attribution
+- [New] "Cameras: road & river (TxDOT/USGS)" map overlay, OFF by default: lazy-loads the inventory on first enable, clustered 📷 markers at low zoom (river cams get an accent ring); popups carry name/route, an OFFICIAL provenance badge, TxDOT or USGS attribution, a "one spot at one moment — verify before routing" line, and a ▶ view action
+- [New] camera viewer overlay (same pattern as the hydrograph modal, one-handed dismissible via ✕ / tap-outside / Escape, video letterboxed never cropped): TxDOT cams play the live HLS stream — native `<video>` where supported (Safari), else the newly vendored `js/vendor/hls.light.min.js` (hls.js v1.5.20 light build, committed; no runtime CDN dependency) — with a red LIVE badge and a "TxDOT · not recorded · may lag" line; USGS cams fetch the newest still client-side from the public HIVIS S3 bucket (keys listed with a 2-day start-after window; the untimestamped `_newest.jpg` pointer key is excluded), show the capture time parsed from the key prominently, and badge STALE when the still is >45 min old — stale imagery never looks live; closing the viewer stops and destroys the player so no stream leaks
+- [New] Drive Mode: the 2 nearest cameras tail the hazard list as 📷 rows (after the reopened-road rows, never competing with hazards for slots); tapping one opens the viewer over Drive Mode
+- [New] gauge popups: when a HIVIS river cam sits within 2 km of a gauge, the popup gains a "📷 river cam · ▶ view" button (Wimberley/Blanco pairing) — the camera inventory lazy-loads on first gauge popup open
+- [New] `?cams=1` deep link enables the camera layer; `?cam=<camId|name>` opens the viewer directly
+- [New] all new strings localized EN+ES (`cam.*` keys)
+
 ## v0.82.1 — 2026-07-18
 
 - [Change] Gauge section headers: "Forecast to flood" and "Rising" drop the

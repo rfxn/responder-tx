@@ -187,18 +187,33 @@ function driveItems() {
     const cond = f.properties.condition;
     items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${ct.label} · ${prettyRoute(f.properties.route_name) || 'road'}`, sub: 'TxDOT DriveTexas', lat: pt[1], lon: pt[0], rank: cond === 'Damage' ? 2 : 1 });
   }
+  // verify-before-routing: the 2 nearest cameras tail the list like the reopened rows — never competing with hazards
+  const cams = [];
+  if (p && state.cameras) {
+    const pool = state.cameras.txdot.map((c) => ({ c, kind: 'txdot' })).concat(state.cameras.river.map((c) => ({ c, kind: 'river' })));
+    for (const x of pool) { if (Number.isFinite(x.c.lat) && Number.isFinite(x.c.lon)) x.d = distMi(p.lat, p.lng, x.c.lat, x.c.lon); }
+    for (const x of pool.filter((y) => y.d != null).sort((a, b) => a.d - b.d).slice(0, 2)) {
+      cams.push({
+        glyph: '📷', color: 'var(--accent)', name: camTitle(x.c, x.kind),
+        sub: `${x.kind === 'river' ? `USGS · ${t('cam.river')}` : `TxDOT · ${t('cam.traffic')}`} · ${t('cam.view')}`,
+        lat: x.c.lat, lon: x.c.lon, rank: 4, cam: x.c, camKind: x.kind,
+      });
+    }
+  }
   if (p) {
-    for (const it of items.concat(cleared)) { it.dist = distMi(p.lat, p.lng, it.lat, it.lon); it.brng = bearing(p.lat, p.lng, it.lat, it.lon); }
+    for (const it of items.concat(cleared, cams)) { it.dist = distMi(p.lat, p.lng, it.lat, it.lon); it.brng = bearing(p.lat, p.lng, it.lat, it.lon); }
     items.sort((a, b) => a.dist - b.dist);
     cleared.sort((a, b) => a.dist - b.dist);
   } else {
     items.sort((a, b) => a.rank - b.rank);
   }
-  return items.slice(0, 14).concat(cleared.slice(0, 4));
+  return items.slice(0, 14).concat(cleared.slice(0, 4), cams);
 }
 
 function renderDriveMode() {
   if ($('#drive-mode').hidden) return;
+  // camera rows need the inventory — fetch once, re-render when it lands
+  if (!state.cameras) loadCameras().then(() => renderDriveMode()).catch(() => { /* no cams — hazard rows unaffected */ });
   const emerg = state.alerts.filter((a) => a._sev === 'emergency');
   const soonest = state.gauges
     .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.moderate && new Date(g.status.forecast.validTime) > new Date())
@@ -208,13 +223,16 @@ function renderDriveMode() {
     (soonest ? `<div class="dt-crest">${esc(t('drive.nextcrest'))} ${esc(riverOf(soonest.name))} ${esc(fmtWhen(soonest.status.forecast.validTime))}</div>` : '') +
     (state.myPos ? '' : `<div class="dt-nogps">${esc(t('drive.nogps'))}</div>`);
   const items = driveItems();
-  $('#drive-list').innerHTML = items.length ? items.map((it) => {
+  state.driveCams = items.map((it) => (it.cam ? { cam: it.cam, kind: it.camKind } : null));
+  $('#drive-list').innerHTML = items.length ? items.map((it, i) => {
     const distBit = it.dist != null ? `<span class="d-dist">${it.dist.toFixed(1)} ${esc(t('risk.mi'))} ${it.brng}</span>` : '';
-    return `<button class="drive-row" data-lat="${it.lat}" data-lon="${it.lon}">` +
+    return `<button class="drive-row" data-lat="${it.lat}" data-lon="${it.lon}"${it.cam ? ` data-cam="${i}"` : ''}>` +
       `<span class="d-glyph" style="color:${it.color}">${it.glyph}</span>` +
       `<span class="d-body"><span class="d-name">${esc(it.name)}</span><span class="d-sub">${esc(it.sub)}</span></span>${distBit}</button>`;
   }).join('') : `<div class="dt-nogps">${esc(t('drive.nohaz'))}</div>`;
   $('#drive-list').querySelectorAll('.drive-row').forEach((b) => b.addEventListener('click', () => {
+    const dc = b.dataset.cam != null && state.driveCams[+b.dataset.cam];
+    if (dc) { openCamViewer(dc.cam, dc.kind); return; } // viewer overlays Drive Mode — stays one-handed
     $('#drive-mode').hidden = true;
     state.map.setView([+b.dataset.lat, +b.dataset.lon], 13);
   }));

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.75.9';
+const APP_VERSION = 'v0.76.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -27,9 +27,10 @@ const CONFIG = {
   // hard live-map cap: a storm report older than this ages out of the live layer into lsrsAged, even if the window filter is wider
   lsrMaxHours: 24,
   lsrUrl: 'https://mesonet.agron.iastate.edu/geojson/lsr.geojson',
-  // TxDOT DriveTexas HCRS live road conditions (CORS-open, no key). Layer 1 = line segments, 0 = points.
-  hcrsLineUrl: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/HCRS_CC/FeatureServer/1/query',
-  hcrsPointUrl: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/HCRS_CC/FeatureServer/0/query',
+  // TDEM DriveTexas live road-hazard lines (CORS-open, no key). Full-word conditions, ISO-8601 timestamps.
+  roadCondUrl: 'https://services5.arcgis.com/Rvw11bGpzJNE7apK/arcgis/rest/services/DriveTexas_API/FeatureServer/0/query',
+  // TxGIO low-water-crossing location inventory (CORS-open, no key). Static locations, no live status.
+  lwcUrl: 'https://feature.geographic.texas.gov/arcgis/rest/services/Basemap/Low_Water_Crossing/MapServer/0/query',
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   mrms1hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-n1p-900913/{z}/{x}/{y}.png',
   mrms24hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-p24h-900913/{z}/{x}/{y}.png',
@@ -401,6 +402,7 @@ function initMap() {
   state.map.on('overlayadd', (e) => {
     if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
+    if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = false;
     fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
@@ -440,8 +442,10 @@ function initMap() {
   state.layers.requests = L.layerGroup().addTo(state.map);
   state.layers.shelters = L.layerGroup().addTo(state.map);
   state.layers.crossings = L.layerGroup().addTo(state.map);
-  // TxDOT DriveTexas live road conditions — flood-relevant F/Z/D only, first-class toggle (owner request), on by default
+  // TDEM DriveTexas live road conditions — flood-relevant subset only, first-class toggle (owner request), on by default
   state.layers.roadClosures = L.layerGroup().addTo(state.map);
+  // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
+  state.layers.lwc = L.layerGroup();
   L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
@@ -462,6 +466,7 @@ function initMap() {
     'Shelters': state.layers.shelters,
     'Low-water crossings': state.layers.crossings,
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
+    'Low-water crossings (locations · not live status)': state.layers.lwc,
   }, { collapsed: true }).addTo(state.map);
 
   const legend = L.control({ position: 'bottomleft' });
@@ -1193,25 +1198,27 @@ function renderUsgsIv() {
   }
 }
 
-/* ---------- TxDOT DriveTexas live road conditions (closed / high-water / damage) ---------- */
+/* ---------- TDEM DriveTexas live road conditions (closed / high-water / damage) ---------- */
 
-const ROAD_ATTRIB = 'Road conditions: TxDOT DriveTexas (drivetexas.org)';
-// F/Z/D only — the flood-relevant subset. Z=Closed and F=Flood are prominent reds, D=Damage a distinct amber.
+const ROAD_ATTRIB = 'Road conditions: TxDOT DriveTexas / TDEM (drivetexas.org)';
+// Closure + Flooding are prominent reds; Damage a distinct amber. Construction/Accident excluded server-side.
 const ROAD_COND = {
-  Z: { label: 'Road CLOSED', color: '#e5342f' },
-  F: { label: 'Flooded / high water', color: '#d81b8c' },
-  D: { label: 'Road damage', color: '#e8912b' },
+  Closure: { label: 'Road CLOSED', color: '#e5342f' },
+  Flooding: { label: 'Flooded / high water', color: '#d81b8c' },
+  Damage: { label: 'Road damage', color: '#e8912b' },
 };
 const ROAD_COND_FALLBACK = { label: 'Road condition', color: '#e8912b' };
-const roadCondType = (p) => ROAD_COND[p && p.CNSTRNT_TYPE_CD] || ROAD_COND_FALLBACK;
+const roadCondType = (p) => ROAD_COND[p && p.condition] || ROAD_COND_FALLBACK;
 const stripHtml = (s) => String(s ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-// active = ongoing: keep when COND_END_TS is missing/empty, drop when it is a past epoch-ms (cleared closure)
-const roadCondActive = (f) => { const e = f.properties && f.properties.COND_END_TS; return !(e && e < Date.now()); };
+// FM0481 → "FM 481", IH0010 → "IH 10"; strips zero-padding after the letter prefix, robust fallback to trimmed original
+const prettyRoute = (s) => { const m = String(s ?? '').trim().match(/^([A-Za-z]+)0*(\d.*)$/); return m ? `${m[1]} ${m[2]}` : String(s ?? '').trim(); };
+// active = ongoing: keep when end_time is missing/unparseable/future, drop only when it parses to a past time (cleared)
+const roadCondActive = (f) => { const e = f.properties && f.properties.end_time; if (!e) return true; const t = Date.parse(e); return !(Number.isFinite(t) && t < Date.now()); };
 
 function roadParams(outFields) {
   const b = CONFIG.gaugeBbox;
   return new URLSearchParams({
-    where: "CNSTRNT_TYPE_CD IN ('F','Z','D')",
+    where: "condition IN ('Flooding','Closure','Damage')",
     geometry: `${b.xmin},${b.ymin},${b.xmax},${b.ymax}`,
     geometryType: 'esriGeometryEnvelope',
     inSR: '4326',
@@ -1223,33 +1230,28 @@ function roadParams(outFields) {
 }
 
 async function fetchRoadClosures() {
-  const lineFields = 'CNSTRNT_TYPE_CD,RTE_NM,RDWAY_NM,COND_DSCR,COND_LMT_FROM_DSCR,COND_LMT_TO_DSCR,COND_START_TS,COND_END_TS,CNSTRNT_DETOUR_FLAG,TRVL_DRCT_CD';
-  const pointFields = 'CNSTRNT_TYPE_CD,RTE_NM,RDWAY_NM,COND_DSCR,LMT_FROM_DSCR,LMT_TO_DSCR,COND_START_TS,COND_END_TS,CNSTRNT_DETOUR_FLAG,TRVL_DRCT_CD';
-  const getJson = async (url, what) => { const r = await fetch(url); if (!r.ok) throw new Error(`TxDOT ${what} HTTP ${r.status}`); return r.json(); };
-  const [lineData, pointData] = await Promise.all([
-    getJson(`${CONFIG.hcrsLineUrl}?${roadParams(lineFields)}`, 'lines'),
-    getJson(`${CONFIG.hcrsPointUrl}?${roadParams(pointFields)}`, 'points'),
-  ]);
-  state.roadClosures = {
-    lines: (lineData.features || []).filter(roadCondActive),
-    points: (pointData.features || []).filter(roadCondActive),
-  };
+  const fields = 'condition,route_name,travel_direction,from_limit,to_limit,description,start_time,end_time,detour_flag,delay_flag';
+  const res = await fetch(`${CONFIG.roadCondUrl}?${roadParams(fields)}`);
+  if (!res.ok) throw new Error(`DriveTexas HTTP ${res.status}`);
+  const data = await res.json();
+  // keep points: [] so renderRoadClosures's points loop stays safe (DriveTexas API is lines-only)
+  state.roadClosures = { lines: (data.features || []).filter(roadCondActive), points: [] };
   markHealthy('roads');
   renderRoadClosures();
 }
 
 function roadPopupHtml(p) {
   const ct = roadCondType(p);
-  const road = [p.RTE_NM, p.RDWAY_NM].map((s) => String(s || '').trim()).filter(Boolean).join(' · ') || 'Road';
-  const from = p.COND_LMT_FROM_DSCR || p.LMT_FROM_DSCR || '';
-  const to = p.COND_LMT_TO_DSCR || p.LMT_TO_DSCR || '';
-  const dscr = stripHtml(p.COND_DSCR);
-  const detour = ['Y', '1', 'TRUE'].includes(String(p.CNSTRNT_DETOUR_FLAG || '').toUpperCase());
+  const road = prettyRoute(p.route_name) || 'Road';
+  const from = p.from_limit || '';
+  const to = p.to_limit || '';
+  const dscr = stripHtml(p.description);
+  const detour = Number(p.detour_flag) === 1;
   return `<div class="popup-title" style="color:${ct.color}">${esc(ct.label)}</div>` +
     `<div class="popup-meta"><strong>${esc(road)}</strong></div>` +
     ((from || to) ? `<div class="popup-meta">${esc(from)}${from && to ? ' → ' : ''}${esc(to)}</div>` : '') +
     (dscr ? `<div class="popup-meta">${esc(dscr)}</div>` : '') +
-    (p.COND_START_TS ? `<div class="popup-meta">Since ${esc(fmtWhen(new Date(p.COND_START_TS).toISOString()))}</div>` : '') +
+    (p.start_time ? `<div class="popup-meta">Since ${esc(fmtWhen(p.start_time))}</div>` : '') +
     (detour ? '<div class="popup-meta">Detour available</div>' : '') +
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee — verify before routing</div>`;
 }
@@ -1274,6 +1276,64 @@ function renderRoadClosures() {
     m.bindPopup(roadPopupHtml(f.properties));
     layer.addLayer(m);
   }
+}
+
+/* ---------- TxGIO low-water-crossing location inventory (LOCATIONS, not live status) ---------- */
+
+const LWC_ATTRIB = 'Low-water crossings: TxGIO (Texas Geographic Information Office)';
+const LWC_FOOTER = 'Crossing location inventory (TxGIO) — NOT live flood status; check conditions before crossing.';
+
+// lazy: fetched once on first overlayadd; ~3.7k points paginated (maxRecordCount 2000), canvas-rendered
+async function fetchLwc() {
+  if (state._lwcLoaded) return;
+  state._lwcLoaded = true;
+  const b = CONFIG.gaugeBbox;
+  const base = {
+    where: '1=1',
+    geometry: `${b.xmin},${b.ymin},${b.xmax},${b.ymax}`,
+    geometryType: 'esriGeometryEnvelope',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'lwx_type,road,county,grade,signage',
+    outSR: '4326',
+    resultRecordCount: '2000',
+    f: 'geojson',
+  };
+  try {
+    const pages = await Promise.all([0, 2000].map(async (off) => {
+      const qs = new URLSearchParams({ ...base, resultOffset: String(off) });
+      const r = await fetch(`${CONFIG.lwcUrl}?${qs}`);
+      if (!r.ok) throw new Error(`TxGIO HTTP ${r.status}`);
+      const d = await r.json();
+      return d.features || [];
+    }));
+    renderLwc([].concat(...pages));
+  } catch (err) {
+    state._lwcLoaded = false; // allow a retry the next time the layer is toggled on
+  }
+}
+
+function renderLwc(features) {
+  const layer = state.layers.lwc;
+  if (!layer) return;
+  layer.clearLayers();
+  const canvas = L.canvas({ padding: 0.5 });
+  for (const f of features) {
+    const c = f.geometry && f.geometry.coordinates;
+    if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
+    const m = L.circleMarker([c[1], c[0]], { renderer: canvas, radius: 3.5, color: '#2b8ce8', weight: 1, fillColor: '#5ab0ff', fillOpacity: 0.5, attribution: LWC_ATTRIB });
+    m.bindPopup(lwcPopupHtml(f.properties));
+    layer.addLayer(m);
+  }
+}
+
+function lwcPopupHtml(p) {
+  const road = String(p.road || '').trim() || 'Low-water crossing';
+  const rows = [['County', p.county], ['Type', p.lwx_type], ['Grade', p.grade], ['Signage', p.signage]]
+    .filter(([, v]) => String(v || '').trim());
+  return `<div class="popup-title">${esc(road)}</div>` +
+    rows.map(([k, v]) => `<div class="popup-meta">${esc(k)}: ${esc(String(v).trim())}</div>`).join('') +
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(LWC_FOOTER)}</div>`;
 }
 
 /* ---------- IEM local storm reports (ground truth) ---------- */

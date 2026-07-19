@@ -336,26 +336,56 @@ reliably updatable. Ranked top-down within each horizon.
    recovery posture currently hides inside SITREP lines.
 10. **V2 Basin Focus (`?view=basin`) [views]** — single-river corridor,
     upstream→downstream, with the crest wave visualized as it moves down-basin.
+11. **CalTopo / SARTopo interop — "Send to CalTopo" (MVP) + live sync (stretch)
+    [interop]** — extend the GeoJSON export into a full curated, multi-layer
+    CalTopo-shaped FeatureCollection: every enriched layer (gauges with AHPS
+    flood-category colors, forecast-crest rings, alert polygons, road closures,
+    low-water crossings, curated notices, LSRs) as CalTopo folders with `title`
+    labels, per-feature citations + `updated_at`, simplestyle-matched to our
+    palettes. Publish it at a stable URL refreshed by the cycle as an
+    always-current, bookmarkable export, plus a client-side QR of a CalTopo share
+    link — no paid tier to produce. **Stretch (account-gated):** true continuous
+    sync via the CalTopo Teams API push, or a WFS/FeatureServer shim — honest
+    caveat: CalTopo does NOT poll a static GeoJSON URL as a live layer, so real
+    sync needs a CalTopo subscription and a small always-on job. Detailed
+    mechanism / fidelity / licensing analysis is kept in an internal assessment.
+12. **Live team location sharing (Garmin-style breadcrumbs) [infra/field] —
+    owner-requested, sanctioned backend departure** — create a public or private
+    team, share a link + QR; the link on load asks for an ephemeral handle (no
+    login, low barrier), requests Geolocation permission on explicit opt-in, then
+    streams each member's position and a capped breadcrumb trail onto the map as
+    distinct labeled markers with "last seen" aging. Field use needs a real relay
+    (cellular devices can't peer, and geolocation requires a secure context): the
+    recommended path is a light Cloudflare relay — a per-team Durable Object with
+    short-poll updates — layered onto our existing Pages Functions, private by
+    default, flag-gated on the HTTPS mirror. This is a deliberate, owner-sanctioned
+    departure from the zero-backend / no-account / no-PII posture — the first
+    first-party write surface and first server-held user location — so it is
+    bounded by opt-in only, ephemeral handles, auto-expiry / TTL, one-tap
+    stop-sharing, private-by-default, and is never committed to the git archive.
+    MVP = handle + colored breadcrumb markers over the relay; a later login binds
+    to the ephemeral-handle layer without rearchitecture. Full architecture +
+    privacy analysis in the internal assessment.
 
 ### LATER (post-event or gated)
 
-11. **All-hazard layers (post-1.0)** — severe/tornado warnings are cheap (the
+13. **All-hazard layers (post-1.0)** — severe/tornado warnings are cheap (the
     machinery is hazard-agnostic); wildfire needs perimeter data. Follows
     generalization.
-12. **T5 evacuation zones** — data-gated; mirror authoritative status, never
+14. **T5 evacuation zones** — data-gated; mirror authoritative status, never
     invent an order.
-13. **Trust/governance content** — about/who-runs-this, a methodology & accuracy
+15. **Trust/governance content** — about/who-runs-this, a methodology & accuracy
     page (surfacing the honesty discipline that is already a strength), a
     privacy/terms page, and a LICENSE file.
-14. **Security hardening (defense-in-depth)** — add a content-security backstop
+16. **Security hardening (defense-in-depth)** — add a content-security backstop
     over the feed-text render surface and unify the duplicated proxy validators.
-15. **V4 EOC Wall (`?view=wall`)** — auto-rotating full-screen panels with the
+17. **V4 EOC Wall (`?view=wall`)** — auto-rotating full-screen panels with the
     print-stylesheet tokens; pairs with the fullscreen plugin (#30).
-16. **#22 OpenFEMA declarations chip · #21 CoCoRaHS precip · #23 USGS STN HWM
+18. **#22 OpenFEMA declarations chip · #21 CoCoRaHS precip · #23 USGS STN HWM
     hook** — [data], mostly recovery/AAR, event-gated.
-17. **Minor polish** — A3 desktop KPI declutter, A8 LSR freshness ranking, #18
+19. **Minor polish** — A3 desktop KPI declutter, A8 LSR freshness ranking, #18
     measure tool, #19 watchlist star.
-18. **#27 shared multi-operator state · #28 X ingest worker · #29 remaining
+20. **#27 shared multi-operator state · #28 X ingest worker · #29 remaining
     partnership feeds (PulsePoint, Broadcastify, LCRA, what3words)** — [infra],
     gated on partnerships or paid APIs; ingest never auto-publishes.
 
@@ -366,6 +396,12 @@ worker exists · an installable manifest / Install button before a real SW updat
 strategy (explicit v0.96.1 directive) · accounts/identity · push nags ·
 model-picker theater · reframe-obsoleted ack/status tiering · re-probing dead
 data sources.
+
+**Sanctioned exception:** live team location sharing (NEXT item 12) is the one
+owner-requested write surface — opt-in only, ephemeral handles (no accounts/PII),
+TTL'd, private-by-default, flag-gated, and never archived. It does **not** unpark
+the crowdsourced-curation write surfaces (T7/N1–N5) or persistent accounts, which
+stay in this anti-backlog until a separate owner ask.
 
 ---
 

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 470" width="1000" height="470" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Responder TX honesty and aging lifecycle diagram">
+  <rect x="1" y="1" width="998" height="468" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1"/>
+
+  <text x="32" y="42" font-size="22" font-weight="700" fill="#1f2937">The Honesty &amp; Aging Lifecycle</text>
+  <text x="32" y="64" font-size="12.5" fill="#57606a">Standing invariant: stale data never masquerades as live, and suppress never means delete.</text>
+
+  <!-- ===== Lane 1: live observations ===== -->
+  <text x="32" y="112" font-size="12" font-weight="700" fill="#14477e">LIVE OBSERVATIONS &#8212; gauges &#183; NWS alerts &#183; radar</text>
+  <g font-size="11" fill="#205089">
+    <rect x="32"  y="122" width="208" height="48" rx="8" fill="#e8f1fd" stroke="#3987e5"/>
+    <text x="136" y="143" text-anchor="middle" font-weight="600">fresh</text>
+    <text x="136" y="159" text-anchor="middle" font-size="9.5">shown live &#183; source + time stamped</text>
+
+    <rect x="274" y="122" width="208" height="48" rx="8" fill="#e8f1fd" stroke="#3987e5" stroke-dasharray="5,3"/>
+    <text x="378" y="143" text-anchor="middle" font-weight="600">STALE</text>
+    <text x="378" y="159" text-anchor="middle" font-size="9.5">flagged &amp; badged, not hidden</text>
+
+    <rect x="516" y="122" width="208" height="48" rx="8" fill="#e8f1fd" stroke="#3987e5"/>
+    <text x="620" y="143" text-anchor="middle" font-weight="600">suppressed</text>
+    <text x="620" y="159" text-anchor="middle" font-size="9.5">dropped off map &amp; panes</text>
+
+    <rect x="758" y="122" width="208" height="48" rx="8" fill="#e8f1fd" stroke="#3987e5"/>
+    <text x="862" y="143" text-anchor="middle" font-weight="600">history</text>
+    <text x="862" y="159" text-anchor="middle" font-size="9.5">retrievable via playback</text>
+  </g>
+  <g stroke="#7a8290" stroke-width="1.5" fill="#7a8290">
+    <line x1="240" y1="146" x2="268" y2="146"/><polygon points="268,142 268,150 274,146"/>
+    <line x1="482" y1="146" x2="510" y2="146"/><polygon points="510,142 510,150 516,146"/>
+    <line x1="724" y1="146" x2="752" y2="146"/><polygon points="752,142 752,150 758,146"/>
+  </g>
+  <g font-size="9" fill="#6a727c" text-anchor="middle">
+    <text x="257" y="186">age &gt; threshold</text>
+    <text x="499" y="186">kept, not deleted</text>
+    <text x="741" y="186">persisted</text>
+  </g>
+
+  <!-- ===== Lane 2: curated cards & notes ===== -->
+  <text x="32" y="234" font-size="12" font-weight="700" fill="#1d6b2c">CURATED CARDS &amp; FIELD NOTES</text>
+  <g font-size="11" fill="#256b32">
+    <rect x="32"  y="244" width="208" height="48" rx="8" fill="#e7f6ea" stroke="#3f9d4f"/>
+    <text x="136" y="265" text-anchor="middle" font-weight="600">active</text>
+    <text x="136" y="281" text-anchor="middle" font-size="9.5">on the board, source cited</text>
+
+    <rect x="274" y="244" width="208" height="48" rx="8" fill="#e7f6ea" stroke="#3f9d4f"/>
+    <text x="378" y="265" text-anchor="middle" font-weight="600">aging</text>
+    <text x="378" y="281" text-anchor="middle" font-size="9.5">drops from counts &amp; SITREP</text>
+
+    <rect x="516" y="244" width="208" height="48" rx="8" fill="#e7f6ea" stroke="#3f9d4f"/>
+    <text x="620" y="265" text-anchor="middle" font-weight="600">resolved</text>
+    <text x="620" y="281" text-anchor="middle" font-size="9.5">struck through in the log</text>
+
+    <rect x="758" y="244" width="208" height="48" rx="8" fill="#e7f6ea" stroke="#3f9d4f"/>
+    <text x="862" y="265" text-anchor="middle" font-weight="600">history</text>
+    <text x="862" y="281" text-anchor="middle" font-size="9.5">in exports &amp; AAR</text>
+  </g>
+  <g stroke="#7a8290" stroke-width="1.5" fill="#7a8290">
+    <line x1="240" y1="268" x2="268" y2="268"/><polygon points="268,264 268,272 274,268"/>
+    <line x1="482" y1="268" x2="510" y2="268"/><polygon points="510,264 510,272 516,268"/>
+    <line x1="724" y1="268" x2="752" y2="268"/><polygon points="752,264 752,272 758,268"/>
+  </g>
+  <g font-size="9" fill="#6a727c" text-anchor="middle">
+    <text x="257" y="308">timeout / curator</text>
+    <text x="499" y="308">curator / clock</text>
+    <text x="741" y="308">persisted</text>
+  </g>
+
+  <!-- ===== principles ===== -->
+  <rect x="32" y="340" width="936" height="106" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="44" y="364" font-size="12.5" font-weight="700" fill="#3b4654">Non-negotiables</text>
+  <g font-size="10.5" fill="#3b4654">
+    <rect x="44"  y="376" width="220" height="54" rx="7" fill="#ffffff" stroke="#d0d7de"/>
+    <text x="154" y="400" text-anchor="middle" font-weight="600">Forecast labeled distinctly</text>
+    <text x="154" y="416" text-anchor="middle" font-size="9.5">from observed &#8212; never blended</text>
+
+    <rect x="282" y="376" width="220" height="54" rx="7" fill="#ffffff" stroke="#d0d7de"/>
+    <text x="392" y="400" text-anchor="middle" font-weight="600">Wall-clock timestamps</text>
+    <text x="392" y="416" text-anchor="middle" font-size="9.5">stamped on ingest, never from prose</text>
+
+    <rect x="520" y="376" width="220" height="54" rx="7" fill="#ffffff" stroke="#d0d7de"/>
+    <text x="630" y="400" text-anchor="middle" font-weight="600">Every card cites its source</text>
+    <text x="630" y="416" text-anchor="middle" font-size="9.5">authoritative, curated, or field</text>
+
+    <rect x="758" y="376" width="210" height="54" rx="7" fill="#ffffff" stroke="#d0d7de"/>
+    <text x="863" y="400" text-anchor="middle" font-weight="600">Suppress &#8800; delete</text>
+    <text x="863" y="416" text-anchor="middle" font-size="9.5">nothing is destroyed</text>
+  </g>
+</svg>

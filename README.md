@@ -1,73 +1,237 @@
-# Responder TX — Flood Ops Board
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.svg">
+    <img alt="Responder TX — Texas Hill Country live flood operating picture" src="assets/banner-dark.svg" width="900">
+  </picture>
+</p>
 
-Live web ops board for the July 2026 Texas Hill Country flood, built for a
-responder/SAR lens: a fused threat-to-life picture, live federal hazard
-layers, ground-truth storm reports, radar, and a human-triaged community
-assistance feed. Zero backend — any static host.
+<p align="center">
+  <a href="https://responder.rfxn.com"><img src="https://img.shields.io/badge/live-responder.rfxn.com-3987e5?style=flat-square" alt="Live site"></a>
+  <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"><img src="https://img.shields.io/badge/license-GPL_v2-green.svg?style=flat-square" alt="License: GPL v2"></a>
+  <img src="https://img.shields.io/badge/backend-none-4c1?style=flat-square" alt="Zero backend">
+  <img src="https://img.shields.io/badge/built_with-Leaflet-199900?style=flat-square" alt="Built with Leaflet">
+  <img src="https://img.shields.io/badge/tracking-none-4c1?style=flat-square" alt="No tracking">
+</p>
 
-Docs: `STRATEGY.md` (social-signal & ops strategy) · `ROADMAP.md` (product
-assessment + release plan) · `CHANGELOG.md` (release history).
+A live, zero-backend web board that fuses a single flood operating picture for the
+Texas Hill Country: river gauges with **forecast** crests, crest-wave timing,
+record-crest watch, NWS flash-flood alerts, a unified observed-to-forecast radar
+timeline, road and low-water-crossing status, and a human-triaged field feed —
+built for a first responder working from a truck, and for anyone watching the
+public mirror.
 
-## Run
+> Copyright (C) 2026 [R-fx Networks](https://www.rfxn.com) &lt;proj@rfxn.com&gt; &#183; Ryan MacDonald &#183; Licensed under [GNU GPL v2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+
+> [!WARNING]
+> **Life-threatening emergency? Call 911.** Responder TX is situational awareness and
+> volunteer-coordination support. It is **not** a dispatch system, it is **not** an
+> official warning source, and it is not monitored by emergency services. Always
+> verify with the National Weather Service, Wireless Emergency Alerts, and 911. Do
+> not self-deploy into warned areas. See [ABOUT.md](ABOUT.md).
+
+**Live board:** <https://responder.rfxn.com> &#183; **Follow:** [RSS](https://responder.rfxn.com/feed.xml) &#183; [crest calendar (ICS)](https://responder.rfxn.com/crests.ics)
+
+<p align="center"><img src="og-card.png" alt="Responder TX share card: river gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts, radar" width="620"></p>
+
+---
+
+## Contents
+
+- [Why it exists](#why-it-exists)
+- [Feature highlights](#feature-highlights)
+- [Data sources](#data-sources)
+- [Architecture](#architecture)
+- [Honesty & aging discipline](#honesty--aging-discipline)
+- [Deployment model](#deployment-model)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Privacy](#privacy)
+- [Project docs](#project-docs)
+- [Safety & scope](#safety--scope)
+- [License](#license)
+- [Support](#support)
+
+---
+
+## Why it exists
+
+In a flash flood, the decision a responder needs is *"where do I go and what do I
+expect"* — in under ten seconds, gloved, glare-lit, and intermittently connected.
+Most public flood pages answer that slowly: they mix observed and forecast water
+without saying which is which, they let a stale reading sit on the map as if it
+were live, and they need an account or bury the map under a login.
+
+Responder TX takes the opposite stance. It **anticipates** (forecast-first: every
+major crest this event showed up in the forecast field hours before the water
+arrived), it is **recent** (everything ages — nothing stale is shown as live), and
+it is **honest** (every card cites its source; suppress never means delete). It
+runs with **zero backend** from any static host, so it stays up when infrastructure
+does not, and it asks nothing of the person reading it — no account, no tracking.
+
+## Feature highlights
+
+**Anticipation (forecast-first)**
+- River gauges with both **observed** and **forecast** flood category, rising (&#9650;) markers, and a 48-hour stage sparkline against action/minor/moderate/major flood stages
+- "Forecast to flood" pre-positioning list, soonest crest first — the board's highest-value pane
+- Crest-wave timing as the flood moves downstream, plus a record-crest watch
+- Unified radar timeline in one scrubber: **observed past &#8594; NOW &#8594; HRRR model future**, with A/B buffered playback
+
+**Ground truth**
+- NWS active flood alerts with flash-flood-emergency detection
+- Local Storm Reports from trained spotters and officials, road mentions highlighted
+- Road closures and low-water crossings; TxDOT and USGS river cameras
+- Historical playback — replay the event over 3 / 7 / 14 days from committed snapshots
+
+**Field workflow**
+- THREAT-TO-LIFE strip: live fused counts (emergencies, cut-off areas, major gauges, roads blocked) — tap a chip to focus it
+- Smart-sorted feed (urgency &#215; freshness) with freshness dots, re-verify flags, and NEW-since-last-visit chips
+- Drive Mode (big-type nearest-hazards glance list), USNG/MGRS coordinates, "Am I at risk?" address check
+- Search by place, address, gauge, lat/lon, or card ID
+- Handoff: export JSON (merge by id), **GeoJSON** (drops into CalTopo / SARTopo), Markdown AAR, and a plain-text SITREP for radio/SMS
+- Field Notes: responder annotations (writable on the LAN host, read-only on the public mirror)
+
+**Built to stay up**
+- Public RSS feed and an ICS crest calendar — follow without an app
+- Deep-linkable, shareable views (`?tab=alerts`, `?theme=light`, map position preserved)
+- "Save map offline" pre-caches basemap tiles to IndexedDB for canyon dead zones
+- Bilingual UI (English / Spanish)
+
+## Data sources
+
+Every live layer is a **keyless, CORS-open** public endpoint, so the board runs
+from any static host with no server of its own. Each card names its provenance.
+
+| Data | Provider | Host / API |
+|------|----------|------------|
+| Active flood alerts, flash-flood-emergency detection | [National Weather Service](https://www.weather.gov/documentation/services-web-api) | `api.weather.gov` |
+| River gauges: observed + forecast flood category, stage history | [NOAA National Water Prediction Service (NWPS)](https://water.noaa.gov/) | `api.water.noaa.gov` |
+| Forecast-max grid (crest rings) | [NOAA River Forecast Centers](https://water.noaa.gov/) | `maps.water.noaa.gov` |
+| Stage / streamflow instantaneous values, HIVIS river cameras | [U.S. Geological Survey](https://waterservices.usgs.gov/) | `waterservices.usgs.gov`, `api.waterdata.usgs.gov` |
+| Local Storm Reports, NEXRAD composite radar tiles | [Iowa Environmental Mesonet (Iowa State University)](https://mesonet.agron.iastate.edu/) | `mesonet.agron.iastate.edu` |
+| Radar frame timeline (observed past) | [RainViewer](https://www.rainviewer.com/api.html) | `api.rainviewer.com` |
+| Road closures + traffic cameras | [TxDOT DriveTexas](https://drivetexas.org/) | `services5.arcgis.com`, `its.txdot.gov` |
+| Low-water crossings | [Texas Geographic Information Office (TxGIO)](https://geographic.texas.gov/) | `feature.geographic.texas.gov` |
+| Address / place geocoding | [OpenStreetMap Nominatim](https://nominatim.org/) | `nominatim.openstreetmap.org` |
+| Basemap tiles | [CARTO](https://carto.com/basemaps/) &#183; [OpenStreetMap](https://www.openstreetmap.org/copyright) | `basemaps.cartocdn.com`, `tile.openstreetmap.org` |
+| Map engine | [Leaflet](https://leafletjs.com/) | CDN (unpkg) |
+
+Curated seed data — assistance requests, resources/shelters/hotlines, and known
+crossings in `data/*.json` — is edited by hand and cites its source; everything
+else in the table is live.
+
+## Architecture
+
+Responder TX is a vanilla-JavaScript single-page app (no framework, no build step)
+that draws a Leaflet map and fetches the public sources above **directly from the
+browser**. The operator runs a small Python LAN host (`server.py`) for chat, field
+notes, and cached gauge/camera proxies; the public gets a **read-only Cloudflare
+Pages mirror** of the same committed repo. A per-cycle generator pipeline snapshots
+the live sources, writes `data/*.json` plus the feeds, and commits them — so the
+**git history of `data/` is the event archive** that powers historical playback.
+
+<p align="center"><img src="assets/architecture.svg" alt="Responder TX system architecture: browser SPA fetching public data sources, the LAN server.py host vs the read-only Cloudflare Pages mirror, and the per-cycle generator pipeline that commits data/ as the archive" width="960"></p>
+
+The browser SPA is split into focused modules — `core` (config/state), `map`,
+`sources`, `panels`, `board`, `boot`, `notes`, `i18n`, `usng`, and the LAN-only
+`chat` (stripped from the public deploy). See [ARCHITECTURE.md](ARCHITECTURE.md)
+for the module map, request flow, and the public-mirror strip contract.
+
+## Honesty & aging discipline
+
+The defining invariant: **stale data never masquerades as live, and suppress never
+means delete.** Every layer ships with a default timeout, auto-suppression off the
+map and panes, and a retrievable history view. Observations that go stale are
+flagged and badged, not silently hidden; forecast is always labeled distinctly from
+observed; timestamps come from the wall clock, never from prose.
+
+<p align="center"><img src="assets/data-lifecycle.svg" alt="The honesty and aging lifecycle: live observations move fresh to stale to suppressed to retrievable history; curated cards move active to aging to resolved to history; non-negotiables include distinct forecast labeling, wall-clock timestamps, source citation, and suppress-not-delete" width="920"></p>
+
+## Deployment model
+
+| | Operator (LAN) | Public mirror |
+|---|---|---|
+| Host | `python3 server.py` on the local network | Cloudflare Pages (global CDN) |
+| Serves | static app + committed `data/` | static app + committed `data/` |
+| Writes | chat + Field Notes &#8594; `data/*.jsonl` | none — read-only |
+| Proxies | `/api/gauge` (NWPS), `/api/cam` (TxDOT), cached | same, as Pages Functions |
+| Chat | present | `chat.js` stripped at deploy, verified |
+| Feeds | — | `/feed.xml` (RSS), `/crests.ics` |
+
+The generator pipeline (`scripts/gen-*.py`) runs each cycle on the operator host:
+it snapshots NWPS / USGS / DriveTexas into `data/`, builds `history.json`,
+`crest-summary.json`, `feed.xml`, `crests.ics`, and the camera/road snapshots, and
+those files are committed. `scripts/deploy.sh` then verifies version agreement,
+strips the LAN-only chat, and publishes to Cloudflare Pages.
+
+## Quick start
+
+No build, no dependencies beyond Python 3 — clone and serve:
 
 ```bash
-cd /root/admin/work/proj/responder
-python3 server.py                    # LAN: binds 0.0.0.0:8080 (chat/notes/gauge-proxy routes)
-# open http://<host>:8080  (deep links: ?tab=alerts, ?theme=light)
+git clone https://github.com/rfxn/responder-tx.git
+cd responder-tx
+python3 server.py          # LAN host: binds 0.0.0.0:8080 (chat / notes / gauge + cam proxy)
+# open http://localhost:8080   (deep links: ?tab=alerts  ·  ?theme=light)
 ```
 
-Runtime needs internet (Leaflet CDN, CARTO basemaps, federal APIs, IEM).
-The ⬇ "Save map offline" control pre-caches basemap tiles to IndexedDB
-(works over plain LAN http, no service worker) so the map keeps drawing in
-canyon dead zones — basemap only; live data still needs a connection.
+The board needs internet at runtime for the Leaflet CDN, basemap tiles, and the
+federal / state APIs above. The &#8681; "Save map offline" control pre-caches
+basemap tiles to IndexedDB (plain LAN http, no service worker) so the map keeps
+drawing in dead zones — basemap only; live data still needs a connection.
 
-## Live layers (all keyless, CORS-open, 3-min poll)
-
-| Layer | Source |
-|---|---|
-| Flood alerts + FF-emergency detection | `api.weather.gov/alerts/active` |
-| River gauges: observed + **forecast** flood category, ▲ rising markers | `api.water.noaa.gov/nwps/v1/gauges` |
-| 48h stage sparkline vs flood stages (on gauge tap) | NWPS `stageflow/observed` |
-| Ground truth — Local Storm Reports (spotter/official, road mentions highlighted) | IEM `lsr.geojson` |
-| NEXRAD composite radar (5-min refresh) | IEM tile cache |
-
-## Field workflow
-
-- **THREAT TO LIFE strip** (top of sidebar): live fused counts — FF
-  emergencies, critical life-safety requests, cut-off areas, MAJOR gauges,
-  rising-to-major, roads blocked. Tap a chip to focus it.
-- **Requests tab**: smart sort (urgency × freshness) with freshness dots,
-  stale re-verify flags, NEW-since-last-visit chips; filters for
-  type/status/county/age/distance-from-me/text; per-card navigate +
-  copy-coords; ⌖ locate-me control.
-- **Intake**: tap map to pin; `road` (🚧) and `cutoff` (⛔ + pulsing
-  estimated isolation radius) types carry SAR iconography.
-- **Alerts tab**: Forecast-to-flood pre-positioning list (soonest crest
-  first), storm reports, filterable NWS alert list.
-- **Monitor tab**: per-county X/Facebook/Nextdoor live-search deep links +
-  **Comms**: Broadcastify scanner feeds for all 9 affected counties,
-  CrowdSource Rescue, OpenMHz, Zello nets.
-- **Handoff/interop**: Export JSON (operator merge by id, newest status
-  wins) and **Export GeoJSON** (drops into CalTopo/SARTopo).
-- Degraded connectivity: last-good data cached, shown with an "as of" stamp.
-
-## What's curated vs live
-
-`data/requests.json` (source-cited assistance requests) and
-`data/resources.json` (shelters, hotlines, monitor/comms links) are curated
-seeds — update as the event evolves. Everything in the table above is live.
+For a purely public, read-only view you do not need to run anything — just open the
+[live board](https://responder.rfxn.com).
 
 ## Configuration
 
-Per-event settings live in `data/event.json` (name, subtitle, map
-center/zoom, gauge bbox) — swap that file to re-point the board at a new
-event; no code changes. Remaining knobs (poll interval, LSR window, stale
-threshold) are in `CONFIG` at the top of `js/app.js`. Flood-category colors follow the NWS AHPS convention as status
-colors, always paired with text labels and size-stepped markers.
+Per-event settings live in `data/event.json` (name, subtitle, map center/zoom,
+gauge bounding box) — swap that file to re-point the board at a new event, no code
+change. Remaining knobs (poll interval, LSR window, stale thresholds, playback
+window) are in `CONFIG` at the top of `js/core.js`. Flood-category colors follow
+the NWS AHPS convention, always paired with text labels and size-stepped markers.
 
-## Safety
+## Privacy
 
-**Life-threatening emergencies go to 911.** This board is situational
-awareness and volunteer coordination support; it is not a dispatch system
-and is not monitored by emergency services. Do not self-deploy into warned
-areas.
+No accounts. No analytics, no third-party trackers, no advertising cookies. Your
+view state (theme, language, last-seen markers, cached last-good data) is kept in
+your own browser via `localStorage` and `IndexedDB` and is never sent anywhere. The
+public mirror has no write routes and no chat. See [ABOUT.md](ABOUT.md#privacy).
+
+## Project docs
+
+- [ABOUT.md](ABOUT.md) — who runs it, what it is and is not, methodology, provenance, privacy
+- [ARCHITECTURE.md](ARCHITECTURE.md) — modules, request flow, hosting split, generator pipeline
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to report issues and contribute
+- [STRATEGY.md](STRATEGY.md) — social-signal and data strategy, triage rubric, operating workflow
+- [ROADMAP.md](ROADMAP.md) — product thesis, invariants, and release plan
+- [CHANGELOG.md](CHANGELOG.md) — release history
+
+## Safety & scope
+
+Responder TX is a situational-awareness aid, not an authority. It does not replace
+official warnings, evacuation orders, or 911. Data can be delayed, incomplete, or
+wrong; sensors freeze, feeds lag, and curated entries can go stale — the board
+labels these conditions but cannot eliminate them. **Life-threatening emergency?
+Call 911.** Verify with the National Weather Service and Wireless Emergency Alerts.
+Never self-deploy into a warned area; volunteer offers route to vetted response
+organizations, not to individuals.
+
+The current build is scoped to the July 2026 Texas Hill Country flood. The board is
+event-configurable (`data/event.json`) and the data pipeline is Texas-specific only
+where the sources are (TxDOT, TxGIO); the core — gauges, NWS alerts, radar, honesty
+discipline — generalizes to any U.S. flood.
+
+## License
+
+Responder TX is distributed under the **GNU General Public License v2**. Developed
+and maintained by Ryan MacDonald &lt;ryan@rfxn.com&gt; for
+[R-fx Networks](https://www.rfxn.com). Credit must be given for derivative works as
+required under the GNU GPL.
+
+## Support
+
+- **Source & issues:** <https://github.com/rfxn/responder-tx>
+- **Email:** proj@rfxn.com
+
+Bugs, corrections, and new data sources are welcome as GitHub issues.

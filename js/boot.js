@@ -364,6 +364,7 @@ function renderGlossary() {
   html += glRow(`<span class="fcst-ring cat-moderate" style="width:11px;height:11px"></span>`, t('glossary.ring.label'), t('glossary.ring'));
   html += glRow('💧', t('glossary.lsr.label'), t('glossary.lsr'));
   html += glRow('📷', t('glossary.cams.label'), t('glossary.cams'));
+  html += glRow('<span class="cam-icon cam-snap" style="width:16px;height:16px;font-size:10px">📷</span>', t('glossary.camsnap.label'), t('glossary.camsnap'));
   html += glRow('<span style="color:var(--sev-emergency)">⛔</span>/🌊', t('glossary.roads.label'), t('glossary.roads'));
   html += glRow('<span style="color:var(--good)">✓</span>', t('glossary.reopen.label'), t('glossary.reopen'));
   html += glRow('⛔⚠✓', t('glossary.cross.label'), t('glossary.cross'));

@@ -725,6 +725,8 @@ main { flex: 1; display: flex; min-height: 0; }
   border: 1px solid var(--border); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 .cam-icon.cam-river { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 1px 3px rgba(0,0,0,0.4); }
+/* snapshot-only ITS cams: muted + dashed so a still never reads as a live stream */
+.cam-icon.cam-snap { border: 1.5px dashed var(--ink-muted); opacity: 0.8; filter: saturate(0.4); }
 /* viewer sits above Drive Mode (1600) — drive rows open cameras without leaving Drive Mode */
 #cam-viewer { position: fixed; inset: 0; z-index: 1700; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; }
 #cam-viewer[hidden] { display: none; }

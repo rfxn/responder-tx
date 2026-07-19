@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.88.0",
+      "date": "2026-07-18",
+      "line": "835 more TxDOT cameras — the snapshot-only ones: many city-street cams (most of Houston, Fort Worth, Dallas, Beaumont, El Paso) have no live video feed, only a photo that refreshes about every 2 minutes. They now appear on the camera layer as dashed/muted 📷 markers so you can tell them from live cams; opening one shows the latest photo with a SNAPSHOT badge, when it was captured, a ↻ refresh button, and the usual STALE warning if the image is over 45 minutes old. If a snapshot can’t be fetched, the viewer says so plainly."
+    },
+    {
       "v": "v0.87.0",
       "date": "2026-07-18",
       "line": "The board now updates itself, gracefully: when a new version ships, the app waits until you're not mid-anything (no open panel or viewer, no playback, no recent touch, data refresh settled), shows a quiet 4-second \"reloading\" notice with a Later button, then reloads into the new build with your exact view restored — map position, tab, filters, basemap, theme — confirmed by a small ✓ toast that opens What's New. Hidden tabs update when you return to them, an unsent LAN chat draft survives the reload, and lag-safe guards mean it can never reload-loop. The ⬆ chip remains for an immediate manual reload."

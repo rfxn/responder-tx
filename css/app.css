@@ -331,18 +331,33 @@ main { flex: 1; display: flex; min-height: 0; }
 .card .summary { margin: 4px 0; font-size: 13px; line-height: 1.35; }
 .card .meta { font-size: 11.5px; color: var(--ink-2); }
 .card .meta a { color: var(--accent); text-decoration: none; }
-.card .badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+.card .badges { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
 .badge {
-  font-size: 10.5px; padding: 1px 7px; border-radius: 9px;
+  display: inline-flex; align-items: center; white-space: nowrap;
+  font-size: 10.5px; line-height: 1.5; padding: 2px 8px; border-radius: 9px;
   border: 1px solid var(--border); color: var(--ink-2); background: var(--surface-1);
 }
 .badge.status-open, .badge.status-unverified { border-color: var(--sev-watch); }
 .badge.status-in-progress { border-color: var(--accent); }
 .badge.status-verified { border-color: var(--good); }
 .badge.status-resolved { color: var(--ink-muted); text-decoration: line-through; }
-.badge.src-official { border-color: var(--accent); color: var(--accent); font-weight: 650; letter-spacing: 0.04em; }
-.badge.src-curated { border-color: var(--cat-action); color: var(--cat-action); font-weight: 650; letter-spacing: 0.04em; }
-.badge.src-mini { font-size: 9px; padding: 0 5px; flex: 0 0 auto; align-self: center; }
+.badge.src-official { border-color: var(--accent); color: var(--accent); font-weight: 650; letter-spacing: 0.03em; }
+.badge.src-curated { border-color: var(--cat-action); color: var(--cat-action); font-weight: 650; letter-spacing: 0.03em; }
+.badge.src-mini { font-size: 9px; padding: 1px 6px; flex: 0 0 auto; align-self: center; }
+/* compact citation — a short chip link, never the full raw URL (source.url preserved as href) */
+.badge.src-link { color: var(--accent); text-decoration: none; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.badge.src-link:hover { border-color: var(--accent); }
+.badge.src-link.off { color: var(--ink-muted); cursor: default; }
+/* card action row — tappable controls with real affordance (not bare text links) */
+.card-actions { display: flex; gap: 6px; margin-top: 7px; }
+.act-btn {
+  flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-height: 34px; padding: 5px 10px; font-size: 12px; font-weight: 600;
+  color: var(--ink-1); background: var(--surface-1);
+  border: 1px solid var(--border); border-radius: 7px; cursor: pointer;
+}
+.act-btn:hover { border-color: var(--accent); color: var(--accent); }
+.act-btn:active { transform: translateY(1px); }
 
 .section-title { font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); margin: 14px 0 6px; }
 .section-title:first-child { margin-top: 0; }
@@ -352,12 +367,25 @@ main { flex: 1; display: flex; min-height: 0; }
 .alert-card.sev-warning { border-left-color: var(--sev-warning); }
 .alert-card.sev-watch { border-left-color: var(--sev-watch); }
 .alert-card.sev-advisory { border-left-color: var(--sev-advisory); }
-.alert-card .event { font-weight: 650; font-size: 13px; }
+.alert-card .event { font-weight: 650; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.alert-card .event .ev-name { min-width: 0; }
 .alert-card .event .emergency-flag {
-  color: var(--sev-emergency); font-size: 11px; font-weight: 700;
-  border: 1px solid var(--sev-emergency); border-radius: 4px; padding: 0 5px; margin-left: 6px;
+  color: var(--sev-emergency); font-size: 10.5px; font-weight: 700; white-space: nowrap;
+  border: 1px solid var(--sev-emergency); border-radius: 4px; padding: 1px 5px;
 }
-.alert-card .areas { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+.alert-card .areas { font-size: 11.5px; color: var(--ink-2); margin-top: 3px; line-height: 1.35; }
+/* controlled meta row — each time unit stays whole (no label/value split); the text link is its own chip */
+.alert-card .alert-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px;
+  margin-top: 6px; font-size: 11px; color: var(--ink-muted);
+}
+.alert-card .alert-meta .am-when { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.alert-card .alert-text-link {
+  margin-left: auto; color: var(--accent); text-decoration: none; white-space: nowrap; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 7px; padding: 4px 10px; min-height: 30px;
+  display: inline-flex; align-items: center;
+}
+.alert-card .alert-text-link:hover { border-color: var(--accent); }
 
 .resource-item { padding: 7px 2px; border-bottom: 1px solid var(--hairline); font-size: 13px; }
 .resource-item .addr { color: var(--ink-2); font-size: 12px; }
@@ -527,9 +555,8 @@ main { flex: 1; display: flex; min-height: 0; }
 .fresh-dot.aging { background: var(--sev-warning); }
 .fresh-dot.stale { background: var(--ink-muted); }
 .badge.new-chip { border-color: var(--accent); color: var(--accent); font-weight: 700; }
-.badge.reverify { border-color: var(--sev-warning); color: var(--sev-warning); }
-.badge.act { cursor: pointer; }
-.badge.act:hover { border-color: var(--accent); color: var(--accent); }
+.badge.reverify { border-color: var(--sev-warning); color: var(--sev-warning); font-weight: 600; }
+.badge.reverify::before { content: '⏱'; margin-right: 3px; }
 
 /* aged/suppressed items — dimmed, retrievable, never deleted */
 .card.aged { opacity: 0.55; border-left-style: dashed; }
@@ -1046,6 +1073,16 @@ button.inspect-gauge:hover { color: var(--accent); }
   #rs-track { flex: 1 1 auto; width: auto; min-width: 60px; }
   #rs-badge { font-size: 9px; }
   #rs-label { font-size: 11px; min-width: 0; flex: 0 0 auto; } /* the time readout keeps its width — the track absorbs the squeeze */
+
+  /* scannable, not cramped: tighten card rhythm and give the action buttons a real thumb target */
+  .card { padding: 9px 11px; margin-bottom: 7px; }
+  .card .summary { font-size: 13px; margin: 3px 0; }
+  .card .meta { font-size: 11px; }
+  .card .badges { gap: 5px; margin-top: 6px; }
+  .card-actions { gap: 7px; margin-top: 8px; }
+  .act-btn { min-height: 40px; font-size: 12.5px; }
+  .badge.src-link { max-width: 150px; }
+  .alert-card .alert-text-link { min-height: 34px; }
 }
 
 @media print {
@@ -1055,7 +1092,7 @@ button.inspect-gauge:hover { color: var(--accent); }
     --hairline: #ccc; --border: #999;
   }
   #map, .controls, .tiles, .feed-actions, #new-request-form, .filters,
-  .tabs, #emergency-banner, .card .advance, .card .act,
+  .tabs, #emergency-banner, .card .advance, .card-actions,
   #changelog-modal, #safety-modal { display: none !important; }
   main { display: block; }
   #sidebar { width: 100%; border: none; }

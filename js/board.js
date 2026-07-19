@@ -170,7 +170,13 @@ function renderRequests() {
     div.className = `card pri-${r.priority}${cardAged(r) ? ' aged' : ''}`;
     div.dataset.rid = r.id;
     const src = r.source || {};
-    const srcLink = src.url ? `<a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener">${esc(src.platform || 'source')}: ${esc(src.handle || src.url)}</a>` : esc(`${src.platform || ''} ${src.handle || ''}`.trim());
+    // compact citation — platform name or bare domain, never the full raw URL; source.url preserved as href
+    const srcUrl = src.url && safeUrl(src.url) !== '#' ? safeUrl(src.url) : '';
+    const srcLabel = src.platform || hostOf(src.url) || t('card.source');
+    const srcTitle = `${srcLabel}${src.handle ? ` · ${src.handle}` : ''} ↗`;
+    const srcLink = srcUrl
+      ? `<a class="badge src-link" href="${esc(srcUrl)}" target="_blank" rel="noopener" title="${esc(srcTitle)}">${esc(srcLabel)} ↗</a>`
+      : ((src.platform || src.handle) ? `<span class="badge src-link off">${esc(`${src.platform || ''} ${src.handle || ''}`.trim())}</span>` : '');
     const isNew = state.lastSeen && new Date(r.ts).getTime() > state.lastSeen;
     const needsReverify = r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins;
     const hasPos = Number.isFinite(r.lat) && Number.isFinite(r.lon);
@@ -186,18 +192,22 @@ function renderRequests() {
       `<div class="badges">${isNew ? '<span class="badge new-chip">NEW</span>' : ''}` +
       (r.status !== 'open' ? `<span class="badge status-${esc(r.status)}">${esc(r.status)}</span>` : '') +
       (cardAged(r) ? '<span class="badge aged-chip">aged · suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale · re-verify</span>' : '')) +
-      `<span class="badge">${srcLink}</span>` + srcBadge('curated') +
-      (hasPos ? `<button class="badge act nav-act">navigate</button><button class="badge act copy-act">copy coords</button>` : '') +
-      '</div>';
+      srcBadge('curated') + srcLink +
+      '</div>' +
+      (hasPos ? '<div class="card-actions">' +
+        `<button class="act-btn nav-act" type="button">🧭 ${esc(t('card.nav'))}</button>` +
+        `<button class="act-btn copy-act" type="button">📋 ${esc(t('card.copy'))}</button>` +
+        '</div>' : '');
     div.addEventListener('click', (ev) => {
       if (ev.target.closest('a')) return;
       if (ev.target.classList.contains('sid')) {
         copyText(shortId(r.id)).then(() => { ev.target.textContent = 'copied ✓'; setTimeout(() => { ev.target.textContent = shortId(r.id); }, 1200); });
         return;
       }
-      if (ev.target.classList.contains('nav-act')) { window.open(`https://maps.google.com/?q=${r.lat},${r.lon}`, '_blank', 'noopener'); return; }
-      if (ev.target.classList.contains('copy-act')) {
-        copyText(`${r.lat}, ${r.lon} · USNG ${toUSNG(r.lat, r.lon)}`).then(() => { ev.target.textContent = 'copied ✓'; setTimeout(() => { ev.target.textContent = 'copy coords'; }, 1500); });
+      if (ev.target.closest('.nav-act')) { window.open(`https://maps.google.com/?q=${r.lat},${r.lon}`, '_blank', 'noopener'); return; }
+      const copyBtn = ev.target.closest('.copy-act');
+      if (copyBtn) {
+        copyText(`${r.lat}, ${r.lon} · USNG ${toUSNG(r.lat, r.lon)}`).then(() => { copyBtn.textContent = t('card.copied'); setTimeout(() => { copyBtn.textContent = `📋 ${t('card.copy')}`; }, 1500); });
         return;
       }
       if (hasPos) {

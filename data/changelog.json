@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.96.5",
+      "date": "2026-07-19",
+      "line": "Mobile card polish: on the feed, 'navigate' and 'copy coords' are now real tappable buttons, and a card's source shows as a compact link (platform name or bare domain with a ↗) instead of a full raw URL — the citation is unchanged, just tidier. Alert cards wrap cleanly on narrow screens: the event name keeps its EMERGENCY flag, the sent/until times stay whole, and the 'text' reader is a right-aligned chip. Badges like CURATED and 'stale · re-verify' now render to one consistent size. English y español."
+    },
+    {
       "v": "v0.96.4",
       "date": "2026-07-19",
       "line": "Tapping an alert card now flashes that alert's outline on the map and drops a pulsing ping at its center, so when several warnings overlap (like three Devils River reaches in Val Verde) you can see exactly which one you tapped. Falls back to a ping at the alert's center when its polygon is not drawn."

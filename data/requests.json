@@ -212,7 +212,7 @@
   },
   {
    "id": "seed-031",
-   "ts": "2026-07-18T23:10:00Z",
+   "ts": "2026-07-19T02:10:00Z",
    "type": "evacuation",
    "priority": "critical",
    "status": "open",
@@ -220,8 +220,8 @@
    "place": "Asherton \u2014 Nueces River (Dimmit Co.)",
    "lat": 28.4419,
    "lon": -99.7625,
-   "summary": "ASHERTON: prolonged crest still INCHING UP: observed 31.51 ft MAJOR at 6:10 PM CT (95.5% of the all-time 33 ft record from 1935). The slow creep has run all day (31.05 at 10:30 AM, 31.43 mid-afternoon, 31.51 now); NWPS forecast keeps it near this level overnight. Record-tier for the modern (1991) gauge era.",
-   "details": "NWPS ASRT2 6:10 PM CT: observed 31.51 ft MAJOR (major stage 27), day-long slow rise: 31.05 (10:30 AM), 31.43 (3-5 PM plateau), 31.51 (6:10 PM). Still ~1.5 ft below the Jun 1935 all-time 33 ft crest of record; exceeds the 1991-era record (~25.7 ft) by ~6 ft. Zavala/Dimmit OEMs coordinating evacuations; FM 190 and low-lying river reaches remain flooded. Watch overnight for the actual crest; downstream reaches will follow.",
+   "summary": "ASHERTON HAS CRESTED: peak 31.56 ft MAJOR (~7:30 PM CT) \u2014 95.6% of the all-time 1935 record \u2014 now RECEDING, 31.49 at 8:30 PM CT. Highest water of the modern gauge era. Major flooding persists through the fall; evacuated areas stay evacuated until water drops well below major stage.",
+   "details": "NWPS ASRT2: peak observed 31.56 ft (~00:30Z), 8:30 PM CT reading 31.49 and easing \u2014 crest confirmed passed. Event peak stands ~1.4 ft below the Jun 1935 all-time 33 ft; ~6 ft above the 1991-era record. Forecast holds near 31.5 overnight then a slow fall \u2014 MAJOR-stage water persists for days on the recession; downstream Nueces reaches continue receiving the wave. Do not re-enter low-lying areas until officials clear them.",
    "source": {
     "platform": "official",
     "handle": "NOAA NWPS ASRT2",
@@ -802,16 +802,16 @@
   },
   {
    "id": "seed-043",
-   "ts": "2026-07-19T01:40:00Z",
+   "ts": "2026-07-19T02:10:00Z",
    "type": "warning",
-   "priority": "high",
+   "priority": "medium",
    "status": "open",
    "county": "Val Verde",
    "place": "Devils River at Pafford Crossing (Comstock)",
    "lat": 29.6764,
    "lon": -101.0,
-   "summary": "DEVILS RIVER AT PAFFORD CROSSING: rise has STALLED below forecast \u2014 observed 10.56 ft moderate at 8:15 PM CT, easing from the 10.76 peak. NWPS still forecasts 13 ft MAJOR (~10 PM CT) but observed is under-running it, matching every crest this event. Corridor remains hazardous at moderate flood; MAJOR looking less likely.",
-   "details": "NWPS CMKT2 8:15 PM CT: observed 10.56 ft moderate (peaked ~10.76 around 7:15 PM, now easing). Forecast of 13.0 ft MAJOR at 10 PM CT not yet borne out \u2014 treat as upper bound; this event's model crests (Derby, Llano, Pandale, Langtry) all under-ran. Upstream Bakers Crossing has dropped out of MAJOR (14.89 and falling), so the wave's tail is thinning. Lower Devils corridor and low crossings remain dangerous at moderate stage \u2014 stay clear of the river; Amistad headwaters still receiving the wave.",
+   "summary": "PAFFORD CROSSING DOWNGRADED: NWPS has cut the forecast to 10.7 ft MODERATE (was 13 MAJOR) \u2014 confirming the observed stall at ~10.8. Devils River wave is passing at moderate stage; corridor and low crossings remain hazardous but the MAJOR threat is off.",
+   "details": "NWPS CMKT2 8:15 PM CT: observed 10.56 moderate, easing; forecast now 10.7 moderate (down from 13.0 MAJOR) \u2014 the model has aligned with observations, closing another over-forecast this event (Derby, Llano, Pandale, Langtry, Asherton-fcst all under-ran). Upstream Bakers Crossing 14.89 falling. Moderate-stage hazards persist on the lower Devils toward Amistad; stay off the river and out of low crossings until recession.",
    "source": {
     "label": "official: NOAA NWPS CMKT2",
     "url": "https://water.noaa.gov/gauges/CMKT2"

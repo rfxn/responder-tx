@@ -1,39 +1,44 @@
 {
   "versions": [
     {
+      "v": "v0.91.0",
+      "date": "2026-07-18",
+      "line": "Playback now rebuilds the full incident picture: road closures replay on the map frame by frame (archived TxDOT snapshots where we have them, honestly labeled as reconstructed from posted closure times before the archive began), flooding gauges call out prominently \u2014 majors draw twice as large, a colored ring pulses when a gauge changes category, and the 5 most significant gauges carry always-visible name + stage labels \u2014 and when the data shows a crest translating down a river (Devils, Llano, Pecos, Nueces chains tonight) an animated dashed arrow traces it between gauges with a \u201ccrest moving downstream\u201d tag. English y espa\u00f1ol."
+    },
+    {
       "v": "v0.90.1",
       "date": "2026-07-18",
-      "line": "Slimmer chrome, same signal: the plain-language situation line is now a thin one-line strip (tap it to read the full sentence), and the bottom 911 notice fits on a single row at every width — tap it any time to reopen the full safety notice, or tap the underlined version number for What's New. Also fixed: the headline no longer says a river wave is “rising” when the gauge is actually receding — the direction word now follows the live trend. English y español."
+      "line": "Slimmer chrome, same signal: the plain-language situation line is now a thin one-line strip (tap it to read the full sentence), and the bottom 911 notice fits on a single row at every width \u2014 tap it any time to reopen the full safety notice, or tap the underlined version number for What's New. Also fixed: the headline no longer says a river wave is \u201crising\u201d when the gauge is actually receding \u2014 the direction word now follows the live trend. English y espa\u00f1ol."
     },
     {
       "v": "v0.90.0",
       "date": "2026-07-18",
-      "line": "Rainfall is now one layer, not two. Turn on Rainfall and pick the accumulation window — 1h, 24h, 48h, or 72h — with the new chips right in the map legend; your pick sticks for the session, and old “Rain 1h”/“Rain 24h” links still open the right view. Also, by popular demand the 🔗 Share button is back at your fingertips: it now sits on the map just below the 🗂 layer button (and stays in the ⋮ menu too). English y español."
+      "line": "Rainfall is now one layer, not two. Turn on Rainfall and pick the accumulation window \u2014 1h, 24h, 48h, or 72h \u2014 with the new chips right in the map legend; your pick sticks for the session, and old \u201cRain 1h\u201d/\u201cRain 24h\u201d links still open the right view. Also, by popular demand the \ud83d\udd17 Share button is back at your fingertips: it now sits on the map just below the \ud83d\uddc2 layer button (and stays in the \u22ee menu too). English y espa\u00f1ol."
     },
     {
       "v": "v0.89.0",
       "date": "2026-07-18",
-      "line": "A friendlier layer picker: the old cramped checkbox list is gone. Tap the 🗂 button on the map (or the ＋ in the layer pills) to open a grouped sheet — Water, Rain & radar, Roads, Alerts & reports, History — where every layer has a plain name, a one-line \"what is this\", and a big toggle. Phones get a thumb-friendly bottom sheet; desktops a compact panel. OFFICIAL/CURATED badges make the two crossings layers unmistakable, a segmented Dark/Light/Streets row switches the basemap, ⏮ Playback opens the timeline, and ↺ Reset restores the default view and full-area framing in one tap. Everything is in English y español."
+      "line": "A friendlier layer picker: the old cramped checkbox list is gone. Tap the \ud83d\uddc2 button on the map (or the \uff0b in the layer pills) to open a grouped sheet \u2014 Water, Rain & radar, Roads, Alerts & reports, History \u2014 where every layer has a plain name, a one-line \"what is this\", and a big toggle. Phones get a thumb-friendly bottom sheet; desktops a compact panel. OFFICIAL/CURATED badges make the two crossings layers unmistakable, a segmented Dark/Light/Streets row switches the basemap, \u23ee Playback opens the timeline, and \u21ba Reset restores the default view and full-area framing in one tap. Everything is in English y espa\u00f1ol."
     },
     {
       "v": "v0.88.1",
       "date": "2026-07-18",
-      "line": "A tidier top bar: the header now shows just search 🔍, Drive 🚗, refresh ⟳, and a single ⋮ button — Share, light/dark theme, EN/ES language, and the \"?\" Legend now live inside the ⋮ menu with full labels, so phones (and desktops) get real breathing room. The corner time stamp slimmed down to a small green dot + time; hover it to see when the next auto-refresh lands. Buttons are also a touch bigger for gloved thumbs, and the header is no taller than before."
+      "line": "A tidier top bar: the header now shows just search \ud83d\udd0d, Drive \ud83d\ude97, refresh \u27f3, and a single \u22ee button \u2014 Share, light/dark theme, EN/ES language, and the \"?\" Legend now live inside the \u22ee menu with full labels, so phones (and desktops) get real breathing room. The corner time stamp slimmed down to a small green dot + time; hover it to see when the next auto-refresh lands. Buttons are also a touch bigger for gloved thumbs, and the header is no taller than before."
     },
     {
       "v": "v0.88.0",
       "date": "2026-07-18",
-      "line": "835 more TxDOT cameras — the snapshot-only ones: many city-street cams (most of Houston, Fort Worth, Dallas, Beaumont, El Paso) have no live video feed, only a photo that refreshes about every 2 minutes. They now appear on the camera layer as dashed/muted 📷 markers so you can tell them from live cams; opening one shows the latest photo with a SNAPSHOT badge, when it was captured, a ↻ refresh button, and the usual STALE warning if the image is over 45 minutes old. If a snapshot can’t be fetched, the viewer says so plainly."
+      "line": "835 more TxDOT cameras \u2014 the snapshot-only ones: many city-street cams (most of Houston, Fort Worth, Dallas, Beaumont, El Paso) have no live video feed, only a photo that refreshes about every 2 minutes. They now appear on the camera layer as dashed/muted \ud83d\udcf7 markers so you can tell them from live cams; opening one shows the latest photo with a SNAPSHOT badge, when it was captured, a \u21bb refresh button, and the usual STALE warning if the image is over 45 minutes old. If a snapshot can\u2019t be fetched, the viewer says so plainly."
     },
     {
       "v": "v0.87.0",
       "date": "2026-07-18",
-      "line": "The board now updates itself, gracefully: when a new version ships, the app waits until you're not mid-anything (no open panel or viewer, no playback, no recent touch, data refresh settled), shows a quiet 4-second \"reloading\" notice with a Later button, then reloads into the new build with your exact view restored — map position, tab, filters, basemap, theme — confirmed by a small ✓ toast that opens What's New. Hidden tabs update when you return to them, an unsent LAN chat draft survives the reload, and lag-safe guards mean it can never reload-loop. The ⬆ chip remains for an immediate manual reload."
+      "line": "The board now updates itself, gracefully: when a new version ships, the app waits until you're not mid-anything (no open panel or viewer, no playback, no recent touch, data refresh settled), shows a quiet 4-second \"reloading\" notice with a Later button, then reloads into the new build with your exact view restored \u2014 map position, tab, filters, basemap, theme \u2014 confirmed by a small \u2713 toast that opens What's New. Hidden tabs update when you return to them, an unsent LAN chat draft survives the reload, and lag-safe guards mean it can never reload-loop. The \u2b06 chip remains for an immediate manual reload."
     },
     {
       "v": "v0.86.0",
       "date": "2026-07-18",
-      "line": "First-run help & one search box: new visitors get a 3-panel intro (after the 911 notice) — the map is live hazards, the feed is verified notices, long-press checks a point and ⏮ replays the event; a new \"?\" Legend button in the header explains every symbol (gauge colors, STALE, map markers, threat chips, OFFICIAL vs CURATED badges, aging, playback, USNG) in EN/ES; and one header 🔍 search now finds places/addresses, gauges by name or ID, typed \"lat, lon\", and R-### cards — a place result flies the map and drops the point-check card there. The separate 🔍 ID button folded into the search."
+      "line": "First-run help & one search box: new visitors get a 3-panel intro (after the 911 notice) \u2014 the map is live hazards, the feed is verified notices, long-press checks a point and \u23ee replays the event; a new \"?\" Legend button in the header explains every symbol (gauge colors, STALE, map markers, threat chips, OFFICIAL vs CURATED badges, aging, playback, USNG) in EN/ES; and one header \ud83d\udd0d search now finds places/addresses, gauges by name or ID, typed \"lat, lon\", and R-### cards \u2014 a place result flies the map and drops the point-check card there. The separate \ud83d\udd0d ID button folded into the search."
     },
     {
       "v": "v0.85.1",

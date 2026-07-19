@@ -19,6 +19,16 @@ from the USGS instantaneous-values archive with the NWPS 30-day observed
 archive as per-lid fallback (IBWC gauges never reach NWIS), categorized
 against NWPS flood thresholds cached in data/gauge-meta.json. Backfilled
 frames carry "src":"usgs"; git-native frames carry no src field.
+
+Frame contract (hazard-agnostic, additive — future hazard sources add a
+parallel per-frame array + a top-level index, existing keys never rename):
+  {frames:[{t, gauges:{lid:[stage,code]}, roads:[rid,...], src?}],
+   gaugeIndex:{lid:{name,lat,lon}}, roadIndex:{rid:{cond,route,v,start,end}},
+   roadsFrom:ISO}
+Road state per frame is the union of two signals: presence in the archived
+roads-snapshot git history (frames at/after roadsFrom) and the record's own
+posted start/end window (the only signal before roadsFrom — the client must
+label those frames as reconstructed, not archived).
 """
 import bisect
 import datetime
@@ -31,6 +41,7 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
+ROADS_PATH = "data/roads-snapshot.json"
 OUT_PATH = "data/history.json"
 GAUGE_META_PATH = "data/gauge-meta.json"
 CAT_CODE = {"no_flooding": 0, "action": 1, "minor": 2, "moderate": 3, "major": 4}
@@ -41,7 +52,7 @@ THIN_KEEP_FULL_DAYS = 3            # over budget: >3d-old frames thin to 30-min 
 THIN_OLD_GAP_S = 29 * 60
 
 BACKFILL_START = "2026-07-05T00:00:00Z"
-TOTAL_SIZE_BUDGET = 900 * 1024     # over budget: thin backfill from 1-hour to 2-hour spacing
+TOTAL_SIZE_BUDGET = 1150 * 1024    # over budget: thin backfill from 1-hour to 2-hour spacing
 NWPS_GAUGE_URL = "https://api.water.noaa.gov/nwps/v1/gauges/"
 USGS_IV_URL = "https://waterservices.usgs.gov/nwis/iv/"
 USGS_SITES_PER_REQ = 10
@@ -136,10 +147,74 @@ def thin_old_frames(frames):
     return kept
 
 
-def serialize(frames, gauge_index):
+# identity across snapshots: OBJECTIDs are null/unstable in the archive, (route, start) is stable
+def road_key(rec):
+    return f"{rec.get('route')}|{rec.get('start')}"
+
+
+def road_snapshots():
+    out = git("log", "--format=%H", "--", ROADS_PATH).split()
+    snaps = []
+    index, rid_by_key = {}, {}
+    for chash in reversed(out):
+        try:
+            raw = subprocess.run(("git", "-C", ROOT, "show", f"{chash}:{ROADS_PATH}"),
+                                 capture_output=True, text=True, check=True).stdout
+            snap = json.loads(raw)
+            snap_dt = parse_iso(snap["generated"])
+            if not snap_dt:
+                raise ValueError(f"bad generated stamp {snap['generated']!r}")
+        except (subprocess.CalledProcessError, ValueError, KeyError, TypeError):
+            continue
+        present = set()
+        for rec in snap.get("roads", []):
+            if not isinstance(rec.get("v"), list) or not rec.get("start"):
+                continue
+            key = road_key(rec)
+            rid = rid_by_key.setdefault(key, len(rid_by_key))
+            index[rid] = {"cond": rec.get("cond"), "route": rec.get("route"), "v": rec["v"],
+                          "start": rec.get("start"), "end": rec.get("end")}  # latest-seen wins (ends get extended)
+            present.add(rid)
+        snaps.append({"dt": snap_dt, "iso": snap["generated"], "present": present})
+    snaps.sort(key=lambda s: s["dt"])
+    return snaps, index
+
+
+def apply_road_history(frames):
+    snaps, index = road_snapshots()
+    if not snaps:
+        return None, None, 0, 0
+    windows = []
+    for rid, e in index.items():
+        s, en = parse_iso(e["start"]), parse_iso(e["end"])
+        if s:
+            windows.append((rid, s.astimezone(datetime.timezone.utc),
+                            en.astimezone(datetime.timezone.utc) if en else None))
+    snap_times = [s["dt"] for s in snaps]
+    roads_from = snaps[0]["dt"]
+    recon = arch = 0
+    for f in frames:
+        t = f["_dt"]
+        active = {rid for rid, s, en in windows if s <= t and (en is None or t < en)}
+        i = bisect.bisect_right(snap_times, t) - 1
+        if i >= 0:
+            active |= snaps[i]["present"]
+        if active:
+            f["roads"] = sorted(active)
+            if t >= roads_from:
+                arch += 1
+            else:
+                recon += 1
+    road_index = {str(rid): e for rid, e in index.items()}
+    return road_index, snaps[0]["iso"], recon, arch
+
+
+def serialize(frames, gauge_index, road_index=None, roads_from=None):
     emitted = []
     for f in frames:
         frame = {"t": f["t"], "gauges": f["gauges"]}
+        if f.get("roads"):
+            frame["roads"] = f["roads"]
         if "src" in f:
             frame["src"] = f["src"]
         emitted.append(frame)
@@ -148,6 +223,9 @@ def serialize(frames, gauge_index):
         "frames": emitted,
         "gaugeIndex": gauge_index,
     }
+    if road_index:
+        out["roadIndex"] = road_index
+        out["roadsFrom"] = roads_from
     return json.dumps(out, separators=(",", ":")) + "\n"
 
 
@@ -348,12 +426,13 @@ def main():
                   "frames from existing history.json", file=sys.stderr)
     git_count = len(frames)
     frames = backfill + frames
-    payload = serialize(frames, gauge_index)
+    road_index, roads_from, road_recon, road_arch = apply_road_history(frames)
+    payload = serialize(frames, gauge_index, road_index, roads_from)
     thinned = False
     if len(payload) > TOTAL_SIZE_BUDGET and backfill:
         frames = thin_backfill(frames)
         backfill = [f for f in frames if f.get("src") == "usgs"]
-        payload = serialize(frames, gauge_index)
+        payload = serialize(frames, gauge_index, road_index, roads_from)
         thinned = True
     with open(os.path.join(ROOT, OUT_PATH), "w", encoding="utf-8") as f:
         f.write(payload)
@@ -363,6 +442,11 @@ def main():
           f"{len(payload)} bytes ({len(payload) / 1024:.1f} KB)"
           f"{' — thinned backfill to 2-hour' if thinned else ''}")
     print(f"  window {frames[0]['t']} → {frames[-1]['t']}")
+    if road_index:
+        print(f"roads: {len(road_index)} closures indexed, {road_recon + road_arch} frames with road state "
+              f"({road_recon} reconstructed from posted times, {road_arch} archived), archive from {roads_from}")
+    else:
+        print("roads: no roads-snapshot archive found — road replay omitted")
     if backfill:
         report_backfill(backfill, src_by_lid, len(gauge_index))
 

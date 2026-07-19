@@ -856,11 +856,13 @@ async function openPlayback() {
     $('#refresh-note').textContent = t('playback.unavail');
     return;
   }
-  if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, speed: 1, capKey: null };
+  if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, speed: 0.5, capKey: null };
+  state.pb.speed = 0.5; // every entry resets to the readable default; a changed speed lasts only until close
   $('#playback-bar').hidden = false;
   $('#pb-speed').textContent = `${state.pb.speed}×`;
   pill.classList.add('open');
   document.body.classList.add('pb-bar-open');
+  pbSheetMin();
   setPlaybackRange(state.pb.days);
   const pbt = Date.parse(new URLSearchParams(location.search).get('pbt') || ''); // deep link: jump to a moment
   if (Number.isFinite(pbt) && !state.pbtApplied) {
@@ -883,21 +885,61 @@ function togglePlayback() {
   else openPlayback();
 }
 
-// window = chosen 3/7/14d clipped to the archive — never fake empty frames before the archive starts
+// playback collapses the phone bottom sheet so the map owns the screen; prior state restores on exit/NOW
+function pbSheetMin() {
+  if (window.innerWidth > 768 || typeof setSheet !== 'function') return;
+  const main = document.querySelector('main');
+  const cur = SHEET_STATES.find((s) => main.classList.contains(s));
+  if (!cur || cur === 'sheet-peek') return;
+  state.pbPrevSheet = cur;
+  setSheet('sheet-peek');
+}
+function pbSheetRestore() {
+  const prev = state.pbPrevSheet;
+  state.pbPrevSheet = null;
+  if (!prev || typeof setSheet !== 'function') return;
+  // a manual resize during playback wins — only snap back if the pane is still where playback put it
+  if (document.querySelector('main').classList.contains('sheet-peek')) setSheet(prev);
+}
+
+// window = chosen 3/7/14d; the slider track spans the full request, frames clip to the archive —
+// the pre-archive gap renders hatched, never faked with empty frames
 function setPlaybackRange(days) {
   const pb = state.pb, frames = state.pbData.frames;
   pb.days = days;
-  pb.loT = Math.max(Date.now() - days * 86400000, frames[0]._t);
+  pb.winLoT = Date.now() - days * 86400000;
+  pb.loT = Math.max(pb.winLoT, frames[0]._t);
   pb.hiT = frames[frames.length - 1]._t;
   document.querySelectorAll('.pb-chip').forEach((b) => b.classList.toggle('on', +b.dataset.days === days));
   const sl = $('#pb-slider');
-  sl.min = pb.loT;
+  sl.min = pb.winLoT;
   sl.max = pb.hiT;
   sl.step = 60000;
+  renderPlaybackPreArchive();
   renderPlaybackTicks();
   pbBuildStory();
   if (pb.live) { sl.value = pb.hiT; updatePlaybackReadout(); } else setPlaybackFrame(pb.idx);
   updatePlaybackNote();
+}
+
+function renderPlaybackPreArchive() {
+  const pb = state.pb, frames = state.pbData.frames;
+  const el = $('#pb-prearch');
+  const frac = (frames[0]._t - pb.winLoT) / (pb.hiT - pb.winLoT || 1);
+  el.hidden = frac <= 0.004;
+  el.style.width = `${Math.min(Math.max(frac, 0), 1) * 100}%`;
+  if (!el.hidden) pbFlashArchNote();
+}
+
+// one prominent flash per session the first time a chosen range reaches before the archive's birth
+function pbFlashArchNote() {
+  if (state.pbArchNoted) return;
+  state.pbArchNoted = true;
+  const el = $('#pb-arch-note');
+  el.textContent = t('playback.archnote').replace('{t}', fmtCT(state.pbData.frames[0].t));
+  el.hidden = false;
+  clearTimeout(state.pbArchNoteTimer);
+  state.pbArchNoteTimer = setTimeout(() => { el.hidden = true; }, 3000);
 }
 
 function pbFrameAt(tMs) {
@@ -922,7 +964,7 @@ function renderPlaybackTicks() {
     const b = document.createElement('button');
     b.className = 'pb-tick';
     b.textContent = '▲';
-    b.style.left = `${((pt - pb.loT) / (pb.hiT - pb.loT || 1)) * 100}%`;
+    b.style.left = `${((pt - pb.winLoT) / (pb.hiT - pb.winLoT || 1)) * 100}%`;
     b.title = `${g.name} crest ${g.peak} ${g.unit || 'ft'}`;
     b.addEventListener('click', () => { stopPlaybackPlay(); setPlaybackFrame(pbFrameAt(pt)); });
     el.appendChild(b);
@@ -985,6 +1027,7 @@ function playbackEngage() {
   const pb = state.pb;
   if (!pb.live) return;
   pb.live = false;
+  pbSheetMin(); // re-engaging after NOW re-collapses the pane
   pbEnsureMarkers();
   pb.gaugesWereOn = state.map.hasLayer(state.layers.gauges);
   if (pb.gaugesWereOn) state.map.removeLayer(state.layers.gauges);
@@ -1013,7 +1056,9 @@ function playbackEngage() {
 // NOW: instant, total restore of the live picture
 function playbackGoLive() {
   const pb = state.pb;
-  if (!pb || pb.live) return;
+  if (!pb) return;
+  pbSheetRestore();
+  if (pb.live) return;
   stopPlaybackPlay();
   pb.live = true;
   if (state.map.hasLayer(state.layers.pbGauges)) state.map.removeLayer(state.layers.pbGauges);
@@ -1092,7 +1137,7 @@ function updatePlaybackNote() {
       return s <= ft && e >= ft;
     }).length;
     if (n) note += ` · ${t('playback.note.alerthist').replace('{n}', n)}`;
-    if (state.pbData.frames[pbFirstIdx()]._t > Date.now() - pb.days * 86400000 + 60000) {
+    if (state.pbData.frames[pbFirstIdx()]._t > pb.winLoT + 60000) {
       note += ` · ${t('playback.note.start').replace('{t}', fmtCT(state.pbData.frames[0].t))}`;
     }
   }
@@ -1146,6 +1191,13 @@ function pbStepFrame(d) {
 }
 
 function initPlaybackControls() {
+  // over-map controls must never leak taps into Leaflet (double-tap zoom, pinch) — same guard as AO chips/layer pills
+  for (const sel of ['#playback-bar', '#pb-pill', '#pb-badge', '#radar-scrub']) {
+    const el = $(sel);
+    if (!el) continue;
+    L.DomEvent.disableClickPropagation(el);
+    L.DomEvent.disableScrollPropagation(el);
+  }
   $('#pb-pill').addEventListener('click', togglePlayback);
   $('#pb-play').addEventListener('click', togglePlaybackPlay);
   $('#pb-now').addEventListener('click', playbackGoLive);

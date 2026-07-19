@@ -644,6 +644,20 @@ function roadVertex(geo) {
   return Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]) ? [c[1], c[0]] : null;
 }
 
+function roadSegMiles(geo) {
+  if (!geo || !Array.isArray(geo.coordinates)) return 0;
+  const parts = geo.type === 'MultiLineString' ? geo.coordinates : [geo.coordinates];
+  let mi = 0;
+  for (const line of parts) {
+    if (!Array.isArray(line)) continue;
+    for (let i = 1; i < line.length; i++) {
+      const a = line[i - 1], b = line[i];
+      if (Array.isArray(a) && Array.isArray(b)) mi += distMi(a[1], a[0], b[1], b[0]);
+    }
+  }
+  return mi;
+}
+
 function roadMemory() {
   if (!state.roadMemory) {
     try { state.roadMemory = Object.assign({ seen: {}, reopened: {} }, JSON.parse(localStorage.getItem(ROADS_KEY) || '{}')); }
@@ -687,19 +701,23 @@ function reopenedPopupHtml(r) {
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · cleared from the live feed; verify before routing</div>`;
 }
 
-function roadPopupHtml(p) {
+function roadPopupHtml(p, geo) {
   const ct = roadCondType(p);
   const road = prettyRoute(p.route_name) || 'Road';
   const from = p.from_limit || '';
   const to = p.to_limit || '';
   const dscr = stripHtml(p.description);
   const detour = Number(p.detour_flag) === 1;
+  const miles = Math.round(roadSegMiles(geo));
+  const seg = miles >= 2 ? t('road.seg').replace('{mi}', String(miles)) : '';
+  const isClosure = String(p.condition || '').toLowerCase() === 'closure';
   return `<div class="popup-title" style="color:${ct.color}">${esc(ct.label)}</div>` +
     `<div class="popup-meta"><strong>${esc(road)}</strong></div>` +
-    ((from || to) ? `<div class="popup-meta">${esc(from)}${from && to ? ' → ' : ''}${esc(to)}</div>` : '') +
+    ((from || to || seg) ? `<div class="popup-meta">${esc(from)}${from && to ? ' → ' : ''}${esc(to)}${(from || to) && seg ? ' · ' : ''}${esc(seg)}</div>` : '') +
     (dscr ? `<div class="popup-meta">${esc(dscr)}</div>` : '') +
     (p.start_time ? `<div class="popup-meta">Since ${esc(fmtWhen(p.start_time))}</div>` : '') +
     (detour ? '<div class="popup-meta">Detour available</div>' : '') +
+    `<div class="popup-meta" style="opacity:.8">${esc(t(isClosure ? 'road.note.closure' : 'road.note.cond'))}</div>` +
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee; verify before routing</div>`;
 }
 
@@ -712,7 +730,7 @@ function renderRoadClosures() {
     if (!f.geometry) continue;
     const ct = roadCondType(f.properties);
     const gj = L.geoJSON(f, { style: { color: ct.color, weight: 5, opacity: 0.9 }, attribution: ROAD_ATTRIB });
-    gj.bindPopup(roadPopupHtml(f.properties));
+    gj.bindPopup(roadPopupHtml(f.properties, f.geometry));
     layer.addLayer(gj);
   }
   for (const f of rc.points) {

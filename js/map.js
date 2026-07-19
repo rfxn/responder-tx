@@ -425,7 +425,8 @@ function initMap() {
   const sheetBtn = L.control({ position: 'topright' });
   sheetBtn.onAdd = () => {
     const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger');
-    div.innerHTML = `<a href="#" role="button" title="${esc(t('sheet.open'))}" aria-label="${esc(t('sheet.open'))}">🗂</a>`;
+    // inline SVG, not emoji — desktop emoji fonts render 🗂 as a flat black box that clashes with the zoom bar
+    div.innerHTML = `<a href="#" role="button" title="${esc(t('sheet.open'))}" aria-label="${esc(t('sheet.open'))}" data-i18n-title="sheet.open" data-i18n-aria="sheet.open">${CTL_ICON_LAYERS}</a>`;
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.on(div.firstChild, 'click', (e) => {
       L.DomEvent.stop(e);
@@ -434,11 +435,11 @@ function initMap() {
     return div;
   };
   sheetBtn.addTo(state.map);
-  // v0.90 owner ask: Share stays first-class — a map control right below the 🗂 trigger (also still in ⋮)
+  // Share stays first-class — a map control right below the layers trigger (also still in ⋮)
   const shareCtl = L.control({ position: 'topright' });
   shareCtl.onAdd = () => {
     const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger share-trigger');
-    div.innerHTML = `<a href="#" role="button" title="${esc(t('ctl.share.title'))}" aria-label="${esc(t('ctl.share.aria'))}">🔗</a>`;
+    div.innerHTML = `<a href="#" role="button" title="${esc(t('ctl.share.title'))}" aria-label="${esc(t('ctl.share.aria'))}" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">${CTL_ICON_LINK}</a>`;
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.on(div.firstChild, 'click', (e) => {
       L.DomEvent.stop(e);
@@ -479,6 +480,11 @@ function initMap() {
   declutter();
 }
 
+/* ---------- map-control icons — stroke SVGs inherit the themed .leaflet-bar color ---------- */
+
+const CTL_ICON_LAYERS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>';
+const CTL_ICON_LINK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+
 /* ---------- AO quick-jump — pills along the map top edge, never another stacked box ---------- */
 
 const AO_PRESETS = [
@@ -492,14 +498,42 @@ const AO_PRESETS = [
 
 function initAoJump() {
   const jump = L.DomUtil.create('div', 'ao-jump', state.map.getContainer());
-  const tog = L.DomUtil.create('button', 'ao-toggle', jump);
-  tog.textContent = '🗺'; tog.title = 'Area quick-jump presets';
-  L.DomEvent.on(tog, 'click', () => jump.classList.toggle('open'));
-  for (const [label, bounds] of AO_PRESETS) {
-    const b = L.DomUtil.create('button', 'ao-chip', jump);
-    b.textContent = label;
-    L.DomEvent.on(b, 'click', () => state.map.fitBounds(bounds));
+  const cur = L.DomUtil.create('button', 'ao-current', jump);
+  cur.setAttribute('aria-haspopup', 'true');
+  cur.setAttribute('aria-expanded', 'false');
+  cur.title = t('ao.current.title');
+  cur.setAttribute('data-i18n-title', 'ao.current.title');
+  const row = L.DomUtil.create('div', 'ao-row', jump);
+  let picked = AO_PRESETS[0];
+  let idleT = 0;
+  const label = (txt) => { cur.innerHTML = `◎ ${esc(txt)} <span class="ao-caret">▾</span>`; };
+  const collapse = () => { jump.classList.remove('open'); cur.setAttribute('aria-expanded', 'false'); clearTimeout(idleT); };
+  const armIdle = () => { clearTimeout(idleT); idleT = setTimeout(collapse, 6000); };
+  const expand = () => { jump.classList.add('open'); cur.setAttribute('aria-expanded', 'true'); armIdle(); };
+  label(picked[0]);
+  L.DomEvent.on(cur, 'click', () => (jump.classList.contains('open') ? collapse() : expand()));
+  for (const preset of AO_PRESETS) {
+    const b = L.DomUtil.create('button', 'ao-chip', row);
+    b.textContent = preset[0];
+    b.title = t('ao.chip.title');
+    b.setAttribute('data-i18n-title', 'ao.chip.title');
+    L.DomEvent.on(b, 'click', () => {
+      picked = preset;
+      state.map.fitBounds(preset[1]);
+      label(preset[0]);
+      collapse(); // the map jump is the feedback — a lingering open row competes with it
+    });
   }
+  jump.addEventListener('pointermove', () => { if (jump.classList.contains('open')) armIdle(); });
+  document.addEventListener('pointerdown', (e) => {
+    if (jump.classList.contains('open') && !jump.contains(e.target)) collapse();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && jump.classList.contains('open')) collapse();
+  });
+  state.map.on('moveend', () => {
+    label(L.latLngBounds(picked[1]).contains(state.map.getCenter()) ? picked[0] : t('ao.custom'));
+  });
   L.DomEvent.disableClickPropagation(jump);
   L.DomEvent.disableScrollPropagation(jump);
 }

@@ -184,6 +184,10 @@
       'layers.notices': 'Notices',
       'layers.shelters': 'Shelters',
 
+      'ao.current.title': 'Area of operations view — tap to change area',
+      'ao.chip.title': 'Jump the map to this area',
+      'ao.custom': 'custom view',
+
       'sheet.open': 'Map layers: choose what the map shows',
       'sheet.title': '🗂 Map layers',
       'sheet.g.base': 'Basemap',
@@ -255,6 +259,9 @@
       'reopen.flag': 'REOPENED',
       'reopen.was': 'was',
       'reopen.at': 'reopened',
+      'road.seg': '{mi} mi segment',
+      'road.note.closure': 'TxDOT closes between the listed limits; the full stretch is barricaded even if water or damage is localized within it.',
+      'road.note.cond': 'Condition reported between the listed limits; may be localized within this stretch.',
 
       'leg.rain': 'Rainfall (MRMS)',
       'leg.rain.acc': 'Rainfall accumulation {w} (MRMS)',
@@ -618,6 +625,10 @@
       'layers.notices': 'Reportes verificados',
       'layers.shelters': 'Refugios',
 
+      'ao.current.title': 'Vista del área de operaciones — toque para cambiar de área',
+      'ao.chip.title': 'Mover el mapa a esta área',
+      'ao.custom': 'vista personalizada',
+
       'sheet.open': 'Capas del mapa: elija qué muestra el mapa',
       'sheet.title': '🗂 Capas del mapa',
       'sheet.g.base': 'Mapa base',
@@ -689,6 +700,9 @@
       'reopen.flag': 'REABIERTO',
       'reopen.was': 'era',
       'reopen.at': 'reabierto',
+      'road.seg': 'tramo de {mi} mi',
+      'road.note.closure': 'TxDOT cierra entre los límites indicados; todo el tramo queda bloqueado aunque el agua o el daño esté localizado dentro de él.',
+      'road.note.cond': 'Condición reportada entre los límites indicados; puede estar localizada dentro de este tramo.',
 
       'leg.rain': 'Lluvia (MRMS)',
       'leg.rain.acc': 'Lluvia acumulada {w} (MRMS)',

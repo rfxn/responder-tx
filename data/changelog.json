@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.87.0",
+      "date": "2026-07-18",
+      "line": "The board now updates itself, gracefully: when a new version ships, the app waits until you're not mid-anything (no open panel or viewer, no playback, no recent touch, data refresh settled), shows a quiet 4-second \"reloading\" notice with a Later button, then reloads into the new build with your exact view restored — map position, tab, filters, basemap, theme — confirmed by a small ✓ toast that opens What's New. Hidden tabs update when you return to them, an unsent LAN chat draft survives the reload, and lag-safe guards mean it can never reload-loop. The ⬆ chip remains for an immediate manual reload."
+    },
+    {
       "v": "v0.86.0",
       "date": "2026-07-18",
       "line": "First-run help & one search box: new visitors get a 3-panel intro (after the 911 notice) — the map is live hazards, the feed is verified notices, long-press checks a point and ⏮ replays the event; a new \"?\" Legend button in the header explains every symbol (gauge colors, STALE, map markers, threat chips, OFFICIAL vs CURATED badges, aging, playback, USNG) in EN/ES; and one header 🔍 search now finds places/addresses, gauges by name or ID, typed \"lat, lon\", and R-### cards — a place result flies the map and drops the point-check card there. The separate 🔍 ID button folded into the search."

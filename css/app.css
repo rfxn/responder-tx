@@ -157,6 +157,19 @@ main { flex: 1; display: flex; min-height: 0; }
 /* the address risk-check is the public entry point — accent it so it reads as a headline feature */
 #risk-btn { border-color: var(--accent); color: var(--accent); font-weight: 650; }
 #risk-btn:hover { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
+/* graceful-update toast — quiet notice before/after the idle rollover reload */
+#update-toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  z-index: 1750; max-width: min(92vw, 460px);
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--surface-1); border: 1px solid var(--border); border-left: 4px solid var(--good);
+  border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--ink-1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+}
+#update-toast[hidden] { display: none; }
+#update-toast.confirm { cursor: pointer; }
+#update-toast button { min-height: 0; padding: 4px 10px; font-size: 12px; flex: 0 0 auto; }
+
 #drive-hint {
   position: fixed; top: 54px; right: 10px; z-index: 1250; max-width: min(92vw, 340px);
   display: flex; align-items: center; gap: 8px; padding: 9px 11px;

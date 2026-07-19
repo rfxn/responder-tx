@@ -93,13 +93,100 @@ function renderSourceHealth() {
     }).join('') + '</div>';
 }
 
-// long-lived tabs run old code forever — tell them when a newer build shipped (never auto-reload mid-use)
+// long-lived tabs run old code forever — badge immediately, then roll to the new build once fully idle
 async function checkAppVersion() {
   try {
     const d = await fetch(`data/changelog.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
     const latest = d && d.versions && d.versions[0] && d.versions[0].v;
-    if (latest && latest !== APP_VERSION) $('#update-chip').hidden = false;
+    if (!latest || latest === APP_VERSION) return;
+    $('#update-chip').hidden = false;
+    armRollover(latest);
   } catch { /* offline — no update signal */ }
+}
+
+/* ---------- graceful update rollover (v0.87) — capture view, wait for idle, reload, restore ---------- */
+
+const ROLL_STATE_KEY = 'respondertx.rollView';
+const ROLL_DONE_KEY = 'respondertx.rolledTo';
+const ROLL_IDLE_MS = 20000;
+const ROLL_POSTPONE_MS = 300000;
+const ROLL_HOLD_MS = 600000;
+
+function armRollover(latest) {
+  let rolled = null;
+  try { rolled = JSON.parse(sessionStorage.getItem(ROLL_DONE_KEY) || 'null'); } catch { rolled = null; }
+  // already rolled to this version but still booted the old build (CDN lag) — hold 10 min, never reload-loop
+  if (rolled && rolled.v === latest && Date.now() - rolled.t < ROLL_HOLD_MS) return;
+  state.updateTarget = latest;
+  if (!state.rollTimer) state.rollTimer = setInterval(tryRollover, 5000);
+}
+
+// truthy = the user is mid-something; the 5s poll retries until fully idle
+function rolloverBusy() {
+  if (document.visibilityState === 'hidden') return 'hidden';
+  if (state.refreshBusy) return 'refresh';
+  if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
+  if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#cam-viewer']) {
+    const el = $(id);
+    if (el && !el.hidden) return id;
+  }
+  if (!$('#playback-bar').hidden) return 'playback';
+  if ($('#new-request-form').classList.contains('open')) return 'intake';
+  if ($('#hsearch').classList.contains('open')) return 'search';
+  const chatPanel = document.getElementById('chat-panel');
+  if (chatPanel && !chatPanel.hidden) return 'chat';
+  return '';
+}
+
+function tryRollover() {
+  if (!state.updateTarget || state.rollToastTimer || rolloverBusy()) return;
+  $('#update-toast-text').textContent = t('update.reloading').replace('{v}', state.updateTarget);
+  $('#update-toast-later').hidden = false;
+  $('#update-toast').classList.remove('confirm');
+  $('#update-toast').hidden = false;
+  state.rollToastTimer = setTimeout(performRollover, 4000);
+}
+
+function postponeRollover() {
+  clearTimeout(state.rollToastTimer);
+  state.rollToastTimer = null;
+  state.rollPostponedUntil = Date.now() + ROLL_POSTPONE_MS;
+  $('#update-toast').hidden = true;
+}
+
+function performRollover() {
+  state.rollToastTimer = null;
+  if (rolloverBusy()) { $('#update-toast').hidden = true; return; } // user re-engaged during the 4s notice — retry when idle again
+  const now = Date.now();
+  try { sessionStorage.setItem(ROLL_DONE_KEY, JSON.stringify({ v: state.updateTarget, t: now })); } catch { /* private mode — the header chip still offers a manual reload */ }
+  try {
+    const qs = buildShareUrl().split('?')[1] || '';
+    sessionStorage.setItem(ROLL_STATE_KEY, JSON.stringify({ v: state.updateTarget, t: now, qs }));
+    const draft = document.getElementById('chat-input');
+    if (draft && draft.value.trim()) sessionStorage.setItem('respondertx.chatDraft', draft.value);
+    location.replace(`${location.pathname}?${qs}`);
+  } catch { location.reload(); } // serializer failed — a plain reload still fetches the new build
+}
+
+// boot-side: read+clear the blob; re-install its query string if the reload lost it
+function consumeRolloverState() {
+  let blob = null;
+  try { blob = JSON.parse(sessionStorage.getItem(ROLL_STATE_KEY) || 'null'); } catch { blob = null; }
+  try { sessionStorage.removeItem(ROLL_STATE_KEY); } catch { /* private mode */ }
+  if (!blob || typeof blob !== 'object' || typeof blob.v !== 'string') return null;
+  try {
+    if (!location.search && blob.qs) history.replaceState(null, '', `${location.pathname}?${blob.qs}`);
+  } catch { /* malformed qs — boot normally on defaults */ }
+  return blob;
+}
+
+function showUpdatedConfirm() {
+  $('#update-toast-text').textContent = t('update.done').replace('{v}', APP_VERSION);
+  $('#update-toast-later').hidden = true;
+  $('#update-toast').classList.add('confirm');
+  $('#update-toast').hidden = false;
+  setTimeout(() => { if ($('#update-toast').classList.contains('confirm')) $('#update-toast').hidden = true; }, 2000);
 }
 
 function tickCountdown() {
@@ -383,6 +470,7 @@ function relocalizeDynamic() {
 }
 
 async function boot() {
+  const rollBlob = consumeRolloverState(); // before any location.search read — may re-install the captured view params
   const themeParam = new URLSearchParams(location.search).get('theme');
   applyTheme(themeParam || localStorage.getItem('respondertx.theme') || 'dark');
   await loadEventConfig();
@@ -401,6 +489,16 @@ async function boot() {
     if (window.innerWidth <= 768 && document.querySelector('main').classList.contains('sheet-peek')) setSheet('sheet-half');
   }));
   initSheet();
+  // idle detection for the update rollover — any pointer/key/scroll marks the board busy for 20s
+  state.lastInteract = Date.now();
+  for (const ev of ['pointerdown', 'touchstart', 'keydown', 'wheel']) {
+    window.addEventListener(ev, () => { state.lastInteract = Date.now(); }, { capture: true, passive: true });
+  }
+  $('#update-toast-later').addEventListener('click', postponeRollover);
+  $('#update-toast').addEventListener('click', (e) => {
+    if (e.target.id === 'update-toast-later') return;
+    if ($('#update-toast').classList.contains('confirm')) { $('#update-toast').hidden = true; openChangelog(); }
+  });
   // device rotation reflows the map container — Leaflet needs invalidateSize or tiles stay grey
   let resizeT;
   window.addEventListener('resize', () => {
@@ -638,6 +736,11 @@ async function boot() {
   const ok = await loadSeeds();
   // a shared ?fq=R-031 link fires before seeds exist — re-fly once the cards are on the board
   if (ok) flyToRadioId(new URLSearchParams(location.search).get('fq'));
+  if (rollBlob) {
+    // drop the frozen restore params so a later manual reload uses the saved view, not this URL
+    try { history.replaceState(null, '', location.pathname); } catch { /* sandboxed context — cosmetic only */ }
+    if (rollBlob.v === APP_VERSION) showUpdatedConfirm(); // still on the old build (CDN lag) — no false "updated"
+  }
   if (!ok) {
     $('#request-list').innerHTML = '<div class="card">Failed to load seed data. Serve over HTTP (see README), not file://.</div>';
     state.resources = state.resources || { shelters: [], hotlines: [], monitors: [], comms: [], dataLinks: [] };
@@ -651,10 +754,12 @@ async function boot() {
     refresh();
   }, CONFIG.refreshMs);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state.pendingRefresh) {
+    if (document.visibilityState !== 'visible') return;
+    if (state.pendingRefresh) {
       state.pendingRefresh = false;
       refresh();
     }
+    tryRollover(); // a pending rollover deferred while hidden fires on return instead
   });
   setInterval(tickCountdown, 1000);
 }

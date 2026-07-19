@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.86.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.86.0">
-  <link rel="stylesheet" href="css/app.css?v=0.86.0">
-  <link rel="stylesheet" href="css/notes.css?v=0.86.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.87.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.87.0">
+  <link rel="stylesheet" href="css/app.css?v=0.87.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.87.0">
 </head>
 <body>
   <header>
@@ -61,6 +61,10 @@
   <div id="drive-hint" hidden>
     <span data-i18n-html="hint.drive">🚗 <strong>Drive Mode</strong>: big-type nearest hazards, ranked by distance, for the road</span>
     <button id="drive-hint-go" data-i18n="hint.open">Open</button><button id="drive-hint-x" title="Dismiss" aria-label="Dismiss" data-i18n-title="hint.dismiss" data-i18n-aria="hint.dismiss">✕</button>
+  </div>
+  <div id="update-toast" hidden role="status" aria-live="polite">
+    <span id="update-toast-text"></span>
+    <button id="update-toast-later" data-i18n="update.later">Later</button>
   </div>
   <div id="ticker" hidden><div class="ticker-track" id="ticker-track"></div></div>
   <div id="emergency-banner" hidden>
@@ -362,16 +366,16 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.86.0"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.86.0"></script>
-  <script src="js/usng.js?v=0.86.0"></script>
-  <script src="js/i18n.js?v=0.86.0"></script>
-  <script src="js/core.js?v=0.86.0"></script>
-  <script src="js/map.js?v=0.86.0"></script>
-  <script src="js/sources.js?v=0.86.0"></script>
-  <script src="js/panels.js?v=0.86.0"></script>
-  <script src="js/board.js?v=0.86.0"></script>
-  <script src="js/boot.js?v=0.86.0"></script>
-  <script src="js/notes.js?v=0.86.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.87.0"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.87.0"></script>
+  <script src="js/usng.js?v=0.87.0"></script>
+  <script src="js/i18n.js?v=0.87.0"></script>
+  <script src="js/core.js?v=0.87.0"></script>
+  <script src="js/map.js?v=0.87.0"></script>
+  <script src="js/sources.js?v=0.87.0"></script>
+  <script src="js/panels.js?v=0.87.0"></script>
+  <script src="js/board.js?v=0.87.0"></script>
+  <script src="js/boot.js?v=0.87.0"></script>
+  <script src="js/notes.js?v=0.87.0"></script>
 </body>
 </html>

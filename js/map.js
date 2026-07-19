@@ -761,6 +761,14 @@ const PB_RADAR_URL = (stamp) => `https://mesonet.agron.iastate.edu/cache/tile.py
 const PB_BASE_FRAME_MS = 500; // 1x is ~2 fps — slow enough to read the story (owner ask)
 const PB_SPEEDS = [0.5, 1, 2, 4];
 const PB_CAT_NAMES = ['none', 'action', 'minor', 'moderate', 'major'];
+// v0.91 prominence: playback-only marker scale — majors ≈ 2× the live size so threats-to-life read first
+const PB_CAT_SIZE = { major: 32, moderate: 20, minor: 12, action: 10, none: 7 };
+const PB_PULSE_FRAMES = 3;   // category-change ring decays over ~3 frames — visual only
+const PB_LABEL_MAX = 5;
+const PB_LABEL_MIN_ZOOM = 8;
+const PB_ROAD_GLYPH = { Closure: '⛔', Flooding: '🌊', Damage: '⚠' };
+const PB_FLOW_MAX = 3;
+const PB_RIVER_SPLIT = / (?:at|near|below|above) /i;
 
 /* archived NWS storm-based warnings — OFFICIAL products via IEM sbw.geojson (CORS-open).
    Cached per 15-min bucket (LRU); each poly's polygon_begin/end governs per-frame visibility,
@@ -907,13 +915,71 @@ async function loadPlaybackData() {
   if (!Array.isArray(d.frames) || !d.frames.length) throw new Error('empty history');
   d.frames.forEach((f) => { f._t = new Date(f.t).getTime(); });
   state.pbData = d;
+  state.pbRoadsFromT = d.roadsFrom ? new Date(d.roadsFrom).getTime() : Infinity;
   // chapter marks: major-peak gauges from the crest summary, most significant first (best-effort)
   try {
     const cs = await fetch(`data/crest-summary.json?_=${Math.floor(Date.now() / 300000)}`).then((r) => (r.ok ? r.json() : null));
     state.pbCrests = (cs && cs.gauges) || [];
     state.pbChapters = state.pbCrests.filter((g) => g.peak_category === 'major').slice(0, 8);
   } catch { state.pbCrests = []; state.pbChapters = []; }
+  state.pbRecordPct = {};
+  for (const g of state.pbCrests) { if (g.record && g.record.peak_pct > 0) state.pbRecordPct[g.lid] = g.record.peak_pct; }
+  pbBuildCrestFlows();
   return d;
+}
+
+/* crest-flow detection (v0.91, illustrative): a crest translating between two gauges on the SAME
+   river — consecutive moderate/major peaks (crest summary) ordered by peak time, sanity-gated on
+   gap and distance. Drawn as a straight dashed line: honestly schematic, never traced geometry. */
+function pbBuildCrestFlows() {
+  state.pbFlows = [];
+  const gi = state.pbData.gaugeIndex;
+  const byRiver = {};
+  for (const g of state.pbCrests || []) {
+    if (g.stale || !['moderate', 'major'].includes(g.peak_category) || !gi[g.lid]) continue;
+    const river = String(g.name || '').split(PB_RIVER_SPLIT)[0].trim();
+    if (!river) continue;
+    (byRiver[river] = byRiver[river] || []).push(g);
+  }
+  for (const list of Object.values(byRiver)) {
+    list.sort((a, b) => new Date(a.peak_time) - new Date(b.peak_time));
+    for (let i = 0; i + 1 < list.length; i++) {
+      const a = list[i], b = list[i + 1];
+      const t0 = new Date(a.peak_time).getTime(), t1 = new Date(b.peak_time).getTime();
+      const dtH = (t1 - t0) / 3600000;
+      if (!(dtH >= 1 && dtH <= 96)) continue; // same-moment peaks or unrelated events: not a translation
+      const A = gi[a.lid], B = gi[b.lid];
+      const mi = distMi(A.lat, A.lon, B.lat, B.lon);
+      if (mi < 3 || mi > 150) continue;
+      state.pbFlows.push({
+        key: `${a.lid}>${b.lid}`, t0, t1, a: A, b: B, line: null, lbl: null,
+        rank: Math.max(CAT_RANK[a.peak_category] || 0, CAT_RANK[b.peak_category] || 0),
+      });
+    }
+  }
+}
+
+function pbPaintFlows(frame) {
+  if (!state.pbFlows || !state.layers.pbFlows) return;
+  const act = state.pbFlows.filter((f) => f.t0 <= frame._t && frame._t <= f.t1)
+    .sort((x, y) => y.rank - x.rank).slice(0, PB_FLOW_MAX);
+  const key = act.map((f) => f.key).join(',');
+  if (key === state.pbFlowKey) return;
+  state.pbFlowKey = key;
+  state.layers.pbFlows.clearLayers();
+  for (const f of act) {
+    if (!f.line) {
+      f.line = L.polyline([[f.a.lat, f.a.lon], [f.b.lat, f.b.lon]], {
+        className: 'pb-crest-line', color: cssVar('--cat-major') || '#e5342f',
+        weight: 3, opacity: 0.85, dashArray: '10 8', interactive: false,
+      });
+      f.lbl = L.marker([(f.a.lat + f.b.lat) / 2, (f.a.lon + f.b.lon) / 2], {
+        interactive: false, keyboard: false,
+        icon: L.divIcon({ className: '', html: `<div class="pb-crest-lbl">▸ ${esc(t('playback.crestflow'))}</div>`, iconSize: [0, 0] }),
+      });
+    }
+    state.layers.pbFlows.addLayer(f.line).addLayer(f.lbl);
+  }
 }
 
 /* story engine — gauge category transitions (frame diffs) + moderate/major crests (crest summary)
@@ -957,6 +1023,16 @@ function pbBuildStory() {
       ev.push({ t: rt, iso: r.reopenedAt, pri: 3, text: t('playback.story.reopen').replace('{road}', prettyRoute(r.route_name) || 'road') });
     }
   } catch { /* road memory unavailable — reopen captions simply absent */ }
+  // closure-onset captions from the posted start times in the archived road index (v0.91)
+  for (const r of Object.values(state.pbData.roadIndex || {})) {
+    const st = new Date(r.start).getTime();
+    if (!Number.isFinite(st) || st < pb.loT || st > pb.hiT) continue;
+    const ct = ROAD_COND[r.cond] || ROAD_COND_FALLBACK;
+    ev.push({
+      t: st, iso: r.start, pri: 3,
+      text: `${PB_ROAD_GLYPH[r.cond] || '🚧'} ${t('playback.story.road').replace('{road}', prettyRoute(r.route) || 'road').replace('{cond}', ct.label)}`,
+    });
+  }
   state.pbStoryBase = ev;
   pbStoryRebuild();
 }
@@ -1033,6 +1109,7 @@ function pbUpdateHud() {
     `<span style="color:var(--cat-moderate)">MOD ${n.moderate}</span> · ` +
     `<span style="color:var(--cat-minor)">MIN ${n.minor}</span> · ` +
     `<span>⚠ ${pbSbw.visibleN === null ? '–' : pbSbw.visibleN}</span>` +
+    (state.pbData.roadIndex ? ` · <span>⛔ ${(frame.roads || []).length}</span>` : '') +
     (mv ? ` · <span>${pbMoverTxt(mv)}</span>` : '');
 }
 
@@ -1189,9 +1266,10 @@ function pbEnsureMarkers() {
   for (const [lid, gi] of Object.entries(state.pbData.gaugeIndex)) {
     const icon = L.divIcon({
       className: '',
-      html: '<div class="gauge-hit pb-ghit"><div class="gauge-icon cat-none" style="width:8px;height:8px"></div></div>',
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      // children order is load-bearing: [0]=pulse ring, [1]=dot, [2]=callout label (pbPaintMarkers)
+      html: '<div class="gauge-hit pb-ghit"><div class="pb-ring" hidden></div><div class="gauge-icon cat-none" style="width:8px;height:8px"></div><div class="pb-glabel" hidden></div></div>',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
     });
     const m = L.marker([gi.lat, gi.lon], { icon });
     m.bindPopup(() => pbPopup(lid), { minWidth: 240 });
@@ -1214,21 +1292,119 @@ function pbPopup(lid) {
 }
 
 function pbPaintMarkers(frame) {
+  const prev = state.pbPrevCodes || {};
+  const pulse = state.pbPulse || (state.pbPulse = {});
+  const next = {};
   for (const [lid, m] of Object.entries(state.pbMarkers)) {
     const el = m.getElement();
     if (!el) continue;
     const rec = frame.gauges[lid];
-    if (!rec) { el.style.display = 'none'; continue; }
+    if (!rec) { el.style.display = 'none'; delete pulse[lid]; continue; }
     el.style.display = '';
+    next[lid] = rec[1];
     const { stale, cat } = pbDecode(rec[1]);
     const hit = el.firstChild;
     hit.className = `gauge-hit pb-ghit${cat === 'none' && !stale ? ' hit-none' : ''}`;
-    const dot = hit.firstChild;
+    const [ring, dot] = hit.children;
     dot.className = `gauge-icon ${stale ? 'stale' : `cat-${cat}`}`;
-    const size = stale ? 11 : CAT_SIZE[cat];
+    const size = stale ? 11 : PB_CAT_SIZE[cat];
     dot.style.width = `${size}px`;
     dot.style.height = `${size}px`;
-    m.setZIndexOffset(cat === 'major' ? 1000 : 0);
+    // colored pulse ring on a category change this frame (stale codes carry no honest transition)
+    if (lid in prev && prev[lid] !== rec[1] && prev[lid] >= 0 && rec[1] >= 0) pulse[lid] = PB_PULSE_FRAMES;
+    if (pulse[lid] > 0) {
+      pulse[lid]--;
+      ring.hidden = false;
+      ring.className = `pb-ring cat-${cat}`;
+      ring.style.animation = 'none';
+      void ring.offsetWidth; // restart the ring animation on consecutive changes
+      ring.style.animation = '';
+    } else { ring.hidden = true; delete pulse[lid]; }
+    m.setZIndexOffset(cat === 'major' ? 1000 : cat === 'moderate' ? 500 : 0);
+  }
+  state.pbPrevCodes = next;
+  pbUpdateLabels(frame);
+}
+
+/* top-5 significant-gauge callouts — always-visible name+stage labels, majors before moderates
+   (threats-to-life first), then proximity to record, then stage; collision-nudged, hidden < z8 */
+function pbUpdateLabels(frame) {
+  const marks = state.pbMarkers;
+  const placed = [];
+  if (state.map.getZoom() >= PB_LABEL_MIN_ZOOM) {
+    const cands = [];
+    for (const [lid, rec] of Object.entries(frame.gauges)) {
+      if (rec[1] < 2 || !marks[lid]) continue; // flooding gauges only (minor and up), never stale
+      cands.push({ lid, code: rec[1], pct: (state.pbRecordPct || {})[lid] || 0, stage: rec[0] });
+    }
+    cands.sort((a, b) => b.code - a.code || b.pct - a.pct || b.stage - a.stage);
+    for (const c of cands.slice(0, PB_LABEL_MAX)) {
+      const el = marks[c.lid].getElement();
+      if (!el) continue;
+      const lbl = el.firstChild.children[2];
+      const gi = state.pbData.gaugeIndex[c.lid];
+      lbl.textContent = `${pbShortName(gi.name)} ${fmtNum(c.stage)} ft`;
+      lbl.hidden = false;
+      c.pt = state.map.latLngToContainerPoint(marks[c.lid].getLatLng());
+      c.dy = 0;
+      placed.push(c);
+    }
+  }
+  const shown = new Set(placed.map((c) => c.lid));
+  for (const lid of state.pbLabeled || []) {
+    if (shown.has(lid)) continue;
+    const el = marks[lid] && marks[lid].getElement();
+    if (el) el.firstChild.children[2].hidden = true;
+  }
+  state.pbLabeled = shown;
+  // collision nudge: sweep top-to-bottom, push an overlapping label below its neighbor
+  placed.sort((a, b) => a.pt.y - b.pt.y);
+  let last = null;
+  for (const c of placed) {
+    if (last && Math.abs(c.pt.x - last.pt.x) < 150 && c.pt.y - (last.pt.y + last.dy) < 18) {
+      c.dy = last.pt.y + last.dy + 18 - c.pt.y;
+    }
+    marks[c.lid].getElement().firstChild.children[2].style.transform = c.dy ? `translate(-50%, ${c.dy}px)` : '';
+    last = c;
+  }
+}
+
+/* road-closure replay (v0.91) — archived/reconstructed DriveTexas records at their first vertex */
+function pbEnsureRoadMarkers() {
+  if (state.pbRoadMarkers || !state.pbData.roadIndex) return;
+  state.layers.pbRoads = L.layerGroup();
+  state.pbRoadMarkers = {};
+  for (const [rid, r] of Object.entries(state.pbData.roadIndex)) {
+    if (!Array.isArray(r.v) || r.v.length !== 2) continue;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="pb-road" style="border-color:${(ROAD_COND[r.cond] || ROAD_COND_FALLBACK).color}">${PB_ROAD_GLYPH[r.cond] || '🚧'}</div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11],
+    });
+    const m = L.marker(r.v, { icon });
+    m.bindPopup(() => pbRoadPopup(rid), { minWidth: 220 });
+    state.layers.pbRoads.addLayer(m);
+    state.pbRoadMarkers[rid] = m;
+  }
+}
+
+function pbRoadPopup(rid) {
+  const r = state.pbData.roadIndex[rid];
+  const frame = state.pbData.frames[state.pb.idx];
+  const ct = ROAD_COND[r.cond] || ROAD_COND_FALLBACK;
+  const arch = frame._t >= state.pbRoadsFromT;
+  return `<div class="popup-title" style="color:${ct.color}">${PB_ROAD_GLYPH[r.cond] || '🚧'} ${esc(prettyRoute(r.route) || 'Road')} · ${esc(ct.label)}</div>` +
+    `<div class="popup-meta">${esc(t('playback.road.window'))}: ${esc(fmtCT(r.start))} → ${r.end ? esc(fmtCT(r.end)) : esc(t('playback.road.noend'))}</div>` +
+    `<div class="popup-meta">${srcBadge('official')} ${esc(t(arch ? 'playback.road.arch' : 'playback.road.recon'))}</div>` +
+    `<div class="popup-meta" style="color:var(--sev-warning);font-weight:700">⏮ ${esc(t('playback.pill'))} · ${esc(fmtCT(frame.t))}</div>`;
+}
+
+function pbPaintRoads(frame) {
+  if (!state.pbRoadMarkers) return;
+  const active = new Set(frame.roads || []);
+  for (const [rid, m] of Object.entries(state.pbRoadMarkers)) {
+    const el = m.getElement();
+    if (el) el.style.display = active.has(+rid) ? '' : 'none';
   }
 }
 
@@ -1246,6 +1422,16 @@ function playbackEngage() {
   if (pb.alertsWereOn) state.map.removeLayer(state.layers.alerts);
   state.layers.pbAlerts = state.layers.pbAlerts || L.layerGroup();
   state.layers.pbAlerts.addTo(state.map);
+  // roads replay only when the archive carries a roadIndex — otherwise live roads stay, note says live
+  if (state.pbData.roadIndex) {
+    pbEnsureRoadMarkers();
+    pb.roadsWereOn = state.map.hasLayer(state.layers.roadClosures);
+    if (pb.roadsWereOn) state.map.removeLayer(state.layers.roadClosures);
+    state.layers.pbRoads.addTo(state.map);
+  }
+  state.layers.pbFlows = state.layers.pbFlows || L.layerGroup();
+  state.layers.pbFlows.addTo(state.map);
+  state.pbFlowKey = '';
   pbSbw.renderKey = '';
   pbSbw.visibleN = null;
   document.body.classList.toggle('pb-tween', pb.speed <= 1);
@@ -1280,6 +1466,15 @@ function playbackGoLive() {
     if (state.map.hasLayer(state.layers.pbAlerts)) state.map.removeLayer(state.layers.pbAlerts);
   }
   if (pb.alertsWereOn && !state.map.hasLayer(state.layers.alerts)) state.layers.alerts.addTo(state.map);
+  if (state.layers.pbRoads && state.map.hasLayer(state.layers.pbRoads)) state.map.removeLayer(state.layers.pbRoads);
+  if (pb.roadsWereOn && !state.map.hasLayer(state.layers.roadClosures)) state.layers.roadClosures.addTo(state.map);
+  if (state.layers.pbFlows) {
+    state.layers.pbFlows.clearLayers();
+    if (state.map.hasLayer(state.layers.pbFlows)) state.map.removeLayer(state.layers.pbFlows);
+  }
+  state.pbFlowKey = '';
+  state.pbPrevCodes = null;
+  state.pbPulse = null;
   clearTimeout(pb.sbwTimer);
   pbSbw.renderKey = '';
   pbSbw.visibleN = null;
@@ -1313,6 +1508,8 @@ function setPlaybackFrame(i) {
   pb.idx = Math.max(pbFirstIdx(), Math.min(i, frames.length - 1));
   const frame = frames[pb.idx];
   pbPaintMarkers(frame);
+  pbPaintRoads(frame);
+  pbPaintFlows(frame);
   if (pb.radarLayer) {
     const stamp = pbRadarStamp();
     if (stamp !== pb.radarStamp) { pb.radarStamp = stamp; pb.radarLayer.setUrl(PB_RADAR_URL(stamp)); }
@@ -1340,8 +1537,12 @@ function updatePlaybackReadout() {
 // truth line: which layers replay vs stay live, incl. the viewer's own 7d alert history at frame time
 function updatePlaybackNote() {
   const pb = state.pb;
+  const hasRoads = !pb.live && !!state.pbData.roadIndex;
+  const roadsNote = hasRoads
+    ? t(state.pbData.frames[pb.idx]._t >= state.pbRoadsFromT ? 'playback.note.roads.arch' : 'playback.note.roads.recon')
+    : '';
   let note = pb.live ? t('playback.note.idle')
-    : `${t('playback.note.replay')}${t('playback.note.warn')}${pb.radarLayer ? t('playback.note.radar') : ''} · ${t('playback.note.live')}`;
+    : `${t('playback.note.replay')}${t('playback.note.warn')}${roadsNote}${pb.radarLayer ? t('playback.note.radar') : ''} · ${t(hasRoads ? 'playback.note.live2' : 'playback.note.live')}`;
   if (!pb.live) {
     const ft = state.pbData.frames[pb.idx]._t;
     const n = Object.values(state.hist.alerts || {}).filter((a) => {
@@ -1419,6 +1620,8 @@ function initPlaybackControls() {
   $('#pb-fwd').addEventListener('click', () => pbStepFrame(1));
   $('#pb-caption').addEventListener('click', stopPlaybackPlay); // tap the caption = pause
   $('#pb-hud').addEventListener('click', pbToggleHudDetail);
+  // callout labels hide below z8 and re-nudge on zoom — recompute against the current frame
+  if (state.map) state.map.on('zoomend', () => { if (state.pb && !state.pb.live) pbUpdateLabels(state.pbData.frames[state.pb.idx]); });
   $('#pb-slider').addEventListener('input', () => {
     stopPlaybackPlay();
     setPlaybackFrame(pbFrameAt(+$('#pb-slider').value));

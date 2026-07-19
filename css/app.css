@@ -1253,6 +1253,44 @@ body.pb-on #threat-strip { opacity: 0.45; filter: grayscale(0.35); } /* playback
 /* slow-speed visual tween between archive frames — opacity/size/color only, never data values */
 body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s ease, background-color 0.45s ease, opacity 0.45s ease; }
 
+/* v0.91 playback prominence — pulse ring, callout labels, road markers, crest-flow (all visual only) */
+.pb-ghit { width: 40px; height: 40px; } /* room for the 2× major dot */
+.pb-ring {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  border: 2.5px solid var(--cat-none); opacity: 0;
+  animation: pb-ring 1.3s ease-out;
+}
+.pb-ring[hidden] { display: none; }
+.pb-ring.cat-major { border-color: var(--cat-major); }
+.pb-ring.cat-moderate { border-color: var(--cat-moderate); }
+.pb-ring.cat-minor { border-color: var(--cat-minor); }
+.pb-ring.cat-action { border-color: var(--cat-action); }
+@keyframes pb-ring { 0% { transform: scale(0.35); opacity: 0.95; } 100% { transform: scale(1.2); opacity: 0; } }
+.pb-glabel {
+  position: absolute; top: calc(100% - 5px); left: 50%; transform: translateX(-50%);
+  white-space: nowrap; pointer-events: none; z-index: 5;
+  font: 700 10.5px/1.25 system-ui, sans-serif; color: var(--ink-1);
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.pb-glabel[hidden] { display: none; }
+.pb-road {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px; font-size: 12px; line-height: 1;
+  background: var(--surface-1); border: 2px solid var(--ink-muted);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.pb-crest-line { animation: pb-dash 1.1s linear infinite; }
+@keyframes pb-dash { to { stroke-dashoffset: -18; } } /* dashArray 10 8 — one full period per loop */
+.pb-crest-lbl {
+  transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none;
+  font: 700 10px/1 system-ui, sans-serif; color: var(--cat-major);
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  border: 1px solid var(--cat-major); border-radius: 999px; padding: 3px 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+
 @media (max-width: 768px) {
   /* thumb-zone targets: the bar lives at the bottom of the map, one-handed reach */
   #playback-bar { gap: 6px; padding: 7px 8px 5px; }

@@ -49,7 +49,8 @@ def main():
             continue
         first = coords[0][0] if g["type"] == "MultiLineString" else coords[0]
         roads.append({
-            "id": p.get("OBJECTID"),
+            # f=geojson moves OBJECTID to the feature level; consumers key on (route,start) anyway
+            "id": p.get("OBJECTID") if p.get("OBJECTID") is not None else f.get("id"),
             "cond": p.get("condition"),
             "route": p.get("route_name"),
             "desc": (p.get("description") or "")[:120],

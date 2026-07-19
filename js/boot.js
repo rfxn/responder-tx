@@ -68,9 +68,8 @@ async function refresh() {
     if (!failed.length) saveCache();
     renderSourceHealth();
     checkAppVersion();
-    $('#refresh-note').textContent = failed.length
-      ? `degraded: ${failedNames}`
-      : `updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
+    if (failed.length) $('#refresh-note').textContent = `degraded: ${failedNames}`;
+    else $('#refresh-note').innerHTML = `<span class="fresh-dot fresh"></span> ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
   } finally {
     state.refreshBusy = false;
     if (state.refreshQueued) { state.refreshQueued = false; refresh(); }
@@ -192,7 +191,8 @@ function showUpdatedConfirm() {
 function tickCountdown() {
   if (!state.refreshAt) return;
   const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
-  $('#refresh-count').textContent = `next in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  // countdown lives in the tooltip since v0.88.1 — the visible stamp stays slim; the data-age bar owns staleness
+  $('#refresh-note').title = `next refresh in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   renderDataAgeBar();
 }
 
@@ -522,7 +522,16 @@ async function boot() {
     relocalizeDynamic();
   });
   $('#refresh-now').addEventListener('click', refresh);
-  $('#share-btn').addEventListener('click', (e) => shareView(e.target));
+  // ⋮ overflow menu (v0.88.1 header declutter) — share/theme/lang/legend live here; same dismiss pattern as other menus
+  const hmoreSetOpen = (open) => {
+    $('#hmore-menu').hidden = !open;
+    $('#hmore-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
+    $('#hmore-btn').classList.toggle('on', open);
+  };
+  $('#hmore-btn').addEventListener('click', () => hmoreSetOpen($('#hmore-menu').hidden));
+  document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
+  $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('button')) hmoreSetOpen(false); });
+  $('#share-btn').addEventListener('click', (e) => shareView(e.currentTarget));
   const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } renderDriveMode(); };
   $('#drive-btn').addEventListener('click', enterDrive);
   // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon.
@@ -671,6 +680,7 @@ async function boot() {
     if (e.key !== 'Escape') return;
     if (!$('#cam-viewer').hidden) { closeCamViewer(); return; } // must tear down the player, not just hide
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
+    if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
     for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#safety-modal']) {
       const m = $(id);

@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.88.0">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.88.0">
-  <link rel="stylesheet" href="css/app.css?v=0.88.0">
-  <link rel="stylesheet" href="css/notes.css?v=0.88.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.88.1">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.88.1">
+  <link rel="stylesheet" href="css/app.css?v=0.88.1">
+  <link rel="stylesheet" href="css/notes.css?v=0.88.1">
 </head>
 <body>
   <header>
@@ -42,19 +42,24 @@
     </div>
     <div class="controls">
       <button id="update-chip" hidden title="A newer board version is live; reloads this tab" data-i18n="ctl.update" data-i18n-title="ctl.update.title">⬆ Updated · tap to reload</button>
-      <button id="refresh-now" title="Refresh live layers" aria-label="Refresh live layers" data-i18n-title="ctl.refresh.title" data-i18n-aria="ctl.refresh.title">⟳ <span class="ctl-lbl" data-i18n="ctl.refresh">Refresh</span></button>
-      <button id="share-btn" class="primary" title="Copy a link that reproduces this exact view: map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
-      <button id="risk-btn" hidden title="Type an address to see the nearest gauges, alerts, and closed crossings at that point" aria-label="Am I at risk? Address flood check" data-i18n-title="ctl.risk.title" data-i18n-aria="ctl.risk.aria">🏠 <span class="ctl-lbl" data-i18n="ctl.risk">Am I at risk?</span></button>
-      <button id="drive-btn" title="Drive Mode: big-type nearest-hazards glance list for the road" aria-label="Drive Mode" data-i18n-title="ctl.drive.title" data-i18n-aria="ctl.drive.aria">🚗 <span class="ctl-lbl" data-i18n="ctl.drive">Drive</span></button>
       <div class="hsearch" id="hsearch">
         <button id="search-btn" title="Search: place, address, gauge name, lat, lon, or R-### card ID" aria-label="Search" data-i18n-title="search.title" data-i18n-aria="search.aria">🔍</button>
         <input type="search" id="search-input" placeholder="Place, gauge, lat, lon, or R-###" data-i18n-ph="search.ph" autocomplete="off" enterkeyhint="search" hidden>
         <div id="search-results" hidden></div>
       </div>
-      <button id="help-btn" title="What do the symbols mean? Board legend &amp; glossary" aria-label="Board legend and glossary" data-i18n-title="glossary.btn.title" data-i18n-aria="glossary.btn.aria">? <span class="ctl-lbl" data-i18n="glossary.btn">Legend</span></button>
-      <button id="theme-toggle" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
-      <button id="lang-toggle" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
-      <div class="refresh-meta"><div id="refresh-note">loading…</div><div id="refresh-count"></div></div>
+      <button id="drive-btn" title="Drive Mode: big-type nearest-hazards glance list for the road" aria-label="Drive Mode" data-i18n-title="ctl.drive.title" data-i18n-aria="ctl.drive.aria">🚗 <span class="ctl-lbl" data-i18n="ctl.drive">Drive</span></button>
+      <button id="refresh-now" title="Refresh live layers" aria-label="Refresh live layers" data-i18n-title="ctl.refresh.title" data-i18n-aria="ctl.refresh.title">⟳ <span class="ctl-lbl" data-i18n="ctl.refresh">Refresh</span></button>
+      <button id="risk-btn" hidden title="Type an address to see the nearest gauges, alerts, and closed crossings at that point" aria-label="Am I at risk? Address flood check" data-i18n-title="ctl.risk.title" data-i18n-aria="ctl.risk.aria">🏠 <span class="ctl-lbl" data-i18n="ctl.risk">Am I at risk?</span></button>
+      <div class="hmore" id="hmore">
+        <button id="hmore-btn" title="More: share, theme, language, legend" aria-label="More controls" aria-haspopup="true" aria-expanded="false" data-i18n-title="ctl.more.title" data-i18n-aria="ctl.more.aria">⋮</button>
+        <div id="hmore-menu" hidden>
+          <button id="share-btn" title="Copy a link that reproduces this exact view: map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
+          <button id="theme-toggle" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
+          <button id="lang-toggle" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
+          <button id="help-btn" title="What do the symbols mean? Board legend &amp; glossary" aria-label="Board legend and glossary" data-i18n-title="glossary.btn.title" data-i18n-aria="glossary.btn.aria">? <span class="ctl-lbl" data-i18n="glossary.btn">Legend</span></button>
+        </div>
+      </div>
+      <div class="refresh-meta"><div id="refresh-note">loading…</div></div>
     </div>
   </header>
 
@@ -366,16 +371,16 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.88.0"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.88.0"></script>
-  <script src="js/usng.js?v=0.88.0"></script>
-  <script src="js/i18n.js?v=0.88.0"></script>
-  <script src="js/core.js?v=0.88.0"></script>
-  <script src="js/map.js?v=0.88.0"></script>
-  <script src="js/sources.js?v=0.88.0"></script>
-  <script src="js/panels.js?v=0.88.0"></script>
-  <script src="js/board.js?v=0.88.0"></script>
-  <script src="js/boot.js?v=0.88.0"></script>
-  <script src="js/notes.js?v=0.88.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.88.1"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.88.1"></script>
+  <script src="js/usng.js?v=0.88.1"></script>
+  <script src="js/i18n.js?v=0.88.1"></script>
+  <script src="js/core.js?v=0.88.1"></script>
+  <script src="js/map.js?v=0.88.1"></script>
+  <script src="js/sources.js?v=0.88.1"></script>
+  <script src="js/panels.js?v=0.88.1"></script>
+  <script src="js/board.js?v=0.88.1"></script>
+  <script src="js/boot.js?v=0.88.1"></script>
+  <script src="js/notes.js?v=0.88.1"></script>
 </body>
 </html>

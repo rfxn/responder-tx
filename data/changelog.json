@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.88.1",
+      "date": "2026-07-18",
+      "line": "A tidier top bar: the header now shows just search 🔍, Drive 🚗, refresh ⟳, and a single ⋮ button — Share, light/dark theme, EN/ES language, and the \"?\" Legend now live inside the ⋮ menu with full labels, so phones (and desktops) get real breathing room. The corner time stamp slimmed down to a small green dot + time; hover it to see when the next auto-refresh lands. Buttons are also a touch bigger for gloved thumbs, and the header is no taller than before."
+    },
+    {
       "v": "v0.88.0",
       "date": "2026-07-18",
       "line": "835 more TxDOT cameras — the snapshot-only ones: many city-street cams (most of Houston, Fort Worth, Dallas, Beaumont, El Paso) have no live video feed, only a photo that refreshes about every 2 minutes. They now appear on the camera layer as dashed/muted 📷 markers so you can tell them from live cams; opening one shows the latest photo with a SNAPSHOT badge, when it was captured, a ↻ refresh button, and the usual STALE warning if the image is over 45 minutes old. If a snapshot can’t be fetched, the viewer says so plainly."

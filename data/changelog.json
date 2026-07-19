@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.90.0",
+      "date": "2026-07-18",
+      "line": "Rainfall is now one layer, not two. Turn on Rainfall and pick the accumulation window — 1h, 24h, 48h, or 72h — with the new chips right in the map legend; your pick sticks for the session, and old “Rain 1h”/“Rain 24h” links still open the right view. Also, by popular demand the 🔗 Share button is back at your fingertips: it now sits on the map just below the 🗂 layer button (and stays in the ⋮ menu too). English y español."
+    },
+    {
       "v": "v0.89.0",
       "date": "2026-07-18",
       "line": "A friendlier layer picker: the old cramped checkbox list is gone. Tap the 🗂 button on the map (or the ＋ in the layer pills) to open a grouped sheet — Water, Rain & radar, Roads, Alerts & reports, History — where every layer has a plain name, a one-line \"what is this\", and a big toggle. Phones get a thumb-friendly bottom sheet; desktops a compact panel. OFFICIAL/CURATED badges make the two crossings layers unmistakable, a segmented Dark/Light/Streets row switches the basemap, ⏮ Playback opens the timeline, and ↺ Reset restores the default view and full-area framing in one tap. Everything is in English y español."

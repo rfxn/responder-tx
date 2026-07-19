@@ -633,6 +633,7 @@ function buildShareUrl() {
   if (state.sort !== 'smart') p.set('fs', state.sort);
   if ($('#flt-alert-sev').value) p.set('as', $('#flt-alert-sev').value);
   if ($('#flt-alert-q').value) p.set('aq', $('#flt-alert-q').value);
+  if (state.map.hasLayer(state.layers.mrms)) p.set('rain', state.rainWindow); // rollover/share carry the rainfall window
   p.set('base', state.activeBase);
   p.set('theme', document.documentElement.getAttribute('data-theme'));
   return `${location.origin}${location.pathname}?${p}`;
@@ -641,7 +642,11 @@ function buildShareUrl() {
 function shareView(btn) {
   const url = buildShareUrl();
   const copy = () => copyText(url).then(
-    () => { btn.textContent = '✓ Link copied'; setTimeout(() => { btn.textContent = '🔗 Share'; }, 2000); },
+    () => {
+      const orig = btn.innerHTML; // shared by the ⋮ menu entry and the map 🔗 control — restore whatever was there
+      btn.innerHTML = btn.closest('.share-trigger') ? '✓' : '✓ Link copied';
+      setTimeout(() => { btn.innerHTML = orig; }, 2000);
+    },
     () => prompt('Copy this link:', url));
   if (navigator.share) navigator.share({ url }).catch(copy);
   else copy();

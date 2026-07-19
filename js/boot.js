@@ -363,6 +363,7 @@ function renderGlossary() {
   html += glRow('<span style="color:var(--good)">▼</span>', t('glossary.falling.label'), t('glossary.falling'));
   html += glRow(`<span class="fcst-ring cat-moderate" style="width:11px;height:11px"></span>`, t('glossary.ring.label'), t('glossary.ring'));
   html += glRow('💧', t('glossary.lsr.label'), t('glossary.lsr'));
+  html += glRow('🌧', t('glossary.rain.label'), t('glossary.rain'));
   html += glRow('📷', t('glossary.cams.label'), t('glossary.cams'));
   html += glRow('<span class="cam-icon cam-snap" style="width:16px;height:16px;font-size:10px">📷</span>', t('glossary.camsnap.label'), t('glossary.camsnap'));
   html += glRow('<span style="color:var(--sev-emergency)">⛔</span>/🌊', t('glossary.roads.label'), t('glossary.roads'));
@@ -717,9 +718,15 @@ async function boot() {
   }).catch(markMirror);
   restoreViewState(); // saved view first, so any URL param below overrides it for this load
 
-  const rainParam = new URLSearchParams(location.search).get('rain');
-  if (rainParam === '1h') state.layers.mrms1h.addTo(state.map);
-  else if (rainParam === '24h') state.layers.mrms24h.addTo(state.map);
+  // v0.90 migration: old separate-layer links (?rain=1h / ?rain=24h, both→24h) resolve to the unified Rainfall layer
+  const rainVals = new URLSearchParams(location.search).getAll('rain');
+  if (rainVals.length) {
+    const win = rainVals.includes('24h') ? '24h' : CONFIG.mrmsWindows.includes(rainVals[0]) ? rainVals[0] : null;
+    if (win) {
+      setRainWindow(win);
+      state.layers.mrms.addTo(state.map);
+    }
+  }
 
   const tabParam = new URLSearchParams(location.search).get('tab');
   // guard the selector interpolation — a crafted ?tab= (e.g. %22%5D) would throw a DOMException and abort boot()

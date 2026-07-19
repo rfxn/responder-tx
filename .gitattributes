@@ -1,0 +1,8 @@
+# Keep dev-only artifacts out of release archives (git archive / Cloudflare Pages deploy).
+# export-ignore affects `git archive` only — these files still live on GitHub.
+tests/          export-ignore
+.github/        export-ignore
+docs/           export-ignore
+pkg/            export-ignore
+audit-output/   export-ignore
+.gitattributes  export-ignore

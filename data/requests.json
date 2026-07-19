@@ -802,7 +802,7 @@
   },
   {
    "id": "seed-043",
-   "ts": "2026-07-18T23:40:00Z",
+   "ts": "2026-07-19T01:40:00Z",
    "type": "warning",
    "priority": "high",
    "status": "open",
@@ -810,8 +810,8 @@
    "place": "Devils River at Pafford Crossing (Comstock)",
    "lat": 29.6764,
    "lon": -101.0,
-   "summary": "DEVILS RIVER WAVE MOVING DOWNSTREAM: Pafford Crossing near Comstock at 10.43 ft MODERATE and rising fast (6:15 PM CT, 76.9 kcfs); NWPS forecasts 13 ft MAJOR around 10 PM CT tonight as the crest that passed Bakers Crossing arrives. Amistad headwaters reach next.",
-   "details": "NWPS CMKT2 6:15 PM CT: observed 10.43 ft moderate (76.9 kcfs), forecast 13.0 ft MAJOR (115 kcfs) at ~10 PM CT. This is the same crest now receding at Bakers Crossing upstream (16.63 and falling). Caution note: models have over-forecast crests repeatedly this event (Derby, Llano, Pandale all under-ran) \u2014 treat 13 ft as an upper bound, but moderate-to-major is in progress regardless. Stay clear of the river corridor, Pafford Crossing, and low water crossings on the lower Devils; boaters/campers toward Amistad should move up now.",
+   "summary": "DEVILS RIVER AT PAFFORD CROSSING: rise has STALLED below forecast \u2014 observed 10.56 ft moderate at 8:15 PM CT, easing from the 10.76 peak. NWPS still forecasts 13 ft MAJOR (~10 PM CT) but observed is under-running it, matching every crest this event. Corridor remains hazardous at moderate flood; MAJOR looking less likely.",
+   "details": "NWPS CMKT2 8:15 PM CT: observed 10.56 ft moderate (peaked ~10.76 around 7:15 PM, now easing). Forecast of 13.0 ft MAJOR at 10 PM CT not yet borne out \u2014 treat as upper bound; this event's model crests (Derby, Llano, Pandale, Langtry) all under-ran. Upstream Bakers Crossing has dropped out of MAJOR (14.89 and falling), so the wave's tail is thinning. Lower Devils corridor and low crossings remain dangerous at moderate stage \u2014 stay clear of the river; Amistad headwaters still receiving the wave.",
    "source": {
     "label": "official: NOAA NWPS CMKT2",
     "url": "https://water.noaa.gov/gauges/CMKT2"

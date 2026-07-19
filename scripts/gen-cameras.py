@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""gen-cameras.py — build data/cameras.json: TxDOT traffic cams (MapLarge inventory)
-plus USGS HIVIS river cams (NIMS API) inside the AO bbox. Run at build time; the
-inventory is near-static, so the output is committed. Stdlib only."""
+"""gen-cameras.py — build data/cameras.json: TxDOT traffic cams (full statewide
+MapLarge inventory) plus USGS HIVIS river cams (NIMS API) inside the AO bbox.
+Run at build time; the inventory is near-static, so the output is committed.
+Stdlib only."""
 
 import json
+import re
 import sys
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-BBOX = (-102.0, 28.0, -97.0, 31.1)  # xmin, ymin, xmax, ymax — matches CONFIG.gaugeBbox
+BBOX = (-102.0, 28.0, -97.0, 31.1)  # xmin, ymin, xmax, ymax — river-cam clip, matches CONFIG.gaugeBbox
 MAPLARGE = 'https://dtx-e-cdn.maplarge.com/Api/ProcessDirect'
 NIMS = 'https://api.waterdata.usgs.gov/nims/v0/cameras'
 OUT = 'data/cameras.json'
@@ -23,8 +25,6 @@ def fetch_json(url):
 
 
 def maplarge_page(start):
-    xmin, ymin, xmax, ymax = BBOX
-    poly = f'{xmin} {ymin},{xmax} {ymin},{xmax} {ymax},{xmin} {ymax},{xmin} {ymin}'
     q = {
         'action': 'table/query',
         'query': {
@@ -32,8 +32,6 @@ def maplarge_page(start):
             'start': start,
             'table': 'appgeo/cameraPoint',
             'take': PAGE,
-            'where': [{'col': 'XY', 'test': 'DWithin:1000',
-                       'value': f'WKT(POLYGON({poly})),COL(XY)'}],
         },
     }
     d = fetch_json(MAPLARGE + '?request=' + urllib.parse.quote(json.dumps(q)))
@@ -43,14 +41,18 @@ def maplarge_page(start):
 
 
 def txdot_cams():
-    cams, start = [], 0
+    test_re = re.compile(r'\btest\b', re.I)
+    cams, start, pages = [], 0, 0
     while True:
         cols = maplarge_page(start)
+        pages += 1
         names = cols.get('name', [])
         for i in range(len(names)):
             xy = cols['XY'][i]
             url = cols['httpsurl'][i]
             if not xy or not xy.startswith('POINT') or not str(url).startswith('https://'):
+                continue
+            if test_re.search(cols['description'][i] or ''):  # vendor test streams (e.g. "Paris test WWD")
                 continue
             lon, lat = (float(v) for v in xy.strip('POINT ()').split())
             cams.append({
@@ -62,7 +64,10 @@ def txdot_cams():
                 'httpsurl': url,
             })
         if len(names) < PAGE:
-            return cams
+            if len(cams) <= PAGE:
+                sys.exit(f'statewide sweep returned only {len(cams)} cams — pagination broken?')
+            print(f'MapLarge: {pages} pages, {len(cams)} cams kept')
+            return sorted(cams, key=lambda c: c['name'])
         start += PAGE
 
 

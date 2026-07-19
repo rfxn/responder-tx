@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-17T15:15:00Z",
+  "generated": "2026-07-19T16:33:00Z",
   "shelters": [
     {
       "name": "Calvary Temple Church (shelter + reunification center)",
@@ -307,6 +307,10 @@
     {
       "label": "gov.texas.gov/floodresponse \u2014 state flood recovery & rebuild hub (official)",
       "url": "https://gov.texas.gov/floodresponse/home"
+    },
+    {
+      "label": "FEMA Emergency Declaration EM-3649 - 28 TX counties, federal emergency & Public Assistance (declared Jul 18; Individual Assistance not yet designated) (official)",
+      "url": "https://www.fema.gov/disaster/3649"
     },
     {
       "label": "Damage.TDEM.Texas.gov \u2014 report damage / start claims (official)",

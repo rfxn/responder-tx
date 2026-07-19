@@ -801,7 +801,14 @@ function renderRoadClosures() {
   }
   for (const r of reopenedRoads().fresh) {
     if (!r.vertex) continue;
-    const m = L.circleMarker(r.vertex, { radius: 6, color: '#fff', weight: 1.5, fillColor: cssVar('--good') || '#0ca30c', fillOpacity: 0.9, attribution: ROAD_ATTRIB });
+    // recovery badge, not a filled dot — a green ✓ road-sign shape so it never reads as a gauge/alert circle
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="reopen-hit"><div class="reopen-icon">✓</div></div>',
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+    });
+    const m = L.marker(r.vertex, { icon, attribution: ROAD_ATTRIB });
     m.bindPopup(reopenedPopupHtml(r));
     layer.addLayer(m);
   }

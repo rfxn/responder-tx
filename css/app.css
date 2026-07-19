@@ -725,6 +725,20 @@ main { flex: 1; display: flex; min-height: 0; }
 #hydro-modal { position: fixed; inset: 0; z-index: 1500; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
 #hydro-modal[hidden] { display: none; }
 .hydro-box { width: min(96vw, 960px); }
+
+/* alert card reach disambiguator + readable alert-text reader */
+.alert-card .areas .alert-reach { color: var(--ink-2); font-weight: 600; }
+.alert-text-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+#alert-modal { position: fixed; inset: 0; z-index: 1500; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
+#alert-modal[hidden] { display: none; }
+.alert-box { width: min(94vw, 620px); }
+#alert-body { overflow-y: auto; padding: 10px 14px 12px; }
+.alert-doc-area { font-weight: 650; color: var(--ink-1); font-size: 13px; }
+.alert-doc-headline { color: var(--ink-2); font-size: 12.5px; margin-top: 3px; }
+.alert-doc-when { color: var(--ink-muted); font-size: 11px; margin: 4px 0 8px; }
+.alert-doc-instr-h { font-weight: 650; color: var(--ink-1); font-size: 12px; margin-top: 10px; }
+.alert-doc-text { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); margin: 4px 0 0; }
+.alert-doc-src { font-size: 11px; color: var(--ink-muted); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--hairline); }
 #hydro-canvas-wrap { padding: 10px 12px; }
 #hydro-canvas { width: 100%; height: auto; display: block; }
 #hydro-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 2px 14px 8px; font-size: 11.5px; color: var(--ink-2); }

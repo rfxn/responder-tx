@@ -1,6 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
-## v0.96.2 — 2026-07-19 (honest privacy copy on the address risk-check)
+## v0.96.3 — 2026-07-19 (readable alert cards: river reach + in-app alert text)
+
+- [New] alert cards now name the specific river reach on the second line, so
+      the multiple Flood Warnings a county can carry stop looking like duplicates
+      — e.g. three "Val Verde, TX" warnings now read "Devils River at Cauthorn
+      Ranch near Juno", "…at Bakers Crossing 19N of Comstock", and "…at Pafford
+      Crossing near Comstock"; parsed from the NWS product text, shown on the
+      card, the map popup, and inside the reader; the alert filter now also
+      matches the river name so "(county, river)" search works as promised
+- [Change] the alert "text" link used to dump you at a raw api.weather.gov JSON
+           URL; it now opens an in-app reader showing the full NWS alert text
+           (headline, description, instructions, in-effect-until), cited to the
+           issuing office, with a "View raw NWS data" link kept for provenance —
+           NWS no longer serves a per-alert human-readable page (EN + ES)
 
 - [Fix] the "Am I at risk?" address card claimed your address "is never logged or transmitted" — but to place the pin the typed address is sent to OpenStreetMap's Nominatim geocoder to turn it into coordinates. Corrected the copy (EN + ES) to say exactly that: the address is sent to the OpenStreetMap geocoder to convert it to coordinates and is not stored, logged, or shared beyond that one lookup. Honesty invariant applies to our own privacy claims too. No behavior change.
 

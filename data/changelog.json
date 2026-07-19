@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.96.3",
+      "date": "2026-07-19",
+      "line": "Alert cards no longer look like duplicates: each now names the specific river reach on the second line, so three 'Val Verde, TX' Flood Warnings read as Devils River at Cauthorn Ranch near Juno, at Bakers Crossing, and at Pafford Crossing. And the 'text' link now opens the full alert in-app (headline, description, what-to-do, in-effect-until), cited to the issuing NWS office, instead of dumping you at a raw API JSON page — with a raw-data link kept for provenance. Alert search now matches the river name too."
+    },
+    {
       "v": "v0.96.2",
       "date": "2026-07-19",
       "line": "Honesty fix: the 'Am I at risk?' address card used to say your address is never transmitted, but placing the pin sends your typed address to OpenStreetMap's geocoder to turn it into coordinates. Corrected the wording (English + Spanish) to say exactly that — the address goes to the OpenStreetMap geocoder and is not stored, logged, or shared beyond that one lookup. No change to how it works."

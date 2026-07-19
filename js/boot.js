@@ -127,7 +127,7 @@ function rolloverBusy() {
   if (state.refreshBusy) return 'refresh';
   if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
   if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
-  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#cam-viewer', '#layer-sheet']) {
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#cam-viewer', '#layer-sheet']) {
     const el = $(id);
     if (el && !el.hidden) return id;
   }
@@ -565,6 +565,13 @@ async function boot() {
   if (riskEnabled) { $('#risk-btn').hidden = false; openRiskCheck(); }
   $('#hydro-close').addEventListener('click', () => { $('#hydro-modal').hidden = true; });
   $('#hydro-modal').addEventListener('click', (e) => { if (e.target.id === 'hydro-modal') $('#hydro-modal').hidden = true; });
+  $('#alert-close').addEventListener('click', () => { $('#alert-modal').hidden = true; });
+  $('#alert-modal').addEventListener('click', (e) => { if (e.target.id === 'alert-modal') $('#alert-modal').hidden = true; });
+  // map-popup "full alert text" links are detached DOM — delegate so one listener covers all
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest && e.target.closest('.alert-popup-link');
+    if (link) { e.preventDefault(); openAlertTextById(link.dataset.alertId); }
+  });
   // camera viewer: ✕ / tap-outside / Escape all route through closeCamViewer so the stream is destroyed
   $('#cam-close').addEventListener('click', closeCamViewer);
   $('#cam-viewer').addEventListener('click', (e) => { if (e.target.id === 'cam-viewer') closeCamViewer(); });

@@ -22,10 +22,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.96.2">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.96.2">
-  <link rel="stylesheet" href="css/app.css?v=0.96.2">
-  <link rel="stylesheet" href="css/notes.css?v=0.96.2">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.96.3">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.96.3">
+  <link rel="stylesheet" href="css/app.css?v=0.96.3">
+  <link rel="stylesheet" href="css/notes.css?v=0.96.3">
 </head>
 <body>
   <header>
@@ -340,6 +340,13 @@
     </div>
   </div>
 
+  <div id="alert-modal" hidden>
+    <div class="modal-box alert-box">
+      <div class="modal-head"><strong id="alert-title" data-i18n="alert.reader.head">Alert</strong><button id="alert-close" title="Close" data-i18n-title="risk.close">✕</button></div>
+      <div id="alert-body"></div>
+    </div>
+  </div>
+
   <div id="cam-viewer" hidden>
     <div class="modal-box cam-box">
       <div class="modal-head"><strong id="cam-title" data-i18n="cam.title">Camera</strong><button id="cam-close" title="Close" data-i18n-title="risk.close">✕</button></div>
@@ -377,16 +384,16 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.96.2"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.96.2"></script>
-  <script src="js/usng.js?v=0.96.2"></script>
-  <script src="js/i18n.js?v=0.96.2"></script>
-  <script src="js/core.js?v=0.96.2"></script>
-  <script src="js/map.js?v=0.96.2"></script>
-  <script src="js/sources.js?v=0.96.2"></script>
-  <script src="js/panels.js?v=0.96.2"></script>
-  <script src="js/board.js?v=0.96.2"></script>
-  <script src="js/boot.js?v=0.96.2"></script>
-  <script src="js/notes.js?v=0.96.2"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.96.3"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.96.3"></script>
+  <script src="js/usng.js?v=0.96.3"></script>
+  <script src="js/i18n.js?v=0.96.3"></script>
+  <script src="js/core.js?v=0.96.3"></script>
+  <script src="js/map.js?v=0.96.3"></script>
+  <script src="js/sources.js?v=0.96.3"></script>
+  <script src="js/panels.js?v=0.96.3"></script>
+  <script src="js/board.js?v=0.96.3"></script>
+  <script src="js/boot.js?v=0.96.3"></script>
+  <script src="js/notes.js?v=0.96.3"></script>
 </body>
 </html>

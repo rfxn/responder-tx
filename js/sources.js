@@ -10,6 +10,15 @@ function alertSeverity(p) {
   return 'advisory';
 }
 
+// Riverine Flood Warnings in one county share an areaDesc ("Val Verde, TX"); the
+// specific reach that tells them apart lives in the description text.
+function alertReach(p) {
+  const s = (p.description || '').replace(/\s+/g, ' ');
+  const m = s.match(/rivers?\b[^.]*\.\.\.\s*(.+?)\s+affecting\b/i);
+  if (!m) return '';
+  return m[1].replace(/\bAt\b/g, 'at').replace(/\bOf\b/g, 'of').replace(/\b(?:Nr|Near)\b/gi, 'near').trim();
+}
+
 async function fetchAlerts() {
   const res = await fetch(CONFIG.alertsUrl, { headers: { Accept: 'application/geo+json' } });
   if (!res.ok) throw new Error(`NWS alerts HTTP ${res.status}`);
@@ -85,10 +94,11 @@ function dismissEmergencyBanner() {
 
 function alertPopupHtml(f) {
   const p = f.properties;
+  const reach = alertReach(p);
   return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? ': <span style="color:var(--sev-emergency);font-weight:700">FLASH FLOOD EMERGENCY</span>' : ''}</div>` +
-    `<div class="popup-meta">${esc(p.areaDesc || '')}</div>` +
+    `<div class="popup-meta">${esc(p.areaDesc || '')}${reach ? ` · ${esc(reach)}` : ''}</div>` +
     `<div class="popup-meta">Expires: ${esc(fmtWhen(p.expires))}</div>` +
-    `<div class="popup-link"><a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener">Full alert text →</a></div>`;
+    `<div class="popup-link"><a href="#" class="alert-popup-link" data-alert-id="${esc(f.id)}">${esc(t('alert.full'))} →</a></div>`;
 }
 
 // in area-of-operations? geometry bounds must intersect the gauge bbox (padded).
@@ -106,13 +116,17 @@ function alertInAO(f) {
 
 function alertCardDiv(f) {
   const p = f.properties;
+  const reach = alertReach(p);
   const div = document.createElement('div');
   div.className = `card alert-card sev-${f._sev}`;
   div.innerHTML = `<div class="event">${esc(p.event)}${f._sev === 'emergency' ? '<span class="emergency-flag">EMERGENCY</span>' : ''}</div>` +
-    `<div class="areas">${esc(p.areaDesc || '')}</div>` +
+    `<div class="areas">${esc(p.areaDesc || '')}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}</div>` +
     `<div class="meta" style="margin-top:3px;font-size:11px;color:var(--ink-muted)">` +
     (p.sent ? `<span class="fresh-dot ${freshClass(p.sent)}"></span> sent ${esc(fmtWhen(p.sent))} · ` : '') +
-    `until ${esc(fmtWhen(p.expires))} · <a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener" style="color:var(--accent)">text</a></div>`;
+    `until ${esc(fmtWhen(p.expires))} · <a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))}</a></div>`;
+  const link = div.querySelector('.alert-text-link');
+  link.addEventListener('click', (e) => { e.stopPropagation(); openAlertText(f); });
+  link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAlertText(f); } });
   div.addEventListener('click', () => {
     if (f.geometry) {
       const b = L.geoJSON(f.geometry).getBounds();
@@ -124,9 +138,29 @@ function alertCardDiv(f) {
       const b = L.geoJSON(g).getBounds();
       if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
     }
-    window.open(f.id, '_blank', 'noopener');
+    openAlertText(f); // no geometry to fly to → open the readable alert text instead of raw JSON
   });
   return div;
+}
+
+// Human-readable alert reader: NWS has no per-alert HTML page, so render the
+// description/instruction we already fetched, cited, instead of the raw API JSON.
+function openAlertText(f) {
+  const p = f.properties, reach = alertReach(p);
+  $('#alert-title').textContent = p.event + (f._sev === 'emergency' ? ' — FLASH FLOOD EMERGENCY' : '');
+  const parts = [`<div class="alert-doc-area">${esc(p.areaDesc || '')}${reach ? ` · ${esc(reach)}` : ''}</div>`];
+  if (p.headline) parts.push(`<div class="alert-doc-headline">${esc(p.headline)}</div>`);
+  parts.push(`<div class="alert-doc-when">${esc(t('alert.until'))} ${esc(fmtWhen(p.expires))}</div>`);
+  if (p.description) parts.push(`<pre class="alert-doc-text">${esc(p.description.trim())}</pre>`);
+  if (p.instruction) parts.push(`<div class="alert-doc-instr-h">${esc(t('alert.instruction'))}</div><pre class="alert-doc-text">${esc(p.instruction.trim())}</pre>`);
+  parts.push(`<div class="alert-doc-src">${esc(p.senderName || 'NWS')} · <a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener">${esc(t('alert.raw'))} →</a></div>`);
+  $('#alert-body').innerHTML = parts.join('');
+  $('#alert-modal').hidden = false;
+}
+
+function openAlertTextById(id) {
+  const f = state.alerts.find((a) => a.id === id);
+  if (f) openAlertText(f);
 }
 
 function renderAlertList() {
@@ -134,7 +168,7 @@ function renderAlertList() {
   el.innerHTML = `<div class="section-title">${esc(t('sec.alerts'))}</div>`;
   const sevF = $('#flt-alert-sev').value, qF = $('#flt-alert-q').value.toLowerCase();
   const shown = state.alerts.filter((f) => (!sevF || f._sev === sevF)
-    && (!qF || `${f.properties.event} ${f.properties.areaDesc}`.toLowerCase().includes(qF)));
+    && (!qF || `${f.properties.event} ${f.properties.areaDesc} ${alertReach(f.properties)}`.toLowerCase().includes(qF)));
   if (!shown.length) { el.innerHTML += `<div class="card">${esc(t('sec.alerts.empty'))}</div>`; return; }
   // AO-relevant alerts first; the rest fold into "elsewhere in TX" so a Big Bend FFW can't sit on top
   const inAO = shown.filter(alertInAO), elsewhere = shown.filter((f) => !alertInAO(f));

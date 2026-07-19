@@ -42,22 +42,26 @@ def main():
         return
     roads = []
     for f in feats:
-        p = f.get("properties", {})
-        g = f.get("geometry") or {}
-        coords = g.get("coordinates")
-        if g.get("type") != "MultiLineString" and g.get("type") != "LineString":
+        try:
+            p = f.get("properties", {})
+            g = f.get("geometry") or {}
+            coords = g.get("coordinates")
+            if g.get("type") != "MultiLineString" and g.get("type") != "LineString":
+                continue
+            first = coords[0][0] if g["type"] == "MultiLineString" else coords[0]
+            roads.append({
+                # f=geojson moves OBJECTID to the feature level; consumers key on (route,start,vertex)
+                "id": p.get("OBJECTID") if p.get("OBJECTID") is not None else f.get("id"),
+                "cond": p.get("condition"),
+                "route": p.get("route_name"),
+                "desc": (p.get("description") or "")[:120],
+                "start": p.get("start_time"),
+                "end": p.get("end_time"),
+                "v": [round(first[1], 4), round(first[0], 4)],
+            })
+        except Exception as e:  # noqa: BLE001 — one malformed feature must not kill the archive cycle
+            print(f"warn: skipped malformed road feature: {e!r}", file=sys.stderr)
             continue
-        first = coords[0][0] if g["type"] == "MultiLineString" else coords[0]
-        roads.append({
-            # f=geojson moves OBJECTID to the feature level; consumers key on (route,start) anyway
-            "id": p.get("OBJECTID") if p.get("OBJECTID") is not None else f.get("id"),
-            "cond": p.get("condition"),
-            "route": p.get("route_name"),
-            "desc": (p.get("description") or "")[:120],
-            "start": p.get("start_time"),
-            "end": p.get("end_time"),
-            "v": [round(first[1], 4), round(first[0], 4)],
-        })
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump({"generated": now, "roads": roads}, fh, separators=(",", ":"))

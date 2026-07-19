@@ -66,9 +66,12 @@ def git(*args):
 
 def parse_iso(s):
     try:
-        return datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+        dt = datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+    if dt.tzinfo is None:  # offset-less upstream stamp — assume UTC, never return naive
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
 
 
 def snapshot_commits():
@@ -147,9 +150,13 @@ def thin_old_frames(frames):
     return kept
 
 
-# identity across snapshots: OBJECTIDs are null/unstable in the archive, (route, start) is stable
+# identity across snapshots: OBJECTIDs are null/unstable in the archive; vertex coords
+# disambiguate distinct closures on the same route batch-posted the same minute
 def road_key(rec):
-    return f"{rec.get('route')}|{rec.get('start')}"
+    v = rec.get("v") or ()
+    lat = round(v[0], 4) if len(v) > 1 and isinstance(v[0], (int, float)) else None
+    lon = round(v[1], 4) if len(v) > 1 and isinstance(v[1], (int, float)) else None
+    return f"{rec.get('route')}|{rec.get('start')}|{lat},{lon}"
 
 
 def road_snapshots():
@@ -183,6 +190,8 @@ def road_snapshots():
 def apply_road_history(frames):
     snaps, index = road_snapshots()
     if not snaps:
+        for f in frames:
+            f.pop("roads", None)  # salvaged backfill frames may carry stale road lists
         return None, None, 0, 0
     windows = []
     for rid, e in index.items():
@@ -199,8 +208,8 @@ def apply_road_history(frames):
         i = bisect.bisect_right(snap_times, t) - 1
         if i >= 0:
             active |= snaps[i]["present"]
+        f["roads"] = sorted(active)  # assign even when empty — overwrites stale salvaged road lists
         if active:
-            f["roads"] = sorted(active)
             if t >= roads_from:
                 arch += 1
             else:

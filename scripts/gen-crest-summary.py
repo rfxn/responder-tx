@@ -4,7 +4,10 @@
 Walks the committed history of data/gauges-snapshot.json (one snapshot every
 ~15 min for the life of the event) and records, for every gauge that reached
 an observed minor/moderate/major flood category, its peak stage, when the peak
-first occurred, and its in-flood window. Run at release time like gen-feeds.py.
+first occurred, and its in-flood window. The git archive starts mid-event, so
+the pre-archive window is folded in from data/history.json's src-tagged
+backfill frames (USGS/NWPS observed, built by gen-history.py); peaks sourced
+there carry "src":"usgs". Run at release time like gen-feeds.py.
 Honest by construction: peaks whose observation was stale at peak time are
 flagged, not dropped; nothing is interpolated or invented.
 """
@@ -16,8 +19,10 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
+HISTORY_PATH = "data/history.json"
 FLOOD_CATS = ("minor", "moderate", "major")
 CAT_RANK = {"minor": 2, "moderate": 3, "major": 4}
+CODE_CAT = {2: "minor", 3: "moderate", 4: "major"}
 STALE_HOURS = 12
 RECORD_NEAR_PCT = 0.90
 EVENT_NAME = "July 2026"
@@ -29,9 +34,12 @@ def git(*args):
 
 def parse_iso(s):
     try:
-        return datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+        dt = datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+    if dt.tzinfo is None:  # offset-less upstream stamp — assume UTC, never return naive
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
 
 
 def snapshot_commits():
@@ -54,8 +62,48 @@ def obs_stale(observed, snap_dt):
     return (snap_dt - obs_dt).total_seconds() > STALE_HOURS * 3600
 
 
-def walk(commits):
-    gauges = {}
+def fold_backfill(gauges):
+    """Seed peaks from history.json's src-tagged pre-archive frames; returns first backfill stamp."""
+    try:
+        with open(os.path.join(ROOT, HISTORY_PATH), encoding="utf-8") as f:
+            hist = json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"warn: {HISTORY_PATH} unavailable ({e}); pre-archive peaks omitted", file=sys.stderr)
+        return None
+    index = hist.get("gaugeIndex", {})
+    first_t = None
+    for fr in hist.get("frames", []):
+        if not fr.get("src"):
+            continue
+        t = fr.get("t")
+        if not t or not parse_iso(t):
+            continue
+        first_t = first_t or t
+        for lid, pair in (fr.get("gauges") or {}).items():
+            try:
+                stage, code = pair[0], pair[1]
+            except (IndexError, TypeError):
+                continue
+            cat = CODE_CAT.get(code)
+            if cat is None or not isinstance(stage, (int, float)):
+                continue
+            rec = gauges.setdefault(lid, {
+                "lid": lid, "name": (index.get(lid) or {}).get("name", lid),
+                "peak": None, "peak_time": None, "peak_category": None,
+                "peak_stale": False, "peak_src": None, "unit": "ft",
+                "first_in_flood": t, "last_in_flood": t,
+            })
+            rec["last_in_flood"] = t
+            if rec["peak"] is None or stage > rec["peak"]:
+                rec["peak"] = stage
+                rec["peak_time"] = t
+                rec["peak_category"] = cat
+                rec["peak_stale"] = False
+                rec["peak_src"] = "usgs"
+    return first_t
+
+
+def walk(commits, gauges):
     skipped = 0
     first_snap = last_snap = None
     for chash, _ciso in commits:
@@ -85,7 +133,8 @@ def walk(commits):
                 continue
             rec = gauges.setdefault(lid, {
                 "lid": lid, "name": g.get("name", lid), "peak": None, "peak_time": None,
-                "peak_category": None, "peak_stale": False, "unit": observed.get("primaryUnit") or "ft",
+                "peak_category": None, "peak_stale": False, "peak_src": None,
+                "unit": observed.get("primaryUnit") or "ft",
                 "first_in_flood": snap_iso, "last_in_flood": snap_iso,
             })
             rec["last_in_flood"] = snap_iso
@@ -94,6 +143,7 @@ def walk(commits):
                 rec["peak_time"] = snap_iso
                 rec["peak_category"] = cat
                 rec["peak_stale"] = obs_stale(observed, snap_dt)
+                rec["peak_src"] = None
     return gauges, skipped, first_snap, last_snap
 
 
@@ -128,30 +178,43 @@ def main():
     commits = snapshot_commits()
     if not commits:
         sys.exit("no committed snapshots found — nothing to summarize")
-    gauges, skipped, first_snap, last_snap = walk(commits)
+    gauges = {}
+    backfill_from = fold_backfill(gauges)
+    gauges, skipped, first_snap, last_snap = walk(commits, gauges)
     if not gauges:
         sys.exit("no gauges reached minor+ flood in the snapshot history")
     mark_ongoing(gauges, last_snap)
     add_record_context(gauges)
     rows = sorted(gauges.values(), key=lambda r: (-CAT_RANK[r["peak_category"]], -r["peak"]))
+    n_backfill = 0
     for r in rows:
         r["stale"] = r.pop("peak_stale")
+        src = r.pop("peak_src", None)
+        if src:
+            r["src"] = src
+            n_backfill += 1
     out = {
         "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "event": EVENT_NAME,
-        "window": {"first": first_snap, "last": last_snap},
-        "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive",
+        "window": {"first": backfill_from or first_snap, "last": last_snap},
+        "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; "
+                  "pre-archive window backfilled from USGS/NWPS observed via history.json",
         "gauges": rows,
         "skipped_commits": skipped,
     }
+    if backfill_from:
+        out["backfill"] = {"from": backfill_from, "until": first_snap, "src": "usgs"}
     path = os.path.join(ROOT, "data", "crest-summary.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=1)
         f.write("\n")
     print(f"crest-summary.json: {len(commits)} commits walked ({skipped} skipped), "
-          f"{len(rows)} gauges, window {first_snap} → {last_snap}")
+          f"{len(rows)} gauges ({n_backfill} peaks from backfill), "
+          f"window {out['window']['first']} → {last_snap}")
     for r in rows:
         bits = [f"{r['lid']} {r['peak']} {r['unit']} {r['peak_category']} @ {r['peak_time']}"]
+        if r.get("src"):
+            bits.append(f"src:{r['src']}")
         if r["stale"]:
             bits.append("STALE")
         if r["ongoing"]:

@@ -24,7 +24,8 @@ ITS_DISTRICTS = ('ABL', 'AMA', 'ATL', 'AUS', 'BMT', 'BRY', 'BWD', 'CHS', 'CRP', 
 # must mirror the /api/cam proxy validators (edge + server.py); no '/' — it is the URL path separator
 ITS_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")
 ITS_NEAR_M = 150.0  # an ITS cam this close to a MapLarge streamable cam is the same head — streamable wins
-OUT = 'data/cameras.json'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, 'data', 'cameras.json')
 PAGE = 1000
 
 

@@ -1,12 +1,51 @@
 {
- "generated": "2026-07-19T05:40:30Z",
+ "generated": "2026-07-19T05:50:32Z",
  "event": "July 2026",
  "window": {
-  "first": "2026-07-17T15:31:40Z",
-  "last": "2026-07-19T05:25:00Z"
+  "first": "2026-07-05T00:00:00Z",
+  "last": "2026-07-19T05:40:00Z"
  },
- "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive",
+ "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
+  {
+   "lid": "COMT2",
+   "name": "Guadalupe River at Comfort",
+   "peak": 37.08,
+   "peak_time": "2026-07-16T13:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T11:00:00Z",
+   "last_in_flood": "2026-07-17T00:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "SUPT2",
+   "name": "Cibolo Creek at Sutherland Springs",
+   "peak": 35.39,
+   "peak_time": "2026-07-17T09:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T09:00:00Z",
+   "last_in_flood": "2026-07-18T02:42:54Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "FRBT2",
+   "name": "Pedernales River at Fredericksburg",
+   "peak": 34.31,
+   "peak_time": "2026-07-16T14:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T13:00:00Z",
+   "last_in_flood": "2026-07-16T21:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
   {
    "lid": "ASRT2",
    "name": "Nueces River near Asherton",
@@ -14,7 +53,7 @@
    "peak_time": "2026-07-19T01:10:00Z",
    "peak_category": "major",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-17T09:00:00Z",
    "last_in_flood": "ongoing",
    "ongoing": true,
    "record": {
@@ -27,16 +66,43 @@
    "stale": false
   },
   {
-   "lid": "BTVT2",
-   "name": "West Nueces River at Brackettville",
-   "peak": 22.86,
-   "peak_time": "2026-07-17T15:31:40Z",
+   "lid": "UVLT2",
+   "name": "Nueces River below Uvalde",
+   "peak": 27.84,
+   "peak_time": "2026-07-17T01:00:00Z",
    "peak_category": "major",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-15T18:00:00Z",
+   "last_in_flood": "2026-07-18T08:43:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "JOCT2",
+   "name": "Pedernales River at Johnson City",
+   "peak": 24.67,
+   "peak_time": "2026-07-16T21:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T20:00:00Z",
+   "last_in_flood": "2026-07-17T08:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "BTVT2",
+   "name": "West Nueces River at Brackettville",
+   "peak": 23.07,
+   "peak_time": "2026-07-15T15:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T11:00:00Z",
    "last_in_flood": "ongoing",
    "ongoing": true,
-   "stale": true
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "JNXT2",
@@ -49,6 +115,19 @@
    "last_in_flood": "ongoing",
    "ongoing": true,
    "stale": false
+  },
+  {
+   "lid": "UVAT2",
+   "name": "Nueces River at Laguna",
+   "peak": 21.71,
+   "peak_time": "2026-07-16T20:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T07:00:00Z",
+   "last_in_flood": "2026-07-18T05:43:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "BKCT2",
@@ -69,7 +148,7 @@
    "peak_time": "2026-07-18T16:35:00Z",
    "peak_category": "major",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-16T14:00:00Z",
    "last_in_flood": "ongoing",
    "ongoing": true,
    "record": {
@@ -80,6 +159,46 @@
     "approached": false
    },
    "stale": false
+  },
+  {
+   "lid": "CNCT2",
+   "name": "Frio River at Concan",
+   "peak": 19.69,
+   "peak_time": "2026-07-16T20:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T11:00:00Z",
+   "last_in_flood": "2026-07-17T18:16:04Z",
+   "ongoing": false,
+   "record": {
+    "record_ft": 34.4,
+    "record_date": "1932-07-01",
+    "peak_pct": 57.2,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "UDET2",
+   "name": "Frio River below Dry Frio near Uvalde",
+   "peak": 19.39,
+   "peak_time": "2026-07-15T18:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T16:00:00Z",
+   "last_in_flood": "2026-07-17T22:58:04Z",
+   "ongoing": false,
+   "record": {
+    "record_ft": 35.0,
+    "record_date": "1894-01-01",
+    "peak_pct": 55.4,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "PDAT2",
@@ -94,6 +213,19 @@
    "stale": false
   },
   {
+   "lid": "SRGT2",
+   "name": "Guadalupe River near Spring Branch",
+   "peak": 36.35,
+   "peak_time": "2026-07-17T06:00:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-17T02:00:00Z",
+   "last_in_flood": "2026-07-17T11:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
    "lid": "SRRT2",
    "name": "San Antonio River at SH 72 near Runge",
    "peak": 34.36,
@@ -106,25 +238,13 @@
    "stale": false
   },
   {
-   "lid": "SUPT2",
-   "name": "Cibolo Creek at Sutherland Springs",
-   "peak": 33.13,
-   "peak_time": "2026-07-17T15:31:40Z",
-   "peak_category": "moderate",
-   "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
-   "last_in_flood": "2026-07-18T02:42:54Z",
-   "ongoing": false,
-   "stale": false
-  },
-  {
    "lid": "JNCT2",
    "name": "Llano River near Junction",
    "peak": 30.27,
    "peak_time": "2026-07-17T17:08:23Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-16T08:00:00Z",
    "last_in_flood": "2026-07-18T07:43:00Z",
    "ongoing": false,
    "record": {
@@ -143,7 +263,7 @@
    "peak_time": "2026-07-18T01:31:00Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-16T16:00:00Z",
    "last_in_flood": "2026-07-18T08:58:00Z",
    "ongoing": false,
    "stale": false
@@ -155,10 +275,49 @@
    "peak_time": "2026-07-18T02:42:54Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-17T09:00:00Z",
    "last_in_flood": "2026-07-18T20:27:00Z",
    "ongoing": false,
    "stale": false
+  },
+  {
+   "lid": "SABT2",
+   "name": "Sabinal River at Sabinal",
+   "peak": 23.24,
+   "peak_time": "2026-07-16T23:00:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-14T17:00:00Z",
+   "last_in_flood": "2026-07-17T09:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "SELT2",
+   "name": "Cibolo Creek at Selma",
+   "peak": 21.93,
+   "peak_time": "2026-07-16T08:00:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T04:00:00Z",
+   "last_in_flood": "2026-07-16T08:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "SCRT2",
+   "name": "Seco Creek at Rowe Ranch near D'Hanis",
+   "peak": 21.09,
+   "peak_time": "2026-07-15T20:00:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T17:00:00Z",
+   "last_in_flood": "2026-07-15T21:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "LLAT2",
@@ -167,10 +326,23 @@
    "peak_time": "2026-07-18T04:28:00Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-16T20:00:00Z",
    "last_in_flood": "2026-07-19T00:10:00Z",
    "ongoing": false,
    "stale": false
+  },
+  {
+   "lid": "HNTT2",
+   "name": "Guadalupe River at Hunt",
+   "peak": 19.79,
+   "peak_time": "2026-07-16T09:00:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T08:00:00Z",
+   "last_in_flood": "2026-07-17T18:16:04Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "EPPT2",
@@ -179,10 +351,23 @@
    "peak_time": "2026-07-17T23:46:09Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
+   "first_in_flood": "2026-07-17T13:00:00Z",
    "last_in_flood": "2026-07-18T09:28:00Z",
    "ongoing": false,
    "stale": false
+  },
+  {
+   "lid": "KRRT2",
+   "name": "Guadalupe River at Kerrville",
+   "peak": 16.9,
+   "peak_time": "2026-07-16T10:00:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T08:00:00Z",
+   "last_in_flood": "2026-07-16T21:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "LTRT2",
@@ -197,47 +382,30 @@
    "stale": false
   },
   {
-   "lid": "UVLT2",
-   "name": "Nueces River below Uvalde",
-   "peak": 16.04,
-   "peak_time": "2026-07-17T15:31:40Z",
+   "lid": "LKST2",
+   "name": "Leon Creek at I-35S near San Antonio",
+   "peak": 16.19,
+   "peak_time": "2026-07-16T07:00:00Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
-   "last_in_flood": "2026-07-18T08:43:00Z",
+   "first_in_flood": "2026-07-16T05:00:00Z",
+   "last_in_flood": "2026-07-16T09:00:00Z",
    "ongoing": false,
-   "stale": false
+   "stale": false,
+   "src": "usgs"
   },
   {
-   "lid": "UVAT2",
-   "name": "Nueces River at Laguna",
-   "peak": 15.9,
-   "peak_time": "2026-07-17T21:18:21Z",
+   "lid": "BDAT2",
+   "name": "Medina River at Bandera",
+   "peak": 15.8,
+   "peak_time": "2026-07-17T01:00:00Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
-   "last_in_flood": "2026-07-18T05:43:00Z",
+   "first_in_flood": "2026-07-16T23:00:00Z",
+   "last_in_flood": "2026-07-17T04:00:00Z",
    "ongoing": false,
-   "stale": false
-  },
-  {
-   "lid": "CNCT2",
-   "name": "Frio River at Concan",
-   "peak": 12.76,
-   "peak_time": "2026-07-17T15:31:40Z",
-   "peak_category": "moderate",
-   "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
-   "last_in_flood": "2026-07-17T18:16:04Z",
-   "ongoing": false,
-   "record": {
-    "record_ft": 34.4,
-    "record_date": "1932-07-01",
-    "peak_pct": 37.1,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "CMKT2",
@@ -252,36 +420,49 @@
    "stale": false
   },
   {
-   "lid": "UDET2",
-   "name": "Frio River below Dry Frio near Uvalde",
-   "peak": 12.94,
-   "peak_time": "2026-07-17T18:16:04Z",
+   "lid": "SAAT2",
+   "name": "Medina River at San Antonio US 281S",
+   "peak": 20.88,
+   "peak_time": "2026-07-16T14:00:00Z",
    "peak_category": "minor",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T17:12:58Z",
-   "last_in_flood": "2026-07-17T22:58:04Z",
+   "first_in_flood": "2026-07-16T12:00:00Z",
+   "last_in_flood": "2026-07-16T16:00:00Z",
    "ongoing": false,
-   "record": {
-    "record_ft": 35.0,
-    "record_date": "1894-01-01",
-    "peak_pct": 37.0,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
+   "stale": false,
+   "src": "usgs"
   },
   {
-   "lid": "HNTT2",
-   "name": "Guadalupe River at Hunt",
-   "peak": 10.93,
-   "peak_time": "2026-07-17T15:31:40Z",
+   "lid": "MBCT2",
+   "name": "Beaver Creek (Llano River Basin) near Mason",
+   "peak": 17.42,
+   "peak_time": "2026-07-16T15:00:00Z",
    "peak_category": "minor",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T15:31:40Z",
-   "last_in_flood": "2026-07-17T18:16:04Z",
+   "first_in_flood": "2026-07-16T15:00:00Z",
+   "last_in_flood": "2026-07-16T15:00:00Z",
    "ongoing": false,
-   "stale": false
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "TPHT2",
+   "name": "Hondo Creek near Tarpley",
+   "peak": 13.55,
+   "peak_time": "2026-07-14T11:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-14T10:00:00Z",
+   "last_in_flood": "2026-07-15T17:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
   }
  ],
- "skipped_commits": 0
+ "skipped_commits": 0,
+ "backfill": {
+  "from": "2026-07-05T00:00:00Z",
+  "until": "2026-07-17T15:31:40Z",
+  "src": "usgs"
+ }
 }

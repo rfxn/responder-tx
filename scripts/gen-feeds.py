@@ -72,7 +72,13 @@ def rising_crests(snapshot):
         fc = st.get("forecast") or {}
         ocat = o.get("floodCategory") or "none"
         fcat = fc.get("floodCategory") or "none"
-        if fcat == "major" and RANK.get(fcat, 0) > RANK.get(ocat, 0) and fc.get("validTime"):
+        crest = fc.get("primary")
+        when = parse_iso(fc.get("validTime"))
+        if not isinstance(crest, (int, float)) or crest <= -999:
+            continue  # NWPS missing-value sentinel
+        if not when or when.year < 2000:
+            continue  # NWPS epoch/sentinel timestamp
+        if fcat == "major" and RANK.get(fcat, 0) > RANK.get(ocat, 0):
             out.append({
                 "lid": g.get("lid"), "name": g.get("name"),
                 "obs": o.get("primary"), "ocat": ocat,
@@ -84,9 +90,12 @@ def rising_crests(snapshot):
 
 def parse_iso(s):
     try:
-        return datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+        dt = datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+    if dt.tzinfo is None:  # offset-less upstream stamp — assume UTC, never return naive
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
 
 
 def build_rss(emergencies, crests, notices, built):

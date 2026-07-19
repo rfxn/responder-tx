@@ -290,11 +290,12 @@ function initMap() {
     opacity: 0.72, maxZoom: 19,
     attribution: 'Flood inundation: NWM analysis (experimental) &copy; NOAA/NWPS',
   });
-  // HRRR model future-cast — MODEL data (never observed), off by default, amber FORECAST MODEL badge when on
-  state.layers.fcstRadar = L.tileLayer.wms(CONFIG.hrrrWmsUrl, {
-    layers: fcstLayerName(1), format: 'image/png', transparent: true, version: '1.1.1',
-    opacity: 0.7, pane: 'radar', attribution: 'Forecast radar: NOAA HRRR model via <a href="https://mesonet.agron.iastate.edu/">IEM</a>',
-  });
+  // HRRR model future-cast — MODEL data (never observed); an A/B WMS pair inside the registered
+  // group so hour steps cross-fade instead of redrawing (same contract as the replay-radar fader)
+  state.rtl = { idx: 0, fut: false, hour: 1, playing: false, timer: null };
+  state.fcst = { runIso: null, settle: null };
+  state.fcstFader = fcstFaderCreate();
+  state.layers.fcstRadar = L.layerGroup([state.fcstFader.front, state.fcstFader.back]);
   state.inunBucket = Math.floor(Date.now() / 3600000);
   state.refreshRadar = () => {
     state.layers.mrms.setUrl(bustSrc(CONFIG.mrmsUrl(state.rainWindow)));
@@ -313,16 +314,16 @@ function initMap() {
     if (e.layer === state.layers.cameras) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
-    $('#radar-scrub').hidden = false;
+    rtlSync();
     fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
   });
   state.map.on('overlayremove', (e) => {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
-    if (e.layer === state.layers.fcstRadar) { $('#fcst-scrub').hidden = true; stopFcstPlay(); }
+    if (e.layer === state.layers.fcstRadar) fcstDisable();
     if (e.layer !== state.layers.radar) return;
-    $('#radar-scrub').hidden = true;
-    stopRadarPlay();
+    rtlSync();
+    if (rtlDomain().total) rtlSet(state.rtl.idx); // forecast-only bar repaints in the shrunk domain
   });
 
   state.map.on('baselayerchange', (e) => {
@@ -368,7 +369,7 @@ function initMap() {
     'Streets (OSM)': state.baseLayers.streets,
   }, {
     'Place labels (boost)': state.layers.labelBoost,
-    'Radar scrub (-1h → +30m)': state.layers.radar,
+    'Radar timeline (observed)': state.layers.radar,
     'Forecast radar (HRRR model)': state.layers.fcstRadar,
     'Rainfall (MRMS)': state.layers.mrms,
     'Flood inundation: NWM model (est.)': state.layers.inundation,
@@ -766,7 +767,116 @@ function initLayerSheet() {
   state.map.on('overlayadd overlayremove baselayerchange', layerSheetSync);
 }
 
-/* ---------- radar time-scrub (RainViewer: past ~1h + nowcast projection when published) ---------- */
+/* ---------- unified radar timeline (v0.96) — observed RainViewer past | NOW | HRRR model future ----------
+   One bar owns radar time: the past segment replays preloaded observed frames (opacity crossfade),
+   the future segment steps HRRR hours through an A/B WMS fader (v0.93.1 anti-stutter pattern).
+   Honesty contract: the future zone flips the bar to amber dashed + FORECAST MODEL badge; +18h
+   run-mixing cap stays; the whole bar hides during playback (the playback bar owns time there). */
+
+const RTL_PAST_STEP_MS = 700;
+const RTL_FCST_STEP_MS = 900; // model hours get a beat longer — an hour of weather per step
+const RTL_RADAR_OPACITY = 0.75; // 0.6 washed out over the bright Streets base
+const FCST_OPACITY = 0.7;
+const FCST_WMS_PX = 512; // 2× supersample per 256px tile — softens HRRR's ~3km cell edges
+const FCST_FADE_FALLBACK_MS = 2500; // WMS hiccup: fade anyway if 'load' never fires
+
+const fcstLayerName = (h) => `refd_${String(h * 60).padStart(4, '0')}`;
+
+// past segment on = radar group with fetched frames; future segment on = HRRR layer enabled
+function rtlDomain() {
+  const pastN = state.map.hasLayer(state.layers.radar) && state.radar ? state.radar.frames.length : 0;
+  const fN = state.map.hasLayer(state.layers.fcstRadar) ? CONFIG.hrrrMaxHours : 0;
+  return { pastN, fN, nowIdx: pastN - 1, total: pastN + fN };
+}
+
+// re-derive the bar from layer state: visibility, slider domain, NOW divider + future-segment geometry
+function rtlSync() {
+  const bar = $('#radar-scrub'), rtl = state.rtl;
+  const R = rtlDomain();
+  const on = state.map.hasLayer(state.layers.radar) || state.map.hasLayer(state.layers.fcstRadar);
+  bar.hidden = !on || !!(state.pb && !state.pb.live);
+  if (bar.hidden) { rtlStopPlay(); return; }
+  $('#rs-slider').max = Math.max(R.total - 1, 0);
+  if (!R.pastN && R.fN) { rtl.fut = true; rtl.hour = Math.min(rtl.hour || 1, R.fN); rtl.idx = R.nowIdx + rtl.hour; }
+  else if (rtl.fut && R.fN) { rtl.hour = Math.min(rtl.hour || 1, R.fN); rtl.idx = R.nowIdx + rtl.hour; }
+  else if (rtl.fut) { rtl.fut = false; rtl.idx = Math.max(R.nowIdx, 0); }
+  else rtl.idx = Math.max(0, Math.min(rtl.idx, Math.max(R.total - 1, 0)));
+  const divider = $('#rs-now'), futSeg = $('#rs-future');
+  const frac = R.total > 1 ? (Math.max(R.nowIdx, 0) / (R.total - 1)) * 100 : 0;
+  divider.hidden = !(R.pastN > 0 && R.fN > 0);
+  if (!divider.hidden) divider.style.left = `${frac}%`;
+  futSeg.hidden = !R.fN;
+  if (R.fN) futSeg.style.left = R.pastN ? `${frac}%` : '0';
+}
+
+function rtlSet(i) {
+  if (state.pb && !state.pb.live) return; // playback replays IEM archive radar — live frames must stay dark
+  const R = rtlDomain();
+  if (!R.total) return;
+  const rtl = state.rtl, r = state.radar;
+  rtl.idx = Math.max(0, Math.min(i, R.total - 1));
+  rtl.fut = rtl.idx > R.nowIdx;
+  if (rtl.fut) rtl.hour = rtl.idx - R.nowIdx;
+  $('#rs-slider').value = rtl.idx;
+  if (rtl.fut) {
+    if (r) { r.idx = R.nowIdx; r.frameLayers.forEach((l) => l.setOpacity(0)); }
+    fcstShowDebounced(rtl.hour);
+  } else {
+    fcstHide();
+    if (r) {
+      r.idx = rtl.idx;
+      r.frameLayers.forEach((l, j) => l.setOpacity(j === rtl.idx ? RTL_RADAR_OPACITY : 0));
+    }
+  }
+  rtlUpdateLabel(R);
+}
+
+function rtlUpdateLabel(R) {
+  const rtl = state.rtl, label = $('#rs-label');
+  $('#radar-scrub').classList.toggle('rs-future', rtl.fut);
+  $('#rs-badge').hidden = !rtl.fut;
+  if (rtl.fut) {
+    const f = state.fcst;
+    let txt = `+${rtl.hour}h`;
+    if (f.runIso) {
+      const valid = new Date(new Date(f.runIso).getTime() + rtl.hour * 3600000).toISOString();
+      txt += ` · ${fmtCT(valid)}`;
+      label.title = t('fcst.run').replace('{t}', fmtCT(f.runIso));
+    } else label.title = '';
+    label.textContent = txt;
+    label.classList.add('projected');
+    return;
+  }
+  label.title = '';
+  const r = state.radar;
+  if (!R.pastN || !r) { label.textContent = '…'; label.classList.remove('projected'); return; }
+  const dMin = Math.round((r.frames[rtl.idx].time - r.frames[r.nowIdx].time) / 60);
+  label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin >= -110 ? dMin + 'm' : Math.round(dMin / 6) / 10 + 'h'}` : `+${dMin}m PROJECTED`;
+  label.classList.toggle('projected', rtl.idx >= r.castStart);
+}
+
+function rtlStopPlay() {
+  const rtl = state.rtl;
+  if (rtl.timer) { clearTimeout(rtl.timer); rtl.timer = null; }
+  rtl.playing = false;
+  $('#rs-play').textContent = '▶';
+}
+
+// loops observed → NOW → forecast, then restarts; observed-only (or forecast-only) when one segment is off
+function rtlTogglePlay() {
+  const rtl = state.rtl;
+  if (rtl.playing) { rtlStopPlay(); return; }
+  if (!rtlDomain().total) return;
+  rtl.playing = true;
+  $('#rs-play').textContent = '⏸';
+  const step = () => {
+    const R = rtlDomain();
+    if (!R.total) { rtlStopPlay(); return; }
+    rtlSet((rtl.idx + 1) % R.total);
+    rtl.timer = setTimeout(step, rtl.fut ? RTL_FCST_STEP_MS : RTL_PAST_STEP_MS);
+  };
+  rtl.timer = setTimeout(step, rtl.fut ? RTL_FCST_STEP_MS : RTL_PAST_STEP_MS);
+}
 
 async function fetchRadarFrames() {
   const res = await fetch(CONFIG.rainviewerApi);
@@ -776,62 +886,132 @@ async function fetchRadarFrames() {
   const cast = (d.radar && d.radar.nowcast) || [];
   if (!past.length) throw new Error('no radar frames');
   const keepIdx = state.radar ? state.radar.idx : -1;
-  const wasPlaying = state.radar && state.radar.playing;
-  stopRadarPlay();
-  state.radar = { host: d.host, frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, playing: false, timer: null, frameLayers: [] };
+  const wasPlaying = state.rtl.playing;
+  rtlStopPlay();
+  state.radar = { host: d.host, frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, frameLayers: [] };
   const r = state.radar;
   state.layers.radar.clearLayers();
   r.frameLayers = r.frames.map((f) => L.tileLayer(`${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
-    pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, attribution: 'Radar: RainViewer',
+    pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, className: 'rtl-xfade', attribution: 'Radar: RainViewer',
   }));
-  r.frameLayers.forEach((l) => state.layers.radar.addLayer(l)); // all mounted once — playback is opacity-only
-  $('#rs-slider').max = r.frames.length - 1;
+  r.frameLayers.forEach((l) => state.layers.radar.addLayer(l)); // all mounted once — stepping is opacity-only
   const rf = parseInt(new URLSearchParams(location.search).get('rf'), 10); // debug/deep-link: initial frame index
-  setRadarFrame(keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx
+  rtlSync();
+  if (state.rtl.fut) rtlSet(state.rtl.idx); // playhead in the model future — new frames only reshape the past segment
+  else rtlSet(keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx
     : rf >= 0 && rf < r.frames.length ? rf : r.nowIdx);
-  if (wasPlaying) toggleRadarPlay();
+  if (wasPlaying) rtlTogglePlay();
 }
 
-function setRadarFrame(i) {
-  const r = state.radar;
-  if (!r || !r.frames.length) return;
-  if (state.pb && !state.pb.live) return; // playback replays IEM archive radar — live frames must stay dark
-  r.idx = Math.max(0, Math.min(i, r.frames.length - 1));
-  r.frameLayers.forEach((l, j) => l.setOpacity(j === r.idx ? 0.75 : 0)); // 0.75: 0.6 washed out over the bright Streets base
-  $('#rs-slider').value = r.idx;
-  const dMin = Math.round((r.frames[r.idx].time - r.frames[r.nowIdx].time) / 60);
-  const projected = r.idx >= r.castStart;
-  const label = $('#rs-label');
-  label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin >= -110 ? dMin + 'm' : Math.round(dMin / 6) / 10 + 'h'}` : `+${dMin}m PROJECTED`;
-  label.classList.toggle('projected', projected);
-  if (r.castStart >= r.frames.length && dMin === 0) label.textContent = 'now';
+/* forecast A/B fader — hour steps load into the hidden WMS layer, cross-fade on 'load' (0.35s CSS),
+   roles swap; unchanged hour skips; auto-play prefetches the next hour; drags settle 250ms first */
+
+function fcstFaderCreate() {
+  const mk = () => {
+    const l = L.tileLayer.wms(CONFIG.hrrrWmsUrl, {
+      layers: fcstLayerName(1), format: 'image/png', transparent: true, version: '1.1.1',
+      opacity: 0, pane: 'radar', className: 'fcst-tiles rtl-xfade',
+      attribution: 'Forecast radar: NOAA HRRR model via <a href="https://mesonet.agron.iastate.edu/">IEM</a>',
+    });
+    l.wmsParams.width = l.wmsParams.height = FCST_WMS_PX; // supersampled render — initialize() pins these to tileSize
+    return l;
+  };
+  const fd = { front: mk(), back: mk(), name: fcstLayerName(1), pending: null, wanted: false, loaded: false, shown: false, timer: null, onIdle: null };
+  [fd.front, fd.back].forEach((l) => l.on('load', () => { if (fd.back === l && fd.pending !== null) fcstFaderLoaded(fd); }));
+  fd.onIdle = () => { // while playing, warm the hidden buffer with the next model hour
+    if (!state.rtl.playing || !state.rtl.fut) return;
+    const nextH = state.rtl.hour + 1;
+    if (nextH > CONFIG.hrrrMaxHours) return;
+    const name = fcstLayerName(nextH);
+    if (name !== fd.name && name !== fd.pending) fcstFaderLoad(fd, name);
+  };
+  return fd;
 }
 
-function stopRadarPlay() {
-  if (state.radar && state.radar.timer) { clearInterval(state.radar.timer); state.radar.timer = null; state.radar.playing = false; }
-  $('#rs-play').textContent = '▶';
+function fcstFaderLoad(fd, name) {
+  fd.pending = name;
+  fd.loaded = false;
+  fd.back.setParams({ layers: name }); // hidden layer fetches the new hour; visible tiles untouched
 }
 
-function toggleRadarPlay() {
-  const r = state.radar;
-  if (!r) return;
-  if (r.playing) { stopRadarPlay(); return; }
-  r.playing = true;
-  $('#rs-play').textContent = '⏸';
-  r.timer = setInterval(() => setRadarFrame((r.idx + 1) % r.frames.length), 700);
+function fcstFaderLoaded(fd) {
+  fd.loaded = true;
+  clearTimeout(fd.timer);
+  fd.timer = null;
+  if (fd.wanted && fd.shown) fcstFaderFade(fd);
 }
 
-/* ---------- forecast radar scrub (v0.95) — HRRR MODEL reflectivity, +1h → +18h hourly ----------
-   Honesty contract: amber dashed bar + persistent FORECAST MODEL badge; hidden during playback
-   (PB_LIVE_HIDE — a model future has no place in a historical replay). */
+function fcstFaderFade(fd) {
+  fd.front.setOpacity(0);
+  fd.back.setOpacity(fd.shown ? FCST_OPACITY : 0);
+  const old = fd.front;
+  fd.front = fd.back;
+  fd.back = old;
+  fd.name = fd.pending;
+  fd.pending = null;
+  fd.wanted = false;
+  fd.loaded = false;
+  clearTimeout(fd.timer);
+  fd.timer = null;
+  if (fd.onIdle) fd.onIdle();
+}
 
-const fcstLayerName = (h) => `refd_${String(h * 60).padStart(4, '0')}`;
+// per-step decision: 'skip' (hour unchanged), 'pending' (already loading), 'fade' (prefetched), 'load'
+function fcstShowHour(h) {
+  const fd = state.fcstFader, name = fcstLayerName(h);
+  fd.shown = true;
+  fd.front.setOpacity(FCST_OPACITY); // current hour stays up while the next loads — never a blank step
+  if (name === fd.name) { fd.wanted = false; return 'skip'; }
+  if (name === fd.pending) {
+    fd.wanted = true;
+    if (fd.loaded) { fcstFaderFade(fd); return 'fade'; }
+    if (!fd.timer) fd.timer = setTimeout(() => { if (fd.pending === name && fd.wanted) fcstFaderFade(fd); }, FCST_FADE_FALLBACK_MS);
+    return 'pending';
+  }
+  fcstFaderLoad(fd, name);
+  fd.wanted = true;
+  clearTimeout(fd.timer);
+  fd.timer = setTimeout(() => { if (fd.pending === name && fd.wanted) fcstFaderFade(fd); }, FCST_FADE_FALLBACK_MS);
+  return 'load';
+}
 
+// scrub drags settle 250ms before a new hour loads (v0.93.1 pattern); play and step-adjacent apply instantly
+function fcstShowDebounced(h) {
+  const f = state.fcst, fd = state.fcstFader, name = fcstLayerName(h);
+  clearTimeout(f.settle);
+  if (state.rtl.playing || name === fd.name || name === fd.pending) { fcstShowHour(h); return; }
+  fd.shown = true;
+  fd.front.setOpacity(FCST_OPACITY); // hold the last-shown hour while the thumb settles
+  f.settle = setTimeout(() => {
+    if (state.rtl.fut && !(state.pb && !state.pb.live)) fcstShowHour(state.rtl.hour);
+  }, 250);
+}
+
+function fcstHide() {
+  const fd = state.fcstFader;
+  clearTimeout(state.fcst.settle);
+  if (!fd.shown) return;
+  fd.shown = false;
+  fd.front.setOpacity(0);
+  fd.back.setOpacity(0);
+}
+
+// enable lands the playhead on +1h — the model shows itself immediately
 function fcstEnable() {
-  if (!state.fcst) state.fcst = { hour: 1, runIso: null, playing: false, timer: null };
-  $('#fcst-scrub').hidden = false;
-  fcstSetHour(1); // default position +1h on every enable
   fcstFetchRun();
+  rtlSync();
+  rtlSet(rtlDomain().nowIdx + 1);
+}
+
+function fcstDisable() {
+  fcstHide();
+  const wasFut = state.rtl.fut;
+  state.rtl.fut = false;
+  state.rtl.hour = 1; // v0.95 contract: every re-enable starts at +1h
+  rtlSync();
+  const R = rtlDomain();
+  if (!R.total) { rtlStopPlay(); return; }
+  if (wasFut) rtlSet(R.nowIdx); // playhead falls back to NOW
 }
 
 // run stamp from IEM's per-layer metadata JSON; a new model run cache-busts the WMS tiles
@@ -842,47 +1022,16 @@ function fcstFetchRun() {
     if (f.runIso !== d.model_init_utc) {
       const stale = f.runIso !== null;
       f.runIso = d.model_init_utc;
-      if (stale) state.layers.fcstRadar.setParams({ _run: f.runIso }); // vendor param — busts tile caches onto the new run
-      fcstUpdateLabel();
+      if (stale) {
+        const fd = state.fcstFader;
+        fd.front.setParams({ _run: f.runIso }, true); // vendor param busts caches; front refreshes on its next fade
+        fd.back.setParams({ _run: f.runIso });
+        fd.name = null;
+        if (fd.shown && state.rtl.fut) fcstShowHour(state.rtl.hour); // re-fade the visible hour onto the new run
+      }
+      if (state.rtl.fut) rtlUpdateLabel(rtlDomain());
     }
   }).catch(() => { /* metadata is decorative — the scrub still works with +Nh labels only */ });
-}
-
-function fcstSetHour(h) {
-  const f = state.fcst;
-  if (!f) return;
-  f.hour = Math.max(1, Math.min(h, CONFIG.hrrrMaxHours));
-  state.layers.fcstRadar.setParams({ layers: fcstLayerName(f.hour) });
-  $('#fs-slider').value = f.hour;
-  fcstUpdateLabel();
-}
-
-function fcstUpdateLabel() {
-  const f = state.fcst, el = $('#fs-label');
-  if (!f || !el) return;
-  let txt = `+${f.hour}h`;
-  if (f.runIso) {
-    const valid = new Date(new Date(f.runIso).getTime() + f.hour * 3600000).toISOString();
-    txt += ` · ${fmtCT(valid)}`;
-    el.title = t('fcst.run').replace('{t}', fmtCT(f.runIso));
-  }
-  el.textContent = txt;
-}
-
-function stopFcstPlay() {
-  const f = state.fcst;
-  if (f && f.timer) { clearInterval(f.timer); f.timer = null; f.playing = false; }
-  const b = $('#fs-play');
-  if (b) b.textContent = '▶';
-}
-
-function toggleFcstPlay() {
-  const f = state.fcst;
-  if (!f) return;
-  if (f.playing) { stopFcstPlay(); return; }
-  f.playing = true;
-  $('#fs-play').textContent = '⏸';
-  f.timer = setInterval(() => fcstSetHour(f.hour >= CONFIG.hrrrMaxHours ? 1 : f.hour + 1), 900);
 }
 
 /* ---------- historical playback (v0.82) — replay archived gauge frames over 3d/7d/14d ----------
@@ -1836,6 +1985,8 @@ function playbackEngage() {
   const pb = state.pb;
   if (!pb.live) return;
   pb.live = false;
+  pb.rtlWasIdx = state.rtl.idx; // captured before PB_LIVE_HIDE strips the forecast layer
+  rtlStopPlay();
   pbSheetMin(); // re-engaging after NOW re-collapses the pane
   pbEnsureMarkers();
   pb.gaugesWereOn = state.map.hasLayer(state.layers.gauges);
@@ -1871,11 +2022,9 @@ function playbackEngage() {
   document.body.classList.add('pb-on');
   $('#pb-badge').hidden = false;
   $('#pb-now').classList.add('armed');
+  rtlSync(); // the unified radar timeline hides — the playback bar owns time while engaged
   if (state.map.hasLayer(state.layers.radar)) {
-    pb.radarWasIdx = state.radar ? state.radar.idx : -1;
-    stopRadarPlay();
     if (state.radar) state.radar.frameLayers.forEach((l) => l.setOpacity(0));
-    $('#radar-scrub').hidden = true; // the live RainViewer scrub is inert while the archive replays
     pb.radarFader = pbFaderCreate(PB_RADAR_URL, {
       pane: 'radar', maxNativeZoom: 8, maxZoom: 19, attribution: 'Radar archive: IEM NEXRAD',
     }, 0.75, pbRadarStamp());
@@ -1940,9 +2089,9 @@ function playbackGoLive() {
   if (pb.mrmsWasOn && !state.map.hasLayer(state.layers.mrms)) state.layers.mrms.addTo(state.map);
   pb.mrmsWasOn = false;
   if (pb.radarFader) { pbFaderDestroy(pb.radarFader); pb.radarFader = null; }
-  if (state.map.hasLayer(state.layers.radar)) $('#radar-scrub').hidden = false;
-  if (pb.radarWasIdx >= 0 && state.radar) setRadarFrame(pb.radarWasIdx);
-  pb.radarWasIdx = -1;
+  rtlSync(); // unified radar timeline restores exactly as it was before engage
+  if (pb.rtlWasIdx != null && rtlDomain().total) rtlSet(pb.rtlWasIdx);
+  pb.rtlWasIdx = null;
   document.body.classList.remove('pb-on');
   document.body.classList.remove('pb-tween');
   $('#pb-badge').hidden = true;
@@ -2082,7 +2231,7 @@ function pbStepFrame(d) {
 
 function initPlaybackControls() {
   // over-map controls must never leak taps into Leaflet (double-tap zoom, pinch) — same guard as AO chips/layer pills
-  for (const sel of ['#playback-bar', '#pb-pill', '#pb-badge', '#radar-scrub', '#fcst-scrub']) {
+  for (const sel of ['#playback-bar', '#pb-pill', '#pb-badge', '#radar-scrub']) {
     const el = $(sel);
     if (!el) continue;
     L.DomEvent.disableClickPropagation(el);

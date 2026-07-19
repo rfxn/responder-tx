@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.96.0 — 2026-07-19 (unified radar timeline)
+
+- [New] one radar timeline: the live radar scrub and the forecast-model scrub merge into a single bar — observed radar frames on the left, a NOW divider, and the HRRR model future (+1h → +18h) as an amber dashed segment on the right; scrub straight across NOW and the map cross-fades between observed echoes and the model's future with no blank frame; play loops observed → NOW → forecast and starts over (with the forecast layer off, the bar is observed-only exactly as before; forecast-only works too)
+- [Fix] forecast stepping no longer stutters: each model hour preloads into a hidden twin layer and cross-fades in (~350ms) once its tiles are ready — the same buffering fix the replay radar got in v0.93.1 — with the next hour prefetched during auto-play, a 250ms settle while you drag, and unchanged hours skipped outright; no more hard redraws between forecast hours
+- [Change] forecast tiles render smoother: the model imagery is requested at double resolution and lightly softened so HRRR's blocky ~3km cells read like normative radar instead of pixel squares — it remains a model, and the styling still says so
+- [Change] the future zone stays unmistakable: crossing NOW flips the whole bar to the amber dashed forecast dress with the FORECAST MODEL badge, and the readout switches to "+Nh · local valid time" with the model-run time in the tooltip; the +18h no-run-mixing cap stays; during historical playback the playback bar owns time — the radar timeline hides entirely and restores exactly when you return to NOW
+- [Change] layer picker and glossary wording updated for the single bar: the Radar row is the observed past of the radar timeline, and the Forecast radar row extends the same bar beyond NOW; English y español
+
 ## v0.95.1 — 2026-07-19 (visual QA fixes)
 
 - [Fix] the ops-chat button no longer covers the replay bar's NOW and ✕ controls on desktop: while the timeline bar is open the chat button rides above it (phones already did this), and the amber forecast scrub now keeps clear of the chat-button corner at every width — narrow desktops cap its width and phones anchor it left of the corner

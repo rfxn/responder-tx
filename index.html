@@ -23,10 +23,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.95.1">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.95.1">
-  <link rel="stylesheet" href="css/app.css?v=0.95.1">
-  <link rel="stylesheet" href="css/notes.css?v=0.95.1">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.96.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.96.0">
+  <link rel="stylesheet" href="css/app.css?v=0.96.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.96.0">
 </head>
 <body>
   <header>
@@ -221,15 +221,14 @@
         <div class="inun-note" data-i18n-html="leg.inun.note">NWS/NWPS National Water Model analysis (experimental): a modeled estimate, <strong>not observed</strong> conditions. Zoom to street level to see extent · updated hourly.</div>
       </div>
       <div id="radar-scrub" hidden>
-        <button id="rs-play" title="Play / pause the radar loop" data-i18n-title="radar.play">▶</button>
-        <input type="range" id="rs-slider" min="0" max="0" value="0" step="1" title="Scrub radar: past hour → projection" data-i18n-title="radar.scrub">
+        <span id="rs-badge" hidden data-i18n="fcst.badge">FORECAST MODEL</span>
+        <button id="rs-play" title="Play / pause the radar timeline (past → forecast)" data-i18n-title="radar.play">▶</button>
+        <div id="rs-track">
+          <div id="rs-future" hidden></div>
+          <div id="rs-now" hidden><span data-i18n="playback.now">NOW</span></div>
+          <input type="range" id="rs-slider" min="0" max="0" value="0" step="1" title="Scrub the radar timeline: observed past → NOW → HRRR model future" data-i18n-title="radar.scrub">
+        </div>
         <span id="rs-label">–</span>
-      </div>
-      <div id="fcst-scrub" hidden>
-        <span id="fs-badge" data-i18n="fcst.badge">FORECAST MODEL</span>
-        <button id="fs-play" title="Play / pause the forecast loop" data-i18n-title="fcst.play">▶</button>
-        <input type="range" id="fs-slider" min="1" max="18" value="1" step="1" title="Scrub forecast hour: +1h → +18h (HRRR model)" data-i18n-title="fcst.scrub">
-        <span id="fs-label">+1h</span>
       </div>
       <div id="pb-badge" hidden>⏮ <span data-i18n="playback.pill">PLAYBACK</span> · <span id="pb-badge-t"></span></div>
       <button id="pb-pill" title="Historical playback: replay the event over 3/7/14 days" data-i18n-title="playback.open">⏮</button>
@@ -379,16 +378,16 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.95.1"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.95.1"></script>
-  <script src="js/usng.js?v=0.95.1"></script>
-  <script src="js/i18n.js?v=0.95.1"></script>
-  <script src="js/core.js?v=0.95.1"></script>
-  <script src="js/map.js?v=0.95.1"></script>
-  <script src="js/sources.js?v=0.95.1"></script>
-  <script src="js/panels.js?v=0.95.1"></script>
-  <script src="js/board.js?v=0.95.1"></script>
-  <script src="js/boot.js?v=0.95.1"></script>
-  <script src="js/notes.js?v=0.95.1"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.96.0"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.96.0"></script>
+  <script src="js/usng.js?v=0.96.0"></script>
+  <script src="js/i18n.js?v=0.96.0"></script>
+  <script src="js/core.js?v=0.96.0"></script>
+  <script src="js/map.js?v=0.96.0"></script>
+  <script src="js/sources.js?v=0.96.0"></script>
+  <script src="js/panels.js?v=0.96.0"></script>
+  <script src="js/board.js?v=0.96.0"></script>
+  <script src="js/boot.js?v=0.96.0"></script>
+  <script src="js/notes.js?v=0.96.0"></script>
 </body>
 </html>

@@ -983,44 +983,50 @@ button.inspect-gauge:hover { color: var(--accent); }
 }
 @keyframes locPing { 0% { transform: scale(0.4); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
 
+/* unified radar timeline: observed past | NOW | model future; the future zone flips the bar amber+dashed */
 #radar-scrub {
   position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
   z-index: 1100; display: flex; align-items: center; gap: 8px;
   background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
   padding: 6px 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.5);
-}
-#radar-scrub[hidden] { display: none; }
-#rs-play { min-height: 0; padding: 2px 10px; font-size: 14px; }
-#rs-slider { width: min(38vw, 260px); }
-#rs-label { font-size: 12px; font-weight: 700; min-width: 44px; color: var(--ink-2); }
-#rs-label.projected { color: var(--sev-warning); }
-
-/* forecast-radar scrub: amber + dashed on purpose — model data must never read as observed radar */
-#fcst-scrub {
-  position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
-  z-index: 1100; display: flex; align-items: center; gap: 8px;
-  background: var(--surface-1); border: 2px dashed var(--sev-warning); border-radius: 10px;
-  padding: 6px 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.5);
-  /* 144px cap keeps the centered bar's right edge clear of the chat-FAB corner at narrow desktop */
+  /* 144px cap keeps the centered bar's right edge clear of the chat-FAB corner at narrow desktop (v0.95.1) */
   max-width: min(calc(100vw - 12px), calc(100% - 144px));
 }
-#fcst-scrub[hidden] { display: none; }
-#fs-badge {
+#radar-scrub[hidden] { display: none; }
+#radar-scrub.rs-future { border: 2px dashed var(--sev-warning); padding: 5px 11px; }
+#rs-badge {
   font-size: 10px; font-weight: 800; letter-spacing: 0.06em; white-space: nowrap;
   color: #1a1a19; background: var(--sev-warning); padding: 2px 7px; border-radius: 6px;
 }
-#fs-play { min-height: 0; padding: 2px 10px; font-size: 14px; }
-#fs-slider { width: min(30vw, 200px); flex: 0 1 auto; min-width: 70px; accent-color: var(--sev-warning); }
-#fs-label { font-size: 12px; font-weight: 700; min-width: 44px; color: var(--sev-warning); white-space: nowrap; }
-/* both scrubs on: forecast bar stacks above the live radar bar — never side-by-side collision */
-#radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 74px; }
+#rs-badge[hidden] { display: none; }
+#rs-play { min-height: 0; padding: 2px 10px; font-size: 14px; }
+#rs-track { position: relative; display: flex; align-items: center; width: min(38vw, 300px); }
+#rs-slider { width: 100%; position: relative; z-index: 2; margin: 0; }
+#radar-scrub.rs-future #rs-slider { accent-color: var(--sev-warning); }
+/* amber dashed underline marks the model-future segment of the track */
+#rs-future {
+  position: absolute; left: 0; right: 0; bottom: 1px; height: 3px; border-radius: 2px; z-index: 1;
+  background: repeating-linear-gradient(90deg, var(--sev-warning) 0 6px, transparent 6px 11px);
+  opacity: 0.85; pointer-events: none;
+}
+#rs-future[hidden], #rs-now[hidden] { display: none; }
+#rs-now { position: absolute; top: 2px; bottom: 0; width: 0; border-left: 2px solid var(--ink-2); opacity: 0.75; z-index: 1; pointer-events: none; }
+#rs-now span {
+  position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
+  font-size: 8px; font-weight: 800; letter-spacing: 0.05em; line-height: 1; color: var(--ink-2);
+}
+#rs-label { font-size: 12px; font-weight: 700; min-width: 44px; color: var(--ink-2); white-space: nowrap; }
+#rs-label.projected { color: var(--sev-warning); }
+/* HRRR cells are ~3km blocks — supersampled WMS render + slight blur softens them toward the observed-radar look */
+.fcst-tiles { filter: blur(1.5px) saturate(1.05); }
+.rtl-xfade { transition: opacity 0.35s ease; }
 @media (max-width: 500px) {
-  /* left/right-anchored (not centered): keeps the bar clear of the chat-FAB corner at every sheet state */
-  #fcst-scrub { gap: 6px; padding: 5px 8px; left: 6px; right: 76px; transform: none; max-width: none; }
-  #fs-slider { width: min(32vw, 130px); flex: 1 1 auto; min-width: 60px; }
-  #fs-badge { font-size: 9px; }
-  #fs-label { font-size: 11px; min-width: 0; flex: 0 0 auto; } /* the time readout keeps its width — the slider absorbs the squeeze */
-  #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 76px; }
+  /* left/right-anchored (not centered): keeps the bar clear of the chat-FAB corner at every sheet state (v0.95.1) */
+  #radar-scrub { gap: 6px; padding: 5px 8px; left: 6px; right: 76px; transform: none; max-width: none; }
+  #radar-scrub.rs-future { padding: 4px 7px; }
+  #rs-track { flex: 1 1 auto; width: auto; min-width: 60px; }
+  #rs-badge { font-size: 9px; }
+  #rs-label { font-size: 11px; min-width: 0; flex: 0 0 auto; } /* the time readout keeps its width — the track absorbs the squeeze */
 }
 
 @media print {
@@ -1202,9 +1208,7 @@ button.inspect-gauge:hover { color: var(--accent); }
 #pb-pill.pb-disabled { opacity: 0.45; cursor: not-allowed; }
 body.pb-bar-open #pb-pill { display: none; } /* the bar's ✕ takes over while expanded */
 body.pb-bar-open #chat-fab { bottom: 148px; } /* desktop: FAB rides above the open bar — it otherwise buries NOW/✕ (phone override: 178px) */
-body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar scrub rides above the (taller, v0.84) timeline bar + caption */
-body.pb-bar-open #fcst-scrub { bottom: 148px; } /* bar open but still LIVE — the layer only hides once a frame engages */
-body.pb-bar-open #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 196px; }
+body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar timeline rides above the (taller, v0.84) playback bar + caption */
 #playback-bar {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 1150;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -1284,8 +1288,8 @@ body.pb-on #threat-strip { opacity: 0.45; filter: grayscale(0.35); } /* playback
 }
 #pb-arch-note[hidden] { display: none; }
 /* every playback + radar-scrub control opts out of browser double-tap zoom (tap leaks fixed in JS via DomEvent) */
-#playback-bar, #playback-bar button, .pb-tick, #pb-pill, #pb-badge, #radar-scrub, #rs-play, #fcst-scrub, #fs-play { touch-action: manipulation; }
-#rs-slider, #fs-slider { touch-action: none; }
+#playback-bar, #playback-bar button, .pb-tick, #pb-pill, #pb-badge, #radar-scrub, #rs-play { touch-action: manipulation; }
+#rs-slider { touch-action: none; }
 #pb-back, #pb-fwd { min-height: 0; padding: 4px 8px; font-size: 12px; }
 #pb-speed { min-height: 0; padding: 4px 9px; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 #pb-hud {
@@ -1385,8 +1389,6 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   #playback-bar #pb-close { min-width: 40px; min-height: 40px; font-size: 16px; }
   .pb-tick { font-size: 12px; padding: 0 6px; }
   body.pb-bar-open #radar-scrub { bottom: 226px; } /* the taller wrapped bar needs more clearance */
-  body.pb-bar-open #fcst-scrub { bottom: 226px; }
-  body.pb-bar-open #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 274px; }
   body.pb-bar-open #chat-fab { bottom: 226px; } /* the ≤768 178px lift still sits on the ~188px wrapped bar at phone width */
 }
 

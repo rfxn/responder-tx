@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.96.0",
+      "date": "2026-07-19",
+      "line": "One radar timeline: the live radar scrub and the forecast-model scrub are now a single bar — observed radar to the left of a NOW divider, the HRRR model future (+1h to +18h) as an amber dashed segment to the right. Scrub straight across NOW and the map cross-fades between observed echoes and the model future with no blank frame; play loops past → NOW → forecast. Forecast stepping got the replay radar's buffering fix (preload hidden, cross-fade ~350ms, prefetch ahead, skip unchanged hours) and the model tiles render at double resolution with light softening so HRRR's blocky cells read like normative radar. The future zone keeps its amber dashed dress and FORECAST MODEL badge, the +18h cap stays, and the bar hides during historical replay. English y español."
+    },
+    {
       "v": "v0.95.1",
       "date": "2026-07-19",
       "line": "Visual QA fixes: the ops-chat button no longer covers the replay bar's NOW/\u2715 on desktop and the forecast scrub stays clear of it at every width; Spanish threat counters wrap instead of cutting off mid-phrase (\"medidores nivel MAYOR\", \"cerca del r\u00e9cord hist\u00f3rico\"); popups opened from search or a card tap no longer slide under the top of the map on phones; phone feed cards keep their line ends clear of the floating controls; the chat unread badge caps at 99+ and a new device no longer opens to a three-digit badge; \"crecida\" replaces \"onda\" as the Spanish term for a river wave; and road popups drop TxDOT's leading \"-\" artifact."

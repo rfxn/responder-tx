@@ -698,11 +698,9 @@ async function boot() {
     }
   });
 
-  $('#rs-play').addEventListener('click', toggleRadarPlay);
-  $('#rs-slider').addEventListener('input', () => { stopRadarPlay(); setRadarFrame(+$('#rs-slider').value); });
+  $('#rs-play').addEventListener('click', rtlTogglePlay);
+  $('#rs-slider').addEventListener('input', () => { rtlStopPlay(); rtlSet(+$('#rs-slider').value); });
   if (new URLSearchParams(location.search).get('radar') === '1') state.layers.radar.addTo(state.map);
-  $('#fs-play').addEventListener('click', toggleFcstPlay);
-  $('#fs-slider').addEventListener('input', () => { stopFcstPlay(); fcstSetHour(+$('#fs-slider').value); });
   if (new URLSearchParams(location.search).get('fcst') === '1') state.layers.fcstRadar.addTo(state.map);
 
   initPlaybackControls();

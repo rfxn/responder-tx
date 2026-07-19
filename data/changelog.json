@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.96.1",
+      "date": "2026-07-19",
+      "line": "The board is no longer an installable home-screen app — phones will stop prompting you to add or install it. Installed that way it had no way to update itself and could get stuck on a stale version; a normal browser tab always refreshes. Open it in your browser as usual. If you already added it to your home screen, delete that icon and reopen from the browser."
+    },
+    {
       "v": "v0.96.0",
       "date": "2026-07-19",
       "line": "One radar timeline: the live radar scrub and the forecast-model scrub are now a single bar — observed radar to the left of a NOW divider, the HRRR model future (+1h to +18h) as an amber dashed segment to the right. Scrub straight across NOW and the map cross-fades between observed echoes and the model future with no blank frame; play loops past → NOW → forecast. Forecast stepping got the replay radar's buffering fix (preload hidden, cross-fade ~350ms, prefetch ahead, skip unchanged hours) and the model tiles render at double resolution with light softening so HRRR's blocky cells read like normative radar. The future zone keeps its amber dashed dress and FORECAST MODEL badge, the +18h cap stays, and the bar hides during historical replay. English y español."

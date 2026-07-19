@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.96.1 — 2026-07-19 (drop installable-app manifest)
+
+- [Change] the board is no longer offered as an installable home-screen app: the web-app manifest is removed so phones stop prompting "Add to Home Screen" / "Install." Installed as a standalone app it had no service worker and therefore no reliable way to pick up new versions — it could pin a stale board — whereas an ordinary browser tab honors the board's built-in refresh. Open in your browser as usual; if you already added it to your home screen, delete that icon and reopen from the browser (or re-add — it now opens as a normal tab). Nothing else changes: same URL, same live data, offline map tiles still cached.
+
 ## v0.96.0 — 2026-07-19 (unified radar timeline)
 
 - [New] one radar timeline: the live radar scrub and the forecast-model scrub merge into a single bar — observed radar frames on the left, a NOW divider, and the HRRR model future (+1h → +18h) as an amber dashed segment on the right; scrub straight across NOW and the map cross-fades between observed echoes and the model's future with no blank frame; play loops observed → NOW → forecast and starts over (with the forecast layer off, the bar is observed-only exactly as before; forecast-only works too)

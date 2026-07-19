@@ -242,7 +242,23 @@ function setRainWindow(w) {
 
 /* ---------- map ---------- */
 
+// flyOpenPopup latlng zoom marker — setView, then open once the flight fully settles;
+// opening mid-flight breaks popup autoPan (the flight's later animation phases re-center over it)
+function flyOpenPopup(latlng, zoom, marker) {
+  state.map.setView(latlng, zoom);
+  if (!marker) return;
+  const busy = () => (state.map._panAnim && state.map._panAnim._inProgress) || state.map._animatingZoom;
+  let idle = 0, tries = 0;
+  (function tick() {
+    idle = busy() ? 0 : idle + 1;
+    if (idle >= 2 || ++tries > 50) { marker.openPopup(); return; }
+    setTimeout(tick, 80);
+  })();
+}
+
 function initMap() {
+  // autoPan clear of the AO chip / layer-pill band at the map top — popups otherwise clip against the container edge
+  L.Popup.mergeOptions({ autoPanPaddingTopLeft: L.point(8, 120) });
   state.map = L.map('map', { zoomControl: false }).setView(CONFIG.center, CONFIG.zoom);
   // collapse the attribution bar to a tap-to-open ⓘ — it otherwise crowds the legend on short screens; OSM/CARTO/TxDOT credits stay one tap away (ToS + source-citation intact)
   state.map.attributionControl.setPrefix('<span class="attr-i" title="Map & data sources">ⓘ</span>');

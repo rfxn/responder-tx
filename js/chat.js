@@ -9,6 +9,8 @@
     open: false,
     msgs: [],
     seen: +localStorage.getItem('respondertx.chatSeen') || 0,
+    // no chatSeen key = first-ever load on this device — baseline to the current history, don't badge it all as unread
+    seeded: localStorage.getItem('respondertx.chatSeen') !== null,
   };
 
   const style = document.createElement('style');
@@ -55,6 +57,9 @@
 @media (max-width: 768px) {
   #chat-fab { bottom: 58px; }
   #chat-panel { right: 4vw; bottom: 114px; height: min(62vh, 480px); }
+}
+@media (max-width: 500px) {
+  .tab-body { padding-right: 64px; } /* widen the base 52px band — the FAB (LAN-only, this file) sits left of the sheet handle */
 }
 @media print { #chat-fab, #chat-panel { display: none !important; } }
 `;
@@ -105,6 +110,12 @@
     } catch { /* inbox unreadable — panel just shows outbox */ }
     msgs.sort((a, b) => new Date(a.ts) - new Date(b.ts));
     chat.msgs = msgs;
+    if (!chat.seeded) {
+      const latest = msgs.filter((m) => m.role !== 'user').map((m) => new Date(m.ts).getTime());
+      chat.seen = latest.length ? Math.max(...latest) : 0;
+      chat.seeded = true;
+      localStorage.setItem('respondertx.chatSeen', String(chat.seen));
+    }
     renderChat();
   }
 
@@ -112,7 +123,7 @@
     const unseen = chat.msgs.filter((m) => m.role !== 'user' && new Date(m.ts).getTime() > chat.seen).length;
     const badge = document.getElementById('chat-unread');
     badge.hidden = !unseen || chat.open;
-    badge.textContent = unseen;
+    badge.textContent = unseen > 99 ? '99+' : unseen;
     if (!chat.open) return;
     const el = document.getElementById('chat-msgs');
     const atBottom = !el.childElementCount || el.scrollHeight - el.scrollTop - el.clientHeight < 60;

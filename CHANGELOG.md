@@ -1,5 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.94.0 — 2026-07-19 (calmer map chrome: collapsed area chip + matched controls)
+
+- [Change] the area quick-jump row collapses to a single context chip ("◎ Full AO ▾") on every screen size: the chip always names the area in view — picking a preset updates it, and panning away from a picked area flips it to "◎ custom view" (bounds check against the map center) so the label never claims an area the map has left; tapping the chip expands the full preset row in place (horizontal scroll on phones), picking an area jumps the map and collapses the row immediately (the map flight is the confirmation — a lingering row would compete with it), and tap-outside, Escape, or ~6s of no interaction also collapse it; EN+ES (`ao.current.title`, `ao.chip.title`, `ao.custom`)
+- [Change] the map-layers and share buttons drop their emoji glyphs for clean stroke icons, and the whole map-control family (zoom + / −, locate ⌖, layers, share) now shares one theme-aware style — app surface background, hairline separators, matched border, radius, and hover in both dark and light themes (desktop emoji fonts drew the layers glyph as a flat black box that clashed with the zoom bar)
+- [New] road closure popups state the segment's length ("49 mi segment", shown at ≥2 mi, computed from the reported geometry) beside the from → to limits, plus a condition-aware note: closures say TxDOT barricades the full stretch between the listed limits even if water or damage is localized within it; flooding/damage reports say the condition may be localized within the stretch; EN+ES (`road.seg`, `road.note.closure`, `road.note.cond`)
+
 ## v0.93.2 — 2026-07-19
 
 - [Change] Radar scrub label reads just "now" (removed "no future-cast in free

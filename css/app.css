@@ -937,12 +937,23 @@ button.inspect-gauge { cursor: pointer; color: var(--ink-1); }
 button.inspect-gauge:hover { color: var(--accent); }
 .inspect-note { font-size: 10px; color: var(--ink-muted); margin-top: 4px; line-height: 1.3; }
 
-/* AO quick-jump — pills along the map top edge next to the nav bar */
+/* AO quick-jump — one collapsed context chip; taps open the preset row in place */
 .ao-jump {
   position: absolute; top: 10px; left: 54px; right: 56px; z-index: 1000;
-  display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap;
+  display: flex; gap: 6px; align-items: flex-start;
   pointer-events: none;
 }
+.ao-current {
+  pointer-events: auto; white-space: nowrap; min-height: 0; flex: 0 0 auto;
+  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px;
+  background: var(--surface-1); border: 1px solid var(--border); color: var(--ink-1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.ao-current:hover, .ao-jump.open .ao-current { border-color: var(--accent); }
+.ao-caret { color: var(--ink-muted); font-size: 10px; display: inline-block; transition: transform 0.15s; }
+.ao-jump.open .ao-caret { transform: rotate(180deg); }
+.ao-row { display: none; }
+.ao-jump.open .ao-row { display: flex; gap: 6px; flex-wrap: wrap; min-width: 0; pointer-events: none; }
 .ao-chip {
   pointer-events: auto; white-space: nowrap; min-height: 0;
   font-size: 12px; padding: 4px 10px; border-radius: 12px;
@@ -950,7 +961,6 @@ button.inspect-gauge:hover { color: var(--accent); }
   box-shadow: 0 1px 4px rgba(0,0,0,0.35);
 }
 .ao-chip:hover { border-color: var(--accent); }
-.ao-toggle { display: none; }
 
 /* location beacon — must be unmissable at a glance while moving */
 .my-pos-wrap { position: relative; width: 48px; height: 48px; }
@@ -1071,16 +1081,12 @@ button.inspect-gauge:hover { color: var(--accent); }
   /* collapse behavior is now in the base rules (both breakpoints) */
   /* one-thumb targets on the merged + / − / ⌖ bar */
   .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
-  /* AO presets collapse behind 🗺 — five pills would bury the 42vh map */
   .ao-jump { left: 62px; right: 62px; }
   .layer-pills { left: 62px; right: 62px; }
   .layer-pill { min-height: 30px; }
-  .ao-jump:not(.open) .ao-chip { display: none; }
-  .ao-toggle {
-    display: block; pointer-events: auto; width: 42px; padding: 0;
-    font-size: 18px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.35);
-  }
-  .ao-toggle:active, .ao-jump.open .ao-toggle { border-color: var(--accent); }
+  .ao-current, .ao-chip { min-height: 30px; }
+  /* expanded row scrolls sideways — six wrapped pills would bury the 42vh map */
+  .ao-jump.open .ao-row { flex-wrap: nowrap; overflow-x: auto; pointer-events: auto; padding-bottom: 4px; }
   .offline-ctl { max-width: 168px; padding: 6px 8px; opacity: 0.95; }
   .offline-ctl .off-note { font-size: 9.5px; }
 }
@@ -1448,7 +1454,19 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 
 /* ---- v0.89: grouped layer sheet — replaces the stock Leaflet checkbox control as the picker ---- */
 .leaflet-control-layers { display: none; } /* control stays mounted as the overlay-event registry; the sheet is the UI */
-.ls-trigger a { font-size: 15px; text-decoration: none; }
+
+/* one themed map-control family — zoom/locate/layers/share share surface, border, hover in both themes */
+.leaflet-bar, .leaflet-touch .leaflet-bar {
+  border: 1px solid var(--border); border-radius: 6px; background-clip: padding-box;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.leaflet-bar a, .leaflet-touch .leaflet-bar a { background: var(--surface-1); color: var(--ink-1); border-bottom: 1px solid var(--hairline); }
+.leaflet-bar a:first-child, .leaflet-touch .leaflet-bar a:first-child { border-top-left-radius: 5px; border-top-right-radius: 5px; }
+.leaflet-bar a:last-child, .leaflet-touch .leaflet-bar a:last-child { border-bottom: none; border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; }
+.leaflet-bar a:hover, .leaflet-bar a:focus { background: var(--surface-2); color: var(--ink-1); }
+.leaflet-bar a.leaflet-disabled { background: var(--surface-2); color: var(--ink-muted); }
+.ls-trigger a { font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.ls-trigger svg { display: block; }
 #layer-sheet { position: fixed; inset: 0; z-index: 1460; }
 #layer-sheet[hidden] { display: none; }
 .ls-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }

@@ -810,7 +810,9 @@ function loadCameras() {
 }
 
 function camTitle(c, kind) {
-  return kind === 'river' ? c.name : (c.description || prettyRoute(c.route) || c.name || 'Traffic camera');
+  if (kind === 'river') return c.name;
+  if (c.src === 'its') return c.name || prettyRoute(c.route) || 'Traffic camera'; // ITS names carry the cross-street
+  return c.description || prettyRoute(c.route) || c.name || 'Traffic camera';
 }
 
 function renderCameras() {
@@ -820,9 +822,10 @@ function renderCameras() {
   const marks = [];
   const add = (c, kind) => {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) return;
+    // snapshot-only ITS cams get a muted dashed marker — users must see "still", not "live"
     const icon = L.divIcon({
       className: '',
-      html: `<div class="cam-icon${kind === 'river' ? ' cam-river' : ''}">📷</div>`,
+      html: `<div class="cam-icon${kind === 'river' ? ' cam-river' : ''}${c.src === 'its' ? ' cam-snap' : ''}">📷</div>`,
       iconSize: [22, 22], iconAnchor: [11, 11],
     });
     const m = L.marker([c.lat, c.lon], { icon, attribution: kind === 'river' ? CAM_ATTRIB_USGS : CAM_ATTRIB_TXDOT });
@@ -848,7 +851,7 @@ function camPopup(c, kind) {
   const el = document.createElement('div');
   const sub = kind === 'river'
     ? `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`
-    : `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t('cam.traffic'))}`;
+    : `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
   el.innerHTML = `<div class="popup-title">📷 ${esc(camTitle(c, kind))}</div>` +
     `<div class="popup-meta">${sub}</div>` +
     `<button class="popup-expand cam-view-btn">${esc(t('cam.view'))}</button>` +
@@ -872,7 +875,12 @@ function openCamViewer(c, kind) {
   $('#cam-viewer').hidden = false;
   $('#cam-title').textContent = `📷 ${camTitle(c, kind)}`;
   const stage = $('#cam-stage'), meta = $('#cam-meta'), note = $('#cam-note');
-  if (kind === 'txdot') {
+  if (kind === 'txdot' && c.src === 'its') {
+    // snapshot-only ITS cam: fresh JPEG via the same-origin /api/cam proxy, never a "LIVE" player
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.its.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    loadItsSnapshot(c, stage, meta, false);
+  } else if (kind === 'txdot') {
     const url = safeUrl(c.httpsurl);
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.txdot.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
     const video = document.createElement('video');
@@ -896,6 +904,57 @@ function openCamViewer(c, kind) {
     loadRiverStill(c, stage, meta).catch(() => {
       stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
     });
+  }
+}
+
+// ITS capture stamps are US Central wall time ("7/18/2026 7:56 PM"); captures are minutes
+// old, so applying today's Chicago UTC offset is safe (DST-boundary error window is negligible)
+function parseItsStamp(s) {
+  const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[, ]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AP]M?)$/i);
+  if (!m) return null;
+  let h = +m[4] % 12;
+  if (/^p/i.test(m[7])) h += 12;
+  const wallUtc = Date.UTC(+m[3], +m[1] - 1, +m[2], h, +m[5], +(m[6] || 0));
+  let offMin = -300; // CDT fallback if shortOffset is unsupported
+  try {
+    const tz = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', timeZoneName: 'shortOffset' })
+      .formatToParts(new Date()).find((p) => p.type === 'timeZoneName');
+    const om = tz && tz.value.match(/GMT([+-])(\d+)(?::(\d+))?/);
+    if (om) offMin = (om[1] === '-' ? -1 : 1) * ((+om[2]) * 60 + (+(om[3] || 0)));
+  } catch { /* keep fallback */ }
+  return new Date(wallUtc - offMin * 60000);
+}
+
+// fetch-as-blob (not <img src>) so the X-Cam-Captured header is readable; bust forces a re-fetch
+async function loadItsSnapshot(c, stage, meta, bust) {
+  try {
+    const url = `api/cam/${encodeURIComponent(c.dist)}/${encodeURIComponent(c.icd)}${bust ? `?_=${Date.now()}` : ''}`;
+    const res = await fetch(url, bust ? { cache: 'reload' } : undefined);
+    if (!res.ok) throw new Error(`cam HTTP ${res.status}`);
+    const captured = res.headers.get('X-Cam-Captured') || '';
+    const blob = await res.blob();
+    if (state.camObjUrl) URL.revokeObjectURL(state.camObjUrl);
+    state.camObjUrl = URL.createObjectURL(blob);
+    const img = document.createElement('img');
+    img.alt = camTitle(c, 'txdot');
+    img.src = state.camObjUrl;
+    stage.innerHTML = '';
+    stage.appendChild(img);
+    const when = parseItsStamp(captured);
+    const stale = !!when && ageMins(when.toISOString()) > CAM_STALE_MINS;
+    meta.innerHTML = (stale
+      ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
+      : `<span class="cam-badge still">${esc(t('cam.snapshot'))}</span>`) +
+      `<span class="cam-time">${esc(t('cam.captured'))} ${esc(when ? fmtWhen(when.toISOString()) : (captured || '—'))}</span>` +
+      (stale ? `<span class="cam-stale-note">${esc(t('cam.stale.note'))}</span>` : '') +
+      `<button class="popup-expand cam-refresh">↻ ${esc(t('cam.refresh'))}</button>`;
+    meta.querySelector('.cam-refresh').addEventListener('click', () => {
+      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+      loadItsSnapshot(c, stage, meta, true);
+    });
+  } catch {
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.snap.unavail'))}</div>`;
+    meta.innerHTML = '';
   }
 }
 
@@ -940,6 +999,7 @@ function camViewerTeardown() {
   }
   const v = $('#cam-stage video');
   if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  if (state.camObjUrl) { URL.revokeObjectURL(state.camObjUrl); state.camObjUrl = null; }
   $('#cam-stage').innerHTML = '';
   $('#cam-meta').innerHTML = '';
   $('#cam-note').innerHTML = '';

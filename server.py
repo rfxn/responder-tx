@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Responder TX LAN server: static files + POST /api/chat|/api/notes -> data/*.jsonl."""
+import base64
 import json
 import os
 import re
@@ -17,10 +18,16 @@ NOTE_CATS = ('info', 'hazard', 'road', 'water', 'photo')
 GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
 NWPS_BASE = 'https://api.water.noaa.gov/nwps/v1/gauges/'
 GAUGE_TTL = 180
+CAM_RE = re.compile(r'^/api/cam/([A-Z]{3})/([^/]{1,200})$')
+CAM_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")  # matches gen-cameras.py ITS_ICD_RE — not an open proxy
+ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
+CAM_TTL = 120
 DENY_PREFIXES = ('/.git', '/.rdf', '/.claude')
 DENY_PATHS = ('/HANDOFF.md', '/data/chat-inbox.jsonl', '/data/.chat-cursor', '/data/notes-inbox.jsonl')
 _gauge_cache = {}
 _gauge_lock = threading.Lock()
+_cam_cache = {}
+_cam_lock = threading.Lock()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -38,8 +45,12 @@ class Handler(SimpleHTTPRequestHandler):
         if m:
             self._gauge_proxy(m.group(1).upper(), m.group(2))
             return
-        # repo internals and agent inboxes must never be served to the LAN
         path = self.path.split('?', 1)[0]
+        m = CAM_RE.match(path)
+        if m:
+            self._cam_proxy(m.group(1), urllib.parse.unquote(m.group(2)))
+            return
+        # repo internals and agent inboxes must never be served to the LAN
         if path.startswith(DENY_PREFIXES) or path in DENY_PATHS:
             self.send_error(404)
             return
@@ -69,6 +80,42 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    # TxDOT ITS snapshot proxy (mirrors functions/api/cam): upstream JSON carries a base64
+    # JPEG; serve the raw image with the capture stamp so the viewer never needs CORS
+    def _cam_proxy(self, district, icd):
+        if not CAM_ICD_RE.match(icd):
+            self.send_error(400)
+            return
+        key = district + '/' + icd
+        now = time.time()
+        with _cam_lock:
+            hit = _cam_cache.get(key)
+        entry = hit if hit and now - hit[0] < CAM_TTL else None
+        if entry is None:
+            url = ITS_SNAP + '?icdId=' + urllib.parse.quote(icd) + '&districtCode=' + district
+            try:
+                req = urllib.request.Request(url, headers={'Accept': 'application/json'})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    d = json.loads(r.read())
+                jpeg = base64.b64decode(d['snippet'])
+                if not jpeg:
+                    raise ValueError('empty snapshot')
+                stamp = re.sub(r'[^\x20-\x7e]+', ' ', str(d.get('timestampFormatted', ''))).strip()[:64]
+            except (OSError, ValueError, KeyError, TypeError):
+                self.send_error(502)
+                return
+            entry = (now, jpeg, stamp)
+            with _cam_lock:
+                for k in [k for k, v in _cam_cache.items() if now - v[0] >= CAM_TTL]:
+                    del _cam_cache[k]  # expired-entry sweep keeps memory bounded to recently viewed cams
+                _cam_cache[key] = entry
+        self.send_response(200)
+        self.send_header('Content-Type', 'image/jpeg')
+        self.send_header('X-Cam-Captured', entry[2])
+        self.send_header('Content-Length', str(len(entry[1])))
+        self.end_headers()
+        self.wfile.write(entry[1])
 
     def do_POST(self):
         if self.path == '/api/chat':

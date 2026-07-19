@@ -232,6 +232,12 @@
       'feed.empty': 'No notices match the current filters.',
       'feed.allcounties': 'All counties',
 
+      'sync.openfeed': 'Open in feed →',
+      'sync.opengauges': 'Open in gauges list →',
+      'sync.inview': 'In view',
+      'sync.inview.title': 'Scope the list to the current map view; updates live as you pan',
+      'sync.geoflag.title': 'On the map — tap to fly there',
+
       'res.shelters': 'Open shelters (from official statements)',
       'res.hotlines': 'Hotlines',
       'res.data': 'Authoritative data & live coverage',
@@ -647,6 +653,12 @@
       'sec.gauge.noload': 'Datos de medidores aún no cargados.',
       'feed.empty': 'Ningún reporte coincide con los filtros actuales.',
       'feed.allcounties': 'Todos los condados',
+
+      'sync.openfeed': 'Abrir en el feed →',
+      'sync.opengauges': 'Abrir en la lista de medidores →',
+      'sync.inview': 'En vista',
+      'sync.inview.title': 'Limita la lista a la vista actual del mapa; se actualiza al desplazar',
+      'sync.geoflag.title': 'En el mapa — toca para volar allí',
 
       'res.shelters': 'Refugios abiertos (según declaraciones oficiales)',
       'res.hotlines': 'Líneas de ayuda',

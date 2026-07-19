@@ -48,7 +48,7 @@ function requestVisible(r) {
 function updateFiltersBadge() {
   const f = state.filters;
   const n = ['type', 'county', 'q', 'window', 'dist'].filter((k) => f[k]).length
-    + (state.sort !== 'smart' ? 1 : 0) + (state.showAged ? 1 : 0);
+    + (state.sort !== 'smart' ? 1 : 0) + (state.showAged ? 1 : 0) + (state.inView ? 1 : 0);
   $('#filters-toggle').textContent = n ? `☰ Filters (${n})` : '☰ Filters';
   $('#filters-toggle').classList.toggle('on', n > 0 || !$('#req-filters').hidden);
 }
@@ -77,6 +77,74 @@ function flyToRadioId(raw) {
   return true;
 }
 
+/* ---------- map↔list sync — popup "Open in …" reveal + "In view" scoping ---------- */
+
+// map→list reveal: switch tab, scroll the row into view, ~1.5s outline pulse
+function revealInList(tab, sel) {
+  const btn = document.querySelector(`.tabs button[data-tab="${tab}"]`);
+  if (btn) btn.click();
+  requestAnimationFrame(() => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('flash');
+    void el.offsetWidth; // restart the pulse on repeat taps
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1600);
+  });
+}
+
+function openInFeed(id) {
+  revealInList('tab-requests', `#request-list .card[data-rid="${CSS.escape(id)}"]`);
+}
+
+function openInGaugesList(lid) {
+  const sel = `#gauge-list .gauge-card[data-lid="${CSS.escape(lid)}"]`;
+  // normal-category gauges hide behind the "show N gauges normal" fold — unfold before revealing
+  if (!document.querySelector(sel) && !state.showNormalGauges) { state.showNormalGauges = true; renderGaugesTab(); }
+  revealInList('tab-gauges', sel);
+}
+
+const IN_VIEW_KEY = 'respondertx.inview';
+function setInView(on) {
+  state.inView = on;
+  try { sessionStorage.setItem(IN_VIEW_KEY, on ? '1' : '0'); } catch { /* private mode — chip still works this load */ }
+  renderRequests();
+  renderGaugesTab();
+}
+
+// while the chip is ON, list re-renders on pan/zoom are the interaction; OFF keeps the seed-hash scroll guard untouched
+function initInViewSync() {
+  try { state.inView = sessionStorage.getItem(IN_VIEW_KEY) === '1'; } catch { state.inView = false; }
+  let tmr = null;
+  state.map.on('moveend', () => {
+    if (!state.inView) return;
+    clearTimeout(tmr);
+    tmr = setTimeout(() => { if (state.inView) { renderRequests(); renderGaugesTab(); } }, 300);
+  });
+}
+
+function reqPopup(r) {
+  const el = document.createElement('div');
+  el.innerHTML = `<div class="popup-title">${TYPE_GLYPH[r.type] || ''} ${esc(r.type.toUpperCase())} · ${esc(r.priority)}</div>` +
+    `<div>${esc(r.summary)}</div>` +
+    `<div class="popup-meta">${shortId(r.id)} · ${esc(r.place)} · ${esc(r.status)} · ${esc(fmtWhen(r.ts))}</div>` +
+    `<div class="popup-meta">USNG ${esc(toUSNG(r.lat, r.lon))} · ${r.lat.toFixed(4)}, ${r.lon.toFixed(4)}</div>` +
+    `<button class="popup-expand open-in-feed">${esc(t('sync.openfeed'))}</button>` +
+    (r.source && r.source.url && safeUrl(r.source.url) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(r.source.url))}" target="_blank" rel="noopener">source →</a></div>` : '');
+  el.querySelector('.open-in-feed').addEventListener('click', () => openInFeed(r.id));
+  return el;
+}
+
+function cutoffPopup(r) {
+  const el = document.createElement('div');
+  el.innerHTML = `<div class="popup-title">⛔ CUT-OFF AREA (est.)</div><div>${esc(r.summary)}</div>` +
+    `<div class="popup-meta">~${r.radiusMi} mi isolation footprint · operator estimate</div>` +
+    `<button class="popup-expand open-in-feed">${esc(t('sync.openfeed'))}</button>`;
+  el.querySelector('.open-in-feed').addEventListener('click', () => openInFeed(r.id));
+  return el;
+}
+
 function renderRequests() {
   updateFiltersBadge();
   const reqs = sortRequests(allRequests());
@@ -86,6 +154,11 @@ function renderRequests() {
   agedBtn.classList.toggle('on', state.showAged);
   agedBtn.style.display = agedCount ? '' : 'none';
   const visible = reqs.filter((r) => (state.showAged || !cardAged(r)) && requestVisible(r));
+  // "In view" scopes the LIST only — the map keeps every filter-passing marker (it is the filter source)
+  const listed = state.inView ? visible.filter((r) => inMapView(r.lat, r.lon)) : visible;
+  const ivBtn = $('#flt-inview');
+  ivBtn.classList.toggle('on', state.inView);
+  ivBtn.textContent = state.inView ? `${t('sync.inview')} · ${listed.length}` : t('sync.inview');
   const el = $('#request-list');
   el.innerHTML = '';
 
@@ -94,9 +167,10 @@ function renderRequests() {
   const cur = cSel.value;
   cSel.innerHTML = `<option value="">${esc(t('feed.allcounties'))}</option>` + counties.map((c) => `<option${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
 
-  for (const r of visible) {
+  for (const r of listed) {
     const div = document.createElement('div');
     div.className = `card pri-${r.priority}${cardAged(r) ? ' aged' : ''}`;
+    div.dataset.rid = r.id;
     const src = r.source || {};
     const srcLink = src.url ? `<a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener">${esc(src.platform || 'source')}: ${esc(src.handle || src.url)}</a>` : esc(`${src.platform || ''} ${src.handle || ''}`.trim());
     const isNew = state.lastSeen && new Date(r.ts).getTime() > state.lastSeen;
@@ -105,6 +179,7 @@ function renderRequests() {
     div.innerHTML =
       `<div class="head"><span>${TYPE_GLYPH[r.type] || '📍'}</span><span class="type-chip">${esc(r.type)} · ${esc(r.priority)}</span>` +
       `<span class="sid" title="Radio reference: tap to copy">${shortId(r.id)}</span>` +
+      (hasPos ? `<span class="geo-flag" title="${esc(t('sync.geoflag.title'))}">📍</span>` : '') +
       `<span class="when"><span class="fresh-dot ${freshClass(r.ts)}"></span> ${esc(fmtWhen(r.ts))}</span></div>` +
       `<div class="summary">${esc(r.summary)}</div>` +
       `<div class="meta">📍 ${esc(r.place)} (${esc(r.county)} Co.)${r.contact ? ` · ☎ ${esc(r.contact)}` : ''}` +
@@ -139,7 +214,7 @@ function renderRequests() {
     });
     el.appendChild(div);
   }
-  if (!visible.length) el.innerHTML = `<div class="card">${esc(t('feed.empty'))}</div>`;
+  if (!listed.length) el.innerHTML = `<div class="card">${esc(t('feed.empty'))}</div>`;
 
   state.layers.requests.clearLayers();
   state.reqMarkers = {};
@@ -149,7 +224,7 @@ function renderRequests() {
     if (r.type === 'cutoff' && r.radiusMi > 0 && !resolved) {
       state.layers.requests.addLayer(L.circle([r.lat, r.lon], {
         radius: r.radiusMi * 1609.34, className: 'cutoff-circle', weight: 2, fillOpacity: 0.07,
-      }).bindPopup(`<div class="popup-title">⛔ CUT-OFF AREA (est.)</div><div>${esc(r.summary)}</div><div class="popup-meta">~${r.radiusMi} mi isolation footprint · operator estimate</div>`));
+      }).bindPopup(() => cutoffPopup(r)));
     }
     const icon = L.divIcon({
       className: '',
@@ -157,11 +232,7 @@ function renderRequests() {
       iconSize: [26, 26], iconAnchor: [4, 26],
     });
     const m = L.marker([r.lat, r.lon], { icon });
-    m.bindPopup(`<div class="popup-title">${TYPE_GLYPH[r.type] || ''} ${esc(r.type.toUpperCase())} · ${esc(r.priority)}</div>` +
-      `<div>${esc(r.summary)}</div>` +
-      `<div class="popup-meta">${shortId(r.id)} · ${esc(r.place)} · ${esc(r.status)} · ${esc(fmtWhen(r.ts))}</div>` +
-      `<div class="popup-meta">USNG ${esc(toUSNG(r.lat, r.lon))} · ${r.lat.toFixed(4)}, ${r.lon.toFixed(4)}</div>` +
-      (r.source && r.source.url && safeUrl(r.source.url) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(r.source.url))}" target="_blank" rel="noopener">source →</a></div>` : ''));
+    m.bindPopup(() => reqPopup(r));
     state.layers.requests.addLayer(m);
     state.reqMarkers[r.id] = m;
   }

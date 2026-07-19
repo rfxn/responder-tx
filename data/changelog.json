@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.92.0",
+      "date": "2026-07-18",
+      "line": "The map and the lists now work as one product: every notice popup on the map gains \u201cOpen in feed \u2192\u201d and every gauge popup \u201cOpen in gauges list \u2192\u201d \u2014 tap it and the matching card scrolls into view with a brief highlight pulse. A new \u201cIn view\u201d chip on the Feed and Gauges tabs scopes the list to whatever the map is showing, with a live count that updates as you pan; turn it off to get the full list back. Cards that fly the map now carry a small \ud83d\udccd so the affordance is visible. English y espa\u00f1ol."
+    },
+    {
       "v": "v0.91.0",
       "date": "2026-07-18",
       "line": "Playback now rebuilds the full incident picture: road closures replay on the map frame by frame (archived TxDOT snapshots where we have them, honestly labeled as reconstructed from posted closure times before the archive began), flooding gauges call out prominently \u2014 majors draw twice as large, a colored ring pulses when a gauge changes category, and the 5 most significant gauges carry always-visible name + stage labels \u2014 and when the data shows a crest translating down a river (Devils, Llano, Pecos, Nueces chains tonight) an animated dashed arrow traces it between gauges with a \u201ccrest moving downstream\u201d tag. English y espa\u00f1ol."

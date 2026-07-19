@@ -545,8 +545,16 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 .aged-toggle:hover { color: var(--accent); }
 .lsr-icon.aged-icon { opacity: 0.4; border-color: var(--ink-muted); }
-#flt-aged { font-size: 12px; padding: 4px 8px; color: var(--ink-muted); }
-#flt-aged.on { border-color: var(--accent); color: var(--accent); }
+#flt-aged, #flt-inview { font-size: 12px; padding: 4px 8px; color: var(--ink-muted); }
+#flt-aged.on, #flt-inview.on { border-color: var(--accent); color: var(--accent); }
+
+/* map↔list sync: popup-reveal pulse + on-the-map affordance glyph */
+.card.flash { animation: card-flash 0.75s ease-in-out 2; }
+@keyframes card-flash {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 3px var(--accent); border-color: var(--accent); }
+}
+.card .head .geo-flag { font-size: 10px; opacity: 0.5; }
 
 /* version badge + changelog modal */
 #app-version {

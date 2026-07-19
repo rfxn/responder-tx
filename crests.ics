@@ -6,16 +6,16 @@ METHOD:PUBLISH
 X-WR-CALNAME:Responder TX — forecast river crests
 BEGIN:VEVENT
 UID:crest-CMKT2-20260719T030000Z@responder.rfxn.com
-DTSTAMP:20260719T002515Z
+DTSTAMP:20260719T004019Z
 DTSTART:20260719T030000Z
 DTEND:20260719T040000Z
 SUMMARY:MAJOR crest — Devils River at Pafford Crossing near Comstock (13 ft)
-DESCRIPTION:Forecast MAJOR crest 13 ft (observed 10.43 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 13 ft (observed 10.76 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://responder.rfxn.com/?hydro=CMKT2
 END:VEVENT
 BEGIN:VEVENT
 UID:crest-TIDT2-20260722T060000Z@responder.rfxn.com
-DTSTAMP:20260719T002515Z
+DTSTAMP:20260719T004019Z
 DTSTART:20260722T060000Z
 DTEND:20260722T070000Z
 SUMMARY:MAJOR crest — Frio River at Tilden (27.8 ft)
@@ -24,11 +24,11 @@ URL:https://responder.rfxn.com/?hydro=TIDT2
 END:VEVENT
 BEGIN:VEVENT
 UID:crest-COTT2-20260722T180000Z@responder.rfxn.com
-DTSTAMP:20260719T002515Z
+DTSTAMP:20260719T004019Z
 DTSTART:20260722T180000Z
 DTEND:20260722T190000Z
 SUMMARY:MAJOR crest — Nueces River at Cotulla (22.2 ft)
-DESCRIPTION:Forecast MAJOR crest 22.2 ft (observed 5.42 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 22.2 ft (observed 5.46 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://responder.rfxn.com/?hydro=COTT2
 END:VEVENT
 END:VCALENDAR

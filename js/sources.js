@@ -327,9 +327,11 @@ function gaugePopup(g) {
     forecastLine +
     `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">Loading ${CONFIG.sparkHours}h stage history…</div></div>` +
     `<button class="popup-expand" data-lid="${esc(g.lid)}">⤢ Full hydrograph (obs + forecast + record)</button>` +
+    `<button class="popup-expand open-in-gauges">${esc(t('sync.opengauges'))}</button>` +
     `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">NOAA gauge page (forecast) →</a></div>`;
   drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
   el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
+  el.querySelector('.open-in-gauges').addEventListener('click', () => openInGaugesList(g.lid));
   // eyes-on pairing: a HIVIS cam within 2 km gets a view link (inventory lazy-loads on first popup)
   loadCameras().then(() => {
     const cam = nearestRiverCam(g.latitude, g.longitude, 2);

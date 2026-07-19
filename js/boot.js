@@ -480,6 +480,7 @@ async function boot() {
   applyI18n(document);
   initMap();
   initPointInspector();
+  initInViewSync();
   applyTheme(document.documentElement.getAttribute('data-theme'));
   loadStore();
   loadHist();
@@ -655,6 +656,7 @@ async function boot() {
   });
 
   $('#flt-aged').addEventListener('click', () => { state.showAged = !state.showAged; renderRequests(); saveViewState(); });
+  $('#flt-inview').addEventListener('click', () => setInView(!state.inView));
   $('#req-filters').hidden = localStorage.getItem('respondertx.filtersOpen') !== '1';
   $('#filters-toggle').addEventListener('click', () => {
     const open = $('#req-filters').hidden;

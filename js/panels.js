@@ -51,9 +51,11 @@ function gaugeCardDiv(g) {
   const site = g.name.slice(riverOf(g.name).length).trim();
   const div = document.createElement('div');
   div.className = `card gauge-card${stale ? ' stale' : (cat === 'none' && !gaugeRising(g) ? ' aged' : '')}`;
+  div.dataset.lid = g.lid;
   div.style.borderLeftColor = stale ? 'var(--cat-none)' : `var(--cat-${cat})`;
   const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   div.innerHTML = `<div class="head">${gaugeGlyphHtml(g)}<span class="g-name">${esc(g.name)}</span>` +
+    `<span class="geo-flag" title="${esc(t('sync.geoflag.title'))}">📍</span>` +
     `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
     `<div class="meta">OBS ${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}</div>` +
     (stale ? `<div class="meta stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
@@ -292,13 +294,16 @@ function renderGaugesTab() {
   renderWave();
   const el = $('#gauge-list');
   if (!el) return;
-  const inFlood = state.gauges.filter((g) => gaugeCat(g) !== 'none');
+  const inFloodAll = state.gauges.filter((g) => gaugeCat(g) !== 'none');
   const badge = $('#gauges-count');
-  badge.textContent = inFlood.length;
-  badge.classList.toggle('sev', inFlood.some((g) => gaugeCat(g) === 'major'));
+  badge.textContent = inFloodAll.length;
+  badge.classList.toggle('sev', inFloodAll.some((g) => gaugeCat(g) === 'major'));
 
+  // "In view" scopes the list buckets; the tab badge above stays global situational truth
+  const pool = state.inView ? state.gauges.filter((g) => inMapView(g.latitude, g.longitude)) : state.gauges;
+  const inFlood = pool.filter((g) => gaugeCat(g) !== 'none');
   // double-listing precedence: rising wins, then falling, then in-flood
-  const rising = state.gauges.filter(gaugeRising)
+  const rising = pool.filter(gaugeRising)
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
   const risingLids = new Set(rising.map((g) => g.lid));
   const inFloodOnly = inFlood.filter((g) => !risingLids.has(g.lid));
@@ -306,7 +311,7 @@ function renderGaugesTab() {
   const fallingLids = new Set(falling.map((g) => g.lid));
   const holding = inFloodOnly.filter((g) => !fallingLids.has(g.lid))
     .sort((a, b) => CAT_RANK[gaugeCat(b)] - CAT_RANK[gaugeCat(a)] || b.status.observed.primary - a.status.observed.primary);
-  const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !risingLids.has(g.lid))
+  const normal = pool.filter((g) => gaugeCat(g) === 'none' && !risingLids.has(g.lid))
     .sort((a, b) => a.name.localeCompare(b.name));
   // gaugeCat maps stale sensors to 'none', so this bucket mixes truly-normal and dead gauges — count them apart for an honest label
   const normalStale = normal.filter(gaugeObsStale).length;
@@ -321,6 +326,12 @@ function renderGaugesTab() {
     b.addEventListener('click', () => { state.gaugeGroup = key; renderGaugesTab(); });
     bar.appendChild(b);
   }
+  const iv = document.createElement('button');
+  iv.textContent = state.inView ? `${t('sync.inview')} · ${pool.length}` : t('sync.inview');
+  iv.title = t('sync.inview.title');
+  iv.classList.toggle('on', state.inView);
+  iv.addEventListener('click', () => setInView(!state.inView));
+  bar.appendChild(iv);
   // one-tap crest summary (owner ask) — same view the ⋯ More menu opens
   const sum = document.createElement('button');
   sum.textContent = t('summary.menu');

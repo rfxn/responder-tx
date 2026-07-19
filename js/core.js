@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.91.0';
+const APP_VERSION = 'v0.92.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -90,6 +90,7 @@ const state = {
   showAlertHist: false,
   showNormalGauges: false,
   gaugeGroup: 'priority',
+  inView: false,
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };
@@ -132,6 +133,11 @@ function distMi(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * toR, dLon = (lon2 - lon1) * toR;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toR) * Math.cos(lat2 * toR) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function inMapView(lat, lon) {
+  return !!state.map && Number.isFinite(lat) && Number.isFinite(lon)
+    && state.map.getBounds().contains([lat, lon]);
 }
 
 function fmtWhen(iso) {

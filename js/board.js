@@ -171,13 +171,16 @@ function renderRequests() {
   renderTiles();
 }
 
-// Nominatim forward-geocode — shared by the curator intake form and the address risk-check.
-// The address stays on-device: only this one geocode call leaves the browser; nothing is logged.
-async function nominatimSearch(q) {
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`);
+// Nominatim forward-geocode — shared by the curator intake form, the address risk-check,
+// and the header search. The address stays on-device: only this one geocode call leaves
+// the browser; nothing is logged.
+async function nominatimSearchN(q, n) {
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=${n}&countrycodes=us&q=${encodeURIComponent(q)}`);
   const hits = await res.json();
-  if (!hits.length) return null;
-  return { lat: +hits[0].lat, lon: +hits[0].lon, label: hits[0].display_name || '' };
+  return hits.map((h) => ({ lat: +h.lat, lon: +h.lon, label: h.display_name || '' }));
+}
+async function nominatimSearch(q) {
+  return (await nominatimSearchN(q, 1))[0] || null;
 }
 
 async function geocodePlace() {

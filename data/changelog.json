@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.86.0",
+      "date": "2026-07-18",
+      "line": "First-run help & one search box: new visitors get a 3-panel intro (after the 911 notice) — the map is live hazards, the feed is verified notices, long-press checks a point and ⏮ replays the event; a new \"?\" Legend button in the header explains every symbol (gauge colors, STALE, map markers, threat chips, OFFICIAL vs CURATED badges, aging, playback, USNG) in EN/ES; and one header 🔍 search now finds places/addresses, gauges by name or ID, typed \"lat, lon\", and R-### cards — a place result flies the map and drops the point-check card there. The separate 🔍 ID button folded into the search."
+    },
+    {
       "v": "v0.85.1",
       "date": "2026-07-18",
       "line": "Playback mobile quality pass (owner field feedback): taps on the playback bar no longer zoom the map \u2014 every control (scrub, \u23ea/\u23e9, chips, speed, play, NOW, \u2715, caption, HUD, chapter ticks, plus the radar scrub) now blocks tap-through and browser double-tap zoom; the scrub gets a fat 28px thumb on a full-width 44px-tall touch row on phones with \u226544px step/play/speed buttons; choosing 7d/14d now shows the full requested window with the span before the archive's Jul 17, 10:31 AM CT birth hatched out plus a one-time 'Archive begins\u2026' note (no frames are ever faked); entering playback auto-sets 0.5\u00d7 speed and minimizes the bottom pane, restored on NOW/close; the sheet handle and chat button no longer collide with the open bar."

@@ -176,6 +176,177 @@ async function openChangelog() {
   } catch { body.textContent = 'Changelog unavailable.'; }
 }
 
+/* ---------- header search — one box: place/address, "lat, lon", gauge LID/name, R-### card ID ---------- */
+
+function searchSetOpen(open) {
+  $('#hsearch').classList.toggle('open', open);
+  $('#search-input').hidden = !open;
+  if (open) { $('#search-input').focus(); $('#search-input').select(); }
+  else { $('#search-results').hidden = true; }
+}
+
+function searchShowResults(items) {
+  const el = $('#search-results');
+  if (!items.length) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = items.map((it, i) =>
+    `<button class="sr-row" data-i="${i}"><span class="sr-kind">${esc(it.kind)}</span><span class="sr-label">${esc(it.label)}</span></button>`).join('');
+  el.querySelectorAll('.sr-row').forEach((b) => b.addEventListener('click', () => {
+    searchSetOpen(false);
+    items[+b.dataset.i].act();
+  }));
+}
+
+function searchNote(text) {
+  const el = $('#search-results');
+  el.hidden = false;
+  el.innerHTML = `<div class="sr-note">${esc(text)}</div>`;
+}
+
+// search is the typed long-press: fly there and drop the same point-inspector card
+function searchGoPoint(lat, lon) {
+  state.map.setView([lat, lon], 13);
+  L.popup({ autoPan: false, closeButton: false, className: 'inspect-pop', maxWidth: 300 })
+    .setLatLng([lat, lon])
+    .setContent(inspectContent(lat, lon))
+    .openOn(state.map);
+  if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+}
+
+function searchGauges(q) {
+  const ql = q.toLowerCase();
+  const exact = state.gauges.filter((g) => (g.lid || '').toLowerCase() === ql);
+  if (exact.length) return exact;
+  return state.gauges.filter((g) => (g.name || '').toLowerCase().includes(ql)).slice(0, 5);
+}
+
+async function runHeaderSearch() {
+  const raw = $('#search-input').value.trim();
+  if (!raw) return;
+  if (flyToRadioId(raw)) { searchSetOpen(false); return; }
+  const m = raw.match(/^(-?\d{1,2}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)$/);
+  if (m) {
+    const lat = +m[1], lon = +m[2];
+    if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      searchSetOpen(false);
+      searchGoPoint(lat, lon);
+      return;
+    }
+  }
+  const gs = searchGauges(raw);
+  if (gs.length === 1) { searchSetOpen(false); focusGauge(gs[0]); return; }
+  if (gs.length > 1) {
+    searchShowResults(gs.map((g) => ({ kind: t('search.gauge'), label: g.name, act: () => focusGauge(g) })));
+    return;
+  }
+  searchNote(t('search.looking'));
+  // bias to the board's AO when no state is named; the query is never stored or transmitted beyond this geocode
+  const q = /\b(tx|texas)\b/i.test(raw) ? raw : `${raw}, Texas`;
+  let hits = [];
+  try { hits = await nominatimSearchN(q, 5); } catch { hits = []; }
+  if (!hits.length) { searchNote(t('search.noresult')); return; }
+  if (hits.length === 1) { searchSetOpen(false); searchGoPoint(hits[0].lat, hits[0].lon); return; }
+  searchShowResults(hits.map((h) => ({ kind: t('search.place'), label: h.label, act: () => searchGoPoint(h.lat, h.lon) })));
+}
+
+function initHeaderSearch() {
+  $('#search-btn').addEventListener('click', () => searchSetOpen($('#search-input').hidden));
+  $('#search-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); runHeaderSearch(); }
+  });
+  $('#search-input').addEventListener('input', () => { if (!$('#search-input').value) $('#search-results').hidden = true; });
+}
+
+/* ---------- "?" glossary — every board symbol explained, built from i18n strings ---------- */
+
+function glRow(sw, label, desc) {
+  return `<div class="gl-row"><span class="gl-sw">${sw}</span><span class="gl-txt"><strong>${esc(label)}</strong> — ${esc(desc)}</span></div>`;
+}
+
+function renderGlossary() {
+  const sec = (key) => `<div class="section-title">${esc(t(key))}</div>`;
+  const dot = (cls) => `<span class="gauge-icon ${cls}" style="width:12px;height:12px"></span>`;
+  let html = sec('glossary.sec.gauges');
+  for (const cat of ['major', 'moderate', 'minor', 'action']) {
+    html += glRow(dot(`cat-${cat}`), catLabel(cat), t(`glossary.cat.${cat}`));
+  }
+  html += glRow(dot('stale'), t('glossary.stale.label'), t('glossary.stale'));
+  html += sec('glossary.sec.markers');
+  html += glRow('<span style="color:var(--cat-major)">▲</span>', t('glossary.rising.label'), t('glossary.rising'));
+  html += glRow('<span style="color:var(--good)">▼</span>', t('glossary.falling.label'), t('glossary.falling'));
+  html += glRow(`<span class="fcst-ring cat-moderate" style="width:11px;height:11px"></span>`, t('glossary.ring.label'), t('glossary.ring'));
+  html += glRow('💧', t('glossary.lsr.label'), t('glossary.lsr'));
+  html += glRow('📷', t('glossary.cams.label'), t('glossary.cams'));
+  html += glRow('<span style="color:var(--sev-emergency)">⛔</span>/🌊', t('glossary.roads.label'), t('glossary.roads'));
+  html += glRow('<span style="color:var(--good)">✓</span>', t('glossary.reopen.label'), t('glossary.reopen'));
+  html += glRow('⛔⚠✓', t('glossary.cross.label'), t('glossary.cross'));
+  html += glRow('🆘', t('glossary.notice.label'), t('glossary.notice'));
+  html += sec('glossary.sec.strip');
+  html += `<div class="gl-note">${esc(t('glossary.strip'))}</div>`;
+  for (const [glyph, key] of [['⚠', 'threat.ffemerg'], ['🆘', 'threat.life'], ['⛔', 'threat.cutoff'], ['●', 'threat.major'],
+    ['▲', 'threat.tomajor'], ['⚑', 'threat.record'], ['🚧', 'threat.roads'], ['▼', 'threat.falling']]) {
+    html += `<div class="gl-row gl-chip"><span class="gl-sw">${glyph}</span><span class="gl-txt">${esc(t(key))}</span></div>`;
+  }
+  html += sec('glossary.sec.badges');
+  html += glRow(srcBadge('official'), t('src.official'), t('src.official.title'));
+  html += glRow(srcBadge('curated'), t('src.curated'), t('src.curated.title'));
+  html += sec('glossary.sec.aging');
+  html += `<div class="gl-note">${esc(t('glossary.aging'))}</div>`;
+  html += sec('glossary.sec.playback');
+  html += `<div class="gl-note">${esc(t('glossary.playback'))}</div>`;
+  html += sec('glossary.sec.usng');
+  html += `<div class="gl-note">${esc(t('glossary.usng'))}</div>`;
+  $('#glossary-body').innerHTML = html;
+}
+
+function openGlossary() {
+  renderGlossary(); // rebuilt each open so a live language switch localizes it
+  $('#glossary-modal').hidden = false;
+}
+
+/* ---------- first-run onboarding — 3 panels, once, chained AFTER the 911 safety ack ---------- */
+
+const ONBOARD_KEY = 'respondertx.onboardSeen';
+const OB_PANELS = 3;
+
+// deep-link entries land somewhere specific — never interrupt them with onboarding
+function onboardDeepLink() {
+  const q = new URLSearchParams(location.search);
+  return ['playback', 'hydro', 'view', 'fq', 'cams', 'cam', 'pbt'].some((k) => q.get(k));
+}
+
+function obGo(i) {
+  state.obIdx = Math.max(0, Math.min(i, OB_PANELS - 1));
+  $('#ob-panels').style.transform = `translateX(-${state.obIdx * 100}%)`;
+  document.querySelectorAll('.ob-dot').forEach((d, n) => d.classList.toggle('on', n === state.obIdx));
+  $('#ob-next').textContent = state.obIdx === OB_PANELS - 1 ? t('onboard.done') : t('onboard.next');
+}
+
+function obDismiss() {
+  localStorage.setItem(ONBOARD_KEY, '1');
+  $('#onboard').hidden = true;
+}
+
+function initOnboarding() {
+  if (localStorage.getItem(ONBOARD_KEY)) return;
+  if (onboardDeepLink()) { localStorage.setItem(ONBOARD_KEY, '1'); return; }
+  const show = () => { $('#onboard').hidden = false; obGo(0); };
+  $('#ob-skip').addEventListener('click', obDismiss);
+  $('#ob-next').addEventListener('click', () => { if (state.obIdx >= OB_PANELS - 1) obDismiss(); else obGo(state.obIdx + 1); });
+  $('#ob-legend').addEventListener('click', () => { obDismiss(); openGlossary(); });
+  let x0 = null;
+  $('#ob-panels').addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  $('#ob-panels').addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 40) obGo(state.obIdx + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+  // chain: the safety modal owns first contact; onboarding only ever follows its ack
+  if (!localStorage.getItem('respondertx.safetyAck')) $('#safety-ack').addEventListener('click', show);
+  else show();
+}
+
 /* ---------- boot ---------- */
 
 async function loadEventConfig() {
@@ -255,10 +426,13 @@ async function boot() {
   $('#share-btn').addEventListener('click', (e) => shareView(e.target));
   const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } renderDriveMode(); };
   $('#drive-btn').addEventListener('click', enterDrive);
-  // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon
+  // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon.
+  // Deferred while the safety/onboarding chain is up: one nudge at a time; it shows on the next visit.
   if (!localStorage.getItem('respondertx.driveHintSeen')) {
     const dismissHint = () => { $('#drive-hint').hidden = true; localStorage.setItem('respondertx.driveHintSeen', '1'); };
-    setTimeout(() => { if (!localStorage.getItem('respondertx.driveHintSeen')) $('#drive-hint').hidden = false; }, 3500);
+    setTimeout(() => {
+      if (!localStorage.getItem('respondertx.driveHintSeen') && $('#safety-modal').hidden && $('#onboard').hidden) $('#drive-hint').hidden = false;
+    }, 3500);
     $('#drive-hint-go').addEventListener('click', () => { dismissHint(); enterDrive(); });
     $('#drive-hint-x').addEventListener('click', dismissHint);
   }
@@ -292,6 +466,11 @@ async function boot() {
       $('#safety-modal').hidden = true;
     });
   }
+  initOnboarding(); // after safety wiring — the ack click chains into first-run onboarding
+  initHeaderSearch();
+  $('#help-btn').addEventListener('click', openGlossary);
+  $('#glossary-close').addEventListener('click', () => { $('#glossary-modal').hidden = true; });
+  $('#glossary-modal').addEventListener('click', (e) => { if (e.target.id === 'glossary-modal') $('#glossary-modal').hidden = true; });
   $('#toggle-form').addEventListener('click', () => {
     const open = $('#new-request-form').classList.toggle('open');
     // pin-drop needs the map on screen — phones scroll it into view when intake opens
@@ -368,13 +547,6 @@ async function boot() {
 
   $('#flt-aged').addEventListener('click', () => { state.showAged = !state.showAged; renderRequests(); saveViewState(); });
   $('#req-filters').hidden = localStorage.getItem('respondertx.filtersOpen') !== '1';
-  $('#find-id').addEventListener('click', () => {
-    $('#req-filters').hidden = false;
-    const q = $('#flt-q');
-    q.placeholder = 'Type a radio ID, e.g. R-031';
-    q.focus();
-    q.select();
-  });
   $('#filters-toggle').addEventListener('click', () => {
     const open = $('#req-filters').hidden;
     $('#req-filters').hidden = !open;
@@ -399,7 +571,9 @@ async function boot() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('#cam-viewer').hidden) { closeCamViewer(); return; } // must tear down the player, not just hide
-    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#summary-view', '#drive-mode', '#safety-modal']) {
+    if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
+    if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
+    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#safety-modal']) {
       const m = $(id);
       if (m && !m.hidden) { m.hidden = true; break; }
     }

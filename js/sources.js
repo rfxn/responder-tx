@@ -88,7 +88,7 @@ function alertPopupHtml(f) {
   return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? ': <span style="color:var(--sev-emergency);font-weight:700">FLASH FLOOD EMERGENCY</span>' : ''}</div>` +
     `<div class="popup-meta">${esc(p.areaDesc || '')}</div>` +
     `<div class="popup-meta">Expires: ${esc(fmtWhen(p.expires))}</div>` +
-    `<div class="popup-link"><a href="${esc(f.id)}" target="_blank" rel="noopener">Full alert text →</a></div>`;
+    `<div class="popup-link"><a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener">Full alert text →</a></div>`;
 }
 
 // in area-of-operations? geometry bounds must intersect the gauge bbox (padded).
@@ -112,7 +112,7 @@ function alertCardDiv(f) {
     `<div class="areas">${esc(p.areaDesc || '')}</div>` +
     `<div class="meta" style="margin-top:3px;font-size:11px;color:var(--ink-muted)">` +
     (p.sent ? `<span class="fresh-dot ${freshClass(p.sent)}"></span> sent ${esc(fmtWhen(p.sent))} · ` : '') +
-    `until ${esc(fmtWhen(p.expires))} · <a href="${esc(f.id)}" target="_blank" rel="noopener" style="color:var(--accent)">text</a></div>`;
+    `until ${esc(fmtWhen(p.expires))} · <a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener" style="color:var(--accent)">text</a></div>`;
   div.addEventListener('click', () => {
     if (f.geometry) {
       const b = L.geoJSON(f.geometry).getBounds();
@@ -892,6 +892,8 @@ function nearestRiverCam(lat, lon, maxKm) {
 
 function openCamViewer(c, kind) {
   camViewerTeardown();
+  state.camGen = (state.camGen || 0) + 1; // invalidates every in-flight load from the previous camera
+  const gen = state.camGen;
   $('#cam-viewer').hidden = false;
   $('#cam-title').textContent = `📷 ${camTitle(c, kind)}`;
   const stage = $('#cam-stage'), meta = $('#cam-meta'), note = $('#cam-note');
@@ -899,7 +901,7 @@ function openCamViewer(c, kind) {
     // snapshot-only ITS cam: fresh JPEG via the same-origin /api/cam proxy, never a "LIVE" player
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.its.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadItsSnapshot(c, stage, meta, false);
+    loadItsSnapshot(c, stage, meta, false, gen);
   } else if (kind === 'txdot') {
     const url = safeUrl(c.httpsurl);
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.txdot.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
@@ -921,7 +923,8 @@ function openCamViewer(c, kind) {
   } else {
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.usgs.note'))} · ${esc(CAM_ATTRIB_USGS)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadRiverStill(c, stage, meta).catch(() => {
+    loadRiverStill(c, stage, meta, gen).catch(() => {
+      if (gen !== state.camGen) return; // viewer moved on — never paint into another camera's stage
       stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
     });
   }
@@ -946,13 +949,14 @@ function parseItsStamp(s) {
 }
 
 // fetch-as-blob (not <img src>) so the X-Cam-Captured header is readable; bust forces a re-fetch
-async function loadItsSnapshot(c, stage, meta, bust) {
+async function loadItsSnapshot(c, stage, meta, bust, gen) {
   try {
     const url = `api/cam/${encodeURIComponent(c.dist)}/${encodeURIComponent(c.icd)}${bust ? `?_=${Date.now()}` : ''}`;
     const res = await fetch(url, bust ? { cache: 'reload' } : undefined);
     if (!res.ok) throw new Error(`cam HTTP ${res.status}`);
     const captured = res.headers.get('X-Cam-Captured') || '';
     const blob = await res.blob();
+    if (gen !== state.camGen) return; // slow response for a switched/closed viewer — drop it before any state/DOM write
     if (state.camObjUrl) URL.revokeObjectURL(state.camObjUrl);
     state.camObjUrl = URL.createObjectURL(blob);
     const img = document.createElement('img');
@@ -970,9 +974,10 @@ async function loadItsSnapshot(c, stage, meta, bust) {
       `<button class="popup-expand cam-refresh">↻ ${esc(t('cam.refresh'))}</button>`;
     meta.querySelector('.cam-refresh').addEventListener('click', () => {
       stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-      loadItsSnapshot(c, stage, meta, true);
+      loadItsSnapshot(c, stage, meta, true, gen);
     });
   } catch {
+    if (gen !== state.camGen) return;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.snap.unavail'))}</div>`;
     meta.innerHTML = '';
   }
@@ -980,7 +985,7 @@ async function loadItsSnapshot(c, stage, meta, bust) {
 
 // newest still via a client-side S3 listing: keys sort chronologically; the trailing
 // "<camId>_newest.jpg" pointer key carries no timestamp, so only ___<stamp>Z.jpg keys qualify
-async function loadRiverStill(c, stage, meta) {
+async function loadRiverStill(c, stage, meta, gen) {
   const pfx = `720/${c.camId}/`;
   const after = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10); // 2d back: covers UTC-midnight + slow cams, stays ≤ ~400 keys
   const url = `${HIVIS_S3}/?list-type=2&prefix=${encodeURIComponent(pfx)}` +
@@ -988,6 +993,7 @@ async function loadRiverStill(c, stage, meta) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HIVIS S3 HTTP ${res.status}`);
   const xml = await res.text();
+  if (gen !== state.camGen) return; // slow listing for a switched/closed viewer — drop it
   const keys = [...xml.matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => m[1]).filter((k) => CAM_KEY_RE.test(k));
   if (!keys.length) throw new Error('no recent imagery');
   const key = keys[keys.length - 1];
@@ -996,6 +1002,7 @@ async function loadRiverStill(c, stage, meta) {
   const img = document.createElement('img');
   img.alt = camTitle(c, 'river');
   img.addEventListener('load', () => {
+    if (gen !== state.camGen) return;
     const stale = ageMins(iso) > CAM_STALE_MINS;
     meta.innerHTML = (stale
       ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
@@ -1004,6 +1011,7 @@ async function loadRiverStill(c, stage, meta) {
       (stale ? `<span class="cam-stale-note">${esc(t('cam.stale.note'))}</span>` : '');
   });
   img.addEventListener('error', () => {
+    if (gen !== state.camGen) return;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
   });
   img.src = `${HIVIS_S3}/${encodeURI(key)}`;
@@ -1026,6 +1034,7 @@ function camViewerTeardown() {
 }
 
 function closeCamViewer() {
+  state.camGen = (state.camGen || 0) + 1; // late responses must not write into the hidden stage
   camViewerTeardown();
   $('#cam-viewer').hidden = true;
 }

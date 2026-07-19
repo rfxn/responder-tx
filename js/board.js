@@ -532,6 +532,8 @@ function inspectContent(lat, lon) {
   div.className = 'inspect-card';
   let html = `<div class="inspect-head"><span class="inspect-t">${esc(t('inspect.title'))}</span>` +
     `<button class="inspect-x" title="${esc(t('risk.close'))}" aria-label="${esc(t('risk.close'))}">✕</button></div>`;
+  // playback engaged: this card reads live data while the map shows a historical frame — say so (striplive pattern)
+  if (state.pb && !state.pb.live) html += `<div class="inspect-line sev-warning">${esc(t('inspect.live'))}</div>`;
   html += `<button class="inspect-usng" title="${esc(t('inspect.copy'))}">${esc(usngLbl)}</button>`;
   html += `<div class="inspect-read">${esc(read)}</div>`;
   if (nearAlerts.length) {
@@ -705,6 +707,10 @@ function buildShareUrl() {
   if ($('#flt-alert-sev').value) p.set('as', $('#flt-alert-sev').value);
   if ($('#flt-alert-q').value) p.set('aq', $('#flt-alert-q').value);
   if (state.map.hasLayer(state.layers.mrms)) p.set('rain', state.rainWindow); // rollover/share carry the rainfall window
+  // non-default layer toggles travel too (set only when ON — default URLs stay short); parsed at boot
+  for (const [key, lk] of [['radar', 'radar'], ['cams', 'cameras'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation']]) {
+    if (state.layers[lk] && state.map.hasLayer(state.layers[lk])) p.set(key, '1');
+  }
   p.set('base', state.activeBase);
   p.set('theme', document.documentElement.getAttribute('data-theme'));
   return `${location.origin}${location.pathname}?${p}`;

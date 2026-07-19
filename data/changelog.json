@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.94.1",
+      "date": "2026-07-19",
+      "line": "Defect-fix release: a bad ?theme= link can no longer break the board (and a previously saved bad value repairs itself); fast camera switching can't mislabel imagery anymore; layer pills honor the replay lock like the layer picker; the point-check card says 'LIVE data' when the map is replaying history; the replay's dashed river line is relabeled 'river peaks in sequence' (timing-based, not verified direction); replay radar/rainfall no longer stalls on a slow pre-loaded step; degraded boots still learn of updates; and shared links / update reloads now keep your Radar, Cameras, USGS, crossings, and inundation layers on. English y espa\u00f1ol."
+    },
+    {
       "v": "v0.94.0",
       "date": "2026-07-19",
       "line": "Calmer map, honest details: the area quick-jump row now rests as one compact chip naming the area you're viewing \u2014 tap it to expand the presets, pick one and it collapses right back, and if you pan away it reads 'custom view' instead of an area it no longer shows. The map-layers and share buttons get clean icons matched to the zoom controls in both dark and light themes. Road closure popups now show the segment's length and explain the limits: a Closure is barricaded across the full listed stretch, while flooding/damage reports may be localized within it. English y espa\u00f1ol."

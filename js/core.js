@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.94.0';
+const APP_VERSION = 'v0.94.1';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -91,6 +91,7 @@ const state = {
   showNormalGauges: false,
   gaugeGroup: 'priority',
   inView: false,
+  camGen: 0,
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };

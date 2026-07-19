@@ -62,6 +62,7 @@ async function refresh() {
       const hydrated = hydrateFromCache();
       const snapped = await hydrateGaugesSnapshot();
       renderSourceHealth();
+      checkAppVersion(); // degraded clients must still learn of updates
       if (!hydrated && !snapped) $('#refresh-note').textContent = `degraded: ${failedNames}`;
       return;
     }
@@ -402,7 +403,7 @@ const OB_PANELS = 3;
 // deep-link entries land somewhere specific — never interrupt them with onboarding
 function onboardDeepLink() {
   const q = new URLSearchParams(location.search);
-  return ['playback', 'hydro', 'view', 'fq', 'cams', 'cam', 'pbt'].some((k) => q.get(k));
+  return ['playback', 'hydro', 'view', 'fq', 'cams', 'cam', 'pbt', 'mlat', 'mlon'].some((k) => q.get(k));
 }
 
 function obGo(i) {
@@ -475,8 +476,11 @@ function relocalizeDynamic() {
 
 async function boot() {
   const rollBlob = consumeRolloverState(); // before any location.search read — may re-install the captured view params
+  // whitelist both theme sources — an invalid value would wedge boot inside applyTheme's baseLayers lookup
+  const themeOk = (v) => v === 'dark' || v === 'light';
+  if (!themeOk(localStorage.getItem('respondertx.theme') || 'dark')) localStorage.setItem('respondertx.theme', 'dark'); // self-heal poisoned storage
   const themeParam = new URLSearchParams(location.search).get('theme');
-  applyTheme(themeParam || localStorage.getItem('respondertx.theme') || 'dark');
+  applyTheme(themeOk(themeParam) ? themeParam : localStorage.getItem('respondertx.theme') || 'dark');
   await loadEventConfig();
   applyI18n(document);
   initMap();
@@ -747,6 +751,10 @@ async function boot() {
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
   // ?cams=1 enables the camera layer; ?cam=<camId|name> deep-links straight into the viewer
   if (new URLSearchParams(location.search).get('cams') === '1') state.layers.cameras.addTo(state.map);
+  // shared/rollover layer toggles (set only when ON) — radar/cams handled above
+  for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation']]) {
+    if (new URLSearchParams(location.search).get(qk) === '1' && state.layers[lk]) state.layers[lk].addTo(state.map);
+  }
   const camParam = new URLSearchParams(location.search).get('cam');
   if (camParam) {
     state.pendingCam = camParam;

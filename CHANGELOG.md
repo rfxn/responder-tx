@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.94.1 — 2026-07-19 (defect fixes)
+
+- [Fix] a bad `?theme=` value in a shared link no longer breaks the board: the theme is now checked against the two valid choices (dark/light) at startup and inside the theme switcher, an unrecognized value falls back to dark instead of stopping the page from loading, and a previously saved bad value is repaired automatically on the next visit — the broken link no longer poisons future visits
+- [Fix] switching cameras quickly in the camera viewer can no longer mislabel imagery: a slow response from the first camera is now discarded instead of overwriting the second camera's picture and caption, and a response arriving after the viewer closes is dropped cleanly (no leaked image memory)
+- [Fix] the map layer pills (Radar, Rainfall, and friends) now honor the same lock as the layer picker while a replay is playing: tapping a pill's ✕ during a replay shows the "press NOW to change layers" note instead of silently dropping that layer from your live view when the replay ends
+- [Fix] the point-check card (long-press / right-click on the map, and search-by-coordinates) now states "⏮ LIVE data — the map is showing a replay" when opened during a replay, so its live readings are never mistaken for the historical frame on screen; English y español (`inspect.live`)
+- [Change] the replay's dashed river-peak line is now labeled "river peaks in sequence" instead of "crest moving downstream" — the pairing is based on peak timing on the same river, not verified river direction, and the label no longer claims more than the data shows; English y español
+- [Fix] replay radar/rainfall no longer freezes on a stalled pre-loaded time-step: the 2.5s catch-up fallback now also covers buckets that were prefetched but never finished loading, and the very first replay step now loads the correct time-step instead of briefly requesting the pre-jump one
+- [Fix] a board that starts in degraded mode (data sources failing) now still learns about app updates — the update check runs before the degraded early-return
+- [Fix] shared links and automatic update reloads now carry the Radar, Cameras, USGS gauges, crossing-inventory, and inundation layer toggles (added to the link only when a layer is on — default links stay short), so an update mid-shift no longer quietly turns those layers off
+- [Fix] links that deep-link to a map position (`mlat`/`mlon`) now skip the first-run welcome tour like other deep links
+- [Fix] alert popup and alert card "text" links now pass through the same link-safety check as every other external link
+
 ## v0.94.0 — 2026-07-19 (calmer map chrome: collapsed area chip + matched controls)
 
 - [Change] the area quick-jump row collapses to a single context chip ("◎ Full AO ▾") on every screen size: the chip always names the area in view — picking a preset updates it, and panning away from a picked area flips it to "◎ custom view" (bounds check against the map center) so the label never claims an area the map has left; tapping the chip expands the full preset row in place (horizontal scroll on phones), picking an area jumps the map and collapses the row immediately (the map flight is the confirmation — a lingering row would compete with it), and tap-outside, Escape, or ~6s of no interaction also collapse it; EN+ES (`ao.current.title`, `ao.chip.title`, `ao.custom`)

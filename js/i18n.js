@@ -163,6 +163,7 @@
       'inspect.copied': '✓ copied',
       'inspect.noalert': 'No NWS flood alert at this point',
       'inspect.note': 'Guidance only, not a flood determination · 911 for emergencies',
+      'inspect.live': '⏮ LIVE data — the map is showing a replay',
 
       'layers.radar': 'Radar',
       'layers.rain': 'Rainfall',
@@ -362,7 +363,7 @@
       'playback.road.noend': 'no posted end',
       'playback.road.arch': 'Archived DriveTexas snapshot',
       'playback.road.recon': 'Reconstructed from TxDOT-posted closure times, not an archived snapshot',
-      'playback.crestflow': 'crest moving downstream',
+      'playback.crestflow': 'river peaks in sequence',
       'playback.hud.title': 'Frame stats: gauges in flood · warnings · top mover; tap for detail',
       'playback.hud.movers': 'Top movers (vs prev frame)',
       'playback.hud.warns': 'Warnings at frame (archive)',
@@ -604,6 +605,7 @@
       'inspect.copied': '✓ copiado',
       'inspect.noalert': 'Sin alerta de inundación del NWS en este punto',
       'inspect.note': 'Solo orientación, no una determinación oficial · 911 en emergencias',
+      'inspect.live': '⏮ Datos EN VIVO — el mapa muestra una reproducción',
 
       'layers.radar': 'Radar',
       'layers.rain': 'Lluvia',
@@ -803,7 +805,7 @@
       'playback.road.noend': 'sin fin publicado',
       'playback.road.arch': 'Captura archivada de DriveTexas',
       'playback.road.recon': 'Reconstruido de los horarios de cierre publicados por TxDOT, no una captura archivada',
-      'playback.crestflow': 'cresta avanzando río abajo',
+      'playback.crestflow': 'picos del río en secuencia',
       'playback.hud.title': 'Estadísticas del cuadro: medidores en inundación · avisos · mayor cambio; toque para detalle',
       'playback.hud.movers': 'Mayores cambios (vs cuadro anterior)',
       'playback.hud.warns': 'Avisos en el cuadro (archivo)',

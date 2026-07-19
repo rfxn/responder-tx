@@ -15,6 +15,7 @@ function syncLabelBoost() {
 }
 
 function applyTheme(theme) {
+  if (theme !== 'dark' && theme !== 'light') theme = 'dark'; // invalid ?theme=/storage must never crash boot or persist
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('respondertx.theme', theme);
   $('#theme-toggle').innerHTML = theme === 'dark'
@@ -22,7 +23,7 @@ function applyTheme(theme) {
     : `🌙 <span class="ctl-lbl">${esc(t('ctl.theme.dark'))}</span>`;
   if (state.map) {
     // Streets base is theme-neutral: keep it in place, theme then only affects UI chrome
-    if (state.activeBase !== 'streets' && state.activeBase !== theme) {
+    if (state.activeBase !== 'streets' && state.activeBase !== theme && state.baseLayers[theme]) {
       Object.values(state.baseLayers).forEach((l) => state.map.removeLayer(l));
       state.baseLayers[theme].addTo(state.map);
       state.activeBase = theme;
@@ -560,7 +561,10 @@ function renderLayerPills() {
     `<button class="layer-pill" data-layer="${k}" title="${esc(t('layers.off'))}">${esc(t(key))} <span class="lp-x">✕</span></button>`).join('') +
     `<button class="layer-pill lp-add" title="${esc(t('layers.more'))}">＋</button>`;
   el.querySelectorAll('.layer-pill[data-layer]').forEach((b) =>
-    b.addEventListener('click', () => state.map.removeLayer(state.layers[b.dataset.layer])));
+    b.addEventListener('click', () => {
+      if (state.pb && !state.pb.live) { pbLayersLockedNote(); return; } // playback owns layer state — same lock as the sheet
+      state.map.removeLayer(state.layers[b.dataset.layer]);
+    }));
   el.querySelector('.lp-add').addEventListener('click', openLayerSheet);
 }
 
@@ -1439,6 +1443,16 @@ function renderPlaybackPreArchive() {
   if (!el.hidden) pbFlashArchNote();
 }
 
+// transient flash of the sheet's locked message — layer pills share the playback read-only regime
+function pbLayersLockedNote() {
+  const el = $('#pb-arch-note');
+  if (!el) return;
+  el.textContent = t('sheet.locked');
+  el.hidden = false;
+  clearTimeout(state.pbArchNoteTimer);
+  state.pbArchNoteTimer = setTimeout(() => { el.hidden = true; }, 2500);
+}
+
 // one prominent flash per session the first time a chosen range reaches before the archive's birth
 function pbFlashArchNote() {
   if (state.pbArchNoted) return;
@@ -1689,6 +1703,8 @@ function pbFaderSet(fd, stamp) {
   if (stamp === fd.pending) {
     fd.wanted = true;
     if (fd.loaded) { pbFaderFade(fd); return 'fade'; }
+    // prefetched bucket still loading — arm the same archive-gap fallback the 'load' path gets
+    if (!fd.timer) fd.timer = setTimeout(() => { if (fd.pending === stamp && fd.wanted) pbFaderFade(fd); }, PB_FADE_FALLBACK_MS);
     return 'pending';
   }
   pbFaderLoad(fd, stamp);
@@ -1857,8 +1873,8 @@ const pbRadarStamp = () => pbRadarStampAt(state.pbData.frames[state.pb.idx]._t);
 
 function setPlaybackFrame(i) {
   const pb = state.pb, frames = state.pbData.frames;
+  pb.idx = Math.max(pbFirstIdx(), Math.min(i, frames.length - 1)); // before engage — faders must stamp from the target frame, not the pre-jump idx
   playbackEngage();
-  pb.idx = Math.max(pbFirstIdx(), Math.min(i, frames.length - 1));
   const frame = frames[pb.idx];
   pbPaintMarkers(frame);
   pbPaintRoads(frame);

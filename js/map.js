@@ -1010,11 +1010,12 @@ function pbPaintCurated(frame) {
   }
 }
 
-function pbMrmsStamp() {
-  const d = new Date(Math.floor(state.pbData.frames[state.pb.idx]._t / 3600000) * 3600000);
+function pbMrmsStampAt(tMs) {
+  const d = new Date(Math.floor(tMs / 3600000) * 3600000);
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}00`;
 }
+const pbMrmsStamp = () => pbMrmsStampAt(state.pbData.frames[state.pb.idx]._t);
 
 /* replay media (v0.93, framework): optional curated data/replay-media.json — archival photo cards
    keyed to the timeline; strict provenance (credit + source link) and archival styling, never live-looking. */
@@ -1594,6 +1595,98 @@ function pbPaintRoads(frame) {
   }
 }
 
+/* archive tile cross-fade (v0.93.1) — two persistent A/B layers per archive source: a bucket
+   change loads into the hidden layer, fades in on its 'load' event, then roles swap, so the
+   visible layer never blanks mid-replay; unchanged buckets are skipped outright. */
+const PB_FADE_FALLBACK_MS = 2500; // archive gap: fade anyway if 'load' never fires
+
+function pbFaderCreate(urlFor, opts, opacity, stamp) {
+  const fd = { urlFor, opacity, stamp, front: null, back: null, pending: null, wanted: false, loaded: false, backOn: false, timer: null, onIdle: null };
+  const mk = (op) => {
+    const lyr = L.tileLayer(urlFor(stamp), Object.assign({ opacity: op }, opts));
+    lyr.on('load', () => { if (fd.back === lyr && fd.pending !== null) pbFaderLoaded(fd); });
+    return lyr;
+  };
+  fd.front = mk(opacity).addTo(state.map);
+  fd.back = mk(0);
+  pbFaderTagXfade(fd.front);
+  return fd;
+}
+
+function pbFaderTagXfade(lyr) {
+  if (lyr._container) lyr._container.classList.add('pb-xfade'); // tile layers expose no public container accessor
+}
+
+function pbFaderLoad(fd, stamp) {
+  fd.pending = stamp;
+  fd.loaded = false;
+  if (fd.backOn) { fd.back.setUrl(fd.urlFor(stamp)); return; }
+  fd.back.setUrl(fd.urlFor(stamp), true); // noRedraw — the addTo below does the first fetch
+  fd.back.addTo(state.map);
+  fd.backOn = true;
+  pbFaderTagXfade(fd.back);
+}
+
+function pbFaderLoaded(fd) {
+  fd.loaded = true;
+  clearTimeout(fd.timer);
+  fd.timer = null;
+  if (fd.wanted) pbFaderFade(fd);
+}
+
+function pbFaderFade(fd) {
+  fd.front.setOpacity(0);
+  fd.back.setOpacity(fd.opacity);
+  const old = fd.front;
+  fd.front = fd.back;
+  fd.back = old;
+  fd.stamp = fd.pending;
+  fd.pending = null;
+  fd.wanted = false;
+  fd.loaded = false;
+  clearTimeout(fd.timer);
+  fd.timer = null;
+  if (fd.onIdle) fd.onIdle();
+}
+
+// per-frame decision: 'skip' (bucket unchanged), 'pending' (already loading), 'fade' (preloaded), 'load'
+function pbFaderSet(fd, stamp) {
+  if (stamp === fd.stamp) { fd.wanted = false; return 'skip'; } // back onto the shown bucket — any pending demotes to prefetch
+  if (stamp === fd.pending) {
+    fd.wanted = true;
+    if (fd.loaded) { pbFaderFade(fd); return 'fade'; }
+    return 'pending';
+  }
+  pbFaderLoad(fd, stamp);
+  fd.wanted = true;
+  clearTimeout(fd.timer);
+  fd.timer = setTimeout(() => { if (fd.pending === stamp && fd.wanted) pbFaderFade(fd); }, PB_FADE_FALLBACK_MS);
+  return 'load';
+}
+
+// while playing, warm the hidden buffer with the next frame's bucket as soon as a fade settles
+function pbFaderPrefetchNext(fd, stampAt) {
+  const pb = state.pb;
+  if (!pb || pb.live || !pb.playing || pb.idx + 1 >= state.pbData.frames.length) return;
+  const stamp = stampAt(state.pbData.frames[pb.idx + 1]._t);
+  if (stamp !== fd.stamp && stamp !== fd.pending) pbFaderLoad(fd, stamp);
+}
+
+// scrub drags settle 250ms before a new bucket loads (v0.84 SBW pattern); play applies instantly
+function pbFaderSchedule(fd, key, stamp) {
+  const pb = state.pb;
+  clearTimeout(pb[key]);
+  if (pb.playing || stamp === fd.stamp || stamp === fd.pending) { pbFaderSet(fd, stamp); return; }
+  pb[key] = setTimeout(() => { if (state.pb && !state.pb.live) pbFaderSet(fd, stamp); }, 250);
+}
+
+function pbFaderDestroy(fd) {
+  clearTimeout(fd.timer);
+  fd.onIdle = null;
+  state.map.removeLayer(fd.front);
+  if (fd.backOn) state.map.removeLayer(fd.back);
+}
+
 // engage: swap the live gauge + alert layers for archive layers, badge the view, archive the radar if it's on
 function playbackEngage() {
   const pb = state.pb;
@@ -1639,18 +1732,19 @@ function playbackEngage() {
     stopRadarPlay();
     if (state.radar) state.radar.frameLayers.forEach((l) => l.setOpacity(0));
     $('#radar-scrub').hidden = true; // the live RainViewer scrub is inert while the archive replays
-    pb.radarLayer = L.tileLayer(PB_RADAR_URL(pbRadarStamp()), {
-      pane: 'radar', opacity: 0.75, maxNativeZoom: 8, maxZoom: 19, attribution: 'Radar archive: IEM NEXRAD',
-    }).addTo(state.map);
+    pb.radarFader = pbFaderCreate(PB_RADAR_URL, {
+      pane: 'radar', maxNativeZoom: 8, maxZoom: 19, attribution: 'Radar archive: IEM NEXRAD',
+    }, 0.75, pbRadarStamp());
+    pb.radarFader.onIdle = () => pbFaderPrefetchNext(pb.radarFader, pbRadarStampAt);
   }
   // rainfall replays from the IEM MRMS archive (hourly stamps) in the user's chosen window
   pb.mrmsWasOn = state.map.hasLayer(state.layers.mrms);
   if (pb.mrmsWasOn) {
     state.map.removeLayer(state.layers.mrms);
-    pb.mrmsStamp = pbMrmsStamp();
-    pb.mrmsLayer = L.tileLayer(PB_MRMS_URL(state.rainWindow, pb.mrmsStamp), {
-      opacity: 0.55, attribution: 'Rainfall archive: MRMS via IEM',
-    }).addTo(state.map);
+    pb.mrmsFader = pbFaderCreate((s) => PB_MRMS_URL(state.rainWindow, s), {
+      attribution: 'Rainfall archive: MRMS via IEM',
+    }, 0.55, pbMrmsStamp());
+    pb.mrmsFader.onIdle = () => pbFaderPrefetchNext(pb.mrmsFader, pbMrmsStampAt);
   }
   updatePlaybackNote();
   layerSheetSync();
@@ -1696,10 +1790,12 @@ function playbackGoLive() {
   }
   pb.liveOff = {};
   pbMediaDismiss();
-  if (pb.mrmsLayer) { state.map.removeLayer(pb.mrmsLayer); pb.mrmsLayer = null; }
+  clearTimeout(pb.radarSettle);
+  clearTimeout(pb.mrmsSettle);
+  if (pb.mrmsFader) { pbFaderDestroy(pb.mrmsFader); pb.mrmsFader = null; }
   if (pb.mrmsWasOn && !state.map.hasLayer(state.layers.mrms)) state.layers.mrms.addTo(state.map);
   pb.mrmsWasOn = false;
-  if (pb.radarLayer) { state.map.removeLayer(pb.radarLayer); pb.radarLayer = null; }
+  if (pb.radarFader) { pbFaderDestroy(pb.radarFader); pb.radarFader = null; }
   if (state.map.hasLayer(state.layers.radar)) $('#radar-scrub').hidden = false;
   if (pb.radarWasIdx >= 0 && state.radar) setRadarFrame(pb.radarWasIdx);
   pb.radarWasIdx = -1;
@@ -1718,12 +1814,12 @@ function playbackGoLive() {
   renderTiles();
 }
 
-function pbRadarStamp() {
-  const frame = state.pbData.frames[state.pb.idx];
-  const d = new Date(Math.floor(frame._t / 300000) * 300000); // IEM archive is 5-min steps
+function pbRadarStampAt(tMs) {
+  const d = new Date(Math.floor(tMs / 300000) * 300000); // IEM archive is 5-min steps
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
 }
+const pbRadarStamp = () => pbRadarStampAt(state.pbData.frames[state.pb.idx]._t);
 
 function setPlaybackFrame(i) {
   const pb = state.pb, frames = state.pbData.frames;
@@ -1733,14 +1829,8 @@ function setPlaybackFrame(i) {
   pbPaintMarkers(frame);
   pbPaintRoads(frame);
   pbPaintFlows(frame);
-  if (pb.radarLayer) {
-    const stamp = pbRadarStamp();
-    if (stamp !== pb.radarStamp) { pb.radarStamp = stamp; pb.radarLayer.setUrl(PB_RADAR_URL(stamp)); }
-  }
-  if (pb.mrmsLayer) {
-    const ms = pbMrmsStamp();
-    if (ms !== pb.mrmsStamp) { pb.mrmsStamp = ms; pb.mrmsLayer.setUrl(PB_MRMS_URL(state.rainWindow, ms)); }
-  }
+  if (pb.radarFader) pbFaderSchedule(pb.radarFader, 'radarSettle', pbRadarStampAt(frame._t));
+  if (pb.mrmsFader) pbFaderSchedule(pb.mrmsFader, 'mrmsSettle', pbMrmsStampAt(frame._t));
   pbPaintCurated(frame);
   pbMediaStep(frame);
   $('#pb-slider').value = frame._t;
@@ -1771,9 +1861,9 @@ function updatePlaybackNote() {
     ? t(state.pbData.frames[pb.idx]._t >= state.pbRoadsFromT ? 'playback.note.roads.arch' : 'playback.note.roads.recon')
     : '';
   let note = pb.live ? t('playback.note.idle')
-    : `${t('playback.note.replay')}${t('playback.note.warn')}${roadsNote}${pb.radarLayer ? t('playback.note.radar') : ''}`;
+    : `${t('playback.note.replay')}${t('playback.note.warn')}${roadsNote}${pb.radarFader ? t('playback.note.radar') : ''}`;
   if (!pb.live) {
-    if (pb.mrmsLayer) {
+    if (pb.mrmsFader) {
       const hour = fmtCT(new Date(Math.floor(state.pbData.frames[pb.idx]._t / 3600000) * 3600000).toISOString());
       note += t('playback.note.rain').replace('{w}', state.rainWindow).replace('{t}', hour);
     }

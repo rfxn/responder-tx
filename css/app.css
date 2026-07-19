@@ -1260,6 +1260,8 @@ body.pb-on #threat-strip { opacity: 0.45; filter: grayscale(0.35); } /* playback
 .pb-alert-poly.sev-to { stroke: #c04ae2; fill: #c04ae2; }
 /* slow-speed visual tween between archive frames — opacity/size/color only, never data values */
 body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s ease, background-color 0.45s ease, opacity 0.45s ease; }
+/* archive radar/rainfall A/B buffers (v0.93.1) cross-fade between time buckets during replay */
+.pb-xfade { transition: opacity 0.35s ease; }
 
 /* v0.91 playback prominence — pulse ring, callout labels, road markers, crest-flow (all visual only) */
 .pb-ghit { width: 40px; height: 40px; } /* room for the 2× major dot */

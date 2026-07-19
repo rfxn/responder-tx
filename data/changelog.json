@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.93.1",
+      "date": "2026-07-18",
+      "line": "Replay radar and rainfall now glide instead of flashing: each time-step preloads its tiles invisibly and cross-fades in (~350ms), frames whose radar/rainfall bucket hasn't changed skip the redraw entirely, scrubbing waits for your thumb to settle before fetching, and play prefetches the next step ahead \u2014 no more blank-map redraws mid-replay."
+    },
+    {
       "v": "v0.93.0",
       "date": "2026-07-18",
       "line": "Playback now tells the truth everywhere: shelters, cameras, and other live-only layers disappear while you replay the past, and notices, cut-off circles, crossings, and storm reports appear only at the moments they actually existed. Rainfall joins the replay from the archived MRMS record \u2014 pick 1h/24h/48h/72h and it follows the timeline hour by hour. The story captions add evacuations, cut-off areas, shelter openings, and critical notices, and an optional archival-photo hook can pin sourced, credited photos to the timeline. English y espa\u00f1ol."

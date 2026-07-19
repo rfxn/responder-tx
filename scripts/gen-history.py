@@ -309,6 +309,25 @@ def report_backfill(backfill, src_by_lid, lid_count):
         print(f"  {day}: majors={len(lids)}" + (f" ({','.join(sorted(lids))})" if lids else ""))
 
 
+def salvage_backfill(first_git_dt):
+    # Archive APIs flake (USGS 503s); a regen must never silently drop the
+    # static Jul-5+ backfill — reuse the src-tagged frames already on disk.
+    try:
+        with open(os.path.join(ROOT, OUT_PATH), encoding="utf-8") as f:
+            prev = json.load(f)
+        out = []
+        for fr in prev.get("frames", []):
+            if fr.get("src") != "usgs":
+                continue
+            dt = parse_iso(fr.get("t"))
+            if dt and dt < first_git_dt:
+                fr["_dt"] = dt
+                out.append(fr)
+        return out
+    except Exception:  # noqa: BLE001 — salvage is best-effort on top of best-effort
+        return []
+
+
 def main():
     no_backfill = "--no-backfill" in sys.argv[1:]
     commits = snapshot_commits()
@@ -324,7 +343,9 @@ def main():
         try:
             backfill, src_by_lid = build_backfill(gauge_index, frames[0]["_dt"])
         except Exception as e:  # noqa: BLE001 — backfill is best-effort; git frames must still ship
-            print(f"warn: backfill failed, emitting git frames only: {e}", file=sys.stderr)
+            backfill = salvage_backfill(frames[0]["_dt"])
+            print(f"warn: backfill fetch failed ({e}); salvaged {len(backfill)} "
+                  "frames from existing history.json", file=sys.stderr)
     git_count = len(frames)
     frames = backfill + frames
     payload = serialize(frames, gauge_index)

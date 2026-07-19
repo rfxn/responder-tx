@@ -1,0 +1,61 @@
+# responder-team-relay — Durable Object backend for live team location sharing
+
+This is a **standalone Cloudflare Worker** that hosts the `TeamRelay` Durable Object. A Pages
+project cannot define its own Durable Object, so the DO ships here and the Pages site
+(`responder-tx`) binds to it. This directory is `export-ignore`d in `.gitattributes`, so it is
+**not** part of the `wrangler pages deploy` archive — it deploys separately and never touches the
+static site build.
+
+## What it holds
+
+One DO instance per team is the only copy of live team state: members, viewers, latest
+positions, and capped breadcrumb trails. State lives in Cloudflare (SQLite-backed DO), auto-expires
+via TTL, and is **never** written to the repo. See `team-relay.js` for the enforced invariants
+(≥4-char handles, viewers cannot publish a position, stale/idle reaping).
+
+## Deploy (one-time + on change) — CONTROLLER STEP, needs the Cloudflare API token
+
+```bash
+cd workers/team-relay
+# uses the same CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN as scripts/deploy.sh
+wrangler deploy
+```
+
+`wrangler.toml` here declares the DO class + a `new_sqlite_classes` migration (free-plan
+SQLite DO — no paid entitlement required) and sets `workers_dev = false` so the Worker is not
+publicly routable; it is reachable only through the Pages binding below.
+
+## Bind the Pages project to the DO — CONTROLLER STEP (Cloudflare dashboard)
+
+This binding cannot be added from `scripts/deploy.sh` without risk to the existing
+`wrangler pages deploy` invocation, so set it once in the dashboard:
+
+**Cloudflare dashboard → Workers & Pages → `responder-tx` → Settings → Functions →
+Durable Object bindings → Add binding:**
+
+- **Variable name:** `TEAM`
+- **Durable Object class:** `TeamRelay`
+- **Worker (script):** `responder-team-relay`
+
+(Add it for both Production and Preview environments.) After this, the Pages Functions under
+`functions/api/team/` resolve `env.TEAM` and the feature is live behind `?team=`.
+
+Equivalent config-file alternative (if you later move Pages to a `wrangler.toml` with
+`pages_build_output_dir`): a `[[durable_objects.bindings]]` entry with
+`name = "TEAM"`, `class_name = "TeamRelay"`, `script_name = "responder-team-relay"` (no
+migration in the Pages config — the migration lives here in the Worker).
+
+## Local end-to-end verification (no deploy, no account)
+
+`wrangler dev` runs the DO in workerd via Miniflare. The Worker's default `fetch` is a thin
+forwarder over the exact same DO code path used in production, so it exercises the full flow:
+
+```bash
+cd workers/team-relay
+wrangler dev --port 8799
+# then, in another shell:
+tid=$(curl -s -XPOST localhost:8799/api/team/create -d '{"name":"Test"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["teamId"])')
+curl -s -XPOST "localhost:8799/api/team/$tid/join" -d '{"handle":"Alpha1","role":"member"}'
+curl -s -XPOST "localhost:8799/api/team/$tid/position" -d "{\"ephemeralId\":\"...\",\"lat\":29.75,\"lon\":-99.35}"
+curl -s "localhost:8799/api/team/$tid/state"
+```

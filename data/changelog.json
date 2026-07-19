@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.0",
+      "date": "2026-07-19",
+      "line": "New: live team location sharing (opt-in, private). Open a team's link to join as a member — you share your live position as a colored marker with a Garmin-style breadcrumb trail, refreshed every ~15s — or as a viewer, who watches the team without sharing any location. Every team is private to its own unguessable link; there are no public teams and nothing is indexed. Handles are call signs (min 4 characters), never accounts or personal info, and one tap stops sharing and drops you. Positions live only in an ephemeral relay, auto-expire, and are never saved to the archive. Flag-gated behind ?team= on the secure site; the flood board is unchanged without it. English y español."
+    },
+    {
       "v": "v0.96.5",
       "date": "2026-07-19",
       "line": "Mobile card polish: on the feed, 'navigate' and 'copy coords' are now real tappable buttons, and a card's source shows as a compact link (platform name or bare domain with a ↗) instead of a full raw URL — the citation is unchanged, just tidier. Alert cards wrap cleanly on narrow screens: the event name keeps its EMERGENCY flag, the sent/until times stay whole, and the 'text' reader is a right-aligned chip. Badges like CURATED and 'stale · re-verify' now render to one consistent size. English y español."

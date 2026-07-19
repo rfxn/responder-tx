@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to keep the queue lean.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax-check app scripts (js/*.js, excl. vendor)
+        run: |
+          for f in js/*.js; do
+            echo "node --check $f"
+            node --check "$f"
+          done
+
+      - name: Unit tests (node:test)
+        run: node --test tests/
+
+      - name: Release-cycle sanity checks
+        run: |
+          if [ -x scripts/cycle-check.sh ]; then
+            bash scripts/cycle-check.sh
+          else
+            echo "scripts/cycle-check.sh not present or not executable — skipping"
+          fi

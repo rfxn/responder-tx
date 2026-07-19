@@ -25,8 +25,8 @@ cd "$REPO_ROOT" || exit 1
 # cron's minimal PATH (/usr/bin:/bin) omits /usr/local/bin where claude/node
 # live — prepend the standard dirs so claude/node/python3/git resolve the same
 # way an interactive shell does (same lesson as run-cycle.sh).
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 export HOME="${HOME:-/root}"  # cron may not set HOME; claude reads ~/.claude/.credentials.json
+export PATH="$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"  # ~/.local/bin holds the claude binary
 
 INBOX="data/chat-inbox.jsonl"
 OUTBOX="data/chat-outbox.json"

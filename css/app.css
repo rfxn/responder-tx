@@ -91,7 +91,7 @@ header {
 .tile.alert-tile .value { display: flex; align-items: center; gap: 6px; }
 .tile .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
-.controls { display: flex; align-items: center; gap: 7px; }
+.controls { display: flex; align-items: center; gap: 8px; }
 .controls button { padding: 4px 10px; font-size: 12.5px; }
 button, select, input, textarea {
   font: inherit;
@@ -104,7 +104,8 @@ button, select, input, textarea {
 button { cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: #fff; border-color: transparent; }
-.refresh-meta { font-size: 10.5px; color: var(--ink-muted); min-width: 96px; text-align: right; line-height: 1.35; }
+.refresh-meta { font-size: 10.5px; color: var(--ink-muted); text-align: right; line-height: 1.35; white-space: nowrap; }
+.refresh-meta .fresh-dot { width: 7px; height: 7px; vertical-align: baseline; }
 #update-chip {
   background: var(--good); color: #fff; border-color: transparent;
   font-weight: 700; animation: pulse 2.4s infinite;
@@ -981,7 +982,7 @@ button.inspect-gauge:hover { color: var(--accent); }
 
 @media (max-width: 768px) {
   body { font-size: 15px; }
-  header { padding: 4px 8px; gap: 8px; }
+  header { padding: 2px 8px; gap: 8px; } /* 40px tap targets + 2px pad = the same header height as v0.88.0's 36px + 4px */
   .brand { min-width: 0; flex: 1; }
   .brand h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .brand .sub { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1004,12 +1005,11 @@ button.inspect-gauge:hover { color: var(--accent); }
   #sheet-handle button:last-child { border-bottom: none; }
   #sheet-handle button.on { background: var(--accent); color: #fff; }
 
-  .controls { margin-left: auto; gap: 5px; }
-  .controls .ctl-lbl { display: none; } /* icon-only — ⟳ 🔗 🚗 ☀️ */
-  .controls button { min-height: 36px; min-width: 40px; padding: 4px 7px; font-size: 15px; }
+  .controls { margin-left: auto; gap: 8px; }
+  .controls .ctl-lbl { display: none; } /* icon-only — 🔍 🚗 ⟳ ⋮ (the ⋮ menu keeps its labels) */
+  .controls button { min-height: 40px; min-width: 40px; padding: 4px 7px; font-size: 15px; }
   #update-chip { font-size: 11.5px; } /* the one control that keeps its words when shown */
   .refresh-meta { min-width: 0; font-size: 10px; }
-  #refresh-count { display: none; } /* drop the "next in" countdown on phones — the time is enough */
   main { flex-direction: column; }
   #map { order: -1; flex: 1 1 auto; min-height: 60px; }   /* fills whatever the sheet leaves — no fixed height */
   #sidebar {
@@ -1077,11 +1077,10 @@ button.inspect-gauge:hover { color: var(--accent); }
   .brand .sub { display: none; }
   .tiles { display: none; }
   #ticker { display: none; }
-  .controls { margin-left: auto; gap: 5px; }
+  .controls { margin-left: auto; gap: 8px; }
   .controls .ctl-lbl { display: none; }
   .controls button { min-height: 34px; min-width: 38px; padding: 4px 7px; font-size: 15px; }
   .refresh-meta { min-width: 0; font-size: 10px; }
-  #refresh-count { display: none; }
 
   main { flex-direction: row; }
   #map { order: 0; flex: 1 1 auto; min-height: 0; }
@@ -1358,3 +1357,22 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .hsearch.open #search-results { top: 100%; left: 8px; right: 8px; max-width: none; }
   .ob-text { font-size: 15px; }
 }
+
+/* ---- v0.88.1: header ⋮ overflow menu (owner: "top row is getting very crowded") ---- */
+.hmore { position: relative; }
+#hmore-btn { font-weight: 800; min-width: 40px; }
+#hmore-btn.on { border-color: var(--accent); }
+#hmore-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 1600;
+  display: flex; flex-direction: column; gap: 2px; min-width: 180px;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45); padding: 6px;
+}
+#hmore-menu[hidden] { display: none; }
+.controls #hmore-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: none; border-radius: 6px; padding: 8px 10px;
+  font-size: 13px; min-height: 40px; color: var(--ink-1);
+}
+.controls #hmore-menu button:hover { background: var(--surface-2); }
+#hmore-menu .ctl-lbl { display: inline; } /* menu entries keep icon + label at every width — discoverability lives here now */

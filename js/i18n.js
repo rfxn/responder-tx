@@ -42,6 +42,8 @@
       'ctl.theme.aria': 'Toggle light/dark theme',
       'ctl.lang.title': 'Español',
       'ctl.lang.aria': 'Switch language to Spanish',
+      'ctl.more.title': 'More: share, theme, language, legend',
+      'ctl.more.aria': 'More controls',
 
       'tab.feed': 'Feed',
       'tab.alerts': 'Alerts',
@@ -399,6 +401,8 @@
       'ctl.theme.aria': 'Alternar tema claro/oscuro',
       'ctl.lang.title': 'English',
       'ctl.lang.aria': 'Cambiar el idioma a inglés',
+      'ctl.more.title': 'Más: compartir, tema, idioma, leyenda',
+      'ctl.more.aria': 'Más controles',
 
       'tab.feed': 'Canal',
       'tab.alerts': 'Alertas',

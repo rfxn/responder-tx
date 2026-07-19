@@ -497,6 +497,8 @@ function bindHeadline(el) {
 
 function renderThreatStrip() {
   const el = $('#threat-strip');
+  // playback engaged: the dimmed strip stays LIVE data — say so, never let it read as the frame
+  const pbNote = state.pb && !state.pb.live ? `<div class="strip-live-note">${esc(t('playback.striplive'))}</div>` : '';
   const reqs = activeRequests().filter((r) => r.status !== 'resolved');
   const emergencies = state.alerts.filter((a) => a._sev === 'emergency').length;
   const lifeReqs = reqs.filter((r) => r.priority === 'critical' && LIFE_SAFETY_TYPES.includes(r.type) && r.type !== 'cutoff');
@@ -524,15 +526,15 @@ function renderThreatStrip() {
     if (quietState()) {
       const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !gaugeObsStale(g)).length;
       const sub = t('quiet.sub').replace('{n}', state.gauges.length).replace('{m}', normal);
-      el.innerHTML = `<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
+      el.innerHTML = `${pbNote}<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
       return;
     }
-    el.innerHTML = headlineHtml()
+    el.innerHTML = pbNote + headlineHtml()
       + `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
     bindHeadline(el);
     return;
   }
-  el.innerHTML = headlineHtml();
+  el.innerHTML = pbNote + headlineHtml();
   bindHeadline(el);
   if (chips.some((c) => c.cls === 'emergency')) {
     const h = document.createElement('div');
@@ -705,6 +707,7 @@ async function loadSeeds() {
     renderResources();
     renderCrossings();
     renderMonitors();
+    pbRefreshCurated(); // playback may have engaged before this data arrived
     return true;
   } catch { return false; }
 }

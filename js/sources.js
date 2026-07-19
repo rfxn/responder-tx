@@ -1098,5 +1098,6 @@ function renderLsrs() {
     if (state.showAgedLsrs) for (const e of aged.slice(0, 40)) el.appendChild(lsrCardDiv(e, true));
   }
   renderTicker();
+  pbRefreshCurated(); // playback may have engaged before the LSR fetch arrived
 }
 

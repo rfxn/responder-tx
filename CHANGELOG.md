@@ -1,5 +1,9 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.96.2 — 2026-07-19 (honest privacy copy on the address risk-check)
+
+- [Fix] the "Am I at risk?" address card claimed your address "is never logged or transmitted" — but to place the pin the typed address is sent to OpenStreetMap's Nominatim geocoder to turn it into coordinates. Corrected the copy (EN + ES) to say exactly that: the address is sent to the OpenStreetMap geocoder to convert it to coordinates and is not stored, logged, or shared beyond that one lookup. Honesty invariant applies to our own privacy claims too. No behavior change.
+
 ## v0.96.1 — 2026-07-19 (drop installable-app manifest)
 
 - [Change] the board is no longer offered as an installable home-screen app: the web-app manifest is removed so phones stop prompting "Add to Home Screen" / "Install." Installed as a standalone app it had no service worker and therefore no reliable way to pick up new versions — it could pin a stale board — whereas an ordinary browser tab honors the board's built-in refresh. Open in your browser as usual; if you already added it to your home screen, delete that icon and reopen from the browser (or re-add — it now opens as a normal tab). Nothing else changes: same URL, same live data, offline map tiles still cached.

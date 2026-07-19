@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.96.2",
+      "date": "2026-07-19",
+      "line": "Honesty fix: the 'Am I at risk?' address card used to say your address is never transmitted, but placing the pin sends your typed address to OpenStreetMap's geocoder to turn it into coordinates. Corrected the wording (English + Spanish) to say exactly that — the address goes to the OpenStreetMap geocoder and is not stored, logged, or shared beyond that one lookup. No change to how it works."
+    },
+    {
       "v": "v0.96.1",
       "date": "2026-07-19",
       "line": "The board is no longer an installable home-screen app — phones will stop prompting you to add or install it. Installed that way it had no way to update itself and could get stuck on a stale version; a normal browser tab always refreshes. Open it in your browser as usual. If you already added it to your home screen, delete that icon and reopen from the browser."

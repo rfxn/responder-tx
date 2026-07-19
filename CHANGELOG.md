@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.1 — 2026-07-19 (reopened-road marker redesign + mobile tap targets)
+
+- [Change] the recently-reopened road marker is redrawn as a muted green ✓
+           road-recovery badge instead of a plain filled circle, so it reads as
+           a "cleared / recovering" signal and no longer looks like an important
+           alert marker or blends into the gauge/crossing/camera circle
+           iconography; the map legend gains a "road reopened (recovering)"
+           swatch; theme-aware in light and dark, EN + ES popup unchanged
+- [Fix] mobile tap targets: the reopened ✓ badge, camera, storm-report (LSR),
+        and USGS raw-stage markers get a transparent ~44px touch halo at ≤768px,
+        centered on the marker anchor so each still points at its true
+        coordinate; the visible glyph size is unchanged
+
 ## v0.97.0 — 2026-07-19 (live team location sharing — opt-in, private)
 
 - [New] live team location sharing, flag-gated behind ?team= on the secure

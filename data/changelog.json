@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.1",
+      "date": "2026-07-19",
+      "line": "Map polish: the 'road reopened' marker is now a muted green ✓ recovery badge instead of a plain circle, so it no longer looks like an alert marker or blends into the other round markers on the map — with a matching legend entry. And small map markers (reopened roads, cameras, storm reports, USGS gauges) are easier to tap on a phone: each gets a larger invisible touch area while still pointing at the exact spot. English y español."
+    },
+    {
       "v": "v0.97.0",
       "date": "2026-07-19",
       "line": "New: live team location sharing (opt-in, private). Open a team's link to join as a member — you share your live position as a colored marker with a Garmin-style breadcrumb trail, refreshed every ~15s — or as a viewer, who watches the team without sharing any location. Every team is private to its own unguessable link; there are no public teams and nothing is indexed. Handles are call signs (min 4 characters), never accounts or personal info, and one tap stops sharing and drops you. Positions live only in an ephemeral relay, auto-expire, and are never saved to the archive. Flag-gated behind ?team= on the secure site; the flood board is unchanged without it. English y español."

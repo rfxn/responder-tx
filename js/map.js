@@ -403,6 +403,7 @@ function initMap() {
         const rc = ROAD_COND[k];
         return `<div><span class="sw sw-line" style="background:${rc.color}"></span>${esc(rc.label)}</div>`;
       }).join('') +
+      '<div><span class="reopen-icon">✓</span>road reopened (recovering)</div>' +
       '<div class="lg-title" style="margin-top:6px">Reports & notices</div>' +
       '<div><span style="margin-right:6px">💧</span>storm report (LSR)</div>' +
       '<div><span style="margin-right:6px">🆘</span>marker glyph = need type</div>';

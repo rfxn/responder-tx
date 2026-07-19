@@ -1254,6 +1254,37 @@ button.inspect-gauge:hover { color: var(--accent); }
   opacity: 0.85;
 }
 
+/* recently-reopened road — a "recovery / cleared" badge, deliberately a green ✓ road-sign
+   shape (not a filled circle) so it never reads as a gauge/alert dot amid the circle markers */
+.reopen-hit { position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+.reopen-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 17px; font-size: 12px; font-weight: 800; line-height: 1;
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 16%, var(--surface-1));
+  border: 2px solid var(--good); border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.map-legend .reopen-icon { width: 18px; height: 14px; margin-right: 6px; vertical-align: middle; font-size: 11px; box-shadow: none; }
+
+/* mobile tap targets — small map markers get a transparent ~44px hit halo centered on the
+   anchor (marker still points at its true coordinate); visible glyph unchanged. Scoped to the
+   marker pane so legend swatches keep their small size (owner UX: markers hard to tap on a phone) */
+@media (max-width: 768px) {
+  .leaflet-marker-pane .reopen-icon,
+  .leaflet-marker-pane .cam-icon,
+  .leaflet-marker-pane .lsr-icon,
+  .leaflet-marker-pane .usgs-dot { position: relative; }
+  .leaflet-marker-pane .reopen-icon::before,
+  .leaflet-marker-pane .cam-icon::before,
+  .leaflet-marker-pane .lsr-icon::before,
+  .leaflet-marker-pane .usgs-dot::before {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+    border-radius: 50%;
+  }
+}
+
 /* historical playback (v0.82) — collapsed ⏮ pill + slim bottom timeline bar over the map */
 #pb-pill {
   position: absolute; bottom: 26px; right: 74px; z-index: 1100; /* clear of the LAN chat FAB (fixed right:16) */

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.93.0",
+      "date": "2026-07-18",
+      "line": "Playback now tells the truth everywhere: shelters, cameras, and other live-only layers disappear while you replay the past, and notices, cut-off circles, crossings, and storm reports appear only at the moments they actually existed. Rainfall joins the replay from the archived MRMS record \u2014 pick 1h/24h/48h/72h and it follows the timeline hour by hour. The story captions add evacuations, cut-off areas, shelter openings, and critical notices, and an optional archival-photo hook can pin sourced, credited photos to the timeline. English y espa\u00f1ol."
+    },
+    {
       "v": "v0.92.0",
       "date": "2026-07-18",
       "line": "The map and the lists now work as one product: every notice popup on the map gains \u201cOpen in feed \u2192\u201d and every gauge popup \u201cOpen in gauges list \u2192\u201d \u2014 tap it and the matching card scrolls into view with a brief highlight pulse. A new \u201cIn view\u201d chip on the Feed and Gauges tabs scopes the list to whatever the map is showing, with a live count that updates as you pan; turn it off to get the full list back. Cards that fly the map now carry a small \ud83d\udccd so the affordance is visible. English y espa\u00f1ol."

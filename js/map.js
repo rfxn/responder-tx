@@ -728,6 +728,7 @@ async function fetchRadarFrames() {
 function setRadarFrame(i) {
   const r = state.radar;
   if (!r || !r.frames.length) return;
+  if (state.pb && !state.pb.live) return; // playback replays IEM archive radar — live frames must stay dark
   r.idx = Math.max(0, Math.min(i, r.frames.length - 1));
   r.frameLayers.forEach((l, j) => l.setOpacity(j === r.idx ? 0.75 : 0)); // 0.75: 0.6 washed out over the bright Streets base
   $('#rs-slider').value = r.idx;
@@ -758,6 +759,8 @@ function toggleRadarPlay() {
    radar from IEM archive tiles); alerts/roads/LSRs stay live and the bar says so. */
 
 const PB_RADAR_URL = (stamp) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${stamp}/{z}/{x}/{y}.png`;
+// archived MRMS accumulations (probed 2026-07-18: mrms::p{1,24,48,72}h-YYYYMMDDHHMM serves tiles, hourly stamps only)
+const PB_MRMS_URL = (w, stamp) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/mrms::p${parseInt(w, 10)}h-${stamp}/{z}/{x}/{y}.png`;
 const PB_BASE_FRAME_MS = 500; // 1x is ~2 fps — slow enough to read the story (owner ask)
 const PB_SPEEDS = [0.5, 1, 2, 4];
 const PB_CAT_NAMES = ['none', 'action', 'minor', 'moderate', 'major'];
@@ -901,6 +904,176 @@ function pbSbwPopup(p) {
     (p.href ? `<div class="popup-link"><a href="${safeUrl(p.href)}" target="_blank" rel="noopener">IEM product page →</a></div>` : '');
 }
 
+/* time-integrity sweep (v0.93): every live overlay either replays from a real archive, re-renders
+   as-of the frame from item timestamps, or hides — nothing live may impersonate the past. */
+const PB_LIVE_HIDE = [
+  ['shelters', 'layers.shelters'],
+  ['cameras', 'layers.cams'],
+  ['usgs', 'layers.usgs'],
+  ['fcstMax', 'layers.fcst'],
+  ['inundation', 'layers.inun'],
+];
+const PB_LSR_SHOW_MS = 3 * 3600000; // a storm report stays on the frame for 3h after its valid time
+const PB_STORY_TYPES = { evacuation: ['playback.story.evac', 6], cutoff: ['playback.story.cutoff', 6], shelter: ['playback.story.shelter', 4], rescue: ['playback.story.rescue', 5] };
+
+// wrap a live popup (element or html string) with the playback frame stamp
+function pbCuratedPopup(content) {
+  const wrap = document.createElement('div');
+  if (typeof content === 'string') wrap.innerHTML = content;
+  else wrap.appendChild(content);
+  const meta = document.createElement('div');
+  meta.className = 'popup-meta';
+  meta.style.cssText = 'color:var(--sev-warning);font-weight:700';
+  meta.textContent = `⏮ ${t('playback.pill')} · ${fmtCT(state.pbData.frames[state.pb.idx].t)}`;
+  wrap.appendChild(meta);
+  return wrap;
+}
+
+// device 7d LSR history + the live feed, deduped on the same key recordLsrHist uses
+function pbLsrRecords() {
+  const seen = new Map(Object.entries(state.hist.lsrs || {}));
+  for (const f of state.lsrs || []) {
+    if (!f.geometry || !Array.isArray(f.geometry.coordinates)) continue;
+    const [lon, lat] = f.geometry.coordinates;
+    const p = f.properties;
+    seen.set(`${p.valid}|${lat}|${lon}`, {
+      t: p.valid, lat, lon, typetext: p.typetext, magnitude: p.magnitude, unit: p.unit,
+      city: p.city, county: p.county, source: p.source, remark: p.remark,
+    });
+  }
+  return [...seen.values()];
+}
+
+// rebuilt at each engage from current curated data; markers toggle per frame (no re-create churn)
+function pbBuildCurated() {
+  state.layers.pbCurated = state.layers.pbCurated || L.layerGroup();
+  state.layers.pbCurated.clearLayers();
+  state.pbCuratedMarks = [];
+  const add = (src, m, t0, t1) => {
+    state.layers.pbCurated.addLayer(m);
+    state.pbCuratedMarks.push({ src, m, t0, t1 });
+  };
+  for (const r of allRequests()) {
+    if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon) || !r.ts) continue;
+    const t0 = new Date(r.ts).getTime();
+    if (!Number.isFinite(t0)) continue;
+    const t1 = t0 + (CONFIG.agedCardMinsByType[r.type] || CONFIG.agedCardMins) * 60000;
+    if (r.type === 'cutoff' && r.radiusMi > 0 && r.status !== 'resolved') {
+      add('requests', L.circle([r.lat, r.lon], {
+        radius: r.radiusMi * 1609.34, className: 'cutoff-circle', weight: 2, fillOpacity: 0.07,
+      }).bindPopup(() => pbCuratedPopup(cutoffPopup(r))), t0, t1);
+    }
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="req-icon pri-${esc(r.priority)}${r.status === 'resolved' ? ' resolved' : ''}">${TYPE_GLYPH[r.type] || '📍'}</div>`,
+      iconSize: [26, 26], iconAnchor: [4, 26],
+    });
+    add('requests', L.marker([r.lat, r.lon], { icon }).bindPopup(() => pbCuratedPopup(reqPopup(r))), t0, t1);
+  }
+  // crossing status is only known from its curator update forward — hidden before updated_at
+  for (const c of state.crossings || []) {
+    if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon) || !c.updated_at) continue;
+    const t0 = new Date(c.updated_at).getTime();
+    if (!Number.isFinite(t0)) continue;
+    const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
+    const icon = L.divIcon({ className: '', html: `<div class="crossing-icon" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    add('crossings', L.marker([c.lat, c.lon], { icon }).bindPopup(() => pbCuratedPopup(
+      `<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} · crossing</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
+      `<div class="popup-meta">${esc(c.reason || '')}</div><div class="popup-meta">Updated ${esc(fmtCT(c.updated_at))}</div>`)), t0, Infinity);
+  }
+  for (const e of pbLsrRecords()) {
+    const t0 = new Date(e.t).getTime();
+    if (!Number.isFinite(t0) || !Number.isFinite(e.lat) || !Number.isFinite(e.lon)) continue;
+    const icon = L.divIcon({ className: '', html: '<div class="lsr-icon">💧</div>', iconSize: [22, 22] });
+    add('lsr', L.marker([e.lat, e.lon], { icon }).bindPopup(() => pbCuratedPopup(lsrPopupHtml(e))), t0, t0 + PB_LSR_SHOW_MS);
+  }
+}
+
+// deep-link engage (?playback=1&pbt=) can precede the seed/LSR fetches — rebuild as-of-frame data when they land
+function pbRefreshCurated() {
+  const pb = state.pb;
+  if (!pb || pb.live || !state.pbData) return;
+  pbBuildCurated();
+  pbPaintCurated(state.pbData.frames[pb.idx]);
+  pbBuildStory();
+  pbUpdateCaption();
+}
+
+function pbPaintCurated(frame) {
+  const pb = state.pb;
+  if (!state.pbCuratedMarks || !pb) return;
+  for (const x of state.pbCuratedMarks) {
+    const el = x.m.getElement && x.m.getElement();
+    if (!el) continue;
+    const show = (pb.curatedOn || {})[x.src] && x.t0 <= frame._t && frame._t < x.t1;
+    el.style.display = show ? '' : 'none';
+  }
+}
+
+function pbMrmsStamp() {
+  const d = new Date(Math.floor(state.pbData.frames[state.pb.idx]._t / 3600000) * 3600000);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}00`;
+}
+
+/* replay media (v0.93, framework): optional curated data/replay-media.json — archival photo cards
+   keyed to the timeline; strict provenance (credit + source link) and archival styling, never live-looking. */
+const PB_MEDIA_FRAMES = 6;
+
+function loadReplayMedia() {
+  if (state.pbMedia) return;
+  fetch(`data/replay-media.json?_=${Math.floor(Date.now() / 300000)}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      state.pbMedia = ((d && d.items) || [])
+        .filter((x) => x.t && x.img && Number.isFinite(x.lat) && Number.isFinite(x.lon))
+        .map((x) => Object.assign({ _t: new Date(x.t).getTime() }, x))
+        .filter((x) => Number.isFinite(x._t))
+        .sort((a, b) => a._t - b._t);
+    })
+    .catch(() => { state.pbMedia = []; }); // no curated media on this deploy — the hook stays dormant
+}
+
+function pbMediaDismiss() {
+  if (state.pbMediaCur) {
+    state.map.removeLayer(state.pbMediaCur.m);
+    state.pbMediaCur = null;
+  }
+}
+
+function pbMediaShow(item) {
+  pbMediaDismiss();
+  const credit = t('playback.media.credit').replace('{credit}', item.credit || item.source_url || '—');
+  const icon = L.divIcon({
+    className: '', iconSize: [190, 10], iconAnchor: [95, 10],
+    html: `<div class="pb-media-card"><div class="pbm-head">` +
+      `<span class="pbm-badge">🕰 ${esc(t('playback.media.archival'))} · ${esc(fmtCT(item.t))}</span>` +
+      `<button class="pbm-x" title="${esc(t('playback.media.close'))}" aria-label="${esc(t('playback.media.close'))}">✕</button></div>` +
+      `<img src="${safeUrl(item.img)}" alt="${esc(item.title || '')}">` +
+      `<div class="pbm-title">${esc(item.title || '')}</div>` +
+      `<div class="pbm-credit">${esc(credit)}${item.source_url ? ` · <a href="${safeUrl(item.source_url)}" target="_blank" rel="noopener">${esc(t('playback.media.source'))} →</a>` : ''}</div></div>`,
+  });
+  const m = L.marker([item.lat, item.lon], { icon, zIndexOffset: 3000 }).addTo(state.map);
+  const el = m.getElement();
+  if (el) {
+    L.DomEvent.disableClickPropagation(el);
+    const x = el.querySelector('.pbm-x');
+    if (x) x.addEventListener('click', pbMediaDismiss);
+  }
+  state.pbMediaCur = { m, left: PB_MEDIA_FRAMES };
+}
+
+// forward crossings only — scrubbing back never resurrects a card; visible cards age out over ~6 frames
+function pbMediaStep(frame) {
+  const prevT = state.pbMediaPrevT;
+  state.pbMediaPrevT = frame._t;
+  if (state.pbMediaCur && --state.pbMediaCur.left <= 0) pbMediaDismiss();
+  if (!state.pbMedia || !state.pbMedia.length) return;
+  if (!Number.isFinite(prevT) || frame._t <= prevT) return;
+  const hit = state.pbMedia.filter((x) => x._t > prevT && x._t <= frame._t).pop();
+  if (hit) pbMediaShow(hit);
+}
+
 // frame code: 0..4 = none..major; negative = stale observation, encoded -(code+1)
 function pbDecode(code) {
   const stale = code < 0;
@@ -1033,6 +1206,18 @@ function pbBuildStory() {
       text: `${PB_ROAD_GLYPH[r.cond] || '🚧'} ${t('playback.story.road').replace('{road}', prettyRoute(r.route) || 'road').replace('{cond}', ct.label)}`,
     });
   }
+  // critical-notice / cut-off / evacuation / shelter events from curated timestamps (v0.93)
+  for (const r of allRequests()) {
+    if (!r.ts) continue;
+    const rt = new Date(r.ts).getTime();
+    if (!Number.isFinite(rt) || rt < pb.loT || rt > pb.hiT) continue;
+    const sig = PB_STORY_TYPES[r.type] || (r.priority === 'critical' ? ['playback.story.critical', 5] : null);
+    if (!sig) continue;
+    ev.push({
+      t: rt, iso: r.ts, pri: sig[1],
+      text: `${TYPE_GLYPH[r.type] || '🆘'} ${t(sig[0]).replace('{place}', r.place || r.county || '').replace('{type}', r.type)}`,
+    });
+  }
   state.pbStoryBase = ev;
   pbStoryRebuild();
 }
@@ -1143,6 +1328,7 @@ async function openPlayback() {
     $('#refresh-note').textContent = t('playback.unavail');
     return;
   }
+  loadReplayMedia(); // optional curated archive media — best-effort, 404 leaves the hook dormant
   if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, speed: 0.5, capKey: null };
   state.pb.speed = 0.5; // every entry resets to the readable default; a changed speed lasts only until close
   $('#playback-bar').hidden = false;
@@ -1434,6 +1620,16 @@ function playbackEngage() {
   state.pbFlowKey = '';
   pbSbw.renderKey = '';
   pbSbw.visibleN = null;
+  // v0.93 time-integrity: timestamped curated/report layers re-render as-of the frame; live-only layers hide
+  pb.liveOff = {};
+  for (const k of ['requests', 'crossings', 'lsrs', 'lsrsAged'].concat(PB_LIVE_HIDE.map((x) => x[0]))) {
+    pb.liveOff[k] = !!(state.layers[k] && state.map.hasLayer(state.layers[k]));
+    if (pb.liveOff[k]) state.map.removeLayer(state.layers[k]);
+  }
+  pb.curatedOn = { requests: pb.liveOff.requests, crossings: pb.liveOff.crossings, lsr: pb.liveOff.lsrs || pb.liveOff.lsrsAged };
+  pbBuildCurated();
+  state.layers.pbCurated.addTo(state.map);
+  state.pbMediaPrevT = NaN;
   document.body.classList.toggle('pb-tween', pb.speed <= 1);
   document.body.classList.add('pb-on');
   $('#pb-badge').hidden = false;
@@ -1442,12 +1638,23 @@ function playbackEngage() {
     pb.radarWasIdx = state.radar ? state.radar.idx : -1;
     stopRadarPlay();
     if (state.radar) state.radar.frameLayers.forEach((l) => l.setOpacity(0));
+    $('#radar-scrub').hidden = true; // the live RainViewer scrub is inert while the archive replays
     pb.radarLayer = L.tileLayer(PB_RADAR_URL(pbRadarStamp()), {
       pane: 'radar', opacity: 0.75, maxNativeZoom: 8, maxZoom: 19, attribution: 'Radar archive: IEM NEXRAD',
     }).addTo(state.map);
   }
+  // rainfall replays from the IEM MRMS archive (hourly stamps) in the user's chosen window
+  pb.mrmsWasOn = state.map.hasLayer(state.layers.mrms);
+  if (pb.mrmsWasOn) {
+    state.map.removeLayer(state.layers.mrms);
+    pb.mrmsStamp = pbMrmsStamp();
+    pb.mrmsLayer = L.tileLayer(PB_MRMS_URL(state.rainWindow, pb.mrmsStamp), {
+      opacity: 0.55, attribution: 'Rainfall archive: MRMS via IEM',
+    }).addTo(state.map);
+  }
   updatePlaybackNote();
   layerSheetSync();
+  renderTiles(); // threat strip gains its "LIVE below / replay on map" note
 }
 
 // NOW: instant, total restore of the live picture
@@ -1478,7 +1685,22 @@ function playbackGoLive() {
   clearTimeout(pb.sbwTimer);
   pbSbw.renderKey = '';
   pbSbw.visibleN = null;
+  // v0.93: drop the as-of-frame curated layer, restore every live layer exactly as it was
+  if (state.layers.pbCurated) {
+    state.layers.pbCurated.clearLayers();
+    if (state.map.hasLayer(state.layers.pbCurated)) state.map.removeLayer(state.layers.pbCurated);
+  }
+  state.pbCuratedMarks = null;
+  for (const k of Object.keys(pb.liveOff || {})) {
+    if (pb.liveOff[k] && state.layers[k] && !state.map.hasLayer(state.layers[k])) state.layers[k].addTo(state.map);
+  }
+  pb.liveOff = {};
+  pbMediaDismiss();
+  if (pb.mrmsLayer) { state.map.removeLayer(pb.mrmsLayer); pb.mrmsLayer = null; }
+  if (pb.mrmsWasOn && !state.map.hasLayer(state.layers.mrms)) state.layers.mrms.addTo(state.map);
+  pb.mrmsWasOn = false;
   if (pb.radarLayer) { state.map.removeLayer(pb.radarLayer); pb.radarLayer = null; }
+  if (state.map.hasLayer(state.layers.radar)) $('#radar-scrub').hidden = false;
   if (pb.radarWasIdx >= 0 && state.radar) setRadarFrame(pb.radarWasIdx);
   pb.radarWasIdx = -1;
   document.body.classList.remove('pb-on');
@@ -1493,6 +1715,7 @@ function playbackGoLive() {
   updatePlaybackReadout();
   updatePlaybackNote();
   layerSheetSync();
+  renderTiles();
 }
 
 function pbRadarStamp() {
@@ -1514,6 +1737,12 @@ function setPlaybackFrame(i) {
     const stamp = pbRadarStamp();
     if (stamp !== pb.radarStamp) { pb.radarStamp = stamp; pb.radarLayer.setUrl(PB_RADAR_URL(stamp)); }
   }
+  if (pb.mrmsLayer) {
+    const ms = pbMrmsStamp();
+    if (ms !== pb.mrmsStamp) { pb.mrmsStamp = ms; pb.mrmsLayer.setUrl(PB_MRMS_URL(state.rainWindow, ms)); }
+  }
+  pbPaintCurated(frame);
+  pbMediaStep(frame);
   $('#pb-slider').value = frame._t;
   updatePlaybackReadout();
   pbSbwSchedule();
@@ -1534,7 +1763,7 @@ function updatePlaybackReadout() {
   $('#pb-badge-t').textContent = fmtCT(frame.t);
 }
 
-// truth line: which layers replay vs stay live, incl. the viewer's own 7d alert history at frame time
+// truth line: which layers replay vs re-render as-of the frame vs hide, incl. the viewer's own 7d alert history
 function updatePlaybackNote() {
   const pb = state.pb;
   const hasRoads = !pb.live && !!state.pbData.roadIndex;
@@ -1542,7 +1771,21 @@ function updatePlaybackNote() {
     ? t(state.pbData.frames[pb.idx]._t >= state.pbRoadsFromT ? 'playback.note.roads.arch' : 'playback.note.roads.recon')
     : '';
   let note = pb.live ? t('playback.note.idle')
-    : `${t('playback.note.replay')}${t('playback.note.warn')}${roadsNote}${pb.radarLayer ? t('playback.note.radar') : ''} · ${t(hasRoads ? 'playback.note.live2' : 'playback.note.live')}`;
+    : `${t('playback.note.replay')}${t('playback.note.warn')}${roadsNote}${pb.radarLayer ? t('playback.note.radar') : ''}`;
+  if (!pb.live) {
+    if (pb.mrmsLayer) {
+      const hour = fmtCT(new Date(Math.floor(state.pbData.frames[pb.idx]._t / 3600000) * 3600000).toISOString());
+      note += t('playback.note.rain').replace('{w}', state.rainWindow).replace('{t}', hour);
+    }
+    const filt = [];
+    if (pb.curatedOn && pb.curatedOn.requests) filt.push(t('layers.notices'));
+    if (pb.curatedOn && pb.curatedOn.crossings) filt.push(t('layers.crossings'));
+    if (pb.curatedOn && pb.curatedOn.lsr) filt.push(t('layers.lsr'));
+    if (filt.length) note += ` · ${t('playback.note.filtered').replace('{list}', filt.join(', '))}`;
+    const hidden = PB_LIVE_HIDE.filter(([k]) => pb.liveOff && pb.liveOff[k]).map(([, key]) => t(key));
+    if (hidden.length) note += ` · ${t('playback.note.hidden').replace('{list}', hidden.join(', '))}`;
+    if (!hasRoads) note += ` · ${t('playback.note.live')}`;
+  }
   if (!pb.live) {
     const ft = state.pbData.frames[pb.idx]._t;
     const n = Object.values(state.hist.alerts || {}).filter((a) => {

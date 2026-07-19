@@ -1298,6 +1298,21 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   border: 1px solid var(--cat-major); border-radius: 999px; padding: 3px 8px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.35);
 }
+/* archival replay-media card — sepia + border + timestamp: must read as archive, never a live report */
+.pb-media-card {
+  width: 190px; transform: translateY(-100%); overflow: hidden;
+  background: #f4ecdc; border: 1px solid #b7a77f; border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45); color: #3d3425;
+  font: 400 11px/1.35 system-ui, sans-serif;
+}
+.pb-media-card img { display: block; width: 100%; height: 100px; object-fit: cover; filter: sepia(0.35) contrast(0.95); border-top: 1px solid #b7a77f; border-bottom: 1px solid #b7a77f; }
+.pbm-head { display: flex; align-items: center; justify-content: space-between; padding: 3px 6px; }
+.pbm-badge { font-weight: 700; font-size: 10px; letter-spacing: 0.03em; color: #6b5a36; }
+.pbm-x { background: none; border: none; cursor: pointer; color: #6b5a36; font-size: 12px; padding: 0 2px; }
+.pbm-title { font-weight: 600; padding: 4px 6px 2px; }
+.pbm-credit { padding: 0 6px 5px; color: #6b5a36; font-size: 10px; }
+.pbm-credit a { color: #8a5a1d; }
+.strip-live-note { font-size: 10px; font-weight: 700; color: var(--sev-warning); padding: 4px 10px 0; letter-spacing: 0.02em; }
 
 @media (max-width: 768px) {
   /* thumb-zone targets: the bar lives at the bottom of the map, one-handed reach */

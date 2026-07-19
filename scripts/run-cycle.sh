@@ -17,6 +17,11 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd) || exit 1
 cd "$REPO_ROOT" || exit 1
 
+# cron runs with a minimal PATH (/usr/bin:/bin) that omits /usr/local/bin where
+# wrangler lives — prepend the standard dirs so deploy.sh finds it (and node/git/
+# ansible-vault) the same way an interactive shell does.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+
 # --- durable logging: tee all output (this script + every subprocess) to the log ---
 LOGFILE="${RESPONDER_CYCLE_LOG:-/var/log/responder-cycle.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron

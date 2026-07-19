@@ -1,0 +1,71 @@
+{
+ "generated": "2026-07-19T03:35:00Z",
+ "items": [
+  {
+   "t": "2026-07-15T17:11:00Z",
+   "lat": 29.9,
+   "lon": -99.5,
+   "title": "GOES-19 IR: torrential rain over the Hill Country",
+   "img": "https://upload.wikimedia.org/wikipedia/commons/9/93/Torrential_Rainfall_Results_in_Flash_Flooding_in_Texas_%28CIRA_2026-07-15%29.png",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Torrential_Rainfall_Results_in_Flash_Flooding_in_Texas_(CIRA_2026-07-15).png",
+   "credit": "GOES imagery: NOAA / CSU-CIRA",
+   "license": "Public domain (US Government / NOAA)",
+   "caption": "GOES-19 infrared view of the slow-moving storm complex that dropped 12+ inches on the Hill Country in 48 hours (regional frame; coords nominal center)."
+  },
+  {
+   "t": "2026-07-16T11:55:00Z",
+   "lat": 29.9,
+   "lon": -99.5,
+   "title": "Sunrise satellite view, peak flood morning",
+   "img": "https://upload.wikimedia.org/wikipedia/commons/5/54/Sunrise_on_Heavy_Rain_and_Flooding_in_Texas_%28CIRA_2026-07-16%29.png",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Sunrise_on_Heavy_Rain_and_Flooding_in_Texas_(CIRA_2026-07-16).png",
+   "credit": "GOES imagery: NOAA / CSU-CIRA",
+   "license": "Public domain (US Government / NOAA)",
+   "caption": "Sunrise GOES imagery on the morning the Guadalupe rose 32 ft in 4 hours at Center Point (time approximate; regional frame)."
+  },
+  {
+   "t": "2026-07-17T18:37:00Z",
+   "lat": 29.07,
+   "lon": -99.93,
+   "title": "FM 481 bridge collapse over the Nueces River",
+   "img": null,
+   "source_url": "https://x.com/TxDPSSouth/status/2078111971665186923",
+   "credit": "Texas DPS South Texas Region, Aircraft Operations Division",
+   "license": "Official government public-safety release; link only",
+   "caption": "DPS aerial shows a segment of the FM 481 (Old Eagle Pass Road) bridge gone, the remaining span nearly submerged by the record Nueces; collapse reported Friday morning Jul 17 (coords approx: FM 481 Nueces crossing ~10 mi SW of Uvalde)."
+  },
+  {
+   "t": "2026-07-16T19:22:00Z",
+   "lat": 30.065,
+   "lon": -99.185,
+   "title": "Historic Arcadia Loop Bridge destroyed, Goat Creek, Kerrville",
+   "img": null,
+   "source_url": "https://cbsaustin.com/news/local/flash-flood-emergency-declared-for-kerrville-area-as-catastrophic-flooding-prompts-rescues",
+   "credit": "CBS Austin / Walt Maciborski",
+   "license": "Link only (news media)",
+   "caption": "Goat Creek floodwaters tore a 15-20 ft hole through the historic Arcadia Loop Bridge and severed a city water main; one of 6 Kerr County bridges with major damage (time and coords approximate)."
+  },
+  {
+   "t": "2026-07-16T12:00:00Z",
+   "lat": 28.95,
+   "lon": -99.89,
+   "title": "US 57 underwater at the Nueces River, La Pryor",
+   "img": null,
+   "source_url": "https://www.texastribune.org/2026/07/16/texas-weather-castastrophic-flooding-forecast/",
+   "credit": "Zavala County Sheriff's Office via Texas Tribune",
+   "license": "Link only",
+   "caption": "Early-morning Jul 16 view of US 57 crossing the Nueces at La Pryor after a historic 20-ft rise; TxDOT closed 50 miles of US 57 from La Pryor to I-35 (time and coords approximate)."
+  },
+  {
+   "t": "2026-07-16T18:00:00Z",
+   "lat": 30.043,
+   "lon": -99.137,
+   "title": "Barge strikes Sidney Baker Bridge, Kerrville",
+   "img": null,
+   "source_url": "https://www.tpr.org/live-updates/texas-floods-2026",
+   "credit": "Texas Public Radio live coverage",
+   "license": "Link only (news media)",
+   "caption": "A flood-loosed barge struck the Sidney Baker (SH 16) bridge over the Guadalupe; bridge closed pending structural assessment (time and coords approximate)."
+  }
+ ]
+}

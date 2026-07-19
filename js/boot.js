@@ -419,7 +419,8 @@ function obDismiss() {
 function initOnboarding() {
   if (localStorage.getItem(ONBOARD_KEY)) return;
   if (onboardDeepLink()) { localStorage.setItem(ONBOARD_KEY, '1'); return; }
-  const show = () => { $('#onboard').hidden = false; obGo(0); };
+  // seen-guard: the footer strip can reopen the safety modal, whose ack click chains here
+  const show = () => { if (localStorage.getItem(ONBOARD_KEY)) return; $('#onboard').hidden = false; obGo(0); };
   $('#ob-skip').addEventListener('click', obDismiss);
   $('#ob-next').addEventListener('click', () => { if (state.obIdx >= OB_PANELS - 1) obDismiss(); else obGo(state.obIdx + 1); });
   $('#ob-legend').addEventListener('click', () => { obDismiss(); openGlossary(); });
@@ -567,14 +568,13 @@ async function boot() {
     sessionStorage.setItem('respondertx.ageBarDismiss', $('#data-age-bar').dataset.key || '');
     $('#data-age-bar').hidden = true;
   });
-  // one-time safety acknowledgment (persisted) — the footer 911 disclaimer stays regardless
-  if (!localStorage.getItem('respondertx.safetyAck')) {
-    $('#safety-modal').hidden = false;
-    $('#safety-ack').addEventListener('click', () => {
-      localStorage.setItem('respondertx.safetyAck', '1');
-      $('#safety-modal').hidden = true;
-    });
-  }
+  // one-time safety acknowledgment (persisted) — the footer 911 disclaimer stays regardless.
+  // ack close binds unconditionally: the footer strip re-opens this modal as the full notice
+  if (!localStorage.getItem('respondertx.safetyAck')) $('#safety-modal').hidden = false;
+  $('#safety-ack').addEventListener('click', () => {
+    localStorage.setItem('respondertx.safetyAck', '1');
+    $('#safety-modal').hidden = true;
+  });
   initOnboarding(); // after safety wiring — the ack click chains into first-run onboarding
   initHeaderSearch();
   $('#help-btn').addEventListener('click', openGlossary);
@@ -698,9 +698,10 @@ async function boot() {
   $('#playback-btn').addEventListener('click', openPlayback);
   if (new URLSearchParams(location.search).get('playback') === '1') openPlayback();
 
+  // footer 911 strip stays one row at every width — tap opens the full safety notice
   $('#disclaimer').addEventListener('click', (e) => {
     if (e.target.id === 'app-version') return;
-    if (window.innerWidth <= 768) $('#disclaimer').classList.toggle('open');
+    $('#safety-modal').hidden = false;
   });
 
   // ops chat is a LAN-only construct: UI code (js/chat.js) loads only when the

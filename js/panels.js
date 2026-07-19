@@ -449,7 +449,12 @@ function headlineParts() {
   }
   const wave = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major')
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
-  if (wave) parts.push(t('headline.wave').replace('{river}', riverOf(wave.name)).replace('{site}', pbShortName(wave.name)));
+  if (wave) {
+    // direction from observed trend, not the forecast delta — a forecast-to-major gauge can be receding right now
+    const wtr = gaugeTrend(wave.lid);
+    const waveKey = !wtr ? 'headline.wave.nodir' : wtr.dir === 'up' ? 'headline.wave' : wtr.dir === 'down' ? 'headline.wave.down' : null;
+    if (waveKey) parts.push(t(waveKey).replace('{river}', riverOf(wave.name)).replace('{site}', pbShortName(wave.name)));
+  }
   const warnN = openInAO('warning');
   if (warnN) parts.push(t('headline.warnN').replace('{n}', warnN));
   else if (!emergN && state.alertsLoadedOnce) parts.push(t('headline.warn0'));

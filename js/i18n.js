@@ -51,7 +51,7 @@
       'tab.social': 'Social',
       'tab.resources': 'Resources',
 
-      'disc.short': '<strong>⚠ Life-threatening emergency → call 911.</strong> Not a dispatch system · tap for full notice',
+      'disc.short': '<strong>⚠ 911 emergencies</strong> · not a dispatch system · tap for full notice',
       'disc.full': '<strong>Life-threatening emergency → call 911.</strong> This board coordinates volunteer monitoring and situational awareness; it is not a dispatch system and is not monitored by emergency services. Verify before acting. Do not self-deploy into warned areas.',
 
       'safety.head': '⚠ Life-threatening emergency → call 911',
@@ -149,6 +149,8 @@
       'headline.st.falling': 'receding',
       'headline.st.steady': 'steady',
       'headline.wave': '{river} wave rising at {site}',
+      'headline.wave.down': '{river} wave receding at {site}',
+      'headline.wave.nodir': '{river} wave at {site}',
       'headline.warn0': 'no flash flood warnings in the AO',
       'headline.warnN': '{n} flood warnings in the AO',
       'headline.roads': '{n} roads closed/flooded (TxDOT)',
@@ -456,7 +458,7 @@
       'tab.social': 'Social',
       'tab.resources': 'Recursos',
 
-      'disc.short': '<strong>⚠ Emergencia potencialmente mortal → llame al 911.</strong> No es un sistema de despacho · toque para ver el aviso completo',
+      'disc.short': '<strong>⚠ Emergencias al 911</strong> · no es un sistema de despacho · toque para ver el aviso completo',
       'disc.full': '<strong>Emergencia potencialmente mortal → llame al 911.</strong> Este panel coordina el monitoreo voluntario y la conciencia situacional; no es un sistema de despacho y no está supervisado por los servicios de emergencia. Verifique antes de actuar. No se autodespliegue en zonas bajo advertencia.',
 
       'safety.head': '⚠ Emergencia potencialmente mortal → llame al 911',
@@ -554,6 +556,8 @@
       'headline.st.falling': 'bajando',
       'headline.st.steady': 'estable',
       'headline.wave': 'onda del {river} subiendo en {site}',
+      'headline.wave.down': 'onda del {river} bajando en {site}',
+      'headline.wave.nodir': 'onda del {river} en {site}',
       'headline.warn0': 'sin avisos de inundación repentina en el área',
       'headline.warnN': '{n} avisos de inundación en el área',
       'headline.roads': '{n} caminos cerrados/inundados (TxDOT)',

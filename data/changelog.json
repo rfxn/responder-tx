@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.90.1",
+      "date": "2026-07-18",
+      "line": "Slimmer chrome, same signal: the plain-language situation line is now a thin one-line strip (tap it to read the full sentence), and the bottom 911 notice fits on a single row at every width — tap it any time to reopen the full safety notice, or tap the underlined version number for What's New. Also fixed: the headline no longer says a river wave is “rising” when the gauge is actually receding — the direction word now follows the live trend. English y español."
+    },
+    {
       "v": "v0.90.0",
       "date": "2026-07-18",
       "line": "Rainfall is now one layer, not two. Turn on Rainfall and pick the accumulation window — 1h, 24h, 48h, or 72h — with the new chips right in the map legend; your pick sticks for the session, and old “Rain 1h”/“Rain 24h” links still open the right view. Also, by popular demand the 🔗 Share button is back at your fingertips: it now sits on the map just below the 🗂 layer button (and stays in the ⋮ menu too). English y español."

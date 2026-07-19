@@ -366,6 +366,7 @@ function renderGlossary() {
   html += glRow(`<span class="fcst-ring cat-moderate" style="width:11px;height:11px"></span>`, t('glossary.ring.label'), t('glossary.ring'));
   html += glRow('💧', t('glossary.lsr.label'), t('glossary.lsr'));
   html += glRow('🌧', t('glossary.rain.label'), t('glossary.rain'));
+  html += glRow('🌦', t('glossary.fcstradar.label'), t('glossary.fcstradar'));
   html += glRow('📷', t('glossary.cams.label'), t('glossary.cams'));
   html += glRow('<span class="cam-icon cam-snap" style="width:16px;height:16px;font-size:10px">📷</span>', t('glossary.camsnap.label'), t('glossary.camsnap'));
   html += glRow('<span style="color:var(--sev-emergency)">⛔</span>/🌊', t('glossary.roads.label'), t('glossary.roads'));
@@ -700,6 +701,9 @@ async function boot() {
   $('#rs-play').addEventListener('click', toggleRadarPlay);
   $('#rs-slider').addEventListener('input', () => { stopRadarPlay(); setRadarFrame(+$('#rs-slider').value); });
   if (new URLSearchParams(location.search).get('radar') === '1') state.layers.radar.addTo(state.map);
+  $('#fs-play').addEventListener('click', toggleFcstPlay);
+  $('#fs-slider').addEventListener('input', () => { stopFcstPlay(); fcstSetHour(+$('#fs-slider').value); });
+  if (new URLSearchParams(location.search).get('fcst') === '1') state.layers.fcstRadar.addTo(state.map);
 
   initPlaybackControls();
   $('#playback-btn').addEventListener('click', openPlayback);

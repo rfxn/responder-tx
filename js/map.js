@@ -274,10 +274,16 @@ function initMap() {
     opacity: 0.72, maxZoom: 19,
     attribution: 'Flood inundation: NWM analysis (experimental) &copy; NOAA/NWPS',
   });
+  // HRRR model future-cast — MODEL data (never observed), off by default, amber FORECAST MODEL badge when on
+  state.layers.fcstRadar = L.tileLayer.wms(CONFIG.hrrrWmsUrl, {
+    layers: fcstLayerName(1), format: 'image/png', transparent: true, version: '1.1.1',
+    opacity: 0.7, pane: 'radar', attribution: 'Forecast radar: NOAA HRRR model via <a href="https://mesonet.agron.iastate.edu/">IEM</a>',
+  });
   state.inunBucket = Math.floor(Date.now() / 3600000);
   state.refreshRadar = () => {
     state.layers.mrms.setUrl(bustSrc(CONFIG.mrmsUrl(state.rainWindow)));
     if (state.map.hasLayer(state.layers.radar)) fetchRadarFrames().catch(() => { /* keep last frames */ });
+    if (state.map.hasLayer(state.layers.fcstRadar)) fcstFetchRun();
     const bucket = Math.floor(Date.now() / 3600000); // inundation updates hourly — redraw only on the hour
     if (bucket !== state.inunBucket) {
       state.inunBucket = bucket;
@@ -289,6 +295,7 @@ function initMap() {
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer === state.layers.cameras) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
+    if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = false;
     fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
@@ -296,6 +303,7 @@ function initMap() {
   state.map.on('overlayremove', (e) => {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
+    if (e.layer === state.layers.fcstRadar) { $('#fcst-scrub').hidden = true; stopFcstPlay(); }
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = true;
     stopRadarPlay();
@@ -311,9 +319,11 @@ function initMap() {
   });
   // default base is Streets (owner directive); saved choice or ?base= overrides — layer control not built yet, set directly
   const baseParam = new URLSearchParams(location.search).get('base');
+  // hasOwnProperty guard (v0.94.1 theme-fix pattern): ?base=toString must not resolve via the prototype chain
+  const knownBase = (b) => !!b && Object.prototype.hasOwnProperty.call(state.baseLayers, b);
   const wantBase = baseParam === 'osm' ? 'streets'
-    : (baseParam in state.baseLayers ? baseParam : null) || localStorage.getItem('respondertx.base') || 'streets';
-  state.activeBase = wantBase in state.baseLayers ? wantBase : 'streets';
+    : (knownBase(baseParam) ? baseParam : null) || localStorage.getItem('respondertx.base') || 'streets';
+  state.activeBase = knownBase(wantBase) ? wantBase : 'streets';
   state.baseLayers[state.activeBase].addTo(state.map);
 
   state.layers.alerts = L.layerGroup().addTo(state.map);
@@ -343,6 +353,7 @@ function initMap() {
   }, {
     'Place labels (boost)': state.layers.labelBoost,
     'Radar scrub (-1h → +30m)': state.layers.radar,
+    'Forecast radar (HRRR model)': state.layers.fcstRadar,
     'Rainfall (MRMS)': state.layers.mrms,
     'Flood inundation: NWM model (est.)': state.layers.inundation,
     'Flood alerts (NWS)': state.layers.alerts,
@@ -543,6 +554,7 @@ function initAoJump() {
 
 const PILL_LAYERS = [
   ['radar', 'layers.radar'],
+  ['fcstRadar', 'layers.fcstradar'],
   ['mrms', 'layers.rain'],
   ['inundation', 'layers.inun'],
   ['usgs', 'layers.usgs'],
@@ -597,6 +609,7 @@ const SHEET_GROUPS = [
   ]],
   ['sheet.g.rain', [
     ['radar', '📡', 'layers.radar', 'sheet.s.radar', null, false],
+    ['fcstRadar', '🌦', 'layers.fcstradar', 'sheet.s.fcstradar', null, false],
     ['mrms', '🌧', 'layers.rain', 'sheet.s.rain', null, false],
   ]],
   ['sheet.g.roads', [
@@ -792,6 +805,70 @@ function toggleRadarPlay() {
   r.timer = setInterval(() => setRadarFrame((r.idx + 1) % r.frames.length), 700);
 }
 
+/* ---------- forecast radar scrub (v0.95) — HRRR MODEL reflectivity, +1h → +18h hourly ----------
+   Honesty contract: amber dashed bar + persistent FORECAST MODEL badge; hidden during playback
+   (PB_LIVE_HIDE — a model future has no place in a historical replay). */
+
+const fcstLayerName = (h) => `refd_${String(h * 60).padStart(4, '0')}`;
+
+function fcstEnable() {
+  if (!state.fcst) state.fcst = { hour: 1, runIso: null, playing: false, timer: null };
+  $('#fcst-scrub').hidden = false;
+  fcstSetHour(1); // default position +1h on every enable
+  fcstFetchRun();
+}
+
+// run stamp from IEM's per-layer metadata JSON; a new model run cache-busts the WMS tiles
+function fcstFetchRun() {
+  fetch(CONFIG.hrrrMetaUrl(60)).then((r) => (r.ok ? r.json() : null)).then((d) => {
+    const f = state.fcst;
+    if (!f || !d || !d.model_init_utc) return;
+    if (f.runIso !== d.model_init_utc) {
+      const stale = f.runIso !== null;
+      f.runIso = d.model_init_utc;
+      if (stale) state.layers.fcstRadar.setParams({ _run: f.runIso }); // vendor param — busts tile caches onto the new run
+      fcstUpdateLabel();
+    }
+  }).catch(() => { /* metadata is decorative — the scrub still works with +Nh labels only */ });
+}
+
+function fcstSetHour(h) {
+  const f = state.fcst;
+  if (!f) return;
+  f.hour = Math.max(1, Math.min(h, CONFIG.hrrrMaxHours));
+  state.layers.fcstRadar.setParams({ layers: fcstLayerName(f.hour) });
+  $('#fs-slider').value = f.hour;
+  fcstUpdateLabel();
+}
+
+function fcstUpdateLabel() {
+  const f = state.fcst, el = $('#fs-label');
+  if (!f || !el) return;
+  let txt = `+${f.hour}h`;
+  if (f.runIso) {
+    const valid = new Date(new Date(f.runIso).getTime() + f.hour * 3600000).toISOString();
+    txt += ` · ${fmtCT(valid)}`;
+    el.title = t('fcst.run').replace('{t}', fmtCT(f.runIso));
+  }
+  el.textContent = txt;
+}
+
+function stopFcstPlay() {
+  const f = state.fcst;
+  if (f && f.timer) { clearInterval(f.timer); f.timer = null; f.playing = false; }
+  const b = $('#fs-play');
+  if (b) b.textContent = '▶';
+}
+
+function toggleFcstPlay() {
+  const f = state.fcst;
+  if (!f) return;
+  if (f.playing) { stopFcstPlay(); return; }
+  f.playing = true;
+  $('#fs-play').textContent = '⏸';
+  f.timer = setInterval(() => fcstSetHour(f.hour >= CONFIG.hrrrMaxHours ? 1 : f.hour + 1), 900);
+}
+
 /* ---------- historical playback (v0.82) — replay archived gauge frames over 3d/7d/14d ----------
    Honest by design: only layers with a real archive replay (gauges from data/history.json,
    radar from IEM archive tiles); alerts/roads/LSRs stay live and the bar says so. */
@@ -949,6 +1026,7 @@ const PB_LIVE_HIDE = [
   ['cameras', 'layers.cams'],
   ['usgs', 'layers.usgs'],
   ['fcstMax', 'layers.fcst'],
+  ['fcstRadar', 'layers.fcstradar'],
   ['inundation', 'layers.inun'],
 ];
 const PB_LSR_SHOW_MS = 3 * 3600000; // a storm report stays on the frame for 3h after its valid time
@@ -1988,7 +2066,7 @@ function pbStepFrame(d) {
 
 function initPlaybackControls() {
   // over-map controls must never leak taps into Leaflet (double-tap zoom, pinch) — same guard as AO chips/layer pills
-  for (const sel of ['#playback-bar', '#pb-pill', '#pb-badge', '#radar-scrub']) {
+  for (const sel of ['#playback-bar', '#pb-pill', '#pb-badge', '#radar-scrub', '#fcst-scrub']) {
     const el = $(sel);
     if (!el) continue;
     L.DomEvent.disableClickPropagation(el);

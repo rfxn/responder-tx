@@ -185,9 +185,10 @@ fi
 NOW_ISO=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 PROMPT=$(build_prompt "$INBOX_COUNT" "$CURSOR_VAL" "$NOW_ISO")
 
-# Tight scope: only the file tools needed to read the inbox/outbox and append
-# replies to the outbox; hard-deny shell/network/subagents; NO permission bypass.
-ALLOWED_TOOLS="Read Edit Write"
+# Tight scope: Read (to see inbox+outbox) + edits restricted to ONLY the outbox
+# (Edit(path) rules cover all file-editing incl. Write, so no other file can be
+# written even under prompt injection); hard-deny shell/network/subagents; NO bypass.
+ALLOWED_TOOLS="Read Edit(${OUTBOX})"
 DISALLOWED_TOOLS="Bash WebFetch WebSearch Task"
 
 if [ "$DRY_RUN" -eq 1 ]; then

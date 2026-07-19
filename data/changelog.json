@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.96.4",
+      "date": "2026-07-19",
+      "line": "Tapping an alert card now flashes that alert's outline on the map and drops a pulsing ping at its center, so when several warnings overlap (like three Devils River reaches in Val Verde) you can see exactly which one you tapped. Falls back to a ping at the alert's center when its polygon is not drawn."
+    },
+    {
       "v": "v0.96.3",
       "date": "2026-07-19",
       "line": "Alert cards no longer look like duplicates: each now names the specific river reach on the second line, so three 'Val Verde, TX' Flood Warnings read as Devils River at Cauthorn Ranch near Juno, at Bakers Crossing, and at Pafford Crossing. And the 'text' link now opens the full alert in-app (headline, description, what-to-do, in-effect-until), cited to the issuing NWS office, instead of dumping you at a raw API JSON page — with a raw-data link kept for provenance. Alert search now matches the river name too."

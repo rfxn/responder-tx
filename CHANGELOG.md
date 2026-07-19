@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.96.4 — 2026-07-19 (tap an alert card → the map identifies the one you picked)
+
+- [New] tapping an alert card flies the map to it and now flashes that alert's
+      outline and drops a pulsing ping at its center, so in a crowded area (e.g.
+      three overlapping Devils River warnings in Val Verde) you can tell exactly
+      which one you selected; the ping falls back to the alert's center if its
+      polygon is not currently drawn
+
 ## v0.96.3 — 2026-07-19 (readable alert cards: river reach + in-app alert text)
 
 - [New] alert cards now name the specific river reach on the second line, so

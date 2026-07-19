@@ -75,6 +75,7 @@ async function renderAlertPolys() {
     const layer = L.geoJSON({ type: 'Feature', geometry: geom }, {
       style: { className: `alert-poly sev-${f._sev}`, weight: f._sev === 'emergency' ? 2.5 : 1.5, fillOpacity: f._sev === 'emergency' ? 0.22 : 0.10, opacity: 0.9 },
     });
+    layer._alertId = f.id; // lets a card click find and flash its polygon
     layer.bindPopup(alertPopupHtml(f));
     state.layers.alerts.addLayer(layer);
   }
@@ -128,19 +129,41 @@ function alertCardDiv(f) {
   link.addEventListener('click', (e) => { e.stopPropagation(); openAlertText(f); });
   link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAlertText(f); } });
   div.addEventListener('click', () => {
-    if (f.geometry) {
-      const b = L.geoJSON(f.geometry).getBounds();
-      if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
+    let b = null;
+    if (f.geometry) { const bb = L.geoJSON(f.geometry).getBounds(); if (bb.isValid()) b = bb; }
+    if (!b) {
+      const z = (f.properties.affectedZones || [])[0];
+      const g = z && state.zoneGeomCache.get(z);
+      if (g) { const bb = L.geoJSON(g).getBounds(); if (bb.isValid()) b = bb; }
     }
-    const z = (f.properties.affectedZones || [])[0];
-    const g = z && state.zoneGeomCache.get(z);
-    if (g) {
-      const b = L.geoJSON(g).getBounds();
-      if (b.isValid()) { state.map.fitBounds(b, { maxZoom: 10 }); return; }
-    }
+    if (b) { state.map.fitBounds(b, { maxZoom: 10 }); flashAlert(f); return; }
     openAlertText(f); // no geometry to fly to → open the readable alert text instead of raw JSON
   });
   return div;
+}
+
+// after a card jumps the map, identify the one you clicked: flash its polygon
+// outline and drop a pulsing ping at its center (works even in crowded areas, or
+// when the polygon is not drawn — falls back to the geometry/zone bounds center).
+function flashAlert(f) {
+  let target = null, center = null;
+  state.layers.alerts.eachLayer((lyr) => { if (lyr._alertId === f.id) target = lyr; });
+  if (target) {
+    try { target.bringToFront(); center = target.getBounds().getCenter(); } catch {}
+    const toggle = (add) => target.eachLayer((p) => {
+      const el = p.getElement && p.getElement();
+      if (el && el.classList) el.classList[add ? 'add' : 'remove']('alert-flash');
+    });
+    toggle(true); setTimeout(() => toggle(false), 1900);
+  }
+  if (!center) {
+    const geom = f.geometry || (f.properties.affectedZones || []).map((z) => state.zoneGeomCache.get(z)).find(Boolean);
+    if (geom) { try { center = L.geoJSON(geom).getBounds().getCenter(); } catch {} }
+  }
+  if (!center) return;
+  const icon = L.divIcon({ className: '', html: '<div class="alert-ping"></div>', iconSize: [0, 0] });
+  const ping = L.marker(center, { icon, interactive: false, keyboard: false, zIndexOffset: 1200 }).addTo(state.map);
+  setTimeout(() => { try { state.map.removeLayer(ping); } catch {} }, 1900);
 }
 
 // Human-readable alert reader: NWS has no per-alert HTML page, so render the

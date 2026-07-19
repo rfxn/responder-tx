@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.93.2",
+      "date": "2026-07-19",
+      "line": "Radar scrub label simplified to 'now' (dropped the free-feed caveat, owner ask)."
+    },
+    {
       "v": "v0.93.1",
       "date": "2026-07-18",
       "line": "Replay radar and rainfall now glide instead of flashing: each time-step preloads its tiles invisibly and cross-fades in (~350ms), frames whose radar/rainfall bucket hasn't changed skip the redraw entirely, scrubbing waits for your thumb to settle before fetching, and play prefetches the next step ahead \u2014 no more blank-map redraws mid-replay."

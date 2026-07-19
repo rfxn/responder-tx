@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.93.2 — 2026-07-19
+
+- [Change] Radar scrub label reads just "now" (removed "no future-cast in free
+  feed" caveat, owner ask)
+
 ## v0.93.1 — 2026-07-18 (smooth replay radar/rainfall transitions)
 
 - [Fix] replay radar no longer redraws jarringly on every step (owner: "with radar enabled during replay the progression of each radar sample is very jittery and redraws massively, can we make it an animated progressive movement that is less jarring on how it redraws constantly"): the archived IEM radar and MRMS rainfall layers each become a two-layer A/B buffer — a bucket change loads the new stamp into the hidden layer, waits for its tiles to finish fetching ('load' event, 2.5s fallback for archive gaps), then cross-fades opacity (~350ms CSS transition) and swaps roles, so the visible layer never blanks to empty tiles mid-replay; frames whose 5-min radar / hourly rainfall bucket is unchanged are skipped outright (15-min frames over hourly rainfall stamps = 3 of 4 frames do nothing at all — previously every setUrl redraw churned)

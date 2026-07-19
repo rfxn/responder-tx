@@ -737,7 +737,7 @@ function setRadarFrame(i) {
   const label = $('#rs-label');
   label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin >= -110 ? dMin + 'm' : Math.round(dMin / 6) / 10 + 'h'}` : `+${dMin}m PROJECTED`;
   label.classList.toggle('projected', projected);
-  if (r.castStart >= r.frames.length && dMin === 0) label.textContent = 'now · no future-cast in free feed';
+  if (r.castStart >= r.frames.length && dMin === 0) label.textContent = 'now';
 }
 
 function stopRadarPlay() {

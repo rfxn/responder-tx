@@ -7,3 +7,4 @@ pkg/            export-ignore
 audit-output/   export-ignore
 .gitattributes  export-ignore
 assets/         export-ignore
+workers/        export-ignore

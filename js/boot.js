@@ -404,7 +404,7 @@ const OB_PANELS = 3;
 // deep-link entries land somewhere specific — never interrupt them with onboarding
 function onboardDeepLink() {
   const q = new URLSearchParams(location.search);
-  return ['playback', 'hydro', 'view', 'fq', 'cams', 'cam', 'pbt', 'mlat', 'mlon'].some((k) => q.get(k));
+  return ['playback', 'hydro', 'view', 'fq', 'cams', 'cam', 'pbt', 'mlat', 'mlon', 'team'].some((k) => q.get(k));
 }
 
 function obGo(i) {
@@ -590,6 +590,7 @@ async function boot() {
     $('#safety-modal').hidden = true;
   });
   initOnboarding(); // after safety wiring — the ack click chains into first-run onboarding
+  if (window.initTeam) initTeam(); // flag-gated ?team= live team sharing (inert otherwise); chains behind the 911 ack
   initHeaderSearch();
   $('#help-btn').addEventListener('click', openGlossary);
   $('#glossary-close').addEventListener('click', () => { $('#glossary-modal').hidden = true; });

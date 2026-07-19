@@ -1,5 +1,32 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.0 — 2026-07-19 (live team location sharing — opt-in, private)
+
+- [New] live team location sharing, flag-gated behind ?team= on the secure
+      mirror: open a team's unguessable UUID link to join as a member (shares
+      your live GPS position) or a viewer (watches without sharing); both set a
+      handle (≥4 chars, validated client + server) and appear in the roster
+- [New] members render as a distinct colored, labeled map marker with a
+      Garmin-style capped breadcrumb trail and a live "last seen" age; the
+      self-marker is haloed; position + breadcrumb publish every ~15s and the
+      roster polls every ~15s; viewers are listed but drop no marker
+- [New] one-tap "stop sharing & leave" clears the geolocation watch and drops you
+      from the server, with a pagehide beacon for tab-close; server-side TTL
+      reaps stale members, trails, and whole idle teams (20 min / 2 h / 24 h) as
+      the backstop
+- [New] backend (first server-held state): one Cloudflare Durable Object per team
+      holds the only copy of live state — members, viewers, latest positions,
+      capped trails — fronted by Pages Functions under functions/api/team/
+      (create · join · position · state · leave); the DO authoritatively enforces
+      role (viewers cannot publish a position), the ≥4-char handle, coordinate
+      validity, and all TTLs
+- [New] privacy guardrails: private-by-default with no public teams, X-Robots-Tag
+      noindex + Cache-Control no-store on every relay response, ephemeral
+      call-sign handles (no accounts, no PII, login can bind later without
+      rearchitecture), and team positions NEVER written to git / snapshots /
+      exports — the one data class exempt from the git-history archive model
+      (EN + ES)
+
 ## v0.96.5 — 2026-07-19 (mobile card UX)
 
 - [Change] feed notice cards are built for a phone now: "navigate" and "copy

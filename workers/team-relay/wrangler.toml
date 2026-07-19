@@ -1,0 +1,21 @@
+# Standalone Worker that hosts the TeamRelay Durable Object for live team location sharing.
+# Deploy separately from the Pages site:  cd workers/team-relay && wrangler deploy
+# The Pages project (responder-tx) binds to this DO via a `TEAM` Durable Object binding with
+# script_name = "responder-team-relay" (set in the Pages dashboard or a Pages config — see
+# workers/team-relay/README.md). This file does NOT affect `wrangler pages deploy`.
+
+name = "responder-team-relay"
+main = "team-relay.js"
+compatibility_date = "2025-06-01"
+
+# Not publicly routable: the DO is reached only through the Pages TEAM binding, never a URL.
+workers_dev = false
+
+[[durable_objects.bindings]]
+name = "TEAM"
+class_name = "TeamRelay"
+
+# SQLite-backed DO class — available on the Workers free plan (no paid entitlement required).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TeamRelay"]

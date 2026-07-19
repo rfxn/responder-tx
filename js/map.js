@@ -216,6 +216,29 @@ const ArcGISExportLayer = L.TileLayer.extend({
   },
 });
 
+/* ---------- unified Rainfall overlay (v0.90) — one MRMS layer, window picked via legend chips ---------- */
+
+const RAIN_WIN_KEY = 'respondertx.rainwin';
+const bustSrc = (url) => url + '?_=' + Math.floor(Date.now() / 300000);
+
+function updateMrmsLegend() {
+  const on = state.map.hasLayer(state.layers.mrms);
+  $('#mrms-legend').hidden = !on;
+  if (!on) return;
+  $('#mrms-legend-title').textContent = t('leg.rain.acc').replace('{w}', state.rainWindow);
+  $('#mrms-legend-chips').innerHTML = CONFIG.mrmsWindows.map((w) =>
+    `<button class="mrms-chip${w === state.rainWindow ? ' on' : ''}" data-win="${w}" aria-pressed="${w === state.rainWindow}">${w}</button>`).join('');
+}
+
+function setRainWindow(w) {
+  if (!CONFIG.mrmsWindows.includes(w) || w === state.rainWindow) return;
+  if (state.pb && !state.pb.live) return; // playback: same read-only regime as the layer sheet
+  state.rainWindow = w;
+  try { sessionStorage.setItem(RAIN_WIN_KEY, w); } catch { /* private mode — window choice is session-only anyway */ }
+  state.layers.mrms.setUrl(bustSrc(CONFIG.mrmsUrl(w))); // same layer object — tiles swap in place, no re-add flicker
+  updateMrmsLegend();
+}
+
 /* ---------- map ---------- */
 
 function initMap() {
@@ -239,12 +262,12 @@ function initMap() {
   state.map.getPane('radar').style.pointerEvents = 'none';
   state.layers.labelBoost = offlineTile(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
 
-  const bustSrc = (url) => url + '?_=' + Math.floor(Date.now() / 300000);
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
   // group of pre-loaded per-frame tile layers; playback crossfades opacity (no per-step tile reload)
   state.layers.radar = L.layerGroup();
-  state.layers.mrms1h = L.tileLayer(bustSrc(CONFIG.mrms1hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
-  state.layers.mrms24h = L.tileLayer(bustSrc(CONFIG.mrms24hUrl), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
+  const savedWin = sessionStorage.getItem(RAIN_WIN_KEY);
+  state.rainWindow = CONFIG.mrmsWindows.includes(savedWin) ? savedWin : '1h';
+  state.layers.mrms = L.tileLayer(bustSrc(CONFIG.mrmsUrl(state.rainWindow)), { opacity: 0.55, attribution: 'Rainfall: MRMS via IEM' });
   // MODELED flood extent (not observed) — off by default (hazard layers explicit-enable, owner directive)
   state.layers.inundation = new ArcGISExportLayer(CONFIG.inunExportUrl, {
     opacity: 0.72, maxZoom: 19,
@@ -252,8 +275,7 @@ function initMap() {
   });
   state.inunBucket = Math.floor(Date.now() / 3600000);
   state.refreshRadar = () => {
-    state.layers.mrms1h.setUrl(bustSrc(CONFIG.mrms1hUrl));
-    state.layers.mrms24h.setUrl(bustSrc(CONFIG.mrms24hUrl));
+    state.layers.mrms.setUrl(bustSrc(CONFIG.mrmsUrl(state.rainWindow)));
     if (state.map.hasLayer(state.layers.radar)) fetchRadarFrames().catch(() => { /* keep last frames */ });
     const bucket = Math.floor(Date.now() / 3600000); // inundation updates hourly — redraw only on the hour
     if (bucket !== state.inunBucket) {
@@ -261,13 +283,8 @@ function initMap() {
       if (state.map.hasLayer(state.layers.inundation)) state.layers.inundation.redraw();
     }
   };
-  const updateMrmsLegend = () => {
-    const on1 = state.map.hasLayer(state.layers.mrms1h), on24 = state.map.hasLayer(state.layers.mrms24h);
-    $('#mrms-legend').hidden = !(on1 || on24);
-    if (on1 || on24) $('#mrms-legend-title').textContent = `Rainfall accumulation ${on1 && on24 ? '1h + 24h' : on1 ? '1h' : '24h'} (MRMS)`;
-  };
   state.map.on('overlayadd', (e) => {
-    if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
+    if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer === state.layers.cameras) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
@@ -276,7 +293,7 @@ function initMap() {
     fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
   });
   state.map.on('overlayremove', (e) => {
-    if (e.layer === state.layers.mrms1h || e.layer === state.layers.mrms24h) updateMrmsLegend();
+    if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
     if (e.layer !== state.layers.radar) return;
     $('#radar-scrub').hidden = true;
@@ -325,8 +342,7 @@ function initMap() {
   }, {
     'Place labels (boost)': state.layers.labelBoost,
     'Radar scrub (-1h → +30m)': state.layers.radar,
-    'Rainfall 1h (MRMS)': state.layers.mrms1h,
-    'Rainfall 24h (MRMS)': state.layers.mrms24h,
+    'Rainfall (MRMS)': state.layers.mrms,
     'Flood inundation: NWM model (est.)': state.layers.inundation,
     'Flood alerts (NWS)': state.layers.alerts,
     'River gauges (NOAA)': state.layers.gauges,
@@ -369,6 +385,14 @@ function initMap() {
   legend.addTo(state.map);
   initOfflineControl();
 
+  const mrmsLg = $('#mrms-legend');
+  L.DomEvent.disableClickPropagation(mrmsLg);
+  L.DomEvent.disableScrollPropagation(mrmsLg);
+  $('#mrms-legend-chips').addEventListener('click', (e) => {
+    const b = e.target.closest('.mrms-chip');
+    if (b) setRainWindow(b.dataset.win);
+  });
+
   state.map.on('click', (e) => {
     if (!$('#new-request-form').classList.contains('open')) return;
     state.pendingLatLng = e.latlng;
@@ -410,6 +434,19 @@ function initMap() {
     return div;
   };
   sheetBtn.addTo(state.map);
+  // v0.90 owner ask: Share stays first-class — a map control right below the 🗂 trigger (also still in ⋮)
+  const shareCtl = L.control({ position: 'topright' });
+  shareCtl.onAdd = () => {
+    const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger share-trigger');
+    div.innerHTML = `<a href="#" role="button" title="${esc(t('ctl.share.title'))}" aria-label="${esc(t('ctl.share.aria'))}">🔗</a>`;
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.on(div.firstChild, 'click', (e) => {
+      L.DomEvent.stop(e);
+      shareView(div.firstChild);
+    });
+    return div;
+  };
+  shareCtl.addTo(state.map);
   initAoJump();
   initLayerPills();
   initLayerSheet();
@@ -471,8 +508,7 @@ function initAoJump() {
 
 const PILL_LAYERS = [
   ['radar', 'layers.radar'],
-  ['mrms1h', 'layers.rain1h'],
-  ['mrms24h', 'layers.rain24h'],
+  ['mrms', 'layers.rain'],
   ['inundation', 'layers.inun'],
   ['usgs', 'layers.usgs'],
   ['lsrsAged', 'layers.lsrhist'],
@@ -523,8 +559,7 @@ const SHEET_GROUPS = [
   ]],
   ['sheet.g.rain', [
     ['radar', '📡', 'layers.radar', 'sheet.s.radar', null, false],
-    ['mrms1h', '🌧', 'layers.rain1h', 'sheet.s.rain1h', null, false],
-    ['mrms24h', '🌧', 'layers.rain24h', 'sheet.s.rain24h', null, false],
+    ['mrms', '🌧', 'layers.rain', 'sheet.s.rain', null, false],
   ]],
   ['sheet.g.roads', [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],

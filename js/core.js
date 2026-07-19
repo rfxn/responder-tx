@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.89.0';
+const APP_VERSION = 'v0.90.0';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -33,8 +33,9 @@ const CONFIG = {
   // TxGIO low-water-crossing location inventory (CORS-open, no key). Static locations, no live status.
   lwcUrl: 'https://feature.geographic.texas.gov/arcgis/rest/services/Basemap/Low_Water_Crossing/MapServer/0/query',
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
-  mrms1hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-n1p-900913/{z}/{x}/{y}.png',
-  mrms24hUrl: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-p24h-900913/{z}/{x}/{y}.png',
+  // IEM MRMS accumulation windows probed live 2026-07-18: these four serve tiles; 3h/6h/12h do not exist
+  mrmsWindows: ['1h', '24h', '48h', '72h'],
+  mrmsUrl: (w) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-${w === '1h' ? 'n1p' : `p${w}`}-900913/{z}/{x}/{y}.png`,
   // NWPS/NWM Analysis-and-Assimilation flood inundation extent (experimental, hourly). Layer 0
   // draws only at street scale (< ~1:400k, z≈11+). MODELED estimate, not observed — labelled as such.
   inunExportUrl: 'https://maps.water.noaa.gov/server/rest/services/nwm/ana_inundation_extent/MapServer/export?bboxSR=3857&imageSR=3857&size=256,256&dpi=96&layers=show:0&format=png32&transparent=true&f=image',

@@ -855,6 +855,13 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 #mrms-legend[hidden] { display: none; }
 #mrms-legend-title { font-size: 11px; font-weight: 700; color: var(--ink-2); display: block; margin-bottom: 4px; }
+#mrms-legend-chips { display: flex; gap: 4px; margin-bottom: 5px; }
+.mrms-chip {
+  flex: 1; padding: 3px 0; font-size: 11px; font-weight: 650; line-height: 1;
+  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--hairline);
+  border-radius: 999px; cursor: pointer; touch-action: manipulation;
+}
+.mrms-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .mrms-ramp {
   height: 10px; border-radius: 3px;
   background: linear-gradient(90deg, #0006ff, #00d8ff, #00fe00, #e4fe00, #ff9e00, #ff0000, #ff00c8);

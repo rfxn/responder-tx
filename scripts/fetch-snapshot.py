@@ -13,6 +13,8 @@ import json
 import os
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,11 +29,24 @@ MIN_GAUGES = 200
 def main():
     req = urllib.request.Request(
         URL, headers={"User-Agent": UA, "Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            data = json.load(r)
-    except Exception as e:  # noqa: BLE001 — any fetch/parse failure must abort, never write garbage
-        sys.exit(f"fetch-snapshot: NWPS fetch failed: {e}")
+    # Retry transient failures (429 rate-limit, 5xx, timeouts) with backoff so a
+    # brief NWPS hiccup doesn't stale the board; a hard 4xx aborts immediately.
+    backoffs = [3, 8, 20]
+    data = None
+    for attempt in range(len(backoffs) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = json.load(r)
+            break
+        except Exception as e:  # noqa: BLE001 — any fetch/parse failure aborts, never writes garbage
+            transient = (not isinstance(e, urllib.error.HTTPError)
+                         or e.code == 429 or 500 <= e.code < 600)
+            if attempt < len(backoffs) and transient:
+                sys.stderr.write(f"fetch-snapshot: attempt {attempt + 1} failed ({e}); "
+                                 f"retry in {backoffs[attempt]}s\n")
+                time.sleep(backoffs[attempt])
+                continue
+            sys.exit(f"fetch-snapshot: NWPS fetch failed: {e}")
 
     gauges = []
     for g in data.get("gauges", []):

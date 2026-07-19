@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 820" width="1060" height="820" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Responder TX system architecture diagram">
+  <rect x="1" y="1" width="1058" height="818" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1"/>
+
+  <!-- title -->
+  <text x="32" y="42" font-size="22" font-weight="700" fill="#1f2937">Responder TX &#8212; System Architecture</text>
+  <text x="32" y="64" font-size="12.5" fill="#57606a">Zero-backend flood board &#183; the browser fetches public data directly &#183; the git history of data/ is the archive</text>
+
+  <!-- legend -->
+  <g font-size="11" fill="#444d56">
+    <rect x="32"  y="78" width="12" height="12" rx="2" fill="#fff3d6" stroke="#dcb552"/><text x="50"  y="88">public data source</text>
+    <rect x="232" y="78" width="12" height="12" rx="2" fill="#e8f1fd" stroke="#3987e5"/><text x="250" y="88">browser SPA (client)</text>
+    <rect x="452" y="78" width="12" height="12" rx="2" fill="#e7f6ea" stroke="#3f9d4f"/><text x="470" y="88">operator LAN</text>
+    <rect x="632" y="78" width="12" height="12" rx="2" fill="#f2eafc" stroke="#9a5fe0"/><text x="650" y="88">public mirror (Cloudflare)</text>
+    <rect x="852" y="78" width="12" height="12" rx="2" fill="#eef1f4" stroke="#9aa4b0"/><text x="870" y="88">generator pipeline</text>
+  </g>
+
+  <!-- ============ BAND A: data sources ============ -->
+  <rect x="32" y="104" width="996" height="124" rx="8" fill="#fff9ec" stroke="#e6c568"/>
+  <text x="44" y="124" font-size="12.5" font-weight="700" fill="#7a5a00">PUBLIC DATA SOURCES &#8212; keyless &#183; CORS-open &#183; no account</text>
+  <g font-size="11" fill="#6f5200">
+    <rect x="44"  y="134" width="236" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="162" y="152" text-anchor="middle">NWS &#8212; active flood alerts</text>
+    <rect x="292" y="134" width="236" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="410" y="152" text-anchor="middle">NWPS &#8212; gauges + forecast crest</text>
+    <rect x="540" y="134" width="236" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="658" y="152" text-anchor="middle">NOAA RFC &#8212; forecast-max grid</text>
+    <rect x="788" y="134" width="228" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="902" y="152" text-anchor="middle">USGS &#8212; stage / flow + cams</text>
+    <rect x="44"  y="168" width="236" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="162" y="186" text-anchor="middle">IEM &#8212; storm reports + NEXRAD</text>
+    <rect x="292" y="168" width="236" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="410" y="186" text-anchor="middle">RainViewer &#8212; radar frames</text>
+    <rect x="540" y="168" width="236" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="658" y="186" text-anchor="middle">TxDOT DriveTexas &#8212; roads + cams</text>
+    <rect x="788" y="168" width="228" height="28" rx="6" fill="#fff3d6" stroke="#dcb552"/><text x="902" y="186" text-anchor="middle">TxGIO &#8212; low-water crossings</text>
+  </g>
+  <text x="530" y="214" font-size="10" fill="#8a6d1f" text-anchor="middle">also: OSM Nominatim (geocoding) &#183; CARTO / OpenStreetMap (basemap tiles) &#183; Leaflet CDN</text>
+
+  <!-- arrow A <-> B -->
+  <line x1="430" y1="234" x2="430" y2="252" stroke="#7a8290" stroke-width="1.4"/>
+  <polygon points="426,235 434,235 430,228" fill="#7a8290"/>
+  <polygon points="426,251 434,251 430,258" fill="#7a8290"/>
+  <text x="452" y="242" font-size="11" fill="#444d56">fetch() &#183; ~3-min poll</text>
+  <text x="452" y="256" font-size="11" fill="#444d56">last-good cached to localStorage + IndexedDB tiles</text>
+
+  <!-- ============ BAND B: browser SPA ============ -->
+  <rect x="150" y="258" width="760" height="150" rx="10" fill="#e8f1fd" stroke="#3987e5" stroke-width="1.5"/>
+  <text x="170" y="282" font-size="15" font-weight="700" fill="#14477e">BROWSER &#8212; Responder TX SPA</text>
+  <text x="170" y="300" font-size="11" fill="#3a5b82">vanilla JS &#183; Leaflet 1.9 + MarkerCluster &#183; any static host &#183; no build step</text>
+  <g font-size="11" fill="#205089">
+    <rect x="170" y="312" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="238" y="328" text-anchor="middle">i18n</text>
+    <rect x="316" y="312" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="384" y="328" text-anchor="middle">core &#183; config/state</text>
+    <rect x="462" y="312" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="530" y="328" text-anchor="middle">map</text>
+    <rect x="608" y="312" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="676" y="328" text-anchor="middle">sources</text>
+    <rect x="754" y="312" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="822" y="328" text-anchor="middle">panels</text>
+    <rect x="170" y="342" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="238" y="358" text-anchor="middle">board</text>
+    <rect x="316" y="342" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="384" y="358" text-anchor="middle">boot</text>
+    <rect x="462" y="342" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="530" y="358" text-anchor="middle">notes</text>
+    <rect x="608" y="342" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="676" y="358" text-anchor="middle">usng</text>
+    <rect x="754" y="342" width="136" height="24" rx="6" fill="#f4f9ff" stroke="#a9cbf0"/><text x="822" y="358" text-anchor="middle">chat &#183; LAN only</text>
+  </g>
+  <text x="170" y="388" font-size="10.5" fill="#3a5b82">renders: gauges &#183; alerts &#183; radar timeline &#183; roads &#183; cams &#183; notes &#183; playback &#183; USNG &#183; Drive Mode</text>
+
+  <!-- arrows B <-> hosts -->
+  <line x1="330" y1="414" x2="330" y2="462" stroke="#7a8290" stroke-width="1.4"/>
+  <polygon points="326,415 334,415 330,408" fill="#7a8290"/>
+  <polygon points="326,461 334,461 330,468" fill="#7a8290"/>
+  <line x1="730" y1="414" x2="730" y2="462" stroke="#7a8290" stroke-width="1.4"/>
+  <polygon points="726,415 734,415 730,408" fill="#7a8290"/>
+  <polygon points="726,461 734,461 730,468" fill="#7a8290"/>
+  <text x="530" y="438" font-size="11" fill="#444d56" text-anchor="middle">a host serves the app + committed data/ to the browser</text>
+  <text x="530" y="452" font-size="10" fill="#6a727c" text-anchor="middle">the operator runs the LAN host; the public gets the Cloudflare mirror</text>
+
+  <!-- ============ BAND C: hosts ============ -->
+  <!-- LAN -->
+  <rect x="150" y="468" width="360" height="168" rx="10" fill="#e7f6ea" stroke="#3f9d4f" stroke-width="1.5"/>
+  <text x="168" y="492" font-size="14" font-weight="700" fill="#1d6b2c">OPERATOR &#8212; LAN</text>
+  <text x="352" y="492" font-size="11" fill="#2c6b39" font-family="ui-monospace, Consolas, monospace">python3 server.py :8080</text>
+  <text x="168" y="510" font-size="10.5" fill="#2f5d3a">Python stdlib http.server &#8212; serves static app + data/</text>
+  <g font-size="10.5" fill="#256b32">
+    <rect x="168" y="520" width="324" height="24" rx="5" fill="#f1fbf3" stroke="#a6d6ae"/><text x="330" y="536" text-anchor="middle">POST /api/chat, /api/notes &#8594; data/*.jsonl</text>
+    <rect x="168" y="550" width="324" height="24" rx="5" fill="#f1fbf3" stroke="#a6d6ae"/><text x="330" y="566" text-anchor="middle">GET /api/gauge &#8594; NWPS proxy (3-min cache)</text>
+    <rect x="168" y="580" width="324" height="24" rx="5" fill="#f1fbf3" stroke="#a6d6ae"/><text x="330" y="596" text-anchor="middle">GET /api/cam &#8594; TxDOT ITS proxy (2-min cache)</text>
+  </g>
+  <text x="168" y="624" font-size="10" fill="#2f5d3a">Chat + Field Notes writable &#183; CSRF-guarded &#183; repo internals denied</text>
+
+  <!-- Cloudflare -->
+  <rect x="550" y="468" width="360" height="168" rx="10" fill="#f2eafc" stroke="#9a5fe0" stroke-width="1.5"/>
+  <text x="568" y="492" font-size="14" font-weight="700" fill="#6a34b3">PUBLIC MIRROR &#8212; Cloudflare Pages</text>
+  <text x="568" y="510" font-size="10.5" fill="#55408a">read-only &#183; static app + committed data/ on CDN edge</text>
+  <g font-size="10.5" fill="#5b3b96">
+    <rect x="568" y="520" width="324" height="24" rx="5" fill="#faf6ff" stroke="#cbb0ef"/><text x="730" y="536" text-anchor="middle">Pages Functions: /api/gauge &#183; /api/cam</text>
+    <rect x="568" y="550" width="324" height="24" rx="5" fill="#faf6ff" stroke="#cbb0ef"/><text x="730" y="566" text-anchor="middle">public feeds: /feed.xml (RSS) &#183; /crests.ics</text>
+    <rect x="568" y="580" width="324" height="24" rx="5" fill="#faf6ff" stroke="#cbb0ef"/><text x="730" y="596" text-anchor="middle">chat.js stripped at deploy &#183; no write routes</text>
+  </g>
+  <text x="568" y="624" font-size="10.5" fill="#6a34b3" font-family="ui-monospace, Consolas, monospace">https://responder.rfxn.com</text>
+
+  <!-- dashed connectors C <- D -->
+  <line x1="548" y1="672" x2="532" y2="640" stroke="#8a94a0" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <polygon points="528,647 536,646 532,638" fill="#8a94a0"/>
+  <text x="430" y="656" font-size="10" fill="#5b6570">hosts serve committed data/</text>
+  <line x1="938" y1="672" x2="742" y2="640" stroke="#8a94a0" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <polygon points="738,647 746,645 742,638" fill="#8a94a0"/>
+  <text x="800" y="656" font-size="10" fill="#5b6570">deploy publishes to Pages</text>
+
+  <!-- ============ BAND D: generator pipeline ============ -->
+  <rect x="32" y="672" width="996" height="140" rx="10" fill="#eef1f4" stroke="#9aa4b0"/>
+  <text x="44" y="694" font-size="12.5" font-weight="700" fill="#3b4654">PER-CYCLE GENERATOR PIPELINE &#8212; operator, ~every 15 min</text>
+  <g font-size="10.5" fill="#3b4654">
+    <rect x="44"  y="710" width="176" height="52" rx="7" fill="#f7f9fb" stroke="#b6bfca"/>
+    <text x="132" y="732" text-anchor="middle" font-weight="600">snapshot</text>
+    <text x="132" y="748" text-anchor="middle" font-size="9.5">NWPS &#183; USGS &#183; DriveTexas</text>
+
+    <rect x="244" y="710" width="192" height="52" rx="7" fill="#f7f9fb" stroke="#b6bfca"/>
+    <text x="340" y="732" text-anchor="middle" font-weight="600">gen-*.py</text>
+    <text x="340" y="748" text-anchor="middle" font-size="9.5">history &#183; crest &#183; feeds &#183; cams &#183; roads</text>
+
+    <rect x="460" y="710" width="176" height="52" rx="7" fill="#f7f9fb" stroke="#b6bfca"/>
+    <text x="548" y="732" text-anchor="middle" font-weight="600">data/*.json</text>
+    <text x="548" y="748" text-anchor="middle" font-size="9.5">+ feed.xml + crests.ics</text>
+
+    <rect x="660" y="710" width="170" height="52" rx="7" fill="#f7f9fb" stroke="#b6bfca"/>
+    <text x="745" y="732" text-anchor="middle" font-weight="600">git commit</text>
+    <text x="745" y="748" text-anchor="middle" font-size="9.5">history = the archive</text>
+
+    <rect x="854" y="710" width="162" height="52" rx="7" fill="#f7f9fb" stroke="#b6bfca"/>
+    <text x="935" y="732" text-anchor="middle" font-weight="600">deploy.sh</text>
+    <text x="935" y="748" text-anchor="middle" font-size="9.5">&#8594; Cloudflare Pages</text>
+  </g>
+  <!-- pipeline arrows -->
+  <g fill="#8a94a0">
+    <line x1="222" y1="736" x2="240" y2="736" stroke="#8a94a0" stroke-width="1.4"/><polygon points="240,732 240,740 246,736" />
+    <line x1="438" y1="736" x2="456" y2="736" stroke="#8a94a0" stroke-width="1.4"/><polygon points="456,732 456,740 462,736" />
+    <line x1="638" y1="736" x2="656" y2="736" stroke="#8a94a0" stroke-width="1.4"/><polygon points="656,732 656,740 662,736" />
+    <line x1="832" y1="736" x2="850" y2="736" stroke="#8a94a0" stroke-width="1.4"/><polygon points="850,732 850,740 856,736" />
+  </g>
+  <text x="44" y="784" font-size="9.5" fill="#5b6570">Curated seed data (requests / resources / crossings) is edited by hand and committed the same way &#8212; every card cites its source.</text>
+</svg>

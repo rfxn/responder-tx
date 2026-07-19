@@ -995,6 +995,32 @@ button.inspect-gauge:hover { color: var(--accent); }
 #rs-label { font-size: 12px; font-weight: 700; min-width: 44px; color: var(--ink-2); }
 #rs-label.projected { color: var(--sev-warning); }
 
+/* forecast-radar scrub: amber + dashed on purpose — model data must never read as observed radar */
+#fcst-scrub {
+  position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+  z-index: 1100; display: flex; align-items: center; gap: 8px;
+  background: var(--surface-1); border: 2px dashed var(--sev-warning); border-radius: 10px;
+  padding: 6px 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+  max-width: calc(100vw - 12px);
+}
+#fcst-scrub[hidden] { display: none; }
+#fs-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em; white-space: nowrap;
+  color: #1a1a19; background: var(--sev-warning); padding: 2px 7px; border-radius: 6px;
+}
+#fs-play { min-height: 0; padding: 2px 10px; font-size: 14px; }
+#fs-slider { width: min(30vw, 200px); accent-color: var(--sev-warning); }
+#fs-label { font-size: 12px; font-weight: 700; min-width: 44px; color: var(--sev-warning); white-space: nowrap; }
+/* both scrubs on: forecast bar stacks above the live radar bar — never side-by-side collision */
+#radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 74px; }
+@media (max-width: 500px) {
+  #fcst-scrub { gap: 6px; padding: 5px 8px; }
+  #fs-slider { width: min(32vw, 130px); }
+  #fs-badge { font-size: 9px; }
+  #fs-label { font-size: 11px; min-width: 0; }
+  #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 76px; }
+}
+
 @media print {
   :root, :root[data-theme="light"] {
     --surface-1: #fff; --surface-2: #fff; --page: #fff;
@@ -1173,6 +1199,8 @@ button.inspect-gauge:hover { color: var(--accent); }
 #pb-pill.pb-disabled { opacity: 0.45; cursor: not-allowed; }
 body.pb-bar-open #pb-pill { display: none; } /* the bar's ✕ takes over while expanded */
 body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar scrub rides above the (taller, v0.84) timeline bar + caption */
+body.pb-bar-open #fcst-scrub { bottom: 148px; } /* bar open but still LIVE — the layer only hides once a frame engages */
+body.pb-bar-open #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 196px; }
 #playback-bar {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 1150;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -1252,8 +1280,8 @@ body.pb-on #threat-strip { opacity: 0.45; filter: grayscale(0.35); } /* playback
 }
 #pb-arch-note[hidden] { display: none; }
 /* every playback + radar-scrub control opts out of browser double-tap zoom (tap leaks fixed in JS via DomEvent) */
-#playback-bar, #playback-bar button, .pb-tick, #pb-pill, #pb-badge, #radar-scrub, #rs-play { touch-action: manipulation; }
-#rs-slider { touch-action: none; }
+#playback-bar, #playback-bar button, .pb-tick, #pb-pill, #pb-badge, #radar-scrub, #rs-play, #fcst-scrub, #fs-play { touch-action: manipulation; }
+#rs-slider, #fs-slider { touch-action: none; }
 #pb-back, #pb-fwd { min-height: 0; padding: 4px 8px; font-size: 12px; }
 #pb-speed { min-height: 0; padding: 4px 9px; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 #pb-hud {

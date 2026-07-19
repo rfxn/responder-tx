@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.95.0",
+      "date": "2026-07-19",
+      "line": "Forecast radar: a new 'Forecast radar (HRRR model)' layer shows where NOAA's HRRR weather model expects storms over the next 18 hours, with an amber dashed scrub (+1h to +18h, play loop) and a persistent FORECAST MODEL badge so a model's guess can never be mistaken for observed radar; it can run alongside live radar (the two scrub bars stack), hides honestly during historical replay, refreshes with each hourly model run, and credits NOAA HRRR via Iowa Environmental Mesonet. Also hardened: a crafted ?base= link value can no longer confuse the basemap picker. English y espa\u00f1ol."
+    },
+    {
       "v": "v0.94.1",
       "date": "2026-07-19",
       "line": "Defect-fix release: a bad ?theme= link can no longer break the board (and a previously saved bad value repairs itself); fast camera switching can't mislabel imagery anymore; layer pills honor the replay lock like the layer picker; the point-check card says 'LIVE data' when the map is replaying history; the replay's dashed river line is relabeled 'river peaks in sequence' (timing-based, not verified direction); replay radar/rainfall no longer stalls on a slow pre-loaded step; degraded boots still learn of updates; and shared links / update reloads now keep your Radar, Cameras, USGS, crossings, and inundation layers on. English y espa\u00f1ol."

@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.95.0 — 2026-07-19 (HRRR future-cast radar layer)
+
+- [New] "Forecast radar (HRRR model)" map layer: NOAA's HRRR weather model rendered as a radar-style overlay so you can see where the model expects storms over the next 18 hours — served keyless via the Iowa Environmental Mesonet WMS (one layer per forecast step, always the latest hourly model run; the scrub stops at +18h on purpose because hours beyond that would silently come from an older model run). Off by default, in the layer picker's Rain & radar group with its own layer pill; the layer row, glossary entry, and attribution all state NOAA HRRR via Iowa Environmental Mesonet
+- [New] forecast-hour scrub: turning the layer on shows a distinct amber, dashed-border control with a persistent "FORECAST MODEL" badge — deliberately unmistakable from the grey live-radar scrub, because a model's guess about the future must never read as observed radar; step +1h → +18h (default +1h), play/pause loop, and the readout shows the forecast offset plus the valid local time ("+3h · Jul 19, 4:00 AM CT") with the model-run time in the tooltip; the model run refreshes automatically as new HRRR cycles land (hourly, ~50 min behind); shared links carry the layer (`fcst=1`); English y español (`fcst.*`)
+- [New] forecast + live radar can be on together (they answer different questions: what's happening vs what's expected) — the two scrub bars stack vertically and never collide, on phones included
+- [Change] during historical playback the forecast layer is hidden with the other live-only layers and named in the truth line — a model future has no place in a historical replay; it restores exactly when you return to NOW
+- [Fix] a crafted `?base=` value in a shared link (e.g. `?base=toString`) can no longer confuse the basemap picker: the value is now checked as a real basemap name (same guard pattern as the v0.94.1 `?theme=` fix), anything unrecognized falls back to your saved choice or Streets
+
 ## v0.94.1 — 2026-07-19 (defect fixes)
 
 - [Fix] a bad `?theme=` value in a shared link no longer breaks the board: the theme is now checked against the two valid choices (dark/light) at startup and inside the theme switcher, an unrecognized value falls back to dark instead of stopping the page from loading, and a previously saved bad value is repaired automatically on the next visit — the broken link no longer poisons future visits

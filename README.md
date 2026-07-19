@@ -12,13 +12,14 @@ assessment + release plan) · `CHANGELOG.md` (release history).
 
 ```bash
 cd /root/admin/work/proj/responder
-python3 -m http.server 8080          # LAN: binds 0.0.0.0
+python3 server.py                    # LAN: binds 0.0.0.0:8080 (chat/notes/gauge-proxy routes)
 # open http://<host>:8080  (deep links: ?tab=alerts, ?theme=light)
 ```
 
 Runtime needs internet (Leaflet CDN, CARTO basemaps, federal APIs, IEM).
-Installable to a phone home screen via the PWA manifest (full offline
-support needs HTTPS — see ROADMAP).
+The ⬇ "Save map offline" control pre-caches basemap tiles to IndexedDB
+(works over plain LAN http, no service worker) so the map keeps drawing in
+canyon dead zones — basemap only; live data still needs a connection.
 
 ## Live layers (all keyless, CORS-open, 3-min poll)
 

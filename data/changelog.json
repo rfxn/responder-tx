@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.95.1",
+      "date": "2026-07-19",
+      "line": "Visual QA fixes: the ops-chat button no longer covers the replay bar's NOW/\u2715 on desktop and the forecast scrub stays clear of it at every width; Spanish threat counters wrap instead of cutting off mid-phrase (\"medidores nivel MAYOR\", \"cerca del r\u00e9cord hist\u00f3rico\"); popups opened from search or a card tap no longer slide under the top of the map on phones; phone feed cards keep their line ends clear of the floating controls; the chat unread badge caps at 99+ and a new device no longer opens to a three-digit badge; \"crecida\" replaces \"onda\" as the Spanish term for a river wave; and road popups drop TxDOT's leading \"-\" artifact."
+    },
+    {
       "v": "v0.95.0",
       "date": "2026-07-19",
       "line": "Forecast radar: a new 'Forecast radar (HRRR model)' layer shows where NOAA's HRRR weather model expects storms over the next 18 hours, with an amber dashed scrub (+1h to +18h, play loop) and a persistent FORECAST MODEL badge so a model's guess can never be mistaken for observed radar; it can run alongside live radar (the two scrub bars stack), hides honestly during historical replay, refreshes with each hourly model run, and credits NOAA HRRR via Iowa Environmental Mesonet. Also hardened: a crafted ?base= link value can no longer confuse the basemap picker. English y espa\u00f1ol."

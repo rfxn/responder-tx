@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.95.1 — 2026-07-19 (visual QA fixes)
+
+- [Fix] the ops-chat button no longer covers the replay bar's NOW and ✕ controls on desktop: while the timeline bar is open the chat button rides above it (phones already did this), and the amber forecast scrub now keeps clear of the chat-button corner at every width — narrow desktops cap its width and phones anchor it left of the corner
+- [Fix] Spanish threat-strip counters no longer cut off mid-phrase ("medidores nivel MAYOR", "cerca del récord histórico"): counter labels now wrap to a second line instead of truncating, so no meaning-carrying word is ever lost; the phone strip keeps its one-line sideways-scrolling chips
+- [Fix] gauge and report popups opened from search or a card tap no longer slide up under the top of the map on phones: the popup now opens after the map flight settles (opening mid-flight mis-aimed the auto-pan) and pans clear of the area chip at the map's top edge
+- [Fix] feed-card text no longer runs under the floating sheet-size control and chat button on phones: the card list leaves a clear band on the right at phone widths, so line ends stay readable
+- [Fix] the chat unread badge is capped at "99+", and a first visit on a new device no longer opens to a three-digit badge counting the whole chat history — the first load baselines what's already been said, and only messages after that count as unread (devices that have visited before keep their real unread count)
+- [Fix] español: a rising river wave is now "crecida" (the standard hydrology term) instead of "onda" in the situation headline
+- [Fix] road closure popups no longer show TxDOT's leading "-" artifact in front of the description text (display-only cleanup; the source data is untouched)
+
 ## v0.95.0 — 2026-07-19 (HRRR future-cast radar layer)
 
 - [New] "Forecast radar (HRRR model)" map layer: NOAA's HRRR weather model rendered as a radar-style overlay so you can see where the model expects storms over the next 18 hours — served keyless via the Iowa Environmental Mesonet WMS (one layer per forecast step, always the latest hourly model run; the scrub stops at +18h on purpose because hours beyond that would silently come from an older model run). Off by default, in the layer picker's Rain & radar group with its own layer pill; the layer row, glossary entry, and attribution all state NOAA HRRR via Iowa Environmental Mesonet

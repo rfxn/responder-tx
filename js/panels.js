@@ -25,9 +25,7 @@ function renderForecastList() {
 /* ---------- gauges tab — bucketed by actionability ---------- */
 
 function focusGauge(g) {
-  state.map.setView([g.latitude, g.longitude], 11);
-  const mk = state.gaugeMarkers && state.gaugeMarkers[g.lid];
-  if (mk) mk.openPopup();
+  flyOpenPopup([g.latitude, g.longitude], 11, state.gaugeMarkers && state.gaugeMarkers[g.lid]);
   // phone layout: the map is above the scrolled list — make the pan visible
   if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
 }

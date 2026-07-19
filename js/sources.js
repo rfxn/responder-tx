@@ -706,7 +706,7 @@ function roadPopupHtml(p, geo) {
   const road = prettyRoute(p.route_name) || 'Road';
   const from = p.from_limit || '';
   const to = p.to_limit || '';
-  const dscr = stripHtml(p.description);
+  const dscr = stripHtml(p.description).replace(/^[\s–—-]+/, ''); // TxDOT feeds a leading "- " artifact; display-only strip
   const detour = Number(p.detour_flag) === 1;
   const miles = Math.round(roadSegMiles(geo));
   const seg = miles >= 2 ? t('road.seg').replace('{mi}', String(miles)) : '';

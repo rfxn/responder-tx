@@ -215,7 +215,7 @@ main { flex: 1; display: flex; min-height: 0; }
   flex: 0 0 auto; font-size: 15px; font-weight: 700;
   font-variant-numeric: tabular-nums; min-width: 14px;
 }
-.stat-row .lbl { color: var(--ink-2); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-row .lbl { color: var(--ink-2); font-weight: 500; min-width: 0; } /* wraps — clipping loses meaning-bearing words (ES 'nivel MAYOR', 'récord histórico') */
 .stat-row:hover { filter: brightness(1.12); }
 .stat-row.emergency {
   border-left-color: var(--sev-emergency);
@@ -1001,7 +1001,8 @@ button.inspect-gauge:hover { color: var(--accent); }
   z-index: 1100; display: flex; align-items: center; gap: 8px;
   background: var(--surface-1); border: 2px dashed var(--sev-warning); border-radius: 10px;
   padding: 6px 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.5);
-  max-width: calc(100vw - 12px);
+  /* 144px cap keeps the centered bar's right edge clear of the chat-FAB corner at narrow desktop */
+  max-width: min(calc(100vw - 12px), calc(100% - 144px));
 }
 #fcst-scrub[hidden] { display: none; }
 #fs-badge {
@@ -1009,15 +1010,16 @@ button.inspect-gauge:hover { color: var(--accent); }
   color: #1a1a19; background: var(--sev-warning); padding: 2px 7px; border-radius: 6px;
 }
 #fs-play { min-height: 0; padding: 2px 10px; font-size: 14px; }
-#fs-slider { width: min(30vw, 200px); accent-color: var(--sev-warning); }
+#fs-slider { width: min(30vw, 200px); flex: 0 1 auto; min-width: 70px; accent-color: var(--sev-warning); }
 #fs-label { font-size: 12px; font-weight: 700; min-width: 44px; color: var(--sev-warning); white-space: nowrap; }
 /* both scrubs on: forecast bar stacks above the live radar bar — never side-by-side collision */
 #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 74px; }
 @media (max-width: 500px) {
-  #fcst-scrub { gap: 6px; padding: 5px 8px; }
-  #fs-slider { width: min(32vw, 130px); }
+  /* left/right-anchored (not centered): keeps the bar clear of the chat-FAB corner at every sheet state */
+  #fcst-scrub { gap: 6px; padding: 5px 8px; left: 6px; right: 76px; transform: none; max-width: none; }
+  #fs-slider { width: min(32vw, 130px); flex: 1 1 auto; min-width: 60px; }
   #fs-badge { font-size: 9px; }
-  #fs-label { font-size: 11px; min-width: 0; }
+  #fs-label { font-size: 11px; min-width: 0; flex: 0 0 auto; } /* the time readout keeps its width — the slider absorbs the squeeze */
   #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 76px; }
 }
 
@@ -1089,7 +1091,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .threat-grid::-webkit-scrollbar { display: none; }
   .stat-row { flex: 0 0 auto; padding: 3px 8px 3px 6px; font-size: 11px; }
   .stat-row .num { font-size: 13px; }
-  .stat-row .lbl, .stat-row.crest .riv { overflow: visible; }
+  .stat-row .lbl, .stat-row.crest .riv { overflow: visible; white-space: nowrap; } /* one-line chips — the strip scrolls sideways, full text stays reachable */
   .ffe-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 5px; }
   .ffe-row::-webkit-scrollbar { display: none; }
   .strip-ok .ok-sub { display: none; }
@@ -1156,6 +1158,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .threat-grid::-webkit-scrollbar { display: none; }
   .stat-row { flex: 0 0 auto; padding: 3px 8px 3px 6px; font-size: 11px; }
   .stat-row .num { font-size: 13px; }
+  .stat-row .lbl, .stat-row.crest .riv { overflow: visible; white-space: nowrap; }
   .ffe-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .ffe-row::-webkit-scrollbar { display: none; }
 
@@ -1198,6 +1201,7 @@ button.inspect-gauge:hover { color: var(--accent); }
 }
 #pb-pill.pb-disabled { opacity: 0.45; cursor: not-allowed; }
 body.pb-bar-open #pb-pill { display: none; } /* the bar's ✕ takes over while expanded */
+body.pb-bar-open #chat-fab { bottom: 148px; } /* desktop: FAB rides above the open bar — it otherwise buries NOW/✕ (phone override: 178px) */
 body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar scrub rides above the (taller, v0.84) timeline bar + caption */
 body.pb-bar-open #fcst-scrub { bottom: 148px; } /* bar open but still LIVE — the layer only hides once a frame engages */
 body.pb-bar-open #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 196px; }
@@ -1365,6 +1369,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 
 /* fat-finger pass (owner field feedback): phone-width playback controls get real tap targets */
 @media (max-width: 500px) {
+  .tab-body { padding-right: 52px; } /* card line ends clear the fixed sheet-handle band (chat.js widens for its FAB) */
   #playback-bar { padding: 8px 46px 6px 8px; } /* right inset keeps row 1 clear of the enlarged ✕ */
   #pb-slider-wrap { flex-basis: 100%; min-width: 0; } /* the scrub gets a full-width row of its own */
   #pb-slider { height: 44px; }
@@ -1380,6 +1385,9 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   #playback-bar #pb-close { min-width: 40px; min-height: 40px; font-size: 16px; }
   .pb-tick { font-size: 12px; padding: 0 6px; }
   body.pb-bar-open #radar-scrub { bottom: 226px; } /* the taller wrapped bar needs more clearance */
+  body.pb-bar-open #fcst-scrub { bottom: 226px; }
+  body.pb-bar-open #radar-scrub:not([hidden]) ~ #fcst-scrub { bottom: 274px; }
+  body.pb-bar-open #chat-fab { bottom: 226px; } /* the ≤768 178px lift still sits on the ~188px wrapped bar at phone width */
 }
 
 /* ---- v0.86: header search + "?" glossary + first-run onboarding ---- */

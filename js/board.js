@@ -70,9 +70,7 @@ function flyToRadioId(raw) {
   const want = `R-${m[1].toUpperCase()}`;
   const hit = allRequests().find((r) => shortId(r.id) === want);
   if (!hit || !Number.isFinite(hit.lat)) return false;
-  state.map.setView([hit.lat, hit.lon], 12);
-  const mk = state.reqMarkers[hit.id];
-  if (mk) mk.openPopup();
+  flyOpenPopup([hit.lat, hit.lon], 12, state.reqMarkers[hit.id]);
   if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
   return true;
 }
@@ -203,9 +201,7 @@ function renderRequests() {
         return;
       }
       if (hasPos) {
-        state.map.setView([r.lat, r.lon], 12);
-        const mk = state.reqMarkers[r.id];
-        if (mk) mk.openPopup();
+        flyOpenPopup([r.lat, r.lon], 12, state.reqMarkers[r.id]);
         document.querySelectorAll('.card.selected').forEach((c) => c.classList.remove('selected'));
         div.classList.add('selected');
         // phone layout: the map is above the scrolled list — make the pan visible

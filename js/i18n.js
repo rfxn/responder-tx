@@ -23,6 +23,9 @@
 
       'ctl.update': '⬆ Updated · tap to reload',
       'ctl.update.title': 'A newer board version is live; reloads this tab',
+      'update.reloading': 'Board updated to {v} — reloading…',
+      'update.later': 'Later',
+      'update.done': '✓ Updated to {v} · tap for what’s new',
       'ctl.refresh': 'Refresh',
       'ctl.refresh.title': 'Refresh live layers',
       'ctl.share': 'Share',
@@ -370,6 +373,9 @@
 
       'ctl.update': '⬆ Actualizado · toque para recargar',
       'ctl.update.title': 'Hay una versión más reciente del panel; recarga esta pestaña',
+      'update.reloading': 'Panel actualizado a {v} — recargando…',
+      'update.later': 'Después',
+      'update.done': '✓ Actualizado a {v} · toque para ver novedades',
       'ctl.refresh': 'Actualizar',
       'ctl.refresh.title': 'Actualizar capas en vivo',
       'ctl.share': 'Compartir',

@@ -79,6 +79,14 @@
   document.body.appendChild(fab);
   document.body.appendChild(panel);
 
+  // an update rollover parks any unsent compose draft here before reloading
+  const savedDraft = sessionStorage.getItem('respondertx.chatDraft');
+  if (savedDraft) {
+    sessionStorage.removeItem('respondertx.chatDraft');
+    panel.querySelector('#chat-input').value = savedDraft;
+    document.getElementById('chat-note').textContent = 'unsent draft restored after board update';
+  }
+
   async function loadChat() {
     const bust = `?_=${Date.now()}`;
     const msgs = [];

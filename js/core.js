@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.96.4';
+const APP_VERSION = 'v0.96.5';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -108,6 +108,8 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const fmtNum = (v) => (Number.isFinite(+v) ? +v : esc(String(v)));
 // esc() blocks attribute-breakout but not javascript:/data: schemes — gate hrefs to http(s)
 const safeUrl = (u) => (/^https?:\/\//i.test(String(u)) ? String(u) : '#');
+// compact citation label — bare domain for the source link, never the full raw URL
+const hostOf = (u) => { try { return new URL(String(u)).hostname.replace(/^www\./, ''); } catch { return ''; } };
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 // provenance badge: OFFICIAL = machine-fed authoritative feed, CURATED = operator-maintained

@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.96.5 — 2026-07-19 (mobile card UX)
+
+- [Change] feed notice cards are built for a phone now: "navigate" and "copy
+           coords" are real tappable buttons (bordered, ≥40px touch targets) in
+           their own action row instead of bare text links, and the card spacing
+           tightens at ≤500px so a crowded feed stays scannable (EN + ES)
+- [Change] a notice card's source citation no longer prints the whole raw URL —
+           it shows a compact chip link labelled with the platform name or bare
+           domain plus a ↗, the full URL kept as the link target and tooltip;
+           every card still carries its source, presentation changed not content
+- [Change] alert cards wrap cleanly on narrow screens: the event name keeps its
+           EMERGENCY flag beside it, the sent/until times stay whole (a label no
+           longer splits from its value), and the in-app "text" reader is a
+           right-aligned chip — the header stops breaking awkwardly across lines
+           (EN + ES)
+- [Change] card badges render to one rhythm — CURATED/OFFICIAL provenance and
+           the "stale · re-verify" chip get consistent sizing, a clock glyph on
+           re-verify, and never wrap mid-label across feed, gauge, alert,
+           crossing, and storm-report cards
+
 ## v0.96.4 — 2026-07-19 (tap an alert card → the map identifies the one you picked)
 
 - [New] tapping an alert card flies the map to it and now flashes that alert's

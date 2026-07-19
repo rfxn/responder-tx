@@ -1151,7 +1151,27 @@ body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar scrub rides above the 
 .pb-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
 #pb-play { min-height: 0; padding: 4px 13px; font-size: 14px; }
 #pb-slider-wrap { position: relative; flex: 1; min-width: 130px; padding-top: 8px; }
-#pb-slider { width: 100%; margin: 0; display: block; }
+/* custom-drawn scrub: slim visual track, tall hit area (input height ≫ track), fat thumb */
+#pb-slider {
+  width: 100%; margin: 0; display: block; height: 34px;
+  -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+  touch-action: none; /* the browser must never pan/double-tap-zoom mid-scrub */
+}
+#pb-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--border); }
+#pb-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface-1); box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+}
+#pb-slider::-moz-range-track { height: 6px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--border); }
+#pb-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface-1); box-shadow: 0 1px 4px rgba(0,0,0,0.45); }
+/* requested-window span with no recorded frames — hatched, scrub snaps out of it (never faked data) */
+#pb-prearch {
+  position: absolute; left: 0; top: 25px; transform: translateY(-50%); height: 8px;
+  border-radius: 3px 0 0 3px; pointer-events: none; z-index: 1;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--ink-muted) 55%, transparent) 3px 6px);
+  border-right: 2px solid var(--sev-warning);
+}
+#pb-prearch[hidden] { display: none; }
 #pb-ticks { position: absolute; top: -4px; left: 0; right: 0; height: 12px; pointer-events: none; }
 .pb-tick {
   position: absolute; transform: translateX(-50%); pointer-events: auto;
@@ -1188,6 +1208,18 @@ body.pb-on #threat-strip { opacity: 0.45; filter: grayscale(0.35); } /* playback
 #pb-caption[hidden] { display: none; }
 #pb-caption.cap-in { animation: pb-cap-in 0.35s ease; }
 @keyframes pb-cap-in { from { opacity: 0; transform: translateY(5px); } }
+/* one-time prominent archive-birth note — flashes in over the bar, holds 3s */
+#pb-arch-note {
+  position: absolute; bottom: calc(100% + 10px); left: 10px; right: 10px; z-index: 1170;
+  background: var(--surface-1); border: 1px solid var(--sev-warning); border-left: 4px solid var(--sev-warning);
+  border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 700; line-height: 1.35;
+  color: var(--ink-1); box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  animation: pb-cap-in 0.35s ease;
+}
+#pb-arch-note[hidden] { display: none; }
+/* every playback + radar-scrub control opts out of browser double-tap zoom (tap leaks fixed in JS via DomEvent) */
+#playback-bar, #playback-bar button, .pb-tick, #pb-pill, #pb-badge, #radar-scrub, #rs-play { touch-action: manipulation; }
+#rs-slider { touch-action: none; }
 #pb-back, #pb-fwd { min-height: 0; padding: 4px 8px; font-size: 12px; }
 #pb-speed { min-height: 0; padding: 4px 9px; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 #pb-hud {
@@ -1207,5 +1239,28 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   #playback-bar button, .pb-chip { min-height: 36px; }
   #pb-pill { min-height: 42px; min-width: 46px; bottom: 20px; right: 10px; } /* phone: map bottom edge is above the sheet — corner is free */
   #pb-slider-wrap { min-width: 110px; }
-  #pb-slider { min-height: 30px; }
+  /* playback drives the pane automatically (min-size on entry, restored on exit) — hide the manual handle
+     under the bar, and lift the chat FAB clear of it */
+  body.pb-bar-open #sheet-handle { display: none; }
+  body.pb-bar-open #chat-fab { bottom: 178px; }
+  #pb-arch-note { right: 84px; } /* clear of the lifted chat FAB */
+}
+
+/* fat-finger pass (owner field feedback): phone-width playback controls get real tap targets */
+@media (max-width: 500px) {
+  #playback-bar { padding: 8px 46px 6px 8px; } /* right inset keeps row 1 clear of the enlarged ✕ */
+  #pb-slider-wrap { flex-basis: 100%; min-width: 0; } /* the scrub gets a full-width row of its own */
+  #pb-slider { height: 44px; }
+  #pb-slider::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -11px; }
+  #pb-slider::-moz-range-thumb { width: 28px; height: 28px; }
+  #pb-prearch { top: 30px; }
+  /* #playback-bar prefix outranks the ≤768 `#playback-bar button { min-height: 36px }` rule */
+  #playback-bar #pb-back, #playback-bar #pb-fwd { min-width: 44px; min-height: 44px; font-size: 15px; }
+  #playback-bar #pb-play { min-width: 48px; min-height: 44px; font-size: 16px; }
+  #playback-bar #pb-speed { min-width: 44px; min-height: 44px; font-size: 13px; }
+  #playback-bar #pb-now { min-height: 44px; padding: 4px 14px; }
+  #playback-bar .pb-chip { min-height: 40px; }
+  #playback-bar #pb-close { min-width: 40px; min-height: 40px; font-size: 16px; }
+  .pb-tick { font-size: 12px; padding: 0 6px; }
+  body.pb-bar-open #radar-scrub { bottom: 226px; } /* the taller wrapped bar needs more clearance */
 }

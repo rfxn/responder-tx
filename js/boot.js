@@ -126,7 +126,7 @@ function rolloverBusy() {
   if (state.refreshBusy) return 'refresh';
   if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
   if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
-  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#cam-viewer']) {
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#cam-viewer', '#layer-sheet']) {
     const el = $(id);
     if (el && !el.hidden) return id;
   }
@@ -679,6 +679,7 @@ async function boot() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('#cam-viewer').hidden) { closeCamViewer(); return; } // must tear down the player, not just hide
+    if (layerSheetIsOpen()) { closeLayerSheet(); return; }
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
     if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }

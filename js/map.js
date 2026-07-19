@@ -396,8 +396,23 @@ function initMap() {
     },
   });
   state.map.addControl(new NavControl({ position: 'topleft' }));
+  // v0.89: the stock checkbox control is hidden (CSS) but stays on the map as the
+  // overlay-event registry; this button in its old anchor spot opens the grouped sheet
+  const sheetBtn = L.control({ position: 'topright' });
+  sheetBtn.onAdd = () => {
+    const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger');
+    div.innerHTML = `<a href="#" role="button" title="${esc(t('sheet.open'))}" aria-label="${esc(t('sheet.open'))}">🗂</a>`;
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.on(div.firstChild, 'click', (e) => {
+      L.DomEvent.stop(e);
+      if (layerSheetIsOpen()) closeLayerSheet(); else openLayerSheet();
+    });
+    return div;
+  };
+  sheetBtn.addTo(state.map);
   initAoJump();
   initLayerPills();
+  initLayerSheet();
   state.map.on('locationfound', (e) => {
     gpsWait(false);
     state.myPos = e.latlng;
@@ -476,7 +491,7 @@ function renderLayerPills() {
     `<button class="layer-pill lp-add" title="${esc(t('layers.more'))}">＋</button>`;
   el.querySelectorAll('.layer-pill[data-layer]').forEach((b) =>
     b.addEventListener('click', () => state.map.removeLayer(state.layers[b.dataset.layer])));
-  el.querySelector('.lp-add').addEventListener('click', () => { if (state.layerCtl) state.layerCtl.expand(); });
+  el.querySelector('.lp-add').addEventListener('click', openLayerSheet);
 }
 
 function initLayerPills() {
@@ -487,6 +502,166 @@ function initLayerPills() {
   L.DomEvent.disableScrollPropagation(el);
   // the layers control fires these for programmatic adds too (?radar=1, auto-USGS fallback, deep links)
   state.map.on('overlayadd overlayremove', renderLayerPills);
+}
+
+/* ---------- grouped layer sheet (v0.89) — the user-facing picker; groups, plain names, subtext ----------
+   Rows toggle via map.addLayer/removeLayer on control-registered layers, so the map still fires
+   overlayadd/overlayremove — pills, MRMS legend, radar scrub, and camera/LWC lazy-loads keep working. */
+
+// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault]
+const SHEET_GROUPS = [
+  ['sheet.g.base', [
+    ['labelBoost', '🔤', 'layers.labels', 'sheet.s.labels', null, true],
+  ]],
+  ['sheet.g.water', [
+    ['gauges', '<span class="gauge-icon cat-moderate"></span>', 'layers.gauges', 'sheet.s.gauges', null, true],
+    ['usgs', '📈', 'layers.usgs', 'sheet.s.usgs', null, false],
+    ['fcstMax', '<span class="fcst-ring cat-moderate"></span>', 'layers.fcst', 'sheet.s.fcst', null, true],
+    ['inundation', '🌊', 'layers.inun', 'sheet.s.inun', null, false],
+    ['crossings', '⛔', 'layers.crossings', 'sheet.s.crossings', 'curated', true],
+    ['lwc', '📍', 'layers.crossall', 'sheet.s.crossall', 'official', false],
+  ]],
+  ['sheet.g.rain', [
+    ['radar', '📡', 'layers.radar', 'sheet.s.radar', null, false],
+    ['mrms1h', '🌧', 'layers.rain1h', 'sheet.s.rain1h', null, false],
+    ['mrms24h', '🌧', 'layers.rain24h', 'sheet.s.rain24h', null, false],
+  ]],
+  ['sheet.g.roads', [
+    ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],
+    ['cameras', '📷', 'layers.cams', 'sheet.s.cams', null, false],
+  ]],
+  ['sheet.g.reports', [
+    ['alerts', '⚠️', 'layers.alerts', 'sheet.s.alerts', 'official', true],
+    ['lsrs', '💧', 'layers.lsr', 'sheet.s.lsr', 'official', true],
+    ['lsrsAged', '🕓', 'layers.lsrhist', 'sheet.s.lsrhist', null, false],
+    ['requests', '🆘', 'layers.notices', 'sheet.s.notices', 'curated', true],
+    ['shelters', '🏠', 'layers.shelters', 'sheet.s.shelters', 'curated', true],
+  ]],
+];
+
+function layerSheetIsOpen() {
+  const el = document.getElementById('layer-sheet');
+  return !!el && !el.hidden;
+}
+
+function renderLayerSheet() {
+  const el = document.getElementById('layer-sheet');
+  if (!el) return;
+  el.querySelector('.ls-head strong').textContent = t('sheet.title');
+  el.querySelector('.ls-close').title = t('risk.close');
+  const locked = !!(state.pb && !state.pb.live); // playback swaps its own layers — sheet goes read-only
+  const note = el.querySelector('.ls-note');
+  note.hidden = !locked;
+  if (locked) note.textContent = t('sheet.locked');
+  const dis = locked ? ' disabled' : '';
+  const seg = '<div class="ls-base" role="group">' + ['dark', 'light', 'streets'].map((b) =>
+    `<button class="ls-base-btn${state.activeBase === b ? ' on' : ''}" data-base="${b}"${dis}>${esc(t(`sheet.base.${b}`))}</button>`).join('') + '</div>';
+  let html = '';
+  for (const [gKey, rows] of SHEET_GROUPS) {
+    html += `<div class="ls-group">${esc(t(gKey))}</div>`;
+    if (gKey === 'sheet.g.base') html += seg;
+    for (const [k, icon, nameKey, subKey, badge] of rows) {
+      const lyr = state.layers[k];
+      if (!lyr) continue;
+      const on = state.map.hasLayer(lyr);
+      html += `<button class="ls-row${on ? ' on' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
+        `<span class="ls-icon">${icon}</span>` +
+        `<span class="ls-txt"><span class="ls-name">${esc(t(nameKey))}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +
+        `<span class="ls-sub">${esc(t(subKey))}</span></span>` +
+        '<span class="ls-knob" aria-hidden="true"></span></button>';
+    }
+  }
+  html += `<div class="ls-group">${esc(t('sheet.g.history'))}</div>` +
+    `<button class="ls-row ls-pbrow" data-act="playback"${dis}><span class="ls-icon">⏮</span>` +
+    `<span class="ls-txt"><span class="ls-name">${esc(t('sheet.playback'))}</span><span class="ls-sub">${esc(t('sheet.s.playback'))}</span></span>` +
+    '<span class="ls-knob ls-go" aria-hidden="true">›</span></button>' +
+    `<button class="ls-reset"${dis} title="${esc(t('sheet.reset.title'))}">↺ ${esc(t('sheet.reset'))}</button>`;
+  el.querySelector('.ls-body').innerHTML = html;
+}
+
+function layerSheetSync() { if (layerSheetIsOpen()) renderLayerSheet(); }
+
+function openLayerSheet() {
+  const el = document.getElementById('layer-sheet');
+  if (!el) return;
+  renderLayerSheet();
+  const panel = el.querySelector('.ls-panel');
+  if (window.innerWidth > 768) {
+    // desktop: compact panel anchored where the stock control sat (map top-right)
+    const r = document.getElementById('map').getBoundingClientRect();
+    panel.style.top = `${Math.max(10, r.top + 10)}px`;
+    panel.style.right = `${Math.max(10, window.innerWidth - r.right + 10)}px`;
+  } else { panel.style.top = ''; panel.style.right = ''; }
+  el.hidden = false;
+}
+
+function closeLayerSheet() {
+  const el = document.getElementById('layer-sheet');
+  if (el) el.hidden = true;
+}
+
+function onLayerSheetClick(e) {
+  if (state.pb && !state.pb.live) return; // read-only while playback is engaged
+  const baseBtn = e.target.closest('.ls-base-btn');
+  if (baseBtn) {
+    if (state.activeBase !== baseBtn.dataset.base) {
+      Object.values(state.baseLayers).forEach((l) => state.map.removeLayer(l));
+      state.baseLayers[baseBtn.dataset.base].addTo(state.map); // registered base — fires baselayerchange (theme/persist/sync)
+    }
+    return;
+  }
+  if (e.target.closest('.ls-reset')) { layerSheetReset(); return; }
+  const row = e.target.closest('.ls-row');
+  if (!row) return;
+  if (row.dataset.act === 'playback') { closeLayerSheet(); openPlayback(); return; }
+  const lyr = state.layers[row.dataset.layer];
+  if (!lyr) return;
+  if (state.map.hasLayer(lyr)) state.map.removeLayer(lyr);
+  else lyr.addTo(state.map); // registered overlay — map fires overlayadd (lazy loads, legends, pills, sheet sync)
+}
+
+// default view: default overlays on, extras off, Streets base, Full AO framing (same bounds as the AO chip)
+function layerSheetReset() {
+  for (const [, rows] of SHEET_GROUPS) {
+    for (const r of rows) {
+      const lyr = state.layers[r[0]];
+      if (!lyr) continue;
+      const on = state.map.hasLayer(lyr);
+      if (r[5] && !on) lyr.addTo(state.map);
+      else if (!r[5] && on) state.map.removeLayer(lyr);
+    }
+  }
+  if (state.activeBase !== 'streets') {
+    Object.values(state.baseLayers).forEach((l) => state.map.removeLayer(l));
+    state.baseLayers.streets.addTo(state.map);
+  }
+  state.map.fitBounds(AO_PRESETS[0][1]);
+  renderLayerSheet();
+}
+
+function initLayerSheet() {
+  const el = document.createElement('div');
+  el.id = 'layer-sheet';
+  el.hidden = true;
+  el.innerHTML = '<div class="ls-backdrop"></div>' +
+    '<div class="ls-panel" role="dialog" aria-modal="true"><div class="ls-grab"></div>' +
+    '<div class="ls-head"><strong></strong><button class="ls-close">✕</button></div>' +
+    '<div class="ls-note" hidden></div><div class="ls-body"></div></div>';
+  document.body.appendChild(el);
+  el.querySelector('.ls-backdrop').addEventListener('click', closeLayerSheet);
+  el.querySelector('.ls-close').addEventListener('click', closeLayerSheet);
+  el.querySelector('.ls-body').addEventListener('click', onLayerSheetClick);
+  // phone: a downward swipe from the grab bar / header dismisses the bottom sheet
+  const panel = el.querySelector('.ls-panel');
+  let y0 = null;
+  panel.addEventListener('touchstart', (e) => {
+    y0 = e.target.closest('.ls-grab, .ls-head') ? e.touches[0].clientY : null;
+  }, { passive: true });
+  panel.addEventListener('touchend', (e) => {
+    if (y0 !== null && e.changedTouches[0].clientY - y0 > 55) closeLayerSheet();
+    y0 = null;
+  }, { passive: true });
+  state.map.on('overlayadd overlayremove baselayerchange', layerSheetSync);
 }
 
 /* ---------- radar time-scrub (RainViewer: past ~1h + nowcast projection when published) ---------- */
@@ -1051,6 +1226,7 @@ function playbackEngage() {
     }).addTo(state.map);
   }
   updatePlaybackNote();
+  layerSheetSync();
 }
 
 // NOW: instant, total restore of the live picture
@@ -1086,6 +1262,7 @@ function playbackGoLive() {
   $('#pb-slider').value = pb.hiT;
   updatePlaybackReadout();
   updatePlaybackNote();
+  layerSheetSync();
 }
 
 function pbRadarStamp() {

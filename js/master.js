@@ -157,7 +157,7 @@
     for (const tm of (mv.data ? mv.data.teams : [])) {
       for (const m of (tm.members || [])) {
         if (!m.lastPos) continue;
-        const key = tm.id + '/' + m.ephemeralId;
+        const key = tm.id + '/' + m.pid;
         seen[key] = true;
         const stale = now - (m.lastSeen || 0) > STALE_MS;
         const ll = [m.lastPos.lat, m.lastPos.lon];

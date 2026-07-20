@@ -1,5 +1,31 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.7 — 2026-07-20 (team security: public pid split from the secret write credential)
+
+-- Bug Fixes --
+- [Fix] team relay HIGH-1: a person's ephemeralId was both their public identifier
+      AND their sole write credential, and it was disclosed to every participant (in
+      /state and /peek member/viewer rows and each marker's byId), so a viewer could
+      read a member's id and POST as that member — spoofing its live position or
+      markers, or altering/removing it; the role guard only held for a caller using
+      its OWN id; split a public non-secret pid (the only id echoed to others, used
+      for display/keying/self-detection) from the secret ephemeralId (write
+      credential, now returned solely in the caller's own you/publicSelf), so a
+      borrowed pid can no longer authenticate a write; team-relay Worker redeploy
+      required (see workers/team-relay/README.md)
+
+-- Changes --
+- [Change] shared team markers now reference the dropper by public pid (byPid)
+           rather than the secret id (byId); the client, LAN master oversight view,
+           and self-detection all key the roster and member markers by pid; legacy
+           people without a pid get one minted on next touch and legacy byId markers
+           are tolerated on read (teams auto-expire in 24h)
+- [Change] added the first Durable Object relay tests (tests/team-relay.test.js,
+           node:test over a mock DO storage harness): join mints a distinct
+           pid+secret, /state exposes pid but never the secret, a viewer holding a
+           member's pid cannot write, plus handle/coordinate/sanitize/marker-cap
+           guards; wired into node --test tests/
+
 ## v0.97.6 — 2026-07-20 (first-class Team tab, clear join, Waze-style drop control)
 
 -- New Features --

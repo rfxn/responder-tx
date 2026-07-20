@@ -120,12 +120,12 @@ function alertCardDiv(f) {
   const reach = alertReach(p);
   const div = document.createElement('div');
   div.className = `card alert-card sev-${f._sev}`;
-  div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? '<span class="emergency-flag">EMERGENCY</span>' : ''}</div>` +
+  div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? '<span class="emergency-flag">EMERGENCY</span>' : ''}` +
+    `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>` +
     `<div class="areas">${esc(p.areaDesc || '')}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}</div>` +
     `<div class="alert-meta">` +
     (p.sent ? `<span class="am-when"><span class="fresh-dot ${freshClass(p.sent)}"></span>${esc(t('alert.sent'))} ${esc(fmtWhen(p.sent))}</span>` : '') +
-    `<span class="am-when">${esc(t('alert.untilShort'))} ${esc(fmtWhen(p.expires))}</span>` +
-    `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>`;
+    `<span class="am-when">${esc(t('alert.untilShort'))} ${esc(fmtWhen(p.expires))}</span></div>`;
   const link = div.querySelector('.alert-text-link');
   link.addEventListener('click', (e) => { e.stopPropagation(); openAlertText(f); });
   link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAlertText(f); } });

@@ -381,10 +381,11 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 .alert-card .alert-meta .am-when { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .alert-card .alert-text-link {
-  margin-left: auto; color: var(--accent); text-decoration: none; white-space: nowrap; cursor: pointer;
+  color: var(--accent); text-decoration: none; white-space: nowrap; cursor: pointer;
   border: 1px solid var(--border); border-radius: 7px; padding: 4px 10px; min-height: 30px;
   display: inline-flex; align-items: center;
 }
+.alert-card .event .alert-text-link { margin-left: auto; flex: 0 0 auto; }
 .alert-card .alert-text-link:hover { border-color: var(--accent); }
 
 .resource-item { padding: 7px 2px; border-bottom: 1px solid var(--hairline); font-size: 13px; }

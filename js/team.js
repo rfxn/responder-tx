@@ -347,8 +347,7 @@
       `<input id="team-join-link" class="tt-input" autocomplete="off" placeholder="${esc(tt('team.join.link.ph', 'Paste team link or code'))}">` +
       '<div id="team-join-err" class="team-err" hidden></div>' +
       `<button id="team-join-open" class="tt-btn">${esc(tt('team.join.link.go', 'Open team →'))}</button>` +
-      '</div>' +
-      `<p class="tt-safety">${esc(tt('team.safety', '⚠ Life-threatening emergency → call 911. This is situational awareness, not a dispatch system.'))}</p>`;
+      '</div>';
     host.querySelector('#team-create-go').addEventListener('click', doCreate);
     host.querySelector('#team-join-open').addEventListener('click', doJoinLink);
     const jl = host.querySelector('#team-join-link');
@@ -362,7 +361,6 @@
       `<button class="tt-back" id="team-join-back">← ${esc(tt('team.back', 'Not now'))}</button>` +
       `<h2 class="tt-title">${esc(titled)}</h2>` +
       `<p class="tt-lead" id="team-consent">${tt('team.consent', 'You are about to share your <strong>live location</strong> with everyone who has this team\'s link. Only join a team you trust.')}</p>` +
-      `<p class="tt-safety">${esc(tt('team.safety', '⚠ Life-threatening emergency → call 911. This is situational awareness, not a dispatch system.'))}</p>` +
       `<label class="tt-label" for="team-tab-handle">${esc(tt('team.handle.lbl', 'Your handle / call sign'))}</label>` +
       `<input id="team-tab-handle" class="tt-input" maxlength="24" autocomplete="off" placeholder="${esc(tt('team.handle.ph', 'Handle / call sign (min 4 characters)'))}">` +
       `<div class="tp-profile" id="team-join-profile"><div class="tp-profile-cap">${esc(tt('team.profile.cap', 'Your role (applies when you share location):'))}</div>` +

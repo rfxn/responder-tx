@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.7';
+const APP_VERSION = 'v0.97.8';
 
 const CONFIG = {
   center: [29.75, -99.35],

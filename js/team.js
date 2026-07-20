@@ -291,10 +291,24 @@
     if (btn) btn.click();
   }
 
+  // active team → Team becomes the far-left tab (before Feed); restore to last on leave. idempotent.
+  function updateTeamTabOrder() {
+    const tabsEl = document.querySelector('.tabs');
+    const btn = tabsEl && tabsEl.querySelector('button[data-tab="tab-team"]');
+    if (!tabsEl || !btn) return;
+    if (T.active) {
+      if (tabsEl.firstElementChild !== btn) tabsEl.prepend(btn);
+    } else if (tabsEl.lastElementChild !== btn) {
+      tabsEl.appendChild(btn); // Team was originally the last tab
+    }
+  }
+
   function updateTeamCount(n) {
     const c = document.getElementById('team-count');
-    if (!c) return;
-    if (T.active && n > 0) { c.textContent = String(n); c.hidden = false; } else c.hidden = true;
+    if (c) {
+      if (T.active && n > 0) { c.textContent = String(n); c.hidden = false; } else c.hidden = true;
+    }
+    updateTeamTabOrder();
   }
 
   function renderTeamTab() {

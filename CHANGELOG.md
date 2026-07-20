@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.8 — 2026-07-20 (mobile presentation: Team tab far-left when active, denser Alerts cards)
+
+-- Changes --
+- [Change] the Team tab moves to the far left of the tab bar (before Feed) while a
+           team is active, so the crew view is the first thing under your thumb;
+           it returns to its default last position when you leave the team
+- [Change] Alerts cards are tighter on phones — trimmed card padding, inter-card
+           gap, and the spacing/line-height of the event, area, and meta rows to
+           reclaim vertical space; the county/coords line, human-readable alert
+           link, and severity color are unchanged, and tap targets stay ≥40px;
+           desktop layout is unchanged
+
 ## v0.97.7 — 2026-07-20 (team security: public pid split from the secret write credential)
 
 -- Bug Fixes --

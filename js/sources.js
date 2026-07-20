@@ -685,6 +685,7 @@ async function fetchRoadClosures() {
   markHealthy('roads');
   updateRoadMemory(state.roadClosures.lines);
   renderRoadClosures();
+  renderReopenedMap();
   renderReopenedRoads();
   renderTiles();
 }
@@ -734,7 +735,8 @@ function updateRoadMemory(lines) {
     const p = f.properties || {};
     const id = roadId(p);
     live.add(id);
-    mem.seen[id] = { id, route_name: p.route_name, condition: p.condition, lastSeen: now, vertex: roadVertex(f.geometry) };
+    const flood = p.condition === 'Flooding' || FLOOD_ROAD_RE.test(p.description || '');
+    mem.seen[id] = { id, route_name: p.route_name, condition: p.condition, flood, lastSeen: now, vertex: roadVertex(f.geometry) };
     delete mem.reopened[id];
   }
   for (const id of Object.keys(mem.seen)) {
@@ -751,6 +753,9 @@ function reopenedRoads() {
   const cut = CONFIG.reopenedAgeHours * 60;
   return { fresh: all.filter((r) => ageMins(r.reopenedAt) <= cut), aged: all.filter((r) => ageMins(r.reopenedAt) > cut) };
 }
+
+// flood-scoped everywhere reopenings render; legacy respondertx.roads.v1 entries lack `flood` — backfill from condition
+const reopenIsFlood = (r) => (r.flood ?? (r.condition === 'Flooding'));
 
 function reopenedPopupHtml(r) {
   const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
@@ -799,8 +804,15 @@ function renderRoadClosures() {
     m.bindPopup(roadPopupHtml(f.properties));
     layer.addLayer(m);
   }
+}
+
+// recovery ✓ markers on their own opt-in layer, flood-scoped — split out of renderRoadClosures so the two toggle independently
+function renderReopenedMap() {
+  const layer = state.layers.roadReopen;
+  if (!layer) return;
+  layer.clearLayers();
   for (const r of reopenedRoads().fresh) {
-    if (!r.vertex) continue;
+    if (!r.vertex || !reopenIsFlood(r)) continue;
     // recovery badge, not a filled dot — a green ✓ road-sign shape so it never reads as a gauge/alert circle
     const icon = L.divIcon({
       className: '',

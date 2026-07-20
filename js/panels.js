@@ -169,7 +169,7 @@ function driveItems() {
   // recovery: recently reopened roads tail the list as low-priority ✓ entries — never competing with hazards for slots
   const cleared = [];
   for (const r of reopenedRoads().fresh) {
-    if (!r.vertex) continue;
+    if (!r.vertex || !reopenIsFlood(r)) continue;
     cleared.push({ glyph: '✓', color: 'var(--good)', name: `${t('reopen.flag')} · ${prettyRoute(r.route_name) || 'road'}`, sub: `TxDOT DriveTexas · ${t('reopen.at')} ${relWhen(r.reopenedAt)}`, lat: r.vertex[0], lon: r.vertex[1], rank: 3 });
   }
   // live TxDOT road closures/flooding/damage — representative point = line vertex nearest the driver (midpoint if no GPS)
@@ -798,7 +798,9 @@ function renderReopenedRoads() {
     el.id = 'reopened-roads';
     host.parentNode.insertBefore(el, host.nextSibling);
   }
-  const { fresh, aged } = reopenedRoads();
+  const raw = reopenedRoads();
+  const fresh = raw.fresh.filter(reopenIsFlood);
+  const aged = raw.aged.filter(reopenIsFlood);
   if (!fresh.length && !aged.length) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="section-title">${esc(t('reopen.title'))}</div>` +
     fresh.map((r) => reopenedItemHtml(r, false)).join('') +

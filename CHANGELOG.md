@@ -1,5 +1,23 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.12 — 2026-07-19 (road reopenings become their own opt-in flood-only layer, nested under Live road closures, off by default)
+
+-- New Features --
+- [New] recently-reopened roads now live on their own map layer, nested under
+      "Live road closures" in the layers sheet and OFF by default — the recovery ✓
+      markers no longer ride the closures layer, so turning closures on never
+      brings reopenings with them (explicit opt-in, no cascade); the toggle travels
+      as ?reopen=1 in shared/rollover links and shows a dismissible active-layer
+      pill when on
+
+-- Changes --
+- [Change] road reopenings are now flood-scoped everywhere they render (the new map
+           layer, the Resources panel list, the Drive-mode nearest-hazards tail, and
+           playback captions): a new FLOOD_ROAD_RE plus a stored per-road flood flag
+           keeps non-flood clearances (generic pavement/debris damage) off the board;
+           legacy respondertx.roads.v1 memory without the flag backfills from its
+           condition so older Flooding reopenings survive the upgrade
+
 ## v0.97.11 — 2026-07-19 (fix: USGS raw-stage fallback stops re-adding itself after you dismiss it)
 
 -- Bug Fixes --

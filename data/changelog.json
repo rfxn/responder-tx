@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.12",
+      "date": "2026-07-19",
+      "line": "Road reopenings now have their own layer. When a closure clears the live TxDOT feed, the board drops a green ✓ \"recently reopened\" marker — until now those rode along on the road-closures layer and piled up on the map. They now live on a separate \"Road reopenings\" layer, nested under Live road closures in the layers sheet and off by default: turning closures on no longer turns reopenings on, so it takes one deliberate tap to show them. The markers are also limited to flood-related roads, so generic pavement or debris clearances no longer clutter the recovery view, and they still age off on their own (off the map after 12h, kept 7 days in the list). The choice travels in shared links as ?reopen=1 and shows a dismissible pill when it is on. No other layers or behavior change. English y español."
+    },
+    {
       "v": "v0.97.11",
       "date": "2026-07-19",
       "line": "Bug fix. The \"USGS stage\" raw-gauge fallback layer kept re-appearing at the top-left of the map even after you closed it. When the live NWPS gauge feed goes quiet for more than ~15 minutes the board auto-shows the USGS raw-stage layer as a stand-in — but it was re-adding that layer on every refresh tick, so the moment you dismissed its pill it popped right back. Now it offers the fallback once when the feed goes stale, remembers when you dismiss it (via the pill ✕ or the layers sheet) and leaves it off until the live feed recovers, then re-arms the one-time offer only for a genuinely new outage. No other layers or behavior change."

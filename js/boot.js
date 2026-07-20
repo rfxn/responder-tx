@@ -775,7 +775,7 @@ async function boot() {
   // ?cams=1 enables the camera layer; ?cam=<camId|name> deep-links straight into the viewer
   if (new URLSearchParams(location.search).get('cams') === '1') state.layers.cameras.addTo(state.map);
   // shared/rollover layer toggles (set only when ON) — radar/cams handled above
-  for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation']]) {
+  for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
     if (new URLSearchParams(location.search).get(qk) === '1' && state.layers[lk]) state.layers[lk].addTo(state.map);
   }
   const camParam = new URLSearchParams(location.search).get('cam');

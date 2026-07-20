@@ -1,17 +1,32 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.svg">
-    <img alt="Responder TX — Texas Hill Country live flood operating picture" src="assets/banner-dark.svg" width="900">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/logo-horizontal-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/logo-horizontal.png">
+    <img alt="ResponderTX &#183; Live Hazard Awareness for Texas" src="assets/brand/logo-horizontal.png" width="480">
   </picture>
 </p>
 
+<p align="center"><strong>Live Hazard Awareness for Texas</strong></p>
+
 <p align="center">
-  <a href="https://responder.rfxn.com"><img src="https://img.shields.io/badge/live-responder.rfxn.com-3987e5?style=flat-square" alt="Live site"></a>
+  <a href="https://respondertx.org"><img src="https://img.shields.io/badge/live-respondertx.org-1B365D?style=flat-square" alt="Live site"></a>
   <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"><img src="https://img.shields.io/badge/license-GPL_v2-green.svg?style=flat-square" alt="License: GPL v2"></a>
   <img src="https://img.shields.io/badge/backend-none-4c1?style=flat-square" alt="Zero backend">
   <img src="https://img.shields.io/badge/built_with-Leaflet-199900?style=flat-square" alt="Built with Leaflet">
   <img src="https://img.shields.io/badge/tracking-none-4c1?style=flat-square" alt="No tracking">
+</p>
+
+ResponderTX delivers a real-time, source-cited picture of hazards, roads, weather,
+and field conditions across Texas. Built for responders and open to the public, it
+combines official data, ground truth, cameras, forecasts, and reports into one
+honest, easy-to-use view, so everyone can make safer, faster decisions. Calm,
+capable, and honest about uncertainty: every card names its source, and nothing
+stale is ever shown as live.
+
+<p align="center">
+  Live data from trusted sources &#183; Roads &amp; flood conditions &#183; Weather
+  intelligence &#183; Cameras &amp; sensors &#183; Field reports &amp; updates &#183;
+  Built for responders, open to all
 </p>
 
 A live, zero-backend web board that fuses a single flood operating picture for the
@@ -24,15 +39,15 @@ public mirror.
 > Copyright (C) 2026 [R-fx Networks](https://www.rfxn.com) &lt;proj@rfxn.com&gt; &#183; Ryan MacDonald &#183; Licensed under [GNU GPL v2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
 
 > [!WARNING]
-> **Life-threatening emergency? Call 911.** Responder TX is situational awareness and
+> **Life-threatening emergency? Call 911.** ResponderTX is situational awareness and
 > volunteer-coordination support. It is **not** a dispatch system, it is **not** an
 > official warning source, and it is not monitored by emergency services. Always
 > verify with the National Weather Service, Wireless Emergency Alerts, and 911. Do
 > not self-deploy into warned areas. See [ABOUT.md](ABOUT.md).
 
-**Live board:** <https://responder.rfxn.com> &#183; **Follow:** [RSS](https://responder.rfxn.com/feed.xml) &#183; [crest calendar (ICS)](https://responder.rfxn.com/crests.ics)
+**Live board:** <https://respondertx.org> &#183; **Follow:** [RSS](https://respondertx.org/feed.xml) &#183; [crest calendar (ICS)](https://respondertx.org/crests.ics)
 
-<p align="center"><img src="og-card.png" alt="Responder TX share card: river gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts, radar" width="620"></p>
+<p align="center"><img src="og-card.png" alt="ResponderTX share card: river gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts, radar" width="620"></p>
 
 ---
 
@@ -62,7 +77,7 @@ Most public flood pages answer that slowly: they mix observed and forecast water
 without saying which is which, they let a stale reading sit on the map as if it
 were live, and they need an account or bury the map under a login.
 
-Responder TX takes the opposite stance. It **anticipates** (forecast-first: every
+ResponderTX takes the opposite stance. It **anticipates** (forecast-first: every
 major crest this event showed up in the forecast field hours before the water
 arrived), it is **recent** (everything ages — nothing stale is shown as live), and
 it is **honest** (every card cites its source; suppress never means delete). It
@@ -122,7 +137,7 @@ else in the table is live.
 
 ## Architecture
 
-Responder TX is a vanilla-JavaScript single-page app (no framework, no build step)
+ResponderTX is a vanilla-JavaScript single-page app (no framework, no build step)
 that draws a Leaflet map and fetches the public sources above **directly from the
 browser**. The operator runs a small Python LAN host (`server.py`) for chat, field
 notes, and cached gauge/camera proxies; the public gets a **read-only Cloudflare
@@ -130,7 +145,7 @@ Pages mirror** of the same committed repo. A per-cycle generator pipeline snapsh
 the live sources, writes `data/*.json` plus the feeds, and commits them — so the
 **git history of `data/` is the event archive** that powers historical playback.
 
-<p align="center"><img src="assets/architecture.svg" alt="Responder TX system architecture: browser SPA fetching public data sources, the LAN server.py host vs the read-only Cloudflare Pages mirror, and the per-cycle generator pipeline that commits data/ as the archive" width="960"></p>
+<p align="center"><img src="assets/architecture.svg" alt="ResponderTX system architecture: browser SPA fetching public data sources, the LAN server.py host vs the read-only Cloudflare Pages mirror, and the per-cycle generator pipeline that commits data/ as the archive" width="960"></p>
 
 The browser SPA is split into focused modules — `core` (config/state), `map`,
 `sources`, `panels`, `board`, `boot`, `notes`, `i18n`, `usng`, and the LAN-only
@@ -181,7 +196,7 @@ basemap tiles to IndexedDB (plain LAN http, no service worker) so the map keeps
 drawing in dead zones — basemap only; live data still needs a connection.
 
 For a purely public, read-only view you do not need to run anything — just open the
-[live board](https://responder.rfxn.com).
+[live board](https://respondertx.org).
 
 ## Configuration
 
@@ -209,7 +224,7 @@ public mirror has no write routes and no chat. See [ABOUT.md](ABOUT.md#privacy).
 
 ## Safety & scope
 
-Responder TX is a situational-awareness aid, not an authority. It does not replace
+ResponderTX is a situational-awareness aid, not an authority. It does not replace
 official warnings, evacuation orders, or 911. Data can be delayed, incomplete, or
 wrong; sensors freeze, feeds lag, and curated entries can go stale — the board
 labels these conditions but cannot eliminate them. **Life-threatening emergency?
@@ -224,7 +239,7 @@ discipline — generalizes to any U.S. flood.
 
 ## License
 
-Responder TX is distributed under the **GNU General Public License v2**. Developed
+ResponderTX is distributed under the **GNU General Public License v2**. Developed
 and maintained by Ryan MacDonald &lt;ryan@rfxn.com&gt; for
 [R-fx Networks](https://www.rfxn.com). Credit must be given for derivative works as
 required under the GNU GPL.

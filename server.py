@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Responder TX LAN server: static files + POST /api/chat|/api/notes -> data/*.jsonl."""
+"""Responder TX LAN server: static files + POST /api/chat|/api/notes -> data/*.jsonl; serves HTTPS on :8443 (self-signed) with an :8080 HTTP->HTTPS redirect when a TLS cert is present, else plain HTTP on :8080."""
 import base64
 import json
 import os
 import posixpath
 import re
+import ssl
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 INBOX = os.path.join(ROOT, 'data', 'chat-inbox.jsonl')
@@ -308,6 +309,44 @@ class Handler(SimpleHTTPRequestHandler):
         pass  # LAN ops traffic — request logging is noise
 
 
+class RedirectHandler(BaseHTTPRequestHandler):
+    """Plain-HTTP listener that 301-redirects every request to the HTTPS port. Serves no files."""
+    def _redirect(self):
+        host = self.headers.get('Host', '') or '127.0.0.1'
+        if host.startswith('['):
+            host = host.split(']', 1)[0] + ']'  # IPv6 literal: keep the bracketed host, drop :port
+        else:
+            host = host.split(':', 1)[0]
+        https_port = os.environ.get('HTTPS_PORT', '8443')
+        self.send_response(301)
+        self.send_header('Location', 'https://%s:%s%s' % (host, https_port, self.path))
+        self.send_header('Content-Length', '0')
+        self.end_headers()
+
+    do_GET = _redirect
+    do_HEAD = _redirect
+    do_POST = _redirect
+
+    def log_message(self, fmt, *args):
+        pass  # LAN ops traffic — request logging is noise
+
+
 if __name__ == '__main__':
     os.chdir(ROOT)
-    ThreadingHTTPServer(('0.0.0.0', int(os.environ.get('PORT', '8080'))), Handler).serve_forever()
+    port = int(os.environ.get('PORT', '8080'))
+    https_port = int(os.environ.get('HTTPS_PORT', '8443'))
+    cert = os.environ.get('RESPONDER_TLS_CERT', '/root/.config/responder/tls/cert.pem')
+    key = os.environ.get('RESPONDER_TLS_KEY', '/root/.config/responder/tls/key.pem')
+
+    if os.access(cert, os.R_OK) and os.access(key, os.R_OK):
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(cert, key)
+        https_server = ThreadingHTTPServer(('0.0.0.0', https_port), Handler)
+        https_server.socket = ctx.wrap_socket(https_server.socket, server_side=True)
+        redirect_server = ThreadingHTTPServer(('0.0.0.0', port), RedirectHandler)
+        print('Responder LAN server: HTTPS on :%d, HTTP->HTTPS redirect on :%d' % (https_port, port))
+        threading.Thread(target=redirect_server.serve_forever, daemon=True).start()
+        https_server.serve_forever()
+    else:
+        print('Responder LAN server: HTTPS disabled (no readable cert at %s); plain HTTP on :%d' % (cert, port))
+        ThreadingHTTPServer(('0.0.0.0', port), Handler).serve_forever()

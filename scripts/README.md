@@ -22,6 +22,7 @@ suspended or mid-task).
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle **and** chat-poll system-cron entries. |
+| `gen-lan-cert.sh` | Generate the self-signed TLS cert (`cert.pem` + `key.pem` under `/root/.config/responder/tls`, **outside** the repo) that `server.py` serves for LAN HTTPS. Idempotent (skips unless `--force`); prints the fingerprint + SANs. See "LAN HTTPS (self-signed)". |
 
 `gen-cameras.py` is a separate poller and is **not** part of the 15-min cycle.
 
@@ -268,3 +269,44 @@ System cron is the **primary** driver for both data refresh and chat. Once
 Keep session tooling for human-in-the-loop work (news sweeps,
 `requests.json`/`resources.json` curation, app releases and deploys); leave the
 mechanical data refresh and the first-line chat reply to system cron.
+
+## LAN HTTPS (self-signed)
+
+`server.py` serves the board over HTTPS so the browser treats it as a **secure
+context**. That is what unlocks field GPS: `getCurrentPosition` refuses to run on
+plain HTTP at a LAN IP, so without HTTPS the locate-me features are blocked.
+
+1. Generate the cert once on the server host:
+
+```bash
+/root/admin/work/proj/responder/scripts/gen-lan-cert.sh
+```
+
+It writes `cert.pem` (644) and `key.pem` (600) to
+`/root/.config/responder/tls/`, a path **outside the repo** so the private key is
+never committed. The default SANs cover `IP:192.168.2.250`, `IP:127.0.0.1`, and
+`DNS:localhost`; add more (a second board IP, a hostname) as arguments or via
+`RESPONDER_TLS_EXTRA_SANS`. Re-running is a no-op unless you pass `--force`.
+
+2. Restart `server.py`. When both cert and key are present and readable it:
+   - serves HTTPS on `:8443` (`HTTPS_PORT`, default 8443),
+   - runs a tiny plain-HTTP listener on `:8080` (`PORT`, default 8080) that
+     `301`-redirects the initial `http://host:8080/...` navigation to
+     `https://host:8443/...` (host taken from the request, path and query kept).
+
+   If the cert is absent or unreadable, `server.py` falls back to the current
+   behavior: plain HTTP on `:8080`, printing a one-line notice that HTTPS is
+   disabled. The server always boots either way.
+
+3. Browsers show a **one-time self-signed warning** the first time each device
+   loads `https://192.168.2.250:8443/`. Click through it (Advanced, then proceed)
+   and the board loads; the browser remembers the exception. This is expected for
+   a LAN self-signed cert, and is the trade for a secure context without a public
+   certificate authority.
+
+**No crontab or env change is required.** `server.py` defaults
+`RESPONDER_TLS_CERT` and `RESPONDER_TLS_KEY` to the standard
+`/root/.config/responder/tls/` path, so the existing `@reboot ... server.py`
+crontab line picks up HTTPS automatically once the cert exists. Set
+`RESPONDER_TLS_CERT`, `RESPONDER_TLS_KEY`, `HTTPS_PORT`, or `PORT` only when a
+non-default layout is needed.

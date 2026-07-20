@@ -24,6 +24,19 @@ const TRAIL_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2h
 const TRAIL_MIN_MOVE_M = 15;                 // decimate: skip points closer than this
 const TRAIL_MIN_GAP_MS = 12 * 1000;          // ...unless this much time has passed
 
+// SAR member model + team-scoped shared markers (v0.97.4). These allow-sets are the
+// authoritative server-side whitelist; the client picklists mirror them but the DO enforces.
+const K9_NAME_MAX = 24;
+const MARKER_LABEL_MAX = 60;
+const MAX_MARKERS = 200;
+const MARKER_TTL_MS = 12 * 60 * 60 * 1000;   // a shared team marker ages out after this
+const MAX_SKILLS = 8;
+const MEMBER_TYPES = ['ground', 'k9'];
+const STATUSES = ['infield', 'standby', 'unavailable'];
+const SPECIALTIES = ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'];
+const K9_SKILLS = ['HRD', 'live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
+const MARKER_KINDS = ['waypoint', 'hazard', 'search-area'];
+
 // distinct, high-contrast qualitative palette for member markers/trails
 const MEMBER_COLORS = [
   '#ff5252', '#40c4ff', '#69f0ae', '#ffd740', '#e040fb', '#ff6e40',
@@ -42,6 +55,26 @@ function haversineM(a, b) {
   const s = Math.sin(dLat / 2) ** 2
     + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+// optional team-open defaults: area-of-operations view (+ a small filter whitelist). Coordinates
+// out of range or a non-object drop to null so a malformed default never breaks a member's open.
+function sanitizeDefaults(d) {
+  if (!d || typeof d !== 'object') return null;
+  const out = {};
+  const lat = Number(d.lat), lon = Number(d.lon), zoom = Number(d.zoom);
+  if (Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+    out.lat = lat; out.lon = lon;
+    if (Number.isFinite(zoom)) out.zoom = Math.max(3, Math.min(18, Math.round(zoom)));
+  }
+  if (d.filters && typeof d.filters === 'object') {
+    const f = {};
+    for (const k of ['tab', 'county', 'type']) {
+      if (typeof d.filters[k] === 'string') { const v = sanitizeText(d.filters[k], 40); if (v) f[k] = v; }
+    }
+    if (Object.keys(f).length) out.filters = f;
+  }
+  return Object.keys(out).length ? out : null;
 }
 
 export class TeamRelay {
@@ -68,7 +101,10 @@ export class TeamRelay {
     switch (action) {
       case 'create': out = await this.doCreate(body, now); break;
       case 'join': out = await this.doJoin(body, now); break;
+      case 'update': out = await this.doUpdate(body, now); break;
       case 'position': out = await this.doPosition(body, now); break;
+      case 'marker': out = await this.doMarker(body, now); break;
+      case 'unmark': out = await this.doUnmark(body, now); break;
       case 'state': out = await this.doState(url, now); break;
       case 'leave': out = await this.doLeave(body, now); break;
       default: out = { _status: 404, error: 'unknown action' };
@@ -96,6 +132,7 @@ export class TeamRelay {
         p.trail = p.trail.filter((pt) => now - pt.ts <= TRAIL_MAX_AGE_MS).slice(-TRAIL_MAX_POINTS);
       }
     }
+    this.reapMarkers(now);
   }
 
   pickColor() {
@@ -110,10 +147,41 @@ export class TeamRelay {
     const teamId = String(body.teamId || '');
     if (!UUID_RE.test(teamId)) return { _status: 400, error: 'bad team id' };
     if (!this.team) {
-      this.team = { id: teamId, name: sanitizeText(body.name, NAME_MAX), created: now, lastActive: now, people: {} };
+      this.team = {
+        id: teamId, name: sanitizeText(body.name, NAME_MAX), created: now, lastActive: now,
+        people: {}, markers: {}, defaults: sanitizeDefaults(body.defaults),
+      };
       await this.persist(now);
     }
-    return { teamId: this.team.id, name: this.team.name, created: this.team.created };
+    return { teamId: this.team.id, name: this.team.name, created: this.team.created, defaults: this.team.defaults || null };
+  }
+
+  // apply the SAR profile fields to a member record, keeping prior values for any field the caller
+  // omits (so a lone status toggle does not wipe type/skills). Switching type clears the other
+  // type's fields. Never called for viewers — they carry no profile.
+  applyProfile(person, body) {
+    if (MEMBER_TYPES.includes(body.mtype)) person.mtype = body.mtype;
+    if (!MEMBER_TYPES.includes(person.mtype)) person.mtype = 'ground';
+    if (STATUSES.includes(body.status)) person.status = body.status;
+    if (!STATUSES.includes(person.status)) person.status = 'infield';
+    if (person.mtype === 'k9') {
+      if (typeof body.k9Name === 'string') person.k9Name = sanitizeText(body.k9Name, K9_NAME_MAX);
+      if (!person.k9Name) person.k9Name = '';
+      if (Array.isArray(body.skills)) person.skills = body.skills.filter((s) => K9_SKILLS.includes(s)).slice(0, MAX_SKILLS);
+      if (!Array.isArray(person.skills)) person.skills = [];
+      person.specialty = 'k9';
+    } else {
+      if ('specialty' in body) person.specialty = SPECIALTIES.includes(body.specialty) ? body.specialty : null;
+      if (person.specialty === 'k9') person.specialty = null;
+      person.k9Name = '';
+      person.skills = [];
+    }
+  }
+
+  clearProfile(person) {
+    person.color = undefined; person.lastPos = null; person.trail = [];
+    person.mtype = undefined; person.specialty = undefined; person.k9Name = undefined;
+    person.skills = undefined; person.status = undefined;
   }
 
   validateHandleRole(body) {
@@ -139,9 +207,30 @@ export class TeamRelay {
     person.handle = v.handle;
     person.role = v.role;
     person.lastSeen = now;
-    if (v.role === 'member') { if (!person.color) person.color = this.pickColor(); }
-    else { person.color = undefined; person.lastPos = null; person.trail = []; }
+    if (v.role === 'member') { if (!person.color) person.color = this.pickColor(); this.applyProfile(person, body); }
+    else this.clearProfile(person);
     this.team.people[id] = person;
+    await this.persist(now);
+    return { teamId: this.team.id, name: this.team.name, defaults: this.team.defaults || null, you: this.publicSelf(person) };
+  }
+
+  // change your own record after joining: role, SAR type/specialty/skills, and/or status. Identified
+  // by ephemeralId (must already be in the team); no handle change here.
+  async doUpdate(body, now) {
+    if (!this.team) return { _status: 404, error: 'team not found or expired' };
+    const id = String(body.ephemeralId || '');
+    const person = UUID_RE.test(id) ? this.team.people[id] : null;
+    if (!person) return { _status: 403, error: 'not a member of this team' };
+    this.reap(now);
+    const nextRole = body.role === 'viewer' ? 'viewer' : body.role === 'member' ? 'member' : null;
+    if (nextRole && nextRole !== person.role) {
+      person.role = nextRole;
+      if (nextRole === 'member') { if (!person.color) person.color = this.pickColor(); this.applyProfile(person, body); }
+      else this.clearProfile(person);
+    } else if (person.role === 'member') {
+      this.applyProfile(person, body);
+    }
+    person.lastSeen = now;
     await this.persist(now);
     return { teamId: this.team.id, name: this.team.name, you: this.publicSelf(person) };
   }
@@ -187,7 +276,7 @@ export class TeamRelay {
     return {
       teamId: this.team.id, name: this.team.name, now,
       you: UUID_RE.test(id) && this.team.people[id] ? this.publicSelf(this.team.people[id]) : null,
-      members, viewers,
+      members, viewers, markers: Object.values(this.team.markers || {}), defaults: this.team.defaults || null,
     };
   }
 
@@ -198,14 +287,61 @@ export class TeamRelay {
     return { ok: true };
   }
 
+  // drop a shared, team-scoped map marker (waypoint / hazard / search-area). Members only —
+  // viewers are rejected, mirroring the position write guard.
+  async doMarker(body, now) {
+    if (!this.team) return { _status: 404, error: 'team not found or expired' };
+    const id = String(body.ephemeralId || '');
+    const person = UUID_RE.test(id) ? this.team.people[id] : null;
+    if (!person) return { _status: 403, error: 'not a member of this team' };
+    if (person.role !== 'member') return { _status: 403, error: 'viewers cannot drop markers' };
+    const lat = Number(body.lat), lon = Number(body.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return { _status: 400, error: 'invalid coordinates' };
+    }
+    if (!this.team.markers) this.team.markers = {};
+    this.reapMarkers(now);
+    if (Object.keys(this.team.markers).length >= MAX_MARKERS) return { _status: 429, error: 'too many team markers' };
+    const kind = MARKER_KINDS.includes(body.kind) ? body.kind : 'waypoint';
+    const mid = crypto.randomUUID();
+    this.team.markers[mid] = { id: mid, kind, label: sanitizeText(body.label, MARKER_LABEL_MAX), lat, lon, by: person.handle, byId: person.ephemeralId, ts: now };
+    person.lastSeen = now;
+    await this.persist(now);
+    return { ok: true, marker: this.team.markers[mid] };
+  }
+
+  // remove a shared marker. Any member may clear one (trusted private team); viewers cannot.
+  async doUnmark(body, now) {
+    if (!this.team) return { ok: true };
+    const id = String(body.ephemeralId || '');
+    const person = UUID_RE.test(id) ? this.team.people[id] : null;
+    if (!person || person.role !== 'member') return { _status: 403, error: 'not allowed' };
+    const mid = String(body.markerId || '');
+    if (this.team.markers && this.team.markers[mid]) { delete this.team.markers[mid]; person.lastSeen = now; await this.persist(now); }
+    return { ok: true };
+  }
+
+  reapMarkers(now) {
+    if (!this.team || !this.team.markers) return;
+    for (const [mid, mk] of Object.entries(this.team.markers)) {
+      if (now - mk.ts > MARKER_TTL_MS) delete this.team.markers[mid];
+    }
+  }
+
   publicSelf(p) {
-    return { ephemeralId: p.ephemeralId, handle: p.handle, role: p.role, color: p.color || null };
+    return {
+      ephemeralId: p.ephemeralId, handle: p.handle, role: p.role, color: p.color || null,
+      mtype: p.mtype || null, specialty: p.specialty || null, k9Name: p.k9Name || '',
+      skills: p.skills || [], status: p.status || null,
+    };
   }
 
   publicMember(p) {
     return {
       ephemeralId: p.ephemeralId, handle: p.handle, role: 'member', color: p.color || null,
       lastPos: p.lastPos || null, lastSeen: p.lastSeen, trail: p.trail || [],
+      mtype: p.mtype || 'ground', specialty: p.specialty || null, k9Name: p.k9Name || '',
+      skills: p.skills || [], status: p.status || 'infield',
     };
   }
 
@@ -229,7 +365,7 @@ export class TeamRelay {
 // not publicly routable (workers_dev=false, no routes); Pages Functions reach the DO via the
 // TEAM binding and invoke TeamRelay.fetch() directly. Kept as a thin forwarder so the exact
 // same DO code path is exercised locally and in production.
-const TEAM_PATH_RE = /^\/api\/team\/(?:(create)|([0-9a-f-]{36})\/(join|position|state|leave))$/i;
+const TEAM_PATH_RE = /^\/api\/team\/(?:(create)|([0-9a-f-]{36})\/(join|update|position|marker|unmark|state|leave))$/i;
 
 export default {
   async fetch(request, env) {

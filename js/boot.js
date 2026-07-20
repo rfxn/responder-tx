@@ -190,6 +190,7 @@ function showUpdatedConfirm() {
 }
 
 function tickCountdown() {
+  updateDriveFreshness(); // "last fix Xs ago" ticks even before the first data refresh is scheduled
   if (!state.refreshAt) return;
   const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
   // countdown lives in the tooltip since v0.88.1 — the visible stamp stays slim; the data-age bar owns staleness
@@ -541,7 +542,7 @@ async function boot() {
   document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', (e) => shareView(e.currentTarget));
-  const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } renderDriveMode(); };
+  const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } else { startDriveWatch(); } renderDriveMode(); };
   $('#drive-btn').addEventListener('click', enterDrive);
   // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon.
   // Deferred while the safety/onboarding chain is up: one nudge at a time; it shows on the next visit.
@@ -553,7 +554,7 @@ async function boot() {
     $('#drive-hint-go').addEventListener('click', () => { dismissHint(); enterDrive(); });
     $('#drive-hint-x').addEventListener('click', dismissHint);
   }
-  $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; });
+  $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; stopDriveWatch(); });
   // owner directive: "Am I at risk?" hidden by default — first-responder/public-info tool, not a
   // consumer address lookup. Code + modal stay intact; ?risk=1 reveals the button and opens the modal.
   const riskEnabled = new URLSearchParams(location.search).has('risk');
@@ -702,7 +703,7 @@ async function boot() {
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
     for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#safety-modal']) {
       const m = $(id);
-      if (m && !m.hidden) { m.hidden = true; break; }
+      if (m && !m.hidden) { m.hidden = true; if (id === '#drive-mode') stopDriveWatch(); break; }
     }
   });
 
@@ -795,7 +796,8 @@ async function boot() {
     refresh();
   }, CONFIG.refreshMs);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') return;
+    if (document.visibilityState !== 'visible') { stopDriveWatch(); return; } // no background geolocation drain
+    if (!$('#drive-mode').hidden && state.myPos) startDriveWatch(); // resume the fix loop on return
     if (state.pendingRefresh) {
       state.pendingRefresh = false;
       refresh();

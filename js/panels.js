@@ -234,8 +234,39 @@ function renderDriveMode() {
     const dc = b.dataset.cam != null && state.driveCams[+b.dataset.cam];
     if (dc) { openCamViewer(dc.cam, dc.kind); return; } // viewer overlays Drive Mode — stays one-handed
     $('#drive-mode').hidden = true;
+    stopDriveWatch(); // leaving via a hazard row also stands the fix loop down
     state.map.setView([+b.dataset.lat, +b.dataset.lon], 13);
   }));
+  updateDriveFreshness();
+}
+
+/* ---------- Drive Mode live fix — periodic re-locate keeps the nearest-hazards ranking fresh ---------- */
+
+// opt-in only: reached from a granted fix (locationfound) or an existing session position — never auto-starts
+function startDriveWatch() {
+  if (state.driveTimer != null) return; // idempotent — one watcher at a time, no leak on reopen
+  if ($('#drive-mode').hidden || !state.myPos) return; // no granted fix yet → nothing to keep fresh
+  state.driveTimer = setInterval(() => {
+    if ($('#drive-mode').hidden || document.visibilityState === 'hidden') { stopDriveWatch(); return; }
+    state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+  }, CONFIG.driveLocateMs);
+  updateDriveFreshness();
+}
+
+function stopDriveWatch() {
+  if (state.driveTimer != null) { clearInterval(state.driveTimer); state.driveTimer = null; }
+  updateDriveFreshness();
+}
+
+function updateDriveFreshness() {
+  const el = $('#drive-fresh');
+  if (!el) return;
+  if ($('#drive-mode').hidden || state.driveTimer == null) { el.hidden = true; return; }
+  el.hidden = false;
+  const secs = state.driveFixAt ? Math.round((Date.now() - state.driveFixAt) / 1000) : null;
+  el.textContent = secs == null
+    ? `⌖ ${t('drive.autoupd')} · ${t('drive.locating')}`
+    : `⌖ ${t('drive.autoupd')} · ${t('drive.lastfix').replace('{s}', secs)}`;
 }
 
 /* ---------- crest summary — after-action peak-stage view (?view=summary) ---------- */

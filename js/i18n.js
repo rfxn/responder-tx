@@ -69,6 +69,9 @@
       'drive.nogps': 'Tap ⌖ Locate to rank hazards by distance from you',
       'drive.nohaz': 'No mapped hazards right now. Stay alert, verify roads.',
       'drive.emerg': 'FLASH FLOOD EMERGENCY',
+      'drive.autoupd': 'auto-updating',
+      'drive.locating': 'locating…',
+      'drive.lastfix': 'last fix {s}s ago',
 
       'hint.drive': '🚗 <strong>Drive Mode</strong>: big-type nearest hazards, ranked by distance, for the road',
       'hint.open': 'Open',
@@ -564,6 +567,9 @@
       'drive.nogps': 'Toque ⌖ Ubicar para ordenar los peligros por distancia desde usted',
       'drive.nohaz': 'No hay peligros mapeados ahora. Manténgase alerta, verifique los caminos.',
       'drive.emerg': 'EMERGENCIA DE INUNDACIÓN REPENTINA',
+      'drive.autoupd': 'actualización automática',
+      'drive.locating': 'ubicando…',
+      'drive.lastfix': 'última ubicación hace {s}s',
 
       'hint.drive': '🚗 <strong>Modo conducción</strong>: peligros cercanos en letra grande, ordenados por distancia, para la carretera',
       'hint.open': 'Abrir',

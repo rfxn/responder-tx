@@ -740,7 +740,7 @@ function copySitrep(btn) {
   const copy = () => copyText(text).then(
     () => { btn.textContent = 'SITREP copied ✓'; setTimeout(() => { btn.textContent = '📋 SITREP'; }, 2000); },
     () => downloadBlob(text, 'text/plain', `sitrep-${stamp()}.txt`));
-  if (navigator.share) navigator.share({ title: 'Responder TX SITREP', text }).catch(copy);
+  if (navigator.share) navigator.share({ title: 'ResponderTX SITREP', text }).catch(copy);
   else copy();
 }
 
@@ -871,7 +871,7 @@ function exportAAR() {
   const count = (fn) => reqs.reduce((m, r) => { const k = fn(r); m[k] = (m[k] || 0) + 1; return m; }, {});
   const fmtCounts = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ');
   const L = [];
-  L.push(`# Responder TX - After-Action Export`);
+  L.push(`# ResponderTX After-Action Export`);
   L.push(`Generated ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT · board ${APP_VERSION}`);
   L.push('');
   L.push(`## Card statistics (${reqs.length} total)`);

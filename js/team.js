@@ -324,7 +324,7 @@
     host.innerHTML =
       '<div class="tt-hero"><div class="tt-hero-icon">🧭</div>' +
       `<h2 class="tt-title">${esc(tt('team.tab.title', 'Live team'))}</h2>` +
-      `<p class="tt-lead">${esc(tt('team.needhttps', 'Live team sharing needs the secure site: https://responder.rfxn.com'))}</p></div>`;
+      `<p class="tt-lead">${esc(tt('team.needhttps', 'Live team sharing needs the secure site: https://respondertx.org'))}</p></div>`;
   }
 
   function renderLanding(host) {
@@ -960,7 +960,7 @@
     const param = new URLSearchParams(location.search).get('team');
     if (!param) return; // no ?team= link — the tab still shows create/join
     if (!window.isSecureContext) {
-      note(tt('team.needhttps', 'Live team sharing needs the secure site: https://responder.rfxn.com'));
+      note(tt('team.needhttps', 'Live team sharing needs the secure site: https://respondertx.org'));
       showTeamTab(); renderTeamTab();
       return;
     }

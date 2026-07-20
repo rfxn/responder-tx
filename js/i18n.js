@@ -11,7 +11,7 @@
 
   const I18N = {
     en: {
-      'brand.sub': 'Life Safety & Response Feed',
+      'brand.sub': 'Live Hazard Awareness for Texas',
 
       'tile.emergencies': 'Flash flood emergencies',
       'tile.warnings': 'Flood warnings (TX)',
@@ -507,7 +507,7 @@
       'team.joinfail': 'Could not join this team.',
       'team.expired': 'This team has expired or was not found.',
       'team.geoerr': 'Location unavailable (permission denied or no GPS). You are listed but not on the map.',
-      'team.needhttps': 'Live team sharing needs the secure site: https://responder.rfxn.com',
+      'team.needhttps': 'Live team sharing needs the secure site: https://respondertx.org',
       'team.badlink': 'That team link is not valid.',
       'team.left': 'You left the team and stopped sharing.',
       'team.panel.head': 'Team',
@@ -606,7 +606,7 @@
     },
 
     es: {
-      'brand.sub': 'Seguridad de vida y respuesta',
+      'brand.sub': 'Conciencia de peligros en vivo para Texas',
 
       'tile.emergencies': 'Emergencias de inundación repentina',
       'tile.warnings': 'Avisos de inundación (TX)',
@@ -1102,7 +1102,7 @@
       'team.joinfail': 'No se pudo unir a este equipo.',
       'team.expired': 'Este equipo expiró o no se encontró.',
       'team.geoerr': 'Ubicación no disponible (permiso denegado o sin GPS). Está en la lista pero no en el mapa.',
-      'team.needhttps': 'El uso compartido en vivo requiere el sitio seguro: https://responder.rfxn.com',
+      'team.needhttps': 'El uso compartido en vivo requiere el sitio seguro: https://respondertx.org',
       'team.badlink': 'Ese enlace de equipo no es válido.',
       'team.left': 'Salió del equipo y dejó de compartir.',
       'team.panel.head': 'Equipo',

@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.23 · 2026-07-20 (header logo polish)
+
+-- Changes --
+- [Change] header logo enlarged a touch (38 to 44px desktop, 32 to 36px mobile) so the
+           ResponderTX wordmark reads larger; the brand subtitle is shortened to "Live
+           Hazard Awareness" (the "for Texas" was dropped), in English and Spanish
+
 ## v0.97.22 · 2026-07-20 (multi-type teams: SAR, Response, Recovery, Community)
 
 -- New Features --

@@ -11,7 +11,7 @@
 
   const I18N = {
     en: {
-      'brand.sub': 'Live Hazard Awareness for Texas',
+      'brand.sub': 'Live Hazard Awareness',
 
       'tile.emergencies': 'Flash flood emergencies',
       'tile.warnings': 'Flood warnings (TX)',
@@ -636,7 +636,7 @@
     },
 
     es: {
-      'brand.sub': 'Conciencia de peligros en vivo para Texas',
+      'brand.sub': 'Conciencia de peligros en vivo',
 
       'tile.emergencies': 'Emergencias de inundación repentina',
       'tile.warnings': 'Avisos de inundación (TX)',

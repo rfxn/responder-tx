@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.22') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.23') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.22') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.23') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.22') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.23') format('woff2');
 }
 
 :root {
@@ -94,7 +94,7 @@ header {
   flex-wrap: wrap;
 }
 .brand { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; }
-.brand-logo { display: block; height: 38px; width: auto; }
+.brand-logo { display: block; height: 44px; width: auto; }
 .brand-logo-dark { display: none; }
 :root[data-theme="dark"] .brand-logo-dark { display: block; }
 :root[data-theme="dark"] .brand-logo-light { display: none; }
@@ -1168,7 +1168,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   body { font-size: 15px; }
   header { padding: 2px 8px; gap: 8px; } /* 40px tap targets + 2px pad = the same header height as v0.88.0's 36px + 4px */
   .brand { min-width: 0; flex: 1; }
-  .brand-logo { height: 32px; }
+  .brand-logo { height: 36px; }
   .brand h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .brand .sub { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* tiles duplicate the (richer, tappable) threat strip — reclaim ~55px of list */

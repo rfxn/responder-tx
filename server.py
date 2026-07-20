@@ -38,7 +38,7 @@ DENY_PATHS = ('/HANDOFF.md', '/data/.chat-cursor', '/data/notes-inbox.jsonl')  #
 # the secret admin token stays server-side (env only, never in git or the browser). Unset → the
 # master view is disabled (ping.master=false) and the endpoints 503.
 TEAM_ADMIN_TOKEN = os.environ.get('TEAM_ADMIN_TOKEN', '')
-TEAM_ADMIN_UPSTREAM = os.environ.get('TEAM_ADMIN_UPSTREAM', 'https://responder.rfxn.com').rstrip('/')
+TEAM_ADMIN_UPSTREAM = os.environ.get('TEAM_ADMIN_UPSTREAM', 'https://respondertx.org').rstrip('/')
 ADMIN_RE = re.compile(r'^/api/team/admin/(overview|list)$')
 ADMIN_TTL = 5
 _gauge_cache = {}

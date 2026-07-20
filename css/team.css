@@ -30,6 +30,20 @@
 .team-foot { color: var(--ink-muted); font-size: 11.5px; margin-top: 10px; line-height: 1.45; }
 #team-create-result[hidden] { display: none; }
 
+/* create/join entry — link+QR result, "or" divider, join-by-link section */
+.team-qr { display: flex; justify-content: center; margin: 10px 0 4px; }
+.team-qr svg { width: 200px; height: 200px; background: #fff; border-radius: 6px; }
+.team-qrcap { text-align: center; color: var(--ink-muted); font-size: 11px; margin: 0 0 4px; }
+.team-or {
+  position: relative; text-align: center; color: var(--ink-muted);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 0 10px;
+}
+.team-or::before, .team-or::after {
+  content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--hairline);
+}
+.team-or::before { left: 0; } .team-or::after { right: 0; }
+.team-joinlbl { display: block; color: var(--ink-2); font-size: 12px; margin-bottom: 2px; }
+
 /* roster panel — floating, collapsible, clear of the bottom sheet + map controls */
 #team-panel {
   position: fixed; right: 10px; bottom: 84px; z-index: 1200;

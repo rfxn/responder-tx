@@ -506,6 +506,14 @@
       'team.copy': 'Copy link',
       'team.copied': 'Copied ✓',
       'team.enter': 'Enter team →',
+      'ctl.team': 'Team',
+      'ctl.team.title': 'Live team location sharing: create or join a private team',
+      'team.or': 'or',
+      'team.join.link.lbl': 'Have a team link?',
+      'team.join.link.ph': 'Paste team link or code',
+      'team.join.link.go': 'Open team →',
+      'team.join.link.bad': 'That team link or code is not valid.',
+      'team.qr.cap': 'Scan to join on another device',
     },
 
     es: {
@@ -1004,6 +1012,14 @@
       'team.copy': 'Copiar enlace',
       'team.copied': 'Copiado ✓',
       'team.enter': 'Entrar al equipo →',
+      'ctl.team': 'Equipo',
+      'ctl.team.title': 'Ubicación de equipo en vivo: crear o unirse a un equipo privado',
+      'team.or': 'o',
+      'team.join.link.lbl': '¿Tiene un enlace de equipo?',
+      'team.join.link.ph': 'Pegue el enlace o código del equipo',
+      'team.join.link.go': 'Abrir equipo →',
+      'team.join.link.bad': 'Ese enlace o código de equipo no es válido.',
+      'team.qr.cap': 'Escanee para unirse en otro dispositivo',
     },
   };
 

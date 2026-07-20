@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.3 — 2026-07-19 (team feature surfaced into the main app + share QR)
+
+-- New Features --
+- [New] a "🧭 Team" item in the header ⋮ More menu opens live team location
+      sharing without needing a ?team= link first: create a private team (shows
+      the shareable link plus a scannable client-side QR of it and lets you join
+      as a member with a handle), or join an existing team by pasting its link
+      or code; if already in a team it reopens the roster; secure-context gated,
+      EN + ES
+- [New] vendored a minimal QR generator (qrcode-generator v2.0.4, MIT) to render
+      the team share link as a scannable code for a second device, entirely
+      client-side (the private team UUID never leaves the browser)
+
 ## v0.97.2 — 2026-07-19 (Drive Mode auto-updating location)
 
 -- New Features --

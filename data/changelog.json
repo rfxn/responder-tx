@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.3",
+      "date": "2026-07-19",
+      "line": "Live team location sharing is now reachable from the main board: tap ⋮ (More) → 🧭 Team. From there you can create a private team — the board shows a shareable link and a scannable QR code of it, so a teammate can join just by pointing their phone camera at your screen — or join an existing team by pasting its link or code. If you are already in a team, it reopens your roster. The feature stays private and opt-in exactly as before (unguessable link, call-sign handle, share-or-just-watch), and the board looks and works normally for anyone who never opens the Team menu. Runs on the secure site, where location sharing works. English y español."
+    },
+    {
       "v": "v0.97.2",
       "date": "2026-07-19",
       "line": "Drive Mode now keeps your location fresh while you drive: once you tap ⌖ Locate, it quietly re-checks your position about every 30 seconds and re-ranks the nearest-hazards list by distance from where you actually are — with a small 'auto-updating · last fix Xs ago' note under the header. It only runs after you opt in by tapping Locate, and it stands down the moment you leave Drive Mode or switch away from the tab, so there is no background battery drain. English y español."

@@ -354,11 +354,19 @@
       '<div id="team-create-err" class="team-err" hidden></div>' +
       '<div id="team-create-result" hidden></div>' +
       `<div class="team-btnrow"><button id="team-create-go" class="primary">${esc(tt('team.create.go', 'Create team'))}</button></div>` +
+      `<div class="team-or">${esc(tt('team.or', 'or'))}</div>` +
+      `<label class="team-joinlbl" for="team-join-link">${esc(tt('team.join.link.lbl', 'Have a team link?'))}</label>` +
+      `<input id="team-join-link" autocomplete="off" placeholder="${esc(tt('team.join.link.ph', 'Paste team link or code'))}">` +
+      '<div id="team-join-err" class="team-err" hidden></div>' +
+      `<div class="team-btnrow"><button id="team-join-open">${esc(tt('team.join.link.go', 'Open team →'))}</button></div>` +
       '</div></div>';
     document.body.appendChild(el);
     el.addEventListener('click', (e) => { if (e.target.id === 'team-create') closeCreate(); });
     document.getElementById('team-create-close').addEventListener('click', closeCreate);
     document.getElementById('team-create-go').addEventListener('click', doCreate);
+    document.getElementById('team-join-open').addEventListener('click', doJoinLink);
+    const jl = document.getElementById('team-join-link');
+    jl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoinLink(); });
   }
 
   function closeCreate() { const m = document.getElementById('team-create'); if (m) m.hidden = true; }
@@ -377,8 +385,11 @@
       res.hidden = false;
       res.innerHTML =
         `<div class="team-linkrow"><input readonly id="team-create-link" value="${esc(url)}"></div>` +
+        '<div class="team-qr" id="team-create-qr"></div>' +
+        `<div class="team-qrcap">${esc(tt('team.qr.cap', 'Scan to join on another device'))}</div>` +
         `<div class="team-btnrow"><button id="team-create-copy">${esc(tt('team.copy', 'Copy link'))}</button>` +
         `<button id="team-create-enter" class="primary">${esc(tt('team.enter', 'Enter team →'))}</button></div>`;
+      renderQR(document.getElementById('team-create-qr'), url);
       go.disabled = false;
       document.getElementById('team-create-copy').addEventListener('click', () => {
         const b = document.getElementById('team-create-copy');
@@ -395,9 +406,60 @@
     }
   }
 
+  // client-side QR of the team link — dark-on-light so it scans in either theme; silent if the lib is absent
+  function renderQR(container, url) {
+    if (!container) return;
+    try {
+      if (typeof qrcode !== 'function') { container.hidden = true; return; }
+      const qr = qrcode(0, 'M'); // typeNumber 0 = auto-size for the URL length
+      qr.addData(url);
+      qr.make();
+      container.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true });
+    } catch { container.hidden = true; }
+  }
+
   /* ---------- entry ---------- */
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // accept a full ?team= link or a bare UUID pasted into the join field
+  function parseTeamId(raw) {
+    if (!raw) return null;
+    const m = raw.match(/team=([0-9a-f-]+)/i);
+    const cand = (m ? m[1] : raw).trim();
+    return UUID_RE.test(cand) ? cand : null;
+  }
+
+  function doJoinLink() {
+    const id = parseTeamId(document.getElementById('team-join-link').value);
+    const err = document.getElementById('team-join-err');
+    if (!id) { err.textContent = tt('team.join.link.bad', 'That team link or code is not valid.'); err.hidden = false; return; }
+    err.hidden = true;
+    T.id = id; T.name = '';
+    try { history.replaceState(null, '', `${location.origin}/?team=${id}`); } catch { /* sandboxed — cosmetic */ }
+    closeCreate();
+    api(`${id}/state`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) T.name = d.name || ''; }).catch(() => {}).finally(openModal);
+  }
+
+  let _lifecycleArmed = false;
+  function armLifecycle() {
+    if (_lifecycleArmed) return;
+    _lifecycleArmed = true;
+    window.addEventListener('pagehide', beaconLeave);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') beaconLeave(); });
+  }
+
+  // ⋮ More → Team: reach create/join without a ?team= link. Already in a team → reopen the roster.
+  window.openTeamEntry = function openTeamEntry() {
+    if (!window.isSecureContext) { note(tt('team.needhttps', 'Live team sharing needs the secure site: https://responder.rfxn.com')); return; }
+    if (T.active) { openPanel(); return; }
+    armLifecycle();
+    buildCreateModal();
+    const res = document.getElementById('team-create-result');
+    if (res) { res.hidden = true; res.innerHTML = ''; }
+    for (const eid of ['team-create-err', 'team-join-err']) { const e = document.getElementById(eid); if (e) e.hidden = true; }
+    document.getElementById('team-create').hidden = false;
+  };
 
   function start() {
     const param = new URLSearchParams(location.search).get('team');
@@ -407,8 +469,7 @@
       return;
     }
     ensureLayer();
-    window.addEventListener('pagehide', beaconLeave);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') beaconLeave(); });
+    armLifecycle();
     if (param === 'new') { buildCreateModal(); document.getElementById('team-create').hidden = false; return; }
     if (!UUID_RE.test(param)) { note(tt('team.badlink', 'That team link is not valid.')); return; }
     T.id = param;

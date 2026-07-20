@@ -594,6 +594,8 @@ async function boot() {
   if (window.initTeam) initTeam(); // flag-gated ?team= live team sharing (inert otherwise); chains behind the 911 ack
   initHeaderSearch();
   $('#help-btn').addEventListener('click', openGlossary);
+  $('#team-btn').addEventListener('click', () => { if (window.openTeamEntry) openTeamEntry(); }); // create/join a live team without a ?team= link
+
   $('#glossary-close').addEventListener('click', () => { $('#glossary-modal').hidden = true; });
   $('#glossary-modal').addEventListener('click', (e) => { if (e.target.id === 'glossary-modal') $('#glossary-modal').hidden = true; });
   $('#toggle-form').addEventListener('click', () => {

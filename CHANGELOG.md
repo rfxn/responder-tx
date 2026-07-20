@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.16 — 2026-07-20 (quality-audit fixes: all-clear wording honors the distance filter's GPS gate; internal json() dedup and dead-code trim)
+
+-- Bug Fixes --
+- [Fix] the empty-feed all-clear message (v0.97.14) now shows correctly when a
+      distance filter is set but GPS is unavailable: the distance filter only
+      applies once a location fix exists, so with no fix it hides nothing, yet the
+      board still read "No notices match the current filters" instead of the ✓
+      all-clear; the distance term is now gated on having a position, matching the
+      filter's own apply condition
+
+-- Changes --
+- [Change] the team relay route handlers (create + the [id]/ state/join/leave/
+           position/marker/unmark/update endpoints) now import a shared json()
+           response helper from functions/api/team/_json.js instead of each
+           carrying an identical copy; no response-behavior change (same
+           Content-Type, no-store, and X-Robots-Tag noindex headers)
+- [Change] dropped a dead write in the map layer-control setup: the
+           L.control.layers handle was assigned to state.layerCtl but never read
+           anywhere, so it is now created and added without the unused assignment
+
 ## v0.97.15 — 2026-07-20 (cameras split into independent per-source sub-layers; add Austin city, ATX Floods, Houston TranStar, and statewide USGS river cams)
 
 -- New Features --

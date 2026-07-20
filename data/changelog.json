@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.16",
+      "date": "2026-07-20",
+      "line": "Bug fix. The positive “✓ All clear” message on an empty feed (added in v0.97.14) now shows correctly when you’ve set a distance filter but the board doesn’t have a GPS fix. The distance filter only takes effect once your location is known, so with no fix it isn’t actually hiding anything — but the feed was still showing the flat “No notices match the current filters” line instead of the all-clear. It now reads as all-clear in that case, and still shows the filter wording whenever a filter (type, county, search, time window, distance with a fix, or In-view) is genuinely what’s hiding notices. Also some behind-the-scenes cleanup — the team-relay endpoints now share one response helper and an unused map handle was removed — with no change to how the board behaves."
+    },
+    {
       "date": "2026-07-20",
       "line": "Cameras are now organized as independent, per-source layers you can turn on one at a time instead of a single all-or-nothing toggle. Alongside the TxDOT road cameras you can now enable City of Austin city cameras (817 public-domain arterial/intersection views), ATX Floods low-water-crossing flood cameras (26 creek-crossing cams built for exactly the “is this crossing under water” question), and Houston TranStar cameras (963, including the Galveston–Bolivar ferry) — and the USGS river/flood-gage cameras now cover the whole state, so Houston, Dallas–Fort Worth and Laredo gage cams show up instead of being clipped to Central Texas. Each source keeps its own map marker, source credit and share link, and every camera layer stays off until you turn it on.",
       "v": "v0.97.15"

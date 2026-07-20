@@ -375,7 +375,7 @@ function initMap() {
   state.layers.camsAustin = camGroup();
   state.layers.camsFlood = camGroup();
   state.layers.camsHouston = camGroup();
-  state.layerCtl = L.control.layers({
+  L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
     'Streets (OSM)': state.baseLayers.streets,

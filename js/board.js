@@ -269,7 +269,7 @@ function renderRequests() {
   }
   if (!listed.length) {
     // an empty board is good news on a flood feed — say so, unless a restricting filter is what's hiding notices
-    const restricted = ['type', 'county', 'q', 'window', 'dist'].some((k) => state.filters[k]) || state.inView;
+    const restricted = ['type', 'county', 'q', 'window'].some((k) => state.filters[k]) || (state.filters.dist && state.myPos) || state.inView;
     el.innerHTML = `<div class="card${restricted ? '' : ' feed-allclear'}">${esc(t(restricted ? 'feed.empty' : 'feed.allclear'))}</div>`;
   }
 

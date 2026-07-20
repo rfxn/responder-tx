@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.10",
+      "date": "2026-07-19",
+      "line": "Two small presentation cleanups. On the Team tab, the \"call 911 — this is situational awareness, not a dispatch system\" line no longer appears twice: the board's persistent footer already shows that warning on every tab, so the redundant copy in the create and join views is gone (the footer disclaimer stays put). And on the Alerts list, each flood warning's \"text\" button now sits at the top-right of the card in the header row — aligned the same way the gauge cards put their NWPS link — so it reads as a consistent per-card action instead of trailing the expires time. Clicking it still opens the readable alert text. Desktop and phone behave the same. English y español."
+    },
+    {
       "v": "v0.97.9",
       "date": "2026-07-19",
       "line": "Tap the \"rising to major\" chip and the board now makes the gauges in question unmistakable: it flies the map to frame exactly those gauges at a sensible zoom, plays a brief attention pulse on each of their markers so your eye lands on the right dots, and opens the Gauges tab with their rows scrolled into view and flashed. The \"MAJOR gauges\" chip does the same for symmetry. If you have the gauge layer turned off the map pulse is skipped, but the list still reveals the rows. Desktop and phone behave the same. English y español."

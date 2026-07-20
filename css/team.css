@@ -48,11 +48,6 @@
 }
 .tt-back:hover { color: var(--ink-1); }
 .tt-foot { color: var(--ink-muted); font-size: 11.5px; margin: 10px 0 0; line-height: 1.45; }
-.tt-safety {
-  padding: 9px 11px; border-left: 3px solid var(--sev-emergency); border-radius: 4px;
-  background: rgba(208, 59, 59, 0.10); color: var(--ink-1); font-weight: 600; font-size: 12px;
-  margin: 0;
-}
 .tt-join .tt-lead { margin: 2px 0 8px; }
 .tt-join .tt-lead strong { color: var(--sev-warning); }
 

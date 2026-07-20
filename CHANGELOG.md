@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.10 — 2026-07-19 (card polish: Team-tab 911 duplicate dropped, alert text button moves to card top-right)
+
+-- Changes --
+- [Change] the Team tab no longer repeats the "call 911 — situational awareness,
+           not a dispatch system" disclaimer in its create and join views; the
+           persistent footer already carries it on every tab, so the duplicate
+           (and its now-unused team.safety strings and .tt-safety style) is dropped
+- [Change] the flood-alert card's "text ↗" button moves from the meta row up into
+           the event header row, right-aligned like the gauge cards' NWPS link, so
+           it reads as a consistent per-card action and clears the expires time
+
 ## v0.97.9 — 2026-07-19 (rising-to-major chip pulses the target gauges and opens the Gauges tab)
 
 -- New Features --

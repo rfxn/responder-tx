@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """gen-cameras.py — build data/cameras.json: TxDOT traffic cams (full statewide
 MapLarge inventory), TxDOT ITS snapshot-only cams (no HLS stream, JPEG stills
-via the district ITS API), plus USGS HIVIS river cams (NIMS API) inside the AO
-bbox. Run at build time; the inventory is near-static, so the output is
-committed. Stdlib only."""
+via the district ITS API), USGS HIVIS river cams (NIMS API) inside the AO
+bbox, plus City of El Paso international-bridge live HLS cams (hand-maintained,
+liveness-checked). Run at build time; the inventory is near-static, so the
+output is committed. Stdlib only."""
 
 import json
 import math
@@ -25,6 +26,18 @@ ITS_DISTRICTS = ('ABL', 'AMA', 'ATL', 'AUS', 'BMT', 'BRY', 'BWD', 'CHS', 'CRP', 
 AUSTIN = 'https://data.austintexas.gov/resource/b4k4-adkb.json'
 ATXFLOODS = 'https://api.atxfloods.com/api/cameras'
 HOUSTON = 'https://traffic.houstontranstar.org/data/layers/cctvSnapshots_out.js'
+ELP_BRIDGE_HOST = 'https://zoocams.elpasozoo.org'
+# City of El Paso Rio Grande international-bridge cams — direct-play CORS-open HLS; the operator
+# rotates stream names, so each .m3u8 is liveness-checked at gen time and dead ones are dropped.
+ELP_BRIDGE_CAMS = (
+    {'name': 'Paso del Norte Bridge (Santa Fe St.)', 'lat': 31.7527, 'lon': -106.4869, 'file': 'bridgepdn1.m3u8'},
+    {'name': 'Santa Fe St. Bridge (view 3)', 'lat': 31.7530, 'lon': -106.4875, 'file': 'bridgesantafe3.m3u8'},
+    {'name': 'Santa Fe St. Bridge (view 4)', 'lat': 31.7530, 'lon': -106.4875, 'file': 'bridgesantafe4.m3u8'},
+    {'name': 'Stanton St. Bridge', 'lat': 31.7566, 'lon': -106.4790, 'file': 'BridgeStanton3.m3u8'},
+    {'name': 'Ysleta-Zaragoza Bridge (view 1)', 'lat': 31.6698, 'lon': -106.3272, 'file': 'BridgeZaragoza1.m3u8'},
+    {'name': 'Ysleta-Zaragoza Bridge (view 2)', 'lat': 31.6698, 'lon': -106.3272, 'file': 'BridgeZaragoza2.m3u8'},
+    {'name': 'Ysleta-Zaragoza Bridge (view 3)', 'lat': 31.6698, 'lon': -106.3272, 'file': 'BridgeZaragoza3.m3u8'},
+)
 BROWSER_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some hosts block the default urllib UA
 # must mirror the /api/cam proxy validators (edge + server.py); no '/' — it is the URL path separator
 ITS_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")
@@ -262,6 +275,27 @@ def houston_cams():
     return sorted(cams, key=lambda c: int(c['id']))
 
 
+def hls_live(url):
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return r.getcode() == 200 and r.read(32).lstrip().startswith(b'#EXTM3U')
+    except OSError:
+        return False
+
+
+def elpbridge_cams():
+    cams = []
+    for c in ELP_BRIDGE_CAMS:
+        url = f"{ELP_BRIDGE_HOST}/{c['file']}"
+        if not hls_live(url):
+            print(f"El Paso bridge: {c['file']} not live — dropped")
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'httpsurl': url})
+    print(f'El Paso bridges: {len(cams)}/{len(ELP_BRIDGE_CAMS)} live HLS cams kept')
+    return sorted(cams, key=lambda c: c['name'])
+
+
 def main():
     tx = txdot_cams()
     its = its_cams(tx)
@@ -269,6 +303,7 @@ def main():
     au = austin_cams()
     af = atxfloods_cams()
     ho = houston_cams()
+    elp = elpbridge_cams()  # scoped liveness check — a dead host yields [] here, never aborts the whole gen
     # per-source floors: an upstream that changes shape and silently zeroes a source must abort, not publish an empty layer
     for name, cams, floor in (('its', its, 2000), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400)):
         if len(cams) < floor:
@@ -282,18 +317,21 @@ def main():
             'austin': 'Traffic cameras: City of Austin, Texas (public domain); imagery not recorded',
             'atxfloods': 'Flood cameras: ATX Floods / City of Austin low-water crossings',
             'houston': 'Traffic cameras: Houston TranStar (Houston region incl. Galveston/Bolivar ferry)',
+            'elpbridge': 'Live cameras: City of El Paso — international bridges',
         },
         'txdot': tx + its,
         'river': rv,
         'austin': au,
         'atxfloods': af,
         'houston': ho,
+        'elpbridge': elp,
     }
     with open(OUT, 'w') as f:
         json.dump(out, f, separators=(',', ':'))
         f.write('\n')
     print(f'{OUT}: {len(tx)} TxDOT streamable + {len(its)} ITS snapshot-only cams, {len(rv)} USGS river cams, '
-          f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, {os.path.getsize(OUT)} bytes')
+          f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
+          f'{len(elp)} El Paso bridge cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

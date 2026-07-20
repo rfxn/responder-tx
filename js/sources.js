@@ -891,7 +891,8 @@ const CAM_ATTRIB_USGS = 'River cameras: USGS HIVIS (public domain, provisional)'
 const CAM_ATTRIB_AUSTIN = 'Traffic cameras: City of Austin, Texas (public domain)';
 const CAM_ATTRIB_ATX = 'Flood cameras: ATX Floods / City of Austin (low-water crossings)';
 const CAM_ATTRIB_HOUSTON = 'Traffic cameras: Houston TranStar (Houston region)';
-const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON };
+const CAM_ATTRIB_ELP = 'Live cameras: City of El Paso — international bridges';
+const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, elpbridge: CAM_ATTRIB_ELP };
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
 const ATXFLOODS_BASE = 'https://api.atxfloods.com';
@@ -903,7 +904,7 @@ function loadCameras() {
   state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
     .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
     .then((d) => {
-      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [] };
+      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], elpbridge: d.elpbridge || [] };
       renderCameras();
       return state.cameras;
     });
@@ -912,7 +913,7 @@ function loadCameras() {
 }
 
 function camTitle(c, kind) {
-  if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston') return c.name;
+  if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston' || kind === 'elpbridge') return c.name;
   if (c.src === 'its') return c.name || prettyRoute(c.route) || 'Traffic camera'; // ITS names carry the cross-street
   return c.description || prettyRoute(c.route) || c.name || 'Traffic camera';
 }
@@ -923,6 +924,7 @@ function camIconClass(c, kind) {
   if (kind === 'austin') return ' cam-austin';
   if (kind === 'atxfloods') return ' cam-flood';
   if (kind === 'houston') return ' cam-houston';
+  if (kind === 'elpbridge') return ' cam-elp';
   return c.src === 'its' ? ' cam-snap' : ''; // snapshot-only ITS cams read as "still", not "live"
 }
 
@@ -933,6 +935,7 @@ const CAM_NETS = [
   ['camsAustin', 'austin', 'austin'],
   ['camsFlood', 'atxfloods', 'atxfloods'],
   ['camsHouston', 'houston', 'houston'],
+  ['camsElpBridge', 'elpbridge', 'elpbridge'],
 ];
 
 function renderCameras() {
@@ -978,6 +981,8 @@ function findCamByKey(want) {
   if (af) return { c: af, kind: 'atxfloods' };
   const ho = state.cameras.houston.find((c) => String(c.id) === want || c.name === want);
   if (ho) return { c: ho, kind: 'houston' };
+  const ep = state.cameras.elpbridge.find((c) => c.name === want);
+  if (ep) return { c: ep, kind: 'elpbridge' };
   return null;
 }
 
@@ -986,6 +991,7 @@ function camPopup(c, kind) {
   let sub;
   if (kind === 'river') sub = `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`;
   else if (kind === 'atxfloods') sub = esc(t('cam.floodcam'));
+  else if (kind === 'elpbridge') sub = esc(t('cam.bridge'));
   else if (kind === 'austin' || kind === 'houston') sub = esc(t('cam.traffic'));
   else sub = `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
   el.innerHTML = `<div class="popup-title">📷 ${esc(camTitle(c, kind))}</div>` +
@@ -1002,6 +1008,7 @@ function camNetLabel(kind) {
   if (kind === 'austin') return `Austin · ${t('cam.traffic')}`;
   if (kind === 'atxfloods') return `ATX Floods · ${t('cam.floodcam')}`;
   if (kind === 'houston') return `Houston TranStar · ${t('cam.traffic')}`;
+  if (kind === 'elpbridge') return `City of El Paso · ${t('cam.bridge')}`;
   return `TxDOT · ${t('cam.traffic')}`;
 }
 
@@ -1045,9 +1052,11 @@ function openCamViewer(c, kind) {
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.its.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
     loadItsSnapshot(c, stage, meta, false, gen);
-  } else if (kind === 'txdot') {
+  } else if (kind === 'txdot' || kind === 'elpbridge') {
+    // live HLS: TxDOT SkyVDN + City of El Paso bridge cams both play direct (CORS-open) in the shared player
     const url = safeUrl(c.httpsurl);
-    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.txdot.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
+    const isElp = kind === 'elpbridge';
+    note.innerHTML = `${srcBadge('official')} ${esc(t(isElp ? 'cam.elp.note' : 'cam.txdot.note'))} · ${esc(isElp ? CAM_ATTRIB_ELP : CAM_ATTRIB_TXDOT)}`;
     const video = document.createElement('video');
     video.muted = true; video.autoplay = true; video.playsInline = true; video.controls = true;
     if (video.canPlayType('application/vnd.apple.mpegurl')) {

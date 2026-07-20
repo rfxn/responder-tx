@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.18 — 2026-07-20 (El Paso international-bridge live cameras: own opt-in HLS sub-layer, off by default)
+
+-- New Features --
+- [New] El Paso international-bridge live cameras: a new Cameras sub-layer
+      (camsElpBridge) plots the City of El Paso Rio Grande crossings — Paso del
+      Norte, Santa Fe, Stanton, and Ysleta-Zaragoza — as their own independent
+      toggle nested with the other camera sources and OFF by default; markers open
+      the existing live HLS <video> player (direct CORS-open playback, no proxy and
+      no new player) with a ● LIVE badge, each popup and the layer subtitle cite
+      City of El Paso, and the toggle travels via ?came=1 with active-layer pill,
+      playback-hide, and en+es strings; the 7 streams are liveness-checked at
+      generator time (scripts/gen-cameras.py) so rotated/dead stream names drop out
+
 ## v0.97.17 — 2026-07-20 (quality-audit fixes: filters badge honors the distance filter's GPS gate; camera edge proxy rejects inherited keys; camera generator aborts on a zeroed source)
 
 -- Bug Fixes --

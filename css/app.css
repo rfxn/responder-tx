@@ -809,6 +809,8 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .cam-icon.cam-flood { border-color: #2f80ed; box-shadow: 0 0 0 1.5px #2f80ed, 0 1px 3px rgba(0,0,0,0.4); }
 /* Houston TranStar cams — teal ring to read apart from the other metros */
 .cam-icon.cam-houston { border-color: #17a2a2; box-shadow: 0 0 0 1px #17a2a2, 0 1px 3px rgba(0,0,0,0.4); }
+/* City of El Paso bridge cams — purple ring (live HLS, border crossings) */
+.cam-icon.cam-elp { border-color: #8e5cd9; box-shadow: 0 0 0 1px #8e5cd9, 0 1px 3px rgba(0,0,0,0.4); }
 /* snapshot-only ITS cams: muted + dashed so a still never reads as a live stream */
 .cam-icon.cam-snap { border: 1.5px dashed var(--ink-muted); opacity: 0.8; filter: saturate(0.4); }
 /* viewer sits above Drive Mode (1600) — drive rows open cameras without leaving Drive Mode */

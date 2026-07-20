@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.18",
+      "date": "2026-07-20",
+      "line": "New live cameras from El Paso. You can now watch the City of El Paso's international-bridge cameras — the Paso del Norte, Santa Fe, Stanton, and Ysleta-Zaragoza crossings over the Rio Grande — live on the map. Turn them on under Cameras in the layers menu; like the other camera layers they are off by default. They open as live video in the same viewer the TxDOT highway cameras already use (with a LIVE badge), and every camera is credited to the City of El Paso. Because the operator occasionally renames its streams, the camera list is re-checked whenever it is rebuilt so only working cameras are shown."
+    },
+    {
       "v": "v0.97.17",
       "date": "2026-07-20",
       "line": "Bug fixes and internal cleanup. The ☰ Filters button no longer shows a count for the distance filter when your device doesn’t have a GPS fix — the distance filter can’t hide anything without a location, so the button now stays quiet and agrees with the “✓ All clear” feed instead of contradicting it. Behind the scenes: the camera image proxy now cleanly rejects malformed camera-source names instead of erroring out, and the tool that rebuilds the camera list now refuses to publish an empty camera layer if an upstream source changes shape or goes dark (it stops with an error instead of silently dropping a whole layer of cameras). Some duplicate and unused internal code was also removed. No visible change to how the board works."

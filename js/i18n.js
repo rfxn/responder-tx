@@ -251,6 +251,7 @@
       'sec.gauge.empty': 'No monitored gauges in or forecast to flood.',
       'sec.gauge.noload': 'Gauge data not loaded yet.',
       'feed.empty': 'No notices match the current filters.',
+      'feed.allclear': '✓ All clear — no active notices right now. Quiet is good; stay ready.',
       'feed.allcounties': 'All counties',
 
       'sync.openfeed': 'Open in feed →',
@@ -826,6 +827,7 @@
       'sec.gauge.empty': 'Ningún medidor monitoreado en inundación o con pronóstico de inundarse.',
       'sec.gauge.noload': 'Datos de medidores aún no cargados.',
       'feed.empty': 'Ningún reporte coincide con los filtros actuales.',
+      'feed.allclear': '✓ Todo despejado — no hay avisos activos ahora. La calma es buena; mantente listo.',
       'feed.allcounties': 'Todos los condados',
 
       'sync.openfeed': 'Abrir en el feed →',

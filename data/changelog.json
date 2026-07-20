@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.14",
+      "date": "2026-07-19",
+      "line": "An empty feed now reads as good news. When there are no active notices and you haven't applied a restricting filter, the feed shows a positive all-clear message (\"✓ All clear — no active notices right now. Quiet is good; stay ready.\") instead of the flat \"No notices match the current filters.\" The filter wording still appears when a type, county, search, time-window, distance, or In-view filter is actually what's hiding notices, so you're never misled into thinking the board is clear when it isn't. English y español."
+    },
+    {
       "v": "v0.97.13",
       "date": "2026-07-19",
       "line": "Light mode is now the default, with the Streets basemap — the board opens in the sunlight-readable light theme instead of dark, which reads better on a phone in the field. Dark is still one tap away via the ☀️/🌙 control in the ⋮ menu, and if you switch it, your choice sticks. A one-time reset clears the theme that was silently saved for every prior visitor so the new light default actually takes effect on your next load. Nothing else changed."

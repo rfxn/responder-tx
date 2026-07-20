@@ -319,6 +319,7 @@ main { flex: 1; display: flex; min-height: 0; }
   cursor: pointer;
 }
 .card:hover { border-color: var(--accent); }
+.card.feed-allclear { border-left-color: var(--good); color: var(--good); cursor: default; text-align: center; }
 .card.pri-critical { border-left-color: var(--sev-emergency); }
 .card.pri-high { border-left-color: var(--sev-warning); }
 .card.pri-medium { border-left-color: var(--sev-watch); }

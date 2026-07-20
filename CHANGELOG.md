@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.14 — 2026-07-19 (an empty feed now reads as an all-clear, not a null result)
+
+-- Changes --
+- [Change] when the notices feed is empty and no restricting filter is applied, it
+           now shows a positive all-clear message ("✓ All clear — no active notices
+           right now") instead of "No notices match the current filters"; the filter
+           wording still shows when a type/county/search/window/distance filter or
+           In-view is what's hiding notices (en + es)
+
 ## v0.97.13 — 2026-07-19 (light theme is now the default, with the Streets basemap)
 
 -- Changes --

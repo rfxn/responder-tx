@@ -267,7 +267,11 @@ function renderRequests() {
     });
     el.appendChild(div);
   }
-  if (!listed.length) el.innerHTML = `<div class="card">${esc(t('feed.empty'))}</div>`;
+  if (!listed.length) {
+    // an empty board is good news on a flood feed — say so, unless a restricting filter is what's hiding notices
+    const restricted = ['type', 'county', 'q', 'window', 'dist'].some((k) => state.filters[k]) || state.inView;
+    el.innerHTML = `<div class="card${restricted ? '' : ' feed-allclear'}">${esc(t(restricted ? 'feed.empty' : 'feed.allclear'))}</div>`;
+  }
 
   state.layers.requests.clearLayers();
   state.reqMarkers = {};

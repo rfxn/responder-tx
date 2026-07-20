@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+import posixpath
 import re
 import threading
 import time
@@ -66,8 +67,10 @@ class Handler(SimpleHTTPRequestHandler):
         if m:
             self._cam_proxy(m.group(1), urllib.parse.unquote(m.group(2)))
             return
-        # repo internals and agent inboxes must never be served to the LAN
-        if path.startswith(DENY_PREFIXES) or path in DENY_PATHS:
+        # repo internals and agent inboxes must never be served to the LAN. Normalize before the check —
+        # super().do_GET() resolves the path NORMALIZED, so a raw-string guard is bypassable (/./.git → /.git)
+        norm = posixpath.normpath(urllib.parse.unquote(path))
+        if norm.startswith(DENY_PREFIXES) or norm in DENY_PATHS or any(seg in ('.git', '.rdf', '.claude') for seg in norm.split('/')):
             self.send_error(404)
             return
         super().do_GET()

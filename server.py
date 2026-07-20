@@ -6,6 +6,7 @@ import os
 import re
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -24,22 +25,37 @@ ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
 CAM_TTL = 120
 DENY_PREFIXES = ('/.git', '/.rdf', '/.claude')
 DENY_PATHS = ('/HANDOFF.md', '/data/.chat-cursor', '/data/notes-inbox.jsonl')  # inbox served on LAN so the app can show the owner's own messages (git-ignored; never on the public mirror)
+# Master oversight proxy: the LAN board reaches the Cloudflare-only team registry through here so
+# the secret admin token stays server-side (env only, never in git or the browser). Unset → the
+# master view is disabled (ping.master=false) and the endpoints 503.
+TEAM_ADMIN_TOKEN = os.environ.get('TEAM_ADMIN_TOKEN', '')
+TEAM_ADMIN_UPSTREAM = os.environ.get('TEAM_ADMIN_UPSTREAM', 'https://responder.rfxn.com').rstrip('/')
+ADMIN_RE = re.compile(r'^/api/team/admin/(overview|list)$')
+ADMIN_TTL = 5
 _gauge_cache = {}
 _gauge_lock = threading.Lock()
 _cam_cache = {}
 _cam_lock = threading.Lock()
+_admin_cache = {}
+_admin_lock = threading.Lock()
 
 
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
-        # LAN-only capability beacon: app.js loads the chat UI only when this answers
+        # LAN-only capability beacon: app.js loads the chat + master-view UI only when this answers.
+        # master is advertised only when the admin token is configured, so the LAN board hides the
+        # oversight tool on servers that cannot reach the token-gated registry.
         if self.path == '/api/ping':
-            body = b'{"ok": true, "chat": true, "notes": true}'
+            body = json.dumps({'ok': True, 'chat': True, 'notes': True, 'master': bool(TEAM_ADMIN_TOKEN)}).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+        m = ADMIN_RE.match(self.path)
+        if m:
+            self._admin_proxy(m.group(1))
             return
         m = GAUGE_RE.match(self.path)
         if m:
@@ -116,6 +132,37 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Length', str(len(entry[1])))
         self.end_headers()
         self.wfile.write(entry[1])
+
+    # Master oversight proxy → Cloudflare token-gated registry endpoints. Injects the admin token
+    # from the server env (never the browser) so the LAN command view is same-origin and secretless.
+    # A short cache bounds Cloudflare hits when several command viewers poll the LAN at once.
+    def _admin_proxy(self, kind):
+        if not TEAM_ADMIN_TOKEN:
+            self.send_error(503, 'master oversight not configured')
+            return
+        now = time.time()
+        with _admin_lock:
+            hit = _admin_cache.get(kind)
+        body = hit[1] if hit and now - hit[0] < ADMIN_TTL else None
+        if body is None:
+            url = TEAM_ADMIN_UPSTREAM + '/api/team/admin/' + kind
+            try:
+                req = urllib.request.Request(url, headers={'Accept': 'application/json', 'X-Admin-Token': TEAM_ADMIN_TOKEN})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    body = r.read()
+            except urllib.error.HTTPError as e:
+                self.send_error(e.code)  # surface 403 (token mismatch) / 503 (relay down) to the operator
+                return
+            except OSError:
+                self.send_error(502)
+                return
+            with _admin_lock:
+                _admin_cache[kind] = (now, body)
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         if self.path == '/api/chat':

@@ -60,16 +60,22 @@ rm -rf "$deploy_dir"
 mkdir "$deploy_dir"
 git archive HEAD | tar -x -C "$deploy_dir" || fail "git archive extraction failed"
 rm -f "$deploy_dir/js/chat.js"
+rm -f "$deploy_dir/js/master.js"
 printf '{"messages":[]}\n' > "$deploy_dir/data/chat-outbox.json"
 
 # --- Strip-verify before upload ---
 [ ! -e "$deploy_dir/js/chat.js" ] || fail "js/chat.js still present in deploy dir"
+[ ! -e "$deploy_dir/js/master.js" ] || fail "js/master.js still present in deploy dir"
 [ ! -e "$deploy_dir/HANDOFF.md" ] || fail "HANDOFF.md present in deploy dir"
 [ ! -e "$deploy_dir/data/chat-inbox.jsonl" ] || fail "data/chat-inbox.jsonl present in deploy dir"
 if grep -rq 'api/chat' "$deploy_dir/js" "$deploy_dir/index.html"; then
     fail "api/chat reference found in deploy dir js/ or index.html"
 fi
-echo "strip-verify OK: chat surface absent from ${deploy_dir}"
+# index.html must never statically reference the LAN-only clients (boot.js injects them at runtime)
+if grep -q 'js/master\.js\|js/chat\.js' "$deploy_dir/index.html"; then
+    fail "LAN-only client (chat.js/master.js) statically referenced in deploy index.html"
+fi
+echo "strip-verify OK: chat + master surfaces absent from ${deploy_dir}"
 
 # --- Deploy ---
 wrangler pages deploy "$deploy_dir" --project-name responder-tx --branch main --commit-dirty=true \

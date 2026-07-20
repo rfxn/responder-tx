@@ -37,6 +37,13 @@ const SPECIALTIES = ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftw
 const K9_SKILLS = ['HRD', 'live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
 const MARKER_KINDS = ['waypoint', 'hazard', 'search-area'];
 
+// Global team registry (v0.97.5) — a single well-known DO (idFromName('registry')) tracks live
+// team ids + light metadata so the LAN-only master oversight view can enumerate teams. It holds
+// NO positions/markers; the overview fans out to each team's read-only peek on demand. Not
+// externally addressable (team ids are UUIDs; 'registry' is never routed through the edge).
+const MAX_REGISTRY = 1000;         // cap on team ids the registry tracks (oldest registration dropped first)
+const REGISTRY_FANOUT_MAX = 200;   // max teams aggregated per overview call (bounds DO subrequest budget)
+
 // distinct, high-contrast qualitative palette for member markers/trails
 const MEMBER_COLORS = [
   '#ff5252', '#40c4ff', '#69f0ae', '#ffd740', '#e040fb', '#ff6e40',
@@ -107,6 +114,10 @@ export class TeamRelay {
       case 'unmark': out = await this.doUnmark(body, now); break;
       case 'state': out = await this.doState(url, now); break;
       case 'leave': out = await this.doLeave(body, now); break;
+      case 'peek': out = await this.doPeek(now); break;
+      case 'register': out = await this.doRegister(body, now); break;
+      case 'reglist': out = await this.doReglist(now); break;
+      case 'overview': out = await this.doOverview(now); break;
       default: out = { _status: 404, error: 'unknown action' };
     }
     const status = out._status || 200;
@@ -152,6 +163,7 @@ export class TeamRelay {
         people: {}, markers: {}, defaults: sanitizeDefaults(body.defaults),
       };
       await this.persist(now);
+      await this.registerInRegistry(this.team.id, this.team.name, this.team.created, now);
     }
     return { teamId: this.team.id, name: this.team.name, created: this.team.created, defaults: this.team.defaults || null };
   }
@@ -285,6 +297,100 @@ export class TeamRelay {
     const id = String(body.ephemeralId || '');
     if (UUID_RE.test(id) && this.team.people[id]) { delete this.team.people[id]; await this.persist(now); }
     return { ok: true };
+  }
+
+  // read-only snapshot for the master oversight view: same shape as state but NEVER persists, so
+  // observing a team does not reset its idle TTL. In-memory reap only, for a clean view.
+  async doPeek(now) {
+    if (!this.team) return { _status: 404, error: 'team not found or expired' };
+    this.reap(now);
+    const members = [], viewers = [];
+    for (const p of Object.values(this.team.people)) {
+      if (p.role === 'member') members.push(this.publicMember(p));
+      else viewers.push({ ephemeralId: p.ephemeralId, handle: p.handle, role: 'viewer', lastSeen: p.lastSeen });
+    }
+    return {
+      teamId: this.team.id, name: this.team.name, now, lastActive: this.team.lastActive || null,
+      members, viewers, markers: Object.values(this.team.markers || {}), defaults: this.team.defaults || null,
+    };
+  }
+
+  /* ---------- registry (this === the well-known idFromName('registry') instance) ---------- */
+
+  // best-effort: record a newly created team's id in the registry DO. Never blocks create — a
+  // registry outage does not fail a team; the master view self-heals as new teams register.
+  async registerInRegistry(teamId, name, created, now) {
+    try {
+      const reg = this.env.TEAM.get(this.env.TEAM.idFromName('registry'));
+      await reg.fetch(new Request('https://do/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId, name, created }),
+      }));
+    } catch { /* registry unreachable — team still works; enumeration catches up on the next create */ }
+  }
+
+  async loadRegistry() {
+    return (await this.state.storage.get('registry')) || { teams: {} };
+  }
+
+  async doRegister(body, now) {
+    const teamId = String(body.teamId || '');
+    if (!UUID_RE.test(teamId)) return { _status: 400, error: 'bad team id' };
+    const reg = await this.loadRegistry();
+    reg.teams[teamId] = { name: sanitizeText(body.name, NAME_MAX), created: Number(body.created) || now, reg: now };
+    const ids = Object.keys(reg.teams);
+    if (ids.length > MAX_REGISTRY) {
+      ids.sort((a, b) => (reg.teams[a].reg || 0) - (reg.teams[b].reg || 0));
+      for (const id of ids.slice(0, ids.length - MAX_REGISTRY)) delete reg.teams[id];
+    }
+    await this.state.storage.put('registry', reg);
+    return { ok: true, count: Object.keys(reg.teams).length };
+  }
+
+  // lightweight enumeration: ids + name + created only, no positions
+  async doReglist(now) {
+    const reg = await this.loadRegistry();
+    const teams = Object.entries(reg.teams)
+      .map(([id, e]) => ({ id, name: e.name || '', created: e.created || null }))
+      .sort((a, b) => (b.created || 0) - (a.created || 0));
+    return { now, teamCount: teams.length, teams };
+  }
+
+  // full oversight aggregation: fan out to each registered team's read-only peek, aggregate
+  // makeup + a combined viewer roster, and prune ids whose team DO has expired (404).
+  async doOverview(now) {
+    const reg = await this.loadRegistry();
+    const ids = Object.keys(reg.teams).slice(0, REGISTRY_FANOUT_MAX);
+    const results = await Promise.all(ids.map(async (id) => {
+      try {
+        const stub = this.env.TEAM.get(this.env.TEAM.idFromName(id));
+        const res = await stub.fetch(new Request('https://do/peek', { method: 'GET' }));
+        if (res.status === 404) return { id, dead: true };
+        if (!res.ok) return { id, skip: true };
+        return { id, data: await res.json() };
+      } catch { return { id, skip: true }; }
+    }));
+    const teams = [], viewers = [], dead = [];
+    for (const r of results) {
+      if (r.dead) { dead.push(r.id); continue; }
+      if (r.skip || !r.data) continue;
+      const d = r.data, meta = reg.teams[r.id] || {};
+      teams.push({
+        id: r.id, name: d.name || meta.name || '', created: meta.created || null,
+        lastActive: d.lastActive || null,
+        members: d.members || [], viewers: d.viewers || [], markers: d.markers || [], defaults: d.defaults || null,
+      });
+      for (const v of (d.viewers || [])) {
+        viewers.push({ teamId: r.id, teamName: d.name || meta.name || '', handle: v.handle, ephemeralId: v.ephemeralId, lastSeen: v.lastSeen });
+      }
+    }
+    if (dead.length) {
+      for (const id of dead) delete reg.teams[id];
+      await this.state.storage.put('registry', reg);
+    }
+    teams.sort((a, b) => (b.created || 0) - (a.created || 0));
+    viewers.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+    return { now, teamCount: teams.length, memberCount: teams.reduce((n, t) => n + t.members.length, 0), viewerCount: viewers.length, teams, viewers, pruned: dead.length };
   }
 
   // drop a shared, team-scoped map marker (waypoint / hazard / search-area). Members only —

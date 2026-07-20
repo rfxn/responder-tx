@@ -722,7 +722,7 @@
       `<div class="tp-field ${p}-ground"><label>${esc(funcLabel(cfg))}</label>` +
       `<select class="tp-select" id="${p}-specialty">${spOpts}</select></div>` +
       `<div class="tp-field ${p}-k9" hidden><label>${esc(tt('team.field.k9name', 'K9 name'))}</label>` +
-      `<input class="tp-input" id="${p}-k9name" maxlength="24" autocomplete="off" placeholder="${esc(tt('team.field.k9name.ph', 'Dog\'s name'))}"></div>` +
+      `<input class="tt-input" id="${p}-k9name" maxlength="24" autocomplete="off" placeholder="${esc(tt('team.field.k9name.ph', 'Dog\'s name'))}"></div>` +
       `<div class="tp-field ${p}-k9" hidden><label>${esc(tt('team.field.skills', 'K9 skills'))}</label>` +
       `<div class="tp-skillrow" data-group="skills">${skillChips}</div></div>` +
       statusField

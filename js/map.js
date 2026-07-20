@@ -1371,7 +1371,7 @@ function pbMediaDismiss() {
 
 function pbMediaShow(item) {
   pbMediaDismiss();
-  const credit = t('playback.media.credit').replace('{credit}', item.credit || item.source_url || '—');
+  const credit = t('playback.media.credit').replace('{credit}', item.credit || item.source_url || '·');
   const icon = L.divIcon({
     className: '', iconSize: [190, 10], iconAnchor: [95, 10],
     html: `<div class="pb-media-card"><div class="pbm-head">` +

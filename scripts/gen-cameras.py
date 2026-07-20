@@ -353,7 +353,7 @@ def main():
             'atxfloods': 'Flood cameras: ATX Floods / City of Austin low-water crossings',
             'houston': 'Traffic cameras: Houston TranStar (Houston region incl. Galveston/Bolivar ferry)',
             'arlington': 'Traffic cameras: City of Arlington, Texas (public arterial cams)',
-            'elpbridge': 'Live cameras: City of El Paso — international bridges',
+            'elpbridge': 'Live cameras: City of El Paso international bridges',
         },
         'txdot': tx + its,
         'river': rv,

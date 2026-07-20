@@ -1132,7 +1132,7 @@ async function loadProxyStill(stage, meta, bust, gen, opts) {
     meta.innerHTML = (stale
       ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
       : `<span class="cam-badge still">${esc(t('cam.snapshot'))}</span>`) +
-      `<span class="cam-time">${esc(t('cam.captured'))} ${esc(when ? fmtWhen(when.toISOString()) : (captured || '—'))}</span>` +
+      `<span class="cam-time">${esc(t('cam.captured'))} ${esc(when ? fmtWhen(when.toISOString()) : (captured || '·'))}</span>` +
       (stale ? `<span class="cam-stale-note">${esc(t('cam.stale.note'))}</span>` : '') +
       `<button class="popup-expand cam-refresh">↻ ${esc(t('cam.refresh'))}</button>`;
     meta.querySelector('.cam-refresh').addEventListener('click', () => {

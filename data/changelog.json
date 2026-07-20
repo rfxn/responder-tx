@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.26",
+      "date": "2026-07-20",
+      "line": "Small correctness and polish fixes. The browser tab title and social-share cards now read \"Live Hazard Awareness\" too, matching the header (the \"for Texas\" was still lingering there). A team K9-name input that had lost its styling is fixed, a couple of blank-value placeholders and one camera label were cleaned up, and the SITREP button's copied message now translates. Nothing about how the board works has changed."
+    },
+    {
       "v": "v0.97.25",
       "date": "2026-07-20",
       "line": "Added a new camera layer for the City of Arlington, in the Dallas and Fort Worth area, with about 60 live traffic cameras at street intersections. It is its own layer that stays off until you turn it on, and it shows up in the camera viewer, in Drive Mode's nearest-camera list, in the layer menu, and in shared links, in both English and Spanish. We also fixed the tool that refreshes the camera list so it works again, and refreshed the full list at the same time (the Houston camera set grew)."

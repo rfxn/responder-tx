@@ -769,7 +769,7 @@ function copySitrep(btn) {
   const text = buildSitrep();
   openSitrepModal(text);
   copyText(text).then(
-    () => { if (btn) { btn.textContent = 'SITREP copied ✓'; setTimeout(() => { btn.textContent = '📋 SITREP'; }, 2000); } },
+    () => { if (btn) { btn.textContent = t('sitrep.copied'); setTimeout(() => { btn.textContent = '📋 SITREP'; }, 2000); } },
     () => downloadBlob(text, 'text/plain', `sitrep-${stamp()}.txt`));
 }
 

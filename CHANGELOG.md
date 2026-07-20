@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.26 · 2026-07-20 (false-complete + polish fixes)
+
+-- Bug Fixes --
+- [Fix] browser tab title, og:title, and twitter:title now drop "for Texas" to
+      match the shortened header subtitle (they were missed in v0.97.23, so shared
+      links and the tab still read "for Texas")
+- [Fix] team K9-name input restyled: its class was .tp-input but the stylesheet
+      defines .tt-input, so the field had lost its min-height and iOS zoom-safe sizing
+
+-- Changes --
+- [Change] SITREP toolbar button's "copied" confirmation now routes through i18n so
+           it translates; replaced two blank-value placeholder dashes (playback
+           credit, camera capture time) and the El Paso camera-label dash per the
+           punctuation style
+
 ## v0.97.25 · 2026-07-20 (cameras: add City of Arlington layer)
 
 -- New Features --

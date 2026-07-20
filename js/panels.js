@@ -190,12 +190,13 @@ function driveItems() {
   // verify-before-routing: the 2 nearest cameras tail the list like the reopened rows — never competing with hazards
   const cams = [];
   if (p && state.cameras) {
-    const pool = state.cameras.txdot.map((c) => ({ c, kind: 'txdot' })).concat(state.cameras.river.map((c) => ({ c, kind: 'river' })));
+    const pool = [['txdot', 'txdot'], ['river', 'river'], ['austin', 'austin'], ['atxfloods', 'atxfloods'], ['houston', 'houston']]
+      .flatMap(([arr, kind]) => (state.cameras[arr] || []).map((c) => ({ c, kind })));
     for (const x of pool) { if (Number.isFinite(x.c.lat) && Number.isFinite(x.c.lon)) x.d = distMi(p.lat, p.lng, x.c.lat, x.c.lon); }
     for (const x of pool.filter((y) => y.d != null).sort((a, b) => a.d - b.d).slice(0, 2)) {
       cams.push({
         glyph: '📷', color: 'var(--accent)', name: camTitle(x.c, x.kind),
-        sub: `${x.kind === 'river' ? `USGS · ${t('cam.river')}` : `TxDOT · ${t('cam.traffic')}`} · ${t('cam.view')}`,
+        sub: `${camNetLabel(x.kind)} · ${t('cam.view')}`,
         lat: x.c.lat, lon: x.c.lon, rank: 4, cam: x.c, camKind: x.kind,
       });
     }

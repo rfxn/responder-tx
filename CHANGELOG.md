@@ -1,5 +1,31 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.15 — 2026-07-20 (cameras split into independent per-source sub-layers; add Austin city, ATX Floods, Houston TranStar, and statewide USGS river cams)
+
+-- New Features --
+- [New] the Cameras layer is now a group of independently-selectable sub-layers —
+      one toggle per source (TxDOT road, USGS river/flood, Austin city, ATX Floods
+      low-water crossings, Houston TranStar) — each keeping its own marker style,
+      source citation, active-layer pill, playback-hide and deep-link
+      (?cams/?camr/?cama/?camf/?camh=1); all off by default and lazy-loaded, so TxDOT
+      itself is now an independent toggle
+- [New] City of Austin arterial/intersection cameras (817 live, public domain) as
+      their own sub-layer, served through a hardened same-origin snapshot proxy
+- [New] ATX Floods low-water-crossing flood cameras (26, City of Austin) as the
+      flagged flood sub-layer; the newest image is resolved live at view time to
+      follow the ~3-min capture cadence
+- [New] Houston TranStar cameras (963, incl. Galveston/Bolivar ferry) as their own
+      sub-layer, served through the same hardened snapshot proxy — extends camera
+      coverage to the Houston metro and upper Texas coast
+
+-- Changes --
+- [Change] USGS HIVIS river/flood-gage cameras now use a statewide-TX clip
+           (9 to 51 cams), pulling the Houston/DFW/Laredo flood-gage cams that the
+           gauge-AO clip previously dropped
+- [Change] the /api/cam snapshot proxy (LAN server + Cloudflare edge) now dispatches
+           by source key to a strict per-source host + id allowlist and sends a real
+           browser User-Agent on every upstream fetch — still a closed, non-open proxy
+
 ## v0.97.13 — 2026-07-19 (light theme is now the default, with the Streets basemap)
 
 -- Changes --

@@ -311,7 +311,7 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
-    if (e.layer === state.layers.cameras) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
+    if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston].includes(e.layer)) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
     rtlSync();
@@ -365,10 +365,16 @@ function initMap() {
   state.layers.roadReopen = L.layerGroup();
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
   state.layers.lwc = L.layerGroup();
-  // road & river cameras — OFF by default, lazy-loaded, clustered (~650 markers); plain group if the plugin failed
-  state.layers.cameras = L.markerClusterGroup
+  // cameras — one independent sub-layer per source, all OFF by default, lazy-loaded, clustered;
+  // plain group if the markercluster plugin failed to load
+  const camGroup = () => (L.markerClusterGroup
     ? L.markerClusterGroup({ disableClusteringAtZoom: 12, maxClusterRadius: 46 })
-    : L.layerGroup();
+    : L.layerGroup());
+  state.layers.camsTxdot = camGroup();
+  state.layers.camsRiver = camGroup();
+  state.layers.camsAustin = camGroup();
+  state.layers.camsFlood = camGroup();
+  state.layers.camsHouston = camGroup();
   state.layerCtl = L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
@@ -391,7 +397,11 @@ function initMap() {
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
     'Road reopenings (recovering)': state.layers.roadReopen,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
-    'Cameras: road & river (TxDOT/USGS)': state.layers.cameras,
+    'Cameras — TxDOT road (live/still)': state.layers.camsTxdot,
+    'Cameras — USGS river/flood (stills)': state.layers.camsRiver,
+    'Cameras — Austin city (stills)': state.layers.camsAustin,
+    'Cameras — ATX Floods low-water crossings': state.layers.camsFlood,
+    'Cameras — Houston TranStar (stills)': state.layers.camsHouston,
   }, { collapsed: true }).addTo(state.map);
 
   const legend = L.control({ position: 'bottomleft' });
@@ -587,7 +597,11 @@ const PILL_LAYERS = [
   ['usgs', 'layers.usgs'],
   ['lsrsAged', 'layers.lsrhist'],
   ['lwc', 'layers.lwc'],
-  ['cameras', 'layers.cams'],
+  ['camsTxdot', 'layers.cams.txdot'],
+  ['camsRiver', 'layers.cams.river'],
+  ['camsAustin', 'layers.cams.austin'],
+  ['camsFlood', 'layers.cams.flood'],
+  ['camsHouston', 'layers.cams.houston'],
   ['roadReopen', 'layers.reopen'],
 ];
 
@@ -643,7 +657,13 @@ const SHEET_GROUPS = [
   ['sheet.g.roads', [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],
     ['roadReopen', '<span class="reopen-icon">✓</span>', 'layers.reopen', 'sheet.s.reopen', 'official', false, true],
-    ['cameras', '📷', 'layers.cams', 'sheet.s.cams', null, false],
+  ]],
+  ['sheet.g.cameras', [
+    ['camsTxdot', '📷', 'layers.cams.txdot', 'sheet.s.cams.txdot', 'official', false],
+    ['camsRiver', '📷', 'layers.cams.river', 'sheet.s.cams.river', 'official', false],
+    ['camsAustin', '📷', 'layers.cams.austin', 'sheet.s.cams.austin', 'official', false],
+    ['camsFlood', '📷', 'layers.cams.flood', 'sheet.s.cams.flood', 'official', false],
+    ['camsHouston', '📷', 'layers.cams.houston', 'sheet.s.cams.houston', 'official', false],
   ]],
   ['sheet.g.reports', [
     ['alerts', '⚠️', 'layers.alerts', 'sheet.s.alerts', 'official', true],
@@ -1200,7 +1220,11 @@ function pbSbwPopup(p) {
    as-of the frame from item timestamps, or hides — nothing live may impersonate the past. */
 const PB_LIVE_HIDE = [
   ['shelters', 'layers.shelters'],
-  ['cameras', 'layers.cams'],
+  ['camsTxdot', 'layers.cams.txdot'],
+  ['camsRiver', 'layers.cams.river'],
+  ['camsAustin', 'layers.cams.austin'],
+  ['camsFlood', 'layers.cams.flood'],
+  ['camsHouston', 'layers.cams.houston'],
   ['usgs', 'layers.usgs'],
   ['fcstMax', 'layers.fcst'],
   ['fcstRadar', 'layers.fcstradar'],

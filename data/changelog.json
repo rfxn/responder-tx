@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.21",
+      "date": "2026-07-20",
+      "line": "A visual polish to the header logo. The ResponderTX wordmark at the top-left is now larger and easier to read, and the tagline \"Live Hazard Awareness for Texas\" shows once instead of appearing twice (it had been baked into the logo art and also repeated as a line beneath it). Nothing about how the board works has changed, and all the safety colors and the 911 guidance stay exactly as before."
+    },
+    {
       "v": "v0.97.20",
       "date": "2026-07-20",
       "line": "A visual refresh, not a change to how the board works. The app is now ResponderTX, with a new logo in the header, a navy-and-red color scheme drawn from the brand palette, and the tagline \"Live Hazard Awareness for Texas.\" The browser tab and home-screen icons now use the new logo, and the interface fonts are bundled with the app so they load even on a weak connection. The colors that carry safety meaning (flood-severity levels, alert levels, and the green all-clear) are unchanged, and the 911 guidance stays exactly as before."

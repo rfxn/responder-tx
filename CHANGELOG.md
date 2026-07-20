@@ -1,5 +1,23 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.21 · 2026-07-20 (brand polish: clean header logo lockup, drop duplicate tagline)
+
+-- Bug Fixes --
+- [Fix] the header logo rendered horizontally stretched: the .brand column flexbox
+      defaulted to align-items:stretch and pulled the width:auto lockup out to the
+      sub-line width; .brand now uses align-items:flex-start so the mark and wordmark
+      keep their true aspect ratio at any size
+- [Fix] the header logo showed the tagline twice: the horizontal lockup baked in
+      "LIVE HAZARD AWARENESS FOR TEXAS" and the header also rendered the separate
+      sub-line; the header now uses new no-tagline lockups (logo-lockup.png and
+      logo-lockup-dark.png: Texas mark plus RESPONDERTX wordmark) so it shows once
+
+-- Changes --
+- [Change] enlarged the header wordmark from 32px to 38px (32px on phones) against a
+           tighter crop so RESPONDERTX reads clearly instead of cramped; the dark
+           lockup's baked textured background is flattened to the flat #0D1B2A header
+           surface so it sits seamlessly, and the live dot is preserved
+
 ## v0.97.20 · 2026-07-20 (ResponderTX visual rebrand: brand palette, logo, favicon, fonts, name and tagline)
 
 -- Changes --

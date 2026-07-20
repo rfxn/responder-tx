@@ -1,5 +1,30 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.17 — 2026-07-20 (quality-audit fixes: filters badge honors the distance filter's GPS gate; camera edge proxy rejects inherited keys; camera generator aborts on a zeroed source)
+
+-- Bug Fixes --
+- [Fix] the ☰ Filters badge no longer counts the distance filter when there is no
+      GPS fix: the distance filter only applies once a location is known, so with no
+      fix the badge now stays unhighlighted to match the ✓ all-clear feed instead of
+      the two disagreeing
+- [Fix] the camera edge snapshot proxy (functions/api/cam) now rejects source keys
+      that resolve to inherited Object.prototype members (e.g. /api/cam/constructor/x
+      or /api/cam/toString/x); an own-property guard returns the same 400 as any
+      other unknown source instead of throwing a 500
+- [Fix] the camera generator (scripts/gen-cameras.py) now aborts with a non-zero
+      exit and leaves data/cameras.json untouched when any of the ITS, USGS river,
+      Austin, ATX Floods, or Houston sources returns below a conservative floor, so
+      an upstream shape change can no longer silently publish an empty camera layer
+
+-- Changes --
+- [Change] the token-gated master oversight routes (admin/list, admin/overview) now
+           import the shared functions/api/team/_json.js helper (extended with an
+           optional robots argument) instead of admin/util.js carrying a duplicate
+           json(); response headers are byte-identical (X-Robots-Tag: noindex,
+           nofollow)
+- [Change] removed a dead window.i18nSupported export from js/i18n.js that nothing
+           read
+
 ## v0.97.16 — 2026-07-20 (quality-audit fixes: all-clear wording honors the distance filter's GPS gate; internal json() dedup and dead-code trim)
 
 -- Bug Fixes --

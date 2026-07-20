@@ -6,6 +6,7 @@ import os
 import posixpath
 import re
 import ssl
+import sys
 import threading
 import time
 import urllib.error
@@ -331,6 +332,29 @@ class RedirectHandler(BaseHTTPRequestHandler):
         pass  # LAN ops traffic — request logging is noise
 
 
+class TLSServer(ThreadingHTTPServer):
+    # TLS handshake runs in the per-connection worker thread, never the accept loop. Wrapping the
+    # LISTENING socket makes accept() block on the handshake, so one slow or non-TLS client (e.g.
+    # plain HTTP sent to the HTTPS port) would freeze the whole server. do_handshake_on_connect=False
+    # defers the handshake to first I/O in the thread; the socket timeout bounds a stalled client.
+    def __init__(self, addr, handler, ssl_ctx):
+        self.ssl_ctx = ssl_ctx
+        super().__init__(addr, handler)
+
+    def get_request(self):
+        sock, addr = self.socket.accept()
+        sock.settimeout(30)
+        return self.ssl_ctx.wrap_socket(sock, server_side=True, do_handshake_on_connect=False), addr
+
+    def handle_error(self, request, client_address):
+        # a non-TLS or stalled client (port scan, plain HTTP to the HTTPS port) fails the handshake
+        # in its own thread — swallow the expected connection-level noise instead of logging a
+        # traceback per hit; anything unexpected still surfaces
+        if isinstance(sys.exc_info()[1], (ssl.SSLError, ConnectionError, TimeoutError)):
+            return
+        super().handle_error(request, client_address)
+
+
 if __name__ == '__main__':
     os.chdir(ROOT)
     port = int(os.environ.get('PORT', '8080'))
@@ -341,8 +365,7 @@ if __name__ == '__main__':
     if os.access(cert, os.R_OK) and os.access(key, os.R_OK):
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(cert, key)
-        https_server = ThreadingHTTPServer(('0.0.0.0', https_port), Handler)
-        https_server.socket = ctx.wrap_socket(https_server.socket, server_side=True)
+        https_server = TLSServer(('0.0.0.0', https_port), Handler, ctx)
         redirect_server = ThreadingHTTPServer(('0.0.0.0', port), RedirectHandler)
         print('Responder LAN server: HTTPS on :%d, HTTP->HTTPS redirect on :%d' % (https_port, port))
         threading.Thread(target=redirect_server.serve_forever, daemon=True).start()

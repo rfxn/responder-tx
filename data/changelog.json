@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.7",
+      "date": "2026-07-20",
+      "line": "Security hardening for live teams: a viewer is now truly watch-only. Before, the private id a member used to publish its own location doubled as its public name in the roster, so anyone with the team link could copy it and impersonate that member — moving their pin, dropping or clearing markers as them, or removing them from the team. Each person now carries two ids: a public one used only to show and follow them on the map, and a separate secret one, kept only on their own device, that signs their updates. The secret is never shown to anyone else, so a viewer can no longer act as a member. Nothing changes in how you create, join, or use a team. This release also adds the first automated tests for the team relay. A backend redeploy is required for the fix to take effect. English y español."
+    },
+    {
       "v": "v0.97.6",
       "date": "2026-07-20",
       "line": "Live team sharing gets a real home. It moves out of the cramped ⋮ menu overlay into its own first-class \"Team\" tab alongside Feed, Alerts, Gauges, Social, and Resources. When you are not in a team the tab shows roomy create-a-team and join-by-link controls; once you are in, it shows the roster (with each member's type, specialty, K9 name, and status), your own prominent status control, and the team controls. Joining is now unmistakable: a primary \"Join & share my location\" and a secondary \"Join as viewer (watch only)\", with your call-sign field right above them. Members get a Waze-style drop-a-pin button in the bottom-right of the map to drop a shared waypoint, hazard, or search-area marker at the map center. Every control has a comfortable phone-sized tap target. The handle help no longer warns against your legal name, and the K9 skills list drops \"HRD\" (cadaver already covers it). Team map markers keep showing on the map no matter which tab you are on, and the board works normally for anyone who never opens the Team tab. English y español."

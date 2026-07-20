@@ -217,7 +217,8 @@ export class TeamRelay {
       if (Object.keys(this.team.people).length >= MAX_PEOPLE) return { _status: 429, error: 'team is full' };
       id = crypto.randomUUID();
     }
-    const person = existing || { ephemeralId: id, joined: now, trail: [], lastPos: null };
+    const person = existing || { ephemeralId: id, pid: crypto.randomUUID(), joined: now, trail: [], lastPos: null };
+    this.pidOf(person); // legacy rejoin: mint a public id if this person predates the pid split
     person.handle = v.handle;
     person.role = v.role;
     person.lastSeen = now;
@@ -284,7 +285,7 @@ export class TeamRelay {
     const members = [], viewers = [];
     for (const p of Object.values(this.team.people)) {
       if (p.role === 'member') members.push(this.publicMember(p));
-      else viewers.push({ ephemeralId: p.ephemeralId, handle: p.handle, role: 'viewer', lastSeen: p.lastSeen });
+      else viewers.push({ pid: this.pidOf(p), handle: p.handle, role: 'viewer', lastSeen: p.lastSeen });
     }
     await this.persist(now);
     return {
@@ -309,7 +310,7 @@ export class TeamRelay {
     const members = [], viewers = [];
     for (const p of Object.values(this.team.people)) {
       if (p.role === 'member') members.push(this.publicMember(p));
-      else viewers.push({ ephemeralId: p.ephemeralId, handle: p.handle, role: 'viewer', lastSeen: p.lastSeen });
+      else viewers.push({ pid: this.pidOf(p), handle: p.handle, role: 'viewer', lastSeen: p.lastSeen });
     }
     return {
       teamId: this.team.id, name: this.team.name, now, lastActive: this.team.lastActive || null,
@@ -383,7 +384,7 @@ export class TeamRelay {
         members: d.members || [], viewers: d.viewers || [], markers: d.markers || [], defaults: d.defaults || null,
       });
       for (const v of (d.viewers || [])) {
-        viewers.push({ teamId: r.id, teamName: d.name || meta.name || '', handle: v.handle, ephemeralId: v.ephemeralId, lastSeen: v.lastSeen });
+        viewers.push({ teamId: r.id, teamName: d.name || meta.name || '', handle: v.handle, pid: v.pid, lastSeen: v.lastSeen });
       }
     }
     if (dead.length) {
@@ -412,7 +413,7 @@ export class TeamRelay {
     if (Object.keys(this.team.markers).length >= MAX_MARKERS) return { _status: 429, error: 'too many team markers' };
     const kind = MARKER_KINDS.includes(body.kind) ? body.kind : 'waypoint';
     const mid = crypto.randomUUID();
-    this.team.markers[mid] = { id: mid, kind, label: sanitizeText(body.label, MARKER_LABEL_MAX), lat, lon, by: person.handle, byId: person.ephemeralId, ts: now };
+    this.team.markers[mid] = { id: mid, kind, label: sanitizeText(body.label, MARKER_LABEL_MAX), lat, lon, by: person.handle, byPid: this.pidOf(person), ts: now };
     person.lastSeen = now;
     await this.persist(now);
     return { ok: true, marker: this.team.markers[mid] };
@@ -436,17 +437,27 @@ export class TeamRelay {
     }
   }
 
+  // public keying/display id, distinct from the secret write-credential ephemeralId; minted on
+  // first need so people who predate the pid split (legacy state) get one on next touch
+  pidOf(p) {
+    if (!p.pid) p.pid = crypto.randomUUID();
+    return p.pid;
+  }
+
+  // the caller's OWN record: the only response that carries the secret ephemeralId (its write
+  // credential). pid is the public id echoed to everyone else; the client self-detects by it.
   publicSelf(p) {
     return {
-      ephemeralId: p.ephemeralId, handle: p.handle, role: p.role, color: p.color || null,
+      ephemeralId: p.ephemeralId, pid: this.pidOf(p), handle: p.handle, role: p.role, color: p.color || null,
       mtype: p.mtype || null, specialty: p.specialty || null, k9Name: p.k9Name || '',
       skills: p.skills || [], status: p.status || null,
     };
   }
 
+  // another participant's row: public pid only — the secret ephemeralId is never disclosed here
   publicMember(p) {
     return {
-      ephemeralId: p.ephemeralId, handle: p.handle, role: 'member', color: p.color || null,
+      pid: this.pidOf(p), handle: p.handle, role: 'member', color: p.color || null,
       lastPos: p.lastPos || null, lastSeen: p.lastSeen, trail: p.trail || [],
       mtype: p.mtype || 'ground', specialty: p.specialty || null, k9Name: p.k9Name || '',
       skills: p.skills || [], status: p.status || 'infield',

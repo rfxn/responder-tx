@@ -27,7 +27,7 @@
   const MARKER_GLYPH = { waypoint: '📍', hazard: '⚠️', 'search-area': '▧' };
 
   const T = {
-    id: null, name: '', role: null, ephemeralId: null, handle: '',
+    id: null, name: '', role: null, ephemeralId: null, pid: null, handle: '',
     mtype: null, specialty: null, k9Name: '', skills: [], status: null,
     watchId: null, pollTimer: null, postTimer: null,
     layer: null, markerLayer: null, markers: {}, teamMarkers: {},
@@ -75,21 +75,21 @@
   function renderAll() {
     ensureLayer();
     const members = (T.lastMembers || []).slice();
-    if (T.role === 'member' && T.selfPos && !members.some((m) => m.ephemeralId === T.ephemeralId)) {
-      members.push({ ephemeralId: T.ephemeralId, handle: T.handle, color: selfColor(), lastPos: null, lastSeen: Date.now(), trail: [], mtype: T.mtype, k9Name: T.k9Name, status: T.status });
+    if (T.role === 'member' && T.selfPos && !members.some((m) => m.pid === T.pid)) {
+      members.push({ pid: T.pid, handle: T.handle, color: selfColor(), lastPos: null, lastSeen: Date.now(), trail: [], mtype: T.mtype, k9Name: T.k9Name, status: T.status });
     }
     const seen = {};
     for (const m of members) {
-      const isSelf = m.ephemeralId === T.ephemeralId;
+      const isSelf = m.pid === T.pid;
       const pos = isSelf && T.selfPos ? { lat: T.selfPos.lat, lon: T.selfPos.lon } : m.lastPos;
       if (!pos) continue;
-      seen[m.ephemeralId] = true;
+      seen[m.pid] = true;
       const color = isSelf ? selfColor() : m.color;
       const stale = !isSelf && Date.now() - (m.lastSeen || 0) > STALE_MS;
       // self-fix overlays the cached record so a fresh GPS tick shows the latest type/status
       const mm = isSelf ? Object.assign({}, m, { mtype: T.mtype || m.mtype, k9Name: T.k9Name || m.k9Name, status: T.status || m.status, handle: T.handle || m.handle }) : m;
       const ll = [pos.lat, pos.lon];
-      let entry = T.markers[m.ephemeralId];
+      let entry = T.markers[m.pid];
       if (!entry) {
         entry = {
           marker: L.marker(ll, { pane: 'team', icon: memberIcon(mm, color, isSelf, stale), zIndexOffset: isSelf ? 1000 : 0, interactive: false }),
@@ -97,7 +97,7 @@
         };
         entry.trail.addTo(T.layer);
         entry.marker.addTo(T.layer);
-        T.markers[m.ephemeralId] = entry;
+        T.markers[m.pid] = entry;
       } else {
         entry.marker.setLatLng(ll);
         entry.marker.setIcon(memberIcon(mm, color, isSelf, stale));
@@ -429,7 +429,7 @@
     const members = data.members || [], viewers = data.viewers || [];
     const rows = [];
     for (const m of members) {
-      if (m.ephemeralId === T.ephemeralId) continue; // self lives in the you-bar
+      if (m.pid === T.pid) continue; // self lives in the you-bar
       const hasFix = !!m.lastPos;
       const stale = Date.now() - (m.lastSeen || 0) > STALE_MS;
       const swColor = m.color || '#40c4ff';
@@ -443,7 +443,7 @@
       </div>`);
     }
     for (const v of viewers) {
-      if (v.ephemeralId === T.ephemeralId) continue;
+      if (v.pid === T.pid) continue;
       rows.push(`<div class="tp-row tp-viewer">
         <span class="tp-sw tp-sw-eye">👁</span>
         <span class="tp-name">${esc(v.handle)}</span>
@@ -604,7 +604,8 @@
     if (!you) return;
     T.role = you.role;
     T.handle = you.handle;
-    T.ephemeralId = you.ephemeralId;
+    T.ephemeralId = you.ephemeralId; // secret write credential — never rendered, only sent on writes
+    T.pid = you.pid;                 // public id — used to self-detect in the roster/markers
     T.mtype = you.mtype || null;
     T.specialty = you.specialty || null;
     T.k9Name = you.k9Name || '';

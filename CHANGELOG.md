@@ -1,6 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
-## v0.97.30 · 2026-07-20 (location follow mode, unified zoom, compass)
+## v0.97.31 · 2026-07-20 (team auto-rejoin, proxy dedup)
+
+-- Bug Fixes --
+- [Fix] team members no longer vanish after backgrounding the phone: the app now
+      auto-rejoins your team on return to the foreground, restoring your handle, role,
+      and profile and resuming location sharing, with a brief "reconnected" note
+- [Fix] deliberate "leave team" now reaches the server reliably (it had been posting
+      to an empty team id after teardown, so only the server TTL removed the member)
+
+-- Changes --
+- [Change] internal: the team relay Pages Functions share one forwarder helper
+           instead of repeating the same validation and proxy code in each route (no
+           behavior change)
 
 -- New Features --
 - [New] tap Locate or "Re-center on me" to follow: the map now keeps you centered as

@@ -249,3 +249,25 @@ test('defaults — invite filter presets are sanitized, persisted, and echoed by
   const { relay: noDef } = await newTeam();
   assert.equal(noDef.team.defaults, null, 'no defaults means null, unchanged behavior');
 });
+
+test('rejoin — re-joining with the saved ephemeralId reuses one person; after a beacon leave it re-creates from the saved profile without a duplicate', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'AlphaOne', role: 'member', mtype: 'ground', specialty: 'medical', status: 'standby' }, now)).you;
+  // a foreground rejoin re-POSTs join with the SAME ephemeralId → the same person, no duplicate
+  const again = (await relay.doJoin({ handle: 'AlphaOne', role: 'member', ephemeralId: you.ephemeralId, mtype: 'ground', specialty: 'medical', status: 'standby' }, now)).you;
+  assert.equal(again.ephemeralId, you.ephemeralId, 'the saved ephemeralId is retained on an idempotent rejoin');
+  assert.equal(again.pid, you.pid, 'the public pid is stable across a rejoin');
+  let state = await relay.doState(stateUrl(you.ephemeralId), now);
+  assert.equal(state.members.length, 1, 'an idempotent rejoin does not create a duplicate member');
+  assert.equal(state.members[0].specialty, 'medical', 'the profile is preserved across the rejoin');
+  // simulate the background beacon deleting the member, then a foreground rejoin from the saved identity
+  await relay.doLeave({ ephemeralId: you.ephemeralId }, now);
+  assert.equal((await relay.doState(stateUrl(you.ephemeralId), now)).members.length, 0, 'the beacon leave removed the member');
+  const restored = (await relay.doJoin({ handle: 'AlphaOne', role: 'member', ephemeralId: you.ephemeralId, mtype: 'ground', specialty: 'medical', status: 'standby' }, now)).you;
+  assert.match(restored.ephemeralId, UUID_RE);
+  assert.equal(restored.handle, 'AlphaOne', 'the handle is restored from the saved identity');
+  assert.equal(restored.specialty, 'medical', 'the profile is restored on a post-beacon re-create');
+  const finalState = await relay.doState(stateUrl(restored.ephemeralId), now);
+  assert.equal(finalState.members.length, 1, 'exactly one member after a beacon leave then a foreground rejoin');
+});

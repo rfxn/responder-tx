@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.31",
+      "date": "2026-07-20",
+      "line": "A team reliability fix. If you background the app or switch away on your phone, you used to silently drop off your team; now the app reconnects you automatically when you return, restoring your handle, role, and profile and resuming location sharing. Leaving a team on purpose is also more reliable now. An internal cleanup of the team relay code rounds it out, with no change to how anything works."
+    },
+    {
       "v": "v0.97.30",
       "date": "2026-07-20",
       "line": "Location tools leveled up. Tap Locate or Re-center on me and the map now follows you, staying centered as you move so you do not drift off-screen; pan or pinch-zoom yourself to stop following. Locate now zooms to the same closer level as Re-center. A new compass in the bottom-right corner shows which way is north."

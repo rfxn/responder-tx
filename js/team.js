@@ -17,6 +17,7 @@
   const STALE_MS = 90000;  // grey a member marker after this long with no update
   const SELF_TRAIL_MAX = 400;
   const eidKey = (id) => `respondertx.team.eid.${id}`;
+  const selfKey = (id) => `respondertx.team.self.${id}`;
 
   // Picklists — mirror the DO's authoritative allow-sets (workers/team-relay/team-relay.js)
   const MTYPES = ['ground', 'k9'];
@@ -637,6 +638,9 @@
       if (data.defaults && !T.defaults) T.defaults = data.defaults;
       try { localStorage.setItem(eidKey(T.id), T.ephemeralId); } catch { /* private mode — reload starts a fresh member */ }
       T.active = true;
+      _beaconLeft = false;
+      armLifecycle(); // guarantee the background/foreground handlers are wired for this joined session
+      persistSelf();
       renderTeamTab();
       applyDefaults();
       if (T.role === 'member') startSharing();
@@ -654,6 +658,8 @@
   }
 
   function teardown() {
+    clearPersistedSelf(T.id); // deliberate leave / expired team drops the saved identity; the background beacon never reaches here
+    _beaconLeft = false;
     T.active = false;
     stopWatch();
     if (T.pollTimer) { clearInterval(T.pollTimer); T.pollTimer = null; }
@@ -684,6 +690,27 @@
     if (you.color) _selfColor = you.color;
   }
 
+  // Persist the full self-identity per team so a foreground return can rejoin unattended (rejoinSelf).
+  // Cleared only on a deliberate leave or an expired team (teardown) — never on the background beacon.
+  function persistSelf() {
+    if (!T.id || !T.active) return;
+    try {
+      localStorage.setItem(selfKey(T.id), JSON.stringify({
+        handle: T.handle, role: T.role, ephemeralId: T.ephemeralId, teamType: T.teamType, name: T.name,
+        mtype: T.mtype, specialty: T.specialty, k9Name: T.k9Name, skills: T.skills, status: T.status,
+      }));
+    } catch { /* private mode — a same-session foreground rejoin still works off in-memory T */ }
+  }
+  function loadSelf(id) {
+    if (!id) return null;
+    try { const raw = localStorage.getItem(selfKey(id)); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  }
+  function clearPersistedSelf(id) {
+    if (!id) return;
+    try { localStorage.removeItem(selfKey(id)); } catch { /* private mode */ }
+    try { localStorage.removeItem(eidKey(id)); } catch { /* private mode */ }
+  }
+
   // change my own record after joining (role / type / specialty / skills / status)
   async function doUpdateSelf(patch) {
     if (!T.active || !T.ephemeralId) return;
@@ -693,6 +720,7 @@
       const data = await r.json();
       if (!r.ok) { note(data.error || tt('team.updatefail', 'Could not update your profile.')); return false; }
       storeSelf(data.you);
+      persistSelf(); // keep the saved identity current so a later rejoin restores the latest profile/role
       if (T.role === 'member' && !wasMember) startSharing();
       if (T.role !== 'member' && wasMember) { stopWatch(); T.selfPos = null; T.selfTrail = []; }
       renderYouBar();
@@ -703,22 +731,85 @@
   }
 
   async function leave() {
+    const id = T.id; // capture before teardown nulls it, so the leave POST targets the real team
     const eid = T.ephemeralId;
     teardown();
     renderTeamTab();
-    if (eid) {
-      try { await api(`${T.id}/leave`, { method: 'POST', body: JSON.stringify({ ephemeralId: eid }) }); } catch { /* server TTL is the backstop */ }
+    if (id && eid) {
+      try { await api(`${id}/leave`, { method: 'POST', body: JSON.stringify({ ephemeralId: eid }) }); } catch { /* server TTL is the backstop */ }
     }
     note(tt('team.left', 'You left the team and stopped sharing.'));
   }
 
-  // best-effort drop when the tab is closed/hidden; server TTL still reaps if this never lands
+  // best-effort drop when the tab is closed/hidden; server TTL still reaps if this never lands. The
+  // saved identity is intentionally kept so a return to the foreground can rejoin (see rejoinSelf).
+  let _beaconLeft = false;
   function beaconLeave() {
     if (!T.active || !T.ephemeralId) return;
+    _beaconLeft = true;
     try {
       const blob = new Blob([JSON.stringify({ ephemeralId: T.ephemeralId })], { type: 'application/json' });
       navigator.sendBeacon(`/api/team/${T.id}/leave`, blob);
     } catch { /* sendBeacon unsupported — TTL backstop */ }
+  }
+
+  // Re-establish a persisted membership unattended on return to the foreground. Idempotent: re-POST
+  // join with the saved ephemeralId so the DO reuses the same person when it survived the beacon, or
+  // re-creates it from the saved profile when the beacon deleted it; running timers are reused, not duplicated.
+  let _rejoining = false;
+  function needsRejoin() {
+    if (!T.id || _rejoining) return false;
+    if (!loadSelf(T.id)) return false;   // no persisted membership → nothing to restore (fresh join stays on the join screen)
+    return !T.active || _beaconLeft;     // never established this session, or the beacon told the server we left
+  }
+
+  async function rejoinSelf() {
+    if (_rejoining || !T.id) return;
+    const saved = loadSelf(T.id);
+    if (!saved) return;
+    const handle = T.handle || saved.handle;
+    const role = T.role || saved.role;
+    if (!handle || !role) return;
+    let ephemeralId = T.ephemeralId;
+    if (!ephemeralId) { try { ephemeralId = localStorage.getItem(eidKey(T.id)); } catch { /* private mode */ } }
+    if (!ephemeralId) ephemeralId = saved.ephemeralId || null;
+    _rejoining = true;
+    armLifecycle();
+    if (!T.teamType) T.teamType = saved.teamType || DEFAULT_TEAM_TYPE;
+    if (!T.name) T.name = saved.name || '';
+    // send the saved profile so a re-created member is restored intact; undefined fields drop out of
+    // the JSON so the DO keeps prior values when the person still exists
+    const profile = role === 'member' ? {
+      status: T.status || saved.status || 'infield',
+      mtype: T.mtype || saved.mtype || undefined,
+      specialty: T.specialty || saved.specialty || undefined,
+      k9Name: T.k9Name || saved.k9Name || undefined,
+      skills: (T.skills && T.skills.length) ? T.skills : (saved.skills || undefined),
+    } : {};
+    try {
+      const r = await api(`${T.id}/join`, { method: 'POST', body: JSON.stringify(Object.assign({ handle, role, ephemeralId }, profile)) });
+      const data = await r.json();
+      if (!r.ok) { _rejoining = false; return; } // keep the saved identity; the next foreground retries
+      storeSelf(data.you);
+      T.name = data.name || T.name;
+      T.teamType = data.teamType || T.teamType;
+      if (data.defaults && !T.defaults) T.defaults = data.defaults;
+      try { localStorage.setItem(eidKey(T.id), T.ephemeralId); } catch { /* private mode */ }
+      T.active = true;
+      persistSelf();
+      if (T.role === 'member' && T.watchId == null) startSharing();
+      if (!T.pollTimer) T.pollTimer = setInterval(poll, POLL_MS);
+      renderTeamTab();
+      applyDefaults();
+      poll();
+      _beaconLeft = false;
+      note(tt('team.rejoined', 'Reconnected to your team.'));
+    } catch { /* transient network — the next foreground retries */ }
+    _rejoining = false;
+  }
+
+  function onForeground() {
+    if (needsRejoin()) rejoinSelf();
   }
 
   function note(msg) {
@@ -1024,6 +1115,7 @@
     T.id = id; T.name = '';
     try { history.replaceState(null, '', `${location.origin}/?team=${id}`); } catch { /* sandboxed — cosmetic */ }
     renderTeamTab();
+    if (needsRejoin()) { rejoinSelf(); return; } // already a member of this team → restore without re-prompting
     api(`${id}/state`).then((r) => (r.ok ? r.json() : null)).then(onJoinMeta).catch(() => {});
   }
 
@@ -1062,7 +1154,11 @@
     if (_lifecycleArmed) return;
     _lifecycleArmed = true;
     window.addEventListener('pagehide', beaconLeave);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') beaconLeave(); });
+    window.addEventListener('pageshow', onForeground);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') beaconLeave();
+      else onForeground();
+    });
   }
 
   // ⋮ More → Team shortcut and the tab are the same home — just surface the tab.
@@ -1087,6 +1183,7 @@
     T.id = param;
     showTeamTab();
     renderTeamTab(); // join state; heading + type fill in once the name lookup lands
+    if (needsRejoin()) { rejoinSelf(); return; } // reopened link for a team we already belong to → restore it
     api(`${param}/state`).then((r) => (r.ok ? r.json() : null)).then(onJoinMeta).catch(() => {});
   }
 

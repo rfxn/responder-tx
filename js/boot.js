@@ -198,17 +198,26 @@ function tickCountdown() {
   renderDataAgeBar();
 }
 
-// when the live gauge feed dies, surface the fallback the board already holds — and stand it down on recovery
+// when the live gauge feed dies, surface the fallback the board already holds — and stand it down on
+// recovery. Offer ONCE per outage (on the stale transition), never re-add every tick, and honor a
+// user dismissal (pill ✕ / sheet toggle) until the live feed recovers — else it fights the user.
 function autoUsgsFallback(on) {
   const lyr = state.layers.usgs;
   if (!lyr) return false;
   if (state.pb && !state.pb.live) return false; // playback engaged — never add a live layer under a historical frame
-  if (on && (state.usgsSites || []).length && !state.map.hasLayer(lyr)) {
+  const was = state.usgsFeedStale || false;
+  state.usgsFeedStale = on;
+  if (on && !was && !state.usgsFallbackDismissed && (state.usgsSites || []).length && !state.map.hasLayer(lyr)) {
     lyr.addTo(state.map);
     state.usgsAutoOn = true;
-  } else if (!on && state.usgsAutoOn) {
-    if (state.map.hasLayer(lyr)) state.map.removeLayer(lyr);
-    state.usgsAutoOn = false;
+  } else if (!on && was) {
+    if (state.usgsAutoOn) {
+      state.usgsAutoRemoving = true; // our own stand-down, not a user dismissal (see overlayremove)
+      if (state.map.hasLayer(lyr)) state.map.removeLayer(lyr);
+      state.usgsAutoRemoving = false;
+      state.usgsAutoOn = false;
+    }
+    state.usgsFallbackDismissed = false; // feed recovered — re-arm the one-time offer for any future outage
   }
   return state.usgsAutoOn && state.map.hasLayer(lyr);
 }

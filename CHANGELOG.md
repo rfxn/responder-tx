@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.11 — 2026-07-19 (fix: USGS raw-stage fallback stops re-adding itself after you dismiss it)
+
+-- Bug Fixes --
+- [Fix] the "USGS stage" raw-gauge fallback layer no longer keeps re-appearing at
+      the top-left after you close it: the auto-fallback fired on every refresh
+      tick while the live NWPS feed was >15 min stale, re-adding the layer the
+      instant you dismissed its pill; it now offers once per outage (on the stale
+      transition), honors a dismissal (pill ✕ / sheet toggle) until the live feed
+      recovers, and re-arms the one-time offer only for a genuinely new outage
+
 ## v0.97.10 — 2026-07-19 (card polish: Team-tab 911 duplicate dropped, alert text button moves to card top-right)
 
 -- Changes --

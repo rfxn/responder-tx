@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.11",
+      "date": "2026-07-19",
+      "line": "Bug fix. The \"USGS stage\" raw-gauge fallback layer kept re-appearing at the top-left of the map even after you closed it. When the live NWPS gauge feed goes quiet for more than ~15 minutes the board auto-shows the USGS raw-stage layer as a stand-in — but it was re-adding that layer on every refresh tick, so the moment you dismissed its pill it popped right back. Now it offers the fallback once when the feed goes stale, remembers when you dismiss it (via the pill ✕ or the layers sheet) and leaves it off until the live feed recovers, then re-arms the one-time offer only for a genuinely new outage. No other layers or behavior change."
+    },
+    {
       "v": "v0.97.10",
       "date": "2026-07-19",
       "line": "Two small presentation cleanups. On the Team tab, the \"call 911 — this is situational awareness, not a dispatch system\" line no longer appears twice: the board's persistent footer already shows that warning on every tab, so the redundant copy in the create and join views is gone (the footer disclaimer stays put). And on the Alerts list, each flood warning's \"text\" button now sits at the top-right of the card in the header row — aligned the same way the gauge cards put their NWPS link — so it reads as a consistent per-card action instead of trailing the expires time. Clicking it still opens the readable alert text. Desktop and phone behave the same. English y español."

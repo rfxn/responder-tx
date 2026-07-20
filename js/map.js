@@ -321,6 +321,10 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
     if (e.layer === state.layers.fcstRadar) fcstDisable();
+    if (e.layer === state.layers.usgs) {
+      if (state.usgsAutoOn && !state.usgsAutoRemoving) state.usgsFallbackDismissed = true; // user closed the auto fallback — don't re-offer until the feed recovers
+      state.usgsAutoOn = false;
+    }
     if (e.layer !== state.layers.radar) return;
     rtlSync();
     if (rtlDomain().total) rtlSet(state.rtl.idx); // forecast-only bar repaints in the shrunk domain

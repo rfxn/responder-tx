@@ -1,12 +1,12 @@
-# About Responder TX
+# About ResponderTX
 
-Responder TX is a live, zero-backend flood operating picture for the Texas Hill
+ResponderTX is a live, zero-backend flood operating picture for the Texas Hill
 Country. It fuses authoritative hazard data with a human-triaged field feed into
 one map that a responder can read in under ten seconds. This page is the trust
 and methodology statement behind the board.
 
 > [!WARNING]
-> **Life-threatening emergency? Call 911.** Responder TX is situational awareness
+> **Life-threatening emergency? Call 911.** ResponderTX is situational awareness
 > and volunteer-coordination support. It is **not** a dispatch system, it is
 > **not** an official warning source, and it is not monitored by emergency
 > services. Always verify with the National Weather Service, Wireless Emergency
@@ -14,7 +14,7 @@ and methodology statement behind the board.
 
 ## Who runs it
 
-Responder TX is built and maintained by **Ryan MacDonald** for
+ResponderTX is built and maintained by **Ryan MacDonald** for
 **[R-fx Networks](https://www.rfxn.com)** (`proj@rfxn.com`) — the same group behind
 long-running open-source infrastructure tools (APF, BFD, Linux Malware Detect). It
 is open source under the **GNU GPL v2**; the full source, data, and history are
@@ -40,7 +40,7 @@ public at <https://github.com/rfxn/responder-tx>.
 - **Not a dispatch or tasking system.** It does not send help. Life-safety traffic
   is relayed to 911 / the county EOC by a human, immediately, out of band.
 - **Not an official warning source.** NWS, Wireless Emergency Alerts, and local
-  emergency management are authoritative. Responder TX surfaces and contextualizes
+  emergency management are authoritative. ResponderTX surfaces and contextualizes
   their data; it does not replace it.
 - **Not monitored.** No one is watching the board waiting to respond to something
   you post. It is a shared picture, not a hotline.

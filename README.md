@@ -80,9 +80,11 @@ were live, and they need an account or bury the map under a login.
 ResponderTX takes the opposite stance. It **anticipates** (forecast-first: every
 major crest this event showed up in the forecast field hours before the water
 arrived), it is **recent** (everything ages — nothing stale is shown as live), and
-it is **honest** (every card cites its source; suppress never means delete). It
-runs with **zero backend** from any static host, so it stays up when infrastructure
-does not, and it asks nothing of the person reading it — no account, no tracking.
+it is **honest** (every card cites its source; suppress never means delete). Its
+core runs with **zero backend** from any static host, so it stays up when
+infrastructure does not, and it asks nothing of the person reading it: no account,
+no tracking. The one sanctioned exception is the opt-in team-location relay, a
+Cloudflare Durable Object that stays dormant unless someone joins a team.
 
 ## Feature highlights
 
@@ -105,6 +107,11 @@ does not, and it asks nothing of the person reading it — no account, no tracki
 - Search by place, address, gauge, lat/lon, or card ID
 - Handoff: export JSON (merge by id), **GeoJSON** (drops into CalTopo / SARTopo), Markdown AAR, and a plain-text SITREP for radio/SMS
 - Field Notes: responder annotations (writable on the LAN host, read-only on the public mirror)
+
+**Team coordination (opt-in)**
+- Create a private team as SAR, Response, Recovery, or Community Support, each with its own member roles; share a link and QR to bring people in
+- Live member positions with capped breadcrumb trails, status (in-field / standby / unavailable), and last-seen aging; ephemeral handles, no login, private by default
+- LAN master view for multi-team oversight; the relay is a TTL'd Cloudflare Durable Object, never written to the git archive
 
 **Built to stay up**
 - Public RSS feed and an ICS crest calendar — follow without an app
@@ -147,9 +154,10 @@ the live sources, writes `data/*.json` plus the feeds, and commits them — so t
 
 <p align="center"><img src="assets/architecture.svg" alt="ResponderTX system architecture: browser SPA fetching public data sources, the LAN server.py host vs the read-only Cloudflare Pages mirror, and the per-cycle generator pipeline that commits data/ as the archive" width="960"></p>
 
-The browser SPA is split into focused modules — `core` (config/state), `map`,
-`sources`, `panels`, `board`, `boot`, `notes`, `i18n`, `usng`, and the LAN-only
-`chat` (stripped from the public deploy). See [ARCHITECTURE.md](ARCHITECTURE.md)
+The browser SPA is split into focused modules: `core` (config/state), `map`,
+`sources`, `panels`, `board`, `boot`, `notes`, `i18n`, `usng`, `team` (opt-in live
+team sharing), and the LAN-only `chat` and `master` (both stripped from the public
+deploy). See [ARCHITECTURE.md](ARCHITECTURE.md)
 for the module map, request flow, and the public-mirror strip contract.
 
 ## Honesty & aging discipline
@@ -168,9 +176,9 @@ observed; timestamps come from the wall clock, never from prose.
 |---|---|---|
 | Host | `python3 server.py` on the local network | Cloudflare Pages (global CDN) |
 | Serves | static app + committed `data/` | static app + committed `data/` |
-| Writes | chat + Field Notes &#8594; `data/*.jsonl` | none — read-only |
-| Proxies | `/api/gauge` (NWPS), `/api/cam` (TxDOT), cached | same, as Pages Functions |
-| Chat | present | `chat.js` stripped at deploy, verified |
+| Writes | chat + Field Notes &#8594; `data/*.jsonl` | board data read-only; the opt-in team relay (`/api/team/*` &#8594; Cloudflare Durable Object) is the one write path |
+| Proxies | `/api/gauge` (NWPS), `/api/cam` (TxDOT), team relay, cached | same, as Pages Functions |
+| Chat | present | `chat.js` + `master.js` stripped at deploy, verified |
 | Feeds | — | `/feed.xml` (RSS), `/crests.ics` |
 
 The generator pipeline (`scripts/gen-*.py`) runs each cycle on the operator host:
@@ -186,13 +194,13 @@ No build, no dependencies beyond Python 3 — clone and serve:
 ```bash
 git clone https://github.com/rfxn/responder-tx.git
 cd responder-tx
-python3 server.py          # LAN host: binds 0.0.0.0:8080 (chat / notes / gauge + cam proxy)
-# open http://localhost:8080   (deep links: ?tab=alerts  ·  ?theme=light)
+python3 server.py          # LAN host: HTTPS :8443 + an :8080 HTTP->HTTPS redirect when a TLS cert exists, else plain HTTP :8080 (chat / notes / gauge + cam proxy). See scripts/README.md "LAN HTTPS".
+# open https://localhost:8443  (http://localhost:8080 redirects there)   deep links: ?tab=alerts  ·  ?theme=light
 ```
 
 The board needs internet at runtime for the Leaflet CDN, basemap tiles, and the
 federal / state APIs above. The &#8681; "Save map offline" control pre-caches
-basemap tiles to IndexedDB (plain LAN http, no service worker) so the map keeps
+basemap tiles to IndexedDB (no service worker) so the map keeps
 drawing in dead zones — basemap only; live data still needs a connection.
 
 For a purely public, read-only view you do not need to run anything — just open the
@@ -211,7 +219,10 @@ the NWS AHPS convention, always paired with text labels and size-stepped markers
 No accounts. No analytics, no third-party trackers, no advertising cookies. Your
 view state (theme, language, last-seen markers, cached last-good data) is kept in
 your own browser via `localStorage` and `IndexedDB` and is never sent anywhere. The
-public mirror has no write routes and no chat. See [ABOUT.md](ABOUT.md#privacy).
+public mirror has no chat and no board-data write routes; the only server-write path
+is the opt-in team-location relay (dormant unless you join a team via `?team=`),
+which holds ephemeral, TTL'd state in Cloudflare and is never written to the git
+archive. See [ABOUT.md](ABOUT.md#privacy).
 
 ## Project docs
 

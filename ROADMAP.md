@@ -1,9 +1,15 @@
-# ResponderTX — MASTER ROADMAP (updated 2026-07-19)
+# ResponderTX · MASTER ROADMAP (updated 2026-07-20)
 
-Current build: **v0.96.5** (see `CHANGELOG.md` for the full v0.1.0 → v0.96.5 arc,
+Current build: **v0.97.24** (see `CHANGELOG.md` for the full v0.1.0 → v0.97.24 arc,
 which is the authoritative record of what has shipped). This roadmap tracks
 delivered capabilities and the forward queue; per-cycle volatile status lives in
 CHANGELOG/HANDOFF, not here.
+
+> Recently shipped in the v0.97.x arc, reflected below: opt-in live team
+> coordination with multiple team types (SAR, Response, Recovery, Community) and a
+> LAN master oversight view; self-signed LAN HTTPS on :8443 (secure context for
+> field GPS); a durable, session-independent ops-chat auto-responder; and the
+> SITREP copy-plus-formatted-modal handoff.
 
 ---
 
@@ -349,8 +355,13 @@ reliably updatable. Ranked top-down within each horizon.
     caveat: CalTopo does NOT poll a static GeoJSON URL as a live layer, so real
     sync needs a CalTopo subscription and a small always-on job. Detailed
     mechanism / fidelity / licensing analysis is kept in an internal assessment.
-12. **Live team location sharing (Garmin-style breadcrumbs) [infra/field] —
-    owner-requested, sanctioned backend departure** — create a public or private
+12. **Live team location sharing (Garmin-style breadcrumbs) [infra/field]** ·
+    **✅ DELIVERED v0.97.0 &#8594; v0.97.24**: shipped as opt-in multi-type teams
+    (SAR / Response / Recovery / Community), ephemeral-handle join, live positions
+    with capped breadcrumbs, status and last-seen aging, QR share, and a LAN master
+    oversight view, over a per-team Cloudflare Durable Object relay (TTL'd, private
+    by default, never committed to the git archive). Original scope, now shipped:
+    create a public or private
     team, share a link + QR; the link on load asks for an ephemeral handle (no
     login, low barrier), requests Geolocation permission on explicit opt-in, then
     streams each member's position and a capped breadcrumb trail onto the map as

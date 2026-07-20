@@ -1,4 +1,4 @@
-# Responder TX — Data & Operating Strategy
+# ResponderTX — Data & Operating Strategy
 
 Event: Texas Hill Country severe flooding, July 2026 (Kerr, Uvalde, Blanco,
 Gillespie, Kendall + downstream basins). This document is the operating strategy
@@ -195,7 +195,7 @@ three axes:
    beyond the Hill Country. The hydrology core (NWPS gauges + NWS alerts) is
    already national and keyless. The owner's direction is **all-hazard over
    time** (floods now; storms/tornadoes later) — the board's machinery is largely
-   hazard-agnostic. The board keeps its current "Responder TX" identity; any
+   hazard-agnostic. The board keeps its current "ResponderTX" identity; any
    generalized brand/name is a pending owner decision and is out of scope here.
 3. **Reliably updatable + deliverable** — a service worker with a real update
    strategy first (also fixes offline cold-boot), then safe re-installability, and

@@ -18,7 +18,7 @@ suspended or mid-task).
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `cycle-check.sh` | Pre-commit validation bundle (JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard). |
-| `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. |
+| `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle **and** chat-poll system-cron entries. |
@@ -151,7 +151,7 @@ thing an injection can influence is the reply **text** the wrapper appends to th
 LAN-only outbox — it **cannot** write any file, execute shell, reach the network,
 push, or deploy. The trusted wrapper JSON-validates and atomically writes the
 outbox; the public mirror strips the chat surface entirely (`deploy.sh` drops
-`js/chat.js` and ships an empty outbox), and `cycle-check.sh` re-validates before
+`js/chat.js` + `js/master.js` and ships an empty outbox), and `cycle-check.sh` re-validates before
 any commit. This read-only posture supersedes the earlier `Edit(outbox)`-scoped
 variant: because `claude` now emits its reply on stdout and holds no write tool,
 no file — not even the outbox — is reachable by a compromised run.

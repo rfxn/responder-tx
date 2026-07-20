@@ -11,7 +11,10 @@ static site build.
 One DO instance per team is the only copy of live team state: members, viewers, latest
 positions, and capped breadcrumb trails. State lives in Cloudflare (SQLite-backed DO), auto-expires
 via TTL, and is **never** written to the repo. See `team-relay.js` for the enforced invariants
-(≥4-char handles, viewers cannot publish a position, stale/idle reaping).
+(≥4-char handles, viewers cannot publish a position, stale/idle reaping). Teams are one of four
+data-driven types (SAR, Response, Recovery, Community) via the `TEAM_TYPES` table; the type is
+fixed at creation and scopes each member's profile fields (the K9 sub-model exists only for SAR),
+so validation is per-type and a member cannot inject another type's role.
 
 ## Deploy (one-time + on change) — CONTROLLER STEP, needs the Cloudflare API token
 

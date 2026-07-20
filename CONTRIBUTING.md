@@ -1,4 +1,4 @@
-# Contributing to Responder TX
+# Contributing to ResponderTX
 
 Thanks for helping improve the board. Corrections to data, new keyless data
 sources, accessibility fixes, and field-tested UX improvements are all welcome.

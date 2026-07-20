@@ -1,6 +1,8 @@
 // Pages Function: POST /api/team/create — mint a new private team.
 // Generates a crypto-strong UUID (unguessable, non-enumerable), initializes its Durable Object,
 // and returns the UUID + share link. The DO holds all team state; nothing is written to the repo.
+import { json } from './_json.js';
+
 const NAME_MAX = 40;
 
 export async function onRequestPost(context) {
@@ -17,11 +19,4 @@ export async function onRequestPost(context) {
   const data = await res.json();
   if (data && data.teamId) data.url = `${new URL(request.url).origin}/?team=${data.teamId}`;
   return json(data, res.status);
-}
-
-function json(obj, status) {
-  return new Response(JSON.stringify(obj), {
-    status: status || 200,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' },
-  });
 }

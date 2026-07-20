@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.25 · 2026-07-20 (cameras: add City of Arlington layer)
+
+-- New Features --
+- [New] City of Arlington traffic cameras are now their own opt-in camera layer
+      (off by default), adding about 60 live arterial-intersection cams in the
+      Dallas and Fort Worth area; they appear in the camera viewer, Drive Mode's
+      nearest-camera rows, the layer picker, and deep links, labeled in English
+      and Spanish
+
+-- Bug Fixes --
+- [Fix] the camera inventory builder could no longer refresh because its TxDOT
+      ITS minimum-count floor (2000) sat well above the real count after
+      duplicate removal (about 800); the floor was corrected so the camera
+      poller regenerates cleanly again
+
+-- Changes --
+- [Change] refreshed the committed camera inventory alongside the Arlington
+           addition; the Houston TranStar set grew (about 963 to 1027 cams) and
+           all source counts were re-synced from the live feeds
+
 ## v0.97.24 · 2026-07-20 (SITREP: copy plus formatted modal)
 
 -- New Features --

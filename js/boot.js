@@ -794,7 +794,7 @@ async function boot() {
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
   // ?cam=<camId|name|id> deep-links straight into the viewer (handled below).
   // shared/rollover layer toggles (set only when ON) — radar handled above; ?cams=1 stays the TxDOT-cams shortcut
-  for (const [qk, lk] of [['cams', 'camsTxdot'], ['camr', 'camsRiver'], ['cama', 'camsAustin'], ['camf', 'camsFlood'], ['camh', 'camsHouston'], ['came', 'camsElpBridge'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
+  for (const [qk, lk] of [['cams', 'camsTxdot'], ['camr', 'camsRiver'], ['cama', 'camsAustin'], ['camf', 'camsFlood'], ['camh', 'camsHouston'], ['caml', 'camsArlington'], ['came', 'camsElpBridge'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
     if (new URLSearchParams(location.search).get(qk) === '1' && state.layers[lk]) state.layers[lk].addTo(state.map);
   }
   const camParam = new URLSearchParams(location.search).get('cam');

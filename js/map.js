@@ -311,7 +311,7 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
-    if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsElpBridge].includes(e.layer)) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
+    if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsArlington, state.layers.camsElpBridge].includes(e.layer)) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
     rtlSync();
@@ -375,6 +375,7 @@ function initMap() {
   state.layers.camsAustin = camGroup();
   state.layers.camsFlood = camGroup();
   state.layers.camsHouston = camGroup();
+  state.layers.camsArlington = camGroup();
   state.layers.camsElpBridge = camGroup();
   L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
@@ -403,6 +404,7 @@ function initMap() {
     'Cameras: Austin city (stills)': state.layers.camsAustin,
     'Cameras: ATX Floods low-water crossings': state.layers.camsFlood,
     'Cameras: Houston TranStar (stills)': state.layers.camsHouston,
+    'Cameras: Arlington city (stills)': state.layers.camsArlington,
     'Cameras: El Paso international bridges (live)': state.layers.camsElpBridge,
   }, { collapsed: true }).addTo(state.map);
 
@@ -604,6 +606,7 @@ const PILL_LAYERS = [
   ['camsAustin', 'layers.cams.austin'],
   ['camsFlood', 'layers.cams.flood'],
   ['camsHouston', 'layers.cams.houston'],
+  ['camsArlington', 'layers.cams.arlington'],
   ['camsElpBridge', 'layers.cams.elpbridge'],
   ['roadReopen', 'layers.reopen'],
 ];
@@ -667,6 +670,7 @@ const SHEET_GROUPS = [
     ['camsAustin', '📷', 'layers.cams.austin', 'sheet.s.cams.austin', 'official', false],
     ['camsFlood', '📷', 'layers.cams.flood', 'sheet.s.cams.flood', 'official', false],
     ['camsHouston', '📷', 'layers.cams.houston', 'sheet.s.cams.houston', 'official', false],
+    ['camsArlington', '📷', 'layers.cams.arlington', 'sheet.s.cams.arlington', 'official', false],
     ['camsElpBridge', '📷', 'layers.cams.elpbridge', 'sheet.s.cams.elpbridge', 'official', false],
   ]],
   ['sheet.g.reports', [
@@ -1229,6 +1233,7 @@ const PB_LIVE_HIDE = [
   ['camsAustin', 'layers.cams.austin'],
   ['camsFlood', 'layers.cams.flood'],
   ['camsHouston', 'layers.cams.houston'],
+  ['camsArlington', 'layers.cams.arlington'],
   ['camsElpBridge', 'layers.cams.elpbridge'],
   ['usgs', 'layers.usgs'],
   ['fcstMax', 'layers.fcst'],

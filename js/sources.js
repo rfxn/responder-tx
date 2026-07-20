@@ -891,8 +891,9 @@ const CAM_ATTRIB_USGS = 'River cameras: USGS HIVIS (public domain, provisional)'
 const CAM_ATTRIB_AUSTIN = 'Traffic cameras: City of Austin, Texas (public domain)';
 const CAM_ATTRIB_ATX = 'Flood cameras: ATX Floods / City of Austin (low-water crossings)';
 const CAM_ATTRIB_HOUSTON = 'Traffic cameras: Houston TranStar (Houston region)';
+const CAM_ATTRIB_ARLINGTON = 'Traffic cameras: City of Arlington, Texas';
 const CAM_ATTRIB_ELP = 'Live cameras: City of El Paso (international bridges)';
-const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, elpbridge: CAM_ATTRIB_ELP };
+const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, arlington: CAM_ATTRIB_ARLINGTON, elpbridge: CAM_ATTRIB_ELP };
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
 const ATXFLOODS_BASE = 'https://api.atxfloods.com';
@@ -904,7 +905,7 @@ function loadCameras() {
   state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
     .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
     .then((d) => {
-      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], elpbridge: d.elpbridge || [] };
+      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [] };
       renderCameras();
       return state.cameras;
     });
@@ -913,7 +914,7 @@ function loadCameras() {
 }
 
 function camTitle(c, kind) {
-  if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston' || kind === 'elpbridge') return c.name;
+  if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston' || kind === 'arlington' || kind === 'elpbridge') return c.name;
   if (c.src === 'its') return c.name || prettyRoute(c.route) || 'Traffic camera'; // ITS names carry the cross-street
   return c.description || prettyRoute(c.route) || c.name || 'Traffic camera';
 }
@@ -924,6 +925,7 @@ function camIconClass(c, kind) {
   if (kind === 'austin') return ' cam-austin';
   if (kind === 'atxfloods') return ' cam-flood';
   if (kind === 'houston') return ' cam-houston';
+  if (kind === 'arlington') return ' cam-arlington';
   if (kind === 'elpbridge') return ' cam-elp';
   return c.src === 'its' ? ' cam-snap' : ''; // snapshot-only ITS cams read as "still", not "live"
 }
@@ -935,6 +937,7 @@ const CAM_NETS = [
   ['camsAustin', 'austin', 'austin'],
   ['camsFlood', 'atxfloods', 'atxfloods'],
   ['camsHouston', 'houston', 'houston'],
+  ['camsArlington', 'arlington', 'arlington'],
   ['camsElpBridge', 'elpbridge', 'elpbridge'],
 ];
 
@@ -981,6 +984,8 @@ function findCamByKey(want) {
   if (af) return { c: af, kind: 'atxfloods' };
   const ho = state.cameras.houston.find((c) => String(c.id) === want || c.name === want);
   if (ho) return { c: ho, kind: 'houston' };
+  const ar = state.cameras.arlington.find((c) => String(c.id) === want || c.name === want);
+  if (ar) return { c: ar, kind: 'arlington' };
   const ep = state.cameras.elpbridge.find((c) => c.name === want);
   if (ep) return { c: ep, kind: 'elpbridge' };
   return null;
@@ -992,7 +997,7 @@ function camPopup(c, kind) {
   if (kind === 'river') sub = `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`;
   else if (kind === 'atxfloods') sub = esc(t('cam.floodcam'));
   else if (kind === 'elpbridge') sub = esc(t('cam.bridge'));
-  else if (kind === 'austin' || kind === 'houston') sub = esc(t('cam.traffic'));
+  else if (kind === 'austin' || kind === 'houston' || kind === 'arlington') sub = esc(t('cam.traffic'));
   else sub = `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
   el.innerHTML = `<div class="popup-title">📷 ${esc(camTitle(c, kind))}</div>` +
     `<div class="popup-meta">${sub}</div>` +
@@ -1008,6 +1013,7 @@ function camNetLabel(kind) {
   if (kind === 'austin') return `Austin · ${t('cam.traffic')}`;
   if (kind === 'atxfloods') return `ATX Floods · ${t('cam.floodcam')}`;
   if (kind === 'houston') return `Houston TranStar · ${t('cam.traffic')}`;
+  if (kind === 'arlington') return `Arlington · ${t('cam.traffic')}`;
   if (kind === 'elpbridge') return `City of El Paso · ${t('cam.bridge')}`;
   return `TxDOT · ${t('cam.traffic')}`;
 }
@@ -1039,6 +1045,11 @@ function openCamViewer(c, kind) {
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.houston.note'))} · ${esc(CAM_ATTRIB_HOUSTON)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
     loadHoustonSnapshot(c, stage, meta, false, gen);
+  } else if (kind === 'arlington') {
+    // City of Arlington still: fresh JPEG via the same-origin /api/cam/arlington proxy (no CORS upstream)
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.arlington.note'))} · ${esc(CAM_ATTRIB_ARLINGTON)}`;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    loadArlingtonSnapshot(c, stage, meta, false, gen);
   } else if (kind === 'atxfloods') {
     // ATX Floods low-water-crossing cam: newest image resolved live (CORS-open), loaded direct
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.atx.note'))} · ${esc(CAM_ATTRIB_ATX)}`;
@@ -1156,6 +1167,14 @@ function loadHoustonSnapshot(c, stage, meta, bust, gen) {
     url: (b) => `api/cam/houston/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
     parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
     alt: camTitle(c, 'houston'),
+  });
+}
+
+function loadArlingtonSnapshot(c, stage, meta, bust, gen) {
+  loadProxyStill(stage, meta, bust, gen, {
+    url: (b) => `api/cam/arlington/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
+    parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
+    alt: camTitle(c, 'arlington'),
   });
 }
 

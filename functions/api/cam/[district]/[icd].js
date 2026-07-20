@@ -10,6 +10,7 @@ const UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'; // some CDNs 1010
 const BYTES_SOURCES = {
   austin: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://cctv.austinmobility.io/image/${id}.jpg` },
   houston: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://www.houstontranstar.org/snapshots/cctv/${id}.jpg` },
+  arlington: { idRe: /^[A-Za-z0-9_-]{1,64}$/, url: (id) => `https://webapps.arlingtontx.gov/webcams/${id}.jpg` },
 };
 
 export async function onRequestGet(context) {

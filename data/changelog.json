@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.25",
+      "date": "2026-07-20",
+      "line": "Added a new camera layer for the City of Arlington, in the Dallas and Fort Worth area, with about 60 live traffic cameras at street intersections. It is its own layer that stays off until you turn it on, and it shows up in the camera viewer, in Drive Mode's nearest-camera list, in the layer menu, and in shared links, in both English and Spanish. We also fixed the tool that refreshes the camera list so it works again, and refreshed the full list at the same time (the Houston camera set grew)."
+    },
+    {
       "v": "v0.97.24",
       "date": "2026-07-20",
       "line": "The SITREP button now does two things at once, on both computer and phone: it copies the situation report to your clipboard as before, and it also opens a clean, easy-to-read window showing the same report with the section headings highlighted. Inside that window you can copy it again, share it (on phones that support sharing), download it as a text file, or close it. The 911 note stays visible, and everything is available in English and Spanish. On phones the app no longer jumps straight to the share menu in place of the report; you always see the report now, and sharing is a button you tap when you want it."

@@ -22,7 +22,7 @@ NOTE_CATS = ('info', 'hazard', 'road', 'water', 'photo')
 GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
 NWPS_BASE = 'https://api.water.noaa.gov/nwps/v1/gauges/'
 GAUGE_TTL = 180
-CAM_RE = re.compile(r'^/api/cam/([A-Za-z]{3,8})/([^/]{1,200})$')  # {source}/{id}: 3-letter ITS district or a named source
+CAM_RE = re.compile(r'^/api/cam/([A-Za-z]{3,12})/([^/]{1,200})$')  # {source}/{id}: 3-letter ITS district or a named source
 CAM_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")  # matches gen-cameras.py ITS_ICD_RE — not an open proxy
 CAM_DIST_RE = re.compile(r'^[A-Z]{3}$')  # ITS districts route to the base64-JSON upstream
 ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
@@ -31,6 +31,7 @@ ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
 CAM_BYTES_SOURCES = {
     'austin': (re.compile(r'^[0-9]{1,8}$'), 'https://cctv.austinmobility.io/image/{id}.jpg'),
     'houston': (re.compile(r'^[0-9]{1,8}$'), 'https://www.houstontranstar.org/snapshots/cctv/{id}.jpg'),
+    'arlington': (re.compile(r'^[A-Za-z0-9_-]{1,64}$'), 'https://webapps.arlingtontx.gov/webcams/{id}.jpg'),
 }
 CAM_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some CDNs 1010-block the default urllib UA
 CAM_TTL = 120

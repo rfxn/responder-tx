@@ -26,6 +26,7 @@ ITS_DISTRICTS = ('ABL', 'AMA', 'ATL', 'AUS', 'BMT', 'BRY', 'BWD', 'CHS', 'CRP', 
 AUSTIN = 'https://data.austintexas.gov/resource/b4k4-adkb.json'
 ATXFLOODS = 'https://api.atxfloods.com/api/cameras'
 HOUSTON = 'https://traffic.houstontranstar.org/data/layers/cctvSnapshots_out.js'
+ARLINGTON = 'https://services.arcgis.com/jXi5GuMZwfCYtZP9/arcgis/rest/services/Traffic_Camera_Updates/FeatureServer/0/query?where=1%3D1&outFields=Camera_Location,Status,Pic_URL,Lat,Long&returnGeometry=false&f=json'
 ELP_BRIDGE_HOST = 'https://zoocams.elpasozoo.org'
 # City of El Paso Rio Grande international-bridge cams — direct-play CORS-open HLS; the operator
 # rotates stream names, so each .m3u8 is liveness-checked at gen time and dead ones are dropped.
@@ -43,6 +44,8 @@ BROWSER_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some hosts bl
 ITS_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")
 AUSTIN_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/austin proxy validator
 HOUSTON_PATH_RE = re.compile(r'^([0-9]{1,8})\.jpg$')  # TranStar snapshot filename; id mirrors the /api/cam/houston validator
+ARLINGTON_ID_RE = re.compile(r'^[A-Za-z0-9_-]{1,64}$')  # mirrors the /api/cam/arlington proxy validator
+ARLINGTON_PIC_RE = re.compile(r'^https?://webapps\.arlingtontx\.gov/webcams/(.+)\.jpg$', re.I)  # snapshot stem = proxy id
 TX_MIN_LAT, TX_MAX_LAT, TX_MIN_LON, TX_MAX_LON = 25.0, 37.0, -107.5, -93.0  # generous Texas coord sanity gate
 ITS_NEAR_M = 150.0  # an ITS cam this close to a MapLarge streamable cam is the same head — streamable wins
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -275,6 +278,37 @@ def houston_cams():
     return sorted(cams, key=lambda c: int(c['id']))
 
 
+def arlington_cams():
+    # City of Arlington ArcGIS FeatureServer: Online cams only; the snapshot filename stem is the proxy id
+    d = fetch_json(ARLINGTON)
+    cams, skipped = [], 0
+    for f in (d.get('features') or []):
+        a = f.get('attributes') or {}
+        if not str(a.get('Status') or '').startswith('Online'):
+            continue
+        pm = ARLINGTON_PIC_RE.match(str(a.get('Pic_URL') or '').strip())
+        if not pm:
+            continue
+        cid = pm.group(1)
+        if not ARLINGTON_ID_RE.match(cid):  # a stem the strict proxy id rejects (e.g. an embedded space) is dropped
+            skipped += 1
+            continue
+        try:
+            lat, lon = float(a['Lat']), float(a['Long'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not in_texas(lat, lon):
+            continue
+        cams.append({
+            'name': (a.get('Camera_Location') or f'Camera {cid}').strip(),
+            'lat': round(lat, 6),
+            'lon': round(lon, 6),
+            'id': cid,
+        })
+    print(f'Arlington: {len(cams)} online city cams kept ({skipped} skipped on id charset)')
+    return sorted(cams, key=lambda c: c['name'])
+
+
 def hls_live(url):
     try:
         req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
@@ -303,9 +337,10 @@ def main():
     au = austin_cams()
     af = atxfloods_cams()
     ho = houston_cams()
+    ar = arlington_cams()
     elp = elpbridge_cams()  # scoped liveness check — a dead host yields [] here, never aborts the whole gen
-    # per-source floors: an upstream that changes shape and silently zeroes a source must abort, not publish an empty layer
-    for name, cams, floor in (('its', its, 2000), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400)):
+    # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -317,6 +352,7 @@ def main():
             'austin': 'Traffic cameras: City of Austin, Texas (public domain); imagery not recorded',
             'atxfloods': 'Flood cameras: ATX Floods / City of Austin low-water crossings',
             'houston': 'Traffic cameras: Houston TranStar (Houston region incl. Galveston/Bolivar ferry)',
+            'arlington': 'Traffic cameras: City of Arlington, Texas (public arterial cams)',
             'elpbridge': 'Live cameras: City of El Paso — international bridges',
         },
         'txdot': tx + its,
@@ -324,6 +360,7 @@ def main():
         'austin': au,
         'atxfloods': af,
         'houston': ho,
+        'arlington': ar,
         'elpbridge': elp,
     }
     with open(OUT, 'w') as f:
@@ -331,7 +368,7 @@ def main():
         f.write('\n')
     print(f'{OUT}: {len(tx)} TxDOT streamable + {len(its)} ITS snapshot-only cams, {len(rv)} USGS river cams, '
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
-          f'{len(elp)} El Paso bridge cams, {os.path.getsize(OUT)} bytes')
+          f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

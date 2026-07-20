@@ -795,7 +795,7 @@ function buildShareUrl() {
   if ($('#flt-alert-q').value) p.set('aq', $('#flt-alert-q').value);
   if (state.map.hasLayer(state.layers.mrms)) p.set('rain', state.rainWindow); // rollover/share carry the rainfall window
   // non-default layer toggles travel too (set only when ON — default URLs stay short); parsed at boot
-  for (const [key, lk] of [['radar', 'radar'], ['fcst', 'fcstRadar'], ['cams', 'camsTxdot'], ['camr', 'camsRiver'], ['cama', 'camsAustin'], ['camf', 'camsFlood'], ['camh', 'camsHouston'], ['came', 'camsElpBridge'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
+  for (const [key, lk] of [['radar', 'radar'], ['fcst', 'fcstRadar'], ['cams', 'camsTxdot'], ['camr', 'camsRiver'], ['cama', 'camsAustin'], ['camf', 'camsFlood'], ['camh', 'camsHouston'], ['caml', 'camsArlington'], ['came', 'camsElpBridge'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
     if (state.layers[lk] && state.map.hasLayer(state.layers[lk])) p.set(key, '1');
   }
   p.set('base', state.activeBase);

@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-20T22:08:58Z",
+ "generated": "2026-07-20T22:24:06Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-20T21:53:00Z"
+  "last": "2026-07-20T22:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -99,8 +99,8 @@
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-15T11:00:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-07-20T21:53:00Z",
+   "ongoing": false,
    "stale": false,
    "src": "usgs"
   },
@@ -346,8 +346,8 @@
   {
    "lid": "HNTT2",
    "name": "Guadalupe River at Hunt",
-   "peak": 19.26,
-   "peak_time": "2026-07-16T14:00:00Z",
+   "peak": 18.93,
+   "peak_time": "2026-07-16T09:00:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-07-16T08:00:00Z",

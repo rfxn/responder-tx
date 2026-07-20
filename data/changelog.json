@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.13",
+      "date": "2026-07-19",
+      "line": "Light mode is now the default, with the Streets basemap — the board opens in the sunlight-readable light theme instead of dark, which reads better on a phone in the field. Dark is still one tap away via the ☀️/🌙 control in the ⋮ menu, and if you switch it, your choice sticks. A one-time reset clears the theme that was silently saved for every prior visitor so the new light default actually takes effect on your next load. Nothing else changed."
+    },
+    {
       "v": "v0.97.12",
       "date": "2026-07-19",
       "line": "Road reopenings now have their own layer. When a closure clears the live TxDOT feed, the board drops a green ✓ \"recently reopened\" marker — until now those rode along on the road-closures layer and piled up on the map. They now live on a separate \"Road reopenings\" layer, nested under Live road closures in the layers sheet and off by default: turning closures on no longer turns reopenings on, so it takes one deliberate tap to show them. The markers are also limited to flood-related roads, so generic pavement or debris clearances no longer clutter the recovery view, and they still age off on their own (off the map after 12h, kept 7 days in the list). The choice travels in shared links as ?reopen=1 and shows a dismissible pill when it is on. No other layers or behavior change. English y español."

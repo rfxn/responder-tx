@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.13 — 2026-07-19 (light theme is now the default, with the Streets basemap)
+
+-- Changes --
+- [Change] light mode is now the app default (with the Streets basemap) for
+           sunlight readability in the field; dark stays one tap away via the
+           ☀️/🌙 toggle. A one-time migration clears the previously auto-persisted
+           theme so returning visitors adopt the new default; an explicit toggle
+           persists as before
+
 ## v0.97.12 — 2026-07-19 (road reopenings become their own opt-in flood-only layer, nested under Live road closures, off by default)
 
 -- New Features --

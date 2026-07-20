@@ -15,7 +15,7 @@ function syncLabelBoost() {
 }
 
 function applyTheme(theme) {
-  if (theme !== 'dark' && theme !== 'light') theme = 'dark'; // invalid ?theme=/storage must never crash boot or persist
+  if (theme !== 'dark' && theme !== 'light') theme = 'light'; // invalid ?theme=/storage must never crash boot or persist
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('respondertx.theme', theme);
   $('#theme-toggle').innerHTML = theme === 'dark'

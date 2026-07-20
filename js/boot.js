@@ -490,9 +490,15 @@ async function boot() {
   const rollBlob = consumeRolloverState(); // before any location.search read — may re-install the captured view params
   // whitelist both theme sources — an invalid value would wedge boot inside applyTheme's baseLayers lookup
   const themeOk = (v) => v === 'dark' || v === 'light';
-  if (!themeOk(localStorage.getItem('respondertx.theme') || 'dark')) localStorage.setItem('respondertx.theme', 'dark'); // self-heal poisoned storage
+  // light is the default as of v0.97.13; every prior visitor had 'dark' auto-persisted regardless of intent,
+  // so clear it once — returning visitors adopt light, and an explicit re-toggle persists normally afterward
+  if (!localStorage.getItem('respondertx.themeDefaultV2')) {
+    localStorage.removeItem('respondertx.theme');
+    localStorage.setItem('respondertx.themeDefaultV2', '1');
+  }
+  if (!themeOk(localStorage.getItem('respondertx.theme') || 'light')) localStorage.setItem('respondertx.theme', 'light'); // self-heal poisoned storage
   const themeParam = new URLSearchParams(location.search).get('theme');
-  applyTheme(themeOk(themeParam) ? themeParam : localStorage.getItem('respondertx.theme') || 'dark');
+  applyTheme(themeOk(themeParam) ? themeParam : localStorage.getItem('respondertx.theme') || 'light');
   await loadEventConfig();
   applyI18n(document);
   initMap();

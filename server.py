@@ -147,7 +147,7 @@ class Handler(SimpleHTTPRequestHandler):
         if body is None:
             url = TEAM_ADMIN_UPSTREAM + '/api/team/admin/' + kind
             try:
-                req = urllib.request.Request(url, headers={'Accept': 'application/json', 'X-Admin-Token': TEAM_ADMIN_TOKEN})
+                req = urllib.request.Request(url, headers={'Accept': 'application/json', 'X-Admin-Token': TEAM_ADMIN_TOKEN, 'User-Agent': 'responder-tx-lan/master-proxy'})  # Cloudflare 1010-blocks the default Python-urllib UA
                 with urllib.request.urlopen(req, timeout=15) as r:
                     body = r.read()
             except urllib.error.HTTPError as e:

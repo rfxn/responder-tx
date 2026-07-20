@@ -88,7 +88,7 @@ else
     live_ok=0
     for attempt in 1 2 3; do
         live_version=""
-        if live_version=$(curl -sf --retry 3 https://responder.rfxn.com/data/changelog.json \
+        if live_version=$(curl -sf --retry 3 https://respondertx.org/data/changelog.json \
             | python3 -c "import sys,json; print(json.load(sys.stdin)['versions'][0]['v'])"); then
             if [ "$live_version" = "$version" ]; then
                 live_ok=1
@@ -100,7 +100,7 @@ else
     done
     [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version}"
 
-    chat_status=$(curl -s -o /dev/null -w '%{http_code}' https://responder.rfxn.com/js/chat.js) \
+    chat_status=$(curl -s -o /dev/null -w '%{http_code}' https://respondertx.org/js/chat.js) \
         || fail "curl status check for live js/chat.js failed"
     [ "$chat_status" = "404" ] || fail "live js/chat.js returned HTTP ${chat_status}, expected 404"
 fi

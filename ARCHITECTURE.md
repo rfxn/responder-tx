@@ -1,11 +1,11 @@
 # Architecture
 
-Responder TX is a **zero-backend single-page app**: vanilla JavaScript and Leaflet,
+ResponderTX is a **zero-backend single-page app**: vanilla JavaScript and Leaflet,
 no framework and no build step. The browser fetches public data sources directly;
 hosting is a static file server. This document maps the modules, the request flow,
 the two hosting modes, and the generator pipeline.
 
-<p align="center"><img src="assets/architecture.svg" alt="Responder TX system architecture" width="960"></p>
+<p align="center"><img src="assets/architecture.svg" alt="ResponderTX system architecture" width="960"></p>
 
 ## Client — the browser SPA
 
@@ -51,7 +51,7 @@ and `data/` + `api/` responses are `no-store`.
 
 ### Public mirror — Cloudflare Pages
 
-A read-only copy on Cloudflare's CDN (<https://responder.rfxn.com>). It serves the
+A read-only copy on Cloudflare's CDN (<https://respondertx.org>). It serves the
 same static app and committed `data/`, replicates the gauge and camera proxies as
 **Pages Functions** (`functions/api/`), and publishes the follow feeds `/feed.xml`
 and `/crests.ics`. It has **no write routes**; `chat.js` and the chat data are

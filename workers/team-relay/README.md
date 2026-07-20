@@ -84,7 +84,7 @@ Three controller actions after pulling this release:
    ```bash
    TEAM_ADMIN_TOKEN='<same value as step 2>' PORT=8080 python3 server.py
    # optional override if the Pages site is not the default:
-   #   TEAM_ADMIN_UPSTREAM='https://responder.rfxn.com'
+   #   TEAM_ADMIN_UPSTREAM='https://respondertx.org'
    ```
 
    With the token set, `/api/ping` advertises `master:true`, the board loads `js/master.js`, and

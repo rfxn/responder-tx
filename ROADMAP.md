@@ -1,4 +1,4 @@
-# Responder TX — MASTER ROADMAP (updated 2026-07-19)
+# ResponderTX — MASTER ROADMAP (updated 2026-07-19)
 
 Current build: **v0.96.5** (see `CHANGELOG.md` for the full v0.1.0 → v0.96.5 arc,
 which is the authoritative record of what has shipped). This roadmap tracks
@@ -9,7 +9,7 @@ CHANGELOG/HANDOFF, not here.
 
 ## Delivered / status summary (read this first)
 
-Responder TX is a **production-grade, single-event flood operating picture** that
+ResponderTX is a **production-grade, single-event flood operating picture** that
 is now feature-complete against its own original backlog: the entire NOW block,
 all of the W1–W9 next-wave, most table-stakes (T1/T2/T4/T6/T8), the self-audit
 quick-wins (A1/A2/A4/A5/A6/A7), and the **historical-playback flagship** have all
@@ -65,7 +65,7 @@ forward queue).
   (core/map/sources/panels/board/boot + chat/notes/i18n, v0.78.0); a per-cycle
   Python generator pipeline (roads/crest/history/feeds/cameras + snapshot) backs
   the feeds; deploy via `scripts/deploy.sh` (A7). Public read-only mirror at
-  responder.rfxn.com (v0.31.0) with all LAN-only surfaces (ops chat, field-notes
+  respondertx.org (v0.31.0) with all LAN-only surfaces (ops chat, field-notes
   intake) stripped from the artifact.
 
 **Genuinely still open** (detail in the forward queue): notification delivery
@@ -102,7 +102,7 @@ views · live FEMA-shelter poller (#12) · the divergence indicator · small pol
 2. **Reframe vocabulary (DELIVERED v0.33.0 + grep-clean sweep v0.36.0):** no
    "request", no manual acknowledge/status anywhere. Items are alerts; lifecycle
    is active → aging → resolved(history), driven by the curator or the clock.
-3. **Public mirror hygiene:** zero chat vestige on responder.rfxn.com — no FAB,
+3. **Public mirror hygiene:** zero chat vestige on respondertx.org — no FAB,
    no panel, no chat.js, no outbox fetch. The deploy-time strip is real
    (`scripts/deploy.sh`) and each cycle greps the deployed archive to verify.
 4. Existing invariants hold: 911 disclaimer, source citations (official-vs-

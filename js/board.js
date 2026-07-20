@@ -735,13 +735,42 @@ function buildSitrep() {
   return L.join('\n');
 }
 
+// bold the leading section label so the modal reads as a report, not a wall of text;
+// the label tokens contain no HTML-special chars, so escaped length equals raw length
+const SITREP_LABELS = /^(RESPONDER TX SITREP|THREAT|GAUGES|RECOVERY|CUT-OFF AREAS|ACTIVE CRITICAL|ACTIVE NOTICES TOTAL)/;
+function sitrepHtml(text) {
+  return text.split('\n').map((line) => {
+    const e = esc(line);
+    const m = line.match(SITREP_LABELS);
+    return m ? `<strong>${esc(m[0])}</strong>${e.slice(m[0].length)}` : e;
+  }).join('\n');
+}
+
+let sitrepText = '';
+let sitrepReturnFocus = null;
+
+function openSitrepModal(text) {
+  sitrepText = text;
+  $('#sitrep-pre').innerHTML = sitrepHtml(text);
+  $('#sitrep-share').hidden = !navigator.share; // Share only where the OS provides a share sheet
+  sitrepReturnFocus = document.activeElement;
+  $('#sitrep-modal').hidden = false;
+  $('#sitrep-copy').focus();
+}
+
+function closeSitrepModal() {
+  $('#sitrep-modal').hidden = true;
+  if (sitrepReturnFocus && typeof sitrepReturnFocus.focus === 'function') sitrepReturnFocus.focus();
+  sitrepReturnFocus = null;
+}
+
+// desktop and mobile alike: copy to clipboard AND open a formatted modal of the same text
 function copySitrep(btn) {
   const text = buildSitrep();
-  const copy = () => copyText(text).then(
-    () => { btn.textContent = 'SITREP copied ✓'; setTimeout(() => { btn.textContent = '📋 SITREP'; }, 2000); },
+  openSitrepModal(text);
+  copyText(text).then(
+    () => { if (btn) { btn.textContent = 'SITREP copied ✓'; setTimeout(() => { btn.textContent = '📋 SITREP'; }, 2000); } },
     () => downloadBlob(text, 'text/plain', `sitrep-${stamp()}.txt`));
-  if (navigator.share) navigator.share({ title: 'ResponderTX SITREP', text }).catch(copy);
-  else copy();
 }
 
 /* ---------- share view — one link reproduces map, tab, and filters ---------- */

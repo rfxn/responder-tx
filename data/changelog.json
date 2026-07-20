@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.24",
+      "date": "2026-07-20",
+      "line": "The SITREP button now does two things at once, on both computer and phone: it copies the situation report to your clipboard as before, and it also opens a clean, easy-to-read window showing the same report with the section headings highlighted. Inside that window you can copy it again, share it (on phones that support sharing), download it as a text file, or close it. The 911 note stays visible, and everything is available in English and Spanish. On phones the app no longer jumps straight to the share menu in place of the report; you always see the report now, and sharing is a button you tap when you want it."
+    },
+    {
       "v": "v0.97.23",
       "date": "2026-07-20",
       "line": "A small header tweak. The ResponderTX logo is a touch larger so the wordmark reads more clearly, and the subtitle now says \"Live Hazard Awareness\" (the \"for Texas\" was dropped to keep it short and clean). Nothing about how the board works has changed, and the safety colors and 911 guidance are unchanged."

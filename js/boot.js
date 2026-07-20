@@ -712,11 +712,25 @@ async function boot() {
   $('#app-version').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChangelog(); } });
   $('#changelog-close').addEventListener('click', () => { $('#changelog-modal').hidden = true; });
   $('#changelog-modal').addEventListener('click', (e) => { if (e.target.id === 'changelog-modal') $('#changelog-modal').hidden = true; });
+  $('#sitrep-close').addEventListener('click', closeSitrepModal);
+  $('#sitrep-foot-close').addEventListener('click', closeSitrepModal);
+  $('#sitrep-modal').addEventListener('click', (e) => { if (e.target.id === 'sitrep-modal') closeSitrepModal(); });
+  $('#sitrep-copy').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    copyText(sitrepText).then(
+      () => { b.textContent = t('sitrep.copied'); setTimeout(() => { b.textContent = t('sitrep.copy'); }, 1500); },
+      () => downloadBlob(sitrepText, 'text/plain', `sitrep-${stamp()}.txt`));
+  });
+  $('#sitrep-share').addEventListener('click', () => {
+    if (navigator.share) navigator.share({ title: 'ResponderTX SITREP', text: sitrepText }).catch(() => { /* user dismissed the OS share sheet */ });
+  });
+  $('#sitrep-download').addEventListener('click', () => downloadBlob(sitrepText, 'text/plain', `sitrep-${stamp()}.txt`));
   // Escape closes the top-most open overlay
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('#cam-viewer').hidden) { closeCamViewer(); return; } // must tear down the player, not just hide
     if (layerSheetIsOpen()) { closeLayerSheet(); return; }
+    if (!$('#sitrep-modal').hidden) { closeSitrepModal(); return; } // routes through close() so focus is restored
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
     if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }

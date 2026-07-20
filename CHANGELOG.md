@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.24 · 2026-07-20 (SITREP: copy plus formatted modal)
+
+-- New Features --
+- [New] tapping SITREP now opens a formatted, scrollable situation report in a
+      modal on both desktop and mobile, with the section labels (threat, gauges,
+      recovery, cut-off areas, active critical, active notices) emphasized; the
+      modal offers Copy, Share (where the device supports it), Download, and Close,
+      the 911 disclaimer line stays visible, and every button is in English and
+      Spanish
+
+-- Changes --
+- [Change] SITREP still copies to the clipboard as before, but on mobile it no
+           longer replaces the report with the OS share sheet; the text is copied
+           and the modal opens every time, and Share is now an explicit button
+           inside the modal
+
 ## v0.97.23 · 2026-07-20 (header logo polish)
 
 -- Changes --

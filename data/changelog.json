@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.9",
+      "date": "2026-07-19",
+      "line": "Tap the \"rising to major\" chip and the board now makes the gauges in question unmistakable: it flies the map to frame exactly those gauges at a sensible zoom, plays a brief attention pulse on each of their markers so your eye lands on the right dots, and opens the Gauges tab with their rows scrolled into view and flashed. The \"MAJOR gauges\" chip does the same for symmetry. If you have the gauge layer turned off the map pulse is skipped, but the list still reveals the rows. Desktop and phone behave the same. English y español."
+    },
+    {
       "v": "v0.97.8",
       "date": "2026-07-20",
       "line": "Two phone-first presentation tweaks for the field. When you are in a live team, the Team tab now jumps to the far left of the tab bar — first, ahead of Feed — so your crew view is the first thing under your thumb; it slides back to its normal last spot the moment you leave the team. And the Alerts list is denser on phones: trimmed padding and wasted vertical space around each alert card so more warnings fit on screen at once, with nothing dropped — the county and coordinates line, the readable alert link, and the severity color all stay, and tap targets stay big enough to hit. Desktop is unchanged. English y español."

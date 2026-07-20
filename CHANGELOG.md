@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.9 — 2026-07-19 (rising-to-major chip pulses the target gauges and opens the Gauges tab)
+
+-- New Features --
+- [New] tapping the "rising to major" threat chip now frames the target gauges,
+      plays a temporary expanding-halo pulse (gauge-attn) on each of their map
+      markers so it is obvious which gauges are meant, and opens the Gauges tab
+      with every target row scrolled into view and flashed; degrades gracefully
+      when the gauge layer is toggled off (list reveal still runs)
+
+-- Changes --
+- [Change] the "MAJOR gauges" chip reuses the same focus behavior (frame + marker
+           pulse + Gauges-tab reveal) for symmetry, and single-gauge focus now
+           settles at a sane zoom (~11) instead of max
+
 ## v0.97.8 — 2026-07-20 (mobile presentation: Team tab far-left when active, denser Alerts cards)
 
 -- Changes --

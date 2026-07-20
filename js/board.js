@@ -77,6 +77,14 @@ function flyToRadioId(raw) {
 
 /* ---------- map↔list sync — popup "Open in …" reveal + "In view" scoping ---------- */
 
+// ~1.5s outline pulse on a list row; restarts cleanly on repeat taps
+function flashRow(el) {
+  el.classList.remove('flash');
+  void el.offsetWidth; // restart the pulse on repeat taps
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1600);
+}
+
 // map→list reveal: switch tab, scroll the row into view, ~1.5s outline pulse
 function revealInList(tab, sel) {
   const btn = document.querySelector(`.tabs button[data-tab="${tab}"]`);
@@ -85,10 +93,7 @@ function revealInList(tab, sel) {
     const el = document.querySelector(sel);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.remove('flash');
-    void el.offsetWidth; // restart the pulse on repeat taps
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 1600);
+    flashRow(el);
   });
 }
 
@@ -101,6 +106,48 @@ function openInGaugesList(lid) {
   // normal-category gauges hide behind the "show N gauges normal" fold — unfold before revealing
   if (!document.querySelector(sel) && !state.showNormalGauges) { state.showNormalGauges = true; renderGaugesTab(); }
   revealInList('tab-gauges', sel);
+}
+
+// threat-chip focus: frame a set of gauges, pulse their map markers, and reveal+flash
+// their rows in the Gauges tab. Degrades gracefully if the gauge layer is toggled off.
+function focusGauges(gauges) {
+  if (!gauges || !gauges.length) return;
+  const lids = gauges.map((g) => g.lid);
+  const pts = gauges.filter((g) => Number.isFinite(g.latitude) && Number.isFinite(g.longitude))
+    .map((g) => [g.latitude, g.longitude]);
+  if (pts.length === 1) state.map.setView(pts[0], Math.max(state.map.getZoom(), 11), { animate: true });
+  else fitTo(pts);
+  let pulsed = false;
+  const pulse = () => {
+    if (pulsed) return;
+    pulsed = true;
+    for (const lid of lids) {
+      const m = state.gaugeMarkers[lid];
+      const el = m && m.getElement && m.getElement();
+      if (!el) continue; // layer toggled off / marker not on map — list reveal still runs
+      el.classList.remove('gauge-attn');
+      void el.offsetWidth; // restart the halo on repeat taps
+      el.classList.add('gauge-attn');
+      setTimeout(() => el.classList.remove('gauge-attn'), 4600);
+    }
+  };
+  state.map.once('moveend', pulse); // pulse once the eye follows the pan…
+  setTimeout(pulse, 750);           // …or right away if the view was already framed
+  const sels = lids.map((lid) => `#gauge-list .gauge-card[data-lid="${CSS.escape(lid)}"]`);
+  if (sels.some((s) => !document.querySelector(s)) && !state.showNormalGauges) {
+    state.showNormalGauges = true; renderGaugesTab();
+  }
+  const btn = document.querySelector('.tabs button[data-tab="tab-gauges"]');
+  if (btn) btn.click();
+  requestAnimationFrame(() => {
+    let scrolled = false;
+    for (const s of sels) {
+      const el = document.querySelector(s);
+      if (!el) continue;
+      if (!scrolled) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); scrolled = true; }
+      flashRow(el);
+    }
+  });
 }
 
 const IN_VIEW_KEY = 'respondertx.inview';

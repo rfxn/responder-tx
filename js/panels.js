@@ -539,8 +539,8 @@ function renderThreatStrip() {
     { n: emergencies, cls: 'emergency', label: t('threat.ffemerg'), glyph: '⚠', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
     { n: lifeReqs.length, cls: 'emergency', label: t('threat.life'), glyph: '🆘', src: 'curated', act: () => fitTo(lifeReqs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     { n: cutoffs.length, cls: 'emergency', label: t('threat.cutoff'), glyph: '⛔', src: 'curated', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
-    { n: majors.length, cls: 'major', label: t('threat.major'), glyph: '●', act: () => fitTo(majors.map((g) => [g.latitude, g.longitude])) },
-    { n: toMajor.length, cls: 'major', label: t('threat.tomajor'), glyph: '▲', act: () => fitTo(toMajor.map((g) => [g.latitude, g.longitude])) },
+    { n: majors.length, cls: 'major', label: t('threat.major'), glyph: '●', act: () => focusGauges(majors) },
+    { n: toMajor.length, cls: 'major', label: t('threat.tomajor'), glyph: '▲', act: () => focusGauges(toMajor) },
     (() => { const rw = recordWatchGauges(); return { n: rw.length, cls: rw.some((g) => recordContext(g).atOrAbove) ? 'emergency' : 'major', label: t('threat.record'), glyph: '⚑', act: () => { fitTo(rw.map((g) => [g.latitude, g.longitude])); document.querySelector('.tabs button[data-tab="tab-gauges"]').click(); } }; })(),
     // roads chip counts operator road-notice cards (requests.json), not the DriveTexas feed — curated
     { n: roads.length, cls: 'warn', label: t('threat.roads'), glyph: '🚧', src: 'curated', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },

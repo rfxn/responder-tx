@@ -1,5 +1,34 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.6 — 2026-07-20 (first-class Team tab, clear join, Waze-style drop control)
+
+-- New Features --
+- [New] first-class "Team" tab in the sidebar tab bar (Feed/Alerts/Gauges/Social/
+      Resources/Team): out of a team it shows roomy create-a-team + join-by-link
+      controls; in a team it shows the roster (type/specialty/K9 name/status per
+      member, plus viewers), a prominent self-status control, and team controls;
+      team map markers keep rendering on any active tab; EN + ES
+- [New] Waze-style member-only drop-a-pin control in the bottom-right of the map —
+      drops a shared waypoint / hazard / search-area marker (with a short label) at
+      the map center via the existing /api/team/{id}/marker flow; shown only to
+      members (viewers are 403'd by the relay); EN + ES
+
+-- Changes --
+- [Change] join actions relabeled so they read as joining: a primary "Join & share
+           my location" and a secondary "Join as viewer (watch only)", with the
+           handle / call-sign field labeled directly above them; the ⋮ More → 🧭
+           Team menu entry is retained as a shortcut that opens the new Team tab
+- [Change] team controls get comfortable ≥44px touch targets on phones — roster
+           rows, status toggles, segmented pickers, K9 skill chips, buttons, and the
+           map drop control
+- [Change] dropped the "don't use your legal name" caveat from the handle help /
+           consent text (EN + ES); the ≥4-character handle rule is unchanged
+- [Change] removed "HRD" from the offered K9 skill tags (cadaver covers it) in the
+           client picklist and the relay's authoritative whitelist; already-stored
+           HRD values are preserved on read and on partial updates that omit skills;
+           a Worker redeploy is required for the whitelist change (see
+           workers/team-relay/README.md)
+
 ## v0.97.5 — 2026-07-19 (LAN master oversight view: all teams & viewers)
 
 -- New Features --

@@ -1,11 +1,14 @@
 'use strict';
 
-/* ---------- live team location sharing (flag-gated ?team=) ----------
+/* ---------- live team location sharing ----------
    Opt-in only. A team is private and reachable only via its unguessable UUID link. Members
    share their live location; viewers watch without sharing (but still appear in the roster and
    must set a handle). All live state lives in a Cloudflare Durable Object relay
    (functions/api/team/*), never in this repo. Secure-context (HTTPS/localhost) only — geolocation
-   requires it and the LAN http board carries no relay route. Inert when ?team= is absent. */
+   requires it and the LAN http board carries no relay route.
+
+   First-class home is the "Team" tab (create/join when out; roster + status + controls when in).
+   Team map markers render regardless of the active tab; the drop control is a member-only map FAB. */
 
 (function () {
   const POLL_MS = 15000;   // GET team state cadence
@@ -19,7 +22,7 @@
   const MTYPES = ['ground', 'k9'];
   const STATUSES = ['infield', 'standby', 'unavailable'];
   const SPECIALTIES = ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'];
-  const K9_SKILLS = ['HRD', 'live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
+  const K9_SKILLS = ['live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
   const MARKER_KINDS = ['waypoint', 'hazard', 'search-area'];
   const MARKER_GLYPH = { waypoint: '📍', hazard: '⚠️', 'search-area': '▧' };
 
@@ -28,8 +31,8 @@
     mtype: null, specialty: null, k9Name: '', skills: [], status: null,
     watchId: null, pollTimer: null, postTimer: null,
     layer: null, markerLayer: null, markers: {}, teamMarkers: {},
-    lastMembers: [], lastMarkers: [], defaults: null, appliedDefaults: false,
-    dropMode: false, facilities: null, mapWired: false,
+    lastMembers: [], lastViewers: [], lastMarkers: [], defaults: null, appliedDefaults: false,
+    facilities: null, mapWired: false,
     selfTrail: [], selfPos: null, active: false,
   };
 
@@ -51,10 +54,6 @@
     }
     T.layer = L.layerGroup().addTo(state.map);       // member markers + trails
     T.markerLayer = L.layerGroup().addTo(state.map);  // shared team-dropped markers
-    if (!T.mapWired) {
-      T.mapWired = true;
-      state.map.on('click', (e) => { if (T.dropMode) openDropModal(e.latlng); });
-    }
   }
 
   function memberIcon(m, color, isSelf, stale) {
@@ -157,15 +156,31 @@
     }
   }
 
-  function setDropMode(on) {
-    T.dropMode = on && T.role === 'member';
-    const btn = document.getElementById('team-drop-btn');
-    if (btn) btn.classList.toggle('tp-on', T.dropMode);
-    if (T.dropMode) note(tt('team.drop.hint', 'Tap the map to place a shared team marker.'));
+  // Waze-style member-only map control (bottom-right): drops a shared marker at the map center
+  function ensureDropFab() {
+    if (document.getElementById('team-drop-fab')) return;
+    const map = document.getElementById('map');
+    if (!map) return;
+    const btn = document.createElement('button');
+    btn.id = 'team-drop-fab';
+    btn.type = 'button';
+    btn.hidden = true;
+    btn.title = tt('team.drop.title', 'Drop a shared team marker at the map center');
+    btn.setAttribute('aria-label', btn.title);
+    btn.innerHTML = '<span class="tdf-glyph">📍</span><span class="tdf-plus">＋</span>';
+    btn.addEventListener('click', () => {
+      if (!(T.active && T.role === 'member') || !state.map) return;
+      openDropModal(state.map.getCenter());
+    });
+    map.appendChild(btn);
+  }
+
+  function updateDropFab() {
+    const fab = document.getElementById('team-drop-fab');
+    if (fab) fab.hidden = !(T.active && T.role === 'member');
   }
 
   function openDropModal(latlng) {
-    setDropMode(false);
     buildDropModal();
     const m = document.getElementById('team-drop');
     m.dataset.lat = latlng.lat; m.dataset.lon = latlng.lng;
@@ -215,6 +230,7 @@
       `<div class="modal-head"><strong>${esc(tt('team.drop.head', 'Drop a team marker'))}</strong>` +
       `<button id="team-drop-close" title="${esc(tt('team.cancel', 'Cancel'))}">✕</button></div>` +
       '<div class="team-body">' +
+      `<p class="tp-dropnote">${esc(tt('team.drop.center', 'Placing at the current map center — pan the map first to reposition.'))}</p>` +
       `<div class="tp-field"><label>${esc(tt('team.drop.kind', 'Marker type'))}</label><div class="tp-seggroup" id="team-drop-kinds">${segs}</div></div>` +
       `<input id="team-drop-label" maxlength="60" autocomplete="off" placeholder="${esc(tt('team.drop.label.ph', 'Short label (optional)'))}">` +
       '<div id="team-drop-err" class="team-err" hidden></div>' +
@@ -240,7 +256,7 @@
     }
   }
 
-  /* ---------- roster panel ---------- */
+  /* ---------- roster helpers ---------- */
 
   function ageStr(lastSeen) {
     const s = Math.max(0, Math.round((Date.now() - lastSeen) / 1000));
@@ -261,47 +277,191 @@
     return '';
   }
 
-  function statusChip(m, isSelf) {
+  function statusChip(m) {
     const st = STATUSES.includes(m.status) ? m.status : 'infield';
-    const cls = `tp-status tp-st-${st}`;
-    if (isSelf) return `<button class="${cls} tp-st-btn" data-act="status" title="${esc(tt('team.status.toggle', 'Tap to change your status'))}">${esc(stLabel(st))}</button>`;
-    return `<span class="${cls}">${esc(stLabel(st))}</span>`;
+    return `<span class="tp-status tp-st-${st}">${esc(stLabel(st))}</span>`;
   }
 
-  function renderPanel(data) {
-    const panel = document.getElementById('team-panel');
-    if (!panel) return;
+  /* ---------- Team tab: landing / join / roster ---------- */
+
+  function teamHost() { return document.getElementById('team-tab-body'); }
+
+  function showTeamTab() {
+    const btn = document.querySelector('.tabs button[data-tab="tab-team"]');
+    if (btn) btn.click();
+  }
+
+  function updateTeamCount(n) {
+    const c = document.getElementById('team-count');
+    if (!c) return;
+    if (T.active && n > 0) { c.textContent = String(n); c.hidden = false; } else c.hidden = true;
+  }
+
+  function renderTeamTab() {
+    const host = teamHost();
+    if (!host) return;
+    if (!window.isSecureContext) { renderInsecure(host); return; }
+    if (T.active) renderRosterShell(host);
+    else if (T.id) renderJoin(host);
+    else renderLanding(host);
+  }
+
+  function renderInsecure(host) {
+    host.innerHTML =
+      '<div class="tt-hero"><div class="tt-hero-icon">🧭</div>' +
+      `<h2 class="tt-title">${esc(tt('team.tab.title', 'Live team'))}</h2>` +
+      `<p class="tt-lead">${esc(tt('team.needhttps', 'Live team sharing needs the secure site: https://responder.rfxn.com'))}</p></div>`;
+  }
+
+  function renderLanding(host) {
+    host.innerHTML =
+      '<div class="tt-hero"><div class="tt-hero-icon">🧭</div>' +
+      `<h2 class="tt-title">${esc(tt('team.tab.title', 'Live team'))}</h2>` +
+      `<p class="tt-lead">${esc(tt('team.tab.lead', 'Share live locations with your crew on a private, link-only team. No account, nothing saved.'))}</p></div>` +
+      '<div class="tt-card">' +
+      `<h3 class="tt-h3">${esc(tt('team.create.head', 'Create a team'))}</h3>` +
+      `<p class="tt-note">${esc(tt('team.create.desc', 'Creates a private team with an unguessable link. Anyone you send the link to can join as a member (shares location) or a viewer (watch only). No account needed.'))}</p>` +
+      `<input id="team-create-name" class="tt-input" maxlength="40" autocomplete="off" placeholder="${esc(tt('team.create.ph', 'Team name (optional)'))}">` +
+      `<label class="tp-check"><input type="checkbox" id="team-create-ao"> ${esc(tt('team.create.ao', "Set the current map view as the team's default area (loads for members)"))}</label>` +
+      '<div id="team-create-err" class="team-err" hidden></div>' +
+      `<button id="team-create-go" class="tt-btn tt-btn-primary">${esc(tt('team.create.go', 'Create team'))}</button>` +
+      '<div id="team-create-result" hidden></div>' +
+      '</div>' +
+      `<div class="team-or">${esc(tt('team.or', 'or'))}</div>` +
+      '<div class="tt-card">' +
+      `<h3 class="tt-h3">${esc(tt('team.join.link.lbl', 'Have a team link?'))}</h3>` +
+      `<input id="team-join-link" class="tt-input" autocomplete="off" placeholder="${esc(tt('team.join.link.ph', 'Paste team link or code'))}">` +
+      '<div id="team-join-err" class="team-err" hidden></div>' +
+      `<button id="team-join-open" class="tt-btn">${esc(tt('team.join.link.go', 'Open team →'))}</button>` +
+      '</div>' +
+      `<p class="tt-safety">${esc(tt('team.safety', '⚠ Life-threatening emergency → call 911. This is situational awareness, not a dispatch system.'))}</p>`;
+    host.querySelector('#team-create-go').addEventListener('click', doCreate);
+    host.querySelector('#team-join-open').addEventListener('click', doJoinLink);
+    const jl = host.querySelector('#team-join-link');
+    jl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoinLink(); });
+  }
+
+  function renderJoin(host) {
+    const titled = T.name ? `${tt('team.join.head', 'Join team')}: ${T.name}` : tt('team.join.head', 'Join team');
+    host.innerHTML =
+      '<div class="tt-card tt-join">' +
+      `<button class="tt-back" id="team-join-back">← ${esc(tt('team.back', 'Not now'))}</button>` +
+      `<h2 class="tt-title">${esc(titled)}</h2>` +
+      `<p class="tt-lead" id="team-consent">${tt('team.consent', 'You are about to share your <strong>live location</strong> with everyone who has this team\'s link. Only join a team you trust.')}</p>` +
+      `<p class="tt-safety">${esc(tt('team.safety', '⚠ Life-threatening emergency → call 911. This is situational awareness, not a dispatch system.'))}</p>` +
+      `<label class="tt-label" for="team-tab-handle">${esc(tt('team.handle.lbl', 'Your handle / call sign'))}</label>` +
+      `<input id="team-tab-handle" class="tt-input" maxlength="24" autocomplete="off" placeholder="${esc(tt('team.handle.ph', 'Handle / call sign (min 4 characters)'))}">` +
+      `<div class="tp-profile" id="team-join-profile"><div class="tp-profile-cap">${esc(tt('team.profile.cap', 'Your role (applies when you share location):'))}</div>` +
+      profileFieldsHtml('tj') + '</div>' +
+      '<div id="team-tab-err" class="team-err" hidden></div>' +
+      '<div class="tt-joinbtns">' +
+      `<button id="team-join-member" class="tt-btn tt-btn-primary" disabled>${esc(tt('team.join.member', '📍 Join & share my location'))}</button>` +
+      `<button id="team-join-viewer" class="tt-btn tt-btn-ghost" disabled>${esc(tt('team.join.viewer', '👁 Join as viewer (watch only)'))}</button>` +
+      '</div>' +
+      `<p class="tt-foot">${esc(tt('team.foot', 'No account, no login. Your handle is not stored beyond this team and expires automatically. Foreground, screen-on only.'))}</p>` +
+      '</div>';
+    wireProfileFields(host, 'tj');
+    const h = host.querySelector('#team-tab-handle');
+    h.addEventListener('input', syncJoinButtons);
+    h.addEventListener('keydown', (e) => { if (e.key === 'Enter' && h.value.trim().length >= HANDLE_MIN) join('member'); });
+    host.querySelector('#team-join-member').addEventListener('click', () => join('member'));
+    host.querySelector('#team-join-viewer').addEventListener('click', () => join('viewer'));
+    host.querySelector('#team-join-back').addEventListener('click', backToLanding);
+    syncJoinButtons();
+  }
+
+  function renderRosterShell(host) {
+    host.innerHTML =
+      '<div class="tt-roster">' +
+      '<div class="tt-rhead">' +
+      `<div class="tt-rtitle"><span class="tt-rteam">👥 ${esc(T.name || tt('team.panel.head', 'Team'))}</span>` +
+      `<span class="tt-rcount" id="team-rcount"></span></div>` +
+      `<button id="team-share" class="tt-btn tt-btn-ghost tt-btn-sm" title="${esc(tt('team.copylink', 'Copy the team link'))}">🔗 ${esc(tt('team.copy', 'Copy link'))}</button>` +
+      '</div>' +
+      '<div class="tt-youbar" id="team-youbar"></div>' +
+      `<div class="tt-listcap">${esc(tt('team.panel.head', 'Team'))}</div>` +
+      '<div class="tp-list"></div>' +
+      '<div class="tt-controls">' +
+      `<button id="team-fac-btn" class="tt-btn tt-btn-ghost">🏥 ${esc(tt('team.fac.btn', 'Nearby'))}</button>` +
+      `<button id="team-leave" class="tt-btn tt-btn-danger">${esc(T.role === 'member' ? tt('team.stop', '⏻ Stop sharing & leave') : tt('team.leave', '⏻ Leave team'))}</button>` +
+      '</div>' +
+      '<div class="tp-facilities" hidden></div>' +
+      `<div class="tt-foot">${esc(tt('team.panel.note', 'Positions are ephemeral, private to this link, and never saved.'))}</div>` +
+      '</div>';
+    host.querySelector('#team-leave').addEventListener('click', leave);
+    host.querySelector('#team-share').addEventListener('click', () => {
+      const url = `${location.origin}/?team=${T.id}`;
+      const btn = document.getElementById('team-share');
+      const orig = btn.innerHTML;
+      copyText(url).then(() => { btn.textContent = '✓ ' + tt('team.copied', 'Copied ✓'); setTimeout(() => { btn.innerHTML = orig; }, 1500); }, () => prompt('Copy team link:', url));
+    });
+    host.querySelector('#team-fac-btn').addEventListener('click', toggleFacilities);
+    ensureDropFab();
+    renderRoster({ members: T.lastMembers || [], viewers: T.lastViewers || [] });
+  }
+
+  // prominent self-status control at the top of the roster (the owner's "your status control")
+  function renderYouBar() {
+    const host = teamHost();
+    const bar = host && host.querySelector('#team-youbar');
+    if (!bar) return;
+    const isMember = T.role === 'member';
+    const stSeg = isMember ? STATUSES.map((s) => `<button type="button" class="tt-stbtn tp-st-${s}${T.status === s ? ' on' : ''}" data-st="${s}">${esc(stLabel(s))}</button>`).join('') : '';
+    bar.innerHTML =
+      '<div class="tt-youline">' +
+      `<span class="tt-swatch" style="background:${esc(isMember ? selfColor() : '#7a8899')}">${isMember ? '' : '👁'}</span>` +
+      `<span class="tt-youname">${esc(T.handle || '')}</span><span class="tp-tag">${esc(tt('team.you', 'you'))}</span>` +
+      `<button class="tt-edit" id="team-edit-btn" title="${esc(tt('team.edit', 'Edit my role, type & status'))}">✎ ${esc(tt('team.edit.short', 'Edit'))}</button>` +
+      '</div>' +
+      (isMember
+        ? `<div class="tt-statusrow" id="team-statusrow">${stSeg}</div>`
+        : `<div class="tt-viewnote">${esc(tt('team.viewer.note', 'Watching only — you are not sharing a location.'))}</div>`);
+    const sr = bar.querySelector('#team-statusrow');
+    if (sr) sr.addEventListener('click', (e) => { const b = e.target.closest('.tt-stbtn'); if (b && b.dataset.st !== T.status) doUpdateSelf({ status: b.dataset.st }); });
+    bar.querySelector('#team-edit-btn').addEventListener('click', openEdit);
+  }
+
+  function renderRoster(data) {
+    const host = teamHost();
+    if (!host) return;
+    const list = host.querySelector('.tp-list');
+    if (!list) return;
     const members = data.members || [], viewers = data.viewers || [];
     const rows = [];
     for (const m of members) {
-      const isSelf = m.ephemeralId === T.ephemeralId;
-      const mm = isSelf ? Object.assign({}, m, { mtype: T.mtype || m.mtype, specialty: T.specialty || m.specialty, k9Name: T.k9Name || m.k9Name, skills: (T.skills && T.skills.length ? T.skills : m.skills), status: T.status || m.status }) : m;
-      const hasFix = !!m.lastPos || (isSelf && !!T.selfPos); // self shows its local fix before the server echoes it
-      const stale = !isSelf && Date.now() - (m.lastSeen || 0) > STALE_MS;
-      const swColor = isSelf ? selfColor() : (m.color || '#40c4ff');
-      const meta = memberMeta(mm);
+      if (m.ephemeralId === T.ephemeralId) continue; // self lives in the you-bar
+      const hasFix = !!m.lastPos;
+      const stale = Date.now() - (m.lastSeen || 0) > STALE_MS;
+      const swColor = m.color || '#40c4ff';
       rows.push(`<div class="tp-row tp-mrow${stale ? ' tp-stale' : ''}">
         <span class="tp-sw" style="background:${esc(swColor)}"></span>
         <div class="tp-main">
-          <div class="tp-line1"><span class="tp-name">${esc(m.handle)}${isSelf ? ` <span class="tp-tag">${esc(tt('team.you', 'you'))}</span>` : ''}</span>
+          <div class="tp-line1"><span class="tp-name">${esc(m.handle)}</span>
           <span class="tp-age">${hasFix ? tt('team.seen', 'seen') + ' ' + ageStr(m.lastSeen || Date.now()) : tt('team.nofix', 'no fix')}</span></div>
-          <div class="tp-line2">${statusChip(mm, isSelf)}${meta}${isSelf ? `<button class="tp-edit" data-act="edit" title="${esc(tt('team.edit', 'Edit my role, type & status'))}">✎</button>` : ''}</div>
+          <div class="tp-line2">${statusChip(m)}${memberMeta(m)}</div>
         </div>
       </div>`);
     }
     for (const v of viewers) {
-      const isSelf = v.ephemeralId === T.ephemeralId;
+      if (v.ephemeralId === T.ephemeralId) continue;
       rows.push(`<div class="tp-row tp-viewer">
         <span class="tp-sw tp-sw-eye">👁</span>
-        <span class="tp-name">${esc(v.handle)}${isSelf ? ` <span class="tp-tag">${esc(tt('team.you', 'you'))}</span>` : ''}</span>
-        <span class="tp-age">${isSelf ? `<button class="tp-edit" data-act="edit" title="${esc(tt('team.edit', 'Edit my role, type & status'))}">✎</button>` : esc(tt('team.viewer', 'viewer'))}</span>
+        <span class="tp-name">${esc(v.handle)}</span>
+        <span class="tp-age">${esc(tt('team.viewer', 'viewer'))}</span>
       </div>`);
     }
-    panel.querySelector('.tp-list').innerHTML = rows.join('') ||
-      `<div class="tp-empty">${esc(tt('team.empty', 'No one here yet.'))}</div>`;
-    panel.querySelector('.tp-count').textContent = `${members.length} · ${viewers.length}`;
-    const dropBtn = document.getElementById('team-drop-btn');
-    if (dropBtn) dropBtn.hidden = T.role !== 'member';
+    list.innerHTML = rows.join('') || `<div class="tp-empty">${esc(tt('team.alone', 'No one else here yet — share the link to bring your crew in.'))}</div>`;
+    const c = host.querySelector('#team-rcount');
+    if (c) c.textContent = `${members.length} ${tt('team.members', 'members')} · ${viewers.length} ${tt('team.viewers', 'viewers')}`;
+    renderYouBar();
+    updateDropFab();
+    updateTeamCount(members.length + viewers.length);
+  }
+
+  function backToLanding() {
+    T.id = null; T.name = '';
+    try { history.replaceState(null, '', location.pathname); } catch { /* sandboxed — cosmetic */ }
+    renderTeamTab();
   }
 
   /* ---------- polling ---------- */
@@ -315,12 +475,13 @@
       const data = await r.json();
       T.name = data.name || T.name;
       T.lastMembers = data.members || [];
+      T.lastViewers = data.viewers || [];
       T.lastMarkers = data.markers || [];
       if (data.defaults && !T.defaults) T.defaults = data.defaults;
       applyDefaults();
       renderAll();
       renderTeamMarkers();
-      renderPanel(data);
+      renderRoster(data);
     } catch { /* transient network — next tick retries */ }
   }
 
@@ -365,32 +526,57 @@
 
   /* ---------- join / leave lifecycle ---------- */
 
+  function syncJoinButtons() {
+    const host = teamHost();
+    const h = host && host.querySelector('#team-tab-handle');
+    if (!h) return;
+    const ok = h.value.trim().length >= HANDLE_MIN;
+    const m = host.querySelector('#team-join-member'), v = host.querySelector('#team-join-viewer');
+    if (m) m.disabled = !ok;
+    if (v) v.disabled = !ok;
+  }
+
+  function joinErr(msg) {
+    const host = teamHost();
+    const e = host && host.querySelector('#team-tab-err');
+    if (e) { e.textContent = msg; e.hidden = !msg; }
+  }
+
+  function setJoinBusy(on) {
+    const host = teamHost();
+    if (!host) return;
+    host.querySelectorAll('.tt-join button').forEach((b) => { b.disabled = on; });
+    if (!on) syncJoinButtons();
+  }
+
   async function join(role) {
-    const handle = document.getElementById('team-handle').value.trim();
-    if (handle.length < HANDLE_MIN) { modalErr(tt('team.handleshort', `Handle must be at least ${HANDLE_MIN} characters.`)); return; }
+    const host = teamHost();
+    const handleEl = host && host.querySelector('#team-tab-handle');
+    if (!handleEl) return;
+    const handle = handleEl.value.trim();
+    if (handle.length < HANDLE_MIN) { joinErr(tt('team.handleshort', `Handle must be at least ${HANDLE_MIN} characters.`)); return; }
     let ephemeralId = null;
     try { ephemeralId = localStorage.getItem(eidKey(T.id)); } catch { /* private mode */ }
-    modalErr('');
-    setModalBusy(true);
-    const profile = role === 'member' ? readProfileFields(document.getElementById('team-modal'), 'tj') : {};
+    joinErr('');
+    setJoinBusy(true);
+    const profile = role === 'member' ? readProfileFields(host, 'tj') : {};
     try {
       const r = await api(`${T.id}/join`, { method: 'POST', body: JSON.stringify(Object.assign({ handle, role, ephemeralId }, profile)) });
       const data = await r.json();
-      if (!r.ok) { modalErr(data.error || tt('team.joinfail', 'Could not join this team.')); setModalBusy(false); return; }
+      if (!r.ok) { joinErr(data.error || tt('team.joinfail', 'Could not join this team.')); setJoinBusy(false); return; }
       storeSelf(data.you);
       T.name = data.name || '';
       if (data.defaults && !T.defaults) T.defaults = data.defaults;
       try { localStorage.setItem(eidKey(T.id), T.ephemeralId); } catch { /* private mode — reload starts a fresh member */ }
       T.active = true;
-      closeModal();
-      openPanel();
+      renderTeamTab();
       applyDefaults();
       if (T.role === 'member') startSharing();
       poll();
       T.pollTimer = setInterval(poll, POLL_MS);
     } catch {
-      modalErr(tt('team.joinfail', 'Could not join this team.'));
-      setModalBusy(false);
+      joinErr(tt('team.joinfail', 'Could not join this team.'));
+      setJoinBusy(false);
     }
   }
 
@@ -401,16 +587,16 @@
 
   function teardown() {
     T.active = false;
-    T.dropMode = false;
     stopWatch();
     if (T.pollTimer) { clearInterval(T.pollTimer); T.pollTimer = null; }
     if (T.layer) { T.layer.clearLayers(); }
     if (T.markerLayer) { T.markerLayer.clearLayers(); }
-    T.markers = {}; T.teamMarkers = {}; T.lastMembers = []; T.lastMarkers = [];
+    T.markers = {}; T.teamMarkers = {}; T.lastMembers = []; T.lastViewers = []; T.lastMarkers = [];
     T.selfTrail = []; T.selfPos = null; T.facilities = null;
     T.mtype = null; T.specialty = null; T.k9Name = ''; T.skills = []; T.status = null;
-    const panel = document.getElementById('team-panel');
-    if (panel) panel.hidden = true;
+    T.id = null; T.name = '';
+    updateDropFab();
+    updateTeamCount(0);
   }
 
   // cache the DO's authoritative view of our own record after join/update
@@ -438,19 +624,17 @@
       storeSelf(data.you);
       if (T.role === 'member' && !wasMember) startSharing();
       if (T.role !== 'member' && wasMember) { stopWatch(); T.selfPos = null; T.selfTrail = []; }
+      renderYouBar();
+      updateDropFab();
       poll();
       return true;
     } catch { note(tt('team.updatefail', 'Could not update your profile.')); return false; }
   }
 
-  function cycleStatus() {
-    const i = STATUSES.indexOf(T.status);
-    doUpdateSelf({ status: STATUSES[(i + 1) % STATUSES.length] || 'infield' });
-  }
-
   async function leave() {
     const eid = T.ephemeralId;
     teardown();
+    renderTeamTab();
     if (eid) {
       try { await api(`${T.id}/leave`, { method: 'POST', body: JSON.stringify({ ephemeralId: eid }) }); } catch { /* server TTL is the backstop */ }
     }
@@ -466,27 +650,9 @@
     } catch { /* sendBeacon unsupported — TTL backstop */ }
   }
 
-  /* ---------- UI: consent/join modal, create modal, roster panel ---------- */
-
   function note(msg) {
     const el = document.getElementById('refresh-note');
     if (el) el.textContent = msg;
-  }
-
-  function modalErr(msg) {
-    const e = document.getElementById('team-modal-err');
-    if (e) { e.textContent = msg; e.hidden = !msg; }
-  }
-
-  function setModalBusy(on) {
-    document.querySelectorAll('#team-modal button').forEach((b) => { b.disabled = on; });
-    if (!on) syncJoinButtons();
-  }
-
-  function syncJoinButtons() {
-    const ok = (document.getElementById('team-handle').value.trim().length >= HANDLE_MIN);
-    document.getElementById('team-join-member').disabled = !ok;
-    document.getElementById('team-join-viewer').disabled = !ok;
   }
 
   /* ---------- reusable SAR profile fields (join + edit) ---------- */
@@ -558,94 +724,6 @@
     }
   }
 
-  function buildModal() {
-    if (document.getElementById('team-modal')) return;
-    const el = document.createElement('div');
-    el.id = 'team-modal';
-    el.hidden = true;
-    el.innerHTML =
-      '<div class="modal-box team-box">' +
-      `<div class="modal-head"><strong id="team-modal-title">${esc(tt('team.join.head', 'Join team'))}</strong>` +
-      `<button id="team-modal-close" title="${esc(tt('team.cancel', 'Cancel'))}">✕</button></div>` +
-      '<div class="team-body">' +
-      `<p class="team-consent" id="team-consent">${tt('team.consent', 'You are about to share your <strong>live location</strong> with everyone who has this team\'s link. Only join a team you trust. Use a call sign or role — not your legal name.')}</p>` +
-      `<p class="team-safety">${esc(tt('team.safety', '⚠ Life-threatening emergency → call 911. This is situational awareness, not a dispatch system.'))}</p>` +
-      `<input id="team-handle" maxlength="24" autocomplete="off" placeholder="${esc(tt('team.handle.ph', 'Handle / call sign (min 4 characters)'))}">` +
-      `<div class="tp-profile" id="team-join-profile"><div class="tp-profile-cap">${esc(tt('team.profile.cap', 'Your role (applies when you share location):'))}</div>` +
-      profileFieldsHtml('tj') + '</div>' +
-      '<div id="team-modal-err" class="team-err" hidden></div>' +
-      '<div class="team-btnrow">' +
-      `<button id="team-join-member" class="primary" disabled>${esc(tt('team.share', '📍 Share my location'))}</button>` +
-      `<button id="team-join-viewer" disabled>${esc(tt('team.watch', '👁 Just watch'))}</button>` +
-      '</div>' +
-      `<p class="team-foot">${esc(tt('team.foot', 'No account, no login. Your handle is not stored beyond this team and expires automatically. Foreground, screen-on only.'))}</p>` +
-      '</div></div>';
-    document.body.appendChild(el);
-    el.addEventListener('click', (e) => { if (e.target.id === 'team-modal') closeModal(); });
-    document.getElementById('team-modal-close').addEventListener('click', closeModal);
-    const h = document.getElementById('team-handle');
-    h.addEventListener('input', syncJoinButtons);
-    h.addEventListener('keydown', (e) => { if (e.key === 'Enter' && h.value.trim().length >= HANDLE_MIN) join('member'); });
-    document.getElementById('team-join-member').addEventListener('click', () => join('member'));
-    document.getElementById('team-join-viewer').addEventListener('click', () => join('viewer'));
-    wireProfileFields(el, 'tj');
-  }
-
-  function openModal() {
-    buildModal();
-    const title = document.getElementById('team-modal-title');
-    title.textContent = T.name ? `${tt('team.join.head', 'Join team')}: ${T.name}` : tt('team.join.head', 'Join team');
-    document.getElementById('team-modal').hidden = false;
-    setTimeout(() => document.getElementById('team-handle').focus(), 50);
-  }
-
-  function closeModal() { const m = document.getElementById('team-modal'); if (m) m.hidden = true; }
-
-  function buildPanel() {
-    if (document.getElementById('team-panel')) return;
-    const el = document.createElement('div');
-    el.id = 'team-panel';
-    el.hidden = true;
-    el.innerHTML =
-      '<div class="tp-head">' +
-      `<strong>👥 ${esc(tt('team.panel.head', 'Team'))}</strong>` +
-      '<span class="tp-count"></span>' +
-      `<button id="team-share" title="${esc(tt('team.copylink', 'Copy the team link'))}">🔗</button>` +
-      `<button id="team-min" title="${esc(tt('team.min', 'Minimize'))}">–</button>` +
-      '</div>' +
-      '<div class="tp-actions">' +
-      `<button id="team-drop-btn" hidden title="${esc(tt('team.drop.title', 'Drop a shared team marker on the map'))}">📍 ${esc(tt('team.drop.btn', 'Drop marker'))}</button>` +
-      `<button id="team-fac-btn" title="${esc(tt('team.fac.title', 'Nearest hospital and veterinary near the team area'))}">🏥 ${esc(tt('team.fac.btn', 'Nearby'))}</button>` +
-      '</div>' +
-      '<div class="tp-list"></div>' +
-      '<div class="tp-facilities" hidden></div>' +
-      `<button id="team-leave" class="tp-leave">${esc(tt('team.stop', '⏻ Stop sharing & leave'))}</button>` +
-      `<div class="tp-note">${esc(tt('team.panel.note', 'Positions are ephemeral, private to this link, and never saved.'))}</div>`;
-    document.body.appendChild(el);
-    document.getElementById('team-leave').addEventListener('click', leave);
-    document.getElementById('team-share').addEventListener('click', () => {
-      const url = `${location.origin}/?team=${T.id}`;
-      const btn = document.getElementById('team-share');
-      copyText(url).then(() => { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '🔗'; }, 1500); }, () => prompt('Copy team link:', url));
-    });
-    document.getElementById('team-min').addEventListener('click', () => el.classList.toggle('tp-collapsed'));
-    document.getElementById('team-drop-btn').addEventListener('click', () => setDropMode(!T.dropMode));
-    document.getElementById('team-fac-btn').addEventListener('click', toggleFacilities);
-    // roster self-controls (re-rendered every poll → delegate)
-    el.querySelector('.tp-list').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-act]'); if (!b) return;
-      if (b.dataset.act === 'status') cycleStatus();
-      else if (b.dataset.act === 'edit') openEdit();
-    });
-  }
-
-  function openPanel() {
-    buildPanel();
-    const leaveBtn = document.getElementById('team-leave');
-    if (leaveBtn) leaveBtn.textContent = T.role === 'member' ? tt('team.stop', '⏻ Stop sharing & leave') : tt('team.leave', '⏻ Leave team');
-    document.getElementById('team-panel').hidden = false;
-  }
-
   /* ---------- edit-my-profile modal (role / type / status after joining) ---------- */
 
   function buildEditModal() {
@@ -706,8 +784,10 @@
     return null;
   }
 
+  function facBox() { const host = teamHost(); return host && host.querySelector('.tp-facilities'); }
+
   function toggleFacilities() {
-    const box = document.querySelector('#team-panel .tp-facilities');
+    const box = facBox();
     if (!box) return;
     if (!box.hidden) { box.hidden = true; return; }
     box.hidden = false;
@@ -739,7 +819,7 @@
       T.facilities = { hosp: hosp.slice(0, 3), vet: vet.slice(0, 3) };
       renderFacilities(T.facilities);
     } catch {
-      const box = document.querySelector('#team-panel .tp-facilities');
+      const box = facBox();
       if (box) box.innerHTML = `<div class="tp-fac-err">${esc(tt('team.fac.err', 'Could not load facilities. Verify locally.'))}</div>`;
     }
   }
@@ -751,7 +831,7 @@
   }
 
   function renderFacilities(fac) {
-    const box = document.querySelector('#team-panel .tp-facilities');
+    const box = facBox();
     if (!box) return;
     const hasK9 = (T.lastMembers || []).some((m) => m.mtype === 'k9') || T.mtype === 'k9';
     const h = (fac.hosp || []).map(facRow).join('') || `<div class="tp-fac-none">${esc(tt('team.fac.nohosp', 'No hospital found within 50 km.'))}</div>`;
@@ -762,47 +842,15 @@
       `<div class="tp-fac-cap">${esc(tt('team.fac.cap', 'Via OpenStreetMap (Overpass). NOT verified as a trauma center or 24h emergency vet — call ahead to confirm ER hours.'))}</div>`;
   }
 
-  /* ---------- create-team flow ---------- */
-
-  function buildCreateModal() {
-    if (document.getElementById('team-create')) return;
-    const el = document.createElement('div');
-    el.id = 'team-create';
-    el.hidden = true;
-    el.innerHTML =
-      '<div class="modal-box team-box">' +
-      `<div class="modal-head"><strong>${esc(tt('team.create.head', 'Create a team'))}</strong>` +
-      `<button id="team-create-close" title="${esc(tt('team.cancel', 'Cancel'))}">✕</button></div>` +
-      '<div class="team-body">' +
-      `<p>${esc(tt('team.create.desc', 'Creates a private team with an unguessable link. Anyone you send the link to can join as a member (shares location) or a viewer (watch only). No account needed.'))}</p>` +
-      `<input id="team-create-name" maxlength="40" autocomplete="off" placeholder="${esc(tt('team.create.ph', 'Team name (optional)'))}">` +
-      `<label class="tp-check"><input type="checkbox" id="team-create-ao"> ${esc(tt('team.create.ao', 'Set the current map view as the team\'s default area (loads for members)'))}</label>` +
-      '<div id="team-create-err" class="team-err" hidden></div>' +
-      '<div id="team-create-result" hidden></div>' +
-      `<div class="team-btnrow"><button id="team-create-go" class="primary">${esc(tt('team.create.go', 'Create team'))}</button></div>` +
-      `<div class="team-or">${esc(tt('team.or', 'or'))}</div>` +
-      `<label class="team-joinlbl" for="team-join-link">${esc(tt('team.join.link.lbl', 'Have a team link?'))}</label>` +
-      `<input id="team-join-link" autocomplete="off" placeholder="${esc(tt('team.join.link.ph', 'Paste team link or code'))}">` +
-      '<div id="team-join-err" class="team-err" hidden></div>' +
-      `<div class="team-btnrow"><button id="team-join-open">${esc(tt('team.join.link.go', 'Open team →'))}</button></div>` +
-      '</div></div>';
-    document.body.appendChild(el);
-    el.addEventListener('click', (e) => { if (e.target.id === 'team-create') closeCreate(); });
-    document.getElementById('team-create-close').addEventListener('click', closeCreate);
-    document.getElementById('team-create-go').addEventListener('click', doCreate);
-    document.getElementById('team-join-open').addEventListener('click', doJoinLink);
-    const jl = document.getElementById('team-join-link');
-    jl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoinLink(); });
-  }
-
-  function closeCreate() { const m = document.getElementById('team-create'); if (m) m.hidden = true; }
+  /* ---------- create-team flow (landing card) ---------- */
 
   async function doCreate() {
-    const name = document.getElementById('team-create-name').value.trim();
-    const err = document.getElementById('team-create-err');
-    const go = document.getElementById('team-create-go');
+    const host = teamHost();
+    const name = host.querySelector('#team-create-name').value.trim();
+    const err = host.querySelector('#team-create-err');
+    const go = host.querySelector('#team-create-go');
     let defaults = null;
-    if (document.getElementById('team-create-ao').checked && state.map) {
+    if (host.querySelector('#team-create-ao').checked && state.map) {
       const c = state.map.getCenter();
       defaults = { lat: c.lat, lon: c.lng, zoom: state.map.getZoom() };
     }
@@ -812,25 +860,24 @@
       const data = await r.json();
       if (!r.ok || !data.teamId) { err.textContent = data.error || tt('team.create.fail', 'Could not create the team.'); err.hidden = false; go.disabled = false; return; }
       const url = `${location.origin}/?team=${data.teamId}`;
-      const res = document.getElementById('team-create-result');
+      const res = host.querySelector('#team-create-result');
       res.hidden = false;
       res.innerHTML =
         `<div class="team-linkrow"><input readonly id="team-create-link" value="${esc(url)}"></div>` +
         '<div class="team-qr" id="team-create-qr"></div>' +
         `<div class="team-qrcap">${esc(tt('team.qr.cap', 'Scan to join on another device'))}</div>` +
-        `<div class="team-btnrow"><button id="team-create-copy">${esc(tt('team.copy', 'Copy link'))}</button>` +
-        `<button id="team-create-enter" class="primary">${esc(tt('team.enter', 'Enter team →'))}</button></div>`;
-      renderQR(document.getElementById('team-create-qr'), url);
+        `<div class="tt-resrow"><button id="team-create-copy" class="tt-btn tt-btn-ghost">${esc(tt('team.copy', 'Copy link'))}</button>` +
+        `<button id="team-create-enter" class="tt-btn tt-btn-primary">${esc(tt('team.enter', 'Enter team →'))}</button></div>`;
+      renderQR(host.querySelector('#team-create-qr'), url);
       go.disabled = false;
-      document.getElementById('team-create-copy').addEventListener('click', () => {
-        const b = document.getElementById('team-create-copy');
+      host.querySelector('#team-create-copy').addEventListener('click', () => {
+        const b = host.querySelector('#team-create-copy');
         copyText(url).then(() => { b.textContent = tt('team.copied', 'Copied ✓'); }, () => prompt('Copy team link:', url));
       });
-      document.getElementById('team-create-enter').addEventListener('click', () => {
+      host.querySelector('#team-create-enter').addEventListener('click', () => {
         T.id = data.teamId; T.name = data.name || '';
         try { history.replaceState(null, '', url); } catch { /* sandboxed — cosmetic */ }
-        closeCreate();
-        openModal();
+        renderTeamTab();
       });
     } catch {
       err.textContent = tt('team.create.fail', 'Could not create the team.'); err.hidden = false; go.disabled = false;
@@ -862,14 +909,23 @@
   }
 
   function doJoinLink() {
-    const id = parseTeamId(document.getElementById('team-join-link').value);
-    const err = document.getElementById('team-join-err');
+    const host = teamHost();
+    const id = parseTeamId(host.querySelector('#team-join-link').value);
+    const err = host.querySelector('#team-join-err');
     if (!id) { err.textContent = tt('team.join.link.bad', 'That team link or code is not valid.'); err.hidden = false; return; }
     err.hidden = true;
     T.id = id; T.name = '';
     try { history.replaceState(null, '', `${location.origin}/?team=${id}`); } catch { /* sandboxed — cosmetic */ }
-    closeCreate();
-    api(`${id}/state`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) T.name = d.name || ''; }).catch(() => {}).finally(openModal);
+    renderTeamTab();
+    api(`${id}/state`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) { T.name = d.name || ''; setJoinTitle(); } }).catch(() => {});
+  }
+
+  // update just the join heading once the async name lookup lands (avoid clobbering a typed handle)
+  function setJoinTitle() {
+    if (T.active || !T.id) return;
+    const host = teamHost();
+    const titleEl = host && host.querySelector('.tt-join .tt-title');
+    if (titleEl && T.name) titleEl.textContent = `${tt('team.join.head', 'Join team')}: ${T.name}`;
   }
 
   let _lifecycleArmed = false;
@@ -880,32 +936,29 @@
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') beaconLeave(); });
   }
 
-  // ⋮ More → Team: reach create/join without a ?team= link. Already in a team → reopen the roster.
+  // ⋮ More → Team shortcut and the tab are the same home — just surface the tab.
   window.openTeamEntry = function openTeamEntry() {
-    if (!window.isSecureContext) { note(tt('team.needhttps', 'Live team sharing needs the secure site: https://responder.rfxn.com')); return; }
-    if (T.active) { openPanel(); return; }
-    armLifecycle();
-    buildCreateModal();
-    const res = document.getElementById('team-create-result');
-    if (res) { res.hidden = true; res.innerHTML = ''; }
-    for (const eid of ['team-create-err', 'team-join-err']) { const e = document.getElementById(eid); if (e) e.hidden = true; }
-    document.getElementById('team-create').hidden = false;
+    showTeamTab();
+    if (window.isSecureContext) armLifecycle();
+    renderTeamTab();
   };
 
   function start() {
     const param = new URLSearchParams(location.search).get('team');
-    if (!param) return; // inert unless explicitly opened
+    if (!param) return; // no ?team= link — the tab still shows create/join
     if (!window.isSecureContext) {
       note(tt('team.needhttps', 'Live team sharing needs the secure site: https://responder.rfxn.com'));
+      showTeamTab(); renderTeamTab();
       return;
     }
     ensureLayer();
     armLifecycle();
-    if (param === 'new') { buildCreateModal(); document.getElementById('team-create').hidden = false; return; }
+    if (param === 'new') { showTeamTab(); renderTeamTab(); return; } // landing (create)
     if (!UUID_RE.test(param)) { note(tt('team.badlink', 'That team link is not valid.')); return; }
     T.id = param;
-    // fetch name / existence first so the consent modal can name the team; 404 = expired
-    api(`${param}/state`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) T.name = d.name || ''; }).catch(() => {}).finally(openModal);
+    showTeamTab();
+    renderTeamTab(); // join state; heading fills in once the name lookup lands
+    api(`${param}/state`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) { T.name = d.name || ''; setJoinTitle(); } }).catch(() => {});
   }
 
   // run after boot() has built the map; chain behind the 911 safety ack if it is still open
@@ -918,6 +971,10 @@
     }
     start();
   };
+
+  // paint the Team tab body on boot so it is populated the first time it is opened
+  window.initTeamTab = function initTeamTab() { renderTeamTab(); };
+  window.renderTeamTab = renderTeamTab; // relocalizeDynamic() re-renders it on language switch
 
   // reused by the LAN-only master oversight view (js/master.js) to plot members with the exact
   // same marker style; inert on the public mirror where master.js never loads

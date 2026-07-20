@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.6",
+      "date": "2026-07-20",
+      "line": "Live team sharing gets a real home. It moves out of the cramped ⋮ menu overlay into its own first-class \"Team\" tab alongside Feed, Alerts, Gauges, Social, and Resources. When you are not in a team the tab shows roomy create-a-team and join-by-link controls; once you are in, it shows the roster (with each member's type, specialty, K9 name, and status), your own prominent status control, and the team controls. Joining is now unmistakable: a primary \"Join & share my location\" and a secondary \"Join as viewer (watch only)\", with your call-sign field right above them. Members get a Waze-style drop-a-pin button in the bottom-right of the map to drop a shared waypoint, hazard, or search-area marker at the map center. Every control has a comfortable phone-sized tap target. The handle help no longer warns against your legal name, and the K9 skills list drops \"HRD\" (cadaver already covers it). Team map markers keep showing on the map no matter which tab you are on, and the board works normally for anyone who never opens the Team tab. English y español."
+    },
+    {
       "v": "v0.97.5",
       "date": "2026-07-19",
       "line": "A LAN-only command view lands: the master oversight panel. On the ops board (never the public mirror) it lists every active team at once — each team's name, how many are on it, and its makeup (K9 handlers vs ground, specialties, and who is in-field, on standby, or unavailable) — plots all members on the map, and gathers every viewer across all teams into one roster. It is read-only oversight and refreshes on its own. Access is gated by a secret admin token held only on the server, so teams stay private: without the token nothing can be listed. English y español."

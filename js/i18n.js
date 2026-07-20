@@ -1233,5 +1233,4 @@
   window.applyI18n = applyI18n;
   window.setLang = setLang;
   window.getLang = () => lang;
-  window.i18nSupported = SUPPORTED;
 })();

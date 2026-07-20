@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.17",
+      "date": "2026-07-20",
+      "line": "Bug fixes and internal cleanup. The ☰ Filters button no longer shows a count for the distance filter when your device doesn’t have a GPS fix — the distance filter can’t hide anything without a location, so the button now stays quiet and agrees with the “✓ All clear” feed instead of contradicting it. Behind the scenes: the camera image proxy now cleanly rejects malformed camera-source names instead of erroring out, and the tool that rebuilds the camera list now refuses to publish an empty camera layer if an upstream source changes shape or goes dark (it stops with an error instead of silently dropping a whole layer of cameras). Some duplicate and unused internal code was also removed. No visible change to how the board works."
+    },
+    {
       "v": "v0.97.16",
       "date": "2026-07-20",
       "line": "Bug fix. The positive “✓ All clear” message on an empty feed (added in v0.97.14) now shows correctly when you’ve set a distance filter but the board doesn’t have a GPS fix. The distance filter only takes effect once your location is known, so with no fix it isn’t actually hiding anything — but the feed was still showing the flat “No notices match the current filters” line instead of the all-clear. It now reads as all-clear in that case, and still shows the filter wording whenever a filter (type, county, search, time window, distance with a fix, or In-view) is genuinely what’s hiding notices. Also some behind-the-scenes cleanup — the team-relay endpoints now share one response helper and an unused map handle was removed — with no change to how the board behaves."

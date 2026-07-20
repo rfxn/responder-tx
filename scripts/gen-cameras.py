@@ -269,6 +269,10 @@ def main():
     au = austin_cams()
     af = atxfloods_cams()
     ho = houston_cams()
+    # per-source floors: an upstream that changes shape and silently zeroes a source must abort, not publish an empty layer
+    for name, cams, floor in (('its', its, 2000), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400)):
+        if len(cams) < floor:
+            sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
         'generated': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'bbox': list(BBOX),

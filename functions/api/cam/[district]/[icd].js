@@ -16,7 +16,7 @@ export async function onRequestGet(context) {
   const source = String(context.params.district || '');
   const id = String(context.params.icd || '');
   if (DIST_RE.test(source)) return itsSnapshot(context, source, id);
-  const src = BYTES_SOURCES[source];
+  const src = Object.prototype.hasOwnProperty.call(BYTES_SOURCES, source) ? BYTES_SOURCES[source] : null;
   if (src && src.idRe.test(id)) return bytesSnapshot(context, source, id, src.url(id));
   return new Response('bad request', { status: 400 });
 }

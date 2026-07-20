@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.27",
+      "date": "2026-07-20",
+      "line": "Three additions to the live team feature. Crew can now set a Rehab (rest) status, in addition to in field, standby, and unavailable. When you drop a shared marker on the map you can assign it to a specific teammate, whose name then shows on that marker. And when you create a team you can save your current feed filters as a preset, so everyone who joins opens with the same view. Everything is available in English and Spanish."
+    },
+    {
       "v": "v0.97.26",
       "date": "2026-07-20",
       "line": "Small correctness and polish fixes. The browser tab title and social-share cards now read \"Live Hazard Awareness\" too, matching the header (the \"for Texas\" was still lingering there). A team K9-name input that had lost its styling is fixed, a couple of blank-value placeholders and one camera label were cleaned up, and the SITREP button's copied message now translates. Nothing about how the board works has changed."

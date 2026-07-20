@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.27 · 2026-07-20 (team: rehab status, marker assignment, invite filter presets)
+
+-- New Features --
+- [New] team members can set a new "Rehab" rest status alongside in field, standby,
+      and unavailable; it carries its own roster chip and map-marker style, in English
+      and Spanish
+- [New] a dropped team marker can now be assigned to a specific member via an optional
+      "Assign to" picker in the drop dialog; the assignee's handle shows in the marker
+      popup, in English and Spanish
+- [New] team invites can carry the creator's current feed filters as a preset via an
+      optional create toggle: the active type, county, search, time, distance, and
+      in-view scope load for everyone who joins, in English and Spanish
+
 ## v0.97.26 · 2026-07-20 (false-complete + polish fixes)
 
 -- Bug Fixes --

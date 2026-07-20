@@ -21,7 +21,7 @@
       allviewers: 'All viewers', noviewers: 'No viewers in any team right now.',
       k9: 'K9', ground: 'ground', markers: 'markers', idle: 'idle', created: 'created',
       seen: 'seen', nofix: 'no fix', on: 'team', unnamed: 'Unnamed team',
-      st: { infield: 'in field', standby: 'standby', unavailable: 'unavailable' },
+      st: { infield: 'in field', standby: 'standby', rehab: 'rehab', unavailable: 'unavailable' },
       err503: 'Master oversight is not configured on this LAN server (no admin token set).',
       err403: 'Admin token was rejected by the relay. Check the token matches the Cloudflare secret.',
       errnet: 'Could not reach the oversight relay. Retrying…',
@@ -36,7 +36,7 @@
       allviewers: 'Todos los observadores', noviewers: 'Ningún observador en ningún equipo ahora.',
       k9: 'K9', ground: 'terrestres', markers: 'marcadores', idle: 'inactivo', created: 'creado',
       seen: 'visto', nofix: 'sin ubicación', on: 'equipo', unnamed: 'Equipo sin nombre',
-      st: { infield: 'en campo', standby: 'en espera', unavailable: 'no disponible' },
+      st: { infield: 'en campo', standby: 'en espera', rehab: 'descanso', unavailable: 'no disponible' },
       err503: 'La vista de mando no está configurada en este servidor LAN (sin token de administrador).',
       err403: 'El token de administrador fue rechazado por el relay. Verifique que coincida con el secreto de Cloudflare.',
       errnet: 'No se pudo contactar el relay de mando. Reintentando…',
@@ -89,7 +89,7 @@
 .mv-chip { display: inline-block; padding: 0 6px; border-radius: 8px; background: var(--surface-2);
   border: 1px solid var(--hairline); font-size: 10.5px; }
 .mv-chip-k9 { border-color: #ffab40; }
-.mv-st-infield { color: #69f0ae; } .mv-st-standby { color: #ffab40; } .mv-st-unavailable { color: #ff6e6e; }
+.mv-st-infield { color: #69f0ae; } .mv-st-standby { color: #ffab40; } .mv-st-rehab { color: #4fc3f7; } .mv-st-unavailable { color: #ff6e6e; }
 .mv-mrow { display: flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 2px 0; }
 .mv-sw { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .mv-mrow .mv-mh { flex: 1 1 auto; }
@@ -203,7 +203,7 @@
   }
 
   function makeup(members) {
-    const o = { k9: 0, ground: 0, st: { infield: 0, standby: 0, unavailable: 0 }, sp: {} };
+    const o = { k9: 0, ground: 0, st: { infield: 0, standby: 0, rehab: 0, unavailable: 0 }, sp: {} };
     for (const m of members) {
       if (m.mtype === MTYPES_K9) o.k9++; else o.ground++;
       const st = o.st[m.status] != null ? m.status : 'infield';
@@ -218,7 +218,7 @@
     const chips = [];
     if (mk.k9) chips.push('<span class="mv-chip mv-chip-k9">🐕 ' + mk.k9 + ' ' + esc(M('k9')) + '</span>');
     if (mk.ground) chips.push('<span class="mv-chip">' + mk.ground + ' ' + esc(M('ground')) + '</span>');
-    for (const s of ['infield', 'standby', 'unavailable']) {
+    for (const s of ['infield', 'standby', 'rehab', 'unavailable']) {
       if (mk.st[s]) chips.push('<span class="mv-chip mv-st-' + s + '">' + mk.st[s] + ' ' + esc(stLabel(s)) + '</span>');
     }
     for (const sp of Object.keys(mk.sp)) chips.push('<span class="mv-chip">' + esc(sp) + ' ×' + mk.sp[sp] + '</span>');

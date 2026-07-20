@@ -191,3 +191,61 @@ test('legacy — a pre-split person (no pid) gets one on next touch; a legacy by
   assert.equal(row.ephemeralId, undefined, 'the legacy secret is not disclosed');
   assert.ok(state.markers.some((mk) => mk.id === 'old1'), 'a legacy byId marker is still returned');
 });
+
+test('status — rehab is an accepted member status and echoed; an unknown status still coerces to infield', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'RehabOne', role: 'member', status: 'rehab' }, now)).you;
+  assert.equal(you.status, 'rehab', 'rehab is a valid status');
+  const state = await relay.doState(stateUrl(you.ephemeralId), now);
+  assert.equal(state.members.find((m) => m.pid === you.pid).status, 'rehab', 'rehab is echoed in the roster');
+  // a non-SAR team keeps the same uniform status set
+  const { relay: rec } = await newTeam('Rec', null, 'recovery');
+  const recYou = (await rec.doJoin({ handle: 'RecRehab', role: 'member', status: 'rehab', specialty: 'cleanup' }, now)).you;
+  assert.equal(recYou.status, 'rehab', 'rehab is uniform across team types');
+  // backward compat: a fresh member sent an unknown status coerces to the first allowed status
+  const coerced = (await relay.doJoin({ handle: 'BadStatus', role: 'member', status: 'napping' }, now)).you;
+  assert.equal(coerced.status, 'infield', 'an unknown status coerces to infield');
+});
+
+test('marker — a member-pid assignee is stored and echoed; a viewer/bogus/absent assignee is null', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const a = (await relay.doJoin({ handle: 'AlphaOne', role: 'member' }, now)).you;
+  const b = (await relay.doJoin({ handle: 'BravoTwo', role: 'member' }, now)).you;
+  const vwr = (await relay.doJoin({ handle: 'Watcher1', role: 'viewer' }, now)).you;
+  // assign to a real member by public pid
+  const mk = (await relay.doMarker({ ephemeralId: a.ephemeralId, kind: 'waypoint', label: 'assigned', lat: 29.75, lon: -99.35, assignee: b.pid }, now)).marker;
+  assert.equal(mk.assignee, b.pid, 'a current member pid is stored as the assignee');
+  const state = await relay.doState(stateUrl(a.ephemeralId), now);
+  assert.equal(state.markers.find((x) => x.id === mk.id).assignee, b.pid, 'the assignee is echoed via state');
+  // a viewer cannot be an assignee (members only)
+  const mkV = (await relay.doMarker({ ephemeralId: a.ephemeralId, kind: 'hazard', label: 'v', lat: 29.75, lon: -99.35, assignee: vwr.pid }, now)).marker;
+  assert.equal(mkV.assignee, null, 'a viewer pid is not a valid assignee');
+  // a garbage value coerces to null
+  const mkBad = (await relay.doMarker({ ephemeralId: a.ephemeralId, kind: 'waypoint', label: 'x', lat: 29.75, lon: -99.35, assignee: 'not-a-real-pid' }, now)).marker;
+  assert.equal(mkBad.assignee, null, 'a non-uuid assignee coerces to null');
+  // an unassigned marker carries a null assignee (unchanged behavior)
+  const mkNone = (await relay.doMarker({ ephemeralId: a.ephemeralId, kind: 'waypoint', label: 'plain', lat: 29.75, lon: -99.35 }, now)).marker;
+  assert.equal(mkNone.assignee, null, 'an omitted assignee is null');
+});
+
+test('defaults — invite filter presets are sanitized, persisted, and echoed by create/join/state', async () => {
+  const filters = { type: 'rescue', county: 'Kerr', q: 'lowwater', window: '120', dist: '25', inView: true, bogus: 'nope' };
+  const { relay } = await newTeam('Filt', { lat: 29.7, lon: -98.5, zoom: 10, filters });
+  const now = Date.now();
+  const expected = { type: 'rescue', county: 'Kerr', q: 'lowwater', window: '120', dist: '25', inView: true };
+  // the DO runs in a vm realm, so round-trip through JSON to compare against a main-realm literal
+  const plain = (o) => JSON.parse(JSON.stringify(o));
+  assert.deepEqual(plain(relay.team.defaults.filters), expected, 'only whitelisted filter keys persist; inView kept, bogus dropped');
+  // create echoes the stored defaults back to the creator
+  assert.deepEqual(plain((await relay.doCreate({ teamId: relay.team.id }, now)).defaults.filters), expected);
+  // join and state both carry the preset so members/viewers can apply it on open
+  const j = await relay.doJoin({ handle: 'FiltOne', role: 'member' }, now);
+  assert.deepEqual(plain(j.defaults.filters), expected, 'join echoes the filter preset');
+  const state = await relay.doState(stateUrl(j.you.ephemeralId), now);
+  assert.deepEqual(plain(state.defaults.filters), expected, 'state echoes the filter preset');
+  // a team created with no defaults still behaves exactly as before
+  const { relay: noDef } = await newTeam();
+  assert.equal(noDef.team.defaults, null, 'no defaults means null, unchanged behavior');
+});

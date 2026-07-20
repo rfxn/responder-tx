@@ -41,23 +41,23 @@ const TEAM_TYPES = {
   sar: {
     label: 'team.ttype.sar', roleLabel: 'team.field.specialty',
     specialties: ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'],
-    statuses: ['infield', 'standby', 'unavailable'],
+    statuses: ['infield', 'standby', 'rehab', 'unavailable'],
     k9: true, k9Skills: ['live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'],
   },
   response: {
     label: 'team.ttype.response', roleLabel: 'team.field.func',
     specialties: ['command', 'medical', 'fire', 'law', 'hazmat', 'comms', 'rescue', 'drone', 'logistics', 'safety'],
-    statuses: ['infield', 'standby', 'unavailable'], k9: false,
+    statuses: ['infield', 'standby', 'rehab', 'unavailable'], k9: false,
   },
   recovery: {
     label: 'team.ttype.recovery', roleLabel: 'team.field.func',
     specialties: ['coord', 'cleanup', 'debris', 'damage', 'logistics', 'rehab', 'utilities', 'supply', 'heavy'],
-    statuses: ['infield', 'standby', 'unavailable'], k9: false,
+    statuses: ['infield', 'standby', 'rehab', 'unavailable'], k9: false,
   },
   community: {
     label: 'team.ttype.community', roleLabel: 'team.field.func',
     specialties: ['coord', 'shelter', 'food', 'welfare', 'transport', 'translation', 'childcare', 'pets', 'medical', 'supply'],
-    statuses: ['infield', 'standby', 'unavailable'], k9: false,
+    statuses: ['infield', 'standby', 'rehab', 'unavailable'], k9: false,
   },
 };
 const DEFAULT_TEAM_TYPE = 'sar';
@@ -102,9 +102,10 @@ function sanitizeDefaults(d) {
   }
   if (d.filters && typeof d.filters === 'object') {
     const f = {};
-    for (const k of ['tab', 'county', 'type']) {
+    for (const k of ['tab', 'county', 'type', 'q', 'window', 'dist']) {
       if (typeof d.filters[k] === 'string') { const v = sanitizeText(d.filters[k], 40); if (v) f[k] = v; }
     }
+    if (d.filters.inView === true) f.inView = true;
     if (Object.keys(f).length) out.filters = f;
   }
   return Object.keys(out).length ? out : null;
@@ -449,7 +450,7 @@ export class TeamRelay {
     if (Object.keys(this.team.markers).length >= MAX_MARKERS) return { _status: 429, error: 'too many team markers' };
     const kind = MARKER_KINDS.includes(body.kind) ? body.kind : 'waypoint';
     const mid = crypto.randomUUID();
-    this.team.markers[mid] = { id: mid, kind, label: sanitizeText(body.label, MARKER_LABEL_MAX), lat, lon, by: person.handle, byPid: this.pidOf(person), ts: now };
+    this.team.markers[mid] = { id: mid, kind, label: sanitizeText(body.label, MARKER_LABEL_MAX), lat, lon, by: person.handle, byPid: this.pidOf(person), assignee: this.assigneePid(body.assignee), ts: now };
     person.lastSeen = now;
     await this.persist(now);
     return { ok: true, marker: this.team.markers[mid] };
@@ -471,6 +472,17 @@ export class TeamRelay {
     for (const [mid, mk] of Object.entries(this.team.markers)) {
       if (now - mk.ts > MARKER_TTL_MS) delete this.team.markers[mid];
     }
+  }
+
+  // resolve a marker assignee: a client-supplied public pid is kept only if it belongs to a
+  // current MEMBER of this team; anything else (garbage, a viewer, a departed member) drops to null
+  assigneePid(raw) {
+    const want = String(raw || '');
+    if (!UUID_RE.test(want)) return null;
+    for (const p of Object.values(this.team.people)) {
+      if (p.role === 'member' && this.pidOf(p) === want) return want;
+    }
+    return null;
   }
 
   // public keying/display id, distinct from the secret write-credential ephemeralId; minted on

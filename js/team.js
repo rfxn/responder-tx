@@ -20,7 +20,7 @@
 
   // Picklists — mirror the DO's authoritative allow-sets (workers/team-relay/team-relay.js)
   const MTYPES = ['ground', 'k9'];
-  const STATUSES = ['infield', 'standby', 'unavailable'];
+  const STATUSES = ['infield', 'standby', 'rehab', 'unavailable'];
   const MARKER_KINDS = ['waypoint', 'hazard', 'search-area'];
   const MARKER_GLYPH = { waypoint: '📍', hazard: '⚠️', 'search-area': '▧' };
 
@@ -133,10 +133,19 @@
     });
   }
 
+  // resolve an assignee pid to a current member's handle; omit the line if they are not on the roster
+  function assigneeName(mk) {
+    if (!mk.assignee) return '';
+    const who = (T.lastMembers || []).find((m) => m.pid === mk.assignee);
+    return who ? who.handle : '';
+  }
+
   function markerPopupHtml(mk) {
     const canRemove = T.role === 'member';
+    const who = assigneeName(mk);
     return `<div class="ttm-pop"><strong>${esc(kindLabel(mk.kind))}</strong>${mk.label ? `: ${esc(mk.label)}` : ''}<br>` +
       `<span class="ttm-by">${esc(tt('team.marker.by', 'dropped by'))} ${esc(mk.by || '?')} · ${esc(ageStr(mk.ts))} ${esc(tt('team.ago', 'ago'))}</span>` +
+      (who ? `<br><span class="ttm-assignee">${esc(tt('team.marker.assignee', 'Assigned to'))}: ${esc(who)}</span>` : '') +
       (canRemove ? `<br><button class="ttm-del" data-mid="${esc(mk.id)}">${esc(tt('team.marker.remove', 'Remove marker'))}</button>` : '') + '</div>';
   }
 
@@ -155,11 +164,11 @@
           if (btn) btn.addEventListener('click', () => removeMarker(btn.dataset.mid));
         });
         marker.addTo(T.markerLayer);
-        T.teamMarkers[mk.id] = { marker, kind: mk.kind, label: mk.label };
-      } else if (entry.kind !== mk.kind || entry.label !== mk.label) {
+        T.teamMarkers[mk.id] = { marker, kind: mk.kind, label: mk.label, assignee: assigneeName(mk) };
+      } else if (entry.kind !== mk.kind || entry.label !== mk.label || entry.assignee !== assigneeName(mk)) {
         entry.marker.setIcon(teamMarkerIcon(mk));
         entry.marker.setPopupContent(markerPopupHtml(mk));
-        entry.kind = mk.kind; entry.label = mk.label;
+        entry.kind = mk.kind; entry.label = mk.label; entry.assignee = assigneeName(mk);
       }
     }
     for (const id of Object.keys(T.teamMarkers)) {
@@ -198,9 +207,24 @@
     m._kind = 'waypoint';
     m.querySelectorAll('.tp-seg[data-val]').forEach((b) => b.classList.toggle('on', b.dataset.val === 'waypoint'));
     document.getElementById('team-drop-label').value = '';
+    fillAssigneePicker();
     document.getElementById('team-drop-err').hidden = true;
     m.hidden = false;
     setTimeout(() => document.getElementById('team-drop-label').focus(), 50);
+  }
+
+  // rebuilt every open so the roster stays current: an "unassigned" default plus one option per
+  // current member (self flagged). The stored value is the member's public pid; the DO re-validates.
+  function fillAssigneePicker() {
+    const sel = document.getElementById('team-drop-assignee');
+    if (!sel) return;
+    const opts = [`<option value="">${esc(tt('team.marker.unassigned', 'Unassigned'))}</option>`];
+    for (const mm of (T.lastMembers || [])) {
+      const meTag = mm.pid === T.pid ? ` · ${tt('team.you', 'you')}` : '';
+      opts.push(`<option value="${esc(mm.pid)}">${esc(mm.handle)}${esc(meTag)}</option>`);
+    }
+    sel.innerHTML = opts.join('');
+    sel.value = '';
   }
 
   async function submitDrop() {
@@ -208,11 +232,13 @@
     const lat = Number(m.dataset.lat), lon = Number(m.dataset.lon);
     const kind = m._kind || 'waypoint';
     const label = document.getElementById('team-drop-label').value.trim();
+    const asEl = document.getElementById('team-drop-assignee');
+    const assignee = asEl ? asEl.value : '';
     const err = document.getElementById('team-drop-err');
     const go = document.getElementById('team-drop-go');
     go.disabled = true;
     try {
-      const r = await api(`${T.id}/marker`, { method: 'POST', body: JSON.stringify({ ephemeralId: T.ephemeralId, kind, label, lat, lon }) });
+      const r = await api(`${T.id}/marker`, { method: 'POST', body: JSON.stringify({ ephemeralId: T.ephemeralId, kind, label, lat, lon, assignee }) });
       const data = await r.json();
       if (!r.ok) { err.textContent = data.error || tt('team.drop.fail', 'Could not drop the marker.'); err.hidden = false; go.disabled = false; return; }
       if (data.marker) { T.lastMarkers = (T.lastMarkers || []).filter((x) => x.id !== data.marker.id).concat(data.marker); renderTeamMarkers(); }
@@ -244,6 +270,8 @@
       `<p class="tp-dropnote">${esc(tt('team.drop.center', 'Placing at the current map center. Pan the map first to reposition.'))}</p>` +
       `<div class="tp-field"><label>${esc(tt('team.drop.kind', 'Marker type'))}</label><div class="tp-seggroup" id="team-drop-kinds">${segs}</div></div>` +
       `<input id="team-drop-label" maxlength="60" autocomplete="off" placeholder="${esc(tt('team.drop.label.ph', 'Short label (optional)'))}">` +
+      `<div class="tp-field"><label>${esc(tt('team.marker.assign', 'Assign to'))}</label>` +
+      '<select class="tp-select" id="team-drop-assignee"></select></div>' +
       '<div id="team-drop-err" class="team-err" hidden></div>' +
       `<div class="team-btnrow"><button id="team-drop-go" class="primary">${esc(tt('team.drop.go', 'Place marker'))}</button></div>` +
       '</div></div>';
@@ -261,10 +289,13 @@
   function applyDefaults() {
     if (T.appliedDefaults || !T.defaults || !state.map) return;
     const d = T.defaults;
+    let applied = false;
     if (Number.isFinite(d.lat) && Number.isFinite(d.lon)) {
       state.map.setView([d.lat, d.lon], Number.isFinite(d.zoom) ? d.zoom : state.map.getZoom());
-      T.appliedDefaults = true;
+      applied = true;
     }
+    if (d.filters && window.applyBoardFilters) { window.applyBoardFilters(d.filters); applied = true; }
+    if (applied) T.appliedDefaults = true;
   }
 
   /* ---------- roster helpers ---------- */
@@ -354,6 +385,7 @@
       `<div class="tt-typegroup" id="team-create-type">${typeSeg}</div></div>` +
       `<input id="team-create-name" class="tt-input" maxlength="40" autocomplete="off" placeholder="${esc(tt('team.create.ph', 'Team name (optional)'))}">` +
       `<label class="tp-check"><input type="checkbox" id="team-create-ao"> ${esc(tt('team.create.ao', "Set the current map view as the team's default area (loads for members)"))}</label>` +
+      `<label class="tp-check"><input type="checkbox" id="team-create-filters"> ${esc(tt('team.create.filters', 'Also apply my current feed filters for the team'))}</label>` +
       '<div id="team-create-err" class="team-err" hidden></div>' +
       `<button id="team-create-go" class="tt-btn tt-btn-primary">${esc(tt('team.create.go', 'Create team'))}</button>` +
       '<div id="team-create-result" hidden></div>' +
@@ -915,10 +947,19 @@
     const go = host.querySelector('#team-create-go');
     const typeBtn = host.querySelector('#team-create-type .tt-typebtn.on');
     const teamType = typeBtn && TEAM_TYPES[typeBtn.dataset.ttype] ? typeBtn.dataset.ttype : DEFAULT_TEAM_TYPE;
+    const aoOn = host.querySelector('#team-create-ao').checked;
+    const fltOn = host.querySelector('#team-create-filters').checked;
     let defaults = null;
-    if (host.querySelector('#team-create-ao').checked && state.map) {
-      const c = state.map.getCenter();
-      defaults = { lat: c.lat, lon: c.lng, zoom: state.map.getZoom() };
+    if ((aoOn || fltOn) && state.map) {
+      defaults = {};
+      if (aoOn) {
+        const c = state.map.getCenter();
+        defaults.lat = c.lat; defaults.lon = c.lng; defaults.zoom = state.map.getZoom();
+      }
+      if (fltOn && window.collectBoardFilters) {
+        const f = window.collectBoardFilters();
+        if (f) defaults.filters = f;
+      }
     }
     err.hidden = true; go.disabled = true;
     try {

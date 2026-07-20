@@ -838,6 +838,37 @@ function applyShareParams(q) {
   apply('#flt-alert-q', 'aq', 'input');
 }
 
+// team-invite filter presets: snapshot the active feed filters (js/team.js sends these in
+// defaults.filters at create), and apply an incoming preset by driving the real controls so their
+// own handlers re-render the feed/map. Conservative: only known keys, empty snapshot returns null.
+window.collectBoardFilters = function collectBoardFilters() {
+  const f = state.filters, out = {};
+  for (const k of ['type', 'county', 'q', 'window', 'dist']) { if (f[k]) out[k] = String(f[k]); }
+  if (state.inView) out.inView = true;
+  return Object.keys(out).length ? out : null;
+};
+
+window.applyBoardFilters = function applyBoardFilters(f) {
+  if (!f || typeof f !== 'object') return;
+  const set = (sel, val, evt) => {
+    if (val == null || val === '') return false;
+    const el = $(sel);
+    if (!el) return false;
+    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === val)) el.add(new Option(val, val));
+    el.value = val;
+    el.dispatchEvent(new Event(evt));
+    return true;
+  };
+  let any = false;
+  if (set('#flt-type', f.type, 'change')) any = true;
+  if (set('#flt-county', f.county, 'change')) any = true;
+  if (set('#flt-window', f.window, 'change')) any = true;
+  if (set('#flt-dist', f.dist, 'change')) any = true;
+  if (set('#flt-q', f.q, 'input')) any = true;
+  if (f.inView === true && !state.inView) { setInView(true); any = true; }
+  if (any) $('#req-filters').hidden = false; // an applied preset must be visible, not silent
+};
+
 // mobile bottom-sheet: the sidebar (feed/alerts/threat) slides between peek (map-full),
 // half (default split), and full (covers the map for full scroll). Handle taps cycle states.
 const SHEET_STATES = ['sheet-peek', 'sheet-half', 'sheet-full'];

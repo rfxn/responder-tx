@@ -86,6 +86,7 @@
 }
 .tt-stbtn.tp-st-infield.on { background: #69f0ae; color: #0b3d24; border-color: #69f0ae; }
 .tt-stbtn.tp-st-standby.on { background: #ffd740; color: #3d2c00; border-color: #ffd740; }
+.tt-stbtn.tp-st-rehab.on { background: #4fc3f7; color: #06263d; border-color: #4fc3f7; }
 .tt-stbtn.tp-st-unavailable.on { background: var(--sev-emergency); color: #fff; border-color: var(--sev-emergency); }
 .tt-viewnote { color: var(--ink-muted); font-size: 12px; line-height: 1.4; }
 
@@ -125,6 +126,7 @@
 }
 .tp-st-infield { color: #0b3d24; background: #69f0ae; }
 .tp-st-standby { color: #3d2c00; background: #ffd740; }
+.tp-st-rehab { color: #06263d; background: #4fc3f7; }
 .tp-st-unavailable { color: #fff; background: var(--sev-emergency); }
 .tp-type {
   font-size: 10px; color: var(--ink-2); background: var(--surface-2);
@@ -209,6 +211,7 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
 .tp-seg.on { background: var(--accent); color: #04121e; border-color: var(--accent); font-weight: 650; }
 .tp-seg.tp-st-infield.on { background: #69f0ae; color: #0b3d24; border-color: #69f0ae; }
 .tp-seg.tp-st-standby.on { background: #ffd740; color: #3d2c00; border-color: #ffd740; }
+.tp-seg.tp-st-rehab.on { background: #4fc3f7; color: #06263d; border-color: #4fc3f7; }
 .tp-seg.tp-st-unavailable.on { background: var(--sev-emergency); color: #fff; border-color: var(--sev-emergency); }
 .tp-select {
   width: 100%; box-sizing: border-box; padding: 11px 10px; min-height: 44px; font-size: 14px;
@@ -252,6 +255,7 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
   background: var(--tc); border: 2px solid #fff; border-radius: 50%;
 }
 .team-marker.team-st-standby .tm-dot { box-shadow: 0 0 0 2px #ffab40, 0 0 0 1px rgba(0,0,0,0.5); }
+.team-marker.team-st-rehab .tm-dot { box-shadow: 0 0 0 2px #4fc3f7, 0 0 0 1px rgba(0,0,0,0.5); }
 .team-marker.team-st-unavailable { opacity: 0.5; }
 .team-marker.team-st-unavailable .tm-dot { border-style: dashed; }
 
@@ -264,6 +268,7 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
 }
 .ttm-pop { font-size: 12px; line-height: 1.4; }
 .ttm-pop .ttm-by { color: var(--ink-muted); font-size: 11px; }
+.ttm-pop .ttm-assignee { color: var(--accent); font-size: 11px; }
 .ttm-del {
   margin-top: 5px; padding: 6px 10px; min-height: 40px; font-size: 12px; cursor: pointer;
   background: var(--sev-emergency); color: #fff; border: none; border-radius: 6px;

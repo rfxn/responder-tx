@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.29 · 2026-07-20 (logo: larger wordmark)
+
+-- Changes --
+- [Change] header logo wordmark ("ResponderTX" plus the red heartbeat rule) enlarged
+           about 20% so the name reads bigger; the Texas-shape mark is unchanged (same
+           size), both light and dark lockups
+
 ## v0.97.28 · 2026-07-20 (continuous location updates + re-center-on-me control)
 
 -- New Features --

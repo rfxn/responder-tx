@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.29",
+      "date": "2026-07-20",
+      "line": "A logo tweak. The ResponderTX wordmark in the header is about 20 percent larger so the name reads more clearly; the Texas-shape part of the logo stays the same size. Light and dark both updated. Nothing else changed."
+    },
+    {
       "v": "v0.97.28",
       "date": "2026-07-20",
       "line": "After you tap Locate and allow location, your position now keeps updating on the map about every 30 seconds, in both the normal app and Drive Mode. The map no longer jumps back to you on those updates, so if you pan away it stays where you put it. A new ‘Re-center on me’ button sits at the center-bottom of the map and highlights when your marker scrolls off-screen; tap it to jump back to your current location. Available in English and Spanish."

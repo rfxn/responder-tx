@@ -80,14 +80,22 @@ from any session because it does not depend on one.
    advance the cursor. It fires **once per new batch** — an ack-cursor
    (`data/.chat-ack-cursor`, override `RESPONDER_CHAT_ACK_CURSOR`) records the
    last-acked inbox line so a stuck LLM step doesn't spam "received" every run.
-2. **Headless `claude -p` processing.** The script then invokes the `claude` CLI
-   in headless print mode with the fixed, trusted chat-poll protocol prompt. The
-   LLM reads the new inbox lines and appends its replies
-   (`{"ts","role":"claude","text"}`, plus optional `role:"action"` notes) to
-   `data/chat-outbox.json`. The **wrapper** — not the LLM — advances
-   `data/.chat-cursor` after validating the outbox is still valid JSON. On any
-   failure the cursor is left unadvanced (next run retries) and the outbox is
-   restored from a pre-call backup; the owner already got the auto-ack.
+2. **Headless `claude -p` processing (single-writer).** The script then invokes
+   the `claude` CLI in headless print mode with the fixed, trusted chat-poll
+   protocol prompt. `claude` is **read-only**: it reads the new inbox lines (and
+   the outbox for context) and emits **one consolidated reply on stdout** — it
+   holds **no file-write tool at all**. The **trusted wrapper** captures that
+   stdout and is the **sole writer** of `data/chat-outbox.json`: it re-reads the
+   **current** outbox, appends the reply as `{"ts","role":"claude","text"}`, and
+   swaps it in via temp + atomic rename after validating JSON. Because the merge
+   re-reads the live file (never a pre-call snapshot) and there is **no full-file
+   backup/restore anywhere**, a reply written concurrently by a live session
+   **cannot be reverted**. The wrapper — not the LLM — advances `data/.chat-cursor`
+   only after the merge succeeds; on any failure the cursor is left unadvanced and
+   the outbox is untouched by the failed run (the owner already got the auto-ack).
+   A per-batch attempt budget (`RESPONDER_CHAT_MAX_ATTEMPTS`, default 3) bounds
+   retries: a message that keeps timing out posts an honest "the ops session will
+   follow up" note and **defers to the interactive session instead of looping**.
 
 ### Cost model
 
@@ -105,10 +113,10 @@ The headless `claude` therefore runs with the **tightest viable scope**, not a
 blanket bypass:
 
 ```
-timeout 180 claude -p "<fixed trusted protocol prompt>" \
-  --allowedTools "Read Edit Write" \
-  --disallowedTools "Bash WebFetch WebSearch Task" \
-  --output-format text
+timeout -k 20 180 claude -p "<fixed trusted protocol prompt>" \
+  --allowedTools "Read" \
+  --disallowedTools "Bash Edit Write WebFetch WebSearch Task" \
+  --output-format text < /dev/null
 ```
 
 - **No `--dangerously-skip-permissions` / no `bypassPermissions`.** `--permission-mode`
@@ -116,14 +124,20 @@ timeout 180 claude -p "<fixed trusted protocol prompt>" \
   mode is used). In headless print mode, any tool not pre-approved via
   `--allowedTools` is denied — there is no interactive prompt to accept it — so
   the allowlist is effectively a strict allow-only set.
-- **Only file tools, no shell/network.** `Read/Edit/Write` are all the LLM needs
-  to read the inbox and append to the outbox. `Bash` is **explicitly denied** —
-  this removes arbitrary shell/RCE, which is the highest-impact prompt-injection
-  outcome. `WebFetch`/`WebSearch`/`Task` are denied to block data-exfil/SSRF and
-  spawning unscoped subagents.
-- **Cursor + JSON validation are done by the trusted wrapper**, not the LLM, so
-  the prompt tells the LLM *not* to touch `data/.chat-cursor` — it needs no
-  write access to the cursor at all.
+- **Read-only: no file writes, no shell, no network.** `claude` only needs `Read`
+  to see the inbox/outbox; it emits the reply on **stdout**, so it needs no write
+  tool at all. `Edit`/`Write` are **explicitly denied** alongside `Bash` (removes
+  RCE, the highest-impact injection outcome) and `WebFetch`/`WebSearch`/`Task`
+  (block data-exfil/SSRF and unscoped subagents). Even a fully successful
+  prompt-injection cannot write **any** file, run a command, or reach the network
+  — the worst it can do is produce junk reply text, which lands only in the
+  LAN-only outbox that the public mirror strips entirely.
+- **The outbox is written only by the trusted wrapper**, never by the LLM, so
+  there is no LLM/session write race on the outbox and the prompt tells the LLM
+  *not* to touch `data/.chat-cursor` — it has no file-write access at all.
+- **Timeout is hard-bounded.** `timeout -k 20 180` sends SIGTERM at 180s and
+  SIGKILL 20s later, so a hung `claude` cannot outlive the poll interval; on
+  timeout the outbox is untouched and the attempt budget defers to the session.
 - **Fixed trusted prompt.** The protocol prompt is built by the script (not
   taken from the inbox) and explicitly instructs the LLM to treat message text
   strictly as data and to refuse embedded instructions that would change its
@@ -131,18 +145,15 @@ timeout 180 claude -p "<fixed trusted protocol prompt>" \
   source.
 
 **Residual risk (documented, accepted):** an autonomous scheduled LLM still
-processes attacker-influenceable text with `Read/Edit/Write`. Because `Bash` and
-network tools are denied, the worst a successful injection can do is write junk
-into repo files it can reach; it **cannot** execute shell, reach the network,
-push, or deploy. The public mirror strips the chat surface entirely (`deploy.sh`
-drops `js/chat.js` and ships an empty outbox), and `cycle-check.sh` re-validates
-before any commit. **Tighter still (controller may adopt after a live test):**
-path-scope the file tools, e.g.
-`--allowedTools "Read(data/**) Edit(data/chat-outbox.json) Write(data/chat-outbox.json)"`,
-so even a compromised run can only touch the outbox. This variant is not the
-default only because it could not be fired live here (doing so would incur cost
-and double-process real messages); validate the rule syntax with one live run,
-then switch the cron line to it.
+processes attacker-influenceable text, but with **read-only tools** the only
+thing an injection can influence is the reply **text** the wrapper appends to the
+LAN-only outbox — it **cannot** write any file, execute shell, reach the network,
+push, or deploy. The trusted wrapper JSON-validates and atomically writes the
+outbox; the public mirror strips the chat surface entirely (`deploy.sh` drops
+`js/chat.js` and ships an empty outbox), and `cycle-check.sh` re-validates before
+any commit. This read-only posture supersedes the earlier `Edit(outbox)`-scoped
+variant: because `claude` now emits its reply on stdout and holds no write tool,
+no file — not even the outbox — is reachable by a compromised run.
 
 ### Safe / ack-only mode & flags
 
@@ -158,7 +169,12 @@ then switch the cron line to it.
 - Auth: headless `claude` uses the non-interactive credentials at
   `~/.claude/.credentials.json` (no interactive login needed for cron).
 - Tunables: `RESPONDER_CHAT_TIMEOUT` (default `180`s around the `claude` call),
-  `RESPONDER_CHAT_LOCK`, `RESPONDER_CHAT_LOG`, `RESPONDER_CHAT_ACK_CURSOR`.
+  `RESPONDER_CHAT_KILL_AFTER` (default `20`s SIGKILL grace), `RESPONDER_CHAT_MAX_ATTEMPTS`
+  (default `3` per-batch LLM retries before deferring to the session),
+  `RESPONDER_CHAT_LOCK`, `RESPONDER_CHAT_LOG`, `RESPONDER_CHAT_ACK_CURSOR`,
+  `RESPONDER_CHAT_ATTEMPTS` (retry-state file, default `/tmp/responder-chat-attempts`).
+  `RESPONDER_CHAT_INBOX`/`_OUTBOX`/`_CURSOR` override the file paths (used by the
+  test harness); `RESPONDER_CHAT_CLAUDE_CMD` swaps the `claude` binary for a stub.
 
 ### Lock (flock)
 

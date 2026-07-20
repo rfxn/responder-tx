@@ -43,9 +43,11 @@ esac
 if [ "$TARGET" = "chat" ] && [ "$REMOVE" -eq 0 ]; then
     echo "NOTICE: --chat enables an AUTONOMOUS headless-claude cron that processes the"
     echo "        LAN ops chat. The inbox is attacker-influenceable via POST /api/chat, so"
-    echo "        this runs claude with a scoped tool allowlist (Read/Edit/Write only, no"
-    echo "        Bash/network) and NO permission bypass. Enabling it is a controller/owner"
-    echo "        decision — review scripts/README.md 'Chat processor' first."
+    echo "        claude runs READ-ONLY (Read only; Edit/Write/Bash/network/subagents all"
+    echo "        denied) and emits its reply on stdout — the trusted wrapper is the sole"
+    echo "        outbox writer, so an injection can touch no file. NO permission bypass."
+    echo "        Enabling it is a controller/owner decision — review scripts/README.md"
+    echo "        'Chat processor' first."
 fi
 
 tmp=$(mktemp) || { echo "FAIL: mktemp" >&2; exit 1; }

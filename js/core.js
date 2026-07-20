@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.32';
+const APP_VERSION = 'v0.97.33';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -13,8 +13,8 @@ const CONFIG = {
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
   usgsIvBase: 'https://waterservices.usgs.gov/nwis/iv/',
   refreshMs: 180000,
-  // Drive Mode re-locates on this cadence so the nearest-hazards ranking never goes stale while driving
-  driveLocateMs: 30000,
+  // continuous-location cadence (app + Drive Mode): shorter steps read smoother in follow mode while driving
+  driveLocateMs: 10000,
   // zoom a deliberate locate (⌖ / re-center / follow engage) snaps to, if not already closer
   locateZoom: 14,
   maxZoneGeomFetches: 12,

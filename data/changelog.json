@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.33",
+      "date": "2026-07-20",
+      "line": "Smoother location tracking. When the map is following you, it now glides to each new GPS fix instead of snapping across the distance, which looks much better while driving, and it updates every 10 seconds instead of 30 so the steps are smaller. Follow only runs after you tap locate or re-center, and panning the map still turns it off."
+    },
+    {
       "v": "v0.97.32",
       "date": "2026-07-20",
       "line": "Internal cleanup. We removed an unused archival-photo overlay that was part of historical playback but had no data behind it, so it never appeared on the map. Nothing you use changes: the event timeline and radar playback work exactly as before."

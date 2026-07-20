@@ -256,12 +256,18 @@ function flyOpenPopup(latlng, zoom, marker) {
   })();
 }
 
-// our own recenters/follow ticks: flag the move so its zoomstart/dragstart never reads as a manual exit
-function progSetView(latlng, zoom) {
+// our own recenters/follow ticks: flag the move so its zoomstart/dragstart never reads as a manual exit.
+// smooth=true glides the map to the new fix (follow ticks) instead of snapping; the guard is held past
+// the animation via the settling moveend, with a longer safety net than the ~0.9s pan.
+function progSetView(latlng, zoom, smooth) {
   state._progMove = true;
   clearTimeout(state._progMoveT);
-  state._progMoveT = setTimeout(() => { state._progMove = false; }, 700); // safety net if setView is a no-op and no moveend fires
-  state.map.setView(latlng, zoom == null ? state.map.getZoom() : zoom);
+  state._progMoveT = setTimeout(() => { state._progMove = false; }, smooth ? 1600 : 700); // net if the move is a no-op and no moveend fires
+  if (smooth && (zoom == null || zoom === state.map.getZoom())) {
+    state.map.panTo(latlng, { animate: true, duration: 0.9, easeLinearity: 0.4 }); // glide A->B between fixes
+  } else {
+    state.map.setView(latlng, zoom == null ? state.map.getZoom() : zoom);
+  }
 }
 
 function initMap() {
@@ -537,7 +543,7 @@ function initMap() {
     ]).addTo(state.map);
     // deliberate locate snaps to locateZoom once; while following we track the fix at the current zoom; otherwise the marker updates in place
     if (state.centerNextFix) { state.centerNextFix = false; progSetView(e.latlng, Math.max(state.map.getZoom(), CONFIG.locateZoom)); }
-    else if (state.followMe) { progSetView(e.latlng); }
+    else if (state.followMe) { progSetView(e.latlng, null, true); } // glide to the fix instead of snapping
     renderRequests();
     renderDriveMode(); // re-rank the glance list by the new fix
     startLocTrack(); // opt-in tracker begins once the first fix lands; runs in the app and Drive Mode alike

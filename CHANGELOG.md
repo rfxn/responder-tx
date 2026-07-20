@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.33 · 2026-07-20 (smoother follow-mode tracking)
+
+-- Changes --
+- [Change] in follow mode the map now glides smoothly to each new location fix
+           instead of snapping across the distance, which reads much better at road
+           speed; location updates also step every 10 seconds (was 30) for smaller,
+           smoother moves
+
 ## v0.97.32 · 2026-07-20 (remove dormant archival-photo overlay)
 
 -- Changes --

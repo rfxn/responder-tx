@@ -99,6 +99,113 @@
 }
 .team-marker.team-stale .tm-dot { opacity: 0.45; }
 .team-marker.team-stale .tm-label { opacity: 0.6; }
+/* SAR type + status on the member marker */
+.team-marker .tm-dot-k9 {
+  width: 16px; height: 16px; font-size: 11px; line-height: 12px; text-align: center;
+  background: var(--tc); border: 2px solid #fff; border-radius: 50%;
+}
+.team-marker.team-st-standby .tm-dot { box-shadow: 0 0 0 2px #ffab40, 0 0 0 1px rgba(0,0,0,0.5); }
+.team-marker.team-st-unavailable { opacity: 0.5; }
+.team-marker.team-st-unavailable .tm-dot { border-style: dashed; }
+
+/* SAR status + type in the roster */
+.tp-mrow { align-items: flex-start; }
+.tp-main { flex: 1 1 auto; min-width: 0; }
+.tp-line1 { display: flex; align-items: baseline; gap: 6px; }
+.tp-line2 { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 3px; }
+.tp-status {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em;
+  border-radius: 4px; padding: 1px 5px; border: 1px solid transparent; white-space: nowrap;
+}
+.tp-st-infield { color: #0b3d24; background: #69f0ae; }
+.tp-st-standby { color: #3d2c00; background: #ffd740; }
+.tp-st-unavailable { color: #fff; background: var(--sev-emergency); }
+button.tp-st-btn { cursor: pointer; min-height: 0; line-height: 1.3; }
+.tp-type {
+  font-size: 10px; color: var(--ink-2); background: var(--surface-2);
+  border: 1px solid var(--hairline); border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+}
+.tp-type.tp-k9 { color: var(--ink-1); }
+.tp-skills { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+.tp-skill {
+  font-size: 9px; color: var(--accent); border: 1px solid var(--accent);
+  border-radius: 3px; padding: 0 3px; text-transform: uppercase;
+}
+.tp-edit {
+  min-height: 0; padding: 0 5px; font-size: 11px; background: none;
+  border: 1px solid var(--hairline); border-radius: 4px; color: var(--ink-2); cursor: pointer;
+}
+
+/* panel action row (drop marker / nearby facilities) */
+.tp-actions { display: flex; gap: 6px; padding: 7px 10px; border-bottom: 1px solid var(--hairline); }
+.tp-actions button {
+  flex: 1 1 auto; min-height: 0; padding: 5px 8px; font-size: 11.5px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; color: var(--ink-1); cursor: pointer;
+}
+.tp-actions button.tp-on { background: var(--accent); color: #04121e; border-color: var(--accent); }
+
+/* profile fields (join + edit modals) */
+.tp-profile { margin: 6px 0 4px; }
+.tp-profile-cap { font-size: 11px; color: var(--ink-muted); margin-bottom: 4px; }
+.tp-field { margin: 6px 0; }
+.tp-field > label { display: block; font-size: 11px; color: var(--ink-2); margin-bottom: 3px; }
+.tp-field[hidden] { display: none; }
+.tp-seggroup { display: flex; gap: 4px; flex-wrap: wrap; }
+.tp-seg {
+  flex: 1 1 auto; min-height: 0; padding: 6px 8px; font-size: 12px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; color: var(--ink-2);
+}
+.tp-seg.on { background: var(--accent); color: #04121e; border-color: var(--accent); font-weight: 650; }
+.tp-seg.tp-st-infield.on { background: #69f0ae; color: #0b3d24; border-color: #69f0ae; }
+.tp-seg.tp-st-standby.on { background: #ffd740; color: #3d2c00; border-color: #ffd740; }
+.tp-seg.tp-st-unavailable.on { background: var(--sev-emergency); color: #fff; border-color: var(--sev-emergency); }
+.tp-select {
+  width: 100%; box-sizing: border-box; padding: 8px 10px; font-size: 13px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; color: var(--ink-1);
+}
+.tp-skillrow { display: flex; gap: 5px; flex-wrap: wrap; }
+.tp-skillchip {
+  min-height: 0; padding: 4px 8px; font-size: 11px; cursor: pointer; text-transform: uppercase;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; color: var(--ink-2);
+}
+.tp-skillchip.on { background: var(--accent); color: #04121e; border-color: var(--accent); }
+.tp-check { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--ink-2); margin: 6px 0; line-height: 1.35; cursor: pointer; }
+.tp-check input { width: auto; margin: 2px 0 0; flex: 0 0 auto; }
+
+/* edit + drop modals reuse the team modal chrome */
+#team-edit, #team-drop {
+  position: fixed; inset: 0; z-index: 1460;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+#team-edit[hidden], #team-drop[hidden] { display: none; }
+
+/* shared team-dropped markers */
+.team-tm { position: relative; display: flex; align-items: flex-start; }
+.team-tm .ttm-glyph { font-size: 16px; line-height: 1; filter: drop-shadow(0 0 2px #000); }
+.team-tm .ttm-label {
+  position: absolute; left: 18px; top: 0; white-space: nowrap; font-size: 10.5px; font-weight: 650;
+  color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none;
+}
+.ttm-pop { font-size: 12px; line-height: 1.4; }
+.ttm-pop .ttm-by { color: var(--ink-muted); font-size: 11px; }
+.ttm-del {
+  margin-top: 5px; padding: 3px 8px; font-size: 11px; cursor: pointer;
+  background: var(--sev-emergency); color: #fff; border: none; border-radius: 5px;
+}
+
+/* nearby facilities */
+.tp-facilities { padding: 8px 10px; border-top: 1px solid var(--hairline); font-size: 12px; }
+.tp-facilities[hidden] { display: none; }
+.tp-fac-h { font-weight: 650; margin: 6px 0 3px; }
+.tp-fac-h:first-child { margin-top: 0; }
+.tp-fac-k9 { color: var(--accent); }
+.tp-fac-row { display: flex; align-items: baseline; gap: 6px; padding: 2px 0; }
+.tp-fac-row a { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-1); }
+.tp-fac-d { color: var(--ink-muted); font-size: 11px; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.tp-fac-em { font-size: 9px; font-weight: 700; color: #0b3d24; background: #69f0ae; border-radius: 3px; padding: 0 3px; }
+.tp-fac-cap { color: var(--ink-muted); font-size: 10px; line-height: 1.4; margin-top: 7px; border-top: 1px dashed var(--hairline); padding-top: 5px; }
+.tp-fac-load, .tp-fac-err, .tp-fac-none { color: var(--ink-muted); padding: 4px 0; }
 
 @media (max-width: 768px) {
   #team-panel { bottom: 12px; right: 8px; width: 210px; }

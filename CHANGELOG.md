@@ -1,5 +1,42 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.4 — 2026-07-19 (SAR team model: member types, status, shared markers)
+
+-- New Features --
+- [New] SAR member profile on join: pick a member type — K9 handler (with a K9
+      name field and skill tags: HRD, live-find, trailing, cadaver, area, water,
+      evidence, avalanche) or ground member with a specialty (searcher, medical,
+      support, drone-ops, comms, swiftwater, command, logistics) — plus a status
+      (in-field / standby / unavailable); type, specialty, skills, and status
+      render in the roster and on/near the member's map marker (🐕 K9 dot, status
+      color/opacity); EN + ES
+- [New] members can change their role, type/specialty, skills, and status after
+      joining — a one-tap status chip cycles in-field → standby → unavailable in
+      the roster, and an ✎ editor switches member↔viewer and edits the SAR
+      profile; changes POST to the Durable Object and re-render for everyone
+- [New] shared team markers (resurrected drop-a-marker): members drop team-scoped
+      waypoint / hazard / search-area pins with a short label, rendered on the map
+      for all members and viewers with who dropped it and an age; any member can
+      remove one; markers live only in the team's DO (never in git), cap 200, age
+      out after 12h; viewers are blocked from dropping/removing (403)
+- [New] optional team default area: when creating a team, tick "set current map
+      view as the team's default area" to capture the AO (center + zoom); members
+      opening the team link recenter to it once on entry
+- [New] nearby-facilities callout in the roster: nearest hospital and nearest
+      veterinary relative to the team AO, queried live from OpenStreetMap via
+      Overpass, with distance and an ER hint where OSM tags it; honestly labelled
+      — NOT verified as a trauma center or 24h emergency vet (that designation is
+      not in the free source; call ahead), source cited; EN + ES
+
+-- Changes --
+- [Change] Durable Object state model extended backward-compatibly: member records
+           gain mtype/specialty/k9Name/skills/status, the team gains a markers map
+           and optional defaults; new endpoints /update, /marker, /unmark plus
+           create now forwards defaults; all existing guardrails preserved (viewer
+           403 on position and markers, ≥4-char handles, UUID-gating, TTL reaping,
+           positions/markers never persisted outside the DO). Worker redeploy
+           required — see workers/team-relay/README.md
+
 ## v0.97.3 — 2026-07-19 (team feature surfaced into the main app + share QR)
 
 -- New Features --

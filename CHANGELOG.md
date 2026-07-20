@@ -1,5 +1,31 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.5 — 2026-07-19 (LAN master oversight view: all teams & viewers)
+
+-- New Features --
+- [New] LAN-only master oversight view (command side): a panel that enumerates
+      every active team and shows each team's makeup — member count, K9 vs
+      ground, specialties, and in-field/standby/unavailable status — plots all
+      members on the map reusing the team marker style, and lists every viewer
+      across all teams in one combined roster; read-only, 20s poll; injected only
+      when the LAN server advertises it (/api/ping master:true) and stripped from
+      the public mirror; EN + ES
+- [New] global team registry: a single well-known Durable Object records each
+      team's id + name + created timestamp on create so teams can be enumerated;
+      it holds no positions or markers (the overview fans out to a new read-only
+      per-team peek on demand, which never resets a team's idle TTL) and prunes
+      ids whose team DO has expired
+
+-- Changes --
+- [Change] new token-gated Pages endpoints /api/team/admin/list and
+           /api/team/admin/overview require a matching X-Admin-Token
+           (env.TEAM_ADMIN_TOKEN secret) and FAIL SAFE (no/wrong token → 403
+           empty); server.py proxies them injecting the token from its env so the
+           secret never touches git or the browser; the private-team model is
+           unchanged (?team= links untouched; the admin path is the only
+           enumeration route); Worker redeploy + TEAM_ADMIN_TOKEN secret required
+           — see workers/team-relay/README.md
+
 ## v0.97.4 — 2026-07-19 (SAR team model: member types, status, shared markers)
 
 -- New Features --

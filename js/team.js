@@ -918,4 +918,8 @@
     }
     start();
   };
+
+  // reused by the LAN-only master oversight view (js/master.js) to plot members with the exact
+  // same marker style; inert on the public mirror where master.js never loads
+  window.teamMemberIcon = memberIcon;
 })();

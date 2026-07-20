@@ -724,18 +724,17 @@ async function boot() {
     $('#safety-modal').hidden = false;
   });
 
-  // ops chat is a LAN-only construct: UI code (js/chat.js) loads only when the
-  // local backend answers — the public mirror ships neither the file nor a route
+  // ops chat + master oversight are LAN-only constructs: their UI (js/chat.js, js/master.js) loads
+  // only when the local backend advertises the capability — the public mirror ships neither file
   const markMirror = () => {
     $('#new-request-form .hint').textContent =
       'Read-only mirror: notices added here save to THIS DEVICE ONLY; they do not reach the ops session. Click the map to set the pin.';
   };
+  const loadLanScript = (src) => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s); };
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
-    if (d && d.chat) {
-      const s = document.createElement('script');
-      s.src = 'js/chat.js';
-      document.body.appendChild(s);
-    } else markMirror();
+    if (d && d.chat) loadLanScript('js/chat.js');
+    else markMirror();
+    if (d && d.master) loadLanScript('js/master.js'); // command-side, all-teams oversight view
   }).catch(markMirror);
   restoreViewState(); // saved view first, so any URL param below overrides it for this load
 

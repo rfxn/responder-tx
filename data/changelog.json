@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.5",
+      "date": "2026-07-19",
+      "line": "A LAN-only command view lands: the master oversight panel. On the ops board (never the public mirror) it lists every active team at once — each team's name, how many are on it, and its makeup (K9 handlers vs ground, specialties, and who is in-field, on standby, or unavailable) — plots all members on the map, and gathers every viewer across all teams into one roster. It is read-only oversight and refreshes on its own. Access is gated by a secret admin token held only on the server, so teams stay private: without the token nothing can be listed. English y español."
+    },
+    {
       "v": "v0.97.4",
       "date": "2026-07-19",
       "line": "Team sharing gains a search-and-rescue member model. When you join a team you can now say who you are on the ground: a K9 handler (with your dog's name and skill tags like HRD, trailing, or cadaver) or a ground member with a specialty (searcher, medical, drone-ops, comms, and more) — plus a status of in-field, standby, or unavailable. Your type and status show in the roster and right on your map marker, and you can change your role, type, or status any time after joining with one tap. Members can also drop shared team markers — waypoint, hazard, or search-area pins with a short label — that everyone on the team sees on the map and any member can clear; they are private to the team and never saved. When creating a team you can set the current map view as the team's default area so members land there. A new roster panel surfaces the nearest hospital and nearest veterinary to the team area from OpenStreetMap (honestly labeled — not verified as a trauma center or 24h emergency vet, so call ahead). English y español."

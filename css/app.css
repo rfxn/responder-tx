@@ -1084,7 +1084,12 @@ button.inspect-gauge:hover { color: var(--accent); }
   .card-actions { gap: 7px; margin-top: 8px; }
   .act-btn { min-height: 40px; font-size: 12.5px; }
   .badge.src-link { max-width: 150px; }
-  .alert-card .alert-text-link { min-height: 34px; }
+  /* Alerts density on phones (owner: cards ran too tall) — .card.alert-card outranks the ≤768 .card padding */
+  .card.alert-card { padding: 7px 10px; margin-bottom: 5px; }
+  .alert-card .event { font-size: 12.5px; line-height: 1.2; }
+  .alert-card .areas { margin-top: 2px; line-height: 1.25; }
+  .alert-card .alert-meta { margin-top: 4px; gap: 2px 8px; }
+  .alert-card .alert-text-link { min-height: 40px; }
 }
 
 @media print {

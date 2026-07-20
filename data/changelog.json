@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.8",
+      "date": "2026-07-20",
+      "line": "Two phone-first presentation tweaks for the field. When you are in a live team, the Team tab now jumps to the far left of the tab bar — first, ahead of Feed — so your crew view is the first thing under your thumb; it slides back to its normal last spot the moment you leave the team. And the Alerts list is denser on phones: trimmed padding and wasted vertical space around each alert card so more warnings fit on screen at once, with nothing dropped — the county and coordinates line, the readable alert link, and the severity color all stay, and tap targets stay big enough to hit. Desktop is unchanged. English y español."
+    },
+    {
       "v": "v0.97.7",
       "date": "2026-07-20",
       "line": "Security hardening for live teams: a viewer is now truly watch-only. Before, the private id a member used to publish its own location doubled as its public name in the roster, so anyone with the team link could copy it and impersonate that member — moving their pin, dropping or clearing markers as them, or removing them from the team. Each person now carries two ids: a public one used only to show and follow them on the map, and a separate secret one, kept only on their own device, that signs their updates. The secret is never shown to anyone else, so a viewer can no longer act as a member. Nothing changes in how you create, join, or use a team. This release also adds the first automated tests for the team relay. A backend redeploy is required for the fix to take effect. English y español."

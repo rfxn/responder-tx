@@ -1,14 +1,39 @@
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.20') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.20') format('woff2');
+}
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.20') format('woff2');
+}
+
 :root {
   color-scheme: dark;
-  --surface-1: #1a1a19;
-  --surface-2: #222221;
-  --page: #0d0d0d;
+  --font-body: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Oswald', 'Arial Narrow', system-ui, sans-serif;
+  --surface-1: #0d1b2a;
+  --surface-2: #1b365d;
+  --page: #0d1b2a;
   --ink-1: #ffffff;
-  --ink-2: #c3c2b7;
-  --ink-muted: #898781;
-  --hairline: #2c2c2a;
-  --border: rgba(255, 255, 255, 0.10);
-  --accent: #3987e5;
+  --ink-2: #d9dee3;
+  --ink-muted: #9ba3b8;
+  --hairline: #274264;
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #3f7ac4;
+  --brand: #dc262b;
   --cat-action: #fab219;
   --cat-minor: #ec835a;
   --cat-moderate: #d03b3b;
@@ -23,16 +48,17 @@
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --surface-1: #fcfcfb;
-  --surface-2: #f4f4f1;
-  --page: #f9f9f7;
-  --ink-1: #0b0b0b;
-  --ink-2: #44433f;
-  --ink-muted: #6d6b64;
-  --hairline: #d6d5cc;
-  --border: rgba(11, 11, 11, 0.16);
-  --accent: #2a78d6;
-  /* sunlight contrast: dark-theme ambers/oranges/grays wash out on white — darker equivalents */
+  --surface-1: #ffffff;
+  --surface-2: #ebeef3;
+  --page: #f2f5f8;
+  --ink-1: #0d1b2a;
+  --ink-2: #1b365d;
+  --ink-muted: #565e77;
+  --hairline: #d9dee3;
+  --border: rgba(13, 27, 42, 0.16);
+  --accent: #1b365d;
+  --brand: #dc262b;
+  /* sunlight contrast: dark-theme ambers/oranges/grays wash out on white; darker equivalents */
   --cat-action: #a97800;
   --cat-minor: #c9531f;
   --cat-moderate: #bf2e2e;
@@ -43,19 +69,20 @@
   --sev-advisory: #6d6b64;
   --cat-major: #8b2fd6;
   --good: #006300;
-  --tile-value: #0b0b0b;
+  --tile-value: #0d1b2a;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-body);
   background: var(--page);
   color: var(--ink-1);
   font-size: 14px;
   display: flex;
   flex-direction: column;
 }
+.drive-title, .modal-head strong, .threat-head { font-family: var(--font-display); }
 
 header {
   display: flex;
@@ -66,11 +93,15 @@ header {
   border-bottom: 1px solid var(--hairline);
   flex-wrap: wrap;
 }
-.brand h1 { font-size: 16px; margin: 0; font-weight: 650; }
+.brand { display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.brand-logo { display: block; height: 32px; width: auto; }
+.brand-logo-dark { display: none; }
+:root[data-theme="dark"] .brand-logo-dark { display: block; }
+:root[data-theme="dark"] .brand-logo-light { display: none; }
 .brand .sub { color: var(--ink-2); font-size: 12px; }
 .brand .sub .live-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-  background: var(--sev-emergency); margin-right: 4px;
+  background: var(--brand); margin-right: 4px;
   animation: pulse 2s infinite;
 }
 @keyframes pulse { 50% { opacity: 0.35; } }
@@ -833,10 +864,10 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .cam-stale-note { flex: 1 1 100%; font-size: 11.5px; font-weight: 500; color: var(--sev-warning); }
 #cam-note { padding: 6px 14px 12px; }
 
-/* Drive Mode — big type, high contrast, one-thumb; overrides theme to dark for glare.
+/* Drive Mode: big type, high contrast, one-thumb; overrides theme to dark for glare.
    The crest-summary view shares the same full-screen dark chrome. */
 #drive-mode, #summary-view {
-  position: fixed; inset: 0; z-index: 1600; background: #0c0c0b; color: #fff;
+  position: fixed; inset: 0; z-index: 1600; background: #0d1b2a; color: #fff;
   display: flex; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 #drive-mode[hidden], #summary-view[hidden] { display: none; }
@@ -860,15 +891,15 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .sum-rec { font-size: 11px; color: #b9b8b1; margin-top: 3px; }
 .sum-rec.near { color: var(--cat-major); font-weight: 600; }
 .sum-rec.at { color: var(--sev-emergency); font-weight: 700; }
-/* the view is hardcoded dark like Drive Mode — badges can't ride the theme vars */
-.sum-table .badge { display: inline-block; margin-top: 3px; background: #1a1a19; border-color: #3a3a37; color: #c9c8c0; }
+/* the view is hardcoded dark like Drive Mode, so badges can't ride the theme vars */
+.sum-table .badge { display: inline-block; margin-top: 3px; background: #1b365d; border-color: #274264; color: #d9dee3; }
 .drive-head {
   display: flex; align-items: center; gap: 10px; padding: 12px 14px;
-  border-bottom: 1px solid #2c2c2a; position: sticky; top: 0; background: #0c0c0b; z-index: 2;
+  border-bottom: 1px solid #274264; position: sticky; top: 0; background: #0d1b2a; z-index: 2;
 }
 .drive-title { font-size: 17px; font-weight: 800; flex: 1 1 auto; letter-spacing: 0.02em; }
-.drive-head button { font-size: 16px; padding: 10px 16px; background: #222221; color: #fff; border: 1px solid #3a3a37; border-radius: 8px; min-height: 48px; }
-#drive-exit { background: #3987e5; border-color: #3987e5; }
+.drive-head button { font-size: 16px; padding: 10px 16px; background: #1b365d; color: #fff; border: 1px solid #274264; border-radius: 8px; min-height: 48px; }
+#drive-exit { background: #3f7ac4; border-color: #3f7ac4; }
 #drive-fresh { padding: 4px 14px 0; font-size: 13px; color: #8a897f; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 #drive-fresh[hidden] { display: none; }
 #drive-threat { padding: 6px 14px; }
@@ -878,10 +909,10 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 #drive-list { padding: 4px 10px 10px; flex: 1 1 auto; }
 .drive-row {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-  padding: 16px 14px; margin: 8px 0; background: #1a1a19; border: 1px solid #2c2c2a;
+  padding: 16px 14px; margin: 8px 0; background: #1b365d; border: 1px solid #274264;
   border-radius: 12px; color: #fff; min-height: 64px;
 }
-.drive-row:active { background: #262625; }
+.drive-row:active { background: #24487d; }
 .d-glyph { font-size: 30px; flex: 0 0 auto; width: 38px; text-align: center; }
 .d-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .d-name { font-size: 18px; font-weight: 700; line-height: 1.25; }
@@ -1069,7 +1100,7 @@ button.inspect-gauge:hover { color: var(--accent); }
 #radar-scrub.rs-future { border: 2px dashed var(--sev-warning); padding: 5px 11px; }
 #rs-badge {
   font-size: 10px; font-weight: 800; letter-spacing: 0.06em; white-space: nowrap;
-  color: #1a1a19; background: var(--sev-warning); padding: 2px 7px; border-radius: 6px;
+  color: #0d1b2a; background: var(--sev-warning); padding: 2px 7px; border-radius: 6px;
 }
 #rs-badge[hidden] { display: none; }
 #rs-play { min-height: 0; padding: 2px 10px; font-size: 14px; }

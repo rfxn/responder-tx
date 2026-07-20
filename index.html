@@ -3,36 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Responder TX: Hill Country Flood Ops</title>
-  <meta name="theme-color" content="#f9f9f7">
-  <meta name="description" content="Live Texas Hill Country flood operating picture: river gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts, radar, and field-reported notices. Situational awareness, not a dispatch system. Life-threatening emergency: call 911.">
+  <title>ResponderTX: Live Hazard Awareness for Texas</title>
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="ResponderTX delivers a real-time, source-cited picture of hazards, roads, weather, and field conditions across Texas. Built for responders, open to the public. Situational awareness, not a dispatch system. Life-threatening emergency: call 911.">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Responder TX">
-  <meta property="og:title" content="Responder TX: Texas Hill Country Flood Ops">
-  <meta property="og:description" content="Live flood operating picture: gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts. Situational awareness, not a dispatch system; call 911 for emergencies.">
-  <meta property="og:url" content="https://responder.rfxn.com/">
-  <meta property="og:image" content="https://responder.rfxn.com/og-card.png">
+  <meta property="og:site_name" content="ResponderTX">
+  <meta property="og:title" content="ResponderTX: Live Hazard Awareness for Texas">
+  <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
+  <meta property="og:url" content="https://respondertx.org/">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.20">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Responder TX: Texas Hill Country Flood Ops">
-  <meta name="twitter:description" content="Live flood operating picture: gauges, forecast crests, crest-wave timing, record-crest watch, NWS alerts. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://responder.rfxn.com/og-card.png">
-  <link rel="alternate" type="application/rss+xml" title="Responder TX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness for Texas">
+  <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.20">
+  <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.20" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.20" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.97.20" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.20">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.19">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.19">
-  <link rel="stylesheet" href="css/app.css?v=0.97.19">
-  <link rel="stylesheet" href="css/notes.css?v=0.97.19">
-  <link rel="stylesheet" href="css/team.css?v=0.97.19">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.20">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.20">
+  <link rel="stylesheet" href="css/app.css?v=0.97.20">
+  <link rel="stylesheet" href="css/notes.css?v=0.97.20">
+  <link rel="stylesheet" href="css/team.css?v=0.97.20">
 </head>
 <body>
   <header>
     <div class="brand">
-      <h1>Responder TX</h1>
-      <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Life Safety &amp; Response Feed</span></div>
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-horizontal.png?v=0.97.20" alt="ResponderTX" width="532" height="172">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-horizontal-dark.png?v=0.97.20" alt="ResponderTX" width="600" height="171">
+      <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness for Texas</span></div>
     </div>
     <div class="tiles">
       <div class="tile alert-tile" id="tile-emergency" role="button" tabindex="0" title="Open Alerts tab" data-i18n-title="tile.title.alerts"><div class="label" data-i18n="tile.emergencies">Flash flood emergencies</div><div class="value">–</div></div>
@@ -389,18 +393,18 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.97.19"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.97.19"></script>
-  <script src="js/usng.js?v=0.97.19"></script>
-  <script src="js/i18n.js?v=0.97.19"></script>
-  <script src="js/core.js?v=0.97.19"></script>
-  <script src="js/map.js?v=0.97.19"></script>
-  <script src="js/sources.js?v=0.97.19"></script>
-  <script src="js/panels.js?v=0.97.19"></script>
-  <script src="js/board.js?v=0.97.19"></script>
-  <script src="js/boot.js?v=0.97.19"></script>
-  <script src="js/notes.js?v=0.97.19"></script>
-  <script src="js/vendor/qrcode.min.js?v=0.97.19"></script>
-  <script src="js/team.js?v=0.97.19"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.97.20"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.97.20"></script>
+  <script src="js/usng.js?v=0.97.20"></script>
+  <script src="js/i18n.js?v=0.97.20"></script>
+  <script src="js/core.js?v=0.97.20"></script>
+  <script src="js/map.js?v=0.97.20"></script>
+  <script src="js/sources.js?v=0.97.20"></script>
+  <script src="js/panels.js?v=0.97.20"></script>
+  <script src="js/board.js?v=0.97.20"></script>
+  <script src="js/boot.js?v=0.97.20"></script>
+  <script src="js/notes.js?v=0.97.20"></script>
+  <script src="js/vendor/qrcode.min.js?v=0.97.20"></script>
+  <script src="js/team.js?v=0.97.20"></script>
 </body>
 </html>

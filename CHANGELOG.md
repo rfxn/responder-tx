@@ -1,5 +1,23 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.20 · 2026-07-20 (ResponderTX visual rebrand: brand palette, logo, favicon, fonts, name and tagline)
+
+-- Changes --
+- [Change] ResponderTX visual rebrand across the app chrome, keeping every
+           life-safety color intact: re-mapped the theme variables to the brand
+           palette (navy #0D1B2A background, #1B365D panels, red #DC262B reserved
+           for the brand mark and danger signal) in both light and dark, without
+           touching the flood-severity, alert-severity, or green all-clear scales;
+           the header now shows the ResponderTX logo lockup (dark and light art
+           swapped by theme) instead of the text wordmark, the tab, bookmark, and
+           iOS icons point at the new favicon set and icon.svg, and Inter plus
+           Oswald ship as local WOFF2 for offline and CSP-safe fonts
+- [Change] renamed the app to ResponderTX with the tagline "Live Hazard Awareness
+           for Texas" (English and Spanish); the title, meta description, Open
+           Graph and Twitter cards, RSS title, and the remaining responder.rfxn.com
+           references now use respondertx.org, paired with a new 1200x630 brand OG
+           image at assets/brand/og-card.png
+
 ## v0.97.19 · 2026-07-20 (layer sheet: kill horizontal scroll; sweep em-dashes from user-facing text)
 
 -- Bug Fixes --

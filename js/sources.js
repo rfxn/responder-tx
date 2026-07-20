@@ -171,7 +171,7 @@ function flashAlert(f) {
 // description/instruction we already fetched, cited, instead of the raw API JSON.
 function openAlertText(f) {
   const p = f.properties, reach = alertReach(p);
-  $('#alert-title').textContent = p.event + (f._sev === 'emergency' ? ' — FLASH FLOOD EMERGENCY' : '');
+  $('#alert-title').textContent = p.event + (f._sev === 'emergency' ? ' · FLASH FLOOD EMERGENCY' : '');
   const parts = [`<div class="alert-doc-area">${esc(p.areaDesc || '')}${reach ? ` · ${esc(reach)}` : ''}</div>`];
   if (p.headline) parts.push(`<div class="alert-doc-headline">${esc(p.headline)}</div>`);
   parts.push(`<div class="alert-doc-when">${esc(t('alert.until'))} ${esc(fmtWhen(p.expires))}</div>`);
@@ -891,7 +891,7 @@ const CAM_ATTRIB_USGS = 'River cameras: USGS HIVIS (public domain, provisional)'
 const CAM_ATTRIB_AUSTIN = 'Traffic cameras: City of Austin, Texas (public domain)';
 const CAM_ATTRIB_ATX = 'Flood cameras: ATX Floods / City of Austin (low-water crossings)';
 const CAM_ATTRIB_HOUSTON = 'Traffic cameras: Houston TranStar (Houston region)';
-const CAM_ATTRIB_ELP = 'Live cameras: City of El Paso — international bridges';
+const CAM_ATTRIB_ELP = 'Live cameras: City of El Paso (international bridges)';
 const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, elpbridge: CAM_ATTRIB_ELP };
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';

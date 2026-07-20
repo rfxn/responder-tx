@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.19 · 2026-07-20 (layer sheet: kill horizontal scroll; sweep em-dashes from user-facing text)
+
+-- Bug Fixes --
+- [Fix] the map-layers sheet no longer raises a horizontal scrollbar when a long
+      camera subtitle wraps; .ls-body now sets overflow-x:hidden and .ls-name and
+      .ls-sub wrap with overflow-wrap:anywhere, so labels break cleanly inside the
+      fixed 344px panel at both desktop and mobile widths instead of overflowing
+
+-- Changes --
+- [Change] swept the em-dash out of user-facing text per the punctuation rule:
+           every em-dash in the js/i18n.js en+es UI strings, plus the few built in
+           JS (boot glossary rows, the sources alert title and El Paso camera
+           credit, the map layer-control camera labels, and team.js fallback
+           strings), now uses a spaced middot, colon, comma, or restructured
+           phrase; two empty-value placeholders (no timestamp, no photo credit)
+           keep a lone dash where nothing else reads as an empty field
+
 ## v0.97.18 — 2026-07-20 (El Paso international-bridge live cameras: own opt-in HLS sub-layer, off by default)
 
 -- New Features --

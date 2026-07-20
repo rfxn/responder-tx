@@ -398,12 +398,12 @@ function initMap() {
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
     'Road reopenings (recovering)': state.layers.roadReopen,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
-    'Cameras — TxDOT road (live/still)': state.layers.camsTxdot,
-    'Cameras — USGS river/flood (stills)': state.layers.camsRiver,
-    'Cameras — Austin city (stills)': state.layers.camsAustin,
-    'Cameras — ATX Floods low-water crossings': state.layers.camsFlood,
-    'Cameras — Houston TranStar (stills)': state.layers.camsHouston,
-    'Cameras — El Paso international bridges (live)': state.layers.camsElpBridge,
+    'Cameras: TxDOT road (live/still)': state.layers.camsTxdot,
+    'Cameras: USGS river/flood (stills)': state.layers.camsRiver,
+    'Cameras: Austin city (stills)': state.layers.camsAustin,
+    'Cameras: ATX Floods low-water crossings': state.layers.camsFlood,
+    'Cameras: Houston TranStar (stills)': state.layers.camsHouston,
+    'Cameras: El Paso international bridges (live)': state.layers.camsElpBridge,
   }, { collapsed: true }).addTo(state.map);
 
   const legend = L.control({ position: 'bottomleft' });

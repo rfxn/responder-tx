@@ -359,7 +359,7 @@ function initHeaderSearch() {
 /* ---------- "?" glossary — every board symbol explained, built from i18n strings ---------- */
 
 function glRow(sw, label, desc) {
-  return `<div class="gl-row"><span class="gl-sw">${sw}</span><span class="gl-txt"><strong>${esc(label)}</strong> — ${esc(desc)}</span></div>`;
+  return `<div class="gl-row"><span class="gl-sw">${sw}</span><span class="gl-txt"><strong>${esc(label)}</strong>: ${esc(desc)}</span></div>`;
 }
 
 function renderGlossary() {

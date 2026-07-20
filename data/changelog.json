@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.2",
+      "date": "2026-07-19",
+      "line": "Drive Mode now keeps your location fresh while you drive: once you tap ⌖ Locate, it quietly re-checks your position about every 30 seconds and re-ranks the nearest-hazards list by distance from where you actually are — with a small 'auto-updating · last fix Xs ago' note under the header. It only runs after you opt in by tapping Locate, and it stands down the moment you leave Drive Mode or switch away from the tab, so there is no background battery drain. English y español."
+    },
+    {
       "v": "v0.97.1",
       "date": "2026-07-19",
       "line": "Map polish: the 'road reopened' marker is now a muted green ✓ recovery badge instead of a plain circle, so it no longer looks like an alert marker or blends into the other round markers on the map — with a matching legend entry. And small map markers (reopened roads, cameras, storm reports, USGS gauges) are easier to tap on a phone: each gets a larger invisible touch area while still pointing at the exact spot. English y español."

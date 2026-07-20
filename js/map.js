@@ -484,6 +484,7 @@ function initMap() {
   state.map.on('locationfound', (e) => {
     gpsWait(false);
     state.myPos = e.latlng;
+    state.driveFixAt = Date.now();
     if (state.posLayer) state.map.removeLayer(state.posLayer);
     state.posLayer = L.layerGroup([
       L.circle(e.latlng, { radius: e.accuracy, weight: 1, color: cssVar('--accent') || '#3987e5', fillOpacity: 0.08 }),
@@ -499,6 +500,7 @@ function initMap() {
     state.map.setView(e.latlng, Math.max(state.map.getZoom(), 12));
     renderRequests();
     renderDriveMode(); // re-rank the glance list by the new fix
+    if (!$('#drive-mode').hidden) startDriveWatch(); // opt-in: the periodic refresh only begins once a fix lands
   });
   state.map.on('locationerror', () => {
     gpsWait(false);

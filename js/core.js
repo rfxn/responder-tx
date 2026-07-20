@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.1';
+const APP_VERSION = 'v0.97.2';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -13,6 +13,8 @@ const CONFIG = {
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
   usgsIvBase: 'https://waterservices.usgs.gov/nwis/iv/',
   refreshMs: 180000,
+  // Drive Mode re-locates on this cadence so the nearest-hazards ranking never goes stale while driving
+  driveLocateMs: 30000,
   maxZoneGeomFetches: 12,
   sparkHours: 48,
   staleMins: 360,
@@ -80,6 +82,8 @@ const state = {
   sort: 'smart',
   myPos: null,
   posLayer: null,
+  driveTimer: null,
+  driveFixAt: 0,
   lastSeen: 0,
   trendHist: {},
   knownEmergencyIds: new Set(),

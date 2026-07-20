@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.2 — 2026-07-19 (Drive Mode auto-updating location)
+
+-- New Features --
+- [New] Drive Mode keeps your position fresh while driving: once you tap ⌖ Locate
+      (opt-in) it re-locates every 30s and re-ranks the nearest-hazards list by the
+      new fix, with a subtle "auto-updating · last fix Xs ago" line under the header;
+      EN + ES
+
+-- Changes --
+- [Change] the Drive Mode fix loop is lifecycle-bound — it starts only after a
+           granted fix with Drive Mode open, stops on exit/Escape/hazard-row tap and
+           when the tab is backgrounded (no geolocation drain), and resumes on return;
+           one watcher at a time, cleared on close
+
 ## v0.97.1 — 2026-07-19 (reopened-road marker redesign + mobile tap targets)
 
 - [Change] the recently-reopened road marker is redrawn as a muted green ✓

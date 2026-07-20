@@ -57,13 +57,14 @@ function makeState() {
 
 const TeamRelay = loadTeamRelay();
 
-// Build a DO instance with a freshly created team; returns { relay, teamId }.
-async function newTeam(name = 'Test Team', defaults = null) {
+// Build a DO instance with a freshly created team; returns { relay, teamId }. teamType is passed
+// through to doCreate (undefined coerces to the default 'sar', matching a legacy create call).
+async function newTeam(name = 'Test Team', defaults = null, teamType = undefined) {
   const relay = new TeamRelay(makeState(), {});
   await relay.ready;
   const teamId = nodeCrypto.randomUUID();
   const now = Date.now();
-  const out = await relay.doCreate({ teamId, name, defaults }, now);
+  const out = await relay.doCreate({ teamId, name, defaults, teamType }, now);
   if (out._status && out._status >= 400) throw new Error(`doCreate failed: ${JSON.stringify(out)}`);
   return { relay, teamId };
 }

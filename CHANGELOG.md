@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.22 · 2026-07-20 (multi-type teams: SAR, Response, Recovery, Community)
+
+-- New Features --
+- [New] live teams can now be created as one of four types: Search and Rescue (the
+      existing model, unchanged and still the default), Response (active-incident first
+      responders), Recovery (post-incident cleanup), and Community (volunteer support);
+      the create screen adds a team-type picker with a one-line description for each, and
+      the type is fixed once the team is made
+- [New] each type carries its own member functions: Response, Recovery, and Community
+      members pick a single role from that type's list (for example Fire / Rescue,
+      Cleanup, or Shelter) plus a status, while SAR keeps its ground/K9 model with K9
+      name and skill chips; 20 new function labels ship in English and Spanish
+
+-- Changes --
+- [Change] the Durable Object relay is now type-aware: it stores each team's type at
+           creation, validates a member's function against only that type's allow-set,
+           and hard-gates the K9 fields off for non-SAR teams; existing teams and saved
+           profiles read as SAR with no migration, so anything already running is
+           unaffected
+
 ## v0.97.21 · 2026-07-20 (brand polish: clean header logo lockup, drop duplicate tagline)
 
 -- Bug Fixes --

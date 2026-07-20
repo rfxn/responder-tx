@@ -18,16 +18,24 @@
   const SELF_TRAIL_MAX = 400;
   const eidKey = (id) => `respondertx.team.eid.${id}`;
 
-  // SAR picklists — mirror the DO's authoritative allow-sets (workers/team-relay/team-relay.js)
+  // Picklists — mirror the DO's authoritative allow-sets (workers/team-relay/team-relay.js)
   const MTYPES = ['ground', 'k9'];
   const STATUSES = ['infield', 'standby', 'unavailable'];
-  const SPECIALTIES = ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'];
-  const K9_SKILLS = ['live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
   const MARKER_KINDS = ['waypoint', 'hazard', 'search-area'];
   const MARKER_GLYPH = { waypoint: '📍', hazard: '⚠️', 'search-area': '▧' };
 
+  // Team taxonomy — mirror the DO's TEAM_TYPES table. The DO validates; this drives the pickers.
+  const TEAM_TYPES = {
+    sar: { label: 'team.ttype.sar', roleLabel: 'team.field.specialty', specialties: ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'], k9: true, k9Skills: ['live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'] },
+    response: { label: 'team.ttype.response', roleLabel: 'team.field.func', specialties: ['command', 'medical', 'fire', 'law', 'hazmat', 'comms', 'rescue', 'drone', 'logistics', 'safety'], k9: false },
+    recovery: { label: 'team.ttype.recovery', roleLabel: 'team.field.func', specialties: ['coord', 'cleanup', 'debris', 'damage', 'logistics', 'rehab', 'utilities', 'supply', 'heavy'], k9: false },
+    community: { label: 'team.ttype.community', roleLabel: 'team.field.func', specialties: ['coord', 'shelter', 'food', 'welfare', 'transport', 'translation', 'childcare', 'pets', 'medical', 'supply'], k9: false },
+  };
+  const DEFAULT_TEAM_TYPE = 'sar';
+  const typeCfg = (t) => TEAM_TYPES[t] || TEAM_TYPES[DEFAULT_TEAM_TYPE];
+
   const T = {
-    id: null, name: '', role: null, ephemeralId: null, pid: null, handle: '',
+    id: null, name: '', teamType: 'sar', role: null, ephemeralId: null, pid: null, handle: '',
     mtype: null, specialty: null, k9Name: '', skills: [], status: null,
     watchId: null, pollTimer: null, postTimer: null,
     layer: null, markerLayer: null, markers: {}, teamMarkers: {},
@@ -43,6 +51,9 @@
   const spLabel = (s) => tt(`team.sp.${s}`, s);
   const stLabel = (s) => tt(`team.st.${s}`, s);
   const kindLabel = (k) => tt(`team.kind.${k}`, k);
+  const ttypeLabel = (t) => tt(`team.ttype.${t}`, t);
+  const ttypeDesc = (t) => tt(`team.ttype.${t}.desc`, '');
+  const funcLabel = (cfg) => tt(cfg.roleLabel, cfg.roleLabel === 'team.field.func' ? 'Function' : 'Specialty');
 
   /* ---------- map layer ---------- */
 
@@ -328,6 +339,10 @@
   }
 
   function renderLanding(host) {
+    const typeSeg = Object.keys(TEAM_TYPES).map((tk) =>
+      `<button type="button" class="tt-typebtn${tk === DEFAULT_TEAM_TYPE ? ' on' : ''}" data-ttype="${tk}">` +
+      `<span class="tt-typename">${esc(ttypeLabel(tk))}</span>` +
+      `<span class="tt-typedesc">${esc(ttypeDesc(tk))}</span></button>`).join('');
     host.innerHTML =
       '<div class="tt-hero"><div class="tt-hero-icon">🧭</div>' +
       `<h2 class="tt-title">${esc(tt('team.tab.title', 'Live team'))}</h2>` +
@@ -335,6 +350,8 @@
       '<div class="tt-card">' +
       `<h3 class="tt-h3">${esc(tt('team.create.head', 'Create a team'))}</h3>` +
       `<p class="tt-note">${esc(tt('team.create.desc', 'Creates a private team with an unguessable link. Anyone you send the link to can join as a member (shares location) or a viewer (watch only). No account needed.'))}</p>` +
+      `<div class="tp-field"><label>${esc(tt('team.create.type', 'Team type'))}</label>` +
+      `<div class="tt-typegroup" id="team-create-type">${typeSeg}</div></div>` +
       `<input id="team-create-name" class="tt-input" maxlength="40" autocomplete="off" placeholder="${esc(tt('team.create.ph', 'Team name (optional)'))}">` +
       `<label class="tp-check"><input type="checkbox" id="team-create-ao"> ${esc(tt('team.create.ao', "Set the current map view as the team's default area (loads for members)"))}</label>` +
       '<div id="team-create-err" class="team-err" hidden></div>' +
@@ -348,6 +365,11 @@
       '<div id="team-join-err" class="team-err" hidden></div>' +
       `<button id="team-join-open" class="tt-btn">${esc(tt('team.join.link.go', 'Open team →'))}</button>` +
       '</div>';
+    const tg = host.querySelector('#team-create-type');
+    if (tg) tg.addEventListener('click', (e) => {
+      const b = e.target.closest('.tt-typebtn'); if (!b) return;
+      tg.querySelectorAll('.tt-typebtn').forEach((x) => x.classList.toggle('on', x === b));
+    });
     host.querySelector('#team-create-go').addEventListener('click', doCreate);
     host.querySelector('#team-join-open').addEventListener('click', doJoinLink);
     const jl = host.querySelector('#team-join-link');
@@ -471,7 +493,7 @@
   }
 
   function backToLanding() {
-    T.id = null; T.name = '';
+    T.id = null; T.name = ''; T.teamType = 'sar';
     try { history.replaceState(null, '', location.pathname); } catch { /* sandboxed — cosmetic */ }
     renderTeamTab();
   }
@@ -486,6 +508,7 @@
       if (!r.ok) return;
       const data = await r.json();
       T.name = data.name || T.name;
+      T.teamType = data.teamType || DEFAULT_TEAM_TYPE;
       T.lastMembers = data.members || [];
       T.lastViewers = data.viewers || [];
       T.lastMarkers = data.markers || [];
@@ -578,6 +601,7 @@
       if (!r.ok) { joinErr(data.error || tt('team.joinfail', 'Could not join this team.')); setJoinBusy(false); return; }
       storeSelf(data.you);
       T.name = data.name || '';
+      T.teamType = data.teamType || DEFAULT_TEAM_TYPE;
       if (data.defaults && !T.defaults) T.defaults = data.defaults;
       try { localStorage.setItem(eidKey(T.id), T.ephemeralId); } catch { /* private mode — reload starts a fresh member */ }
       T.active = true;
@@ -606,7 +630,9 @@
     T.markers = {}; T.teamMarkers = {}; T.lastMembers = []; T.lastViewers = []; T.lastMarkers = [];
     T.selfTrail = []; T.selfPos = null; T.facilities = null;
     T.mtype = null; T.specialty = null; T.k9Name = ''; T.skills = []; T.status = null;
-    T.id = null; T.name = '';
+    T.id = null; T.name = ''; T.teamType = 'sar';
+    const em = document.getElementById('team-edit'); // rebuilt per team so its fields match the next team's type
+    if (em) em.remove();
     updateDropFab();
     updateTeamCount(0);
   }
@@ -670,24 +696,36 @@
 
   /* ---------- reusable SAR profile fields (join + edit) ---------- */
 
-  // p is an id-prefix ('tj' join, 'te' edit) so the two forms can coexist in the DOM
+  // p is an id-prefix ('tj' join, 'te' edit) so the two forms can coexist in the DOM. The fields
+  // shown are driven by the active team's type: non-SAR shows a single function select + status;
+  // SAR keeps the member-type seg (ground/k9) with the k9 name + skill chips.
   function profileFieldsHtml(p) {
-    const typeSeg = MTYPES.map((mt) => `<button type="button" class="tp-seg" data-val="${mt}">${esc(typeLabel(mt))}</button>`).join('');
+    const cfg = typeCfg(T.teamType);
     const spOpts = [`<option value="">${esc(tt('team.sp.none', 'Pick a specialty…'))}</option>`]
-      .concat(SPECIALTIES.map((s) => `<option value="${s}">${esc(spLabel(s))}</option>`)).join('');
+      .concat(cfg.specialties.map((s) => `<option value="${s}">${esc(spLabel(s))}</option>`)).join('');
     const stSeg = STATUSES.map((s) => `<button type="button" class="tp-seg tp-st-${s}" data-val="${s}">${esc(stLabel(s))}</button>`).join('');
-    const skillChips = K9_SKILLS.map((s) => `<button type="button" class="tp-skillchip" data-skill="${esc(s)}">${esc(s)}</button>`).join('');
+    const statusField =
+      `<div class="tp-field"><label>${esc(tt('team.field.status', 'Status'))}</label>` +
+      `<div class="tp-seggroup" data-group="status">${stSeg}</div></div>`;
+    if (!cfg.k9) {
+      return (
+        `<div class="tp-field"><label>${esc(funcLabel(cfg))}</label>` +
+        `<select class="tp-select" id="${p}-specialty">${spOpts}</select></div>` +
+        statusField
+      );
+    }
+    const typeSeg = MTYPES.map((mt) => `<button type="button" class="tp-seg" data-val="${mt}">${esc(typeLabel(mt))}</button>`).join('');
+    const skillChips = cfg.k9Skills.map((s) => `<button type="button" class="tp-skillchip" data-skill="${esc(s)}">${esc(s)}</button>`).join('');
     return (
       `<div class="tp-field"><label>${esc(tt('team.field.type', 'Member type'))}</label>` +
       `<div class="tp-seggroup" data-group="mtype">${typeSeg}</div></div>` +
-      `<div class="tp-field ${p}-ground"><label>${esc(tt('team.field.specialty', 'Specialty'))}</label>` +
+      `<div class="tp-field ${p}-ground"><label>${esc(funcLabel(cfg))}</label>` +
       `<select class="tp-select" id="${p}-specialty">${spOpts}</select></div>` +
       `<div class="tp-field ${p}-k9" hidden><label>${esc(tt('team.field.k9name', 'K9 name'))}</label>` +
       `<input class="tp-input" id="${p}-k9name" maxlength="24" autocomplete="off" placeholder="${esc(tt('team.field.k9name.ph', 'Dog\'s name'))}"></div>` +
       `<div class="tp-field ${p}-k9" hidden><label>${esc(tt('team.field.skills', 'K9 skills'))}</label>` +
       `<div class="tp-skillrow" data-group="skills">${skillChips}</div></div>` +
-      `<div class="tp-field"><label>${esc(tt('team.field.status', 'Status'))}</label>` +
-      `<div class="tp-seggroup" data-group="status">${stSeg}</div></div>`
+      statusField
     );
   }
 
@@ -697,6 +735,7 @@
     return b ? b.dataset.val : fallback;
   }
   function applyTypeVis(root, p) {
+    if (!typeCfg(T.teamType).k9) return; // non-SAR has no ground/k9 fields to toggle
     const mt = segGet(root, 'mtype', 'ground');
     root.querySelectorAll(`.${p}-ground`).forEach((e) => { e.hidden = mt !== 'ground'; });
     root.querySelectorAll(`.${p}-k9`).forEach((e) => { e.hidden = mt !== 'k9'; });
@@ -713,8 +752,15 @@
     segSet(root, 'mtype', 'ground'); segSet(root, 'status', 'infield'); applyTypeVis(root, p);
   }
   function readProfileFields(root, p) {
+    const cfg = typeCfg(T.teamType);
+    const out = { status: segGet(root, 'status', 'infield') };
+    if (!cfg.k9) {
+      const sel = root.querySelector(`#${p}-specialty`);
+      out.specialty = sel ? (sel.value || '') : '';
+      return out;
+    }
     const mtype = segGet(root, 'mtype', 'ground');
-    const out = { mtype, status: segGet(root, 'status', 'infield') };
+    out.mtype = mtype;
     if (mtype === 'k9') {
       out.k9Name = (root.querySelector(`#${p}-k9name`).value || '').trim();
       out.skills = Array.from(root.querySelectorAll('.tp-skillchip.on')).map((c) => c.dataset.skill);
@@ -724,16 +770,21 @@
     return out;
   }
   function setProfileFields(root, p, prof) {
+    const cfg = typeCfg(T.teamType);
+    segSet(root, 'status', STATUSES.includes(prof.status) ? prof.status : 'infield');
+    if (!cfg.k9) {
+      const sel = root.querySelector(`#${p}-specialty`); if (sel) sel.value = prof.specialty || '';
+      return;
+    }
     const mt = MTYPES.includes(prof.mtype) ? prof.mtype : 'ground';
     segSet(root, 'mtype', mt);
-    segSet(root, 'status', STATUSES.includes(prof.status) ? prof.status : 'infield');
     applyTypeVis(root, p);
     if (mt === 'k9') {
       root.querySelector(`#${p}-k9name`).value = prof.k9Name || '';
       const sk = new Set(prof.skills || []);
       root.querySelectorAll('.tp-skillchip').forEach((c) => c.classList.toggle('on', sk.has(c.dataset.skill)));
     } else {
-      root.querySelector(`#${p}-specialty`).value = prof.specialty || '';
+      const sel = root.querySelector(`#${p}-specialty`); if (sel) sel.value = prof.specialty || '';
     }
   }
 
@@ -862,6 +913,8 @@
     const name = host.querySelector('#team-create-name').value.trim();
     const err = host.querySelector('#team-create-err');
     const go = host.querySelector('#team-create-go');
+    const typeBtn = host.querySelector('#team-create-type .tt-typebtn.on');
+    const teamType = typeBtn && TEAM_TYPES[typeBtn.dataset.ttype] ? typeBtn.dataset.ttype : DEFAULT_TEAM_TYPE;
     let defaults = null;
     if (host.querySelector('#team-create-ao').checked && state.map) {
       const c = state.map.getCenter();
@@ -869,7 +922,7 @@
     }
     err.hidden = true; go.disabled = true;
     try {
-      const r = await api('create', { method: 'POST', body: JSON.stringify({ name, defaults }) });
+      const r = await api('create', { method: 'POST', body: JSON.stringify({ name, teamType, defaults }) });
       const data = await r.json();
       if (!r.ok || !data.teamId) { err.textContent = data.error || tt('team.create.fail', 'Could not create the team.'); err.hidden = false; go.disabled = false; return; }
       const url = `${location.origin}/?team=${data.teamId}`;
@@ -888,7 +941,7 @@
         copyText(url).then(() => { b.textContent = tt('team.copied', 'Copied ✓'); }, () => prompt('Copy team link:', url));
       });
       host.querySelector('#team-create-enter').addEventListener('click', () => {
-        T.id = data.teamId; T.name = data.name || '';
+        T.id = data.teamId; T.name = data.name || ''; T.teamType = data.teamType || DEFAULT_TEAM_TYPE;
         try { history.replaceState(null, '', url); } catch { /* sandboxed — cosmetic */ }
         renderTeamTab();
       });
@@ -930,7 +983,7 @@
     T.id = id; T.name = '';
     try { history.replaceState(null, '', `${location.origin}/?team=${id}`); } catch { /* sandboxed — cosmetic */ }
     renderTeamTab();
-    api(`${id}/state`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) { T.name = d.name || ''; setJoinTitle(); } }).catch(() => {});
+    api(`${id}/state`).then((r) => (r.ok ? r.json() : null)).then(onJoinMeta).catch(() => {});
   }
 
   // update just the join heading once the async name lookup lands (avoid clobbering a typed handle)
@@ -939,6 +992,28 @@
     const host = teamHost();
     const titleEl = host && host.querySelector('.tt-join .tt-title');
     if (titleEl && T.name) titleEl.textContent = `${tt('team.join.head', 'Join team')}: ${T.name}`;
+  }
+
+  // re-render only the join profile fields when the team's type arrives from the async state
+  // lookup, so a non-SAR team shows its own picker without clobbering a typed handle
+  function refreshJoinProfile() {
+    if (T.active || !T.id) return;
+    const host = teamHost();
+    const box = host && host.querySelector('#team-join-profile');
+    if (!box) return;
+    box.innerHTML = `<div class="tp-profile-cap">${esc(tt('team.profile.cap', 'Your role (applies when you share location):'))}</div>` + profileFieldsHtml('tj');
+    wireProfileFields(host, 'tj');
+  }
+
+  // apply the name + team type learned from a pre-join /state lookup
+  function onJoinMeta(d) {
+    if (!d) return;
+    T.name = d.name || '';
+    const nextType = d.teamType || DEFAULT_TEAM_TYPE;
+    const changed = nextType !== T.teamType;
+    T.teamType = nextType;
+    setJoinTitle();
+    if (changed) refreshJoinProfile();
   }
 
   let _lifecycleArmed = false;
@@ -970,8 +1045,8 @@
     if (!UUID_RE.test(param)) { note(tt('team.badlink', 'That team link is not valid.')); return; }
     T.id = param;
     showTeamTab();
-    renderTeamTab(); // join state; heading fills in once the name lookup lands
-    api(`${param}/state`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) { T.name = d.name || ''; setJoinTitle(); } }).catch(() => {});
+    renderTeamTab(); // join state; heading + type fill in once the name lookup lands
+    api(`${param}/state`).then((r) => (r.ok ? r.json() : null)).then(onJoinMeta).catch(() => {});
   }
 
   // run after boot() has built the map; chain behind the 911 safety ack if it is still open

@@ -127,6 +127,55 @@ test('marker — the per-team cap returns 429 once full', async () => {
   assert.equal(out._status, 429);
 });
 
+test('type — a response team rejects a SAR-only specialty and accepts one of its own', async () => {
+  const { relay } = await newTeam('Resp', null, 'response');
+  const now = Date.now();
+  assert.equal(relay.team.teamType, 'response');
+  const bad = (await relay.doJoin({ handle: 'RespOne', role: 'member', specialty: 'searcher' }, now)).you;
+  assert.equal(bad.specialty, null, 'a SAR specialty (searcher) is not valid for a response team');
+  const good = (await relay.doJoin({ handle: 'RespTwo', role: 'member', specialty: 'fire' }, now)).you;
+  assert.equal(good.specialty, 'fire', 'a response-scoped specialty is accepted');
+});
+
+test('type — a non-SAR team hard-gates the k9 fields off even when the client sends them', async () => {
+  const { relay } = await newTeam('Comm', null, 'community');
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'CommOne', role: 'member', mtype: 'k9', k9Name: 'Rex', skills: ['live-find', 'water'], specialty: 'shelter' }, now)).you;
+  assert.notEqual(you.mtype, 'k9', 'a non-SAR member cannot be typed k9');
+  assert.equal(you.k9Name, '', 'k9Name is forced empty on a non-SAR team');
+  assert.equal(you.skills.length, 0, 'skills are forced empty on a non-SAR team');
+  assert.equal(you.specialty, 'shelter', 'a valid community specialty is kept');
+});
+
+test('type — teamType is echoed by create/join/state and stored in the registry', async () => {
+  const { relay } = await newTeam('Rec', null, 'recovery');
+  const now = Date.now();
+  assert.equal((await relay.doCreate({ teamId: relay.team.id }, now)).teamType, 'recovery');
+  const j = await relay.doJoin({ handle: 'RecOne', role: 'member', specialty: 'cleanup' }, now);
+  assert.equal(j.teamType, 'recovery');
+  const state = await relay.doState(stateUrl(j.you.ephemeralId), now);
+  assert.equal(state.teamType, 'recovery');
+});
+
+test('type — an unknown teamType at create coerces to sar and SAR k9 still works', async () => {
+  const { relay } = await newTeam('Weird', null, 'not-a-real-type');
+  const now = Date.now();
+  assert.equal(relay.team.teamType, 'sar', 'a hostile/unknown type is never persisted verbatim');
+  const you = (await relay.doJoin({ handle: 'SarK9', role: 'member', mtype: 'k9', k9Name: 'Fido', skills: ['live-find'] }, now)).you;
+  assert.equal(you.mtype, 'k9');
+  assert.equal(you.k9Name, 'Fido');
+  assert.deepEqual([...you.skills], ['live-find']);
+  assert.equal(you.specialty, 'k9');
+});
+
+test('type — a legacy team with no teamType reads as sar and rejects a non-SAR specialty', async () => {
+  const { relay } = await newTeam(); // default create — no teamType, mirrors a pre-feature team
+  const now = Date.now();
+  delete relay.team.teamType; // simulate state persisted before the field existed
+  const you = (await relay.doJoin({ handle: 'LegacyM', role: 'member', mtype: 'ground', specialty: 'fire' }, now)).you;
+  assert.equal(you.specialty, null, 'fire is not a SAR specialty, so it is rejected under the sar fallback');
+});
+
 test('legacy — a pre-split person (no pid) gets one on next touch; a legacy byId marker does not crash', async () => {
   const { relay } = await newTeam();
   const now = Date.now();

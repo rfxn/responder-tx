@@ -14,7 +14,7 @@ export async function onRequestPost(context) {
   const stub = env.TEAM.get(env.TEAM.idFromName(teamId));
   const res = await stub.fetch(new Request('https://do/create', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ teamId, name: String(body.name || '').slice(0, NAME_MAX), defaults: body.defaults || null }),
+    body: JSON.stringify({ teamId, name: String(body.name || '').slice(0, NAME_MAX), teamType: String(body.teamType || ''), defaults: body.defaults || null }),
   }));
   const data = await res.json();
   if (data && data.teamId) data.url = `${new URL(request.url).origin}/?team=${data.teamId}`;

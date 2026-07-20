@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.22",
+      "date": "2026-07-20",
+      "line": "Live teams can now be more than search and rescue. When you create a team you pick its type: Search and Rescue (unchanged, still the default), Response for active-incident first responders, Recovery for post-incident cleanup, or Community for volunteer support. Each type offers its own list of member roles (for example Fire / Rescue, Cleanup, or Shelter), and the K9 name and skills fields stay only on search and rescue teams. A team's type is chosen once, when it is created. Everything already in use keeps working exactly as before: existing teams and saved member profiles are treated as search and rescue, and the 911 guidance is unchanged."
+    },
+    {
       "v": "v0.97.21",
       "date": "2026-07-20",
       "line": "A visual polish to the header logo. The ResponderTX wordmark at the top-left is now larger and easier to read, and the tagline \"Live Hazard Awareness for Texas\" shows once instead of appearing twice (it had been baked into the logo art and also repeated as a line beneath it). Nothing about how the board works has changed, and all the safety colors and the 911 guidance stay exactly as before."

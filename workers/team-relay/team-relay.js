@@ -32,12 +32,36 @@ const MAX_MARKERS = 200;
 const MARKER_TTL_MS = 12 * 60 * 60 * 1000;   // a shared team marker ages out after this
 const MAX_SKILLS = 8;
 const MEMBER_TYPES = ['ground', 'k9'];
-const STATUSES = ['infield', 'standby', 'unavailable'];
-const SPECIALTIES = ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'];
-// 'HRD' retired from the offered list (cadaver covers it); values already stored on a member are
-// preserved on read and on partial updates that omit skills — only a fresh skills array re-filters
-const K9_SKILLS = ['live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
 const MARKER_KINDS = ['waypoint', 'hazard', 'search-area'];
+
+// Team taxonomy (v0.97.22): one data-driven table drives per-type create/join/edit validation.
+// Authoritative here; js/team.js mirrors it. Unknown/missing type coerces to DEFAULT_TEAM_TYPE.
+// 'HRD' skill retired (cadaver covers it); a value already stored on a member survives on read.
+const TEAM_TYPES = {
+  sar: {
+    label: 'team.ttype.sar', roleLabel: 'team.field.specialty',
+    specialties: ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'],
+    statuses: ['infield', 'standby', 'unavailable'],
+    k9: true, k9Skills: ['live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'],
+  },
+  response: {
+    label: 'team.ttype.response', roleLabel: 'team.field.func',
+    specialties: ['command', 'medical', 'fire', 'law', 'hazmat', 'comms', 'rescue', 'drone', 'logistics', 'safety'],
+    statuses: ['infield', 'standby', 'unavailable'], k9: false,
+  },
+  recovery: {
+    label: 'team.ttype.recovery', roleLabel: 'team.field.func',
+    specialties: ['coord', 'cleanup', 'debris', 'damage', 'logistics', 'rehab', 'utilities', 'supply', 'heavy'],
+    statuses: ['infield', 'standby', 'unavailable'], k9: false,
+  },
+  community: {
+    label: 'team.ttype.community', roleLabel: 'team.field.func',
+    specialties: ['coord', 'shelter', 'food', 'welfare', 'transport', 'translation', 'childcare', 'pets', 'medical', 'supply'],
+    statuses: ['infield', 'standby', 'unavailable'], k9: false,
+  },
+};
+const DEFAULT_TEAM_TYPE = 'sar';
+const typeCfg = (t) => TEAM_TYPES[t] || TEAM_TYPES[DEFAULT_TEAM_TYPE];
 
 // Global team registry (v0.97.5) — a single well-known DO (idFromName('registry')) tracks live
 // team ids + light metadata so the LAN-only master oversight view can enumerate teams. It holds
@@ -160,35 +184,47 @@ export class TeamRelay {
     const teamId = String(body.teamId || '');
     if (!UUID_RE.test(teamId)) return { _status: 400, error: 'bad team id' };
     if (!this.team) {
+      const teamType = TEAM_TYPES[body.teamType] ? body.teamType : DEFAULT_TEAM_TYPE;
       this.team = {
-        id: teamId, name: sanitizeText(body.name, NAME_MAX), created: now, lastActive: now,
+        id: teamId, name: sanitizeText(body.name, NAME_MAX), teamType, created: now, lastActive: now,
         people: {}, markers: {}, defaults: sanitizeDefaults(body.defaults),
       };
       await this.persist(now);
-      await this.registerInRegistry(this.team.id, this.team.name, this.team.created, now);
+      await this.registerInRegistry(this.team.id, this.team.name, this.team.created, this.team.teamType, now);
     }
-    return { teamId: this.team.id, name: this.team.name, created: this.team.created, defaults: this.team.defaults || null };
+    return { teamId: this.team.id, name: this.team.name, teamType: this.team.teamType || DEFAULT_TEAM_TYPE, created: this.team.created, defaults: this.team.defaults || null };
   }
 
-  // apply the SAR profile fields to a member record, keeping prior values for any field the caller
-  // omits (so a lone status toggle does not wipe type/skills). Switching type clears the other
-  // type's fields. Never called for viewers — they carry no profile.
+  // apply the profile fields to a member record, scoped to the team's type. Keeps prior values for
+  // any field the caller omits (so a lone status toggle does not wipe function/skills). Specialty
+  // and status are validated against the type's own allow-sets; the k9 sub-model exists only when
+  // cfg.k9 (SAR). Never called for viewers — they carry no profile.
   applyProfile(person, body) {
-    if (MEMBER_TYPES.includes(body.mtype)) person.mtype = body.mtype;
-    if (!MEMBER_TYPES.includes(person.mtype)) person.mtype = 'ground';
-    if (STATUSES.includes(body.status)) person.status = body.status;
-    if (!STATUSES.includes(person.status)) person.status = 'infield';
-    if (person.mtype === 'k9') {
-      if (typeof body.k9Name === 'string') person.k9Name = sanitizeText(body.k9Name, K9_NAME_MAX);
-      if (!person.k9Name) person.k9Name = '';
-      if (Array.isArray(body.skills)) person.skills = body.skills.filter((s) => K9_SKILLS.includes(s)).slice(0, MAX_SKILLS);
-      if (!Array.isArray(person.skills)) person.skills = [];
-      person.specialty = 'k9';
+    const cfg = typeCfg(this.team && this.team.teamType);
+    if (cfg.statuses.includes(body.status)) person.status = body.status;
+    if (!cfg.statuses.includes(person.status)) person.status = cfg.statuses[0] || 'infield';
+    if (cfg.k9) {
+      if (MEMBER_TYPES.includes(body.mtype)) person.mtype = body.mtype;
+      if (!MEMBER_TYPES.includes(person.mtype)) person.mtype = 'ground';
+      if (person.mtype === 'k9') {
+        if (typeof body.k9Name === 'string') person.k9Name = sanitizeText(body.k9Name, K9_NAME_MAX);
+        if (!person.k9Name) person.k9Name = '';
+        if (Array.isArray(body.skills)) person.skills = body.skills.filter((s) => cfg.k9Skills.includes(s)).slice(0, MAX_SKILLS);
+        if (!Array.isArray(person.skills)) person.skills = [];
+        person.specialty = 'k9';
+      } else {
+        if ('specialty' in body) person.specialty = cfg.specialties.includes(body.specialty) ? body.specialty : null;
+        if (person.specialty === 'k9') person.specialty = null;
+        person.k9Name = '';
+        person.skills = [];
+      }
     } else {
-      if ('specialty' in body) person.specialty = SPECIALTIES.includes(body.specialty) ? body.specialty : null;
-      if (person.specialty === 'k9') person.specialty = null;
+      // non-SAR: no k9 sub-model — force those fields empty even if a crafted client sends them
+      person.mtype = '';
       person.k9Name = '';
       person.skills = [];
+      if ('specialty' in body) person.specialty = cfg.specialties.includes(body.specialty) ? body.specialty : null;
+      if (person.specialty === 'k9') person.specialty = null;
     }
   }
 
@@ -226,7 +262,7 @@ export class TeamRelay {
     else this.clearProfile(person);
     this.team.people[id] = person;
     await this.persist(now);
-    return { teamId: this.team.id, name: this.team.name, defaults: this.team.defaults || null, you: this.publicSelf(person) };
+    return { teamId: this.team.id, name: this.team.name, teamType: this.team.teamType || DEFAULT_TEAM_TYPE, defaults: this.team.defaults || null, you: this.publicSelf(person) };
   }
 
   // change your own record after joining: role, SAR type/specialty/skills, and/or status. Identified
@@ -289,7 +325,7 @@ export class TeamRelay {
     }
     await this.persist(now);
     return {
-      teamId: this.team.id, name: this.team.name, now,
+      teamId: this.team.id, name: this.team.name, teamType: this.team.teamType || DEFAULT_TEAM_TYPE, now,
       you: UUID_RE.test(id) && this.team.people[id] ? this.publicSelf(this.team.people[id]) : null,
       members, viewers, markers: Object.values(this.team.markers || {}), defaults: this.team.defaults || null,
     };
@@ -313,7 +349,7 @@ export class TeamRelay {
       else viewers.push({ pid: this.pidOf(p), handle: p.handle, role: 'viewer', lastSeen: p.lastSeen });
     }
     return {
-      teamId: this.team.id, name: this.team.name, now, lastActive: this.team.lastActive || null,
+      teamId: this.team.id, name: this.team.name, teamType: this.team.teamType || DEFAULT_TEAM_TYPE, now, lastActive: this.team.lastActive || null,
       members, viewers, markers: Object.values(this.team.markers || {}), defaults: this.team.defaults || null,
     };
   }
@@ -322,12 +358,12 @@ export class TeamRelay {
 
   // best-effort: record a newly created team's id in the registry DO. Never blocks create — a
   // registry outage does not fail a team; the master view self-heals as new teams register.
-  async registerInRegistry(teamId, name, created, now) {
+  async registerInRegistry(teamId, name, created, teamType, now) {
     try {
       const reg = this.env.TEAM.get(this.env.TEAM.idFromName('registry'));
       await reg.fetch(new Request('https://do/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId, name, created }),
+        body: JSON.stringify({ teamId, name, created, teamType }),
       }));
     } catch { /* registry unreachable — team still works; enumeration catches up on the next create */ }
   }
@@ -340,7 +376,7 @@ export class TeamRelay {
     const teamId = String(body.teamId || '');
     if (!UUID_RE.test(teamId)) return { _status: 400, error: 'bad team id' };
     const reg = await this.loadRegistry();
-    reg.teams[teamId] = { name: sanitizeText(body.name, NAME_MAX), created: Number(body.created) || now, reg: now };
+    reg.teams[teamId] = { name: sanitizeText(body.name, NAME_MAX), teamType: TEAM_TYPES[body.teamType] ? body.teamType : DEFAULT_TEAM_TYPE, created: Number(body.created) || now, reg: now };
     const ids = Object.keys(reg.teams);
     if (ids.length > MAX_REGISTRY) {
       ids.sort((a, b) => (reg.teams[a].reg || 0) - (reg.teams[b].reg || 0));
@@ -354,7 +390,7 @@ export class TeamRelay {
   async doReglist(now) {
     const reg = await this.loadRegistry();
     const teams = Object.entries(reg.teams)
-      .map(([id, e]) => ({ id, name: e.name || '', created: e.created || null }))
+      .map(([id, e]) => ({ id, name: e.name || '', teamType: e.teamType || DEFAULT_TEAM_TYPE, created: e.created || null }))
       .sort((a, b) => (b.created || 0) - (a.created || 0));
     return { now, teamCount: teams.length, teams };
   }
@@ -379,7 +415,7 @@ export class TeamRelay {
       if (r.skip || !r.data) continue;
       const d = r.data, meta = reg.teams[r.id] || {};
       teams.push({
-        id: r.id, name: d.name || meta.name || '', created: meta.created || null,
+        id: r.id, name: d.name || meta.name || '', teamType: d.teamType || meta.teamType || DEFAULT_TEAM_TYPE, created: meta.created || null,
         lastActive: d.lastActive || null,
         members: d.members || [], viewers: d.viewers || [], markers: d.markers || [], defaults: d.defaults || null,
       });

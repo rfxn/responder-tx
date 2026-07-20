@@ -221,6 +221,17 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
 }
 .tp-skillchip.on { background: var(--accent); color: #04121e; border-color: var(--accent); }
 
+/* team-type picker (create flow): a vertical stack of selectable cards, each a name + one-line desc */
+.tt-typegroup { display: flex; flex-direction: column; gap: 6px; }
+.tt-typebtn {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer; width: 100%;
+  padding: 9px 11px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--ink-2);
+}
+.tt-typebtn.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tt-typename { font-size: 13.5px; font-weight: 650; color: var(--ink-1); }
+.tt-typebtn.on .tt-typename { color: var(--accent); }
+.tt-typedesc { font-size: 11.5px; color: var(--ink-muted); line-height: 1.35; }
+
 /* ---------- member markers on the map ---------- */
 .team-marker { position: relative; display: flex; align-items: center; }
 .team-marker .tm-dot {

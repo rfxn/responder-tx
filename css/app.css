@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.27') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.28') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.27') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.28') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.27') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.28') format('woff2');
 }
 
 :root {
@@ -984,6 +984,19 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 }
 #gps-wait[hidden] { display: none; }
 .locate-btn.locating { color: var(--accent); animation: pulse 1.6s infinite; }
+
+/* re-center control: center-bottom pill, clears the radar/playback bars; hidden behind Drive Mode's overlay */
+#recenter-btn {
+  position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 1200;
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--surface-1); color: var(--ink-1);
+  border: 1px solid var(--accent); font-size: 13px; font-weight: 650;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+#recenter-btn[hidden] { display: none; }
+#recenter-btn .rc-ico { font-size: 16px; line-height: 1; }
+#recenter-btn.off-screen { background: var(--accent); color: #fff; border-color: var(--accent); animation: pulse 1.6s infinite; }
 
 /* ramp endpoints sampled from live IEM q2 tiles (continuous HSV: blue→cyan→green→yellow→orange→red) */
 #mrms-legend {

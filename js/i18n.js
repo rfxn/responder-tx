@@ -310,6 +310,7 @@
       'leg.inun.note': 'NWS/NWPS National Water Model analysis (experimental): a modeled estimate, <strong>not observed</strong> conditions. Zoom to street level to see extent · updated hourly.',
 
       'gps.wait': '⌖ acquiring GPS fix…',
+      'map.recenter': 'Re-center on me',
       'radar.play': 'Play / pause the radar timeline (observed past → model future)',
       'radar.scrub': 'Scrub the radar timeline: observed past → NOW → HRRR model future',
       'fcst.badge': 'FORECAST MODEL',
@@ -949,6 +950,7 @@
       'leg.inun.note': 'Análisis del Modelo Nacional del Agua NWS/NWPS (experimental): una estimación modelada, <strong>no</strong> condiciones observadas. Acerque a nivel de calle para ver la extensión · actualizado cada hora.',
 
       'gps.wait': '⌖ obteniendo señal GPS…',
+      'map.recenter': 'Centrar en mí',
       'radar.play': 'Reproducir / pausar la línea de tiempo del radar (pasado observado → futuro del modelo)',
       'radar.scrub': 'Recorra la línea de tiempo del radar: pasado observado → AHORA → futuro del modelo HRRR',
       'fcst.badge': 'MODELO DE PRONÓSTICO',

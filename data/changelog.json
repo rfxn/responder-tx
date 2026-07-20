@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.28",
+      "date": "2026-07-20",
+      "line": "After you tap Locate and allow location, your position now keeps updating on the map about every 30 seconds, in both the normal app and Drive Mode. The map no longer jumps back to you on those updates, so if you pan away it stays where you put it. A new ‘Re-center on me’ button sits at the center-bottom of the map and highlights when your marker scrolls off-screen; tap it to jump back to your current location. Available in English and Spanish."
+    },
+    {
       "v": "v0.97.27",
       "date": "2026-07-20",
       "line": "Three additions to the live team feature. Crew can now set a Rehab (rest) status, in addition to in field, standby, and unavailable. When you drop a shared marker on the map you can assign it to a specific teammate, whose name then shows on that marker. And when you create a team you can save your current feed filters as a preset, so everyone who joins opens with the same view. Everything is available in English and Spanish."

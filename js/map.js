@@ -464,6 +464,7 @@ function initMap() {
       a.href = '#'; a.title = 'My location'; a.textContent = '⌖';
       L.DomEvent.on(a, 'click', (e) => {
         L.DomEvent.stop(e);
+        state.centerNextFix = true; // an explicit locate may recenter once
         gpsWait(true);
         map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
       });
@@ -518,19 +519,41 @@ function initMap() {
         title: 'Your location', zIndexOffset: 2000, interactive: false,
       }),
     ]).addTo(state.map);
-    state.map.setView(e.latlng, Math.max(state.map.getZoom(), 12));
+    // only a deliberate locate recenters; periodic ticks update the marker in place, never move the map
+    if (state.centerNextFix) { state.centerNextFix = false; state.map.setView(e.latlng, Math.max(state.map.getZoom(), 12)); }
     renderRequests();
     renderDriveMode(); // re-rank the glance list by the new fix
-    if (!$('#drive-mode').hidden) startDriveWatch(); // opt-in: the periodic refresh only begins once a fix lands
+    startLocTrack(); // opt-in tracker begins once the first fix lands; runs in the app and Drive Mode alike
+    updateRecenterBtn();
   });
   state.map.on('locationerror', () => {
     gpsWait(false);
     $('#refresh-note').textContent = 'location unavailable (permission or no GPS)';
   });
+  const recenterBtn = $('#recenter-btn');
+  if (recenterBtn) {
+    L.DomEvent.disableClickPropagation(recenterBtn);
+    recenterBtn.addEventListener('click', () => {
+      state.centerNextFix = true; // deliberate: recenter on the freshest fix
+      if (state.myPos) state.map.setView(state.myPos, Math.max(state.map.getZoom(), 14)); // instant feedback from the last fix
+      gpsWait(true);
+      state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+    });
+  }
+  state.map.on('moveend zoomend', updateRecenterBtn); // the button doubles as an off-screen affordance
 
   const declutter = () => state.map.getContainer().classList.toggle('z-low', state.map.getZoom() < 9);
   state.map.on('zoomend', declutter);
   declutter();
+}
+
+// re-center control: shown once tracking is active, emphasized when the marker is off-screen
+function updateRecenterBtn() {
+  const btn = $('#recenter-btn');
+  if (!btn) return;
+  if (!state.myPos) { btn.hidden = true; return; }
+  btn.hidden = false;
+  btn.classList.toggle('off-screen', !state.map.getBounds().contains(state.myPos));
 }
 
 /* ---------- map-control icons — stroke SVGs inherit the themed .leaflet-bar color ---------- */

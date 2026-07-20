@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.28 · 2026-07-20 (continuous location updates + re-center-on-me control)
+
+-- New Features --
+- [New] once you tap Locate and grant permission, your position keeps updating on
+      the map about every 30 seconds, in both the app and Drive Mode; the map is
+      never pulled back to you on those updates, so panning away stays put, in
+      English and Spanish
+- [New] a "Re-center on me" pill sits center-bottom of the map once tracking is on
+      and is emphasized when your marker scrolls off-screen; tapping it pans back to
+      your current location, in English and Spanish
+
+-- Changes --
+- [Change] the periodic location refresh that used to run only in Drive Mode now
+           persists in the app too and keeps updating after you leave Drive Mode; it
+           still pauses while the tab is backgrounded to save battery
+
 ## v0.97.27 · 2026-07-20 (team: rehab status, marker assignment, invite filter presets)
 
 -- New Features --

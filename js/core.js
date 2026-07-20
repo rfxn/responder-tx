@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.27';
+const APP_VERSION = 'v0.97.28';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -84,8 +84,9 @@ const state = {
   sort: 'smart',
   myPos: null,
   posLayer: null,
-  driveTimer: null,
+  locTimer: null,
   driveFixAt: 0,
+  centerNextFix: false, // deliberate locates center once; periodic ticks never move the map
   lastSeen: 0,
   trendHist: {},
   knownEmergencyIds: new Set(),

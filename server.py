@@ -36,7 +36,9 @@ CAM_BYTES_SOURCES = {
 CAM_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some CDNs 1010-block the default urllib UA
 CAM_TTL = 120
 DENY_PREFIXES = ('/.git', '/.rdf', '/.claude')
-DENY_PATHS = ('/HANDOFF.md', '/data/.chat-cursor', '/data/notes-inbox.jsonl')  # inbox served on LAN so the app can show the owner's own messages (git-ignored; never on the public mirror)
+DENY_DIRS = ('.git', '.rdf', '.claude', '.github', 'docs', 'pkg', 'audit-output')  # dev/working dirs, never served on the LAN
+DENY_EXTS = ('.py', '.sh', '.md', '.toml', '.yml', '.yaml')  # source/config/working docs — the app only fetches html/js/css/json/assets/feeds, so denying these blocks git-excluded notes (CLAUDE.md, *-SCOPE.md, BRAND-SPEC.md, etc.) and source (server.py) from LAN clients
+DENY_PATHS = ('/data/.chat-cursor', '/data/notes-inbox.jsonl')  # HANDOFF.md now covered by the .md ext deny; chat-inbox.jsonl stays served so the app can show the owner's own messages (git-ignored; never on the public mirror)
 # Master oversight proxy: the LAN board reaches the Cloudflare-only team registry through here so
 # the secret admin token stays server-side (env only, never in git or the browser). Unset → the
 # master view is disabled (ping.master=false) and the endpoints 503.
@@ -81,7 +83,9 @@ class Handler(SimpleHTTPRequestHandler):
         # repo internals and agent inboxes must never be served to the LAN. Normalize before the check —
         # super().do_GET() resolves the path NORMALIZED, so a raw-string guard is bypassable (/./.git → /.git)
         norm = posixpath.normpath(urllib.parse.unquote(path))
-        if norm.startswith(DENY_PREFIXES) or norm in DENY_PATHS or any(seg in ('.git', '.rdf', '.claude') for seg in norm.split('/')):
+        if (norm.startswith(DENY_PREFIXES) or norm in DENY_PATHS
+                or posixpath.splitext(norm)[1].lower() in DENY_EXTS
+                or any(seg in DENY_DIRS for seg in norm.split('/'))):
             self.send_error(404)
             return
         super().do_GET()

@@ -230,7 +230,7 @@
       `<div class="modal-head"><strong>${esc(tt('team.drop.head', 'Drop a team marker'))}</strong>` +
       `<button id="team-drop-close" title="${esc(tt('team.cancel', 'Cancel'))}">✕</button></div>` +
       '<div class="team-body">' +
-      `<p class="tp-dropnote">${esc(tt('team.drop.center', 'Placing at the current map center — pan the map first to reposition.'))}</p>` +
+      `<p class="tp-dropnote">${esc(tt('team.drop.center', 'Placing at the current map center. Pan the map first to reposition.'))}</p>` +
       `<div class="tp-field"><label>${esc(tt('team.drop.kind', 'Marker type'))}</label><div class="tp-seggroup" id="team-drop-kinds">${segs}</div></div>` +
       `<input id="team-drop-label" maxlength="60" autocomplete="off" placeholder="${esc(tt('team.drop.label.ph', 'Short label (optional)'))}">` +
       '<div id="team-drop-err" class="team-err" hidden></div>' +
@@ -427,7 +427,7 @@
       '</div>' +
       (isMember
         ? `<div class="tt-statusrow" id="team-statusrow">${stSeg}</div>`
-        : `<div class="tt-viewnote">${esc(tt('team.viewer.note', 'Watching only — you are not sharing a location.'))}</div>`);
+        : `<div class="tt-viewnote">${esc(tt('team.viewer.note', 'Watching only. You are not sharing a location.'))}</div>`);
     const sr = bar.querySelector('#team-statusrow');
     if (sr) sr.addEventListener('click', (e) => { const b = e.target.closest('.tt-stbtn'); if (b && b.dataset.st !== T.status) doUpdateSelf({ status: b.dataset.st }); });
     bar.querySelector('#team-edit-btn').addEventListener('click', openEdit);
@@ -462,7 +462,7 @@
         <span class="tp-age">${esc(tt('team.viewer', 'viewer'))}</span>
       </div>`);
     }
-    list.innerHTML = rows.join('') || `<div class="tp-empty">${esc(tt('team.alone', 'No one else here yet — share the link to bring your crew in.'))}</div>`;
+    list.innerHTML = rows.join('') || `<div class="tp-empty">${esc(tt('team.alone', 'No one else here yet. Share the link to bring your crew in.'))}</div>`;
     const c = host.querySelector('#team-rcount');
     if (c) c.textContent = `${members.length} ${tt('team.members', 'members')} · ${viewers.length} ${tt('team.viewers', 'viewers')}`;
     renderYouBar();
@@ -673,7 +673,7 @@
   // p is an id-prefix ('tj' join, 'te' edit) so the two forms can coexist in the DOM
   function profileFieldsHtml(p) {
     const typeSeg = MTYPES.map((mt) => `<button type="button" class="tp-seg" data-val="${mt}">${esc(typeLabel(mt))}</button>`).join('');
-    const spOpts = [`<option value="">${esc(tt('team.sp.none', '— pick a specialty —'))}</option>`]
+    const spOpts = [`<option value="">${esc(tt('team.sp.none', 'Pick a specialty…'))}</option>`]
       .concat(SPECIALTIES.map((s) => `<option value="${s}">${esc(spLabel(s))}</option>`)).join('');
     const stSeg = STATUSES.map((s) => `<button type="button" class="tp-seg tp-st-${s}" data-val="${s}">${esc(stLabel(s))}</button>`).join('');
     const skillChips = K9_SKILLS.map((s) => `<button type="button" class="tp-skillchip" data-skill="${esc(s)}">${esc(s)}</button>`).join('');
@@ -852,7 +852,7 @@
     box.innerHTML =
       `<div class="tp-fac-h">🏥 ${esc(tt('team.fac.hosp', 'Nearest hospital'))}</div>${h}` +
       `<div class="tp-fac-h${hasK9 ? ' tp-fac-k9' : ''}">🐕 ${esc(tt('team.fac.vet', 'Nearest veterinary'))}</div>${v}` +
-      `<div class="tp-fac-cap">${esc(tt('team.fac.cap', 'Via OpenStreetMap (Overpass). NOT verified as a trauma center or 24h emergency vet — call ahead to confirm ER hours.'))}</div>`;
+      `<div class="tp-fac-cap">${esc(tt('team.fac.cap', 'Via OpenStreetMap (Overpass). NOT verified as a trauma center or 24h emergency vet. Call ahead to confirm ER hours.'))}</div>`;
   }
 
   /* ---------- create-team flow (landing card) ---------- */

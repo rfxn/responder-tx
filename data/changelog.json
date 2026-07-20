@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.19",
+      "date": "2026-07-20",
+      "line": "Two polish fixes. The map layers menu no longer shows a stray horizontal scrollbar: long camera labels now wrap neatly inside the panel instead of running off the edge. A board-wide punctuation pass also replaced the heavy em-dashes in the interface text (English and español) with cleaner separators, so labels, tooltips, and the legend read a little tidier. Nothing about how the board works has changed."
+    },
+    {
       "v": "v0.97.18",
       "date": "2026-07-20",
       "line": "New live cameras from El Paso. You can now watch the City of El Paso's international-bridge cameras — the Paso del Norte, Santa Fe, Stanton, and Ysleta-Zaragoza crossings over the Rio Grande — live on the map. Turn them on under Cameras in the layers menu; like the other camera layers they are off by default. They open as live video in the same viewer the TxDOT highway cameras already use (with a LIVE badge), and every camera is credited to the City of El Paso. Because the operator occasionally renames its streams, the camera list is re-checked whenever it is rebuilt so only working cameras are shown."

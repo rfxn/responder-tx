@@ -6,20 +6,20 @@ METHOD:PUBLISH
 X-WR-CALNAME:Responder TX — forecast river crests
 BEGIN:VEVENT
 UID:crest-TIDT2-20260722T060000Z@responder.rfxn.com
-DTSTAMP:20260720T183921Z
+DTSTAMP:20260720T185421Z
 DTSTART:20260722T060000Z
 DTEND:20260722T070000Z
 SUMMARY:MAJOR crest — Frio River at Tilden (27.9 ft)
-DESCRIPTION:Forecast MAJOR crest 27.9 ft (observed 9.93 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 27.9 ft (observed 10.08 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://respondertx.org/?hydro=TIDT2
 END:VEVENT
 BEGIN:VEVENT
 UID:crest-COTT2-20260722T120000Z@responder.rfxn.com
-DTSTAMP:20260720T183921Z
+DTSTAMP:20260720T185421Z
 DTSTART:20260722T120000Z
 DTEND:20260722T130000Z
 SUMMARY:MAJOR crest — Nueces River at Cotulla (22.9 ft)
-DESCRIPTION:Forecast MAJOR crest 22.9 ft (observed 9.7 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 22.9 ft (observed 9.85 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://respondertx.org/?hydro=COTT2
 END:VEVENT
 END:VCALENDAR

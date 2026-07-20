@@ -1,5 +1,10 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.32 · 2026-07-20 (remove dormant archival-photo overlay)
+
+-- Changes --
+- [Removed] retired the dormant archival-photo overlay from historical playback (it had no data source and never displayed on the map); the event timeline and radar scrubber are unchanged
+
 ## v0.97.31 · 2026-07-20 (team auto-rejoin, proxy dedup)
 
 -- Bug Fixes --

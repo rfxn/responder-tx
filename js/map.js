@@ -1393,64 +1393,6 @@ function pbMrmsStampAt(tMs) {
 }
 const pbMrmsStamp = () => pbMrmsStampAt(state.pbData.frames[state.pb.idx]._t);
 
-/* replay media (v0.93, framework): optional curated data/replay-media.json — archival photo cards
-   keyed to the timeline; strict provenance (credit + source link) and archival styling, never live-looking. */
-const PB_MEDIA_FRAMES = 6;
-
-function loadReplayMedia() {
-  if (state.pbMedia) return;
-  fetch(`data/replay-media.json?_=${Math.floor(Date.now() / 300000)}`)
-    .then((r) => (r.ok ? r.json() : null))
-    .then((d) => {
-      state.pbMedia = ((d && d.items) || [])
-        .filter((x) => x.t && x.img && Number.isFinite(x.lat) && Number.isFinite(x.lon))
-        .map((x) => Object.assign({ _t: new Date(x.t).getTime() }, x))
-        .filter((x) => Number.isFinite(x._t))
-        .sort((a, b) => a._t - b._t);
-    })
-    .catch(() => { state.pbMedia = []; }); // no curated media on this deploy — the hook stays dormant
-}
-
-function pbMediaDismiss() {
-  if (state.pbMediaCur) {
-    state.map.removeLayer(state.pbMediaCur.m);
-    state.pbMediaCur = null;
-  }
-}
-
-function pbMediaShow(item) {
-  pbMediaDismiss();
-  const credit = t('playback.media.credit').replace('{credit}', item.credit || item.source_url || '·');
-  const icon = L.divIcon({
-    className: '', iconSize: [190, 10], iconAnchor: [95, 10],
-    html: `<div class="pb-media-card"><div class="pbm-head">` +
-      `<span class="pbm-badge">🕰 ${esc(t('playback.media.archival'))} · ${esc(fmtCT(item.t))}</span>` +
-      `<button class="pbm-x" title="${esc(t('playback.media.close'))}" aria-label="${esc(t('playback.media.close'))}">✕</button></div>` +
-      `<img src="${safeUrl(item.img)}" alt="${esc(item.title || '')}">` +
-      `<div class="pbm-title">${esc(item.title || '')}</div>` +
-      `<div class="pbm-credit">${esc(credit)}${item.source_url ? ` · <a href="${safeUrl(item.source_url)}" target="_blank" rel="noopener">${esc(t('playback.media.source'))} →</a>` : ''}</div></div>`,
-  });
-  const m = L.marker([item.lat, item.lon], { icon, zIndexOffset: 3000 }).addTo(state.map);
-  const el = m.getElement();
-  if (el) {
-    L.DomEvent.disableClickPropagation(el);
-    const x = el.querySelector('.pbm-x');
-    if (x) x.addEventListener('click', pbMediaDismiss);
-  }
-  state.pbMediaCur = { m, left: PB_MEDIA_FRAMES };
-}
-
-// forward crossings only — scrubbing back never resurrects a card; visible cards age out over ~6 frames
-function pbMediaStep(frame) {
-  const prevT = state.pbMediaPrevT;
-  state.pbMediaPrevT = frame._t;
-  if (state.pbMediaCur && --state.pbMediaCur.left <= 0) pbMediaDismiss();
-  if (!state.pbMedia || !state.pbMedia.length) return;
-  if (!Number.isFinite(prevT) || frame._t <= prevT) return;
-  const hit = state.pbMedia.filter((x) => x._t > prevT && x._t <= frame._t).pop();
-  if (hit) pbMediaShow(hit);
-}
-
 // frame code: 0..4 = none..major; negative = stale observation, encoded -(code+1)
 function pbDecode(code) {
   const stale = code < 0;
@@ -1706,7 +1648,6 @@ async function openPlayback() {
     $('#refresh-note').textContent = t('playback.unavail');
     return;
   }
-  loadReplayMedia(); // optional curated archive media — best-effort, 404 leaves the hook dormant
   if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, speed: 0.5, capKey: null };
   state.pb.speed = 0.5; // every entry resets to the readable default; a changed speed lasts only until close
   $('#playback-bar').hidden = false;
@@ -2113,7 +2054,6 @@ function playbackEngage() {
   pb.curatedOn = { requests: pb.liveOff.requests, crossings: pb.liveOff.crossings, lsr: pb.liveOff.lsrs || pb.liveOff.lsrsAged };
   pbBuildCurated();
   state.layers.pbCurated.addTo(state.map);
-  state.pbMediaPrevT = NaN;
   document.body.classList.toggle('pb-tween', pb.speed <= 1);
   document.body.classList.add('pb-on');
   $('#pb-badge').hidden = false;
@@ -2178,7 +2118,6 @@ function playbackGoLive() {
     if (pb.liveOff[k] && state.layers[k] && !state.map.hasLayer(state.layers[k])) state.layers[k].addTo(state.map);
   }
   pb.liveOff = {};
-  pbMediaDismiss();
   clearTimeout(pb.radarSettle);
   clearTimeout(pb.mrmsSettle);
   if (pb.mrmsFader) { pbFaderDestroy(pb.mrmsFader); pb.mrmsFader = null; }
@@ -2221,7 +2160,6 @@ function setPlaybackFrame(i) {
   if (pb.radarFader) pbFaderSchedule(pb.radarFader, 'radarSettle', pbRadarStampAt(frame._t));
   if (pb.mrmsFader) pbFaderSchedule(pb.mrmsFader, 'mrmsSettle', pbMrmsStampAt(frame._t));
   pbPaintCurated(frame);
-  pbMediaStep(frame);
   $('#pb-slider').value = frame._t;
   updatePlaybackReadout();
   pbSbwSchedule();

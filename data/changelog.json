@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.32",
+      "date": "2026-07-20",
+      "line": "Internal cleanup. We removed an unused archival-photo overlay that was part of historical playback but had no data behind it, so it never appeared on the map. Nothing you use changes: the event timeline and radar playback work exactly as before."
+    },
+    {
       "v": "v0.97.31",
       "date": "2026-07-20",
       "line": "A team reliability fix. If you background the app or switch away on your phone, you used to silently drop off your team; now the app reconnects you automatically when you return, restoring your handle, role, and profile and resuming location sharing. Leaving a team on purpose is also more reliable now. An internal cleanup of the team relay code rounds it out, with no change to how anything works."

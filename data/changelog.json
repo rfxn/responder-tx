@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "date": "2026-07-20",
+      "line": "Cameras are now organized as independent, per-source layers you can turn on one at a time instead of a single all-or-nothing toggle. Alongside the TxDOT road cameras you can now enable City of Austin city cameras (817 public-domain arterial/intersection views), ATX Floods low-water-crossing flood cameras (26 creek-crossing cams built for exactly the “is this crossing under water” question), and Houston TranStar cameras (963, including the Galveston–Bolivar ferry) — and the USGS river/flood-gage cameras now cover the whole state, so Houston, Dallas–Fort Worth and Laredo gage cams show up instead of being clipped to Central Texas. Each source keeps its own map marker, source credit and share link, and every camera layer stays off until you turn it on.",
+      "v": "v0.97.15"
+    },
+    {
       "v": "v0.97.14",
       "date": "2026-07-19",
       "line": "An empty feed now reads as good news. When there are no active notices and you haven't applied a restricting filter, the feed shows a positive all-clear message (\"✓ All clear — no active notices right now. Quiet is good; stay ready.\") instead of the flat \"No notices match the current filters.\" The filter wording still appears when a type, county, search, time-window, distance, or In-view filter is actually what's hiding notices, so you're never misled into thinking the board is clear when it isn't. English y español."

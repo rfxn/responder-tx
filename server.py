@@ -20,9 +20,17 @@ NOTE_CATS = ('info', 'hazard', 'road', 'water', 'photo')
 GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
 NWPS_BASE = 'https://api.water.noaa.gov/nwps/v1/gauges/'
 GAUGE_TTL = 180
-CAM_RE = re.compile(r'^/api/cam/([A-Z]{3})/([^/]{1,200})$')
+CAM_RE = re.compile(r'^/api/cam/([A-Za-z]{3,8})/([^/]{1,200})$')  # {source}/{id}: 3-letter ITS district or a named source
 CAM_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")  # matches gen-cameras.py ITS_ICD_RE — not an open proxy
+CAM_DIST_RE = re.compile(r'^[A-Z]{3}$')  # ITS districts route to the base64-JSON upstream
 ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
+# Strict per-source allowlist for direct-JPEG passthrough — fixed upstream host per key, NOT an open image proxy.
+# Each source: (id-validation regex, upstream URL template with {id}).
+CAM_BYTES_SOURCES = {
+    'austin': (re.compile(r'^[0-9]{1,8}$'), 'https://cctv.austinmobility.io/image/{id}.jpg'),
+    'houston': (re.compile(r'^[0-9]{1,8}$'), 'https://www.houstontranstar.org/snapshots/cctv/{id}.jpg'),
+}
+CAM_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some CDNs 1010-block the default urllib UA
 CAM_TTL = 120
 DENY_PREFIXES = ('/.git', '/.rdf', '/.claude')
 DENY_PATHS = ('/HANDOFF.md', '/data/.chat-cursor', '/data/notes-inbox.jsonl')  # inbox served on LAN so the app can show the owner's own messages (git-ignored; never on the public mirror)
@@ -100,9 +108,19 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    # TxDOT ITS snapshot proxy (mirrors functions/api/cam): upstream JSON carries a base64
-    # JPEG; serve the raw image with the capture stamp so the viewer never needs CORS
-    def _cam_proxy(self, district, icd):
+    # Camera snapshot proxy (mirrors functions/api/cam): dispatch by source key to a fixed upstream host.
+    # ITS districts decode a base64-JSON JPEG; named sources pass raw JPEG bytes through.
+    def _cam_proxy(self, source, cid):
+        if CAM_DIST_RE.match(source):
+            self._cam_its(source, cid)
+        elif source in CAM_BYTES_SOURCES:
+            self._cam_bytes(source, cid)
+        else:
+            self.send_error(404)
+
+    # TxDOT ITS: upstream JSON carries a base64 JPEG; serve the raw image with the
+    # capture stamp so the viewer never needs CORS
+    def _cam_its(self, district, icd):
         if not CAM_ICD_RE.match(icd):
             self.send_error(400)
             return
@@ -114,7 +132,7 @@ class Handler(SimpleHTTPRequestHandler):
         if entry is None:
             url = ITS_SNAP + '?icdId=' + urllib.parse.quote(icd) + '&districtCode=' + district
             try:
-                req = urllib.request.Request(url, headers={'Accept': 'application/json'})
+                req = urllib.request.Request(url, headers={'Accept': 'application/json', 'User-Agent': CAM_UA})
                 with urllib.request.urlopen(req, timeout=15) as r:
                     d = json.loads(r.read())
                 jpeg = base64.b64decode(d['snippet'])
@@ -129,12 +147,47 @@ class Handler(SimpleHTTPRequestHandler):
                 for k in [k for k, v in _cam_cache.items() if now - v[0] >= CAM_TTL]:
                     del _cam_cache[k]  # expired-entry sweep keeps memory bounded to recently viewed cams
                 _cam_cache[key] = entry
+        self._send_jpeg(entry[1], entry[2])
+
+    # Named direct-JPEG source (Austin ATD, …): stream the upstream bytes through, lifting the
+    # HTTP Last-Modified date into the capture stamp. Fixed host per key — never an open proxy.
+    def _cam_bytes(self, source, cid):
+        id_re, tmpl = CAM_BYTES_SOURCES[source]
+        if not id_re.match(cid):
+            self.send_error(400)
+            return
+        key = source + '/' + cid
+        now = time.time()
+        with _cam_lock:
+            hit = _cam_cache.get(key)
+        entry = hit if hit and now - hit[0] < CAM_TTL else None
+        if entry is None:
+            url = tmpl.format(id=cid)
+            try:
+                req = urllib.request.Request(url, headers={'Accept': 'image/jpeg', 'User-Agent': CAM_UA})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    jpeg = r.read()
+                    ctype = r.headers.get('Content-Type', '')
+                    stamp = re.sub(r'[^\x20-\x7e]+', ' ', str(r.headers.get('Last-Modified', ''))).strip()[:64]
+                if not jpeg or 'image' not in ctype.lower():
+                    raise ValueError('not an image')
+            except (OSError, ValueError):
+                self.send_error(502)
+                return
+            entry = (now, jpeg, stamp)
+            with _cam_lock:
+                for k in [k for k, v in _cam_cache.items() if now - v[0] >= CAM_TTL]:
+                    del _cam_cache[k]  # expired-entry sweep keeps memory bounded to recently viewed cams
+                _cam_cache[key] = entry
+        self._send_jpeg(entry[1], entry[2])
+
+    def _send_jpeg(self, jpeg, stamp):
         self.send_response(200)
         self.send_header('Content-Type', 'image/jpeg')
-        self.send_header('X-Cam-Captured', entry[2])
-        self.send_header('Content-Length', str(len(entry[1])))
+        self.send_header('X-Cam-Captured', stamp)
+        self.send_header('Content-Length', str(len(jpeg)))
         self.end_headers()
-        self.wfile.write(entry[1])
+        self.wfile.write(jpeg)
 
     # Master oversight proxy → Cloudflare token-gated registry endpoints. Injects the admin token
     # from the server env (never the browser) so the LAN command view is same-origin and secretless.

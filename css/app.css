@@ -803,6 +803,12 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
   border: 1px solid var(--border); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 .cam-icon.cam-river { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 1px 3px rgba(0,0,0,0.4); }
+/* City of Austin arterial cams — amber ring to read apart from TxDOT/USGS */
+.cam-icon.cam-austin { border-color: #e0902f; box-shadow: 0 0 0 1px #e0902f, 0 1px 3px rgba(0,0,0,0.4); }
+/* ATX Floods low-water-crossing cams — bold flood-blue ring (the on-mission flagged layer) */
+.cam-icon.cam-flood { border-color: #2f80ed; box-shadow: 0 0 0 1.5px #2f80ed, 0 1px 3px rgba(0,0,0,0.4); }
+/* Houston TranStar cams — teal ring to read apart from the other metros */
+.cam-icon.cam-houston { border-color: #17a2a2; box-shadow: 0 0 0 1px #17a2a2, 0 1px 3px rgba(0,0,0,0.4); }
 /* snapshot-only ITS cams: muted + dashed so a still never reads as a live stream */
 .cam-icon.cam-snap { border: 1.5px dashed var(--ink-muted); opacity: 0.8; filter: saturate(0.4); }
 /* viewer sits above Drive Mode (1600) — drive rows open cameras without leaving Drive Mode */

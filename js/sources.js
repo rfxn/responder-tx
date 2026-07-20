@@ -888,8 +888,13 @@ function lwcPopupHtml(p) {
 
 const CAM_ATTRIB_TXDOT = 'Traffic cameras: TxDOT (Lonestar/DriveTexas)';
 const CAM_ATTRIB_USGS = 'River cameras: USGS HIVIS (public domain, provisional)';
+const CAM_ATTRIB_AUSTIN = 'Traffic cameras: City of Austin, Texas (public domain)';
+const CAM_ATTRIB_ATX = 'Flood cameras: ATX Floods / City of Austin (low-water crossings)';
+const CAM_ATTRIB_HOUSTON = 'Traffic cameras: Houston TranStar (Houston region)';
+const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON };
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
+const ATXFLOODS_BASE = 'https://api.atxfloods.com';
 const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
 
 // lazy: inventory is a committed snapshot, fetched once on first layer enable / Drive Mode / gauge popup
@@ -898,7 +903,7 @@ function loadCameras() {
   state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
     .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
     .then((d) => {
-      state.cameras = { txdot: d.txdot || [], river: d.river || [] };
+      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [] };
       renderCameras();
       return state.cameras;
     });
@@ -907,54 +912,97 @@ function loadCameras() {
 }
 
 function camTitle(c, kind) {
-  if (kind === 'river') return c.name;
+  if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston') return c.name;
   if (c.src === 'its') return c.name || prettyRoute(c.route) || 'Traffic camera'; // ITS names carry the cross-street
   return c.description || prettyRoute(c.route) || c.name || 'Traffic camera';
 }
 
+// per-network marker glyph — distinct outline so river/city/flood cams read apart at a glance
+function camIconClass(c, kind) {
+  if (kind === 'river') return ' cam-river';
+  if (kind === 'austin') return ' cam-austin';
+  if (kind === 'atxfloods') return ' cam-flood';
+  if (kind === 'houston') return ' cam-houston';
+  return c.src === 'its' ? ' cam-snap' : ''; // snapshot-only ITS cams read as "still", not "live"
+}
+
+// [state.layers key, cameras array, net] — one independent sub-layer per source
+const CAM_NETS = [
+  ['camsTxdot', 'txdot', 'txdot'],
+  ['camsRiver', 'river', 'river'],
+  ['camsAustin', 'austin', 'austin'],
+  ['camsFlood', 'atxfloods', 'atxfloods'],
+  ['camsHouston', 'houston', 'houston'],
+];
+
 function renderCameras() {
-  const layer = state.layers.cameras;
-  if (!layer || !state.cameras) return;
-  layer.clearLayers();
-  const marks = [];
-  const add = (c, kind) => {
-    if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) return;
-    // snapshot-only ITS cams get a muted dashed marker — users must see "still", not "live"
+  if (!state.cameras || !state.layers.camsTxdot) return;
+  const put = (layer, marks) => {
+    if (!layer) return;
+    layer.clearLayers();
+    if (layer.addLayers) layer.addLayers(marks); // markercluster bulk add
+    else marks.forEach((m) => layer.addLayer(m));
+  };
+  const mark = (c, kind) => {
+    if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) return null;
     const icon = L.divIcon({
       className: '',
-      html: `<div class="cam-icon${kind === 'river' ? ' cam-river' : ''}${c.src === 'its' ? ' cam-snap' : ''}">📷</div>`,
+      html: `<div class="cam-icon${camIconClass(c, kind)}">📷</div>`,
       iconSize: [22, 22], iconAnchor: [11, 11],
     });
-    const m = L.marker([c.lat, c.lon], { icon, attribution: kind === 'river' ? CAM_ATTRIB_USGS : CAM_ATTRIB_TXDOT });
+    const m = L.marker([c.lat, c.lon], { icon, attribution: CAM_ATTRIB[kind] });
     m.bindPopup(() => camPopup(c, kind), { minWidth: 230 });
-    marks.push(m);
+    return m;
   };
-  for (const c of state.cameras.txdot) add(c, 'txdot');
-  for (const c of state.cameras.river) add(c, 'river');
-  if (layer.addLayers) layer.addLayers(marks); // markercluster bulk add
-  else marks.forEach((m) => layer.addLayer(m));
-  // ?cam=<name|camId> deep link — open the viewer once the inventory is in (once)
+  for (const [lk, arr, net] of CAM_NETS) {
+    put(state.layers[lk], (state.cameras[arr] || []).map((c) => mark(c, net)).filter(Boolean));
+  }
+  // ?cam=<name|camId|id> deep link — open the viewer once the inventory is in (once)
   if (state.pendingCam) {
     const want = state.pendingCam;
     state.pendingCam = null;
-    const rv = state.cameras.river.find((c) => c.camId === want || c.name === want);
-    const tx = rv ? null : state.cameras.txdot.find((c) => c.name === want);
-    if (rv) openCamViewer(rv, 'river');
-    else if (tx) openCamViewer(tx, 'txdot');
+    const hit = findCamByKey(want);
+    if (hit) openCamViewer(hit.c, hit.kind);
   }
+}
+
+// resolve a deep-link token across every network (camId / name / numeric id)
+function findCamByKey(want) {
+  const rv = state.cameras.river.find((c) => c.camId === want || c.name === want);
+  if (rv) return { c: rv, kind: 'river' };
+  const tx = state.cameras.txdot.find((c) => c.name === want);
+  if (tx) return { c: tx, kind: 'txdot' };
+  const au = state.cameras.austin.find((c) => String(c.id) === want || c.name === want);
+  if (au) return { c: au, kind: 'austin' };
+  const af = state.cameras.atxfloods.find((c) => String(c.id) === want || c.name === want);
+  if (af) return { c: af, kind: 'atxfloods' };
+  const ho = state.cameras.houston.find((c) => String(c.id) === want || c.name === want);
+  if (ho) return { c: ho, kind: 'houston' };
+  return null;
 }
 
 function camPopup(c, kind) {
   const el = document.createElement('div');
-  const sub = kind === 'river'
-    ? `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`
-    : `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
+  let sub;
+  if (kind === 'river') sub = `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`;
+  else if (kind === 'atxfloods') sub = esc(t('cam.floodcam'));
+  else if (kind === 'austin' || kind === 'houston') sub = esc(t('cam.traffic'));
+  else sub = `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
   el.innerHTML = `<div class="popup-title">📷 ${esc(camTitle(c, kind))}</div>` +
     `<div class="popup-meta">${sub}</div>` +
     `<button class="popup-expand cam-view-btn">${esc(t('cam.view'))}</button>` +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(kind === 'river' ? CAM_ATTRIB_USGS : CAM_ATTRIB_TXDOT)} · ${esc(t('cam.verify'))}</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(CAM_ATTRIB[kind])} · ${esc(t('cam.verify'))}</div>`;
   el.querySelector('.cam-view-btn').addEventListener('click', () => openCamViewer(c, kind));
   return el;
+}
+
+// short "Operator · type" label for the Drive-mode nearest-cam row
+function camNetLabel(kind) {
+  if (kind === 'river') return `USGS · ${t('cam.river')}`;
+  if (kind === 'austin') return `Austin · ${t('cam.traffic')}`;
+  if (kind === 'atxfloods') return `ATX Floods · ${t('cam.floodcam')}`;
+  if (kind === 'houston') return `Houston TranStar · ${t('cam.traffic')}`;
+  return `TxDOT · ${t('cam.traffic')}`;
 }
 
 function nearestRiverCam(lat, lon, maxKm) {
@@ -974,7 +1022,25 @@ function openCamViewer(c, kind) {
   $('#cam-viewer').hidden = false;
   $('#cam-title').textContent = `📷 ${camTitle(c, kind)}`;
   const stage = $('#cam-stage'), meta = $('#cam-meta'), note = $('#cam-note');
-  if (kind === 'txdot' && c.src === 'its') {
+  if (kind === 'austin') {
+    // City of Austin still: fresh JPEG via the same-origin /api/cam/austin proxy (no CORS upstream)
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.austin.note'))} · ${esc(CAM_ATTRIB_AUSTIN)}`;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    loadAustinSnapshot(c, stage, meta, false, gen);
+  } else if (kind === 'houston') {
+    // Houston TranStar still: fresh JPEG via the same-origin /api/cam/houston proxy (no CORS upstream)
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.houston.note'))} · ${esc(CAM_ATTRIB_HOUSTON)}`;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    loadHoustonSnapshot(c, stage, meta, false, gen);
+  } else if (kind === 'atxfloods') {
+    // ATX Floods low-water-crossing cam: newest image resolved live (CORS-open), loaded direct
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.atx.note'))} · ${esc(CAM_ATTRIB_ATX)}`;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    loadAtxFloodStill(c, stage, meta, gen).catch(() => {
+      if (gen !== state.camGen) return; // viewer moved on — never paint into another camera's stage
+      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
+    });
+  } else if (kind === 'txdot' && c.src === 'its') {
     // snapshot-only ITS cam: fresh JPEG via the same-origin /api/cam proxy, never a "LIVE" player
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.its.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
@@ -1025,11 +1091,11 @@ function parseItsStamp(s) {
   return new Date(wallUtc - offMin * 60000);
 }
 
-// fetch-as-blob (not <img src>) so the X-Cam-Captured header is readable; bust forces a re-fetch
-async function loadItsSnapshot(c, stage, meta, bust, gen) {
+// fetch-as-blob (not <img src>) so the X-Cam-Captured header is readable; bust forces a re-fetch.
+// opts: { url(bust) -> string, parse(stamp) -> Date|null, alt } — shared by every same-origin proxy still
+async function loadProxyStill(stage, meta, bust, gen, opts) {
   try {
-    const url = `api/cam/${encodeURIComponent(c.dist)}/${encodeURIComponent(c.icd)}${bust ? `?_=${Date.now()}` : ''}`;
-    const res = await fetch(url, bust ? { cache: 'reload' } : undefined);
+    const res = await fetch(opts.url(bust), bust ? { cache: 'reload' } : undefined);
     if (!res.ok) throw new Error(`cam HTTP ${res.status}`);
     const captured = res.headers.get('X-Cam-Captured') || '';
     const blob = await res.blob();
@@ -1037,11 +1103,11 @@ async function loadItsSnapshot(c, stage, meta, bust, gen) {
     if (state.camObjUrl) URL.revokeObjectURL(state.camObjUrl);
     state.camObjUrl = URL.createObjectURL(blob);
     const img = document.createElement('img');
-    img.alt = camTitle(c, 'txdot');
+    img.alt = opts.alt;
     img.src = state.camObjUrl;
     stage.innerHTML = '';
     stage.appendChild(img);
-    const when = parseItsStamp(captured);
+    const when = opts.parse(captured);
     const stale = !!when && ageMins(when.toISOString()) > CAM_STALE_MINS;
     meta.innerHTML = (stale
       ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
@@ -1051,13 +1117,82 @@ async function loadItsSnapshot(c, stage, meta, bust, gen) {
       `<button class="popup-expand cam-refresh">↻ ${esc(t('cam.refresh'))}</button>`;
     meta.querySelector('.cam-refresh').addEventListener('click', () => {
       stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-      loadItsSnapshot(c, stage, meta, true, gen);
+      loadProxyStill(stage, meta, true, gen, opts);
     });
   } catch {
     if (gen !== state.camGen) return;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.snap.unavail'))}</div>`;
     meta.innerHTML = '';
   }
+}
+
+function loadItsSnapshot(c, stage, meta, bust, gen) {
+  loadProxyStill(stage, meta, bust, gen, {
+    url: (b) => `api/cam/${encodeURIComponent(c.dist)}/${encodeURIComponent(c.icd)}${b ? `?_=${Date.now()}` : ''}`,
+    parse: parseItsStamp,
+    alt: camTitle(c, 'txdot'),
+  });
+}
+
+function loadAustinSnapshot(c, stage, meta, bust, gen) {
+  loadProxyStill(stage, meta, bust, gen, {
+    url: (b) => `api/cam/austin/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
+    parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
+    alt: camTitle(c, 'austin'),
+  });
+}
+
+function loadHoustonSnapshot(c, stage, meta, bust, gen) {
+  loadProxyStill(stage, meta, bust, gen, {
+    url: (b) => `api/cam/houston/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
+    parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
+    alt: camTitle(c, 'houston'),
+  });
+}
+
+// ATX Floods newest image resolved from the live list (CORS-open); image_name changes every ~3 min,
+// so cache the id→image map only briefly and re-resolve on the next viewer open
+function loadAtxImages() {
+  const now = Date.now();
+  if (state.atxImgP && now - (state.atxImgAt || 0) < 120000) return state.atxImgP;
+  state.atxImgAt = now;
+  state.atxImgP = fetch(`${ATXFLOODS_BASE}/api/cameras`)
+    .then((r) => { if (!r.ok) throw new Error(`atx HTTP ${r.status}`); return r.json(); })
+    .then((d) => {
+      const m = {};
+      for (const c of (d.attributes || [])) {
+        const im = (c.images || [])[0];
+        if (im && im.image_name) m[c.id] = { name: im.image_name, at: im.created_at || '' };
+      }
+      return m;
+    });
+  state.atxImgP.catch(() => { state.atxImgP = null; state.atxImgAt = 0; }); // failed fetch — allow retry
+  return state.atxImgP;
+}
+
+async function loadAtxFloodStill(c, stage, meta, gen) {
+  const rec = (await loadAtxImages())[c.id];
+  if (gen !== state.camGen) return; // slow list for a switched/closed viewer — drop it
+  if (!rec) throw new Error('no recent imagery');
+  const iso = rec.at;
+  const img = document.createElement('img');
+  img.alt = camTitle(c, 'atxfloods');
+  img.addEventListener('load', () => {
+    if (gen !== state.camGen) return;
+    const stale = !!iso && ageMins(iso) > CAM_STALE_MINS;
+    meta.innerHTML = (stale
+      ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
+      : `<span class="cam-badge still">${esc(t('cam.snapshot'))}</span>`) +
+      (iso ? `<span class="cam-time">${esc(t('cam.captured'))} ${esc(fmtWhen(iso))}</span>` : '') +
+      (stale ? `<span class="cam-stale-note">${esc(t('cam.stale.note'))}</span>` : '');
+  });
+  img.addEventListener('error', () => {
+    if (gen !== state.camGen) return;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
+  });
+  img.src = `${ATXFLOODS_BASE}/uploads/${encodeURIComponent(rec.name)}`;
+  stage.innerHTML = '';
+  stage.appendChild(img);
 }
 
 // newest still via a client-side S3 listing: keys sort chronologically; the trailing

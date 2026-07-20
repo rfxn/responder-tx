@@ -34,7 +34,9 @@ const MAX_SKILLS = 8;
 const MEMBER_TYPES = ['ground', 'k9'];
 const STATUSES = ['infield', 'standby', 'unavailable'];
 const SPECIALTIES = ['searcher', 'medical', 'support', 'drone', 'comms', 'swiftwater', 'command', 'logistics'];
-const K9_SKILLS = ['HRD', 'live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
+// 'HRD' retired from the offered list (cadaver covers it); values already stored on a member are
+// preserved on read and on partial updates that omit skills — only a fresh skills array re-filters
+const K9_SKILLS = ['live-find', 'trailing', 'cadaver', 'area', 'water', 'evidence', 'avalanche'];
 const MARKER_KINDS = ['waypoint', 'hazard', 'search-area'];
 
 // Global team registry (v0.97.5) — a single well-known DO (idFromName('registry')) tracks live

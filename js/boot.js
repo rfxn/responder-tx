@@ -474,6 +474,7 @@ function relocalizeDynamic() {
   renderCrossings();
   renderSourceHealth();
   renderLayerPills();
+  if (window.renderTeamTab) renderTeamTab();
 }
 
 async function boot() {
@@ -591,7 +592,8 @@ async function boot() {
     $('#safety-modal').hidden = true;
   });
   initOnboarding(); // after safety wiring — the ack click chains into first-run onboarding
-  if (window.initTeam) initTeam(); // flag-gated ?team= live team sharing (inert otherwise); chains behind the 911 ack
+  if (window.initTeamTab) initTeamTab(); // paint the first-class Team tab (create/join or roster)
+  if (window.initTeam) initTeam(); // ?team= deep-link auto-opens the Team tab; chains behind the 911 ack
   initHeaderSearch();
   $('#help-btn').addEventListener('click', openGlossary);
   $('#team-btn').addEventListener('click', () => { if (window.openTeamEntry) openTeamEntry(); }); // create/join a live team without a ?team= link

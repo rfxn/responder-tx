@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.29') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.30') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.29') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.30') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.29') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.30') format('woff2');
 }
 
 :root {
@@ -998,6 +998,12 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 #recenter-btn .rc-ico { font-size: 16px; line-height: 1; }
 #recenter-btn.off-screen { background: var(--accent); color: #fff; border-color: var(--accent); animation: pulse 1.6s infinite; }
 
+/* bottom-right north compass: rests above the chat FAB, lifts with it when the playback bar opens */
+.compass-ctl { position: absolute; right: 16px; bottom: 104px; z-index: 1160; }
+.compass-ctl a { width: 42px; height: 42px; line-height: 42px; display: flex; align-items: center; justify-content: center; }
+.compass-ctl svg { display: block; }
+body.pb-bar-open .compass-ctl { bottom: 206px; }
+
 /* ramp endpoints sampled from live IEM q2 tiles (continuous HSV: blue→cyan→green→yellow→orange→red) */
 #mrms-legend {
   position: absolute; bottom: 26px; right: 84px; z-index: 900; /* clear of the chat FAB corner */
@@ -1552,6 +1558,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
      under the bar, and lift the chat FAB clear of it */
   body.pb-bar-open #sheet-handle { display: none; }
   body.pb-bar-open #chat-fab { bottom: 178px; }
+  body.pb-bar-open .compass-ctl { bottom: 236px; }
   #pb-arch-note { right: 84px; } /* clear of the lifted chat FAB */
 }
 
@@ -1574,6 +1581,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .pb-tick { font-size: 12px; padding: 0 6px; }
   body.pb-bar-open #radar-scrub { bottom: 226px; } /* the taller wrapped bar needs more clearance */
   body.pb-bar-open #chat-fab { bottom: 226px; } /* the ≤768 178px lift still sits on the ~188px wrapped bar at phone width */
+  body.pb-bar-open .compass-ctl { bottom: 284px; }
 }
 
 /* ---- v0.86: header search + "?" glossary + first-run onboarding ---- */

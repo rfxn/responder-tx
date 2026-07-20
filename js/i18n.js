@@ -311,6 +311,8 @@
 
       'gps.wait': '⌖ acquiring GPS fix…',
       'map.recenter': 'Re-center on me',
+      'ctl.compass.title': 'North · the map is oriented north up',
+      'ctl.compass.aria': 'Compass, north up',
       'radar.play': 'Play / pause the radar timeline (observed past → model future)',
       'radar.scrub': 'Scrub the radar timeline: observed past → NOW → HRRR model future',
       'fcst.badge': 'FORECAST MODEL',
@@ -951,6 +953,8 @@
 
       'gps.wait': '⌖ obteniendo señal GPS…',
       'map.recenter': 'Centrar en mí',
+      'ctl.compass.title': 'Norte · el mapa está orientado al norte',
+      'ctl.compass.aria': 'Brújula, norte arriba',
       'radar.play': 'Reproducir / pausar la línea de tiempo del radar (pasado observado → futuro del modelo)',
       'radar.scrub': 'Recorra la línea de tiempo del radar: pasado observado → AHORA → futuro del modelo HRRR',
       'fcst.badge': 'MODELO DE PRONÓSTICO',

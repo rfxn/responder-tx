@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.29';
+const APP_VERSION = 'v0.97.30';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -15,6 +15,8 @@ const CONFIG = {
   refreshMs: 180000,
   // Drive Mode re-locates on this cadence so the nearest-hazards ranking never goes stale while driving
   driveLocateMs: 30000,
+  // zoom a deliberate locate (⌖ / re-center / follow engage) snaps to, if not already closer
+  locateZoom: 14,
   maxZoneGeomFetches: 12,
   sparkHours: 48,
   staleMins: 360,
@@ -87,6 +89,9 @@ const state = {
   locTimer: null,
   driveFixAt: 0,
   centerNextFix: false, // deliberate locates center once; periodic ticks never move the map
+  followMe: false, // nav-app follow: buttons engage it, a manual pan/zoom exits it
+  _progMove: false, // true during our own setView so a follow-driven move never self-exits follow
+  _progMoveT: null,
   lastSeen: 0,
   trendHist: {},
   knownEmergencyIds: new Set(),

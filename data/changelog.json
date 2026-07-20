@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.30",
+      "date": "2026-07-20",
+      "line": "Location tools leveled up. Tap Locate or Re-center on me and the map now follows you, staying centered as you move so you do not drift off-screen; pan or pinch-zoom yourself to stop following. Locate now zooms to the same closer level as Re-center. A new compass in the bottom-right corner shows which way is north."
+    },
+    {
       "v": "v0.97.29",
       "date": "2026-07-20",
       "line": "A logo tweak. The ResponderTX wordmark in the header is about 20 percent larger so the name reads more clearly; the Texas-shape part of the logo stays the same size. Light and dark both updated. Nothing else changed."

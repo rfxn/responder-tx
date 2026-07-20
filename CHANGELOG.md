@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.30 · 2026-07-20 (location follow mode, unified zoom, compass)
+
+-- New Features --
+- [New] tap Locate or "Re-center on me" to follow: the map now keeps you centered as
+      your position updates, so you no longer drift off-screen while moving; pan or
+      pinch-zoom the map yourself to stop following, in English and Spanish
+- [New] a compass in the bottom-right corner always shows which way is north; the map
+      is oriented north up, in English and Spanish
+
+-- Changes --
+- [Change] the Locate (⌖) button now zooms in to the same closer level as "Re-center
+           on me" so both deliberate locates give the same view
+- [Change] the "Re-center on me" pill now appears only after you move the map away
+           from your location, and hides again once the map is following you
+
 ## v0.97.29 · 2026-07-20 (logo: larger wordmark)
 
 -- Changes --

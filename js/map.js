@@ -256,6 +256,14 @@ function flyOpenPopup(latlng, zoom, marker) {
   })();
 }
 
+// our own recenters/follow ticks: flag the move so its zoomstart/dragstart never reads as a manual exit
+function progSetView(latlng, zoom) {
+  state._progMove = true;
+  clearTimeout(state._progMoveT);
+  state._progMoveT = setTimeout(() => { state._progMove = false; }, 700); // safety net if setView is a no-op and no moveend fires
+  state.map.setView(latlng, zoom == null ? state.map.getZoom() : zoom);
+}
+
 function initMap() {
   // autoPan clear of the AO chip / layer-pill band at the map top — popups otherwise clip against the container edge
   L.Popup.mergeOptions({ autoPanPaddingTopLeft: L.point(8, 120) });
@@ -464,9 +472,12 @@ function initMap() {
       a.href = '#'; a.title = 'My location'; a.textContent = '⌖';
       L.DomEvent.on(a, 'click', (e) => {
         L.DomEvent.stop(e);
-        state.centerNextFix = true; // an explicit locate may recenter once
+        state.centerNextFix = true; // an explicit locate recenters once
+        state.followMe = true; // and engages nav-app follow until the user pans away
         gpsWait(true);
+        if (state.myPos) progSetView(state.myPos, Math.max(map.getZoom(), CONFIG.locateZoom)); // instant feedback from the last fix
         map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+        updateRecenterBtn();
       });
       return bar;
     },
@@ -500,6 +511,11 @@ function initMap() {
     return div;
   };
   shareCtl.addTo(state.map);
+  // bottom-right north indicator: map is north up, so the rose points up; tap is a no-op reset-to-north until rotation exists
+  const compass = L.DomUtil.create('div', 'leaflet-bar compass-ctl', state.map.getContainer());
+  compass.innerHTML = `<a href="#" role="button" title="${esc(t('ctl.compass.title'))}" aria-label="${esc(t('ctl.compass.aria'))}" data-i18n-title="ctl.compass.title" data-i18n-aria="ctl.compass.aria">${CTL_ICON_COMPASS}</a>`;
+  L.DomEvent.disableClickPropagation(compass);
+  L.DomEvent.on(compass.firstChild, 'click', (e) => L.DomEvent.stop(e)); // north-up: nothing to reset yet
   initAoJump();
   initLayerPills();
   initLayerSheet();
@@ -519,8 +535,9 @@ function initMap() {
         title: 'Your location', zIndexOffset: 2000, interactive: false,
       }),
     ]).addTo(state.map);
-    // only a deliberate locate recenters; periodic ticks update the marker in place, never move the map
-    if (state.centerNextFix) { state.centerNextFix = false; state.map.setView(e.latlng, Math.max(state.map.getZoom(), 12)); }
+    // deliberate locate snaps to locateZoom once; while following we track the fix at the current zoom; otherwise the marker updates in place
+    if (state.centerNextFix) { state.centerNextFix = false; progSetView(e.latlng, Math.max(state.map.getZoom(), CONFIG.locateZoom)); }
+    else if (state.followMe) { progSetView(e.latlng); }
     renderRequests();
     renderDriveMode(); // re-rank the glance list by the new fix
     startLocTrack(); // opt-in tracker begins once the first fix lands; runs in the app and Drive Mode alike
@@ -535,31 +552,40 @@ function initMap() {
     L.DomEvent.disableClickPropagation(recenterBtn);
     recenterBtn.addEventListener('click', () => {
       state.centerNextFix = true; // deliberate: recenter on the freshest fix
-      if (state.myPos) state.map.setView(state.myPos, Math.max(state.map.getZoom(), 14)); // instant feedback from the last fix
+      state.followMe = true; // and re-engage follow, hiding this button
+      if (state.myPos) progSetView(state.myPos, Math.max(state.map.getZoom(), CONFIG.locateZoom)); // instant feedback from the last fix
       gpsWait(true);
       state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+      updateRecenterBtn();
     });
   }
-  state.map.on('moveend zoomend', updateRecenterBtn); // the button doubles as an off-screen affordance
+  // a real user pan/zoom exits follow; our own progSetView is flagged so it never self-exits
+  const exitFollow = () => { if (state._progMove || !state.followMe) return; state.followMe = false; updateRecenterBtn(); };
+  state.map.on('dragstart', exitFollow); // fires only on genuine user drags
+  state.map.on('zoomstart', exitFollow); // fires on user pinch/scroll/dblclick too, hence the _progMove guard
+  state.map.on('moveend', () => { state._progMove = false; }); // clear the guard once our move settles
+  state.map.on('moveend zoomend', updateRecenterBtn); // keep the pill's off-screen cue in sync
 
   const declutter = () => state.map.getContainer().classList.toggle('z-low', state.map.getZoom() < 9);
   state.map.on('zoomend', declutter);
   declutter();
 }
 
-// re-center control: shown once tracking is active, emphasized when the marker is off-screen
+// re-center control: shown only when a fix exists and the user has moved off follow; hidden while following
 function updateRecenterBtn() {
   const btn = $('#recenter-btn');
   if (!btn) return;
-  if (!state.myPos) { btn.hidden = true; return; }
+  if (!state.myPos || state.followMe) { btn.hidden = true; return; }
   btn.hidden = false;
-  btn.classList.toggle('off-screen', !state.map.getBounds().contains(state.myPos));
+  btn.classList.toggle('off-screen', !state.map.getBounds().contains(state.myPos)); // extra emphasis once the marker leaves view
 }
 
 /* ---------- map-control icons — stroke SVGs inherit the themed .leaflet-bar color ---------- */
 
 const CTL_ICON_LAYERS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>';
 const CTL_ICON_LINK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+// north-up compass rose: red north needle, muted south needle, "N" tick; the map is always north up
+const CTL_ICON_COMPASS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="13" r="8.4" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.5"/><polygon points="12 6 9.2 15 12 13.1 14.8 15" fill="#e5484d"/><polygon points="12 20 9.2 15 12 16.9 14.8 15" fill="currentColor" opacity="0.5"/><text x="12" y="4.6" text-anchor="middle" font-size="5.5" font-weight="700" fill="currentColor">N</text></svg>';
 
 /* ---------- AO quick-jump — pills along the map top edge, never another stacked box ---------- */
 

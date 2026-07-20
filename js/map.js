@@ -361,6 +361,8 @@ function initMap() {
   state.layers.crossings = L.layerGroup().addTo(state.map);
   // TDEM DriveTexas live road conditions — flood-relevant subset only, first-class toggle (owner request), on by default
   state.layers.roadClosures = L.layerGroup().addTo(state.map);
+  // recently-reopened roads (recovery ✓) — OFF by default, explicit opt-in nested under road closures; flood-scoped
+  state.layers.roadReopen = L.layerGroup();
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
   state.layers.lwc = L.layerGroup();
   // road & river cameras — OFF by default, lazy-loaded, clustered (~650 markers); plain group if the plugin failed
@@ -387,6 +389,7 @@ function initMap() {
     'Shelters': state.layers.shelters,
     'Low-water crossings': state.layers.crossings,
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
+    'Road reopenings (recovering)': state.layers.roadReopen,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
     'Cameras: road & river (TxDOT/USGS)': state.layers.cameras,
   }, { collapsed: true }).addTo(state.map);
@@ -585,6 +588,7 @@ const PILL_LAYERS = [
   ['lsrsAged', 'layers.lsrhist'],
   ['lwc', 'layers.lwc'],
   ['cameras', 'layers.cams'],
+  ['roadReopen', 'layers.reopen'],
 ];
 
 function renderLayerPills() {
@@ -618,7 +622,7 @@ function initLayerPills() {
    Rows toggle via map.addLayer/removeLayer on control-registered layers, so the map still fires
    overlayadd/overlayremove — pills, MRMS legend, radar scrub, and camera/LWC lazy-loads keep working. */
 
-// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault]
+// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?]
 const SHEET_GROUPS = [
   ['sheet.g.base', [
     ['labelBoost', '🔤', 'layers.labels', 'sheet.s.labels', null, true],
@@ -638,6 +642,7 @@ const SHEET_GROUPS = [
   ]],
   ['sheet.g.roads', [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],
+    ['roadReopen', '<span class="reopen-icon">✓</span>', 'layers.reopen', 'sheet.s.reopen', 'official', false, true],
     ['cameras', '📷', 'layers.cams', 'sheet.s.cams', null, false],
   ]],
   ['sheet.g.reports', [
@@ -670,11 +675,11 @@ function renderLayerSheet() {
   for (const [gKey, rows] of SHEET_GROUPS) {
     html += `<div class="ls-group">${esc(t(gKey))}</div>`;
     if (gKey === 'sheet.g.base') html += seg;
-    for (const [k, icon, nameKey, subKey, badge] of rows) {
+    for (const [k, icon, nameKey, subKey, badge, , child] of rows) {
       const lyr = state.layers[k];
       if (!lyr) continue;
       const on = state.map.hasLayer(lyr);
-      html += `<button class="ls-row${on ? ' on' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
+      html += `<button class="ls-row${on ? ' on' : ''}${child ? ' ls-child' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
         `<span class="ls-icon">${icon}</span>` +
         `<span class="ls-txt"><span class="ls-name">${esc(t(nameKey))}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +
         `<span class="ls-sub">${esc(t(subKey))}</span></span>` +
@@ -1480,6 +1485,7 @@ function pbBuildStory() {
   }
   try {
     for (const r of Object.values(roadMemory().reopened)) {
+      if (!reopenIsFlood(r)) continue;
       const rt = new Date(r.reopenedAt).getTime();
       if (!(rt >= pb.loT && rt <= pb.hiT)) continue;
       ev.push({ t: rt, iso: r.reopenedAt, pri: 3, text: t('playback.story.reopen').replace('{road}', prettyRoute(r.route_name) || 'road') });

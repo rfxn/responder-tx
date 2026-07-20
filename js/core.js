@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.11';
+const APP_VERSION = 'v0.97.12';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -51,6 +51,8 @@ const CONFIG = {
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
 const LSR_FLOOD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE/i;
+// flood-relatedness of a road closure from its description; condition==='Flooding' is handled separately
+const FLOOD_ROAD_RE = /flood|high\s*water|water\s*over|low\s*water|washed?\s*out|overtopp|inundat|swept/i;
 const ROAD_RE = /\b(?:FM|RM|RR|CR|SH|US|IH?|LOOP|HWY)[-\s]?\d+\b/gi;
 
 const FLOOD_CATS = ['action', 'minor', 'moderate', 'major'];

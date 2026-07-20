@@ -70,7 +70,7 @@ class Handler(SimpleHTTPRequestHandler):
         if m:
             self._gauge_proxy(m.group(1).upper(), m.group(2))
             return
-        path = self.path.split('?', 1)[0]
+        path = self.path.split('?', 1)[0].split('#', 1)[0]  # strip BOTH — translate_path drops query AND fragment
         m = CAM_RE.match(path)
         if m:
             self._cam_proxy(m.group(1), urllib.parse.unquote(m.group(2)))
@@ -121,7 +121,7 @@ class Handler(SimpleHTTPRequestHandler):
     # TxDOT ITS: upstream JSON carries a base64 JPEG; serve the raw image with the
     # capture stamp so the viewer never needs CORS
     def _cam_its(self, district, icd):
-        if not CAM_ICD_RE.match(icd):
+        if not CAM_ICD_RE.fullmatch(icd):  # fullmatch, not match — $ allows a trailing newline, fullmatch does not
             self.send_error(400)
             return
         key = district + '/' + icd
@@ -153,7 +153,7 @@ class Handler(SimpleHTTPRequestHandler):
     # HTTP Last-Modified date into the capture stamp. Fixed host per key — never an open proxy.
     def _cam_bytes(self, source, cid):
         id_re, tmpl = CAM_BYTES_SOURCES[source]
-        if not id_re.match(cid):
+        if not id_re.fullmatch(cid):  # fullmatch: reject a trailing newline (cid then can't inject a bad URL)
             self.send_error(400)
             return
         key = source + '/' + cid

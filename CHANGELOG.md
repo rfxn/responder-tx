@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.36 · 2026-07-20 (camera layers grouped into collapsible sub-sections)
+
+-- New Features --
+- [New] the Cameras section in the layer panel is now split into three collapsible
+      groups, Flood / low-water first, then Traffic, then Border, so the seven camera
+      sources are organized by purpose instead of one long flat list
+
+-- Changes --
+- [Change] the camera groups start collapsed and open with one tap, so the long list of
+           seven camera sources no longer fills the layer panel; a group opens on its
+           own whenever a camera in it is already on, so a shared link or active camera
+           is never hidden, and each open group shows how many of its cameras are on
+
 ## v0.97.35 · 2026-07-20 (Monitor and Resources tabs re-sliced by intent)
 
 -- New Features --

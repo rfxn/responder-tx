@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.36",
+      "date": "2026-07-20",
+      "line": "The camera layers are now organized into a Cameras section with three collapsible groups: Flood / low-water first, then Traffic, then Border. The long flat list of seven camera sources no longer fills the layer panel. Each group starts collapsed and opens with one tap, and a group opens on its own whenever a camera in it is already on, so a shared link or active camera is never hidden. Each open group also shows how many of its cameras are on."
+    },
+    {
       "v": "v0.97.35",
       "date": "2026-07-20",
       "line": "The tab that was called Social is now called Monitor, because that is what it is for: live searches, scanners, and now road and low-water crossing status to check before you route. Resources is now a clean help directory of shelters, hotlines, trusted data, and subscribe links. Each of the two tabs has a short line under its title explaining what it is for, in English and Spanish, and any link or saved view you already shared still opens the same tab."

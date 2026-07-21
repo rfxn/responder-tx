@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.35';
+const APP_VERSION = 'v0.97.36';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -111,6 +111,7 @@ const state = {
   gaugeGroup: 'priority',
   inView: false,
   camGen: 0,
+  lsCamOpen: new Set(), // camera sub-groups expanded this session (ephemeral, not persisted)
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };

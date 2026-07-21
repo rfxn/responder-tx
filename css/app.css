@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.35') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.36') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.35') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.36') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.35') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.36') format('woff2');
 }
 
 :root {
@@ -1721,6 +1721,17 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .ls-row:disabled, .ls-base-btn:disabled, .ls-reset:disabled { opacity: 0.45; cursor: default; }
 /* nested child row (reopenings under road closures) — indent + a subtle left connector to read as nested */
 .ls-child { margin-left: 22px; width: calc(100% - 22px); border-left: 2px solid var(--accent); }
+.ls-subhead {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  min-height: 34px; padding: 4px 8px; margin-top: 6px;
+  background: transparent; border: 0; color: var(--ink-muted);
+  font-size: 12px; font-weight: 700; touch-action: manipulation;
+}
+.ls-sub-caret { display: inline-block; transition: transform 0.15s; }
+.ls-subhead[aria-expanded="true"] .ls-sub-caret { transform: rotate(90deg); }
+.ls-sub-name { letter-spacing: 0.03em; }
+.ls-sub-count { margin-left: auto; font-weight: 600; color: var(--accent); }
+.ls-subrows[hidden] { display: none; }
 .ls-icon { flex: 0 0 24px; text-align: center; font-size: 15px; line-height: 1; }
 .ls-icon .gauge-icon { width: 13px; height: 13px; display: inline-block; }
 .ls-icon .fcst-ring { width: 12px; height: 12px; display: inline-block; }

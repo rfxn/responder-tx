@@ -703,7 +703,7 @@ function initLayerPills() {
    Rows toggle via map.addLayer/removeLayer on control-registered layers, so the map still fires
    overlayadd/overlayremove — pills, MRMS legend, radar scrub, and camera/LWC lazy-loads keep working. */
 
-// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?]
+// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?, camSub?]
 const SHEET_GROUPS = [
   ['sheet.g.base', [
     ['labelBoost', '🔤', 'layers.labels', 'sheet.s.labels', null, true],
@@ -726,13 +726,13 @@ const SHEET_GROUPS = [
     ['roadReopen', '<span class="reopen-icon">✓</span>', 'layers.reopen', 'sheet.s.reopen', 'official', false, true],
   ]],
   ['sheet.g.cameras', [
-    ['camsTxdot', '📷', 'layers.cams.txdot', 'sheet.s.cams.txdot', 'official', false],
-    ['camsRiver', '📷', 'layers.cams.river', 'sheet.s.cams.river', 'official', false],
-    ['camsAustin', '📷', 'layers.cams.austin', 'sheet.s.cams.austin', 'official', false],
-    ['camsFlood', '📷', 'layers.cams.flood', 'sheet.s.cams.flood', 'official', false],
-    ['camsHouston', '📷', 'layers.cams.houston', 'sheet.s.cams.houston', 'official', false],
-    ['camsArlington', '📷', 'layers.cams.arlington', 'sheet.s.cams.arlington', 'official', false],
-    ['camsElpBridge', '📷', 'layers.cams.elpbridge', 'sheet.s.cams.elpbridge', 'official', false],
+    ['camsFlood', '📷', 'layers.cams.flood', 'sheet.s.cams.flood', 'official', false, true, 'flood'],
+    ['camsRiver', '📷', 'layers.cams.river', 'sheet.s.cams.river', 'official', false, true, 'flood'],
+    ['camsTxdot', '📷', 'layers.cams.txdot', 'sheet.s.cams.txdot', 'official', false, true, 'traffic'],
+    ['camsHouston', '📷', 'layers.cams.houston', 'sheet.s.cams.houston', 'official', false, true, 'traffic'],
+    ['camsAustin', '📷', 'layers.cams.austin', 'sheet.s.cams.austin', 'official', false, true, 'traffic'],
+    ['camsArlington', '📷', 'layers.cams.arlington', 'sheet.s.cams.arlington', 'official', false, true, 'traffic'],
+    ['camsElpBridge', '📷', 'layers.cams.elpbridge', 'sheet.s.cams.elpbridge', 'official', false, true, 'border'],
   ]],
   ['sheet.g.reports', [
     ['alerts', '⚠️', 'layers.alerts', 'sheet.s.alerts', 'official', true],
@@ -743,9 +743,49 @@ const SHEET_GROUPS = [
   ]],
 ];
 
+// camera sub-groups (flood-first): each source row carries its sub key in tuple[7]
+const CAM_SUBGROUPS = [
+  ['flood', 'sheet.g.cams.flood'],
+  ['traffic', 'sheet.g.cams.traffic'],
+  ['border', 'sheet.g.cams.border'],
+];
+
 function layerSheetIsOpen() {
   const el = document.getElementById('layer-sheet');
   return !!el && !el.hidden;
+}
+
+// one toggle row; identical markup for flat groups and the indented camera children (child flag adds .ls-child)
+function lsRowHtml(row, dis) {
+  const [k, icon, nameKey, subKey, badge, , child] = row;
+  const lyr = state.layers[k];
+  if (!lyr) return '';
+  const on = state.map.hasLayer(lyr);
+  return `<button class="ls-row${on ? ' on' : ''}${child ? ' ls-child' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
+    `<span class="ls-icon">${icon}</span>` +
+    `<span class="ls-txt"><span class="ls-name">${esc(t(nameKey))}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +
+    `<span class="ls-sub">${esc(t(subKey))}</span></span>` +
+    '<span class="ls-knob" aria-hidden="true"></span></button>';
+}
+
+// cameras region: disclosure sub-headers per CAM_SUBGROUPS; a group renders open if opened OR any child is ON
+function camSubgroupsHtml(rows, dis) {
+  let out = '';
+  for (const [sub, nameKey] of CAM_SUBGROUPS) {
+    const kids = rows.filter((r) => r[7] === sub);
+    if (!kids.length) continue;
+    const onCount = kids.filter((r) => state.layers[r[0]] && state.map.hasLayer(state.layers[r[0]])).length;
+    const open = state.lsCamOpen.has(sub) || onCount > 0;
+    out += `<button class="ls-subhead" data-sub="${sub}" aria-expanded="${open}">` +
+      '<span class="ls-sub-caret" aria-hidden="true">▸</span>' +
+      `<span class="ls-sub-name">${esc(t(nameKey))}</span>` +
+      (onCount ? `<span class="ls-sub-count">${esc(t('sheet.cams.non').replace('{n}', onCount))}</span>` : '') +
+      '</button>' +
+      `<div class="ls-subrows" data-sub="${sub}"${open ? '' : ' hidden'}>` +
+      kids.map((r) => lsRowHtml(r, dis)).join('') +
+      '</div>';
+  }
+  return out;
 }
 
 function renderLayerSheet() {
@@ -764,16 +804,8 @@ function renderLayerSheet() {
   for (const [gKey, rows] of SHEET_GROUPS) {
     html += `<div class="ls-group">${esc(t(gKey))}</div>`;
     if (gKey === 'sheet.g.base') html += seg;
-    for (const [k, icon, nameKey, subKey, badge, , child] of rows) {
-      const lyr = state.layers[k];
-      if (!lyr) continue;
-      const on = state.map.hasLayer(lyr);
-      html += `<button class="ls-row${on ? ' on' : ''}${child ? ' ls-child' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
-        `<span class="ls-icon">${icon}</span>` +
-        `<span class="ls-txt"><span class="ls-name">${esc(t(nameKey))}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +
-        `<span class="ls-sub">${esc(t(subKey))}</span></span>` +
-        '<span class="ls-knob" aria-hidden="true"></span></button>';
-    }
+    if (gKey === 'sheet.g.cameras') { html += camSubgroupsHtml(rows, dis); continue; }
+    for (const row of rows) html += lsRowHtml(row, dis);
   }
   html += `<div class="ls-group">${esc(t('sheet.g.history'))}</div>` +
     `<button class="ls-row ls-pbrow" data-act="playback"${dis}><span class="ls-icon">⏮</span>` +
@@ -815,6 +847,14 @@ function onLayerSheetClick(e) {
     return;
   }
   if (e.target.closest('.ls-reset')) { layerSheetReset(); return; }
+  const sub = e.target.closest('.ls-subhead');
+  if (sub) {
+    const key = sub.dataset.sub;
+    if (state.lsCamOpen.has(key)) state.lsCamOpen.delete(key);
+    else state.lsCamOpen.add(key);
+    renderLayerSheet();
+    return;
+  }
   const row = e.target.closest('.ls-row');
   if (!row) return;
   if (row.dataset.act === 'playback') { closeLayerSheet(); openPlayback(); return; }
@@ -839,6 +879,7 @@ function layerSheetReset() {
     Object.values(state.baseLayers).forEach((l) => state.map.removeLayer(l));
     state.baseLayers.streets.addTo(state.map);
   }
+  state.lsCamOpen.clear(); // reset returns the camera sub-groups to all-collapsed
   state.map.fitBounds(AO_PRESETS[0][1]);
   renderLayerSheet();
 }

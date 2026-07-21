@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.37",
+      "date": "2026-07-20",
+      "line": "The bottom-center re-center button is gone. The locate button still centers on you and turns following back on when you tap it, and now a small hint slides out next to it the moment you pan off follow, flashes a few times to point you back to that button, then tucks away on its own. The YOU marker also pulses just a few times each time you tap locate or re-center, then settles into a steady dot instead of pulsing the whole time; live tracking keeps it moving without starting the pulse over."
+    },
+    {
       "v": "v0.97.36",
       "date": "2026-07-20",
       "line": "The camera layers are now organized into a Cameras section with three collapsible groups: Flood / low-water first, then Traffic, then Border. The long flat list of seven camera sources no longer fills the layer panel. Each group starts collapsed and opens with one tap, and a group opens on its own whenever a camera in it is already on, so a shared link or active camera is never hidden. Each open group also shows how many of its cameras are on."

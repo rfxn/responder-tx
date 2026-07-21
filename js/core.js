@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.36';
+const APP_VERSION = 'v0.97.37';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -86,6 +86,11 @@ const state = {
   sort: 'smart',
   myPos: null,
   posLayer: null,
+  posMarker: null, // persistent YOU marker; watch fixes move it in place, deliberate locates re-trigger its finite pulse
+  posAccuracy: null, // persistent accuracy circle; moved in place on every fix
+  recenterDrawer: null, // transient re-center hint anchored beside the ⌖ button
+  recenterHintOn: false, // guard: one hint flash per manual exit-from-follow, never a loop
+  recenterHintT: null,
   locWatch: false, // true while one continuous geolocation watch is registered (nav-app follow feed)
   driveFixAt: 0,
   driveRankAt: 0, // last heavy re-rank; the marker + glide still update on every fix

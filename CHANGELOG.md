@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.37 · 2026-07-20 (re-center hint drawer + pulse-then-settle location marker)
+
+-- Changes --
+- [Change] the bottom-center re-center pill is gone; the locate button still re-centers
+           and re-engages follow when tapped, and a small hint now slides out beside it
+           the moment you pan off follow, flashes a few times to point you back to that
+           button, then retracts on its own
+- [Change] the YOU location marker now pulses just a few times each time you tap locate
+           or re-center, then settles into a static dot instead of pulsing forever; live
+           tracking keeps moving the marker without restarting the pulse
+
 ## v0.97.36 · 2026-07-20 (camera layers grouped into collapsible sub-sections)
 
 -- New Features --

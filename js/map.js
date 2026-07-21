@@ -476,15 +476,15 @@ function initMap() {
       const bar = L.Control.Zoom.prototype.onAdd.call(this, map);
       const a = L.DomUtil.create('a', 'locate-btn', bar);
       a.href = '#'; a.title = 'My location'; a.textContent = '⌖';
-      L.DomEvent.on(a, 'click', (e) => {
-        L.DomEvent.stop(e);
-        state.centerNextFix = true; // an explicit locate recenters once
-        state.followMe = true; // and engages nav-app follow until the user pans away
-        gpsWait(true);
-        if (state.myPos) progSetView(state.myPos, Math.max(map.getZoom(), CONFIG.locateZoom)); // instant feedback from the last fix
-        map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
-        updateRecenterBtn();
-      });
+      // transient re-center hint drawer, anchored to the right of ⌖; tapping it re-centers like ⌖ itself
+      const drawer = L.DomUtil.create('span', 'recenter-drawer', a);
+      drawer.setAttribute('role', 'button');
+      drawer.setAttribute('data-i18n', 'map.recenter');
+      drawer.textContent = t('map.recenter');
+      drawer.hidden = true;
+      L.DomEvent.on(drawer, 'click', (e) => { L.DomEvent.stop(e); recenterAndFollow(); });
+      state.recenterDrawer = drawer;
+      L.DomEvent.on(a, 'click', (e) => { L.DomEvent.stop(e); recenterAndFollow(); });
       return bar;
     },
   });
@@ -527,20 +527,18 @@ function initMap() {
   initLayerSheet();
   state.map.on('locationfound', (e) => {
     gpsWait(false);
+    const deliberate = state.centerNextFix; // an explicit locate/recenter; watch ticks never set this
     state.myPos = e.latlng;
     state.driveFixAt = Date.now();
-    if (state.posLayer) state.map.removeLayer(state.posLayer);
-    state.posLayer = L.layerGroup([
-      L.circle(e.latlng, { radius: e.accuracy, weight: 1, color: cssVar('--accent') || '#3987e5', fillOpacity: 0.08 }),
-      L.marker(e.latlng, {
-        icon: L.divIcon({
-          className: '',
-          html: '<div class="my-pos-wrap"><div class="my-pos-ring"></div><div class="my-pos-ring d2"></div><div class="my-pos-core"></div><div class="my-pos-label">YOU</div></div>',
-          iconSize: [48, 48], iconAnchor: [24, 24],
-        }),
-        title: 'Your location', zIndexOffset: 2000, interactive: false,
-      }),
-    ]).addTo(state.map);
+    if (!state.posLayer) {
+      state.posAccuracy = L.circle(e.latlng, { radius: e.accuracy, weight: 1, color: cssVar('--accent') || '#3987e5', fillOpacity: 0.08 });
+      state.posMarker = L.marker(e.latlng, { icon: youIcon(), title: 'Your location', zIndexOffset: 2000, interactive: false });
+      state.posLayer = L.layerGroup([state.posAccuracy, state.posMarker]).addTo(state.map);
+    } else {
+      state.posAccuracy.setLatLng(e.latlng); state.posAccuracy.setRadius(e.accuracy);
+      state.posMarker.setLatLng(e.latlng); // watch fixes move the marker in place without restarting its pulse
+      if (deliberate) state.posMarker.setIcon(youIcon()); // fresh icon element restarts the finite pulse
+    }
     // deliberate locate snaps to locateZoom once; while following we track the fix at the current zoom; otherwise the marker updates in place
     if (state.centerNextFix) { state.centerNextFix = false; progSetView(e.latlng, Math.max(state.map.getZoom(), CONFIG.locateZoom)); }
     else if (state.followMe) { progSetView(e.latlng, null, true); } // glide to the fix instead of snapping
@@ -552,44 +550,64 @@ function initMap() {
       renderDriveMode(); // re-rank the glance list by the new fix
     }
     startLocTrack(); // opt-in tracker begins once the first fix lands; runs in the app and Drive Mode alike
-    updateRecenterBtn();
   });
   state.map.on('locationerror', () => {
     gpsWait(false);
     $('#refresh-note').textContent = 'location unavailable (permission or no GPS)';
   });
-  const recenterBtn = $('#recenter-btn');
-  if (recenterBtn) {
-    L.DomEvent.disableClickPropagation(recenterBtn);
-    recenterBtn.addEventListener('click', () => {
-      state.centerNextFix = true; // deliberate: recenter on the freshest fix
-      state.followMe = true; // and re-engage follow, hiding this button
-      if (state.myPos) progSetView(state.myPos, Math.max(state.map.getZoom(), CONFIG.locateZoom)); // instant feedback from the last fix
-      gpsWait(true);
-      state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
-      updateRecenterBtn();
-    });
-  }
   // dragstart fires ONLY on a genuine pointer drag (programmatic panTo never fires it), so exit follow
   // unconditionally; this is what lets the user grab the map mid-glide now that a glide is almost always in flight
-  state.map.on('dragstart', () => { if (state.followMe) { state.followMe = false; updateRecenterBtn(); } });
+  state.map.on('dragstart', () => { if (state.followMe) { state.followMe = false; flashRecenterHint(); } });
   // zoom (user pinch/scroll/dblclick) also exits, but our own setView-with-zoom fires zoomstart, hence the _progMove guard
-  state.map.on('zoomstart', () => { if (state._progMove || !state.followMe) return; state.followMe = false; updateRecenterBtn(); });
+  state.map.on('zoomstart', () => { if (state._progMove || !state.followMe) return; state.followMe = false; flashRecenterHint(); });
   state.map.on('moveend', () => { state._progMove = false; }); // clear the guard once our move settles
-  state.map.on('moveend zoomend', updateRecenterBtn); // keep the pill's off-screen cue in sync
 
   const declutter = () => state.map.getContainer().classList.toggle('z-low', state.map.getZoom() < 9);
   state.map.on('zoomend', declutter);
   declutter();
 }
 
-// re-center control: shown only when a fix exists and the user has moved off follow; hidden while following
-function updateRecenterBtn() {
-  const btn = $('#recenter-btn');
-  if (!btn) return;
-  if (!state.myPos || state.followMe) { btn.hidden = true; return; }
-  btn.hidden = false;
-  btn.classList.toggle('off-screen', !state.map.getBounds().contains(state.myPos)); // extra emphasis once the marker leaves view
+// YOU marker: rings run a finite pulse (CSS iteration-count) then settle static; rebuilding the icon restarts it
+function youIcon() {
+  return L.divIcon({
+    className: '',
+    html: '<div class="my-pos-wrap"><div class="my-pos-ring"></div><div class="my-pos-ring d2"></div><div class="my-pos-core"></div><div class="my-pos-label">YOU</div></div>',
+    iconSize: [48, 48], iconAnchor: [24, 24],
+  });
+}
+
+// deliberate re-center: recenter on the freshest fix and re-engage nav-app follow (shared by ⌖ and the hint drawer)
+function recenterAndFollow() {
+  state.centerNextFix = true;
+  state.followMe = true;
+  if (window.gpsWait) window.gpsWait(true);
+  if (state.myPos) progSetView(state.myPos, Math.max(state.map.getZoom(), CONFIG.locateZoom)); // instant feedback from the last fix
+  state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+  retractRecenterHint(); // following again → hide any showing hint
+}
+
+// transient hint: slide the drawer out beside ⌖, flash a few times, then retract; one shot per manual exit-from-follow
+function flashRecenterHint() {
+  const d = state.recenterDrawer;
+  if (!d || !state.myPos || state.followMe || state.recenterHintOn) return;
+  state.recenterHintOn = true;
+  d.hidden = false;
+  void d.offsetWidth; // reflow in the collapsed state so the slide-out transition runs
+  d.classList.add('open');
+  clearTimeout(state.recenterHintT);
+  state.recenterHintT = setTimeout(retractRecenterHint, 2600); // slide-out + 3 flashes, then retract
+}
+
+function retractRecenterHint() {
+  const d = state.recenterDrawer;
+  if (!d) return;
+  clearTimeout(state.recenterHintT);
+  state.recenterHintOn = false;
+  if (!d.classList.contains('open')) { d.hidden = true; return; }
+  d.classList.remove('open');
+  const hide = () => { d.hidden = true; d.removeEventListener('transitionend', hide); };
+  d.addEventListener('transitionend', hide);
+  setTimeout(() => { if (!d.classList.contains('open')) d.hidden = true; }, 400); // fallback if transitionend never fires
 }
 
 /* ---------- map-control icons — stroke SVGs inherit the themed .leaflet-bar color ---------- */

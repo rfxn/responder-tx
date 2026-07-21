@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.40",
+      "date": "2026-07-21",
+      "line": "Internal cleanup only. We removed some dead code and out-of-date notes in the source and merged a few duplicated pieces of logic into shared helpers. Nothing about how the board looks or works has changed."
+    },
+    {
       "v": "v0.97.39",
       "date": "2026-07-21",
       "line": "Team members no longer vanish when their phone screen locks or they switch apps. Sharing simply pauses, their last position stays on the command map, and it resumes on its own when they come back, instead of the whole team losing them the moment the screen goes dark. The 911 do-not-self-deploy safety notice is now firmer too: it closes only when you tap the acknowledgment button, not on Escape or a stray tap. Behind the scenes, the local command oversight view is now limited to devices on your own network and its access token is no longer accepted from a web link, so it cannot leak."

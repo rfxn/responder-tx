@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.40 · 2026-07-21 (Internal cleanup: dead code, stale comments, deduped helpers)
+
+-- Changes --
+- [Change] internal cleanup with no change to how the board works: removed a dead HTML id
+           and an unused print-only CSS selector, fixed stale source comments that named a
+           loader file that no longer exists, and folded three identical camera-still
+           loaders, two identical filter-control helpers, and a duplicated camera-cache
+           sweep into shared helpers
+
 ## v0.97.39 · 2026-07-21 (Backgrounded members stay visible, safety gate and admin hardening)
 
 -- Bug Fixes --

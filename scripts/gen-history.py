@@ -4,7 +4,7 @@
 Walks the committed history of data/gauges-snapshot.json (one snapshot every
 ~15 min for the life of the event) and emits one compact frame per snapshot:
 observed stage + flood category per gauge, thinned to at most one frame per
-15 minutes. Drives the v0.82 historical-playback timeline. Run at release
+15 minutes. Drives the historical-playback timeline. Run at release
 time like gen-crest-summary.py. Honest by construction: gauges whose category
 the live board hides (out_of_service / obs_not_current / not_defined) are
 omitted, stale observations (>12h behind the snapshot) are flagged via a

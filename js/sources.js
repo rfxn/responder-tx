@@ -1039,17 +1039,17 @@ function openCamViewer(c, kind) {
     // City of Austin still: fresh JPEG via the same-origin /api/cam/austin proxy (no CORS upstream)
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.austin.note'))} · ${esc(CAM_ATTRIB_AUSTIN)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadAustinSnapshot(c, stage, meta, false, gen);
+    loadCityStill(c, stage, meta, false, gen, 'austin');
   } else if (kind === 'houston') {
     // Houston TranStar still: fresh JPEG via the same-origin /api/cam/houston proxy (no CORS upstream)
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.houston.note'))} · ${esc(CAM_ATTRIB_HOUSTON)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadHoustonSnapshot(c, stage, meta, false, gen);
+    loadCityStill(c, stage, meta, false, gen, 'houston');
   } else if (kind === 'arlington') {
     // City of Arlington still: fresh JPEG via the same-origin /api/cam/arlington proxy (no CORS upstream)
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.arlington.note'))} · ${esc(CAM_ATTRIB_ARLINGTON)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadArlingtonSnapshot(c, stage, meta, false, gen);
+    loadCityStill(c, stage, meta, false, gen, 'arlington');
   } else if (kind === 'atxfloods') {
     // ATX Floods low-water-crossing cam: newest image resolved live (CORS-open), loaded direct
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.atx.note'))} · ${esc(CAM_ATTRIB_ATX)}`;
@@ -1154,27 +1154,13 @@ function loadItsSnapshot(c, stage, meta, bust, gen) {
   });
 }
 
-function loadAustinSnapshot(c, stage, meta, bust, gen) {
+// direct-JPEG city stills (austin/houston/arlington) proxied same-origin; net is both the
+// /api/cam path segment and the camTitle kind
+function loadCityStill(c, stage, meta, bust, gen, net) {
   loadProxyStill(stage, meta, bust, gen, {
-    url: (b) => `api/cam/austin/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
+    url: (b) => `api/cam/${net}/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
     parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
-    alt: camTitle(c, 'austin'),
-  });
-}
-
-function loadHoustonSnapshot(c, stage, meta, bust, gen) {
-  loadProxyStill(stage, meta, bust, gen, {
-    url: (b) => `api/cam/houston/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
-    parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
-    alt: camTitle(c, 'houston'),
-  });
-}
-
-function loadArlingtonSnapshot(c, stage, meta, bust, gen) {
-  loadProxyStill(stage, meta, bust, gen, {
-    url: (b) => `api/cam/arlington/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
-    parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
-    alt: camTitle(c, 'arlington'),
+    alt: camTitle(c, net),
   });
 }
 

@@ -104,7 +104,7 @@ async function checkAppVersion() {
   } catch { /* offline — no update signal */ }
 }
 
-/* ---------- graceful update rollover (v0.87) — capture view, wait for idle, reload, restore ---------- */
+/* ---------- graceful update rollover — capture view, wait for idle, reload, restore ---------- */
 
 const ROLL_STATE_KEY = 'respondertx.rollView';
 const ROLL_DONE_KEY = 'respondertx.rolledTo';
@@ -193,7 +193,7 @@ function tickCountdown() {
   updateDriveFreshness(); // "last fix Xs ago" ticks even before the first data refresh is scheduled
   if (!state.refreshAt) return;
   const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
-  // countdown lives in the tooltip since v0.88.1 — the visible stamp stays slim; the data-age bar owns staleness
+  // countdown lives in the tooltip — the visible stamp stays slim; the data-age bar owns staleness
   $('#refresh-note').title = `next refresh in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   renderDataAgeBar();
 }
@@ -490,7 +490,7 @@ async function boot() {
   const rollBlob = consumeRolloverState(); // before any location.search read — may re-install the captured view params
   // whitelist both theme sources — an invalid value would wedge boot inside applyTheme's baseLayers lookup
   const themeOk = (v) => v === 'dark' || v === 'light';
-  // light is the default as of v0.97.13; every prior visitor had 'dark' auto-persisted regardless of intent,
+  // light is the default; every prior visitor had 'dark' auto-persisted regardless of intent,
   // so clear it once — returning visitors adopt light, and an explicit re-toggle persists normally afterward
   if (!localStorage.getItem('respondertx.themeDefaultV2')) {
     localStorage.removeItem('respondertx.theme');
@@ -548,7 +548,7 @@ async function boot() {
     relocalizeDynamic();
   });
   $('#refresh-now').addEventListener('click', refresh);
-  // ⋮ overflow menu (v0.88.1 header declutter) — share/theme/lang/legend live here; same dismiss pattern as other menus
+  // ⋮ overflow menu (header declutter) — share/theme/lang/legend live here; same dismiss pattern as other menus
   const hmoreSetOpen = (open) => {
     $('#hmore-menu').hidden = !open;
     $('#hmore-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -772,7 +772,7 @@ async function boot() {
   }).catch(markMirror);
   restoreViewState(); // saved view first, so any URL param below overrides it for this load
 
-  // v0.90 migration: old separate-layer links (?rain=1h / ?rain=24h, both→24h) resolve to the unified Rainfall layer
+  // migration: old separate-layer links (?rain=1h / ?rain=24h, both→24h) resolve to the unified Rainfall layer
   const rainVals = new URLSearchParams(location.search).getAll('rain');
   if (rainVals.length) {
     const win = rainVals.includes('24h') ? '24h' : CONFIG.mrmsWindows.includes(rainVals[0]) ? rainVals[0] : null;

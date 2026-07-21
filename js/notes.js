@@ -351,7 +351,7 @@
     N.pendingDeep = null;
   }
 
-  // app.js boot() awaits config fetches before initMap() — poll briefly for the map
+  // boot.js boot() awaits config fetches before initMap() — poll briefly for the map
   let mapTries = 0;
   function wireMap() {
     const map = getMap();
@@ -396,7 +396,7 @@
     setInterval(() => { if (document.visibilityState === 'visible' && !N.open) loadNotes(); }, POLL_CLOSED_MS);
   }
 
-  // app.js boot() (also DOMContentLoaded, registered first) has built the map by the time this runs
+  // boot.js boot() (also DOMContentLoaded, registered first) has built the map by the time this runs
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

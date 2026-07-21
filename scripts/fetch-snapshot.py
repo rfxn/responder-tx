@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Fetch the NWPS bbox gauge set to data/gauges-snapshot.json.
 
-Standalone extraction of the per-cycle snapshot fetch that used to run inline
-in a live session. Writes {generated, gauges:[{lid,name,latitude,longitude,
+Standalone extraction of the per-cycle snapshot fetch. Writes {generated,
+gauges:[{lid,name,latitude,longitude,
 status}]} compact — the public cold-start fallback and the frame source walked
 by gen-history.py / gen-crest-summary.py. Refuses to overwrite a good snapshot
 with garbage: exits non-zero on HTTP/parse error or a <200-gauge response,

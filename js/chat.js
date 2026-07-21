@@ -1,6 +1,6 @@
 'use strict';
 
-// LAN-only ops chat. Loaded by app.js ONLY after /api/ping confirms the local
+// LAN-only ops chat. Loaded by boot.js ONLY after /api/ping confirms the local
 // backend (server.py). This file and all chat data are stripped from public
 // deploys — the mirror has no chat route, API, or UI.
 (function () {

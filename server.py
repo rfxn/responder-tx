@@ -57,7 +57,7 @@ _admin_lock = threading.Lock()
 
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
-        # LAN-only capability beacon: app.js loads the chat + master-view UI only when this answers.
+        # LAN-only capability beacon: boot.js loads the chat + master-view UI only when this answers.
         # master is advertised only when the admin token is configured, so the LAN board hides the
         # oversight tool on servers that cannot reach the token-gated registry.
         if self.path == '/api/ping':
@@ -129,6 +129,12 @@ class Handler(SimpleHTTPRequestHandler):
         else:
             self.send_error(404)
 
+    def _cam_cache_put(self, key, entry, now):
+        with _cam_lock:
+            for k in [k for k, v in _cam_cache.items() if now - v[0] >= CAM_TTL]:
+                del _cam_cache[k]  # expired-entry sweep keeps memory bounded to recently viewed cams
+            _cam_cache[key] = entry
+
     # TxDOT ITS: upstream JSON carries a base64 JPEG; serve the raw image with the
     # capture stamp so the viewer never needs CORS
     def _cam_its(self, district, icd):
@@ -154,10 +160,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_error(502)
                 return
             entry = (now, jpeg, stamp)
-            with _cam_lock:
-                for k in [k for k, v in _cam_cache.items() if now - v[0] >= CAM_TTL]:
-                    del _cam_cache[k]  # expired-entry sweep keeps memory bounded to recently viewed cams
-                _cam_cache[key] = entry
+            self._cam_cache_put(key, entry, now)
         self._send_jpeg(entry[1], entry[2])
 
     # Named direct-JPEG source (Austin ATD, …): stream the upstream bytes through, lifting the
@@ -186,10 +189,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_error(502)
                 return
             entry = (now, jpeg, stamp)
-            with _cam_lock:
-                for k in [k for k, v in _cam_cache.items() if now - v[0] >= CAM_TTL]:
-                    del _cam_cache[k]  # expired-entry sweep keeps memory bounded to recently viewed cams
-                _cam_cache[key] = entry
+            self._cam_cache_put(key, entry, now)
         self._send_jpeg(entry[1], entry[2])
 
     def _send_jpeg(self, jpeg, stamp):

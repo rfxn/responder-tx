@@ -359,7 +359,7 @@ function initMap() {
   });
   // default base is Streets (owner directive); saved choice or ?base= overrides — layer control not built yet, set directly
   const baseParam = new URLSearchParams(location.search).get('base');
-  // hasOwnProperty guard (v0.94.1 theme-fix pattern): ?base=toString must not resolve via the prototype chain
+  // hasOwnProperty guard (theme-fix pattern): ?base=toString must not resolve via the prototype chain
   const knownBase = (b) => !!b && Object.prototype.hasOwnProperty.call(state.baseLayers, b);
   const wantBase = baseParam === 'osm' ? 'streets'
     : (knownBase(baseParam) ? baseParam : null) || localStorage.getItem('respondertx.base') || 'streets';
@@ -494,7 +494,7 @@ function initMap() {
     },
   });
   state.map.addControl(new NavControl({ position: 'topleft' }));
-  // v0.89: the stock checkbox control is hidden (CSS) but stays on the map as the
+  // the stock checkbox control is hidden (CSS) but stays on the map as the
   // overlay-event registry; this button in its old anchor spot opens the grouped sheet
   const sheetBtn = L.control({ position: 'topright' });
   sheetBtn.onAdd = () => {
@@ -722,7 +722,7 @@ function initLayerPills() {
   state.map.on('overlayadd overlayremove', renderLayerPills);
 }
 
-/* ---------- grouped layer sheet (v0.89) — the user-facing picker; groups, plain names, subtext ----------
+/* ---------- grouped layer sheet — the user-facing picker; groups, plain names, subtext ----------
    Rows toggle via map.addLayer/removeLayer on control-registered layers, so the map still fires
    overlayadd/overlayremove — pills, MRMS legend, radar scrub, and camera/LWC lazy-loads keep working. */
 
@@ -1140,7 +1140,7 @@ function fcstShowHour(h) {
   return 'load';
 }
 
-// scrub drags settle 250ms before a new hour loads (v0.93.1 pattern); play and step-adjacent apply instantly
+// scrub drags settle 250ms before a new hour loads; play and step-adjacent apply instantly
 function fcstShowDebounced(h) {
   const f = state.fcst, fd = state.fcstFader, name = fcstLayerName(h);
   clearTimeout(f.settle);
@@ -1172,7 +1172,7 @@ function fcstDisable() {
   fcstHide();
   const wasFut = state.rtl.fut;
   state.rtl.fut = false;
-  state.rtl.hour = 1; // v0.95 contract: every re-enable starts at +1h
+  state.rtl.hour = 1; // contract: every re-enable starts at +1h
   rtlSync();
   const R = rtlDomain();
   if (!R.total) { rtlStopPlay(); return; }
@@ -1209,7 +1209,7 @@ const PB_MRMS_URL = (w, stamp) => `https://mesonet.agron.iastate.edu/cache/tile.
 const PB_BASE_FRAME_MS = 500; // 1x is ~2 fps — slow enough to read the story (owner ask)
 const PB_SPEEDS = [0.5, 1, 2, 4];
 const PB_CAT_NAMES = ['none', 'action', 'minor', 'moderate', 'major'];
-// v0.91 prominence: playback-only marker scale — majors ≈ 2× the live size so threats-to-life read first
+// prominence: playback-only marker scale — majors ≈ 2× the live size so threats-to-life read first
 const PB_CAT_SIZE = { major: 32, moderate: 20, minor: 12, action: 10, none: 7 };
 const PB_PULSE_FRAMES = 3;   // category-change ring decays over ~3 frames — visual only
 const PB_LABEL_MAX = 5;
@@ -1592,7 +1592,7 @@ function pbBuildStory() {
       ev.push({ t: rt, iso: r.reopenedAt, pri: 3, text: t('playback.story.reopen').replace('{road}', prettyRoute(r.route_name) || 'road') });
     }
   } catch { /* road memory unavailable — reopen captions simply absent */ }
-  // closure-onset captions from the posted start times in the archived road index (v0.91)
+  // closure-onset captions from the posted start times in the archived road index
   for (const r of Object.values(state.pbData.roadIndex || {})) {
     const st = new Date(r.start).getTime();
     if (!Number.isFinite(st) || st < pb.loT || st > pb.hiT) continue;
@@ -1602,7 +1602,7 @@ function pbBuildStory() {
       text: `${PB_ROAD_GLYPH[r.cond] || '🚧'} ${t('playback.story.road').replace('{road}', prettyRoute(r.route) || 'road').replace('{cond}', ct.label)}`,
     });
   }
-  // critical-notice / cut-off / evacuation / shelter events from curated timestamps (v0.93)
+  // critical-notice / cut-off / evacuation / shelter events from curated timestamps
   for (const r of allRequests()) {
     if (!r.ts) continue;
     const rt = new Date(r.ts).getTime();
@@ -2078,7 +2078,7 @@ function pbFaderPrefetchNext(fd, stampAt) {
   if (stamp !== fd.stamp && stamp !== fd.pending) pbFaderLoad(fd, stamp);
 }
 
-// scrub drags settle 250ms before a new bucket loads (v0.84 SBW pattern); play applies instantly
+// scrub drags settle 250ms before a new bucket loads (SBW pattern); play applies instantly
 function pbFaderSchedule(fd, key, stamp) {
   const pb = state.pb;
   clearTimeout(pb[key]);
@@ -2121,7 +2121,7 @@ function playbackEngage() {
   state.pbFlowKey = '';
   pbSbw.renderKey = '';
   pbSbw.visibleN = null;
-  // v0.93 time-integrity: timestamped curated/report layers re-render as-of the frame; live-only layers hide
+  // time-integrity: timestamped curated/report layers re-render as-of the frame; live-only layers hide
   pb.liveOff = {};
   for (const k of ['requests', 'crossings', 'lsrs', 'lsrsAged'].concat(PB_LIVE_HIDE.map((x) => x[0]))) {
     pb.liveOff[k] = !!(state.layers[k] && state.map.hasLayer(state.layers[k]));
@@ -2184,7 +2184,7 @@ function playbackGoLive() {
   clearTimeout(pb.sbwTimer);
   pbSbw.renderKey = '';
   pbSbw.visibleN = null;
-  // v0.93: drop the as-of-frame curated layer, restore every live layer exactly as it was
+  // drop the as-of-frame curated layer, restore every live layer exactly as it was
   if (state.layers.pbCurated) {
     state.layers.pbCurated.clearLayers();
     if (state.map.hasLayer(state.layers.pbCurated)) state.map.removeLayer(state.layers.pbCurated);

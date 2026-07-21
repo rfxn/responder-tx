@@ -816,20 +816,23 @@ function shareView(btn) {
   else copy();
 }
 
+// set a filter control the way a user would (adding a missing SELECT option first, since the
+// county list is rebuilt later with board data), then fire its handler; empty/absent val is a no-op
+function setControl(sel, val, evt) {
+  if (val == null || val === '') return false;
+  const el = $(sel);
+  if (!el) return false;
+  if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === val)) el.add(new Option(val, val));
+  el.value = val;
+  el.dispatchEvent(new Event(evt));
+  return true;
+}
+
 // boot-time restore: set each control the way a user would, then let its own handler re-render
 function applyShareParams(q) {
   const lat = parseFloat(q.get('mlat')), lon = parseFloat(q.get('mlon')), z = parseInt(q.get('mz'), 10);
   if (Number.isFinite(lat) && Number.isFinite(lon)) state.map.setView([lat, lon], Number.isFinite(z) ? z : state.map.getZoom());
-  const apply = (sel, key, evt) => {
-    const val = q.get(key);
-    if (val === null || val === '') return false;
-    const el = $(sel);
-    // county options arrive with board data — park the shared value until renderRequests rebuilds the list
-    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === val)) el.add(new Option(val, val));
-    el.value = val;
-    el.dispatchEvent(new Event(evt));
-    return true;
-  };
+  const apply = (sel, key, evt) => setControl(sel, q.get(key), evt);
   const feedFiltered = [['#flt-type', 'ft', 'change'], ['#flt-county', 'fc', 'change'], ['#flt-window', 'fw', 'change'],
     ['#flt-dist', 'fd', 'change'], ['#flt-q', 'fq', 'input'], ['#flt-sort', 'fs', 'change']]
     .map(([sel, key, evt]) => apply(sel, key, evt)).some(Boolean);
@@ -850,21 +853,12 @@ window.collectBoardFilters = function collectBoardFilters() {
 
 window.applyBoardFilters = function applyBoardFilters(f) {
   if (!f || typeof f !== 'object') return;
-  const set = (sel, val, evt) => {
-    if (val == null || val === '') return false;
-    const el = $(sel);
-    if (!el) return false;
-    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === val)) el.add(new Option(val, val));
-    el.value = val;
-    el.dispatchEvent(new Event(evt));
-    return true;
-  };
   let any = false;
-  if (set('#flt-type', f.type, 'change')) any = true;
-  if (set('#flt-county', f.county, 'change')) any = true;
-  if (set('#flt-window', f.window, 'change')) any = true;
-  if (set('#flt-dist', f.dist, 'change')) any = true;
-  if (set('#flt-q', f.q, 'input')) any = true;
+  if (setControl('#flt-type', f.type, 'change')) any = true;
+  if (setControl('#flt-county', f.county, 'change')) any = true;
+  if (setControl('#flt-window', f.window, 'change')) any = true;
+  if (setControl('#flt-dist', f.dist, 'change')) any = true;
+  if (setControl('#flt-q', f.q, 'input')) any = true;
   if (f.inView === true && !state.inView) { setInView(true); any = true; }
   if (any) $('#req-filters').hidden = false; // an applied preset must be visible, not silent
 };

@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-21T15:54:02Z",
+ "generated": "2026-07-21T16:09:12Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-21T15:38:00Z"
+  "last": "2026-07-21T15:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -94,8 +94,8 @@
   {
    "lid": "COTT2",
    "name": "Nueces River at Cotulla",
-   "peak": 23.86,
-   "peak_time": "2026-07-21T14:53:00Z",
+   "peak": 24.37,
+   "peak_time": "2026-07-21T15:53:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-21T01:53:00Z",

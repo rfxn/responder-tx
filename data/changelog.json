@@ -98,47 +98,47 @@
     {
       "v": "v0.97.18",
       "date": "2026-07-20",
-      "line": "New live cameras from El Paso. You can now watch the City of El Paso's international-bridge cameras — the Paso del Norte, Santa Fe, Stanton, and Ysleta-Zaragoza crossings over the Rio Grande — live on the map. Turn them on under Cameras in the layers menu; like the other camera layers they are off by default. They open as live video in the same viewer the TxDOT highway cameras already use (with a LIVE badge), and every camera is credited to the City of El Paso. Because the operator occasionally renames its streams, the camera list is re-checked whenever it is rebuilt so only working cameras are shown."
+      "line": "New live cameras from El Paso. You can now watch the City of El Paso's international-bridge cameras (the Paso del Norte, Santa Fe, Stanton, and Ysleta-Zaragoza crossings over the Rio Grande) live on the map. Turn them on under Cameras in the layers menu; like the other camera layers they are off by default. They open as live video in the same viewer the TxDOT highway cameras already use (with a LIVE badge), and every camera is credited to the City of El Paso. Because the operator occasionally renames its streams, the camera list is re-checked whenever it is rebuilt so only working cameras are shown."
     },
     {
       "v": "v0.97.17",
       "date": "2026-07-20",
-      "line": "Bug fixes and internal cleanup. The ☰ Filters button no longer shows a count for the distance filter when your device doesn’t have a GPS fix — the distance filter can’t hide anything without a location, so the button now stays quiet and agrees with the “✓ All clear” feed instead of contradicting it. Behind the scenes: the camera image proxy now cleanly rejects malformed camera-source names instead of erroring out, and the tool that rebuilds the camera list now refuses to publish an empty camera layer if an upstream source changes shape or goes dark (it stops with an error instead of silently dropping a whole layer of cameras). Some duplicate and unused internal code was also removed. No visible change to how the board works."
+      "line": "Bug fixes and internal cleanup. The ☰ Filters button no longer shows a count for the distance filter when your device doesn’t have a GPS fix: the distance filter can’t hide anything without a location, so the button now stays quiet and agrees with the “✓ All clear” feed instead of contradicting it. Behind the scenes: the camera image proxy now cleanly rejects malformed camera-source names instead of erroring out, and the tool that rebuilds the camera list now refuses to publish an empty camera layer if an upstream source changes shape or goes dark (it stops with an error instead of silently dropping a whole layer of cameras). Some duplicate and unused internal code was also removed. No visible change to how the board works."
     },
     {
       "v": "v0.97.16",
       "date": "2026-07-20",
-      "line": "Bug fix. The positive “✓ All clear” message on an empty feed (added in v0.97.14) now shows correctly when you’ve set a distance filter but the board doesn’t have a GPS fix. The distance filter only takes effect once your location is known, so with no fix it isn’t actually hiding anything — but the feed was still showing the flat “No notices match the current filters” line instead of the all-clear. It now reads as all-clear in that case, and still shows the filter wording whenever a filter (type, county, search, time window, distance with a fix, or In-view) is genuinely what’s hiding notices. Also some behind-the-scenes cleanup — the team-relay endpoints now share one response helper and an unused map handle was removed — with no change to how the board behaves."
+      "line": "Bug fix. The positive “✓ All clear” message on an empty feed (added in v0.97.14) now shows correctly when you’ve set a distance filter but the board doesn’t have a GPS fix. The distance filter only takes effect once your location is known, so with no fix it isn’t actually hiding anything, but the feed was still showing the flat “No notices match the current filters” line instead of the all-clear. It now reads as all-clear in that case, and still shows the filter wording whenever a filter (type, county, search, time window, distance with a fix, or In-view) is genuinely what’s hiding notices. Also some behind-the-scenes cleanup: the team-relay endpoints now share one response helper and an unused map handle was removed, with no change to how the board behaves."
     },
     {
       "date": "2026-07-20",
-      "line": "Cameras are now organized as independent, per-source layers you can turn on one at a time instead of a single all-or-nothing toggle. Alongside the TxDOT road cameras you can now enable City of Austin city cameras (817 public-domain arterial/intersection views), ATX Floods low-water-crossing flood cameras (26 creek-crossing cams built for exactly the “is this crossing under water” question), and Houston TranStar cameras (963, including the Galveston–Bolivar ferry) — and the USGS river/flood-gage cameras now cover the whole state, so Houston, Dallas–Fort Worth and Laredo gage cams show up instead of being clipped to Central Texas. Each source keeps its own map marker, source credit and share link, and every camera layer stays off until you turn it on.",
+      "line": "Cameras are now organized as independent, per-source layers you can turn on one at a time instead of a single all-or-nothing toggle. Alongside the TxDOT road cameras you can now enable City of Austin city cameras (817 public-domain arterial/intersection views), ATX Floods low-water-crossing flood cameras (26 creek-crossing cams built for exactly the “is this crossing under water” question), and Houston TranStar cameras (963, including the Galveston-Bolivar ferry), and the USGS river/flood-gage cameras now cover the whole state, so Houston, Dallas-Fort Worth and Laredo gage cams show up instead of being clipped to Central Texas. Each source keeps its own map marker, source credit and share link, and every camera layer stays off until you turn it on.",
       "v": "v0.97.15"
     },
     {
       "v": "v0.97.14",
       "date": "2026-07-19",
-      "line": "An empty feed now reads as good news. When there are no active notices and you haven't applied a restricting filter, the feed shows a positive all-clear message (\"✓ All clear — no active notices right now. Quiet is good; stay ready.\") instead of the flat \"No notices match the current filters.\" The filter wording still appears when a type, county, search, time-window, distance, or In-view filter is actually what's hiding notices, so you're never misled into thinking the board is clear when it isn't. English y español."
+      "line": "An empty feed now reads as good news. When there are no active notices and you haven't applied a restricting filter, the feed shows a positive all-clear message (\"✓ All clear: no active notices right now. Quiet is good; stay ready.\") instead of the flat \"No notices match the current filters.\" The filter wording still appears when a type, county, search, time-window, distance, or In-view filter is actually what's hiding notices, so you're never misled into thinking the board is clear when it isn't. English y español."
     },
     {
       "v": "v0.97.13",
       "date": "2026-07-19",
-      "line": "Light mode is now the default, with the Streets basemap — the board opens in the sunlight-readable light theme instead of dark, which reads better on a phone in the field. Dark is still one tap away via the ☀️/🌙 control in the ⋮ menu, and if you switch it, your choice sticks. A one-time reset clears the theme that was silently saved for every prior visitor so the new light default actually takes effect on your next load. Nothing else changed."
+      "line": "Light mode is now the default, with the Streets basemap: the board opens in the sunlight-readable light theme instead of dark, which reads better on a phone in the field. Dark is still one tap away via the ☀️/🌙 control in the ⋮ menu, and if you switch it, your choice sticks. A one-time reset clears the theme that was silently saved for every prior visitor so the new light default actually takes effect on your next load. Nothing else changed."
     },
     {
       "v": "v0.97.12",
       "date": "2026-07-19",
-      "line": "Road reopenings now have their own layer. When a closure clears the live TxDOT feed, the board drops a green ✓ \"recently reopened\" marker — until now those rode along on the road-closures layer and piled up on the map. They now live on a separate \"Road reopenings\" layer, nested under Live road closures in the layers sheet and off by default: turning closures on no longer turns reopenings on, so it takes one deliberate tap to show them. The markers are also limited to flood-related roads, so generic pavement or debris clearances no longer clutter the recovery view, and they still age off on their own (off the map after 12h, kept 7 days in the list). The choice travels in shared links as ?reopen=1 and shows a dismissible pill when it is on. No other layers or behavior change. English y español."
+      "line": "Road reopenings now have their own layer. When a closure clears the live TxDOT feed, the board drops a green ✓ \"recently reopened\" marker. Until now those rode along on the road-closures layer and piled up on the map. They now live on a separate \"Road reopenings\" layer, nested under Live road closures in the layers sheet and off by default: turning closures on no longer turns reopenings on, so it takes one deliberate tap to show them. The markers are also limited to flood-related roads, so generic pavement or debris clearances no longer clutter the recovery view, and they still age off on their own (off the map after 12h, kept 7 days in the list). The choice travels in shared links as ?reopen=1 and shows a dismissible pill when it is on. No other layers or behavior change. English y español."
     },
     {
       "v": "v0.97.11",
       "date": "2026-07-19",
-      "line": "Bug fix. The \"USGS stage\" raw-gauge fallback layer kept re-appearing at the top-left of the map even after you closed it. When the live NWPS gauge feed goes quiet for more than ~15 minutes the board auto-shows the USGS raw-stage layer as a stand-in — but it was re-adding that layer on every refresh tick, so the moment you dismissed its pill it popped right back. Now it offers the fallback once when the feed goes stale, remembers when you dismiss it (via the pill ✕ or the layers sheet) and leaves it off until the live feed recovers, then re-arms the one-time offer only for a genuinely new outage. No other layers or behavior change."
+      "line": "Bug fix. The \"USGS stage\" raw-gauge fallback layer kept re-appearing at the top-left of the map even after you closed it. When the live NWPS gauge feed goes quiet for more than ~15 minutes the board auto-shows the USGS raw-stage layer as a stand-in, but it was re-adding that layer on every refresh tick, so the moment you dismissed its pill it popped right back. Now it offers the fallback once when the feed goes stale, remembers when you dismiss it (via the pill ✕ or the layers sheet) and leaves it off until the live feed recovers, then re-arms the one-time offer only for a genuinely new outage. No other layers or behavior change."
     },
     {
       "v": "v0.97.10",
       "date": "2026-07-19",
-      "line": "Two small presentation cleanups. On the Team tab, the \"call 911 — this is situational awareness, not a dispatch system\" line no longer appears twice: the board's persistent footer already shows that warning on every tab, so the redundant copy in the create and join views is gone (the footer disclaimer stays put). And on the Alerts list, each flood warning's \"text\" button now sits at the top-right of the card in the header row — aligned the same way the gauge cards put their NWPS link — so it reads as a consistent per-card action instead of trailing the expires time. Clicking it still opens the readable alert text. Desktop and phone behave the same. English y español."
+      "line": "Two small presentation cleanups. On the Team tab, the \"call 911: this is situational awareness, not a dispatch system\" line no longer appears twice: the board's persistent footer already shows that warning on every tab, so the redundant copy in the create and join views is gone (the footer disclaimer stays put). And on the Alerts list, each flood warning's \"text\" button now sits at the top-right of the card in the header row, aligned the same way the gauge cards put their NWPS link, so it reads as a consistent per-card action instead of trailing the expires time. Clicking it still opens the readable alert text. Desktop and phone behave the same. English y español."
     },
     {
       "v": "v0.97.9",
@@ -148,12 +148,12 @@
     {
       "v": "v0.97.8",
       "date": "2026-07-20",
-      "line": "Two phone-first presentation tweaks for the field. When you are in a live team, the Team tab now jumps to the far left of the tab bar — first, ahead of Feed — so your crew view is the first thing under your thumb; it slides back to its normal last spot the moment you leave the team. And the Alerts list is denser on phones: trimmed padding and wasted vertical space around each alert card so more warnings fit on screen at once, with nothing dropped — the county and coordinates line, the readable alert link, and the severity color all stay, and tap targets stay big enough to hit. Desktop is unchanged. English y español."
+      "line": "Two phone-first presentation tweaks for the field. When you are in a live team, the Team tab now jumps to the far left of the tab bar (first, ahead of Feed) so your crew view is the first thing under your thumb; it slides back to its normal last spot the moment you leave the team. And the Alerts list is denser on phones: trimmed padding and wasted vertical space around each alert card so more warnings fit on screen at once, with nothing dropped: the county and coordinates line, the readable alert link, and the severity color all stay, and tap targets stay big enough to hit. Desktop is unchanged. English y español."
     },
     {
       "v": "v0.97.7",
       "date": "2026-07-20",
-      "line": "Security hardening for live teams: a viewer is now truly watch-only. Before, the private id a member used to publish its own location doubled as its public name in the roster, so anyone with the team link could copy it and impersonate that member — moving their pin, dropping or clearing markers as them, or removing them from the team. Each person now carries two ids: a public one used only to show and follow them on the map, and a separate secret one, kept only on their own device, that signs their updates. The secret is never shown to anyone else, so a viewer can no longer act as a member. Nothing changes in how you create, join, or use a team. This release also adds the first automated tests for the team relay. A backend redeploy is required for the fix to take effect. English y español."
+      "line": "Security hardening for live teams: a viewer is now truly watch-only. Before, the private id a member used to publish its own location doubled as its public name in the roster, so anyone with the team link could copy it and impersonate that member: moving their pin, dropping or clearing markers as them, or removing them from the team. Each person now carries two ids: a public one used only to show and follow them on the map, and a separate secret one, kept only on their own device, that signs their updates. The secret is never shown to anyone else, so a viewer can no longer act as a member. Nothing changes in how you create, join, or use a team. This release also adds the first automated tests for the team relay. A backend redeploy is required for the fix to take effect. English y español."
     },
     {
       "v": "v0.97.6",
@@ -163,37 +163,37 @@
     {
       "v": "v0.97.5",
       "date": "2026-07-19",
-      "line": "A LAN-only command view lands: the master oversight panel. On the ops board (never the public mirror) it lists every active team at once — each team's name, how many are on it, and its makeup (K9 handlers vs ground, specialties, and who is in-field, on standby, or unavailable) — plots all members on the map, and gathers every viewer across all teams into one roster. It is read-only oversight and refreshes on its own. Access is gated by a secret admin token held only on the server, so teams stay private: without the token nothing can be listed. English y español."
+      "line": "A LAN-only command view lands: the master oversight panel. On the ops board (never the public mirror) it lists every active team at once (with each team's name, how many are on it, and its makeup: K9 handlers vs ground, specialties, and who is in-field, on standby, or unavailable), plots all members on the map, and gathers every viewer across all teams into one roster. It is read-only oversight and refreshes on its own. Access is gated by a secret admin token held only on the server, so teams stay private: without the token nothing can be listed. English y español."
     },
     {
       "v": "v0.97.4",
       "date": "2026-07-19",
-      "line": "Team sharing gains a search-and-rescue member model. When you join a team you can now say who you are on the ground: a K9 handler (with your dog's name and skill tags like HRD, trailing, or cadaver) or a ground member with a specialty (searcher, medical, drone-ops, comms, and more) — plus a status of in-field, standby, or unavailable. Your type and status show in the roster and right on your map marker, and you can change your role, type, or status any time after joining with one tap. Members can also drop shared team markers — waypoint, hazard, or search-area pins with a short label — that everyone on the team sees on the map and any member can clear; they are private to the team and never saved. When creating a team you can set the current map view as the team's default area so members land there. A new roster panel surfaces the nearest hospital and nearest veterinary to the team area from OpenStreetMap (honestly labeled — not verified as a trauma center or 24h emergency vet, so call ahead). English y español."
+      "line": "Team sharing gains a search-and-rescue member model. When you join a team you can now say who you are on the ground: a K9 handler (with your dog's name and skill tags like HRD, trailing, or cadaver) or a ground member with a specialty (searcher, medical, drone-ops, comms, and more), plus a status of in-field, standby, or unavailable. Your type and status show in the roster and right on your map marker, and you can change your role, type, or status any time after joining with one tap. Members can also drop shared team markers (waypoint, hazard, or search-area pins with a short label) that everyone on the team sees on the map and any member can clear; they are private to the team and never saved. When creating a team you can set the current map view as the team's default area so members land there. A new roster panel surfaces the nearest hospital and nearest veterinary to the team area from OpenStreetMap (honestly labeled: not verified as a trauma center or 24h emergency vet, so call ahead). English y español."
     },
     {
       "v": "v0.97.3",
       "date": "2026-07-19",
-      "line": "Live team location sharing is now reachable from the main board: tap ⋮ (More) → 🧭 Team. From there you can create a private team — the board shows a shareable link and a scannable QR code of it, so a teammate can join just by pointing their phone camera at your screen — or join an existing team by pasting its link or code. If you are already in a team, it reopens your roster. The feature stays private and opt-in exactly as before (unguessable link, call-sign handle, share-or-just-watch), and the board looks and works normally for anyone who never opens the Team menu. Runs on the secure site, where location sharing works. English y español."
+      "line": "Live team location sharing is now reachable from the main board: tap ⋮ (More) → 🧭 Team. From there you can create a private team (the board shows a shareable link and a scannable QR code of it, so a teammate can join just by pointing their phone camera at your screen) or join an existing team by pasting its link or code. If you are already in a team, it reopens your roster. The feature stays private and opt-in exactly as before (unguessable link, call-sign handle, share-or-just-watch), and the board looks and works normally for anyone who never opens the Team menu. Runs on the secure site, where location sharing works. English y español."
     },
     {
       "v": "v0.97.2",
       "date": "2026-07-19",
-      "line": "Drive Mode now keeps your location fresh while you drive: once you tap ⌖ Locate, it quietly re-checks your position about every 30 seconds and re-ranks the nearest-hazards list by distance from where you actually are — with a small 'auto-updating · last fix Xs ago' note under the header. It only runs after you opt in by tapping Locate, and it stands down the moment you leave Drive Mode or switch away from the tab, so there is no background battery drain. English y español."
+      "line": "Drive Mode now keeps your location fresh while you drive: once you tap ⌖ Locate, it quietly re-checks your position about every 30 seconds and re-ranks the nearest-hazards list by distance from where you actually are, with a small 'auto-updating · last fix Xs ago' note under the header. It only runs after you opt in by tapping Locate, and it stands down the moment you leave Drive Mode or switch away from the tab, so there is no background battery drain. English y español."
     },
     {
       "v": "v0.97.1",
       "date": "2026-07-19",
-      "line": "Map polish: the 'road reopened' marker is now a muted green ✓ recovery badge instead of a plain circle, so it no longer looks like an alert marker or blends into the other round markers on the map — with a matching legend entry. And small map markers (reopened roads, cameras, storm reports, USGS gauges) are easier to tap on a phone: each gets a larger invisible touch area while still pointing at the exact spot. English y español."
+      "line": "Map polish: the 'road reopened' marker is now a muted green ✓ recovery badge instead of a plain circle, so it no longer looks like an alert marker or blends into the other round markers on the map, with a matching legend entry. And small map markers (reopened roads, cameras, storm reports, USGS gauges) are easier to tap on a phone: each gets a larger invisible touch area while still pointing at the exact spot. English y español."
     },
     {
       "v": "v0.97.0",
       "date": "2026-07-19",
-      "line": "New: live team location sharing (opt-in, private). Open a team's link to join as a member — you share your live position as a colored marker with a Garmin-style breadcrumb trail, refreshed every ~15s — or as a viewer, who watches the team without sharing any location. Every team is private to its own unguessable link; there are no public teams and nothing is indexed. Handles are call signs (min 4 characters), never accounts or personal info, and one tap stops sharing and drops you. Positions live only in an ephemeral relay, auto-expire, and are never saved to the archive. Flag-gated behind ?team= on the secure site; the flood board is unchanged without it. English y español."
+      "line": "New: live team location sharing (opt-in, private). Open a team's link to join as a member (you share your live position as a colored marker with a Garmin-style breadcrumb trail, refreshed every ~15s) or as a viewer, who watches the team without sharing any location. Every team is private to its own unguessable link; there are no public teams and nothing is indexed. Handles are call signs (min 4 characters), never accounts or personal info, and one tap stops sharing and drops you. Positions live only in an ephemeral relay, auto-expire, and are never saved to the archive. Flag-gated behind ?team= on the secure site; the flood board is unchanged without it. English y español."
     },
     {
       "v": "v0.96.5",
       "date": "2026-07-19",
-      "line": "Mobile card polish: on the feed, 'navigate' and 'copy coords' are now real tappable buttons, and a card's source shows as a compact link (platform name or bare domain with a ↗) instead of a full raw URL — the citation is unchanged, just tidier. Alert cards wrap cleanly on narrow screens: the event name keeps its EMERGENCY flag, the sent/until times stay whole, and the 'text' reader is a right-aligned chip. Badges like CURATED and 'stale · re-verify' now render to one consistent size. English y español."
+      "line": "Mobile card polish: on the feed, 'navigate' and 'copy coords' are now real tappable buttons, and a card's source shows as a compact link (platform name or bare domain with a ↗) instead of a full raw URL. The citation is unchanged, just tidier. Alert cards wrap cleanly on narrow screens: the event name keeps its EMERGENCY flag, the sent/until times stay whole, and the 'text' reader is a right-aligned chip. Badges like CURATED and 'stale · re-verify' now render to one consistent size. English y español."
     },
     {
       "v": "v0.96.4",
@@ -203,22 +203,22 @@
     {
       "v": "v0.96.3",
       "date": "2026-07-19",
-      "line": "Alert cards no longer look like duplicates: each now names the specific river reach on the second line, so three 'Val Verde, TX' Flood Warnings read as Devils River at Cauthorn Ranch near Juno, at Bakers Crossing, and at Pafford Crossing. And the 'text' link now opens the full alert in-app (headline, description, what-to-do, in-effect-until), cited to the issuing NWS office, instead of dumping you at a raw API JSON page — with a raw-data link kept for provenance. Alert search now matches the river name too."
+      "line": "Alert cards no longer look like duplicates: each now names the specific river reach on the second line, so three 'Val Verde, TX' Flood Warnings read as Devils River at Cauthorn Ranch near Juno, at Bakers Crossing, and at Pafford Crossing. And the 'text' link now opens the full alert in-app (headline, description, what-to-do, in-effect-until), cited to the issuing NWS office, instead of dumping you at a raw API JSON page, with a raw-data link kept for provenance. Alert search now matches the river name too."
     },
     {
       "v": "v0.96.2",
       "date": "2026-07-19",
-      "line": "Honesty fix: the 'Am I at risk?' address card used to say your address is never transmitted, but placing the pin sends your typed address to OpenStreetMap's geocoder to turn it into coordinates. Corrected the wording (English + Spanish) to say exactly that — the address goes to the OpenStreetMap geocoder and is not stored, logged, or shared beyond that one lookup. No change to how it works."
+      "line": "Honesty fix: the 'Am I at risk?' address card used to say your address is never transmitted, but placing the pin sends your typed address to OpenStreetMap's geocoder to turn it into coordinates. Corrected the wording (English + Spanish) to say exactly that: the address goes to the OpenStreetMap geocoder and is not stored, logged, or shared beyond that one lookup. No change to how it works."
     },
     {
       "v": "v0.96.1",
       "date": "2026-07-19",
-      "line": "The board is no longer an installable home-screen app — phones will stop prompting you to add or install it. Installed that way it had no way to update itself and could get stuck on a stale version; a normal browser tab always refreshes. Open it in your browser as usual. If you already added it to your home screen, delete that icon and reopen from the browser."
+      "line": "The board is no longer an installable home-screen app: phones will stop prompting you to add or install it. Installed that way it had no way to update itself and could get stuck on a stale version; a normal browser tab always refreshes. Open it in your browser as usual. If you already added it to your home screen, delete that icon and reopen from the browser."
     },
     {
       "v": "v0.96.0",
       "date": "2026-07-19",
-      "line": "One radar timeline: the live radar scrub and the forecast-model scrub are now a single bar — observed radar to the left of a NOW divider, the HRRR model future (+1h to +18h) as an amber dashed segment to the right. Scrub straight across NOW and the map cross-fades between observed echoes and the model future with no blank frame; play loops past → NOW → forecast. Forecast stepping got the replay radar's buffering fix (preload hidden, cross-fade ~350ms, prefetch ahead, skip unchanged hours) and the model tiles render at double resolution with light softening so HRRR's blocky cells read like normative radar. The future zone keeps its amber dashed dress and FORECAST MODEL badge, the +18h cap stays, and the bar hides during historical replay. English y español."
+      "line": "One radar timeline: the live radar scrub and the forecast-model scrub are now a single bar: observed radar to the left of a NOW divider, the HRRR model future (+1h to +18h) as an amber dashed segment to the right. Scrub straight across NOW and the map cross-fades between observed echoes and the model future with no blank frame; play loops past → NOW → forecast. Forecast stepping got the replay radar's buffering fix (preload hidden, cross-fade ~350ms, prefetch ahead, skip unchanged hours) and the model tiles render at double resolution with light softening so HRRR's blocky cells read like normative radar. The future zone keeps its amber dashed dress and FORECAST MODEL badge, the +18h cap stays, and the bar hides during historical replay. English y español."
     },
     {
       "v": "v0.95.1",
@@ -238,7 +238,7 @@
     {
       "v": "v0.94.0",
       "date": "2026-07-19",
-      "line": "Calmer map, honest details: the area quick-jump row now rests as one compact chip naming the area you're viewing — tap it to expand the presets, pick one and it collapses right back, and if you pan away it reads 'custom view' instead of an area it no longer shows. The map-layers and share buttons get clean icons matched to the zoom controls in both dark and light themes. Road closure popups now show the segment's length and explain the limits: a Closure is barricaded across the full listed stretch, while flooding/damage reports may be localized within it. English y español."
+      "line": "Calmer map, honest details: the area quick-jump row now rests as one compact chip naming the area you're viewing: tap it to expand the presets, pick one and it collapses right back, and if you pan away it reads 'custom view' instead of an area it no longer shows. The map-layers and share buttons get clean icons matched to the zoom controls in both dark and light themes. Road closure popups now show the segment's length and explain the limits: a Closure is barricaded across the full listed stretch, while flooding/damage reports may be localized within it. English y español."
     },
     {
       "v": "v0.93.2",
@@ -248,67 +248,67 @@
     {
       "v": "v0.93.1",
       "date": "2026-07-18",
-      "line": "Replay radar and rainfall now glide instead of flashing: each time-step preloads its tiles invisibly and cross-fades in (~350ms), frames whose radar/rainfall bucket hasn't changed skip the redraw entirely, scrubbing waits for your thumb to settle before fetching, and play prefetches the next step ahead — no more blank-map redraws mid-replay."
+      "line": "Replay radar and rainfall now glide instead of flashing: each time-step preloads its tiles invisibly and cross-fades in (~350ms), frames whose radar/rainfall bucket hasn't changed skip the redraw entirely, scrubbing waits for your thumb to settle before fetching, and play prefetches the next step ahead: no more blank-map redraws mid-replay."
     },
     {
       "v": "v0.93.0",
       "date": "2026-07-18",
-      "line": "Playback now tells the truth everywhere: shelters, cameras, and other live-only layers disappear while you replay the past, and notices, cut-off circles, crossings, and storm reports appear only at the moments they actually existed. Rainfall joins the replay from the archived MRMS record — pick 1h/24h/48h/72h and it follows the timeline hour by hour. The story captions add evacuations, cut-off areas, shelter openings, and critical notices, and an optional archival-photo hook can pin sourced, credited photos to the timeline. English y español."
+      "line": "Playback now tells the truth everywhere: shelters, cameras, and other live-only layers disappear while you replay the past, and notices, cut-off circles, crossings, and storm reports appear only at the moments they actually existed. Rainfall joins the replay from the archived MRMS record: pick 1h/24h/48h/72h and it follows the timeline hour by hour. The story captions add evacuations, cut-off areas, shelter openings, and critical notices, and an optional archival-photo hook can pin sourced, credited photos to the timeline. English y español."
     },
     {
       "v": "v0.92.0",
       "date": "2026-07-18",
-      "line": "The map and the lists now work as one product: every notice popup on the map gains “Open in feed →” and every gauge popup “Open in gauges list →” — tap it and the matching card scrolls into view with a brief highlight pulse. A new “In view” chip on the Feed and Gauges tabs scopes the list to whatever the map is showing, with a live count that updates as you pan; turn it off to get the full list back. Cards that fly the map now carry a small 📍 so the affordance is visible. English y español."
+      "line": "The map and the lists now work as one product: every notice popup on the map gains “Open in feed →” and every gauge popup “Open in gauges list →”: tap it and the matching card scrolls into view with a brief highlight pulse. A new “In view” chip on the Feed and Gauges tabs scopes the list to whatever the map is showing, with a live count that updates as you pan; turn it off to get the full list back. Cards that fly the map now carry a small 📍 so the affordance is visible. English y español."
     },
     {
       "v": "v0.91.0",
       "date": "2026-07-18",
-      "line": "Playback now rebuilds the full incident picture: road closures replay on the map frame by frame (archived TxDOT snapshots where we have them, honestly labeled as reconstructed from posted closure times before the archive began), flooding gauges call out prominently — majors draw twice as large, a colored ring pulses when a gauge changes category, and the 5 most significant gauges carry always-visible name + stage labels — and when the data shows a crest translating down a river (Devils, Llano, Pecos, Nueces chains tonight) an animated dashed arrow traces it between gauges with a “crest moving downstream” tag. English y español."
+      "line": "Playback now rebuilds the full incident picture: road closures replay on the map frame by frame (archived TxDOT snapshots where we have them, honestly labeled as reconstructed from posted closure times before the archive began), flooding gauges call out prominently: majors draw twice as large, a colored ring pulses when a gauge changes category, and the 5 most significant gauges carry always-visible name + stage labels; and when the data shows a crest translating down a river (Devils, Llano, Pecos, Nueces chains tonight) an animated dashed arrow traces it between gauges with a “crest moving downstream” tag. English y español."
     },
     {
       "v": "v0.90.1",
       "date": "2026-07-18",
-      "line": "Slimmer chrome, same signal: the plain-language situation line is now a thin one-line strip (tap it to read the full sentence), and the bottom 911 notice fits on a single row at every width — tap it any time to reopen the full safety notice, or tap the underlined version number for What's New. Also fixed: the headline no longer says a river wave is “rising” when the gauge is actually receding — the direction word now follows the live trend. English y español."
+      "line": "Slimmer chrome, same signal: the plain-language situation line is now a thin one-line strip (tap it to read the full sentence), and the bottom 911 notice fits on a single row at every width: tap it any time to reopen the full safety notice, or tap the underlined version number for What's New. Also fixed: the headline no longer says a river wave is “rising” when the gauge is actually receding: the direction word now follows the live trend. English y español."
     },
     {
       "v": "v0.90.0",
       "date": "2026-07-18",
-      "line": "Rainfall is now one layer, not two. Turn on Rainfall and pick the accumulation window — 1h, 24h, 48h, or 72h — with the new chips right in the map legend; your pick sticks for the session, and old “Rain 1h”/“Rain 24h” links still open the right view. Also, by popular demand the 🔗 Share button is back at your fingertips: it now sits on the map just below the 🗂 layer button (and stays in the ⋮ menu too). English y español."
+      "line": "Rainfall is now one layer, not two. Turn on Rainfall and pick the accumulation window (1h, 24h, 48h, or 72h) with the new chips right in the map legend; your pick sticks for the session, and old “Rain 1h”/“Rain 24h” links still open the right view. Also, by popular demand the 🔗 Share button is back at your fingertips: it now sits on the map just below the 🗂 layer button (and stays in the ⋮ menu too). English y español."
     },
     {
       "v": "v0.89.0",
       "date": "2026-07-18",
-      "line": "A friendlier layer picker: the old cramped checkbox list is gone. Tap the 🗂 button on the map (or the ＋ in the layer pills) to open a grouped sheet — Water, Rain & radar, Roads, Alerts & reports, History — where every layer has a plain name, a one-line \"what is this\", and a big toggle. Phones get a thumb-friendly bottom sheet; desktops a compact panel. OFFICIAL/CURATED badges make the two crossings layers unmistakable, a segmented Dark/Light/Streets row switches the basemap, ⏮ Playback opens the timeline, and ↺ Reset restores the default view and full-area framing in one tap. Everything is in English y español."
+      "line": "A friendlier layer picker: the old cramped checkbox list is gone. Tap the 🗂 button on the map (or the ＋ in the layer pills) to open a grouped sheet (Water, Rain & radar, Roads, Alerts & reports, History) where every layer has a plain name, a one-line \"what is this\", and a big toggle. Phones get a thumb-friendly bottom sheet; desktops a compact panel. OFFICIAL/CURATED badges make the two crossings layers unmistakable, a segmented Dark/Light/Streets row switches the basemap, ⏮ Playback opens the timeline, and ↺ Reset restores the default view and full-area framing in one tap. Everything is in English y español."
     },
     {
       "v": "v0.88.1",
       "date": "2026-07-18",
-      "line": "A tidier top bar: the header now shows just search 🔍, Drive 🚗, refresh ⟳, and a single ⋮ button — Share, light/dark theme, EN/ES language, and the \"?\" Legend now live inside the ⋮ menu with full labels, so phones (and desktops) get real breathing room. The corner time stamp slimmed down to a small green dot + time; hover it to see when the next auto-refresh lands. Buttons are also a touch bigger for gloved thumbs, and the header is no taller than before."
+      "line": "A tidier top bar: the header now shows just search 🔍, Drive 🚗, refresh ⟳, and a single ⋮ button: Share, light/dark theme, EN/ES language, and the \"?\" Legend now live inside the ⋮ menu with full labels, so phones (and desktops) get real breathing room. The corner time stamp slimmed down to a small green dot + time; hover it to see when the next auto-refresh lands. Buttons are also a touch bigger for gloved thumbs, and the header is no taller than before."
     },
     {
       "v": "v0.88.0",
       "date": "2026-07-18",
-      "line": "835 more TxDOT cameras — the snapshot-only ones: many city-street cams (most of Houston, Fort Worth, Dallas, Beaumont, El Paso) have no live video feed, only a photo that refreshes about every 2 minutes. They now appear on the camera layer as dashed/muted 📷 markers so you can tell them from live cams; opening one shows the latest photo with a SNAPSHOT badge, when it was captured, a ↻ refresh button, and the usual STALE warning if the image is over 45 minutes old. If a snapshot can’t be fetched, the viewer says so plainly."
+      "line": "835 more TxDOT cameras, the snapshot-only ones: many city-street cams (most of Houston, Fort Worth, Dallas, Beaumont, El Paso) have no live video feed, only a photo that refreshes about every 2 minutes. They now appear on the camera layer as dashed/muted 📷 markers so you can tell them from live cams; opening one shows the latest photo with a SNAPSHOT badge, when it was captured, a ↻ refresh button, and the usual STALE warning if the image is over 45 minutes old. If a snapshot can’t be fetched, the viewer says so plainly."
     },
     {
       "v": "v0.87.0",
       "date": "2026-07-18",
-      "line": "The board now updates itself, gracefully: when a new version ships, the app waits until you're not mid-anything (no open panel or viewer, no playback, no recent touch, data refresh settled), shows a quiet 4-second \"reloading\" notice with a Later button, then reloads into the new build with your exact view restored — map position, tab, filters, basemap, theme — confirmed by a small ✓ toast that opens What's New. Hidden tabs update when you return to them, an unsent LAN chat draft survives the reload, and lag-safe guards mean it can never reload-loop. The ⬆ chip remains for an immediate manual reload."
+      "line": "The board now updates itself, gracefully: when a new version ships, the app waits until you're not mid-anything (no open panel or viewer, no playback, no recent touch, data refresh settled), shows a quiet 4-second \"reloading\" notice with a Later button, then reloads into the new build with your exact view restored (map position, tab, filters, basemap, theme), confirmed by a small ✓ toast that opens What's New. Hidden tabs update when you return to them, an unsent LAN chat draft survives the reload, and lag-safe guards mean it can never reload-loop. The ⬆ chip remains for an immediate manual reload."
     },
     {
       "v": "v0.86.0",
       "date": "2026-07-18",
-      "line": "First-run help & one search box: new visitors get a 3-panel intro (after the 911 notice) — the map is live hazards, the feed is verified notices, long-press checks a point and ⏮ replays the event; a new \"?\" Legend button in the header explains every symbol (gauge colors, STALE, map markers, threat chips, OFFICIAL vs CURATED badges, aging, playback, USNG) in EN/ES; and one header 🔍 search now finds places/addresses, gauges by name or ID, typed \"lat, lon\", and R-### cards — a place result flies the map and drops the point-check card there. The separate 🔍 ID button folded into the search."
+      "line": "First-run help & one search box: new visitors get a 3-panel intro (after the 911 notice): the map is live hazards, the feed is verified notices, long-press checks a point and ⏮ replays the event; a new \"?\" Legend button in the header explains every symbol (gauge colors, STALE, map markers, threat chips, OFFICIAL vs CURATED badges, aging, playback, USNG) in EN/ES; and one header 🔍 search now finds places/addresses, gauges by name or ID, typed \"lat, lon\", and R-### cards; a place result flies the map and drops the point-check card there. The separate 🔍 ID button folded into the search."
     },
     {
       "v": "v0.85.1",
       "date": "2026-07-18",
-      "line": "Playback mobile quality pass: taps on the playback bar no longer zoom the map — every control (scrub, ⏪/⏩, chips, speed, play, NOW, ✕, caption, HUD, chapter ticks, plus the radar scrub) now blocks tap-through and browser double-tap zoom; the scrub gets a fat 28px thumb on a full-width 44px-tall touch row on phones with ≥44px step/play/speed buttons; choosing 7d/14d now shows the full requested window with the span before the archive's Jul 17, 10:31 AM CT birth hatched out plus a one-time 'Archive begins…' note (no frames are ever faked); entering playback auto-sets 0.5× speed and minimizes the bottom pane, restored on NOW/close; the sheet handle and chat button no longer collide with the open bar."
+      "line": "Playback mobile quality pass: taps on the playback bar no longer zoom the map: every control (scrub, ⏪/⏩, chips, speed, play, NOW, ✕, caption, HUD, chapter ticks, plus the radar scrub) now blocks tap-through and browser double-tap zoom; the scrub gets a fat 28px thumb on a full-width 44px-tall touch row on phones with ≥44px step/play/speed buttons; choosing 7d/14d now shows the full requested window with the span before the archive's Jul 17, 10:31 AM CT birth hatched out plus a one-time 'Archive begins…' note (no frames are ever faked); entering playback auto-sets 0.5× speed and minimizes the bottom pane, restored on NOW/close; the sheet handle and chat button no longer collide with the open bar."
     },
     {
       "v": "v0.85.0",
       "date": "2026-07-18",
-      "line": "UX quick wins: (1) long-press or right-click anywhere on the map to inspect that point — a compact card shows the plain-language risk read, nearest gauge, active alert, nearest closed crossing/notice, and the USNG grid (tap to copy) without the map moving under you; (2) a one-sentence plain-language headline now tops the threat strip (\"Asherton MAJOR flood cresting near record · Devils River wave rising at Pafford Crossing…\") — tap to expand on phones; (3) when a non-default map layer is on (radar, rain, cameras…), slim pills over the map name it — tap a pill to turn the layer off, ＋ opens all layers; the row disappears when nothing extra is on."
+      "line": "UX quick wins: (1) long-press or right-click anywhere on the map to inspect that point: a compact card shows the plain-language risk read, nearest gauge, active alert, nearest closed crossing/notice, and the USNG grid (tap to copy) without the map moving under you; (2) a one-sentence plain-language headline now tops the threat strip (\"Asherton MAJOR flood cresting near record · Devils River wave rising at Pafford Crossing…\"), tap to expand on phones; (3) when a non-default map layer is on (radar, rain, cameras…), slim pills over the map name it: tap a pill to turn the layer off, ＋ opens all layers; the row disappears when nothing extra is on."
     },
     {
       "v": "v0.84.0",
@@ -318,7 +318,7 @@
     {
       "v": "v0.83.0",
       "date": "2026-07-18",
-      "line": "New map layer: road & river cameras. 656 TxDOT live traffic cams (HLS video, LIVE badge, not recorded) + 9 USGS HIVIS river cams (15-min stills with capture time, STALE badge past 45 min) — off by default, clustered 📷 markers, one-tap viewer that closes with ✕, tap-outside, or Escape. Drive Mode shows the 2 nearest cams; a gauge within 2 km of a river cam (Wimberley/Blanco) links straight to it. A camera shows one spot at one moment — verify before routing."
+      "line": "New map layer: road & river cameras. 656 TxDOT live traffic cams (HLS video, LIVE badge, not recorded) + 9 USGS HIVIS river cams (15-min stills with capture time, STALE badge past 45 min): off by default, clustered 📷 markers, one-tap viewer that closes with ✕, tap-outside, or Escape. Drive Mode shows the 2 nearest cams; a gauge within 2 km of a river cam (Wimberley/Blanco) links straight to it. A camera shows one spot at one moment: verify before routing."
     },
     {
       "v": "v0.82.1",
@@ -328,7 +328,7 @@
     {
       "v": "v0.82.0",
       "date": "2026-07-18",
-      "line": "Historical playback (the flagship ask): a collapsible bottom timeline bar over the map replays the event over 3d / 7d / 14d — drag the scrub or press ▶ (~8 fps) to watch gauge conditions rise and recover, with ▲ chapter marks at each major crest (tap to jump), a CT timestamp readout, and a NOW button that snaps back to live instantly; gauges replay from a new committed archive (data/history.json, one frame per 15 min, stale sensors badged) and radar replays from IEM's archived NEXRAD tiles when the radar layer is on; alerts, roads, crossings, and reports have no per-frame archive and stay live — the bar says so, and an amber PLAYBACK pill plus a dimmed threat strip make historical frames unmistakable. Open it from the ⏮ pill by the map controls, ▶ Playback in ⋯ More, or ?playback=1."
+      "line": "Historical playback (the flagship ask): a collapsible bottom timeline bar over the map replays the event over 3d / 7d / 14d: drag the scrub or press ▶ (~8 fps) to watch gauge conditions rise and recover, with ▲ chapter marks at each major crest (tap to jump), a CT timestamp readout, and a NOW button that snaps back to live instantly; gauges replay from a new committed archive (data/history.json, one frame per 15 min, stale sensors badged) and radar replays from IEM's archived NEXRAD tiles when the radar layer is on; alerts, roads, crossings, and reports have no per-frame archive and stay live; the bar says so, and an amber PLAYBACK pill plus a dimmed threat strip make historical frames unmistakable. Open it from the ⏮ pill by the map controls, ▶ Playback in ⋯ More, or ?playback=1."
     },
     {
       "v": "v0.81.1",
@@ -338,7 +338,7 @@
     {
       "v": "v0.81.0",
       "date": "2026-07-18",
-      "line": "Source tagging (official vs curated): signals with ambiguous provenance now carry a small badge — blue OFFICIAL for machine-fed authoritative feeds (NWS, NWPS, IEM, TxDOT/TDEM, TxGIO, USGS) and amber CURATED for operator-maintained data (notice cards, tracked crossings) — on feed cards, crossing lists and popups, road-layer popups, and the curated-driven threat chips, with tooltips explaining each; SITREP lines gain (official)/(curated) suffixes so provenance survives copy-paste."
+      "line": "Source tagging (official vs curated): signals with ambiguous provenance now carry a small badge: blue OFFICIAL for machine-fed authoritative feeds (NWS, NWPS, IEM, TxDOT/TDEM, TxGIO, USGS) and amber CURATED for operator-maintained data (notice cards, tracked crossings), on feed cards, crossing lists and popups, road-layer popups, and the curated-driven threat chips, with tooltips explaining each; SITREP lines gain (official)/(curated) suffixes so provenance survives copy-paste."
     },
     {
       "v": "v0.80.0",
@@ -348,12 +348,12 @@
     {
       "v": "v0.79.0",
       "date": "2026-07-18",
-      "line": "Recovery posture, part 1: the board now tracks road closures that clear from the live DriveTexas feed and surfaces them as ✓ REOPENED — green markers on the map, a 'Recently reopened roads' list in Resources, and low-priority ✓ rows in Drive Mode (aging out of view after 12h, kept 7 days). And when the AO goes fully quiet — no in-AO alerts, no gauges in flood, no closures — the threat strip shows a calm 'No active flood threat in the AO — monitoring N gauges' line instead of sitting empty."
+      "line": "Recovery posture, part 1: the board now tracks road closures that clear from the live DriveTexas feed and surfaces them as ✓ REOPENED: green markers on the map, a 'Recently reopened roads' list in Resources, and low-priority ✓ rows in Drive Mode (aging out of view after 12h, kept 7 days). And when the AO goes fully quiet (no in-AO alerts, no gauges in flood, no closures) the threat strip shows a calm 'No active flood threat in the AO, monitoring N gauges' line instead of sitting empty."
     },
     {
       "v": "v0.78.0",
       "date": "2026-07-18",
-      "line": "Under-the-hood maintenance: the app's single 3,200-line script was split into six modules (core, map, sources, panels, board, boot) to keep development manageable — no visible or behavioral changes."
+      "line": "Under-the-hood maintenance: the app's single 3,200-line script was split into six modules (core, map, sources, panels, board, boot) to keep development manageable, with no visible or behavioral changes."
     },
     {
       "v": "v0.77.0",
@@ -363,62 +363,62 @@
     {
       "v": "v0.76.5",
       "date": "2026-07-18",
-      "line": "The map attribution footer now collapses to a small tap-to-open ⓘ instead of a full-width bar — it was crowding the legend on landscape/short phones. Tap ⓘ to see the full credits (OSM, CARTO, Leaflet, TxDOT DriveTexas / TDEM); they're preserved (required by the map providers and our citation rule) but no longer sit over the map."
+      "line": "The map attribution footer now collapses to a small tap-to-open ⓘ instead of a full-width bar: it was crowding the legend on landscape/short phones. Tap ⓘ to see the full credits (OSM, CARTO, Leaflet, TxDOT DriveTexas / TDEM); they're preserved (required by the map providers and our citation rule) but no longer sit over the map."
     },
     {
       "v": "v0.76.4",
       "date": "2026-07-18",
-      "line": "Fix: the expanded map legend was clipped on landscape phones / when the sheet is expanded — too tall for the short map (worse after v0.76.1 added the Roads rows), cutting off the title and bottom rows. The open legend now caps its height and scrolls (title-first) instead of clipping, and scrolling it no longer zooms the map. Portrait and desktop unchanged."
+      "line": "Fix: the expanded map legend was clipped on landscape phones / when the sheet is expanded: too tall for the short map (worse after v0.76.1 added the Roads rows), cutting off the title and bottom rows. The open legend now caps its height and scrolls (title-first) instead of clipping, and scrolling it no longer zooms the map. Portrait and desktop unchanged."
     },
     {
       "v": "v0.76.3",
       "date": "2026-07-18",
-      "line": "Drive Mode now uses the live road-closure data: its nearest-hazard glance list includes the TDEM DriveTexas closures/flooded/damaged roads (⛔/🌊/⚠) ranked by distance to the closest point on each closure, alongside crossings, life-safety notices, and major gauges — so a driver sees the nearest flooded/closed road, not just gauges and curated crossings."
+      "line": "Drive Mode now uses the live road-closure data: its nearest-hazard glance list includes the TDEM DriveTexas closures/flooded/damaged roads (⛔/🌊/⚠) ranked by distance to the closest point on each closure, alongside crossings, life-safety notices, and major gauges, so a driver sees the nearest flooded/closed road, not just gauges and curated crossings."
     },
     {
       "v": "v0.76.2",
       "date": "2026-07-18",
-      "line": "Road-hazard layer now excludes construction-driven closures — TxDOT codes some construction shutdowns as 'Closure'/'Damage' (not 'Construction'), so they slipped past our condition filter and showed as red closure lines; a server-side description filter now drops 'closed due to construction' entries (4 of 102 in the AO this cycle) so the board stays flood-relevant. Null-safe: a closure with no description is still shown."
+      "line": "Road-hazard layer now excludes construction-driven closures: TxDOT codes some construction shutdowns as 'Closure'/'Damage' (not 'Construction'), so they slipped past our condition filter and showed as red closure lines; a server-side description filter now drops 'closed due to construction' entries (4 of 102 in the AO this cycle) so the board stays flood-relevant. Null-safe: a closure with no description is still shown."
     },
     {
       "v": "v0.76.1",
       "date": "2026-07-18",
-      "line": "Map legend now keys the v0.76.0 road-hazard line colors — a new 'Roads (DriveTexas)' section shows red = Road CLOSED, magenta = Flooded / high water, amber = Road damage, with colors pulled straight from ROAD_COND so they can't drift from the map. Small usability fix so the live road-closure lines are self-explanatory in the field."
+      "line": "Map legend now keys the v0.76.0 road-hazard line colors: a new 'Roads (DriveTexas)' section shows red = Road CLOSED, magenta = Flooded / high water, amber = Road damage, with colors pulled straight from ROAD_COND so they can't drift from the map. Small usability fix so the live road-closure lines are self-explanatory in the field."
     },
     {
       "v": "v0.76.0",
       "date": "2026-07-18",
-      "line": "Live road-hazard source swap: the 'Road closures / high water (TxDOT)' layer now pulls from the live TDEM DriveTexas API instead of the TxDOT HCRS_CC service, which had been frozen since Aug 2020 so the layer never showed live closures — ~100 flood-relevant hazard lines (Closure/Flooding/Damage) now render live in the AO, including the destroyed Nueces River bridge on FM 481; all fields remapped to the DriveTexas schema (full-word conditions, ISO end_time aging, numeric detour_flag) and attributed to TxDOT DriveTexas / TDEM. New 'Low-water crossings (locations · not live status)' overlay (off by default, lazy-loaded, canvas-rendered) plots 3,753 TxGIO crossing LOCATIONS across the AO — every popup and the label make clear it is a static inventory with NO live flood status. Both layers stay out of the offline cache and all KPI/threat counts and degrade to empty if their feed is down."
+      "line": "Live road-hazard source swap: the 'Road closures / high water (TxDOT)' layer now pulls from the live TDEM DriveTexas API instead of the TxDOT HCRS_CC service, which had been frozen since Aug 2020 so the layer never showed live closures: ~100 flood-relevant hazard lines (Closure/Flooding/Damage) now render live in the AO, including the destroyed Nueces River bridge on FM 481; all fields remapped to the DriveTexas schema (full-word conditions, ISO end_time aging, numeric detour_flag) and attributed to TxDOT DriveTexas / TDEM. New 'Low-water crossings (locations · not live status)' overlay (off by default, lazy-loaded, canvas-rendered) plots 3,753 TxGIO crossing LOCATIONS across the AO; every popup and the label make clear it is a static inventory with NO live flood status. Both layers stay out of the offline cache and all KPI/threat counts and degrade to empty if their feed is down."
     },
     {
       "v": "v0.75.9",
       "date": "2026-07-18",
-      "line": "Mobile-landscape usability fix: a phone held sideways used to fall into the full desktop layout (its 844–932px landscape width cleared the app's only WIDTH breakpoint) and showed no feed cards on a viewport with no vertical room. A new height-based landscape query now puts phones held sideways into a map-favoring side-by-side split — compact icon header, a narrow scrollable feed sidebar, the map filling ~60%, and a short one-line 911 footer that still taps open to the full notice; tablets and all portrait layouts are unchanged. The map now also re-tiles cleanly on device rotation."
+      "line": "Mobile-landscape usability fix: a phone held sideways used to fall into the full desktop layout (its 844-932px landscape width cleared the app's only WIDTH breakpoint) and showed no feed cards on a viewport with no vertical room. A new height-based landscape query now puts phones held sideways into a map-favoring side-by-side split: compact icon header, a narrow scrollable feed sidebar, the map filling ~60%, and a short one-line 911 footer that still taps open to the full notice; tablets and all portrait layouts are unchanged. The map now also re-tiles cleanly on device rotation."
     },
     {
       "v": "v0.75.8",
       "date": "2026-07-18",
-      "line": "Live TxDOT DriveTexas road layer — 'Road closures / high water (TxDOT)' toggle (on by default) fetches HCRS_CC flood-relevant conditions (Closed/Flood/Damage) over the AO, in-browser CORS, refreshes on cycle, ages out cleared closures via COND_END_TS, and degrades to an empty layer if the feed is down."
+      "line": "Live TxDOT DriveTexas road layer: 'Road closures / high water (TxDOT)' toggle (on by default) fetches HCRS_CC flood-relevant conditions (Closed/Flood/Damage) over the AO, in-browser CORS, refreshes on cycle, ages out cleared closures via COND_END_TS, and degrades to an empty layer if the feed is down."
     },
     {
       "v": "v0.75.7",
       "date": "2026-07-18",
-      "line": "'New notice' intake button suppressed by default — code + form kept intact, revealed by ?intake=1 (same gating as ?risk=1 / ?notes=1); static hidden attr so no boot flash."
+      "line": "'New notice' intake button suppressed by default: code + form kept intact, revealed by ?intake=1 (same gating as ?risk=1 / ?notes=1); static hidden attr so no boot flash."
     },
     {
       "v": "v0.75.6",
       "date": "2026-07-18",
-      "line": "Map recency for flash-flood iconography: the alert-polygon draw loop skips any NWS alert whose expires time is in the past, so a stale/expired alert can no longer linger on the map after a failed refresh — alerts still open (expires in the future, any age) keep drawing, so an open FF EMERGENCY/WARNING is never hidden. New lsrMaxHours=24 hard cap on live storm-report (💧) markers: a report older than 24h routes to the existing aged/history layer instead of the live layer even when the window filter is wider — suppress, not delete."
+      "line": "Map recency for flash-flood iconography: the alert-polygon draw loop skips any NWS alert whose expires time is in the past, so a stale/expired alert can no longer linger on the map after a failed refresh; alerts still open (expires in the future, any age) keep drawing, so an open FF EMERGENCY/WARNING is never hidden. New lsrMaxHours=24 hard cap on live storm-report (💧) markers: a report older than 24h routes to the existing aged/history layer instead of the live layer even when the window filter is wider: suppress, not delete."
     },
     {
       "v": "v0.75.5",
       "date": "2026-07-18",
-      "line": "Security + quality hardening pass: a crafted ?tab= URL param can no longer throw an invalid-selector exception that blanked the board on load; edge gauge-proxy rejects prototype-chain kinds cleanly; the cold-start snapshot no longer overwrites fresher live gauges in a race; gauge feed numbers are coerced and off-site links scheme-gated to http(s) as defense-in-depth; added nosniff / Referrer-Policy / X-Frame-Options headers; Escape now closes modals and the version tag is keyboard-focusable; the 'normal' gauge bucket labels stale sensors distinctly. (CSP deferred — the board loads many external tile/API origins and a strict policy could not be fully verified safe.)"
+      "line": "Security + quality hardening pass: a crafted ?tab= URL param can no longer throw an invalid-selector exception that blanked the board on load; edge gauge-proxy rejects prototype-chain kinds cleanly; the cold-start snapshot no longer overwrites fresher live gauges in a race; gauge feed numbers are coerced and off-site links scheme-gated to http(s) as defense-in-depth; added nosniff / Referrer-Policy / X-Frame-Options headers; Escape now closes modals and the version tag is keyboard-focusable; the 'normal' gauge bucket labels stale sensors distinctly. (CSP deferred: the board loads many external tile/API origins and a strict policy could not be fully verified safe.)"
     },
     {
       "v": "v0.75.4",
       "date": "2026-07-18",
-      "line": "Recency filter for dead gauges: a frozen sensor (West Nueces at Brackettville, obs stuck ~60h at MAJOR while its own forecast read no-flooding) no longer counts as an active flood gauge — a 12h staleness cutoff now suppresses stale readings from the in-flood KPI, threat strip, crest-wave, and record-watch, while the gauge stays visible and badged STALE (suppress, not delete). Fresh gauges are unaffected."
+      "line": "Recency filter for dead gauges: a frozen sensor (West Nueces at Brackettville, obs stuck ~60h at MAJOR while its own forecast read no-flooding) no longer counts as an active flood gauge: a 12h staleness cutoff now suppresses stale readings from the in-flood KPI, threat strip, crest-wave, and record-watch, while the gauge stays visible and badged STALE (suppress, not delete). Fresh gauges are unaffected."
     },
     {
       "v": "v0.75.3",
@@ -428,7 +428,7 @@
     {
       "v": "v0.75.2",
       "date": "2026-07-18",
-      "line": "Extended gauge coverage west to the Pecos: the AO bounding box now runs to -102.0 (was -101.2), so tonight's Val Verde flood wave — Pandale Crossing (PDAT2, MAJOR forecast) and Langtry (LTRT2) — shows as live gauge dots with hydrographs instead of sitting off the map's west edge. Added a 'Val Verde/Pecos' quick-jump chip and widened the 'Full AO' view to match."
+      "line": "Extended gauge coverage west to the Pecos: the AO bounding box now runs to -102.0 (was -101.2), so tonight's Val Verde flood wave, Pandale Crossing (PDAT2, MAJOR forecast) and Langtry (LTRT2), shows as live gauge dots with hydrographs instead of sitting off the map's west edge. Added a 'Val Verde/Pecos' quick-jump chip and widened the 'Full AO' view to match."
     },
     {
       "v": "v0.75.1",
@@ -438,32 +438,32 @@
     {
       "v": "v0.75.0",
       "date": "2026-07-18",
-      "line": "NEW Spanish/English toggle (🌐 in the header): the app's own UI now speaks Spanish or English for the heavily Hispanic flood-affected area — tabs, the threat-to-life module, the safety modal, the 911 disclaimer, Drive Mode and the 'Am I at risk?' honesty box. Safety copy uses standard NWS/FEMA Spanish ('llame al 911', 'Dé la vuelta, no se ahogue', 'no es un sistema de despacho'); live NWS/NOAA/USGS gauge and alert data stays in English. Choice is remembered and ?lang=es deep-links. Also: 'Am I at risk?' is now hidden by default (still reachable at ?risk=1) — this is a responder/public-info board, not a consumer address lookup"
+      "line": "NEW Spanish/English toggle (🌐 in the header): the app's own UI now speaks Spanish or English for the heavily Hispanic flood-affected area: tabs, the threat-to-life module, the safety modal, the 911 disclaimer, Drive Mode and the 'Am I at risk?' honesty box. Safety copy uses standard NWS/FEMA Spanish ('llame al 911', 'Dé la vuelta, no se ahogue', 'no es un sistema de despacho'); live NWS/NOAA/USGS gauge and alert data stays in English. Choice is remembered and ?lang=es deep-links. Also: 'Am I at risk?' is now hidden by default (still reachable at ?risk=1): this is a responder/public-info board, not a consumer address lookup"
     },
     {
       "v": "v0.74.0",
       "date": "2026-07-18",
-      "line": "NEW '🏠 Am I at risk?' address check (header): type an address → geocoded to a point → a risk-glance card of the nearest river gauges (stage, category, forecast crest, trend) within 15 mi, any active NWS flood alert covering the point, and the nearest closed crossing / road notice, with one plain-language read line; flies the map and drops a 'YOUR PLACE' marker, and one tap saves the place for re-checking later. Guidance only — not a flood determination; it never says you're safe; your address is used only on your device to place the pin and is never logged or transmitted"
+      "line": "NEW '🏠 Am I at risk?' address check (header): type an address → geocoded to a point → a risk-glance card of the nearest river gauges (stage, category, forecast crest, trend) within 15 mi, any active NWS flood alert covering the point, and the nearest closed crossing / road notice, with one plain-language read line; flies the map and drops a 'YOUR PLACE' marker, and one tap saves the place for re-checking later. Guidance only: not a flood determination; it never says you're safe; your address is used only on your device to place the pin and is never logged or transmitted"
     },
     {
       "v": "v0.73.0",
       "date": "2026-07-18",
-      "line": "NEW street-level flood inundation overlay (layer control, off by default): NOAA/NWPS National Water Model inundation extent — the 'which roads go under' picture — shown as a translucent blue extent when you zoom to street level; labelled a MODELED estimate (experimental), not observed conditions, cites NOAA/NWPS and updates hourly"
+      "line": "NEW street-level flood inundation overlay (layer control, off by default): NOAA/NWPS National Water Model inundation extent (the 'which roads go under' picture) shown as a translucent blue extent when you zoom to street level; labelled a MODELED estimate (experimental), not observed conditions, cites NOAA/NWPS and updates hourly"
     },
     {
       "v": "v0.72.0",
       "date": "2026-07-18",
-      "line": "Resize control moved off the panel strip onto a small floating ▲/↕/▼ pill (bottom-right, above the chat button) — zero panel space, and Minimize is now a true full-screen map"
+      "line": "Resize control moved off the panel strip onto a small floating ▲/↕/▼ pill (bottom-right, above the chat button): zero panel space, and Minimize is now a true full-screen map"
     },
     {
       "v": "v0.71.0",
       "date": "2026-07-18",
-      "line": "Map legend now collapses to a small pill on desktop too (click to expand) — it was covering the busiest corner of the map (Eagle Pass/Del Rio cluster)"
+      "line": "Map legend now collapses to a small pill on desktop too (click to expand): it was covering the busiest corner of the map (Eagle Pass/Del Rio cluster)"
     },
     {
       "v": "v0.70.0",
       "date": "2026-07-18",
-      "line": "Bottom-sheet fixes: the Min/Half/Full buttons are now a small pill (not oversized), and the sheet no longer hijacks the 911 footer or version tag — the map flexibly fills the space so Full/Half keep the footer at the bottom"
+      "line": "Bottom-sheet fixes: the Min/Half/Full buttons are now a small pill (not oversized), and the sheet no longer hijacks the 911 footer or version tag: the map flexibly fills the space so Full/Half keep the footer at the bottom"
     },
     {
       "v": "v0.69.0",
@@ -473,17 +473,17 @@
     {
       "v": "v0.68.0",
       "date": "2026-07-18",
-      "line": "Mobile panel fix: explicit ▼ Min / ↕ Half / ▲ Full buttons (always visible) replace the hard-to-find grabber — jump straight to any size, always easy to bring the panel back"
+      "line": "Mobile panel fix: explicit ▼ Min / ↕ Half / ▲ Full buttons (always visible) replace the hard-to-find grabber: jump straight to any size, always easy to bring the panel back"
     },
     {
       "v": "v0.67.0",
       "date": "2026-07-17",
-      "line": "Mobile bottom-sheet: tap the grabber to slide the feed/alerts panel between peek (map full-screen), half, and full (panel covers the map for full-screen scroll) — the map is finally fully viewable on phones"
+      "line": "Mobile bottom-sheet: tap the grabber to slide the feed/alerts panel between peek (map full-screen), half, and full (panel covers the map for full-screen scroll): the map is finally fully viewable on phones"
     },
     {
       "v": "v0.66.0",
       "date": "2026-07-17",
-      "line": "Mobile header decluttered: Refresh/Share/Drive/theme are icon-only on phones (one uncramped row, big tap targets), the 'next in' countdown is hidden, and the app name gets room — desktop keeps full labels"
+      "line": "Mobile header decluttered: Refresh/Share/Drive/theme are icon-only on phones (one uncramped row, big tap targets), the 'next in' countdown is hidden, and the app name gets room; desktop keeps full labels"
     },
     {
       "v": "v0.65.0",
@@ -493,12 +493,12 @@
     {
       "v": "v0.64.0",
       "date": "2026-07-17",
-      "line": "NEW ⬇ Save map offline (bottom-left): caches the current view + one zoom deeper into IndexedDB so the basemap keeps drawing in canyon dead zones — works on plain LAN http, no Service Worker; basemap only, gauge/alert data still needs a connection"
+      "line": "NEW ⬇ Save map offline (bottom-left): caches the current view + one zoom deeper into IndexedDB so the basemap keeps drawing in canyon dead zones: works on plain LAN http, no Service Worker; basemap only, gauge/alert data still needs a connection"
     },
     {
       "v": "v0.63.0",
       "date": "2026-07-17",
-      "line": "NEW public RSS feed (/feed.xml — emergencies, forecast crests, notices) + subscribable crest calendar (/crests.ics); follow the event in any reader or calendar app, no account needed"
+      "line": "NEW public RSS feed (/feed.xml: emergencies, forecast crests, notices) + subscribable crest calendar (/crests.ics); follow the event in any reader or calendar app, no account needed"
     },
     {
       "v": "v0.62.0",
@@ -508,7 +508,7 @@
     {
       "v": "v0.61.0",
       "date": "2026-07-17",
-      "line": "NEW 🚗 Drive Mode: full-screen big-type nearest-hazards glance list (crossings, life-safety notices, MAJOR gauges) ranked by distance + bearing from your GPS — built for the truck; tap a row to fly there"
+      "line": "NEW 🚗 Drive Mode: full-screen big-type nearest-hazards glance list (crossings, life-safety notices, MAJOR gauges) ranked by distance + bearing from your GPS, built for the truck; tap a row to fly there"
     },
     {
       "v": "v0.60.0",
@@ -523,12 +523,12 @@
     {
       "v": "v0.58.0",
       "date": "2026-07-17",
-      "line": "NEW 🌊 Crest-Wave tracker (Gauges tab): each river's gauges in crest-arrival order with forecast ETAs — 'when does the wave reach my town' for the multi-day downstream progression; taps fly the map"
+      "line": "NEW 🌊 Crest-Wave tracker (Gauges tab): each river's gauges in crest-arrival order with forecast ETAs: 'when does the wave reach my town' for the multi-day downstream progression; taps fly the map"
     },
     {
       "v": "v0.57.0",
       "date": "2026-07-17",
-      "line": "NEW crest-of-record watch: gauges forecast near/above their all-time NWPS record crest are flagged in the threat module, on gauge cards, and in SITREP — honest margin-to-record, never an invented 'record-breaking' claim"
+      "line": "NEW crest-of-record watch: gauges forecast near/above their all-time NWPS record crest are flagged in the threat module, on gauge cards, and in SITREP: honest margin-to-record, never an invented 'record-breaking' claim"
     },
     {
       "v": "v0.56.0",
@@ -543,42 +543,42 @@
     {
       "v": "v0.54.0",
       "date": "2026-07-17",
-      "line": "Radio-ID search: type R-031 (or tap 🔍 ID) and the board filters to the card AND flies the map to its pin; Field Notes hidden by default — deep links still work"
+      "line": "Radio-ID search: type R-031 (or tap 🔍 ID) and the board filters to the card AND flies the map to its pin; Field Notes hidden by default; deep links still work"
     },
     {
       "v": "v0.53.0",
       "date": "2026-07-17",
-      "line": "Radio-speakable IDs on every feed card (R-036 style): tap to copy, shown in popups, prefixed on SITREP critical lines — 'flag R-036' now works over radio/SMS"
+      "line": "Radio-speakable IDs on every feed card (R-036 style): tap to copy, shown in popups, prefixed on SITREP critical lines: 'flag R-036' now works over radio/SMS"
     },
     {
       "v": "v0.52.0",
       "date": "2026-07-17",
-      "line": "Light theme retuned for sunlight: darker inks, stronger hairlines, and light-mode severity colors — ambers/oranges/grays no longer wash out on white"
+      "line": "Light theme retuned for sunlight: darker inks, stronger hairlines, and light-mode severity colors: ambers/oranges/grays no longer wash out on white"
     },
     {
       "v": "v0.51.0",
       "date": "2026-07-17",
-      "line": "GPS feedback: locate taps and distance filters show a pulsing 'acquiring GPS fix…' chip until the fix lands or times out (20s) — no more silent waiting"
+      "line": "GPS feedback: locate taps and distance filters show a pulsing 'acquiring GPS fix…' chip until the fix lands or times out (20s): no more silent waiting"
     },
     {
       "v": "v0.50.0",
       "date": "2026-07-17",
-      "line": "MRMS rainfall layers now show a color-scale legend on the map (ramp sampled from the live tiles, light→extreme) — no more guessing what the colors mean in the field"
+      "line": "MRMS rainfall layers now show a color-scale legend on the map (ramp sampled from the live tiles, light→extreme): no more guessing what the colors mean in the field"
     },
     {
       "v": "v0.49.0",
       "date": "2026-07-17",
-      "line": "Intake accepts typed coordinates: the lat/lon field is now editable — radio-relayed decimal coords parse, validate, pin, and pan the map; phones scroll the map into view when the form opens"
+      "line": "Intake accepts typed coordinates: the lat/lon field is now editable: radio-relayed decimal coords parse, validate, pin, and pan the map; phones scroll the map into view when the form opens"
     },
     {
       "v": "v0.48.0",
       "date": "2026-07-17",
-      "line": "NEW 🔗 Share button: one tap copies a link that reproduces your exact view — map position/zoom, active tab, Feed + Alerts filters, basemap, theme; phones get the native share sheet"
+      "line": "NEW 🔗 Share button: one tap copies a link that reproduces your exact view: map position/zoom, active tab, Feed + Alerts filters, basemap, theme; phones get the native share sheet"
     },
     {
       "v": "v0.47.0",
       "date": "2026-07-17",
-      "line": "Gauge graphs are now served from our own 3-min cache (Cloudflare edge on the public site, LAN server locally) with automatic direct-NOAA fallback — faster popups, far fewer NOAA hits during rate-limit windows"
+      "line": "Gauge graphs are now served from our own 3-min cache (Cloudflare edge on the public site, LAN server locally) with automatic direct-NOAA fallback: faster popups, far fewer NOAA hits during rate-limit windows"
     },
     {
       "v": "v0.46.0",
@@ -588,12 +588,12 @@
     {
       "v": "v0.45.0",
       "date": "2026-07-17",
-      "line": "NEW 📍 Field Notes: community/responder annotation flyout — drop-pin map notes with categories, comment threads, general posts, shareable ?note= deep links; the public mirror shows notes read-only"
+      "line": "NEW 📍 Field Notes: community/responder annotation flyout: drop-pin map notes with categories, comment threads, general posts, shareable ?note= deep links; the public mirror shows notes read-only"
     },
     {
       "v": "v0.44.0",
       "date": "2026-07-17",
-      "line": "Command-area rework: threat strip is now a structured status module (aligned tiered stat rows, next-crest countdown, FF EMERG mini-chips), tabs never wrap their count badges, app renamed to just 'Responder TX', slimmer header — phones reclaim a big chunk of feed space"
+      "line": "Command-area rework: threat strip is now a structured status module (aligned tiered stat rows, next-crest countdown, FF EMERG mini-chips), tabs never wrap their count badges, app renamed to just 'Responder TX', slimmer header: phones reclaim a big chunk of feed space"
     },
     {
       "v": "v0.43.0",
@@ -603,7 +603,7 @@
     {
       "v": "v0.42.0",
       "date": "2026-07-17",
-      "line": "Stale-tab fix: open tabs now show a green 'Updated — tap to reload' chip when a newer build ships (no auto-reload); ticker slowed ~30% for readability"
+      "line": "Stale-tab fix: open tabs now show a green 'Updated, tap to reload' chip when a newer build ships (no auto-reload); ticker slowed ~30% for readability"
     },
     {
       "v": "v0.41.0",
@@ -613,17 +613,17 @@
     {
       "v": "v0.40.0",
       "date": "2026-07-17",
-      "line": "Radar suppression FIXED — frames were being painted over by the Streets base (z-index bug); radar now lives in its own pane above every base; opacity 0.75; past crests dropped from the next-crest chip"
+      "line": "Radar suppression FIXED: frames were being painted over by the Streets base (z-index bug); radar now lives in its own pane above every base; opacity 0.75; past crests dropped from the next-crest chip"
     },
     {
       "v": "v0.39.0",
       "date": "2026-07-17",
-      "line": "Streets (OSM) now the default basemap; radar scrub covers the full 2h history with fluid crossfade playback (no redraw); honest future-cast label — free feed dropped nowcast, alternative source hunt queued"
+      "line": "Streets (OSM) now the default basemap; radar scrub covers the full 2h history with fluid crossfade playback (no redraw); honest future-cast label: free feed dropped nowcast, alternative source hunt queued"
     },
     {
       "v": "v0.38.0",
       "date": "2026-07-17",
-      "line": "USGS raw-stage layer auto-enables when the NWPS feed dies (and stands down on recovery) — the fallback the board held is now automatic; snapshot refreshed"
+      "line": "USGS raw-stage layer auto-enables when the NWPS feed dies (and stands down on recovery): the fallback the board held is now automatic; snapshot refreshed"
     },
     {
       "v": "v0.37.0",
@@ -638,22 +638,22 @@
     {
       "v": "v0.35.0",
       "date": "2026-07-17",
-      "line": "Radar time-scrub (past 1h + projected frames when published, play/loop, ?radar=1); radar/rainfall layers now OFF by default — explicit enable; unmissable YOU location beacon (double-ping ring + tag)"
+      "line": "Radar time-scrub (past 1h + projected frames when published, play/loop, ?radar=1); radar/rainfall layers now OFF by default: explicit enable; unmissable YOU location beacon (double-ping ring + tag)"
     },
     {
       "v": "v0.34.0",
       "date": "2026-07-17",
-      "line": "Cache fix for the public mirror (versioned assets + no-store data — fixes 'no data' on stale edge caches); NEW: RFC forecast-crest rings layer + clustered USGS raw-stage layer (224 sites, off by default); Sonora emergency EXTENDED to 1:15 PM"
+      "line": "Cache fix for the public mirror (versioned assets + no-store data: fixes 'no data' on stale edge caches); NEW: RFC forecast-crest rings layer + clustered USGS raw-stage layer (224 sites, off by default); Sonora emergency EXTENDED to 1:15 PM"
     },
     {
       "v": "v0.33.0",
       "date": "2026-07-17",
-      "line": "Notices, not requests: no manual status/archive management — curator resolves via data, resolved auto-suppresses, everything ages out; Feed tab, Active notices tile, New notice intake"
+      "line": "Notices, not requests: no manual status/archive management: curator resolves via data, resolved auto-suppresses, everything ages out; Feed tab, Active notices tile, New notice intake"
     },
     {
       "v": "v0.32.0",
       "date": "2026-07-17",
-      "line": "Chat gated LAN-only: public mirror has no chat route, code, or data — UI loads only when the local server's /api/ping answers"
+      "line": "Chat gated LAN-only: public mirror has no chat route, code, or data: UI loads only when the local server's /api/ping answers"
     },
     {
       "v": "v0.31.0",
@@ -663,7 +663,7 @@
     {
       "v": "v0.30.0",
       "date": "2026-07-17",
-      "line": "Gauge dots now have 32px tap areas (one-thumb friendly); non-flooding gauges hidden on phone; Sutherland Springs secondary bump CANCELED — falling at 33.9, forecast 33.1"
+      "line": "Gauge dots now have 32px tap areas (one-thumb friendly); non-flooding gauges hidden on phone; Sutherland Springs secondary bump CANCELED: falling at 33.9, forecast 33.1"
     },
     {
       "v": "v0.29.0",
@@ -673,12 +673,12 @@
     {
       "v": "v0.28.0",
       "date": "2026-07-17",
-      "line": "NEW Ozona/Crockett FF EMERGENCY carded (PDS wording); UX declutter — 4-button feed, collapsible filters, More menu, tap-to-expand mobile legend; card taps open the map popup; gauges tile shows 'no data' instead of false 0; banner auto-expires; 30-min release cadence"
+      "line": "NEW Ozona/Crockett FF EMERGENCY carded (PDS wording); UX declutter: 4-button feed, collapsible filters, More menu, tap-to-expand mobile legend; card taps open the map popup; gauges tile shows 'no data' instead of false 0; banner auto-expires; 30-min release cadence"
     },
     {
       "v": "v0.27.0",
       "date": "2026-07-17",
-      "line": "Rainfall layers: MRMS 1h/24h accumulation tiles in the layer control (?rain=24h deep link); Falls City crest revised — 25.2 ft MAJOR tonight ~10 PM (below record, a day earlier); Sutherland Springs secondary-bump watch; livestock-loss reports carded"
+      "line": "Rainfall layers: MRMS 1h/24h accumulation tiles in the layer control (?rain=24h deep link); Falls City crest revised: 25.2 ft MAJOR tonight ~10 PM (below record, a day earlier); Sutherland Springs secondary-bump watch; livestock-loss reports carded"
     },
     {
       "v": "v0.26.0",
@@ -713,7 +713,7 @@
     {
       "v": "v0.20.0",
       "date": "2026-07-17",
-      "line": "Event config externalized to data/event.json — board re-points to future events by swapping one file"
+      "line": "Event config externalized to data/event.json: board re-points to future events by swapping one file"
     },
     {
       "v": "v0.19.0",
@@ -723,7 +723,7 @@
     {
       "v": "v0.18.0",
       "date": "2026-07-17",
-      "line": "Export AAR: markdown after-action bundle — stats, chronological card log, situation snapshot"
+      "line": "Export AAR: markdown after-action bundle: stats, chronological card log, situation snapshot"
     },
     {
       "v": "v0.17.0",
@@ -738,7 +738,7 @@
     {
       "v": "v0.15.0",
       "date": "2026-07-17",
-      "line": "▼ falling (recovery) chip in threat strip — taps to recovering gauges"
+      "line": "▼ falling (recovery) chip in threat strip: taps to recovering gauges"
     },
     {
       "v": "v0.14.0",
@@ -773,7 +773,7 @@
     {
       "v": "v0.8.0",
       "date": "2026-07-16",
-      "line": "Seeds re-fetched every 3 min with change detection — live clients pick up curated updates"
+      "line": "Seeds re-fetched every 3 min with change detection: live clients pick up curated updates"
     },
     {
       "v": "v0.7.0",

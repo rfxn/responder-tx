@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-21T09:53:42Z",
+ "generated": "2026-07-21T10:08:43Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-21T09:38:00Z"
+  "last": "2026-07-21T09:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -142,6 +142,18 @@
    "stale": false
   },
   {
+   "lid": "COTT2",
+   "name": "Nueces River at Cotulla",
+   "peak": 21.07,
+   "peak_time": "2026-07-21T09:53:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-21T01:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": false
+  },
+  {
    "lid": "DBYT2",
    "name": "Frio River near Derby",
    "peak": 20.51,
@@ -158,18 +170,6 @@
     "exceeded": false,
     "approached": false
    },
-   "stale": false
-  },
-  {
-   "lid": "COTT2",
-   "name": "Nueces River at Cotulla",
-   "peak": 20.46,
-   "peak_time": "2026-07-21T08:53:00Z",
-   "peak_category": "major",
-   "unit": "ft",
-   "first_in_flood": "2026-07-21T01:53:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
    "stale": false
   },
   {

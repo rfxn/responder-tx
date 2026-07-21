@@ -447,7 +447,7 @@ function renderMonitors() {
     `<div class="section-title">${esc(t('mon.comms'))}</div>` +
     (state.resources.comms || []).map(monitorGroupHtml).join('') +
     `<div class="section-title">${esc(t('mon.workflow.head'))}</div>` +
-    '<div class="resource-item">1. Sweep each search every 15–30 min. 2. For actionable posts, tap “＋ New notice”, click the map to drop the pin, paste the post URL as source. 3. Verify (cross-reference official channels or call back) before tasking. 4. Anything life-threatening → relay to 911/EOC immediately; this board does not dispatch.</div>';
+    `<div class="resource-item">${esc(t('mon.workflow.body'))}</div>`;
 }
 
 /* ---------- threat-to-life strip ---------- */

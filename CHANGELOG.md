@@ -1,5 +1,26 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.35 · 2026-07-20 (Monitor and Resources tabs re-sliced by intent)
+
+-- New Features --
+- [New] each of the Monitor and Resources tabs now shows a one-line purpose subtitle
+      under its header, in English and Spanish, so the job of each tab is clear at a
+      glance
+- [New] the Monitor tab workflow steps are now translated into Spanish instead of
+      showing English only
+
+-- Changes --
+- [Change] renamed the "Social" tab to "Monitor": the label now matches what the tab
+           does (live searches, scanners, and road and crossing status to verify) and
+           lines up with the tab id and its share link, so every saved view and ?tab=
+           link keeps working unchanged
+- [Change] re-sliced the two tabs by purpose: low-water crossings, recently reopened
+           roads, and the data-source health readout moved onto Monitor, leaving
+           Resources as a clean directory of shelters, hotlines, trusted data, and
+           subscribe links
+- [Change] fixed the recovery-posture note so its fraud-watch pointer names the Monitor
+           tab instead of the retired "Social" label
+
 ## v0.97.34 · 2026-07-20 (continuous smooth follow-mode tracking)
 
 -- Changes --

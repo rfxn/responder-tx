@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.34') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.35') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.34') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.35') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.34') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.35') format('woff2');
 }
 
 :root {
@@ -393,6 +393,7 @@ main { flex: 1; display: flex; min-height: 0; }
 
 .section-title { font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); margin: 14px 0 6px; }
 .section-title:first-child { margin-top: 0; }
+.tab-sub { font-size: 12px; color: var(--ink-2); line-height: 1.4; margin: 2px 0 12px; }
 
 .alert-card { border-left-width: 4px; }
 .alert-card.sev-emergency { border-left-color: var(--sev-emergency); }

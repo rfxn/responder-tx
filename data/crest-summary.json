@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-21T17:54:11Z",
+ "generated": "2026-07-21T18:09:13Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-21T17:38:00Z"
+  "last": "2026-07-21T17:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -68,7 +68,7 @@
   {
    "lid": "KRRT2",
    "name": "Guadalupe River at Kerrville",
-   "peak": 29.81,
+   "peak": 30.06,
    "peak_time": "2026-07-16T10:00:00Z",
    "peak_category": "major",
    "unit": "ft",
@@ -94,8 +94,8 @@
   {
    "lid": "COTT2",
    "name": "Nueces River at Cotulla",
-   "peak": 24.85,
-   "peak_time": "2026-07-21T16:53:00Z",
+   "peak": 25.28,
+   "peak_time": "2026-07-21T17:53:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-21T01:53:00Z",

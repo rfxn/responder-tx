@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.39",
+      "date": "2026-07-21",
+      "line": "Team members no longer vanish when their phone screen locks or they switch apps. Sharing simply pauses, their last position stays on the command map, and it resumes on its own when they come back, instead of the whole team losing them the moment the screen goes dark. The 911 do-not-self-deploy safety notice is now firmer too: it closes only when you tap the acknowledgment button, not on Escape or a stray tap. Behind the scenes, the local command oversight view is now limited to devices on your own network and its access token is no longer accepted from a web link, so it cannot leak."
+    },
+    {
       "v": "v0.97.38",
       "date": "2026-07-21",
       "line": "The tab with the live searches, scanners, and road and crossing status is called Social again instead of Monitor, and it now sits at the far right of the tab bar. Only its name and place changed. What is inside it is the same, and any link or saved view you already shared still opens the same tab."

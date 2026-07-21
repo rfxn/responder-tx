@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.38') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.39') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.38') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.39') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.38') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.39') format('woff2');
 }
 
 :root {

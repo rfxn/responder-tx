@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Responder TX LAN server: static files + POST /api/chat|/api/notes -> data/*.jsonl; serves HTTPS on :8443 (self-signed) with an :8080 HTTP->HTTPS redirect when a TLS cert is present, else plain HTTP on :8080."""
 import base64
+import ipaddress
 import json
 import os
 import posixpath
@@ -69,6 +70,9 @@ class Handler(SimpleHTTPRequestHandler):
             return
         m = ADMIN_RE.match(self.path)
         if m:
+            if not self._admin_client_allowed():
+                self.send_error(403)
+                return
             self._admin_proxy(m.group(1))
             return
         m = GAUGE_RE.match(self.path)
@@ -195,6 +199,19 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Length', str(len(jpeg)))
         self.end_headers()
         self.wfile.write(jpeg)
+
+    # Gate the master-oversight fan-out (every team's live positions/trails) to LAN/loopback clients.
+    # Blocks internet-facing pulls if the host has a public IP; a peer on the same private subnet is a
+    # known, accepted limitation. Unwrap IPv4-mapped IPv6 for pre-3.13 is_private correctness.
+    def _admin_client_allowed(self):
+        try:
+            ip = ipaddress.ip_address(self.client_address[0])
+        except ValueError:
+            return False
+        mapped = getattr(ip, 'ipv4_mapped', None)
+        if mapped is not None:
+            ip = mapped
+        return ip.is_private or ip.is_loopback or ip.is_link_local
 
     # Master oversight proxy → Cloudflare token-gated registry endpoints. Injects the admin token
     # from the server env (never the browser) so the LAN command view is same-origin and secretless.

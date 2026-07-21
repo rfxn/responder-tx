@@ -735,7 +735,9 @@ async function boot() {
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
     if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
-    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#safety-modal']) {
+    // #safety-modal is intentionally absent: the 911 self-deploy gate closes only via #safety-ack (which
+    // records the acknowledgment), never on Escape or a backdrop click
+    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode']) {
       const m = $(id);
       if (m && !m.hidden) { m.hidden = true; if (id === '#drive-mode') updateDriveFreshness(); break; }
     }

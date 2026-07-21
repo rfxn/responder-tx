@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.39 · 2026-07-21 (Backgrounded members stay visible, safety gate and admin hardening)
+
+-- Bug Fixes --
+- [Fix] a team member whose phone screen locks or who switches away is no longer dropped
+      from the team the moment the screen goes dark; sharing pauses instead, their last
+      position stays on the command map, and sharing resumes on its own when they return
+- [Fix] the 911 do-not-self-deploy safety notice can no longer be dismissed with the
+      Escape key or a tap outside it; it now closes only when you tap the acknowledgment button
+- [Fix] you can once again leave follow mode by pinching or scrolling to zoom while the map
+      is gliding toward your latest location, not only by dragging the map
+
+-- Changes --
+- [Change] the LAN command oversight feed, which fans out every team's live positions, is
+           now served only to devices on the local network, and its access token is taken
+           only from a request header so it can no longer leak through a link or a server log
+
 ## v0.97.38 · 2026-07-21 (Social tab name restored, moved to far right)
 
 -- Changes --

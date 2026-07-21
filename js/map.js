@@ -260,10 +260,15 @@ function flyOpenPopup(latlng, zoom, marker) {
 // smooth=true glides to the newest fix at near-constant speed; a fresh fix retargets the in-flight pan,
 // so consecutive ~1s fixes chain into continuous motion instead of jump-then-sit.
 function progSetView(latlng, zoom, smooth) {
-  state._progMove = true;
-  clearTimeout(state._progMoveT);
-  state._progMoveT = setTimeout(() => { state._progMove = false; }, smooth ? 1600 : 700); // net if the move is a no-op and no moveend fires
-  if (smooth && (zoom == null || zoom === state.map.getZoom())) {
+  // arm the zoomstart guard ONLY for a zoom-changing move — that is the only case that fires zoomstart.
+  // a pure pan/glide leaves _progMove false so a user pinch/scroll-zoom mid-glide still exits follow.
+  const zoomChanges = zoom != null && zoom !== state.map.getZoom();
+  if (zoomChanges) {
+    state._progMove = true;
+    clearTimeout(state._progMoveT);
+    state._progMoveT = setTimeout(() => { state._progMove = false; }, smooth ? 1600 : 700); // net if the move is a no-op and no moveend fires
+  }
+  if (smooth && !zoomChanges) {
     state.map.panTo(latlng, { animate: true, duration: 1.1, easeLinearity: 0.92 }); // glide slightly longer than the ~1s fix gap, near-linear so speed stays steady
   } else {
     state.map.setView(latlng, zoom == null ? state.map.getZoom() : zoom);

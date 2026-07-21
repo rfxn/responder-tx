@@ -6,8 +6,8 @@
 export function authorized(request, env) {
   const secret = (env && env.TEAM_ADMIN_TOKEN) || '';
   if (!secret) return false;
-  const provided = request.headers.get('X-Admin-Token')
-    || new URL(request.url).searchParams.get('token') || '';
+  // header only — a query-param token leaks through access logs and referrers; the LAN proxy uses the header
+  const provided = request.headers.get('X-Admin-Token') || '';
   return timingSafeEqual(provided, secret);
 }
 

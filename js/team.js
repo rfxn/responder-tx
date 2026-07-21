@@ -547,6 +547,13 @@
       T.lastMembers = data.members || [];
       T.lastViewers = data.viewers || [];
       T.lastMarkers = data.markers || [];
+      // reaped while suspended (screen-locked past the server hold): we still hold T.active but the
+      // roster no longer lists us — hand off to the same rejoin path used after a leave beacon
+      if (T.pid && !_rejoining
+          && !T.lastMembers.some((m) => m.pid === T.pid)
+          && !T.lastViewers.some((v) => v.pid === T.pid)) {
+        _beaconLeft = true; rejoinSelf(); return;
+      }
       if (data.defaults && !T.defaults) T.defaults = data.defaults;
       applyDefaults();
       renderAll();
@@ -589,9 +596,23 @@
 
   function startSharing() {
     if (!('geolocation' in navigator)) { onPosErr(); return; }
+    if (T.watchId != null) return; // already sharing — never stack a second watch/timer
     if (window.gpsWait) gpsWait(true);
     T.watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
     T.postTimer = setInterval(postPosition, POST_MS);
+  }
+
+  // Backgrounding (screen-lock / tab-switch) PAUSES sharing without leaving: stop the GPS watch and
+  // position posts but keep T.active and our DO slot. Command keeps our last-known position (aged by
+  // the server stale window) instead of losing us the instant the screen locks. Resume restarts the
+  // watch + posts and re-polls; a member reaped during a long suspend is restored by poll's reap check.
+  function pauseSharing() {
+    if (T.active && T.role === 'member') stopWatch();
+  }
+  function resumeSharing() {
+    if (!T.active) return;
+    if (T.role === 'member') startSharing(); // idempotent — no-op if the watch is still live
+    poll();
   }
 
   /* ---------- join / leave lifecycle ---------- */
@@ -1155,11 +1176,12 @@
   function armLifecycle() {
     if (_lifecycleArmed) return;
     _lifecycleArmed = true;
-    window.addEventListener('pagehide', beaconLeave);
+    window.addEventListener('pagehide', beaconLeave); // real tab-close / navigation → leave the team
     window.addEventListener('pageshow', onForeground);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') beaconLeave();
-      else onForeground();
+      // screen-lock / tab-switch PAUSES (keeps our DO slot); it must NOT beaconLeave and delete us
+      if (document.visibilityState === 'hidden') pauseSharing();
+      else { onForeground(); resumeSharing(); }
     });
   }
 

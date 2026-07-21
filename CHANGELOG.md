@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.34 · 2026-07-20 (continuous smooth follow-mode tracking)
+
+-- Changes --
+- [Change] follow mode now tracks you continuously like a nav app: instead of jumping
+           once every 10 seconds, the map takes a live location feed and glides smoothly
+           toward each new fix at a steady, even pace, so movement reads as one fluid
+           motion at road speed; tapping locate or re-center still snaps you in, and
+           panning the map still turns following off
+
 ## v0.97.33 · 2026-07-20 (smoother follow-mode tracking)
 
 -- Changes --

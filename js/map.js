@@ -256,15 +256,15 @@ function flyOpenPopup(latlng, zoom, marker) {
   })();
 }
 
-// our own recenters/follow ticks: flag the move so its zoomstart/dragstart never reads as a manual exit.
-// smooth=true glides the map to the new fix (follow ticks) instead of snapping; the guard is held past
-// the animation via the settling moveend, with a longer safety net than the ~0.9s pan.
+// our own recenters/follow glides: flag the move so a zoom-changing recenter never self-exits follow.
+// smooth=true glides to the newest fix at near-constant speed; a fresh fix retargets the in-flight pan,
+// so consecutive ~1s fixes chain into continuous motion instead of jump-then-sit.
 function progSetView(latlng, zoom, smooth) {
   state._progMove = true;
   clearTimeout(state._progMoveT);
   state._progMoveT = setTimeout(() => { state._progMove = false; }, smooth ? 1600 : 700); // net if the move is a no-op and no moveend fires
   if (smooth && (zoom == null || zoom === state.map.getZoom())) {
-    state.map.panTo(latlng, { animate: true, duration: 0.9, easeLinearity: 0.4 }); // glide A->B between fixes
+    state.map.panTo(latlng, { animate: true, duration: 1.1, easeLinearity: 0.92 }); // glide slightly longer than the ~1s fix gap, near-linear so speed stays steady
   } else {
     state.map.setView(latlng, zoom == null ? state.map.getZoom() : zoom);
   }
@@ -544,8 +544,13 @@ function initMap() {
     // deliberate locate snaps to locateZoom once; while following we track the fix at the current zoom; otherwise the marker updates in place
     if (state.centerNextFix) { state.centerNextFix = false; progSetView(e.latlng, Math.max(state.map.getZoom(), CONFIG.locateZoom)); }
     else if (state.followMe) { progSetView(e.latlng, null, true); } // glide to the fix instead of snapping
-    renderRequests();
-    renderDriveMode(); // re-rank the glance list by the new fix
+    // marker + accuracy circle + glide update on every fix; the heavy re-rank throttles so ~1s fixes stay cheap
+    const nowMs = Date.now();
+    if (nowMs - state.driveRankAt >= CONFIG.driveLocateMs) {
+      state.driveRankAt = nowMs;
+      renderRequests();
+      renderDriveMode(); // re-rank the glance list by the new fix
+    }
     startLocTrack(); // opt-in tracker begins once the first fix lands; runs in the app and Drive Mode alike
     updateRecenterBtn();
   });
@@ -565,10 +570,11 @@ function initMap() {
       updateRecenterBtn();
     });
   }
-  // a real user pan/zoom exits follow; our own progSetView is flagged so it never self-exits
-  const exitFollow = () => { if (state._progMove || !state.followMe) return; state.followMe = false; updateRecenterBtn(); };
-  state.map.on('dragstart', exitFollow); // fires only on genuine user drags
-  state.map.on('zoomstart', exitFollow); // fires on user pinch/scroll/dblclick too, hence the _progMove guard
+  // dragstart fires ONLY on a genuine pointer drag (programmatic panTo never fires it), so exit follow
+  // unconditionally; this is what lets the user grab the map mid-glide now that a glide is almost always in flight
+  state.map.on('dragstart', () => { if (state.followMe) { state.followMe = false; updateRecenterBtn(); } });
+  // zoom (user pinch/scroll/dblclick) also exits, but our own setView-with-zoom fires zoomstart, hence the _progMove guard
+  state.map.on('zoomstart', () => { if (state._progMove || !state.followMe) return; state.followMe = false; updateRecenterBtn(); });
   state.map.on('moveend', () => { state._progMove = false; }); // clear the guard once our move settles
   state.map.on('moveend zoomend', updateRecenterBtn); // keep the pill's off-screen cue in sync
 

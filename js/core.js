@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.33';
+const APP_VERSION = 'v0.97.34';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -13,7 +13,7 @@ const CONFIG = {
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
   usgsIvBase: 'https://waterservices.usgs.gov/nwis/iv/',
   refreshMs: 180000,
-  // continuous-location cadence (app + Drive Mode): shorter steps read smoother in follow mode while driving
+  // throttle window for the heavy hazard re-rank; a continuous watch feeds the marker + follow glide every fix
   driveLocateMs: 10000,
   // zoom a deliberate locate (⌖ / re-center / follow engage) snaps to, if not already closer
   locateZoom: 14,
@@ -86,8 +86,9 @@ const state = {
   sort: 'smart',
   myPos: null,
   posLayer: null,
-  locTimer: null,
+  locWatch: false, // true while one continuous geolocation watch is registered (nav-app follow feed)
   driveFixAt: 0,
+  driveRankAt: 0, // last heavy re-rank; the marker + glide still update on every fix
   centerNextFix: false, // deliberate locates center once; periodic ticks never move the map
   followMe: false, // nav-app follow: buttons engage it, a manual pan/zoom exits it
   _progMove: false, // true during our own setView so a follow-driven move never self-exits follow

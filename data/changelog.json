@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.34",
+      "date": "2026-07-20",
+      "line": "Smoother, continuous follow tracking. When the map is following you, it now takes a live location feed and glides toward each new GPS fix at a steady pace, instead of jumping once every 10 seconds, so driving feels like one fluid motion the way a nav app does. Tapping locate or re-center still snaps you in, and panning the map still turns following off."
+    },
+    {
       "v": "v0.97.33",
       "date": "2026-07-20",
       "line": "Smoother location tracking. When the map is following you, it now glides to each new GPS fix instead of snapping across the distance, which looks much better while driving, and it updates every 10 seconds instead of 30 so the steps are smaller. Follow only runs after you tap locate or re-center, and panning the map still turns it off."

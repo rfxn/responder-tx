@@ -240,28 +240,29 @@ function renderDriveMode() {
   updateDriveFreshness();
 }
 
-/* ---------- Live location tracker — periodic re-locate in both the app and Drive Mode ---------- */
+/* ---------- Live location tracker: one continuous geolocation watch (app + Drive Mode) ---------- */
 
-// opt-in only: starts once the first granted fix lands (state.myPos); periodic ticks never move the map
+// opt-in only: starts once the first granted fix lands (state.myPos). One continuous watch streams
+// ~1s fixes so the follow glide is always fed; the fixes never move the map unless follow is engaged.
 function startLocTrack() {
-  if (state.locTimer != null) return; // idempotent — one watcher at a time, no leak on reopen
+  if (state.locWatch) return; // idempotent: exactly one watch, no leak on reopen
   if (!state.myPos) return; // no granted fix yet → nothing to keep fresh
-  state.locTimer = setInterval(() => {
-    if (document.visibilityState === 'hidden') { stopLocTrack(); return; } // no background geolocation drain
-    state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
-  }, CONFIG.driveLocateMs);
+  state.locWatch = true;
+  state.map.locate({ watch: true, enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
   updateDriveFreshness();
 }
 
 function stopLocTrack() {
-  if (state.locTimer != null) { clearInterval(state.locTimer); state.locTimer = null; }
+  if (!state.locWatch) return;
+  state.locWatch = false;
+  state.map.stopLocate(); // drop the geolocation watch; no background drain while hidden
   updateDriveFreshness();
 }
 
 function updateDriveFreshness() {
   const el = $('#drive-fresh');
   if (!el) return;
-  if ($('#drive-mode').hidden || state.locTimer == null) { el.hidden = true; return; }
+  if ($('#drive-mode').hidden || !state.locWatch) { el.hidden = true; return; }
   el.hidden = false;
   const secs = state.driveFixAt ? Math.round((Date.now() - state.driveFixAt) / 1000) : null;
   el.textContent = secs == null

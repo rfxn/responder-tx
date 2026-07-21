@@ -20,9 +20,17 @@ test('smartScore — fresh cards rank strictly by priority weight', () => {
 });
 
 test('smartScore — one half-life of age halves the score', () => {
-  const fresh = smartScore(req('critical', 0));
-  const aged = smartScore(req('critical', CONFIG.smartHalfLifeMins));
-  assert.ok(Math.abs(aged - fresh / 2) < 1e-9, `fresh=${fresh} aged=${aged}`);
+  // freeze the clock so req() and smartScore() read the same instant; otherwise sub-ms
+  // jitter between stamping ts and scoring makes the ages inexact and the equality flaky
+  const realNow = Date.now;
+  Date.now = () => 1700000000000;
+  try {
+    const fresh = smartScore(req('critical', 0));
+    const aged = smartScore(req('critical', CONFIG.smartHalfLifeMins));
+    assert.ok(Math.abs(aged - fresh / 2) < 1e-9, `fresh=${fresh} aged=${aged}`);
+  } finally {
+    Date.now = realNow;
+  }
 });
 
 test('smartScore — age decay can let a fresh card overtake a stale higher-priority one', () => {

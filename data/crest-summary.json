@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-21T03:54:01Z",
+ "generated": "2026-07-21T04:08:59Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-21T03:38:00Z"
+  "last": "2026-07-21T03:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -201,6 +201,18 @@
    "src": "usgs"
   },
   {
+   "lid": "COTT2",
+   "name": "Nueces River at Cotulla",
+   "peak": 17.09,
+   "peak_time": "2026-07-21T03:53:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-21T01:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "stale": false
+  },
+  {
    "lid": "PDAT2",
    "name": "Pecos River at Pandale Crossing",
    "peak": 15.93,
@@ -379,18 +391,6 @@
    "first_in_flood": "2026-07-18T13:58:00Z",
    "last_in_flood": "2026-07-18T22:40:00Z",
    "ongoing": false,
-   "stale": false
-  },
-  {
-   "lid": "COTT2",
-   "name": "Nueces River at Cotulla",
-   "peak": 16.32,
-   "peak_time": "2026-07-21T02:53:00Z",
-   "peak_category": "moderate",
-   "unit": "ft",
-   "first_in_flood": "2026-07-21T01:53:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
    "stale": false
   },
   {

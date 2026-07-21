@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.38",
+      "date": "2026-07-21",
+      "line": "The tab with the live searches, scanners, and road and crossing status is called Social again instead of Monitor, and it now sits at the far right of the tab bar. Only its name and place changed. What is inside it is the same, and any link or saved view you already shared still opens the same tab."
+    },
+    {
       "v": "v0.97.37",
       "date": "2026-07-20",
       "line": "The bottom-center re-center button is gone. The locate button still centers on you and turns following back on when you tap it, and now a small hint slides out next to it the moment you pan off follow, flashes a few times to point you back to that button, then tucks away on its own. The YOU marker also pulses just a few times each time you tap locate or re-center, then settles into a steady dot instead of pulsing the whole time; live tracking keeps it moving without starting the pulse over."

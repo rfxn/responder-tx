@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.38 · 2026-07-21 (Social tab name restored, moved to far right)
+
+-- Changes --
+- [Change] the tab that holds the live searches, scanners, and road and crossing status
+           is named Social again instead of Monitor, and it now sits at the far right of
+           the tab bar; only the label and the position changed, the tab contents and
+           every shared link and saved view still open it the same way
+
 ## v0.97.37 · 2026-07-20 (re-center hint drawer + pulse-then-settle location marker)
 
 -- Changes --

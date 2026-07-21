@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-21T17:39:05Z",
+ "generated": "2026-07-21T17:54:11Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-21T17:23:00Z"
+  "last": "2026-07-21T17:38:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -64,6 +64,19 @@
     "approached": true
    },
    "stale": false
+  },
+  {
+   "lid": "KRRT2",
+   "name": "Guadalupe River at Kerrville",
+   "peak": 29.81,
+   "peak_time": "2026-07-16T10:00:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T08:00:00Z",
+   "last_in_flood": "2026-07-16T20:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
   },
   {
    "lid": "UVLT2",
@@ -364,19 +377,6 @@
    "unit": "ft",
    "first_in_flood": "2026-07-16T08:00:00Z",
    "last_in_flood": "2026-07-17T18:16:04Z",
-   "ongoing": false,
-   "stale": false,
-   "src": "usgs"
-  },
-  {
-   "lid": "KRRT2",
-   "name": "Guadalupe River at Kerrville",
-   "peak": 16.9,
-   "peak_time": "2026-07-16T10:00:00Z",
-   "peak_category": "moderate",
-   "unit": "ft",
-   "first_in_flood": "2026-07-16T08:00:00Z",
-   "last_in_flood": "2026-07-16T20:00:00Z",
    "ongoing": false,
    "stale": false,
    "src": "usgs"

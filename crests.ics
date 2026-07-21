@@ -6,11 +6,11 @@ METHOD:PUBLISH
 X-WR-CALNAME:Responder TX — forecast river crests
 BEGIN:VEVENT
 UID:crest-TIDT2-20260722T180000Z@responder.rfxn.com
-DTSTAMP:20260721T233908Z
+DTSTAMP:20260721T235410Z
 DTSTART:20260722T180000Z
 DTEND:20260722T190000Z
 SUMMARY:MAJOR crest — Frio River at Tilden (28.4 ft)
-DESCRIPTION:Forecast MAJOR crest 28.4 ft (observed 23.06 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 28.4 ft (observed 23.13 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://respondertx.org/?hydro=TIDT2
 END:VEVENT
 END:VCALENDAR

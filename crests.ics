@@ -5,12 +5,12 @@ CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:Responder TX — forecast river crests
 BEGIN:VEVENT
-UID:crest-TILT2-20260727T120000Z@responder.rfxn.com
-DTSTAMP:20260722T190916Z
-DTSTART:20260727T120000Z
-DTEND:20260727T130000Z
-SUMMARY:MAJOR crest — Nueces River near Tilden (22.7 ft)
-DESCRIPTION:Forecast MAJOR crest 22.7 ft (observed 2 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
+UID:crest-TILT2-20260727T000000Z@responder.rfxn.com
+DTSTAMP:20260722T192358Z
+DTSTART:20260727T000000Z
+DTEND:20260727T010000Z
+SUMMARY:MAJOR crest — Nueces River near Tilden (23.1 ft)
+DESCRIPTION:Forecast MAJOR crest 23.1 ft (observed 2 ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.
 URL:https://respondertx.org/?hydro=TILT2
 END:VEVENT
 END:VCALENDAR

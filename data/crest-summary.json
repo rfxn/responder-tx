@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-22T18:53:14Z",
+ "generated": "2026-07-22T19:09:16Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-22T18:38:00Z"
+  "last": "2026-07-22T18:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -81,8 +81,8 @@
   {
    "lid": "TIDT2",
    "name": "Frio River at Tilden",
-   "peak": 29.87,
-   "peak_time": "2026-07-22T17:53:00Z",
+   "peak": 29.96,
+   "peak_time": "2026-07-22T18:53:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-21T18:53:00Z",
@@ -91,7 +91,7 @@
    "record": {
     "record_ft": 30.06,
     "record_date": "2002-07-10",
-    "peak_pct": 99.4,
+    "peak_pct": 99.7,
     "exceeded": false,
     "approached": true
    },

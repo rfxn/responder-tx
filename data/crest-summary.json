@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-21T23:54:10Z",
+ "generated": "2026-07-22T00:09:08Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-21T23:38:00Z"
+  "last": "2026-07-21T23:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -94,8 +94,8 @@
   {
    "lid": "COTT2",
    "name": "Nueces River at Cotulla",
-   "peak": 27.01,
-   "peak_time": "2026-07-21T22:53:00Z",
+   "peak": 27.22,
+   "peak_time": "2026-07-21T23:53:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-21T01:53:00Z",
@@ -446,8 +446,8 @@
   {
    "lid": "TIDT2",
    "name": "Frio River at Tilden",
-   "peak": 23.06,
-   "peak_time": "2026-07-21T22:53:00Z",
+   "peak": 23.13,
+   "peak_time": "2026-07-21T23:53:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-07-21T18:53:00Z",
@@ -456,7 +456,7 @@
    "record": {
     "record_ft": 30.06,
     "record_date": "2002-07-10",
-    "peak_pct": 76.7,
+    "peak_pct": 76.9,
     "exceeded": false,
     "approached": false
    },

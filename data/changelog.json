@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.49",
+      "date": "2026-07-23",
+      "line": "The Social tab is now folded into Resources, so everything you consult or share lives in one place. Resources opens with a live status of the board's data feeds: the seven sources (alerts, gauges, roads, then forecast, USGS, reports, and board data), most important first, each shown green when fresh, amber when aging, or grey when stale, with how long ago it updated and a countdown to the next refresh. Below that comes routing (low-water crossings and recently reopened roads), then shelters and hotlines, then two tidy drop-downs that stay closed until you need them: 'Monitor / verify' for the live social searches and scanner feeds, and 'Recovery & donations' for rebuild funds and aid. The clutter is gone: news live-blogs and links that just duplicated the map's own radar and gauge layers were removed, leaving the most actionable resources. Old links to the Social tab now open Resources."
+    },
+    {
       "v": "v0.97.48",
       "date": "2026-07-23",
       "line": "A tropical cyclone tracker is now available as a map layer (off by default; turn it on under the new Tropical group in the layers menu). When a storm is active it shows the National Hurricane Center forecast cone, the forecast and past track, the current and forecast storm positions, and the coastal watch and warning lines, colored by type so you can tell a hurricane warning from a tropical storm or storm surge watch at a glance. Tap any part of it for the storm name, category, top winds, movement, and advisory time. The data comes from NOAA's National Hurricane Center. When no storms are active it simply shows nothing. Also, on phones the radar and forecast legend no longer stretches across the middle of the screen; it now sits as a small chip in the bottom-right corner."

@@ -411,19 +411,28 @@ function renderGaugesTab() {
 
 /* ---------- resources & monitors ---------- */
 
+const dataLinkHtml = (d) => `<div class="resource-item"><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`;
+
 function renderResources() {
   const r = state.resources;
   if (!r) return;
   const el = $('#resources-body');
+  const recovery = r.recoveryLinks || [];
   el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
     r.shelters.map((s) => `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`).join('') +
     `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
     r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
     `<div class="section-title">${esc(t('res.data'))}</div>` +
-    r.dataLinks.map((d) => `<div class="resource-item"><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`).join('') +
+    r.dataLinks.map(dataLinkHtml).join('') +
+    (recovery.length
+      ? `<button class="aged-toggle" id="recovery-toggle">${state.showRecovery ? '▾' : '▸'} ${esc(t('res.recovery'))}</button>` +
+        `<div id="recovery-body"${state.showRecovery ? '' : ' hidden'}>${recovery.map(dataLinkHtml).join('')}</div>`
+      : '') +
     `<div class="section-title">${esc(t('res.follow'))}</div>` +
     `<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">${esc(t('res.rss'))}</a> · ${esc(t('res.rss.note'))}</div>` +
     `<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">${esc(t('res.ics'))}</a> · ${esc(t('res.ics.note'))}</div>`;
+  const rt = $('#recovery-toggle');
+  if (rt) rt.addEventListener('click', () => { state.showRecovery = !state.showRecovery; renderResources(); });
 
   state.layers.shelters.clearLayers();
   for (const s of r.shelters) {
@@ -440,14 +449,20 @@ function monitorGroupHtml(g) {
     g.links.map((l) => `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">↗ ${esc(l.label)}</a>`).join('') + '</div>';
 }
 
+// social searches + scanner/net groups, behind one default-closed disclosure
 function renderMonitors() {
   const el = $('#monitor-body');
-  el.innerHTML = `<div class="section-title">${esc(t('mon.social'))}</div>` +
-    state.resources.monitors.map(monitorGroupHtml).join('') +
-    `<div class="section-title">${esc(t('mon.comms'))}</div>` +
-    (state.resources.comms || []).map(monitorGroupHtml).join('') +
-    `<div class="section-title">${esc(t('mon.workflow.head'))}</div>` +
-    `<div class="resource-item">${esc(t('mon.workflow.body'))}</div>`;
+  if (!el) return;
+  const open = state.showMonitors;
+  const body = open
+    ? `<div class="section-title">${esc(t('mon.social'))}</div>` +
+      state.resources.monitors.map(monitorGroupHtml).join('') +
+      `<div class="section-title">${esc(t('mon.comms'))}</div>` +
+      (state.resources.comms || []).map(monitorGroupHtml).join('')
+    : '';
+  el.innerHTML = `<button class="aged-toggle" id="mon-toggle">${open ? '▾' : '▸'} ${esc(t('mon.verify'))}</button>` +
+    `<div id="mon-verify-body"${open ? '' : ' hidden'}>${body}</div>`;
+  $('#mon-toggle').addEventListener('click', () => { state.showMonitors = !state.showMonitors; renderMonitors(); });
 }
 
 /* ---------- threat-to-life strip ---------- */

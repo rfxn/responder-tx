@@ -80,18 +80,32 @@ async function refresh() {
 
 function markHealthy(source) { state.sourceHealth[source] = Date.now(); }
 
+// "updated H:MM CT · next in M:SS"; same countdown math as tickCountdown, empty before the first refresh
+function feedStatusText() {
+  if (!state.refreshAt) return '';
+  const updated = new Date(state.refreshAt - CONFIG.refreshMs)
+    .toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
+  const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
+  const next = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  return t('health.status').replace('{time}', updated).replace('{next}', next);
+}
+
+// compact colored chip row headlining Resources; life-safety sources first, then the rest
 function renderSourceHealth() {
   const el = $('#source-health');
-  if (!el) return;
-  const sources = [['alerts', 'NWS alerts'], ['gauges', 'NOAA gauges'], ['fcstMax', 'RFC forecast max'], ['usgs', 'USGS raw stage'], ['lsrs', 'Storm reports'], ['seeds', 'Board data'], ['roads', 'TxDOT roads']];
-  el.innerHTML = '<div class="section-title">Data source health</div>' +
-    '<div class="filters" style="margin-bottom:12px">' + sources.map(([k, label]) => {
-      const t = state.sourceHealth[k];
-      const age = t ? (Date.now() - t) / 60000 : Infinity;
-      const cls = age < 10 ? 'fresh' : age < 30 ? 'aging' : 'stale';
-      const when = t ? `${Math.round(age)}m ago` : 'never';
-      return `<span class="badge"><span class="fresh-dot ${cls}"></span> ${esc(label)} · ${when}</span>`;
-    }).join('') + '</div>';
+  if (!el) return; // called before seeds load
+  const sources = [['alerts', t('health.alerts')], ['gauges', t('health.gauges')], ['roads', t('health.roads')],
+    ['fcstMax', t('health.fcst')], ['usgs', t('health.usgs')], ['lsrs', t('health.reports')], ['seeds', t('health.board')]];
+  const chips = sources.map(([k, label]) => {
+    const ts = state.sourceHealth[k];
+    const age = ts ? (Date.now() - ts) / 60000 : Infinity;
+    const cls = age < 10 ? 'fresh' : age < 30 ? 'aging' : 'stale';
+    const when = ts ? ` ${Math.round(age)}m` : '';
+    return `<span class="feed-chip"><span class="fresh-dot ${cls}"></span>${esc(label)}${when}</span>`;
+  }).join(' · ');
+  el.innerHTML = `<div class="section-title">${esc(t('health.title'))}</div>` +
+    `<div class="feed-chips">${chips}</div>` +
+    `<div class="feed-status" id="feed-status">${esc(feedStatusText())}</div>`;
 }
 
 // long-lived tabs run old code forever — badge immediately, then roll to the new build once fully idle
@@ -196,6 +210,8 @@ function tickCountdown() {
   const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
   // countdown lives in the tooltip — the visible stamp stays slim; the data-age bar owns staleness
   $('#refresh-note').title = `next refresh in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const fs = $('#feed-status');
+  if (fs) fs.textContent = feedStatusText(); // live-tick the Resources feed-status countdown when present
   renderDataAgeBar();
 }
 
@@ -800,7 +816,8 @@ async function boot() {
     }
   }
 
-  const tabParam = new URLSearchParams(location.search).get('tab');
+  let tabParam = new URLSearchParams(location.search).get('tab');
+  if (tabParam === 'monitor') tabParam = 'resources'; // legacy: the Social tab merged into Resources
   // guard the selector interpolation — a crafted ?tab= (e.g. %22%5D) would throw a DOMException and abort boot()
   if (tabParam && /^[a-z-]+$/.test(tabParam)) {
     const btn = document.querySelector(`.tabs button[data-tab="tab-${tabParam}"]`);

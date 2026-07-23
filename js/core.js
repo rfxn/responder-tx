@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.48';
+const APP_VERSION = 'v0.97.49';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -115,6 +115,8 @@ const state = {
   showAged: false,
   showAgedLsrs: false,
   showAgedReopened: false,
+  showMonitors: false,
+  showRecovery: false,
   roadMemory: null,
   showAlertHist: false,
   showNormalGauges: false,

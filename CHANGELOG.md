@@ -1,5 +1,27 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.49 · 2026-07-23 (Social tab merged into Resources: one feed-status-headlined Resources tab)
+
+-- New Features --
+- [New] Resources now headlines with a compact live-feed status chip row: the seven data
+      sources (Alerts, Gauges, Roads, then Forecast, USGS, Reports, Board), life-safety
+      first, each colored fresh, aging, or stale with its age, plus an "updated H:MM CT,
+      next in M:SS" line that ticks down with the refresh countdown.
+
+-- Changes --
+- [Change] The Social tab is merged into Resources and removed; Resources now hosts, top to
+           bottom, the feed-status headline, routing (low-water crossings and recently
+           reopened roads), shelters and hotlines, a default-closed "Monitor / verify"
+           disclosure (social searches and scanner/nets), a default-closed "Recovery &
+           donations" disclosure, and an RSS and crest-calendar footer.
+- [Change] Curated Resources to the most actionable items: kept DriveTexas, Texas Flood
+           Viewer, SARiverFlood, BEXARflood, Disaster.Texas.gov, Damage.TDEM, and CrowdSource
+           Rescue inline; cut four news live-blogs, four map-redundant links (radar, NWPS,
+           WaterWatch, EWX office), the TDEM homepage, the fraud/scams monitor group, and the
+           monitor workflow paragraph.
+- [Change] Legacy ?tab=monitor deep-links and saved views now open Resources; the Team tab
+           returns to just left of Resources instead of becoming the rightmost tab.
+
 ## v0.97.48 · 2026-07-23 (Tropical cyclone tracker layer: NHC forecast cone, track, positions, and coastal watches and warnings)
 
 -- New Features --

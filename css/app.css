@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.48') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.49') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.48') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.49') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.48') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.49') format('woff2');
 }
 
 :root {
@@ -588,6 +588,11 @@ main { flex: 1; display: flex; min-height: 0; }
 .fresh-dot.recent { background: var(--sev-watch); }
 .fresh-dot.aging { background: var(--sev-warning); }
 .fresh-dot.stale { background: var(--ink-muted); }
+/* Resources tab: live-feed status chip row (life-safety sources first) */
+.feed-chips { font-size: 12px; line-height: 2; color: var(--ink-muted); margin: 0 0 4px; }
+.feed-chip { color: var(--ink-2); white-space: nowrap; }
+.feed-chip .fresh-dot { margin-right: 4px; vertical-align: middle; }
+.feed-status { font-size: 11.5px; color: var(--ink-muted); margin: 0 0 12px; }
 .badge.new-chip { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .badge.reverify { border-color: var(--sev-warning); color: var(--sev-warning); font-weight: 600; }
 .badge.reverify::before { content: '⏱'; margin-right: 3px; }

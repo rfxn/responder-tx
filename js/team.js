@@ -377,7 +377,7 @@
     if (btn) btn.click();
   }
 
-  // active team → Team floats to far-left (before Feed); on leave it returns to its home just left of Social, the rightmost tab. idempotent.
+  // active team → Team floats to far-left (before Feed); on leave it returns to its home just left of Resources, the rightmost tab. idempotent.
   function updateTeamTabOrder() {
     const tabsEl = document.querySelector('.tabs');
     const btn = tabsEl && tabsEl.querySelector('button[data-tab="tab-team"]');
@@ -386,8 +386,8 @@
       if (tabsEl.firstElementChild !== btn) tabsEl.prepend(btn);
       return;
     }
-    const social = tabsEl.querySelector('button[data-tab="tab-monitor"]');
-    if (social) { if (btn.nextElementSibling !== social) tabsEl.insertBefore(btn, social); }
+    const anchor = tabsEl.querySelector('button[data-tab="tab-resources"]');
+    if (anchor) { if (btn.nextElementSibling !== anchor) tabsEl.insertBefore(btn, anchor); }
     else if (tabsEl.lastElementChild !== btn) tabsEl.appendChild(btn);
   }
 

@@ -62,13 +62,13 @@
       "source": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
     },
     {
-      "name": "Red Cross \u2014 Uvalde County Fairplex",
+      "name": "Red Cross · Uvalde County Fairplex",
       "address": "215 Veterans Ln, Uvalde, TX",
       "county": "Uvalde",
       "lat": 29.2382,
       "lon": -99.7754,
       "status": "open",
-      "note": "American Red Cross shelter \u2014 ACCEPTS PETS",
+      "note": "American Red Cross shelter · ACCEPTS PETS",
       "source": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
     },
     {
@@ -83,7 +83,7 @@
     },
     {
       "name": "Medina County / City of Hondo evacuee shelter",
-      "address": "Hondo, TX \u2014 location via Medina County OEM",
+      "address": "Hondo, TX · location via Medina County OEM",
       "county": "Medina",
       "lat": 29.3475,
       "lon": -99.1414,
@@ -93,7 +93,7 @@
     },
     {
       "name": "Llano County evacuation center",
-      "address": "Llano, TX \u2014 location via Llano County OEM",
+      "address": "Llano, TX · location via Llano County OEM",
       "county": "Llano",
       "lat": 30.7591,
       "lon": -98.675,
@@ -109,9 +109,9 @@
       "note": "Officials ask 911 be reserved for life-threatening emergencies"
     },
     {
-      "name": "Disaster Distress Helpline (24/7 call or text)",
-      "value": "800-985-5990",
-      "note": "Emotional support for anyone affected"
+      "name": "Texas 211 (non-emergency assistance)",
+      "value": "211",
+      "note": "State social services and disaster assistance referral"
     },
     {
       "name": "American Red Cross",
@@ -119,9 +119,9 @@
       "note": "Shelter info and assistance"
     },
     {
-      "name": "Texas 211 (non-emergency assistance)",
-      "value": "211",
-      "note": "State social services and disaster assistance referral"
+      "name": "Disaster Distress Helpline (24/7 call or text)",
+      "value": "800-985-5990",
+      "note": "Emotional support for anyone affected"
     },
     {
       "name": "Texas Dept. of Insurance helpline (claims questions)",
@@ -134,19 +134,19 @@
       "group": "Kerr County (Kerrville, Hunt, Ingram, Center Point, Comfort)",
       "links": [
         {
-          "label": "X live search \u2014 Kerr rescue/help",
+          "label": "X live search · Kerr rescue/help",
           "url": "https://x.com/search?q=(Kerrville%20OR%20%22Kerr%20County%22%20OR%20Ingram%20OR%20Hunt%20OR%20%22Center%20Point%22)%20(rescue%20OR%20trapped%20OR%20%22need%20help%22%20OR%20stranded%20OR%20evacuate)&f=live"
         },
         {
-          "label": "Facebook post search \u2014 Kerr County flood help",
+          "label": "Facebook post search · Kerr County flood help",
           "url": "https://www.facebook.com/search/posts/?q=Kerr%20County%20flood%20help"
         },
         {
-          "label": "Facebook \u2014 City of Kerrville (official page search)",
+          "label": "Facebook · City of Kerrville (official page search)",
           "url": "https://www.facebook.com/search/pages/?q=City%20of%20Kerrville"
         },
         {
-          "label": "Nextdoor search \u2014 Kerrville flood (login required)",
+          "label": "Nextdoor search · Kerrville flood (login required)",
           "url": "https://nextdoor.com/search/?query=Kerrville%20flood%20help"
         }
       ]
@@ -155,19 +155,19 @@
       "group": "Uvalde County (Uvalde, Knippa, Sabinal, Concan)",
       "links": [
         {
-          "label": "X live search \u2014 Uvalde rescue/help",
+          "label": "X live search · Uvalde rescue/help",
           "url": "https://x.com/search?q=(Uvalde%20OR%20Knippa%20OR%20Sabinal%20OR%20Concan)%20(rescue%20OR%20trapped%20OR%20%22need%20help%22%20OR%20stranded%20OR%20flood)&f=live"
         },
         {
-          "label": "Facebook post search \u2014 Uvalde flood help",
+          "label": "Facebook post search · Uvalde flood help",
           "url": "https://www.facebook.com/search/posts/?q=Uvalde%20flood%20help"
         },
         {
-          "label": "Facebook \u2014 Uvalde County OEM (official page search)",
+          "label": "Facebook · Uvalde County OEM (official page search)",
           "url": "https://www.facebook.com/search/pages/?q=Uvalde%20County%20Office%20of%20Emergency%20Management"
         },
         {
-          "label": "Nextdoor search \u2014 Uvalde flood (login required)",
+          "label": "Nextdoor search · Uvalde flood (login required)",
           "url": "https://nextdoor.com/search/?query=Uvalde%20flood%20help"
         }
       ]
@@ -176,15 +176,15 @@
       "group": "Blanco / Gillespie (Pedernales: Fredericksburg, Stonewall, Johnson City)",
       "links": [
         {
-          "label": "X live search \u2014 Pedernales flood help",
+          "label": "X live search · Pedernales flood help",
           "url": "https://x.com/search?q=(Pedernales%20OR%20Fredericksburg%20OR%20Stonewall%20OR%20%22Johnson%20City%22)%20(flood%20OR%20rescue%20OR%20%22need%20help%22%20OR%20trapped)&f=live"
         },
         {
-          "label": "Facebook post search \u2014 Fredericksburg flooding",
+          "label": "Facebook post search · Fredericksburg flooding",
           "url": "https://www.facebook.com/search/posts/?q=Fredericksburg%20Pedernales%20flood"
         },
         {
-          "label": "Nextdoor search \u2014 Fredericksburg flood (login required)",
+          "label": "Nextdoor search · Fredericksburg flood (login required)",
           "url": "https://nextdoor.com/search/?query=Fredericksburg%20flood"
         }
       ]
@@ -193,53 +193,27 @@
       "group": "Region-wide / official",
       "links": [
         {
-          "label": "X \u2014 @NWSSanAntonio (NWS Austin/San Antonio)",
+          "label": "X · @NWSSanAntonio (NWS Austin/San Antonio)",
           "url": "https://x.com/NWSSanAntonio"
         },
         {
-          "label": "X \u2014 @TDEM (TX Division of Emergency Management)",
+          "label": "X · @TDEM (TX Division of Emergency Management)",
           "url": "https://x.com/TDEM"
         },
         {
-          "label": "X live search \u2014 #TexasFlood / #HillCountryFlood",
+          "label": "X live search · #TexasFlood / #HillCountryFlood",
           "url": "https://x.com/search?q=%23TexasFlood%20OR%20%23HillCountryFlood&f=live"
         },
         {
-          "label": "Facebook post search \u2014 Texas Hill Country flood volunteers",
+          "label": "Facebook post search · Texas Hill Country flood volunteers",
           "url": "https://www.facebook.com/search/posts/?q=Texas%20Hill%20Country%20flood%20volunteers"
-        }
-      ]
-    },
-    {
-      "group": "Recovery vigilance \u2014 fraud & scams (post-event watch)",
-      "note": "2025 precedent: fake Venmo accounts mimicking a Kerr Co VFD, contractor upfront-payment scams, FEMA imposters. FEMA/state workers never ask for payment.",
-      "links": [
-        {
-          "label": "FTC consumer alert \u2014 donate safely, avoid scams",
-          "url": "https://consumer.ftc.gov/consumer-alerts/2025/07/help-people-affected-flooding-texas-not-scammer"
-        },
-        {
-          "label": "Texas Tribune \u2014 vetted how-to-help guide (2026 event)",
-          "url": "https://www.texastribune.org/2026/07/16/how-to-help-guide-texas-flooding-assistance/"
-        },
-        {
-          "label": "BBB Give.org \u2014 charity verification",
-          "url": "https://give.org/"
-        },
-        {
-          "label": "National Center for Disaster Fraud \u2014 report scams",
-          "url": "https://www.justice.gov/disaster-fraud"
-        },
-        {
-          "label": "X live search \u2014 flood donation scam reports",
-          "url": "https://x.com/search?q=(%22Texas%20flood%22%20OR%20Kerrville%20OR%20Uvalde)%20(scam%20OR%20fake%20OR%20fraud)%20(donation%20OR%20venmo%20OR%20gofundme)&f=live"
         }
       ]
     }
   ],
   "comms": [
     {
-      "group": "Scanner audio \u2014 Broadcastify county feeds (dispatch / fire / EMS)",
+      "group": "Scanner audio · Broadcastify county feeds (dispatch / fire / EMS)",
       "note": "Feeds are volunteer-run; count and quality vary. Uvalde has the deepest coverage (7 feeds).",
       "links": [
         {
@@ -247,7 +221,7 @@
           "url": "https://www.broadcastify.com/listen/ctid/2655"
         },
         {
-          "label": "Uvalde County \u2014 7 live feeds",
+          "label": "Uvalde County · 7 live feeds",
           "url": "https://www.broadcastify.com/listen/ctid/2754"
         },
         {
@@ -275,29 +249,29 @@
           "url": "https://www.broadcastify.com/listen/ctid/2685"
         },
         {
-          "label": "Zavala County (Crystal City \u2014 Nueces downstream)",
+          "label": "Zavala County (Crystal City · Nueces downstream)",
           "url": "https://www.broadcastify.com/listen/ctid/2776"
         }
       ]
     },
     {
       "group": "Community rescue & radio nets",
-      "note": "PulsePoint has minimal agency coverage in these rural counties and its feed is agency-opt-in \u2014 pursue as an EOC data-share (see ROADMAP), not a scrape.",
+      "note": "PulsePoint has minimal agency coverage in these rural counties and its feed is agency-opt-in · pursue as an EOC data-share (see ROADMAP), not a scrape.",
       "links": [
         {
-          "label": "CrowdSource Rescue \u2014 civilian rescue ticketing (Harvey-born)",
+          "label": "CrowdSource Rescue · civilian rescue ticketing (Harvey-born)",
           "url": "https://crowdsourcerescue.org/"
         },
         {
-          "label": "CrowdSource Rescue activation status \u2014 @cs_rescue on X",
+          "label": "CrowdSource Rescue activation status · @cs_rescue on X",
           "url": "https://x.com/cs_rescue"
         },
         {
-          "label": "OpenMHz \u2014 trunked radio system archives (search Texas)",
+          "label": "OpenMHz · trunked radio system archives (search Texas)",
           "url": "https://openmhz.com/systems"
         },
         {
-          "label": "Zello \u2014 search 'CrowdSource Rescue' / 'Cajun Navy' channels",
+          "label": "Zello · search 'CrowdSource Rescue' / 'Cajun Navy' channels",
           "url": "https://zello.com/"
         }
       ]
@@ -305,92 +279,58 @@
   ],
   "dataLinks": [
     {
-      "label": "gov.texas.gov/floodresponse \u2014 state flood recovery & rebuild hub (official)",
-      "url": "https://gov.texas.gov/floodresponse/home"
-    },
-    {
-      "label": "FEMA Emergency Declaration EM-3649 - 28 TX counties, federal emergency & Public Assistance (declared Jul 18; Individual Assistance not yet designated) (official)",
-      "url": "https://www.fema.gov/disaster/3649"
-    },
-    {
-      "label": "Damage.TDEM.Texas.gov \u2014 report damage / start claims (official)",
-      "url": "https://damage.tdem.texas.gov/"
-    },
-    {
-      "label": "Disaster.Texas.gov \u2014 shelter & resource updates (official)",
-      "url": "https://disaster.texas.gov/"
-    },
-    {
-      "label": "RebuildTX.org \u2014 verified donations (official)",
-      "url": "https://rebuildtx.org/"
-    },
-    {
-      "label": "KSAT \u2014 flooding resources & how to help roundup",
-      "url": "https://www.ksat.com/news/texas/2026/07/16/where-to-find-flooding-resources-and-how-to-help-impacted-texans/"
+      "label": "DriveTexas · live road closures (TxDOT)",
+      "url": "https://drivetexas.org/"
     },
     {
       "label": "Texas Flood Information Viewer (official state map)",
       "url": "https://map.texasflood.org/"
     },
     {
-      "label": "TPR live blog \u2014 Texas floods 2026",
-      "url": "https://www.tpr.org/live-updates/texas-floods-2026"
-    },
-    {
-      "label": "NWS radar (KEWX San Antonio)",
-      "url": "https://radar.weather.gov/station/kewx/standard"
-    },
-    {
-      "label": "NWS Austin/San Antonio office",
-      "url": "https://www.weather.gov/ewx/"
-    },
-    {
-      "label": "NOAA National Water Prediction Service (gauge detail)",
-      "url": "https://water.noaa.gov/"
-    },
-    {
-      "label": "USGS TX streamflow (WaterWatch)",
-      "url": "https://waterwatch.usgs.gov/?m=real&r=tx"
-    },
-    {
-      "label": "DriveTexas \u2014 live road closures (TxDOT)",
-      "url": "https://drivetexas.org/"
-    },
-    {
-      "label": "TDEM \u2014 Texas Division of Emergency Management",
-      "url": "https://tdem.texas.gov/"
-    },
-    {
-      "label": "Texas Tribune live blog",
-      "url": "https://www.texastribune.org/2026/07/14/texas-weather-castastrophic-flooding-forecast/"
-    },
-    {
-      "label": "KUT live updates",
-      "url": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-    },
-    {
-      "label": "Hill Country Daily Bread (38 Cascade Caverns Rd, Boerne) \u2014 cleanup buckets + emergency food",
-      "url": "https://www.hcdailybread.org/"
-    },
-    {
-      "label": "SARiverFlood \u2014 HALT crossing sensors (Wilson/Karnes/Bexar/Goliad)",
+      "label": "SARiverFlood · HALT crossing sensors (Wilson/Karnes/Bexar/Goliad)",
       "url": "https://www.sariverauthority.org/services/flood-risk/"
     },
     {
-      "label": "BEXARflood \u2014 Bexar County crossing status",
+      "label": "BEXARflood · Bexar County crossing status",
       "url": "https://bexarflood.org"
     },
     {
-      "label": "CrowdSource Rescue \u2014 ACTIVATED for Hill Country (credentialed SAR only)",
-      "url": "https://crowdsourcerescue.org/hill-country"
+      "label": "Disaster.Texas.gov · shelter & resource updates (official)",
+      "url": "https://disaster.texas.gov/"
     },
     {
-      "label": "Hill Country Flood Relief Fund (CFHC \u2014 for this event)",
+      "label": "Damage.TDEM.Texas.gov · report damage / start claims (official)",
+      "url": "https://damage.tdem.texas.gov/"
+    },
+    {
+      "label": "CrowdSource Rescue · ACTIVATED for Hill Country (credentialed SAR only)",
+      "url": "https://crowdsourcerescue.org/hill-country"
+    }
+  ],
+  "recoveryLinks": [
+    {
+      "label": "RebuildTX.org · verified donations (official)",
+      "url": "https://rebuildtx.org/"
+    },
+    {
+      "label": "Hill Country Flood Relief Fund (CFHC, for this event)",
       "url": "https://cftexashillcountry.fcsuite.com/erp/donate/create/fund?funit_id=4255"
     },
     {
-      "label": "Rebuild Texas Fund \u2014 Summer 2026 Flood Recovery",
+      "label": "Rebuild Texas Fund · Summer 2026 Flood Recovery",
       "url": "https://www.rebuildtx.org/fund/summer-2026-flood-recovery"
+    },
+    {
+      "label": "gov.texas.gov/floodresponse · state flood recovery & rebuild hub (official)",
+      "url": "https://gov.texas.gov/floodresponse/home"
+    },
+    {
+      "label": "FEMA Emergency Declaration EM-3649 · 28 TX counties, federal emergency & Public Assistance (declared Jul 18; Individual Assistance not yet designated) (official)",
+      "url": "https://www.fema.gov/disaster/3649"
+    },
+    {
+      "label": "Hill Country Daily Bread (38 Cascade Caverns Rd, Boerne) · cleanup buckets + emergency food",
+      "url": "https://www.hcdailybread.org/"
     }
   ]
 }

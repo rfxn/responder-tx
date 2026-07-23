@@ -914,8 +914,10 @@ function restoreViewState() {
   $('#flt-alert-sev').value = v.as || '';
   $('#flt-alert-q').value = v.aq || '';
   if (v.ft || v.fc || v.fq || v.fw || v.fd || (v.fs && v.fs !== 'smart') || v.aged) $('#req-filters').hidden = false;
-  if (v.tab && v.tab !== 'tab-requests' && /^[a-z-]+$/.test(v.tab)) {
-    const btn = document.querySelector(`.tabs button[data-tab="${v.tab}"]`);
+  let vtab = v.tab;
+  if (vtab === 'tab-monitor') vtab = 'tab-resources'; // legacy saved view: Social merged into Resources
+  if (vtab && vtab !== 'tab-requests' && /^[a-z-]+$/.test(vtab)) {
+    const btn = document.querySelector(`.tabs button[data-tab="${vtab}"]`);
     if (btn) btn.click();
   }
 }

@@ -1117,7 +1117,7 @@ const RTL_PAST_STEP_MS = 700;
 const RTL_FCST_STEP_MS = 900; // model hours get a beat longer — an hour of weather per step
 const RTL_RADAR_OPACITY = 0.75; // 0.6 washed out over the bright Streets base
 const FCST_OPACITY = 0.7;
-const FCST_WMS_PX = 512; // 2× supersample per 256px tile — softens HRRR's ~3km cell edges
+const FCST_WMS_PX = 256; // native 256px render; the .fcst-tiles blur already softens HRRR's ~3km cell edges
 
 const fcstLayerName = (h) => `refd_${String(h * 60).padStart(4, '0')}`;
 
@@ -1221,6 +1221,41 @@ function rtlTogglePlay() {
   rtl.timer = setTimeout(step, rtl.fut ? RTL_FCST_STEP_MS : RTL_PAST_STEP_MS);
 }
 
+// bounded per-tile reload so a tile dropped under the enable-time burst recovers instead of staying
+// permanently blank; capped so genuinely-missing tiles never loop (RainViewer 200s no-data, 404s rare)
+const TILE_RETRY_MAX = 3;
+const tileRetries = new WeakMap();
+function attachTileRetry(layer) {
+  layer.on('tileerror', (e) => {
+    const img = e.tile;
+    if (!img || !img.src) return;
+    const n = tileRetries.get(img) || 0;
+    if (n >= TILE_RETRY_MAX) return;
+    tileRetries.set(img, n + 1);
+    const base = img.src.replace(/[?&]_rtry=\d+/, '').replace(/[?&]$/, '');
+    const sep = base.includes('?') ? '&' : '?';
+    setTimeout(() => { img.src = `${base}${sep}_rtry=${n + 1}`; }, 400 + n * 300);
+  });
+}
+
+// mount the visible frame first (loads with uncontended bandwidth), then add the rest deferred once
+// it paints (or a short fallback); end state is all-frames-mounted so stepping stays opacity-only
+function radarMountFramesDeferred(r, primaryIdx) {
+  const group = state.layers.radar, layers = r.frameLayers;
+  const primary = layers[primaryIdx];
+  if (primary) group.addLayer(primary);
+  let mounted = false;
+  const mountRest = () => {
+    if (mounted) return;
+    mounted = true;
+    if (state.radar !== r) return; // a newer refresh superseded this frame set
+    layers.forEach((l, j) => { if (j !== primaryIdx && !group.hasLayer(l)) group.addLayer(l); });
+  };
+  if (!primary) { mountRest(); return; }
+  primary.once('load', mountRest);
+  setTimeout(mountRest, 1200); // fallback when the visible frame paints no tiles (offscreen)
+}
+
 async function fetchRadarFrames() {
   const res = await fetch(CONFIG.rainviewerApi);
   if (!res.ok) throw new Error(`RainViewer HTTP ${res.status}`);
@@ -1237,13 +1272,16 @@ async function fetchRadarFrames() {
   r.frameLayers = r.frames.map((f) => L.tileLayer(`${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
     pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, className: 'rtl-xfade', attribution: 'Radar: RainViewer',
   }));
-  r.frameLayers.forEach((l) => state.layers.radar.addLayer(l)); // all mounted once — stepping is opacity-only
+  r.frameLayers.forEach(attachTileRetry);
   const rf = parseInt(new URLSearchParams(location.search).get('rf'), 10); // debug/deep-link: initial frame index
+  const primaryIdx = (state.rtl.wantNow || state.rtl.fut) ? r.nowIdx
+    : keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx
+      : rf >= 0 && rf < r.frames.length ? rf : r.nowIdx;
+  radarMountFramesDeferred(r, primaryIdx); // visible frame loads first; rest mount deferred (opacity-only after)
   rtlSync();
   if (state.rtl.wantNow) { state.rtl.wantNow = false; rtlSet(r.nowIdx); } // merged enable: land on NOW once observed frames arrive
-  else if (state.rtl.fut) rtlSet(state.rtl.idx); // playhead in the model future — new frames only reshape the past segment
-  else rtlSet(keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx
-    : rf >= 0 && rf < r.frames.length ? rf : r.nowIdx);
+  else if (state.rtl.fut) rtlSet(state.rtl.idx); // playhead in the model future; new frames only reshape the past segment
+  else rtlSet(primaryIdx);
   if (wasPlaying) rtlTogglePlay();
 }
 
@@ -1261,8 +1299,9 @@ function fcstMakeHourLayer(h) {
     className: 'fcst-tiles rtl-xfade',
     attribution: 'Forecast radar: NOAA HRRR model via <a href="https://mesonet.agron.iastate.edu/">IEM</a>',
   });
-  l.wmsParams.width = l.wmsParams.height = FCST_WMS_PX; // supersampled render — initialize() pins these to tileSize
+  l.wmsParams.width = l.wmsParams.height = FCST_WMS_PX; // render size (initialize() pins these to tileSize)
   if (state.fcst.runIso) l.wmsParams._run = state.fcst.runIso; // stay on the same run as its already-mounted siblings
+  attachTileRetry(l);
   return l;
 }
 

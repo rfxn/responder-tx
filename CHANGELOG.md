@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.55 · 2026-07-23 (Radar reliability: missing radar cells now fill in instead of staying blank)
+
+-- Bug Fixes --
+- [Fix] Some radar and forecast cells could stay blank after turning the layer on:
+      enabling it loaded every animation frame at once, so any tile dropped by the
+      busy radar server had no way to recover. The layer now loads the visible "now"
+      frame first and adds the rest a moment later, and any tile that fails is retried
+      a few times, so cells fill in instead of leaving holes. The forecast layer also
+      renders at a lighter native resolution that loads faster and more reliably on
+      the slower model server.
+
 ## v0.97.54 · 2026-07-23 (Live compass heading: tap the compass to rotate the rose to your device heading)
 
 -- New Features --

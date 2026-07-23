@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.55",
+      "date": "2026-07-23",
+      "line": "Fix: some radar and forecast cells could stay blank after you switched the layer on. Turning it on used to load every animation frame at the same moment, so if the busy radar server dropped a tile there was no way to get it back and you were left with holes. Now the layer loads the visible 'now' frame first and adds the older frames a moment later, and any tile that fails to load is retried a few times, so the cells fill in instead of leaving gaps. The forecast layer also draws at a lighter resolution that loads faster and more reliably from the slower model server."
+    },
+    {
       "v": "v0.97.54",
       "date": "2026-07-23",
       "line": "New: the compass button now shows your live heading. Tap it and the compass rose spins so its red north needle keeps pointing at true north as you turn your phone, an easy way to line up the map with what is in front of you. Tap it again to lock it back to a plain north-up compass. This is an extra that only turns on where your device and browser support it: on iPhones it asks once for motion permission, and on desktops or unsupported browsers the compass simply stays north up as before, never blank or broken."

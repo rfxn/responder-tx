@@ -564,11 +564,15 @@ function initMap() {
     return div;
   };
   shareCtl.addTo(state.map);
-  // bottom-right north indicator: map is north up, so the rose points up; tap is a no-op reset-to-north until rotation exists
-  const compass = L.DomUtil.create('div', 'leaflet-bar compass-ctl', state.map.getContainer());
-  compass.innerHTML = `<a href="#" role="button" title="${esc(t('ctl.compass.title'))}" aria-label="${esc(t('ctl.compass.aria'))}" data-i18n-title="ctl.compass.title" data-i18n-aria="ctl.compass.aria">${CTL_ICON_COMPASS}</a>`;
-  L.DomEvent.disableClickPropagation(compass);
-  L.DomEvent.on(compass.firstChild, 'click', (e) => L.DomEvent.stop(e)); // north-up: nothing to reset yet
+  // north-up indicator: a matched control box directly below Share; the map is always north up, so it is a static labeled rose, not tappable
+  const compassCtl = L.control({ position: 'topright' });
+  compassCtl.onAdd = () => {
+    const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger compass-ctl');
+    div.innerHTML = `<a role="img" title="${esc(t('ctl.compass.title'))}" aria-label="${esc(t('ctl.compass.aria'))}" data-i18n-title="ctl.compass.title" data-i18n-aria="ctl.compass.aria">${CTL_ICON_COMPASS}</a>`;
+    L.DomEvent.disableClickPropagation(div);
+    return div;
+  };
+  compassCtl.addTo(state.map);
   initAoJump();
   initLayerPills();
   initLayerSheet();

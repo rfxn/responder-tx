@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.51",
+      "date": "2026-07-23",
+      "line": "The north compass now sits directly below the Share button in the top-right corner and matches its size and look, so the two read as one tidy control pair (it used to be a larger, separate compass floating in the bottom-right). It is now a clean north-up indicator; the tap that did nothing has been removed."
+    },
+    {
       "v": "v0.97.50",
       "date": "2026-07-23",
       "line": "When there is an active tropical threat to Texas, the storm now shows automatically. The tropical tracker (forecast cone, track, and watches/warnings) turns itself on the first time the Texas alert feed carries an active Storm Surge, Tropical Storm, or Hurricane Warning or Watch, so you do not have to enable it by hand during an event. If you turn it off it stays off, and it remains an opt-in layer when no tropical threat is active."

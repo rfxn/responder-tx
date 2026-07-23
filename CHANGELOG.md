@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.51 · 2026-07-23 (Compass moved under the Share button as a matching control; dead tap removed)
+
+-- Changes --
+- [Change] The north compass is now the third box in the top-right control stack, directly
+           below the Share button, and inherits that button's size and chrome so the two
+           read as a consistent pair (it was a larger, separate control floating in the
+           bottom-right). It is now an honest north-up indicator: the useless tap that did
+           nothing was removed, and it no longer relies on the LAN-only chat button for its
+           placement.
+
 ## v0.97.50 · 2026-07-23 (Tropical tracker auto-defaults ON during an active Texas tropical/hurricane threat)
 
 -- Changes --

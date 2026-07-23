@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-23T05:24:03Z",
+ "generated": "2026-07-23T05:38:56Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-23T05:08:00Z"
+  "last": "2026-07-23T05:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -138,7 +138,7 @@
   {
    "lid": "BTVT2",
    "name": "West Nueces River at Brackettville",
-   "peak": 22.87,
+   "peak": 22.86,
    "peak_time": "2026-07-15T16:00:00Z",
    "peak_category": "major",
    "unit": "ft",

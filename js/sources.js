@@ -23,6 +23,20 @@ function alertReach(p) {
 // (storm surge, tropical storm, hurricane, high wind); 2-letter VTEC lives in properties.parameters.VTEC
 const HAZARD_ALERT_RE = /flood|storm surge|tropical|hurricane|high wind|wind advisory|beach hazard/i;
 
+// active hurricane/tropical threat to the TX mainland = an unexpired storm surge / tropical storm / hurricane warning or watch
+const TROPICAL_THREAT_RE = /storm surge (warning|watch)|tropical storm (warning|watch)|hurricane (warning|watch)/i;
+function hasActiveTropicalThreat() {
+  return (state.alerts || []).some((f) => TROPICAL_THREAT_RE.test(f.properties.event || '')
+    && !(f.properties.expires && new Date(f.properties.expires) < new Date()));
+}
+// default the tropical tracker ON the first time TX has an active tropical/hurricane threat; a manual toggle-off (overlayremove) stops auto-enable
+function maybeAutoTropical() {
+  if (state.tropicalAutoDone || CONFIG.tropicalAutoEnable === false) return;
+  if (!state.map || !state.layers.tropical || !hasActiveTropicalThreat()) return;
+  state.tropicalAutoDone = true;
+  if (!state.map.hasLayer(state.layers.tropical)) state.layers.tropical.addTo(state.map);
+}
+
 async function fetchAlerts() {
   const res = await fetch(CONFIG.alertsUrl, { headers: { Accept: 'application/geo+json' } });
   if (!res.ok) throw new Error(`NWS alerts HTTP ${res.status}`);
@@ -43,6 +57,7 @@ async function fetchAlerts() {
   renderAlertList();
   await renderAlertPolys();
   renderTiles();
+  maybeAutoTropical(); // auto-enable the tracker when TX has an active tropical/hurricane threat
 }
 
 async function zoneGeometry(zoneUrl) {

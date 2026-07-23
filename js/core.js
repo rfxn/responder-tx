@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.49';
+const APP_VERSION = 'v0.97.50';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -39,6 +39,8 @@ const CONFIG = {
   // NOAA NHC active tropical cyclones via Esri Living Atlas (CORS *, keyless, native GeoJSON). Sublayers are
   // global (all active storms); off-map storms simply do not draw. 0 fcst pos, 1 obs pos, 2 fcst track, 3 obs track, 4 error cone, 5 watches/warnings
   tropicalBase: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Active_Hurricanes_v1/FeatureServer',
+  // default the tropical tracker layer ON when TX has an active tropical/hurricane warning or watch
+  tropicalAutoEnable: true,
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   // NOAA HRRR model reflectivity WMS (probed 2026-07-19): one layer per forecast minute (refd_0060…),
   // no TIME dim — layers always serve the latest run; run stamp via the per-layer metadata JSON
@@ -123,6 +125,8 @@ const state = {
   gaugeGroup: 'priority',
   inView: false,
   camGen: 0,
+  tropicalAutoDone: false, // set once the tropical tracker has been auto-enabled or manually toggled off
+
   lsCamOpen: new Set(), // camera sub-groups expanded this session (ephemeral, not persisted)
 };
 

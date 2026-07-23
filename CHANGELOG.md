@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.50 · 2026-07-23 (Tropical tracker auto-defaults ON during an active Texas tropical/hurricane threat)
+
+-- Changes --
+- [Change] The tropical-cyclone tracker layer now turns on by itself the first time
+           the Texas alert feed carries an active Storm Surge, Tropical Storm, or
+           Hurricane Warning or Watch, so the storm shows without a manual toggle
+           during an active threat. Turning it off keeps it off, and it stays opt-in
+           when no such threat is active.
+
 ## v0.97.49 · 2026-07-23 (Social tab merged into Resources: one feed-status-headlined Resources tab)
 
 -- New Features --

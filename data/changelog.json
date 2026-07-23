@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.50",
+      "date": "2026-07-23",
+      "line": "When there is an active tropical threat to Texas, the storm now shows automatically. The tropical tracker (forecast cone, track, and watches/warnings) turns itself on the first time the Texas alert feed carries an active Storm Surge, Tropical Storm, or Hurricane Warning or Watch, so you do not have to enable it by hand during an event. If you turn it off it stays off, and it remains an opt-in layer when no tropical threat is active."
+    },
+    {
       "v": "v0.97.49",
       "date": "2026-07-23",
       "line": "The Social tab is now folded into Resources, so everything you consult or share lives in one place. Resources opens with a live status of the board's data feeds: the seven sources (alerts, gauges, roads, then forecast, USGS, reports, and board data), most important first, each shown green when fresh, amber when aging, or grey when stale, with how long ago it updated and a countdown to the next refresh. Below that comes routing (low-water crossings and recently reopened roads), then shelters and hotlines, then two tidy drop-downs that stay closed until you need them: 'Monitor / verify' for the live social searches and scanner feeds, and 'Recovery & donations' for rebuild funds and aid. The clutter is gone: news live-blogs and links that just duplicated the map's own radar and gauge layers were removed, leaving the most actionable resources. Old links to the Social tab now open Resources."

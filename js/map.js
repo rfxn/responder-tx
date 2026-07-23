@@ -374,7 +374,7 @@ function initMap() {
   state.map.on('overlayremove', (e) => {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
-    if (e.layer === state.layers.tropical) hideTropicalLegend();
+    if (e.layer === state.layers.tropical) { hideTropicalLegend(); state.tropicalAutoDone = true; } // manual toggle-off stops auto-enable
     if (e.layer === state.layers.fcstRadar) fcstDisable();
     if (e.layer === state.layers.usgs) {
       if (state.usgsAutoOn && !state.usgsAutoRemoving) state.usgsFallbackDismissed = true; // user closed the auto fallback — don't re-offer until the feed recovers

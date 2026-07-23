@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-23T14:54:05Z",
+ "generated": "2026-07-23T15:12:40Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-23T14:48:00Z"
+  "last": "2026-07-23T14:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -138,7 +138,7 @@
   {
    "lid": "BTVT2",
    "name": "West Nueces River at Brackettville",
-   "peak": 22.86,
+   "peak": 22.87,
    "peak_time": "2026-07-15T16:00:00Z",
    "peak_category": "major",
    "unit": "ft",
@@ -301,6 +301,19 @@
    "stale": false
   },
   {
+   "lid": "MTPT2",
+   "name": "Tres Palacios River near Midfield",
+   "peak": 28.81,
+   "peak_time": "2026-07-15T00:00:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-07-14T14:00:00Z",
+   "last_in_flood": "2026-07-17T10:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
    "lid": "MLRT2",
    "name": "Llano River near Mason",
    "peak": 26.32,
@@ -451,6 +464,32 @@
    "stale": false
   },
   {
+   "lid": "MKTT2",
+   "name": "Mathis Creek at US 190 near Kurten",
+   "peak": 283.17,
+   "peak_time": "2026-07-15T06:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T04:00:00Z",
+   "last_in_flood": "2026-07-15T06:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "VIMT2",
+   "name": "Village Creek near Village Mills",
+   "peak": 70.87,
+   "peak_time": "2026-07-17T14:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-16T22:00:00Z",
+   "last_in_flood": "2026-07-17T14:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
    "lid": "GLIT2",
    "name": "San Antonio River at Goliad",
    "peak": 26.29,
@@ -476,6 +515,32 @@
    "src": "usgs"
   },
   {
+   "lid": "LMCT2",
+   "name": "East Mustang Creek near Louise",
+   "peak": 19.78,
+   "peak_time": "2026-07-16T00:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T18:00:00Z",
+   "last_in_flood": "2026-07-16T12:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "NCCT2",
+   "name": "Big Cow Creek near Newton",
+   "peak": 15.55,
+   "peak_time": "2026-07-15T12:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T04:00:00Z",
+   "last_in_flood": "2026-07-15T20:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
    "lid": "RWDT2",
    "name": "Dry Frio River near Reagan Wells near Uvalde 23N",
    "peak": 12.52,
@@ -489,6 +554,19 @@
    "src": "usgs"
   },
   {
+   "lid": "BOPT2",
+   "name": "Boggy Creek (E TX) at Park Road",
+   "peak": 11.89,
+   "peak_time": "2026-07-14T18:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-14T14:00:00Z",
+   "last_in_flood": "2026-07-16T10:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
    "lid": "TPHT2",
    "name": "Hondo Creek near Tarpley",
    "peak": 11.66,
@@ -497,6 +575,45 @@
    "unit": "ft",
    "first_in_flood": "2026-07-14T10:00:00Z",
    "last_in_flood": "2026-07-15T16:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "ODCT2",
+   "name": "Terry Gully at FM 1442",
+   "peak": 6.52,
+   "peak_time": "2026-07-15T08:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-15T08:00:00Z",
+   "last_in_flood": "2026-07-15T10:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "GOBT2",
+   "name": "Goode Branch at CR 773",
+   "peak": 3.73,
+   "peak_time": "2026-07-14T14:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-06T04:00:00Z",
+   "last_in_flood": "2026-07-15T18:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "LEAT2",
+   "name": "Mill Creek (E TX) at Brownlea Road",
+   "peak": 3.02,
+   "peak_time": "2026-07-11T22:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-11T22:00:00Z",
+   "last_in_flood": "2026-07-12T00:00:00Z",
    "ongoing": false,
    "stale": false,
    "src": "usgs"

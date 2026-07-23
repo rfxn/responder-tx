@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.42",
+      "date": "2026-07-23",
+      "line": "Two team fixes. Creating or joining a live team now works from the LAN board, not only the public site (it was failing with \"Could not create the team.\"). And the \"Create team\" button text is now white so it stays readable on the dark accent, instead of near-black text that was hard to see on a dark background."
+    },
+    {
       "v": "v0.97.41",
       "date": "2026-07-23",
       "line": "A small data-accuracy fix. When a river gauge's source has no current reading (a sensor briefly offline), the board now says \"no current reading\" instead of showing a placeholder \"-999 ft\". These gauges were already marked stale and left out of the flood and crest calculations, so nothing about the safety picture changes; a gauge with a real but simply old reading still shows its last value."

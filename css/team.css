@@ -35,7 +35,7 @@
 }
 .tt-btn:hover { border-color: var(--accent); }
 .tt-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.tt-btn-primary { background: var(--accent); border-color: var(--accent); color: #04121e; }
+.tt-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .tt-btn-primary:hover { filter: brightness(1.05); }
 .tt-btn-ghost { background: transparent; }
 .tt-btn-danger { background: var(--sev-emergency); border-color: var(--sev-emergency); color: #fff; }

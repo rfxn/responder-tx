@@ -46,6 +46,12 @@ DENY_PATHS = ('/data/.chat-cursor', '/data/notes-inbox.jsonl')  # HANDOFF.md now
 TEAM_ADMIN_TOKEN = os.environ.get('TEAM_ADMIN_TOKEN', '')
 TEAM_ADMIN_UPSTREAM = os.environ.get('TEAM_ADMIN_UPSTREAM', 'https://respondertx.org').rstrip('/')
 ADMIN_RE = re.compile(r'^/api/team/admin/(overview|list)$')
+# Non-admin team relay endpoints the LAN board proxies to the Cloudflare backend so team
+# create/join/live-position work same-origin on the LAN server (the Durable Object lives ONLY
+# on Cloudflare; the LAN server has no DO). Fixed allowlist, never an open proxy; admin
+# endpoints stay on the token-gated ADMIN_RE path above.
+_TEAM_UUID = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+TEAM_RE = re.compile(r'^/api/team/(?:create|' + _TEAM_UUID + r'/(?:join|leave|position|marker|unmark|update|state))$')
 ADMIN_TTL = 5
 _gauge_cache = {}
 _gauge_lock = threading.Lock()
@@ -70,10 +76,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         m = ADMIN_RE.match(self.path)
         if m:
-            if not self._admin_client_allowed():
+            if not self._lan_client_allowed():
                 self.send_error(403)
                 return
             self._admin_proxy(m.group(1))
+            return
+        if TEAM_RE.match(self.path.split('?', 1)[0]):  # GET /api/team/{id}/state polling carries ?since=
+            self._team_proxy()
             return
         m = GAUGE_RE.match(self.path)
         if m:
@@ -200,10 +209,11 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(jpeg)
 
-    # Gate the master-oversight fan-out (every team's live positions/trails) to LAN/loopback clients.
-    # Blocks internet-facing pulls if the host has a public IP; a peer on the same private subnet is a
-    # known, accepted limitation. Unwrap IPv4-mapped IPv6 for pre-3.13 is_private correctness.
-    def _admin_client_allowed(self):
+    # Gate LAN-only proxies (master-oversight fan-out AND the team relay passthrough) to
+    # LAN/loopback clients. Blocks internet-facing pulls if the host has a public IP; a peer on the
+    # same private subnet is a known, accepted limitation. Unwrap IPv4-mapped IPv6 for pre-3.13
+    # is_private correctness.
+    def _lan_client_allowed(self):
         try:
             ip = ipaddress.ip_address(self.client_address[0])
         except ValueError:
@@ -244,11 +254,50 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    # Team relay passthrough → Cloudflare. The Durable Object backend lives only on Cloudflare, so on
+    # the LAN server the same-origin /api/team/* calls the board makes have nowhere to land (they 404,
+    # which surfaces as "Could not create the team."). Forward the allowlisted non-admin endpoints
+    # verbatim (method + body + Content-Type), no admin token, LAN clients only — these are the same
+    # public endpoints anyone hits on respondertx.org, so this adds no capability, just reachability.
+    def _team_proxy(self):
+        if not self._lan_client_allowed():
+            self.send_error(403)
+            return
+        method = self.command
+        body = None
+        if method in ('POST', 'PUT'):
+            n = int(self.headers.get('Content-Length', 0) or 0)
+            if not 0 <= n <= 65536:
+                self.send_error(413)
+                return
+            body = self.rfile.read(n) if n else b''
+        headers = {'Accept': 'application/json', 'User-Agent': 'responder-tx-lan/team-proxy'}  # Cloudflare 1010-blocks the default Python-urllib UA
+        if body is not None:
+            headers['Content-Type'] = self.headers.get('Content-Type', 'application/json')
+        try:
+            req = urllib.request.Request(TEAM_ADMIN_UPSTREAM + self.path, data=body, headers=headers, method=method)
+            with urllib.request.urlopen(req, timeout=15) as r:
+                resp, status, ctype = r.read(), r.status, r.headers.get('Content-Type', 'application/json')
+        except urllib.error.HTTPError as e:  # surface the relay's status + JSON body (404 unknown team, 400 bad input, 503 relay down)
+            resp, status = e.read(), e.code
+            ctype = e.headers.get('Content-Type', 'application/json') if e.headers else 'application/json'
+        except OSError:
+            self.send_error(502)
+            return
+        self.send_response(status)
+        self.send_header('Content-Type', ctype)
+        self.send_header('Content-Length', str(len(resp)))
+        self.send_header('Cache-Control', 'no-store')
+        self.end_headers()
+        self.wfile.write(resp)
+
     def do_POST(self):
         if self.path == '/api/chat':
             self._append_chat()
         elif self.path == '/api/notes':
             self._append_note()
+        elif TEAM_RE.match(self.path.split('?', 1)[0]):
+            self._team_proxy()
         else:
             self.send_error(404)
 

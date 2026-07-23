@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.42 · 2026-07-23 (Team creation works on the LAN board; readable Create team button)
+
+-- Bug Fixes --
+- [Fix] Creating or joining a live team now works from the LAN board, not only the
+      public site. The board's same-origin /api/team/* calls had nowhere to land on the
+      LAN server (the team backend lives only on Cloudflare), so create failed with
+      "Could not create the team."; server.py now proxies the non-admin team relay
+      endpoints (create, join, leave, position, marker, unmark, update, state) to the
+      Cloudflare backend for LAN clients, admin endpoints stay token-gated.
+- [Fix] The "Create team" and other primary team buttons now use white label text for
+      legible contrast on the accent background, instead of near-black text that was
+      unreadable on the dark accent theme.
+
 ## v0.97.41 · 2026-07-23 (Gauge no-data: show "no current reading", not the -999 sentinel)
 
 -- Bug Fixes --

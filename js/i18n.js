@@ -536,7 +536,6 @@
       'team.panel.note': 'Positions are ephemeral, private to this link, and never saved.',
       'team.copylink': 'Copy the team link',
       'team.min': 'Minimize',
-      'team.stop': '⏻ Stop sharing & leave',
       'team.leave': '⏻ Leave team',
       'team.you': 'you',
       'team.seen': 'seen',
@@ -660,6 +659,10 @@
       'team.edit.short': 'Edit',
       'team.viewer.note': 'Watching only. You are not sharing a location.',
       'team.you.head': 'You',
+      'team.status.cap': 'Your status',
+      'team.status.hint': 'Set Unavailable to stop sharing but stay on the team; Leave to exit.',
+      'team.notsharing': 'Unavailable · not sharing',
+      'team.notshare': 'not sharing',
     },
 
     es: {
@@ -1188,7 +1191,6 @@
       'team.panel.note': 'Las ubicaciones son efímeras, privadas para este enlace y nunca se guardan.',
       'team.copylink': 'Copiar el enlace del equipo',
       'team.min': 'Minimizar',
-      'team.stop': '⏻ Dejar de compartir y salir',
       'team.leave': '⏻ Salir del equipo',
       'team.you': 'usted',
       'team.seen': 'visto',
@@ -1312,6 +1314,10 @@
       'team.edit.short': 'Editar',
       'team.viewer.note': 'Solo observando. No está compartiendo ubicación.',
       'team.you.head': 'Usted',
+      'team.status.cap': 'Su estado',
+      'team.status.hint': 'Ponga No disponible para dejar de compartir sin salir del equipo; Salir para irse.',
+      'team.notsharing': 'No disponible · sin compartir',
+      'team.notshare': 'sin compartir',
     },
   };
 

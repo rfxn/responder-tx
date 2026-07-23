@@ -1,5 +1,26 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.45 · 2026-07-23 (Team status: Unavailable stops sharing but keeps you on the team; clearer active status; readable buttons)
+
+-- New Features --
+- [New] Setting your team status to Unavailable now stops sharing your live location
+      while keeping you on the team: you still see the roster and map, your marker shows
+      hollow and faded as not-live, and switching back to In field, Standby, or Rehab
+      resumes sharing automatically, including after a screen-lock or reconnect.
+- [New] The self-status control now shows a "Your status" caption, marks the current
+      status with a check and a pressed look, tints each button with its status color,
+      and adds a one-line note that Unavailable stops sharing while Leave exits the team.
+
+-- Bug Fixes --
+- [Fix] selected role, marker-type, status, and K9-skill buttons now use white text so
+      they stay readable on the dark accent, instead of near-black text.
+
+-- Changes --
+- [Change] the member action button is now "Leave team" (was "Stop sharing & leave")
+           now that Unavailable handles stopping sharing without leaving; status buttons
+           expose aria-pressed, and an unavailable member shows a "not sharing" cue in
+           the roster and "Unavailable · not sharing" in the you-bar.
+
 ## v0.97.44 · 2026-07-23 (Modal accessibility: focus-trap, inert background, consistent Escape; the 911 gate stays Escape-immune)
 
 -- New Features --

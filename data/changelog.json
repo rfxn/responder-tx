@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.45",
+      "date": "2026-07-23",
+      "line": "Your team status now does something real: setting yourself Unavailable stops sharing your live location but keeps you on the team, so your crew still sees the roster and you can flip back to In field, Standby, or Rehab to start sharing again. Leaving the team is now a separate button so the two are never confused. The status control is clearer too: it labels which status you are in with a check and a pressed look, tints each button with its status color, and explains the difference between going Unavailable and leaving. Selected buttons in the team dialogs now use white text so they stay readable on the dark background."
+    },
+    {
       "v": "v0.97.44",
       "date": "2026-07-23",
       "line": "Accessibility improvements for keyboard and screen-reader users. Every pop-up dialog now keeps keyboard focus inside it while it is open, moves focus into the dialog when it opens, and returns focus to whatever you were on when it closes; the rest of the page is held inert so you cannot tab out into it by accident. Escape now closes the alert reader, the team marker and role dialogs, and the field notes panel, which previously had no keyboard way to close. The 911 safety notice keeps its single, deliberate close path: it traps focus on its acknowledgment button and never closes on Escape or an outside click, so you always confirm you have read it."

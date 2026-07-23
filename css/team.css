@@ -88,6 +88,20 @@
 .tt-stbtn.tp-st-standby.on { background: #ffd740; color: #3d2c00; border-color: #ffd740; }
 .tt-stbtn.tp-st-rehab.on { background: #4fc3f7; color: #06263d; border-color: #4fc3f7; }
 .tt-stbtn.tp-st-unavailable.on { background: var(--sev-emergency); color: #fff; border-color: var(--sev-emergency); }
+/* inactive buttons hint their status color so the row reads as a selector, not four random buttons */
+.tt-stbtn.tp-st-infield { border-left: 3px solid #69f0ae; }
+.tt-stbtn.tp-st-standby { border-left: 3px solid #ffd740; }
+.tt-stbtn.tp-st-rehab { border-left: 3px solid #4fc3f7; }
+.tt-stbtn.tp-st-unavailable { border-left: 3px solid var(--sev-emergency); }
+/* active status: pressed inset ring + leading check so the current status is unmistakable */
+.tt-stbtn.on { box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35); font-weight: 800; }
+.tt-stbtn.on::before { content: '✓ '; }
+
+.tt-statuswrap { display: flex; flex-direction: column; gap: 5px; }
+.tt-statuscap { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); }
+.tt-statushint { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; }
+.tt-sharestate { font-size: 12px; font-weight: 700; }
+.tt-sharestate-off { color: var(--sev-emergency); }
 .tt-viewnote { color: var(--ink-muted); font-size: 12px; line-height: 1.4; }
 
 .tt-listcap { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); margin-top: 2px; }
@@ -128,6 +142,7 @@
 .tp-st-standby { color: #3d2c00; background: #ffd740; }
 .tp-st-rehab { color: #06263d; background: #4fc3f7; }
 .tp-st-unavailable { color: #fff; background: var(--sev-emergency); }
+.tp-notshare { font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--sev-emergency); white-space: nowrap; }
 .tp-type {
   font-size: 10px; color: var(--ink-2); background: var(--surface-2);
   border: 1px solid var(--hairline); border-radius: 4px; padding: 2px 6px; white-space: nowrap;
@@ -208,11 +223,20 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
   flex: 1 1 auto; min-height: 44px; padding: 9px 10px; font-size: 13px; cursor: pointer;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--ink-2);
 }
-.tp-seg.on { background: var(--accent); color: #04121e; border-color: var(--accent); font-weight: 650; }
+.tp-seg.on { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 650; }
 .tp-seg.tp-st-infield.on { background: #69f0ae; color: #0b3d24; border-color: #69f0ae; }
 .tp-seg.tp-st-standby.on { background: #ffd740; color: #3d2c00; border-color: #ffd740; }
 .tp-seg.tp-st-rehab.on { background: #4fc3f7; color: #06263d; border-color: #4fc3f7; }
 .tp-seg.tp-st-unavailable.on { background: var(--sev-emergency); color: #fff; border-color: var(--sev-emergency); }
+/* match the roster status control: inactive segs hint their color, active gets the pressed ring + check */
+.tp-seg.tp-st-infield { border-left: 3px solid #69f0ae; }
+.tp-seg.tp-st-standby { border-left: 3px solid #ffd740; }
+.tp-seg.tp-st-rehab { border-left: 3px solid #4fc3f7; }
+.tp-seg.tp-st-unavailable { border-left: 3px solid var(--sev-emergency); }
+.tp-seg.tp-st-infield.on, .tp-seg.tp-st-standby.on,
+.tp-seg.tp-st-rehab.on, .tp-seg.tp-st-unavailable.on { box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35); }
+.tp-seg.tp-st-infield.on::before, .tp-seg.tp-st-standby.on::before,
+.tp-seg.tp-st-rehab.on::before, .tp-seg.tp-st-unavailable.on::before { content: '✓ '; }
 .tp-select {
   width: 100%; box-sizing: border-box; padding: 11px 10px; min-height: 44px; font-size: 14px;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--ink-1);
@@ -222,7 +246,7 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
   min-height: 40px; padding: 7px 12px; font-size: 12px; cursor: pointer; text-transform: uppercase;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--ink-2);
 }
-.tp-skillchip.on { background: var(--accent); color: #04121e; border-color: var(--accent); }
+.tp-skillchip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 /* team-type picker (create flow): a vertical stack of selectable cards, each a name + one-line desc */
 .tt-typegroup { display: flex; flex-direction: column; gap: 6px; }
@@ -256,8 +280,9 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
 }
 .team-marker.team-st-standby .tm-dot { box-shadow: 0 0 0 2px #ffab40, 0 0 0 1px rgba(0,0,0,0.5); }
 .team-marker.team-st-rehab .tm-dot { box-shadow: 0 0 0 2px #4fc3f7, 0 0 0 1px rgba(0,0,0,0.5); }
-.team-marker.team-st-unavailable { opacity: 0.5; }
-.team-marker.team-st-unavailable .tm-dot { border-style: dashed; }
+/* unavailable = soft-stopped sharing: hollow, faded dot so command reads them as not-live (not stale) */
+.team-marker.team-st-unavailable { opacity: 0.55; }
+.team-marker.team-st-unavailable .tm-dot { background: transparent; border-style: dashed; }
 
 /* shared team-dropped markers */
 .team-tm { position: relative; display: flex; align-items: flex-start; }

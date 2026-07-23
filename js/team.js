@@ -456,7 +456,7 @@
       '<div class="tp-list"></div>' +
       '<div class="tt-controls">' +
       `<button id="team-fac-btn" class="tt-btn tt-btn-ghost">🏥 ${esc(tt('team.fac.btn', 'Nearby'))}</button>` +
-      `<button id="team-leave" class="tt-btn tt-btn-danger">${esc(T.role === 'member' ? tt('team.stop', '⏻ Stop sharing & leave') : tt('team.leave', '⏻ Leave team'))}</button>` +
+      `<button id="team-leave" class="tt-btn tt-btn-danger">${esc(tt('team.leave', '⏻ Leave team'))}</button>` +
       '</div>' +
       '<div class="tp-facilities" hidden></div>' +
       `<div class="tt-foot">${esc(tt('team.panel.note', 'Positions are ephemeral, private to this link, and never saved.'))}</div>` +
@@ -479,7 +479,12 @@
     const bar = host && host.querySelector('#team-youbar');
     if (!bar) return;
     const isMember = T.role === 'member';
-    const stSeg = isMember ? STATUSES.map((s) => `<button type="button" class="tt-stbtn tp-st-${s}${T.status === s ? ' on' : ''}" data-st="${s}">${esc(stLabel(s))}</button>`).join('') : '';
+    const notSharing = isMember && T.status === 'unavailable';
+    const stSeg = isMember ? STATUSES.map((s) => {
+      const on = T.status === s;
+      return `<button type="button" class="tt-stbtn tp-st-${s}${on ? ' on' : ''}" data-st="${s}" aria-pressed="${on ? 'true' : 'false'}">${esc(stLabel(s))}</button>`;
+    }).join('') : '';
+    const statusCap = esc(tt('team.status.cap', 'Your status'));
     bar.innerHTML =
       '<div class="tt-youline">' +
       `<span class="tt-swatch" style="background:${esc(isMember ? selfColor() : '#7a8899')}">${isMember ? '' : '👁'}</span>` +
@@ -487,7 +492,12 @@
       `<button class="tt-edit" id="team-edit-btn" title="${esc(tt('team.edit', 'Edit my role, type & status'))}">✎ ${esc(tt('team.edit.short', 'Edit'))}</button>` +
       '</div>' +
       (isMember
-        ? `<div class="tt-statusrow" id="team-statusrow">${stSeg}</div>`
+        ? (notSharing ? `<div class="tt-sharestate tt-sharestate-off">${esc(tt('team.notsharing', 'Unavailable · not sharing'))}</div>` : '') +
+          '<div class="tt-statuswrap">' +
+          `<div class="tt-statuscap">${statusCap}</div>` +
+          `<div class="tt-statusrow" id="team-statusrow" role="group" aria-label="${statusCap}">${stSeg}</div>` +
+          `<div class="tt-statushint">${esc(tt('team.status.hint', 'Set Unavailable to stop sharing but stay on the team; Leave to exit.'))}</div>` +
+          '</div>'
         : `<div class="tt-viewnote">${esc(tt('team.viewer.note', 'Watching only. You are not sharing a location.'))}</div>`);
     const sr = bar.querySelector('#team-statusrow');
     if (sr) sr.addEventListener('click', (e) => { const b = e.target.closest('.tt-stbtn'); if (b && b.dataset.st !== T.status) doUpdateSelf({ status: b.dataset.st }); });
@@ -511,7 +521,7 @@
         <div class="tp-main">
           <div class="tp-line1"><span class="tp-name">${esc(m.handle)}</span>
           <span class="tp-age">${hasFix ? tt('team.seen', 'seen') + ' ' + ageStr(m.lastSeen || Date.now()) : tt('team.nofix', 'no fix')}</span></div>
-          <div class="tp-line2">${statusChip(m)}${memberMeta(m)}</div>
+          <div class="tp-line2">${statusChip(m)}${m.status === 'unavailable' ? `<span class="tp-notshare">${esc(tt('team.notshare', 'not sharing'))}</span>` : ''}${memberMeta(m)}</div>
         </div>
       </div>`);
     }
@@ -601,6 +611,7 @@
   function startSharing() {
     if (!('geolocation' in navigator)) { onPosErr(); return; }
     if (T.watchId != null) return; // already sharing — never stack a second watch/timer
+    if (T.status === 'unavailable') return; // soft stop-sharing: stay in the team (poll heartbeat) but never broadcast
     if (window.gpsWait) gpsWait(true);
     T.watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
     T.postTimer = setInterval(postPosition, POST_MS);
@@ -748,8 +759,13 @@
       if (!r.ok) { note(data.error || tt('team.updatefail', 'Could not update your profile.')); return false; }
       storeSelf(data.you);
       persistSelf(); // keep the saved identity current so a later rejoin restores the latest profile/role
-      if (T.role === 'member' && !wasMember) startSharing();
+      // reconcile sharing from BOTH role and status: a true role->viewer change drops our fix;
+      // status 'unavailable' is a soft stop (keep last-known selfPos for the faded marker, keep our slot)
       if (T.role !== 'member' && wasMember) { stopWatch(); T.selfPos = null; T.selfTrail = []; }
+      else if (T.role === 'member') {
+        if (T.status !== 'unavailable') startSharing(); // idempotent resume on active; also covers viewer->member
+        else { stopWatch(); T.selfTrail = []; } // stop broadcasting; KEEP T.selfPos as last-known
+      }
       renderYouBar();
       updateDropFab();
       poll();
@@ -879,7 +895,11 @@
     );
   }
 
-  const segSet = (root, group, val) => root.querySelectorAll(`.tp-seggroup[data-group="${group}"] .tp-seg`).forEach((b) => b.classList.toggle('on', b.dataset.val === val));
+  const segSet = (root, group, val) => root.querySelectorAll(`.tp-seggroup[data-group="${group}"] .tp-seg`).forEach((b) => {
+    const on = b.dataset.val === val;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   function segGet(root, group, fallback) {
     const b = root.querySelector(`.tp-seggroup[data-group="${group}"] .tp-seg.on`);
     return b ? b.dataset.val : fallback;

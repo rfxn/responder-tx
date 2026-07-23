@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-23T21:55:31Z",
+ "generated": "2026-07-23T22:11:10Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-23T21:38:00Z"
+  "last": "2026-07-23T21:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -485,6 +485,19 @@
    "unit": "ft",
    "first_in_flood": "2026-07-16T22:00:00Z",
    "last_in_flood": "2026-07-17T14:00:00Z",
+   "ongoing": false,
+   "stale": false,
+   "src": "usgs"
+  },
+  {
+   "lid": "JYMT2",
+   "name": "Black Creek at Highway 326",
+   "peak": 49.55,
+   "peak_time": "2026-07-15T06:00:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-07-14T16:00:00Z",
+   "last_in_flood": "2026-07-17T00:00:00Z",
    "ongoing": false,
    "stale": false,
    "src": "usgs"

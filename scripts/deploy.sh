@@ -86,19 +86,22 @@ if [ "$SKIP_LIVE" -eq 1 ]; then
     echo "skipping live smoke checks (--skip-live)"
 else
     live_ok=0
-    for attempt in 1 2 3; do
+    for attempt in $(seq 1 8); do
         live_version=""
-        if live_version=$(curl -sf --retry 3 https://respondertx.org/data/changelog.json \
+        cb=$(date +%s)  # cache-buster so an intermediary cache can't return a stale copy
+        if live_version=$(curl -sf --retry 3 "https://respondertx.org/data/changelog.json?_cb=${cb}" \
             | python3 -c "import sys,json; print(json.load(sys.stdin)['versions'][0]['v'])"); then
             if [ "$live_version" = "$version" ]; then
                 live_ok=1
                 break
             fi
         fi
-        echo "live changelog.json not yet ${version} (attempt ${attempt}/3, got '${live_version}'), waiting 10s for CDN"
-        sleep 10
+        if [ "$attempt" -lt 8 ]; then
+            echo "live changelog.json not yet ${version} (attempt ${attempt}/8, got '${live_version}'), waiting 15s for CDN propagation"
+            sleep 15
+        fi
     done
-    [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version}"
+    [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version} after ~2min (CDN propagation lag or deploy failure)"
 
     chat_status=$(curl -s -o /dev/null -w '%{http_code}' https://respondertx.org/js/chat.js) \
         || fail "curl status check for live js/chat.js failed"

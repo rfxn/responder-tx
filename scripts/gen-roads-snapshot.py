@@ -16,7 +16,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "roads-snapshot.json")
 URL = "https://services5.arcgis.com/Rvw11bGpzJNE7apK/arcgis/rest/services/DriveTexas_API/FeatureServer/0/query"
-BBOX = (-102.0, 28.0, -97.0, 31.1)
+BBOX = (-98.0, 27.5, -93.4, 31.0)
 # mirror js/sources.js roadParams — construction-coded closures excluded
 WHERE = ("condition IN ('Flooding','Closure','Damage') AND "
          "(description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')")

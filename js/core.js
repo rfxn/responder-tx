@@ -1,13 +1,13 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.46';
+const APP_VERSION = 'v0.97.47';
 
 const CONFIG = {
-  center: [29.75, -99.35],
+  center: [29.5, -95.1],
   zoom: 8,
-  // Hill Country + Uvalde/Nueces basins; widen if the event spreads
-  // widened 7/16 PM: Nueces wave moving downstream + LCRA floodgate releases on the Colorado
-  gaugeBbox: { xmin: -102.0, ymin: 28.0, xmax: -97.0, ymax: 31.1 },
+  // Upper/mid Texas coast (Matagorda to Sabine, inland to Houston/Beaumont) for TS Bertha; data/event.json
+  // overrides this per-event. Pivoted 2026-07-23 from the Hill Country box; revert both when the event clears
+  gaugeBbox: { xmin: -98.0, ymin: 27.5, xmax: -93.4, ymax: 31.0 },
   alertsUrl: 'https://api.weather.gov/alerts/active?area=TX',
   nwpsBase: 'https://api.water.noaa.gov/nwps/v1',
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
@@ -54,7 +54,7 @@ const CONFIG = {
 };
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
-const LSR_FLOOD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE/i;
+const LSR_FLOOD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE/i;
 // flood-relatedness of a road closure from its description; condition==='Flooding' is handled separately
 const FLOOD_ROAD_RE = /flood|high\s*water|water\s*over|low\s*water|washed?\s*out|overtopp|inundat|swept/i;
 const ROAD_RE = /\b(?:FM|RM|RR|CR|SH|US|IH?|LOOP|HWY)[-\s]?\d+\b/gi;

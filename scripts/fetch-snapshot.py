@@ -20,7 +20,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "gauges-snapshot.json")
 URL = ("https://api.water.noaa.gov/nwps/v1/gauges"
-       "?bbox.xmin=-102.0&bbox.ymin=28.0&bbox.xmax=-97.0&bbox.ymax=31.1"
+       "?bbox.xmin=-98.0&bbox.ymin=27.5&bbox.xmax=-93.4&bbox.ymax=31.0"
        "&srid=EPSG_4326")
 UA = "responder-tx-ops/fetch-snapshot (rfxnryan@gmail.com)"
 MIN_GAUGES = 200

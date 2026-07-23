@@ -15,7 +15,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-BBOX = (-102.0, 28.0, -97.0, 31.1)  # xmin, ymin, xmax, ymax — gauge AO, matches CONFIG.gaugeBbox
+BBOX = (-98.0, 27.5, -93.4, 31.0)  # xmin, ymin, xmax, ymax — gauge AO, matches CONFIG.gaugeBbox
 CAM_RIVER_BBOX = (-107.0, 25.5, -93.5, 33.8)  # statewide-TX river-cam clip — pulls Houston/DFW/Laredo flood-gage cams the gauge AO drops
 MAPLARGE = 'https://dtx-e-cdn.maplarge.com/Api/ProcessDirect'
 NIMS = 'https://api.waterdata.usgs.gov/nims/v0/cameras'

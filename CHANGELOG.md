@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.47 · 2026-07-23 (Coastal pivot for Tropical Storm Bertha: upper Texas coast coverage, surge and tropical alerts surfaced)
+
+-- Bug Fixes --
+- [Fix] Storm Surge, Tropical Storm, Hurricane, and High Wind alerts are no longer
+      dropped. The NWS alert feed was filtered to the literal word "flood," so the
+      most dangerous coastal warnings never appeared on the board; the filter now
+      keeps flood plus the coastal, tropical, hurricane, and wind hazard types, and
+      local storm reports keep wind and surge events too.
+
+-- Changes --
+- [Change] Coverage pivoted from the Hill Country to the upper and mid Texas coast
+           (Matagorda to Sabine, inland to Houston and Beaumont) for Tropical Storm
+           Bertha, so the board opens on the coast and river gauges, USGS stage, road
+           closures, and low-water crossings load there. Configured in data/event.json
+           and the snapshot pipeline; revert when the event clears.
+
 ## v0.97.46 · 2026-07-23 (Team: phone backgrounding no longer drops you; lost members leave a last-known tombstone; safety notices persist)
 
 -- New Features --

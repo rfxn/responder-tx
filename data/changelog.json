@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.47",
+      "date": "2026-07-23",
+      "line": "Coastal response for Tropical Storm Bertha. The board now covers the upper and mid Texas coast (Matagorda to Sabine, inland to Houston and Beaumont) instead of the Hill Country, so it opens on the coast and shows river gauges, road closures, and low-water crossings there. And a real gap is fixed: Storm Surge, Tropical Storm, Hurricane, and High Wind warnings were being dropped because the alert feed was filtered to the word \"flood,\" so the most dangerous coastal warnings never appeared; they now show. Coverage reverts to the Hill Country once Bertha clears."
+    },
+    {
       "v": "v0.97.46",
       "date": "2026-07-23",
       "line": "If you use the live team feature on your phone, switching apps or locking your screen no longer drops you from the team: you keep your spot, your color, and your breadcrumb trail instead of coming back as a brand-new blank member. When a teammate drops off the map, either because they lose signal long enough for the server to drop them or because they leave, command now keeps a faded 'last known position' marker with the time, and the roster clearly flags them as lost contact, instead of the person simply vanishing. Team messages such as 'location unavailable', 'this team has expired', 'reconnected', and 'you left the team' now appear in their own notice line in the Team tab that stays put until you dismiss it, instead of flashing once and being overwritten by the refresh clock. The location-denied warning is especially sticky because it means you are not actually sharing your location."

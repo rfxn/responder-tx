@@ -1,6 +1,6 @@
 {
   "name": "Responder TX",
-  "center": [29.75, -99.35],
+  "center": [29.5, -95.1],
   "zoom": 8,
-  "gaugeBbox": { "xmin": -102.0, "ymin": 28.0, "xmax": -97.0, "ymax": 31.1 }
+  "gaugeBbox": { "xmin": -98.0, "ymin": 27.5, "xmax": -93.4, "ymax": 31.0 }
 }

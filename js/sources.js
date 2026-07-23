@@ -19,21 +19,25 @@ function alertReach(p) {
   return m[1].replace(/\bAt\b/g, 'at').replace(/\bOf\b/g, 'of').replace(/\b(?:Nr|Near)\b/gi, 'near').trim();
 }
 
+// alert-feed allowlist: river flood plus the coastal/tropical/wind hazards the old /flood/ filter dropped
+// (storm surge, tropical storm, hurricane, high wind); 2-letter VTEC lives in properties.parameters.VTEC
+const HAZARD_ALERT_RE = /flood|storm surge|tropical|hurricane|high wind|wind advisory|beach hazard/i;
+
 async function fetchAlerts() {
   const res = await fetch(CONFIG.alertsUrl, { headers: { Accept: 'application/geo+json' } });
   if (!res.ok) throw new Error(`NWS alerts HTTP ${res.status}`);
   const data = await res.json();
-  const floods = (data.features || []).filter((f) => /flood/i.test(f.properties.event || ''));
-  floods.forEach((f) => { f._sev = alertSeverity(f.properties); });
+  const hazards = (data.features || []).filter((f) => HAZARD_ALERT_RE.test(f.properties.event || ''));
+  hazards.forEach((f) => { f._sev = alertSeverity(f.properties); });
   const rank = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
-  floods.sort((a, b) => rank[a._sev] - rank[b._sev] || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
-  const emergencies = floods.filter((f) => f._sev === 'emergency');
+  hazards.sort((a, b) => rank[a._sev] - rank[b._sev] || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
+  const emergencies = hazards.filter((f) => f._sev === 'emergency');
   const fresh = emergencies.filter((f) => !state.knownEmergencyIds.has(f.id));
   emergencies.forEach((f) => state.knownEmergencyIds.add(f.id));
   if (state.alertsLoadedOnce && fresh.length) showEmergencyBanner(fresh);
   if (!emergencies.length && !$('#emergency-banner').hidden) dismissEmergencyBanner(); // banner ages out with its alert
   state.alertsLoadedOnce = true;
-  state.alerts = floods;
+  state.alerts = hazards;
   markHealthy('alerts');
   recordAlertHist();
   renderAlertList();

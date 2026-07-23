@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.58",
+      "date": "2026-07-23",
+      "line": "New map layer: Hays County flood cams. It gathers the Hays County Office of Emergency Services flood cameras along the San Marcos corridor: Post Road and Little Arkansas Rd at the Blanco River, the FM150 Onion Creek double crossing (north and south), and the two Upper San Marcos NRCS dams. Find it under the flood cameras group in the map layers sheet; it is off by default, and tapping a camera opens the latest still with its capture time, marked stale if the image gets old, just like the other camera sources. Each camera is checked for a live picture when the camera list is rebuilt, so an offline camera is left out instead of showing a broken image."
+    },
+    {
       "v": "v0.97.57",
       "date": "2026-07-23",
       "line": "New for live teams: the team map is now interactive. Tap any teammate (or yourself) to open a popup with their handle, status, role or specialty, how long since they were last seen, and their GPS accuracy, so you can read a unit without opening the roster. You can also place a shared team marker exactly where you want it: tap the drop button to arm a 'tap the map to place' mode, shown with a crosshair and a hint banner, then tap the spot to open the marker form there; a 'Use map center' button keeps the old one-tap center drop, and the mode cancels itself on Escape, when the marker form opens, or when you switch away from the app. Your own location now draws a GPS accuracy ring on the map, and the exact accuracy in meters and feet shows in the popups, so you always know how precise a fix is."

@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.58 · 2026-07-23 (New camera layer: Hays County flood cams along the San Marcos corridor)
+
+-- New Features --
+- [New] Added a dedicated "Hays County flood cams" map layer with the Hays County
+      Office of Emergency Services flood cameras along the San Marcos corridor: Post
+      Road and Little Arkansas Rd at the Blanco River, the FM150 Onion Creek double
+      crossing (north and south), and the two Upper San Marcos NRCS dams. It lives
+      under the flood cameras group in the layer sheet, off by default, and the still
+      image opens in the viewer with its capture time, aging to a stale badge like the
+      other camera sources. Each camera is liveness-checked when the inventory is built,
+      so an offline or placeholder-only camera is left out rather than showing a broken
+      image, and the layer renders empty and error-free on older snapshots that predate
+      it.
+
 ## v0.97.57 · 2026-07-23 (Team map: tap a teammate for details, tap the map to place a marker, and see GPS accuracy)
 
 -- New Features --

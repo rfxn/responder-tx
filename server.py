@@ -28,11 +28,13 @@ CAM_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")  # matches gen-came
 CAM_DIST_RE = re.compile(r'^[A-Z]{3}$')  # ITS districts route to the base64-JSON upstream
 ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
 # Strict per-source allowlist for direct-JPEG passthrough — fixed upstream host per key, NOT an open image proxy.
-# Each source: (id-validation regex, upstream URL template with {id}).
+# Each source: (id-validation regex, upstream URL template). Templates use {id}; hays uses a composite
+# {pid}-{sid} id the proxy splits into {pid}/{sid} (DriveHQ takes two ids, not one).
 CAM_BYTES_SOURCES = {
     'austin': (re.compile(r'^[0-9]{1,8}$'), 'https://cctv.austinmobility.io/image/{id}.jpg'),
     'houston': (re.compile(r'^[0-9]{1,8}$'), 'https://www.houstontranstar.org/snapshots/cctv/{id}.jpg'),
     'arlington': (re.compile(r'^[A-Za-z0-9_-]{1,64}$'), 'https://webapps.arlingtontx.gov/webcams/{id}.jpg'),
+    'hays': (re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$'), 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'),
 }
 CAM_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some CDNs 1010-block the default urllib UA
 CAM_TTL = 120
@@ -185,7 +187,8 @@ class Handler(SimpleHTTPRequestHandler):
             hit = _cam_cache.get(key)
         entry = hit if hit and now - hit[0] < CAM_TTL else None
         if entry is None:
-            url = tmpl.format(id=cid)
+            pid, _, sid = cid.partition('-')  # composite id: {pid}-{sid} for hays; single-id sources ignore pid/sid
+            url = tmpl.format(id=cid, pid=pid, sid=sid)
             try:
                 req = urllib.request.Request(url, headers={'Accept': 'image/jpeg', 'User-Agent': CAM_UA})
                 with urllib.request.urlopen(req, timeout=15) as r:

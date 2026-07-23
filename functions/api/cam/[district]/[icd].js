@@ -7,10 +7,12 @@ const DIST_RE = /^[A-Z]{3}$/;
 const ICD_RE = /^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$/; // matches gen-cameras.py ITS_ICD_RE
 const UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'; // some CDNs 1010-block the default fetch UA
 // Strict per-source allowlist for direct-JPEG passthrough — fixed upstream host per key.
+// hays uses a composite {pid}-{sid} id (DriveHQ takes two ids); its url fn splits it back apart.
 const BYTES_SOURCES = {
   austin: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://cctv.austinmobility.io/image/${id}.jpg` },
   houston: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://www.houstontranstar.org/snapshots/cctv/${id}.jpg` },
   arlington: { idRe: /^[A-Za-z0-9_-]{1,64}$/, url: (id) => `https://webapps.arlingtontx.gov/webcams/${id}.jpg` },
+  hays: { idRe: /^[0-9]{1,12}-[0-9]{1,12}$/, url: (id) => { const [pid, sid] = id.split('-'); return `https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID=${pid}&shareID=${sid}`; } },
 };
 
 export async function onRequestGet(context) {

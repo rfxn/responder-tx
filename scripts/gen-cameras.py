@@ -2,9 +2,10 @@
 """gen-cameras.py — build data/cameras.json: TxDOT traffic cams (full statewide
 MapLarge inventory), TxDOT ITS snapshot-only cams (no HLS stream, JPEG stills
 via the district ITS API), USGS HIVIS river cams (NIMS API) inside the AO
-bbox, plus City of El Paso international-bridge live HLS cams (hand-maintained,
-liveness-checked). Run at build time; the inventory is near-static, so the
-output is committed. Stdlib only."""
+bbox, City of El Paso international-bridge live HLS cams, plus Hays County OES
+flood cams (CameraFTP/DriveHQ stills, San Marcos corridor). Hand-maintained
+sources are liveness-checked at gen time. Run at build time; the inventory is
+near-static, so the output is committed. Stdlib only."""
 
 import json
 import math
@@ -39,6 +40,18 @@ ELP_BRIDGE_CAMS = (
     {'name': 'Ysleta-Zaragoza Bridge (view 2)', 'lat': 31.6698, 'lon': -106.3272, 'file': 'BridgeZaragoza2.m3u8'},
     {'name': 'Ysleta-Zaragoza Bridge (view 3)', 'lat': 31.6698, 'lon': -106.3272, 'file': 'BridgeZaragoza3.m3u8'},
 )
+HAYS_THUMB = 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'
+HAYS_MIN_BYTES = 15000  # a live cam is a ~170 KB JPEG; DriveHQ serves a ~6 KB PNG placeholder when a head is idle/rotated
+# Hays County Office of Emergency Services flood cams (Blue Iris NVR via CameraFTP/DriveHQ). Each thumbnail
+# is liveness-checked at gen time; an idle/rotated head serves the placeholder and is dropped.
+HAYS_CAMS = (
+    {'name': 'Post Road at Blanco River', 'lat': 29.937905, 'lon': -97.894292, 'pid': 313579753, 'sid': 14844947},
+    {'name': 'Little Arkansas Rd at Blanco River', 'lat': 29.983862, 'lon': -98.052270, 'pid': 313579380, 'sid': 14844891},
+    {'name': 'FM150 at Onion Creek Double Crossing N', 'lat': 30.084686, 'lon': -98.012382, 'pid': 321464974, 'sid': 14930060},
+    {'name': 'FM150 at Onion Creek Double Crossing S', 'lat': 30.082748, 'lon': -98.007575, 'pid': 321464972, 'sid': 14930067},
+    {'name': 'NRCS Dam 4 Upper San Marcos', 'lat': 29.884379, 'lon': -98.031100, 'pid': 313579754, 'sid': 14844933},
+    {'name': 'NRCS Dam 5 Upper San Marcos', 'lat': 29.870300, 'lon': -97.968622, 'pid': 313579755, 'sid': 14844919},
+)
 BROWSER_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some hosts block the default urllib UA
 # must mirror the /api/cam proxy validators (edge + server.py); no '/' — it is the URL path separator
 ITS_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")
@@ -46,6 +59,7 @@ AUSTIN_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/austin proxy 
 HOUSTON_PATH_RE = re.compile(r'^([0-9]{1,8})\.jpg$')  # TranStar snapshot filename; id mirrors the /api/cam/houston validator
 ARLINGTON_ID_RE = re.compile(r'^[A-Za-z0-9_-]{1,64}$')  # mirrors the /api/cam/arlington proxy validator
 ARLINGTON_PIC_RE = re.compile(r'^https?://webapps\.arlingtontx\.gov/webcams/(.+)\.jpg$', re.I)  # snapshot stem = proxy id
+HAYS_ID_RE = re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$')  # composite parentID-shareID; mirrors the /api/cam/hays proxy validator
 TX_MIN_LAT, TX_MAX_LAT, TX_MIN_LON, TX_MAX_LON = 25.0, 37.0, -107.5, -93.0  # generous Texas coord sanity gate
 ITS_NEAR_M = 150.0  # an ITS cam this close to a MapLarge streamable cam is the same head — streamable wins
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -330,6 +344,32 @@ def elpbridge_cams():
     return sorted(cams, key=lambda c: c['name'])
 
 
+def hays_thumb_live(url):
+    # DriveHQ answers 200 with a small PNG placeholder for an idle/rotated head; a live cam is a real JPEG
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            ctype = (r.headers.get('Content-Type') or '').lower()
+            clen = int(r.headers.get('Content-Length') or 0)
+            return r.getcode() == 200 and 'image/jpeg' in ctype and clen >= HAYS_MIN_BYTES
+    except (OSError, ValueError):
+        return False
+
+
+def hays_cams():
+    cams = []
+    for c in HAYS_CAMS:
+        cid = f"{c['pid']}-{c['sid']}"
+        if not HAYS_ID_RE.match(cid):  # a composite id the strict proxy would reject is never emitted
+            continue
+        if not hays_thumb_live(HAYS_THUMB.format(pid=c['pid'], sid=c['sid'])):
+            print(f"Hays OES: {c['name']} not live (placeholder/offline), dropped")
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': cid})
+    print(f'Hays OES: {len(cams)}/{len(HAYS_CAMS)} live flood cams kept')
+    return sorted(cams, key=lambda c: c['name'])
+
+
 def main():
     tx = txdot_cams()
     its = its_cams(tx)
@@ -339,8 +379,9 @@ def main():
     ho = houston_cams()
     ar = arlington_cams()
     elp = elpbridge_cams()  # scoped liveness check — a dead host yields [] here, never aborts the whole gen
-    # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40)):
+    ha = hays_cams()  # liveness-checked hand-list; idle cams serve a placeholder, so this legitimately shrinks toward 0
+    # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays floor is 0 (idle heads are expected, never a shape-change signal)
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -354,6 +395,7 @@ def main():
             'houston': 'Traffic cameras: Houston TranStar (Houston region incl. Galveston/Bolivar ferry)',
             'arlington': 'Traffic cameras: City of Arlington, Texas (public arterial cams)',
             'elpbridge': 'Live cameras: City of El Paso international bridges',
+            'hays': 'Flood cameras: Hays County Office of Emergency Services',
         },
         'txdot': tx + its,
         'river': rv,
@@ -362,13 +404,14 @@ def main():
         'houston': ho,
         'arlington': ar,
         'elpbridge': elp,
+        'hays': ha,
     }
     with open(OUT, 'w') as f:
         json.dump(out, f, separators=(',', ':'))
         f.write('\n')
     print(f'{OUT}: {len(tx)} TxDOT streamable + {len(its)} ITS snapshot-only cams, {len(rv)} USGS river cams, '
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
-          f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {os.path.getsize(OUT)} bytes')
+          f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

@@ -21,7 +21,8 @@ suspended or mid-task).
 | `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
-| `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle **and** chat-poll system-cron entries. |
+| `chat-watchdog.sh` | **The stall watchdog** — build-capable auto-recovery when the in-session revival goes dark. See "Stall watchdog". |
+| `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, **and** stall-watchdog system-cron entries. |
 | `gen-lan-cert.sh` | Generate the self-signed TLS cert (`cert.pem` + `key.pem` under `/root/.config/responder/tls`, **outside** the repo) that `server.py` serves for LAN HTTPS. Idempotent (skips unless `--force`); prints the fingerprint + SANs. See "LAN HTTPS (self-signed)". |
 
 `gen-cameras.py` is a separate poller and is **not** part of the 15-min cycle.
@@ -192,12 +193,51 @@ falls back to `/tmp/responder-chat-poll.log`). Each line is UTC-timestamped. Not
 `.gitignore` alongside `data/.chat-cursor` (it is LAN-only runtime state — the
 data cycle stages files by name and never sweeps it in, but keep it untracked).
 
+## Stall watchdog (`chat-watchdog.sh`)
+
+The ops chat has three delivery tiers. Two ride **system cron** and never miss:
+the instant `--ack-only` poll, and the data cycle. The tier that can actually
+*fulfill* a request (build/deploy/answer) is the **in-session revival** — a
+durable `CronCreate` tick that re-enters a live Claude session. That tick can
+silently stop being delivered to an alive, idle session: on 2026-07-21..23 it
+went dark for ~34h and let one owner message wait ~11h, while the two system
+crons kept running perfectly. `chat-watchdog.sh` closes that gap by putting the
+build-capable recovery on the reliable system-cron substrate.
+
+Each `*/3` run is cheap: it exits immediately unless a message has waited past
+`STALL_THRESHOLD` (default 720s, i.e. longer than the 10-min in-session tick)
+with `data/.chat-cursor` un-advanced. Only then does it fire **one**
+build-capable headless `claude -p` (`--permission-mode bypassPermissions`) with
+the same drain+act+ship+advance-cursor mandate as the revival tick, and verify
+the cursor moved afterward.
+
+Guardrails bound the blast radius:
+
+- **Single-flight** `flock` on `/tmp/responder-chat-watchdog.lock` — a recovery
+  in flight makes later `*/3` ticks `SKIP`.
+- **Cooldown** (`COOLDOWN`, default 900s) between fires, recorded before launch
+  so a crash still honors it.
+- **Per-cursor attempt budget** (`MAX_ATTEMPTS`, default 3): after that many
+  fires without the cursor advancing, it stops and posts one honest outbox note
+  instead of looping builds forever.
+- **Drain marker** (`data/.chat-drain-active`): a live session that touched it
+  within `DRAIN_STALE` (default 1800s) is presumed mid-build, so the watchdog
+  defers rather than race a second build.
+- **Kill switch**: `touch data/.chat-watchdog-off` disables recovery entirely.
+
+Security: this **softens the read-only-cron boundary by design** (owner
+decision). It is delay-gated (never fires on a fresh POST, only after the
+in-session path has missed the window), the drain prompt treats message text
+strictly as governed data, and the guardrails cap cost. Log tee's to
+`/var/log/responder-chat-watchdog.log` (falls back to `/tmp`).
+
 ## Cron schedule & install
 
-`install-cron.sh` manages two independent system-cron entries. The default
-target is the **data-refresh cycle** (`8,23,38,53 * * * *`); `--chat` /
-`--chat-ack-only` manage the **chat-inbox poll** (`*/3 * * * *`). Each target is
-grep-guarded on its own command path, so managing one leaves the other intact.
+`install-cron.sh` manages independent system-cron entries. The default target is
+the **data-refresh cycle** (`8,23,38,53 * * * *`); `--chat` / `--chat-ack-only`
+manage the **chat-inbox poll** (`*/3 * * * *`); `--watchdog` manages the **stall
+watchdog** (`*/3 * * * *`). Each target is grep-guarded on its own command path,
+so managing one leaves the others intact.
 
 ```bash
 # data-refresh cycle (default target) — idempotent, safe to re-run
@@ -212,6 +252,11 @@ grep-guarded on its own command path, so managing one leaves the other intact.
 
 # chat-inbox poll — ack-only (no-LLM) safe mode, for staged rollout
 /root/admin/work/proj/responder/scripts/install-cron.sh --chat-ack-only
+
+# stall watchdog — build-capable auto-recovery (controller/owner decision)
+/root/admin/work/proj/responder/scripts/install-cron.sh --watchdog --dry-run
+/root/admin/work/proj/responder/scripts/install-cron.sh --watchdog
+/root/admin/work/proj/responder/scripts/install-cron.sh --watchdog --remove
 ```
 
 Installed crontab entries (marker comment on its own line above each):
@@ -220,7 +265,9 @@ Installed crontab entries (marker comment on its own line above each):
 # responder-tx durable data-refresh cycle (managed by install-cron.sh)
 8,23,38,53 * * * * /root/admin/work/proj/responder/scripts/run-cycle.sh >/dev/null 2>&1
 # responder-tx durable chat-inbox poll (managed by install-cron.sh)
-*/3 * * * * /root/admin/work/proj/responder/scripts/chat-poll.sh >/dev/null 2>&1
+*/3 * * * * /root/admin/work/proj/responder/scripts/chat-poll.sh --ack-only >/dev/null 2>&1
+# responder-tx durable chat stall-watchdog (managed by install-cron.sh)
+*/3 * * * * /root/admin/work/proj/responder/scripts/chat-watchdog.sh >/dev/null 2>&1
 ```
 
 The installer greps the crontab for the command path and strips any prior

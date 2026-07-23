@@ -206,7 +206,7 @@ log "new messages: ${NEW_COUNT} (inbox=${INBOX_COUNT} cursor=${CURSOR_VAL}) dry_
 
 # --- step (a): instant non-LLM auto-ack (once per new batch, never advances cursor) ---
 ACK_HM=$(date -u '+%H:%MZ')
-ACK_TEXT="message received ${ACK_HM} · processing"
+ACK_TEXT="message received ${ACK_HM} · queued for the ops session"
 if [ "$DRY_RUN" -eq 1 ]; then
     ack_copy=$(mktemp) || { log "ERROR: mktemp failed"; exit 1; }
     cp "$OUTBOX" "$ack_copy" 2>/dev/null || echo '{"messages":[]}' > "$ack_copy"  # real outbox may be absent on a clean checkout

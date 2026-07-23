@@ -1,6 +1,9 @@
 HANDOFF.md
 data/chat-inbox.jsonl
 data/.chat-cursor
+data/.chat-ack-cursor
+data/.chat-drain-active
+data/.chat-watchdog-off
 nohup.out
 *.log
 data/chat-outbox.json

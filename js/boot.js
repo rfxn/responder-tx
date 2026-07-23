@@ -653,6 +653,7 @@ async function boot() {
   $('#glossary-modal').addEventListener('click', (e) => { if (e.target.id === 'glossary-modal') $('#glossary-modal').hidden = true; });
   $('#toggle-form').addEventListener('click', () => {
     const open = $('#new-request-form').classList.toggle('open');
+    if (open && window.teamDisarmDrop) window.teamDisarmDrop(); // intake pin-drop and F4 tap-to-locate are mutually exclusive
     // pin-drop needs the map on screen — phones scroll it into view when intake opens
     if (open && window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
   });

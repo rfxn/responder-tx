@@ -43,7 +43,7 @@
     layer: null, markerLayer: null, markers: {}, teamMarkers: {}, lastKnown: {},
     lastMembers: [], lastViewers: [], lastMarkers: [], defaults: null, appliedDefaults: false,
     facilities: null, mapWired: false,
-    selfTrail: [], selfPos: null, active: false,
+    selfTrail: [], selfPos: null, active: false, armDrop: false,
   };
 
   const api = (path, opts) => fetch(`/api/team/${path}`, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts));
@@ -116,21 +116,28 @@
       // self-fix overlays the cached record so a fresh GPS tick shows the latest type/status
       const mm = isSelf ? Object.assign({}, m, { mtype: T.mtype || m.mtype, k9Name: T.k9Name || m.k9Name, status: T.status || m.status, handle: T.handle || m.handle }) : m;
       const ll = [pos.lat, pos.lon];
+      const accPos = isSelf ? T.selfPos : m.lastPos; // full fix incl. acc for the popup + self halo
       if (!isSelf) T.lastKnown[m.pid] = { ll, handle: m.handle, color: m.color, mtype: m.mtype, k9Name: m.k9Name, lastSeen: m.lastSeen || now };
+      const popHtml = memberPopupHtml(mm, { isSelf, pos: accPos });
       let entry = T.markers[m.pid];
       if (!entry) {
         entry = {
-          marker: L.marker(ll, { pane: 'team', icon: memberIcon(mm, color, isSelf, stale), zIndexOffset: isSelf ? 1000 : 0, interactive: false }),
+          marker: L.marker(ll, { pane: 'team', icon: memberIcon(mm, color, isSelf, stale), zIndexOffset: isSelf ? 1000 : 0, interactive: true }),
           trail: L.polyline([], { pane: 'team', color: color || '#40c4ff', weight: 3, opacity: 0.65 }),
+          acc: null,
         };
+        entry.marker.bindPopup(popHtml);
         entry.trail.addTo(T.layer);
         entry.marker.addTo(T.layer);
         T.markers[m.pid] = entry;
       } else {
         entry.marker.setLatLng(ll);
         entry.marker.setIcon(memberIcon(mm, color, isSelf, stale));
+        entry.marker.setPopupContent(popHtml);
       }
       entry.tomb = false;
+      // self accuracy halo always on; teammate accuracy stays in the popup only, to keep the map clean
+      updateAccCircle(entry, ll, isSelf && accPos && Number.isFinite(accPos.acc) ? accPos.acc : null, color);
       // self draws its own responsive full-res trail; others render the server's capped copy
       const pts = isSelf && T.selfTrail.length ? T.selfTrail : (m.trail || []).map((p) => [p.lat, p.lon]);
       entry.trail.setLatLngs(pts);
@@ -145,14 +152,58 @@
         if (!entry.tomb) {
           entry.marker.setLatLng(lk.ll);
           entry.marker.setIcon(tombIcon(lk));
+          entry.marker.setPopupContent(memberPopupHtml({ handle: lk.handle, mtype: lk.mtype, k9Name: lk.k9Name, lastSeen: lk.lastSeen }, { tomb: true }));
           entry.trail.setLatLngs([]);
+          if (entry.acc) { T.layer.removeLayer(entry.acc); entry.acc = null; }
           entry.tomb = true;
         }
         continue;
       }
-      T.layer.removeLayer(entry.marker); T.layer.removeLayer(entry.trail); delete T.markers[id];
+      T.layer.removeLayer(entry.marker); T.layer.removeLayer(entry.trail);
+      if (entry.acc) T.layer.removeLayer(entry.acc);
+      delete T.markers[id];
       delete T.lastKnown[id];
     }
+  }
+
+  // ±accuracy for the popup: meters (GPS-native) with a feet equivalent
+  function accStr(acc) {
+    const m = Math.round(acc);
+    const ft = Math.round(acc * 3.28084);
+    return `±${m} m (${ft} ft)`;
+  }
+
+  // create / move / drop a member's GPS accuracy halo in lockstep with its marker (self only, by design)
+  function updateAccCircle(entry, ll, radius, color) {
+    if (Number.isFinite(radius) && radius > 0) {
+      if (!entry.acc) {
+        entry.acc = L.circle(ll, { radius, weight: 1, color: color || '#40c4ff', fillColor: color || '#40c4ff', fillOpacity: 0.08, interactive: false });
+        entry.acc.addTo(T.layer);
+      } else { entry.acc.setLatLng(ll); entry.acc.setRadius(radius); }
+    } else if (entry.acc) {
+      T.layer.removeLayer(entry.acc); entry.acc = null;
+    }
+  }
+
+  // popup for an interactive member marker (F3): identity, status, profile, freshness, and GPS accuracy
+  function memberPopupHtml(m, opts) {
+    opts = opts || {};
+    const isSelf = !!opts.isSelf, pos = opts.pos || null, tomb = !!opts.tomb;
+    const you = isSelf ? ` <span class="tmp-you">${esc(tt('team.you', 'you'))}</span>` : '';
+    const meta = memberMeta(m);
+    const chip = tomb ? '' : statusChip(m);
+    const acc = pos && Number.isFinite(pos.acc) ? accStr(pos.acc) : '';
+    const stale = !isSelf && !tomb && Date.now() - (m.lastSeen || 0) > STALE_MS;
+    const fresh = tomb ? `${tt('team.lastknown', 'last known')}${m.lastSeen ? ' ' + hhmm(m.lastSeen) : ''}`
+      : isSelf ? tt('team.you.here', 'your position')
+      : stale ? `${tt('team.lost', 'lost contact')} · ${hhmm(m.lastSeen)}`
+      : `${tt('team.seen', 'seen')} ${ageStr(m.lastSeen || Date.now())} ${tt('team.ago', 'ago')}`;
+    return '<div class="tmp-pop">' +
+      `<div class="tmp-head"><strong>${esc(m.handle || '')}</strong>${you}</div>` +
+      (chip || meta ? `<div class="tmp-row">${chip}${meta}</div>` : '') +
+      `<div class="tmp-fresh">${esc(fresh)}</div>` +
+      (acc ? `<div class="tmp-acc">${esc(tt('team.acc.lbl', 'GPS accuracy'))}: ${esc(acc)}</div>` : '') +
+      '</div>';
   }
 
   /* ---------- shared team markers (waypoint / hazard / search-area) ---------- */
@@ -209,7 +260,8 @@
     }
   }
 
-  // Waze-style member-only map control (bottom-right): drops a shared marker at the map center
+  // Waze-style member-only map control (bottom-right): tap arms a "tap the map to place" mode; the
+  // hint banner keeps the map-center drop reachable as a fallback.
   function ensureDropFab() {
     if (document.getElementById('team-drop-fab')) return;
     const map = document.getElementById('map');
@@ -223,15 +275,89 @@
     btn.innerHTML = '<span class="tdf-glyph">📍</span><span class="tdf-plus">＋</span>';
     btn.addEventListener('click', () => {
       if (!(T.active && T.role === 'member') || !state.map) return;
-      openDropModal(state.map.getCenter());
+      if (T.armDrop) disarmDrop(); else armDrop();
     });
     map.appendChild(btn);
+    ensureDropHint();
+    ensureDropClickHandler();
   }
 
   function updateDropFab() {
     const fab = document.getElementById('team-drop-fab');
     if (fab) fab.hidden = !(T.active && T.role === 'member');
+    if (!(T.active && T.role === 'member')) disarmDrop(); // a viewer / left team must never stay armed
   }
+
+  /* ---------- F4 tap-to-locate: arm the FAB, then the next map tap places a marker ---------- */
+
+  const requestFormOpen = () => {
+    const f = document.getElementById('new-request-form');
+    return !!(f && f.classList.contains('open'));
+  };
+
+  // The map-click drop uses its OWN explicit armed flag and is member-gated, so it never hijacks a pan,
+  // the new-request-form map click (js/map.js), or fires while disarmed. Wired once, alongside Escape.
+  let _dropClickWired = false;
+  function ensureDropClickHandler() {
+    if (_dropClickWired || !state.map) return;
+    _dropClickWired = true;
+    state.map.on('click', (e) => {
+      if (!T.armDrop) return;
+      if (requestFormOpen()) return; // the new-request-form owns this tap; the two modes never both fire
+      if (!(T.active && T.role === 'member')) { disarmDrop(); return; }
+      const ll = e.latlng;
+      disarmDrop();
+      openDropModal(ll);
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && T.armDrop) disarmDrop(); });
+  }
+
+  function ensureDropHint() {
+    if (document.getElementById('team-drop-hint')) return;
+    const map = document.getElementById('map');
+    if (!map) return;
+    const el = document.createElement('div');
+    el.id = 'team-drop-hint';
+    el.hidden = true;
+    el.innerHTML =
+      `<span class="tdh-msg">${esc(tt('team.drop.hint', 'Tap the map to place a shared team marker.'))}</span>` +
+      `<button type="button" class="tdh-center">${esc(tt('team.drop.center.btn', 'Use map center'))}</button>` +
+      `<button type="button" class="tdh-x" aria-label="${esc(tt('team.cancel', 'Cancel'))}">✕</button>`;
+    map.appendChild(el);
+    el.querySelector('.tdh-center').addEventListener('click', () => {
+      if (!state.map) return;
+      const c = state.map.getCenter();
+      disarmDrop();
+      openDropModal(c);
+    });
+    el.querySelector('.tdh-x').addEventListener('click', disarmDrop);
+  }
+
+  function armDrop() {
+    if (!(T.active && T.role === 'member')) return;
+    const form = document.getElementById('new-request-form'); // intake pin-drop and F4 are mutually exclusive
+    if (form && form.classList.contains('open')) form.classList.remove('open');
+    ensureDropHint();
+    T.armDrop = true;
+    const map = document.getElementById('map');
+    if (map) map.classList.add('team-armed');
+    const hint = document.getElementById('team-drop-hint');
+    if (hint) hint.hidden = false;
+    const fab = document.getElementById('team-drop-fab');
+    if (fab) fab.classList.add('armed');
+  }
+
+  function disarmDrop() {
+    T.armDrop = false;
+    const map = document.getElementById('map');
+    if (map) map.classList.remove('team-armed');
+    const hint = document.getElementById('team-drop-hint');
+    if (hint) hint.hidden = true;
+    const fab = document.getElementById('team-drop-fab');
+    if (fab) fab.classList.remove('armed');
+  }
+  // lets the intake form's open handler (js/boot.js) cancel F4 arming, keeping the two map-tap modes exclusive
+  window.teamDisarmDrop = disarmDrop;
 
   function openDropModal(latlng) {
     buildDropModal();
@@ -1291,7 +1417,7 @@
     window.addEventListener('pageshow', onForeground);
     document.addEventListener('visibilitychange', () => {
       // screen-lock / tab-switch PAUSES (keeps our DO slot); it must NOT beaconLeave and delete us
-      if (document.visibilityState === 'hidden') pauseSharing();
+      if (document.visibilityState === 'hidden') { pauseSharing(); disarmDrop(); }
       else { onForeground(); resumeSharing(); if (window.keepAwakeResume) keepAwakeResume(); } // spec dropped the lock on hide
     });
   }

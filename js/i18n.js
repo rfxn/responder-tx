@@ -724,6 +724,9 @@
       'team.status.hint': 'Set Unavailable to stop sharing but stay on the team; Leave to exit.',
       'team.notsharing': 'Unavailable · not sharing',
       'team.notshare': 'not sharing',
+      'team.acc.lbl': 'GPS accuracy',
+      'team.you.here': 'your position',
+      'team.drop.center.btn': 'Use map center',
     },
 
     es: {
@@ -1440,6 +1443,9 @@
       'team.status.hint': 'Ponga No disponible para dejar de compartir sin salir del equipo; Salir para irse.',
       'team.notsharing': 'No disponible · sin compartir',
       'team.notshare': 'sin compartir',
+      'team.acc.lbl': 'Precisión GPS',
+      'team.you.here': 'su posición',
+      'team.drop.center.btn': 'Usar el centro del mapa',
     },
   };
 

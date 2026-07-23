@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.57",
+      "date": "2026-07-23",
+      "line": "New for live teams: the team map is now interactive. Tap any teammate (or yourself) to open a popup with their handle, status, role or specialty, how long since they were last seen, and their GPS accuracy, so you can read a unit without opening the roster. You can also place a shared team marker exactly where you want it: tap the drop button to arm a 'tap the map to place' mode, shown with a crosshair and a hint banner, then tap the spot to open the marker form there; a 'Use map center' button keeps the old one-tap center drop, and the mode cancels itself on Escape, when the marker form opens, or when you switch away from the app. Your own location now draws a GPS accuracy ring on the map, and the exact accuracy in meters and feet shows in the popups, so you always know how precise a fix is."
+    },
+    {
       "v": "v0.97.56",
       "date": "2026-07-23",
       "line": "New: your screen now stays awake while you are actively sharing your location with a team or using Drive Mode, so your phone does not dim and lock in the middle of a response. The screen-awake hold lets go the moment you stop sharing, leave the team, close Drive Mode, or switch away from the tab, and it comes back when you return, so it never keeps the screen lit in the background and drains your battery. It needs the secure site (the https address) and a browser that supports screen wake locks; where that is not available, such as the plain http LAN board or an older iPhone, everything works as before and the screen just follows your normal auto-lock."

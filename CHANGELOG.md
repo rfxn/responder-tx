@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.57 · 2026-07-23 (Team map: tap a teammate for details, tap the map to place a marker, and see GPS accuracy)
+
+-- New Features --
+- [New] Team member markers are now tappable: tap a teammate (or yourself) on the
+      map to see their handle, status, role or specialty, how long ago they were
+      last seen, and their GPS accuracy, so command can read a unit without opening
+      the roster.
+- [New] Drop a shared team marker exactly where you want it: tap the drop button to
+      arm a "tap the map to place" mode, shown with a crosshair cursor and a hint
+      banner, then tap the spot to open the marker form there. A "Use map center"
+      button in the hint keeps the old center drop one tap away, and the mode cancels
+      itself on Escape, when the marker form opens, or when you switch away from the app.
+- [New] Your own position now shows a GPS accuracy ring on the team map so you can
+      tell at a glance how precise your fix is, with the exact distance in meters and
+      feet in your marker popup. Teammate accuracy shows as a number in their popup,
+      keeping the map uncluttered.
+
 ## v0.97.56 · 2026-07-23 (Screen stays awake while you share your location in a team or use Drive Mode)
 
 -- New Features --

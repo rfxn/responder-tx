@@ -192,6 +192,27 @@
 }
 body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playback bar */
 
+/* F4 tap-to-locate: armed FAB, crosshair cursor, and the "tap the map to place" hint banner */
+#team-drop-fab.armed { background: var(--sev-emergency); color: #fff; }
+#map.team-armed .leaflet-container,
+#map.team-armed .leaflet-grab { cursor: crosshair; }
+#team-drop-hint {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200;
+  display: flex; align-items: center; gap: 8px; max-width: min(92vw, 460px);
+  padding: 8px 10px; border-radius: 10px; font-size: 12.5px; color: var(--ink-1);
+  background: var(--surface-1); border: 1px solid var(--border); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+#team-drop-hint[hidden] { display: none; }
+#team-drop-hint .tdh-msg { line-height: 1.3; }
+#team-drop-hint .tdh-center {
+  flex: 0 0 auto; padding: 6px 9px; min-height: 34px; font-size: 12px; cursor: pointer; white-space: nowrap;
+  background: var(--accent); color: #fff; border: none; border-radius: 6px;
+}
+#team-drop-hint .tdh-x {
+  flex: 0 0 auto; width: 28px; height: 28px; padding: 0; font-size: 14px; cursor: pointer;
+  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); border-radius: 6px;
+}
+
 /* ---------- edit + drop modals (reuse team modal chrome) ---------- */
 #team-edit, #team-drop {
   position: fixed; inset: 0; z-index: 1460;
@@ -326,6 +347,14 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
   background: var(--sev-emergency); color: #fff; border: none; border-radius: 6px;
 }
 
+/* interactive member-marker popup (F3) */
+.tmp-pop { font-size: 12px; line-height: 1.45; min-width: 118px; }
+.tmp-pop .tmp-head { font-size: 13px; margin-bottom: 3px; }
+.tmp-pop .tmp-you { color: var(--accent); font-size: 11px; font-weight: 600; }
+.tmp-pop .tmp-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 2px 0; }
+.tmp-pop .tmp-fresh { color: var(--ink-muted); font-size: 11px; margin-top: 2px; }
+.tmp-pop .tmp-acc { color: var(--ink-2); font-size: 11px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
 /* ---------- nearby facilities ---------- */
 .tp-facilities { padding: 10px 12px; border: 1px solid var(--hairline); border-radius: 10px; font-size: 12.5px; }
 .tp-facilities[hidden] { display: none; }
@@ -350,4 +379,6 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
   #team-drop-fab { width: 58px; height: 58px; bottom: 78px; right: 12px; }
   #team-drop-fab .tdf-glyph { font-size: 26px; }
   body.pb-bar-open #team-drop-fab { bottom: 208px; } /* clear the taller wrapped playback bar */
+  #team-drop-hint .tdh-center { min-height: 40px; }
+  #team-drop-hint .tdh-x { width: 34px; height: 34px; }
 }

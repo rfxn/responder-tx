@@ -830,6 +830,143 @@ function renderReopenedMap() {
   }
 }
 
+/* ---------- NOAA NHC active tropical cyclones (Esri Living Atlas): cone, track, positions, watches/warnings ---------- */
+
+const TROPICAL_ATTRIB = 'Tropical: NOAA NHC via Esri Living Atlas';
+const TROPICAL_TRACK = '#a05cff'; // storm track color (violet, distinct from road pink/red and gauge categories); works on dark + light bases
+const TROPICAL_CONE_FILL = '#f4b13a'; // amber uncertainty tint
+// NHC watch/warning codes → label key + color; the four wind codes match the Living Atlas renderer, SS* add storm surge
+const TCWW_WW = {
+  HWR: { key: 'trop.ww.HWR', color: '#ff0000' },
+  TWR: { key: 'trop.ww.TWR', color: '#0000ff' },
+  HWA: { key: 'trop.ww.HWA', color: '#ffaeb9' },
+  TWA: { key: 'trop.ww.TWA', color: '#eeee00' },
+  SSW: { key: 'trop.ww.SSW', color: '#b429f9' },
+  SSA: { key: 'trop.ww.SSA', color: '#db7ff0' },
+};
+// STORMTYPE code → friendly classification; forecast points also carry TCDVLP (a full phrase), preferred when present
+const TC_CLASS = {
+  TD: 'Tropical Depression', TS: 'Tropical Storm', HU: 'Hurricane', MH: 'Major Hurricane',
+  STS: 'Subtropical Storm', SD: 'Subtropical Depression', STD: 'Subtropical Depression',
+  PTC: 'Potential Tropical Cyclone', EX: 'Post-Tropical Cyclone', LO: 'Remnant Low', DB: 'Disturbance',
+};
+const TC_COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+// NHC sentinel for a missing numeric field is 9999 (and -999-style no-data); guard before any display
+const tcVal = (n) => Number.isFinite(+n) && +n !== 9999 && +n > -999;
+const tcKtMph = (kt) => Math.round(+kt * 1.15078); // forward speed, nearest 1 mph
+const tcKtMphWind = (kt) => Math.round((+kt * 1.15078) / 5) * 5; // wind, nearest 5 mph (NHC convention)
+const tcCompass = (deg) => TC_COMPASS[Math.round((((+deg % 360) + 360) % 360) / 22.5) % 16];
+const tcEpochIso = (ms) => (Number.isFinite(+ms) ? new Date(+ms).toISOString() : '');
+
+function tcClass(p) {
+  if (p.TCDVLP && String(p.TCDVLP).trim()) return String(p.TCDVLP).trim();
+  const code = String(p.STORMTYPE || '').trim();
+  if (TC_CLASS[code]) return TC_CLASS[code];
+  return code.replace(/(Hurricane)(\d)/, '$1 (Cat $2)') || 'Tropical cyclone';
+}
+
+// point color by intensity class (forecast positions): hurricane red, storm amber, depression blue
+function tcColor(p) {
+  const s = `${p.TCDVLP || ''} ${p.STORMTYPE || ''}`;
+  if (/hurricane|\bHU\b|\bMH\b/i.test(s)) return '#d11149';
+  if (/tropical storm|subtropical storm|\bTS\b|\bSTS\b/i.test(s)) return '#f0a030';
+  if (/depression|\bTD\b|\bSD\b|\bSTD\b/i.test(s)) return '#5aa0d0';
+  return '#8a8a8a';
+}
+
+function tcSrcLine() {
+  return `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(t('trop.src'))}</div>`;
+}
+function tcPopupCone(p) {
+  const adv = String(p.ADVISNUM ?? '').trim();
+  return `<div class="popup-title">${esc(p.STORMNAME || t('trop.pop.storm'))} · ${esc(t('trop.leg.cone'))}</div>` +
+    `<div class="popup-meta">${esc(tcClass(p))}${adv ? ` · ${esc(t('trop.pop.adv'))} ${esc(adv)}` : ''}</div>` +
+    tcSrcLine();
+}
+function tcPopupWw(p) {
+  const w = TCWW_WW[p.TCWW];
+  const color = w ? w.color : '#e8912b';
+  const label = w ? t(w.key) : t('trop.leg.ww');
+  const cls = String(p.STORMTYPE ?? '').trim();
+  return `<div class="popup-title" style="color:${color}">${esc(label)}</div>` +
+    `<div class="popup-meta">${esc(p.STORMNAME || '')}${cls ? ` · ${esc(tcClass(p))}` : ''}</div>` +
+    tcSrcLine();
+}
+function tcPopupObs(p) {
+  const wind = tcVal(p.INTENSITY) ? ` · ${esc(t('trop.pop.wind'))} ${tcKtMphWind(p.INTENSITY)} mph` : '';
+  return `<div class="popup-title">${esc(p.STORMNAME || '')} · ${esc(t('trop.pop.obs'))}</div>` +
+    `<div class="popup-meta">${esc(tcClass(p))}${wind}</div>` +
+    (p.DTG ? `<div class="popup-meta">${esc(t('trop.pop.valid'))} ${esc(fmtWhen(tcEpochIso(p.DTG)))}</div>` : '') +
+    tcSrcLine();
+}
+function tcPopupFcst(p) {
+  const wind = tcVal(p.MAXWIND) ? ` · ${esc(t('trop.pop.wind'))} ${tcKtMphWind(p.MAXWIND)} mph` : '';
+  const move = (tcVal(p.TCDIR) && tcVal(p.TCSPD))
+    ? `<div class="popup-meta">${esc(t('trop.pop.moving'))} ${esc(tcCompass(p.TCDIR))} · ${tcKtMph(p.TCSPD)} mph</div>` : '';
+  const when = String(p.FLDATELBL || p.DATELBL || '').trim();
+  const adv = String(p.ADVISNUM ?? '').trim();
+  return `<div class="popup-title">${esc(p.STORMNAME || '')} · ${esc(t('trop.pop.fcst'))}</div>` +
+    `<div class="popup-meta">${esc(tcClass(p))}${wind}</div>` +
+    move +
+    (when ? `<div class="popup-meta">${esc(t('trop.pop.valid'))} ${esc(when)}</div>` : '') +
+    (adv ? `<div class="popup-meta">${esc(t('trop.pop.adv'))} ${esc(adv)}</div>` : '') +
+    tcSrcLine();
+}
+
+// lazy: fetched on first overlayadd and refreshed on the data cycle while the layer is on. All sublayers
+// are optional — any that fails or returns empty simply renders nothing; total network failure degrades quietly.
+async function fetchTropical() {
+  const group = state.layers.tropical;
+  if (!group) return;
+  const grab = async (n) => {
+    try {
+      const r = await fetch(`${CONFIG.tropicalBase}/${n}/query?where=1%3D1&outFields=*&f=geojson`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return (await r.json()).features || [];
+    } catch { return null; } // null = this sublayer failed (distinct from [] = no active storms)
+  };
+  const [cone, ftrack, otrack, ww, fpos, opos] = await Promise.all([grab(4), grab(2), grab(3), grab(5), grab(0), grab(1)]);
+  if ([cone, ftrack, otrack, ww, fpos, opos].every((x) => x === null)) {
+    $('#refresh-note').textContent = 'tropical feed unavailable';
+    return; // every sublayer failed → network down; keep whatever was last drawn
+  }
+  markHealthy('tropical');
+  renderTropical({ cone, ftrack, otrack, ww, fpos, opos });
+}
+
+// z-order via add order within the 'tropical' pane: cone (bottom) → tracks → watches/warnings → positions (top)
+function renderTropical(d) {
+  const group = state.layers.tropical;
+  const pane = 'tropical';
+  group.clearLayers();
+  const addVec = (features, opts, popupFn) => {
+    if (!features || !features.length) return;
+    const gj = L.geoJSON({ type: 'FeatureCollection', features }, Object.assign({ pane }, opts));
+    if (popupFn) gj.eachLayer((l) => { const p = l.feature && l.feature.properties; if (p) l.bindPopup(popupFn(p)); });
+    group.addLayer(gj);
+  };
+  addVec(d.cone, {
+    style: { pane, color: '#e69422', weight: 1, opacity: 0.7, fillColor: TROPICAL_CONE_FILL, fillOpacity: 0.16 },
+    attribution: TROPICAL_ATTRIB,
+  }, tcPopupCone);
+  addVec(d.otrack, { style: { pane, color: TROPICAL_TRACK, weight: 3, opacity: 0.9 }, attribution: TROPICAL_ATTRIB });
+  addVec(d.ftrack, { style: { pane, color: TROPICAL_TRACK, weight: 2.5, opacity: 0.9, dashArray: '7,6' }, attribution: TROPICAL_ATTRIB });
+  addVec(d.ww, {
+    style: (f) => { const w = TCWW_WW[f.properties && f.properties.TCWW]; return { pane, color: w ? w.color : '#e8912b', weight: 5, opacity: 0.95 }; },
+    attribution: TROPICAL_ATTRIB,
+  }, tcPopupWw);
+  addVec(d.opos, {
+    pane,
+    pointToLayer: (f, ll) => L.circleMarker(ll, { pane, radius: 3, color: '#ffffff', weight: 1, fillColor: '#2b2b2b', fillOpacity: 0.9 }),
+    attribution: TROPICAL_ATTRIB,
+  }, tcPopupObs);
+  addVec(d.fpos, {
+    pane,
+    pointToLayer: (f, ll) => L.circleMarker(ll, { pane, radius: 5, color: '#ffffff', weight: 1.5, fillColor: tcColor(f.properties || {}), fillOpacity: 0.95 }),
+    attribution: TROPICAL_ATTRIB,
+  }, tcPopupFcst);
+}
+
 /* ---------- TxGIO low-water-crossing location inventory (LOCATIONS, not live status) ---------- */
 
 const LWC_ATTRIB = 'Low-water crossings: TxGIO (Texas Geographic Information Office)';

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.48",
+      "date": "2026-07-23",
+      "line": "A tropical cyclone tracker is now available as a map layer (off by default; turn it on under the new Tropical group in the layers menu). When a storm is active it shows the National Hurricane Center forecast cone, the forecast and past track, the current and forecast storm positions, and the coastal watch and warning lines, colored by type so you can tell a hurricane warning from a tropical storm or storm surge watch at a glance. Tap any part of it for the storm name, category, top winds, movement, and advisory time. The data comes from NOAA's National Hurricane Center. When no storms are active it simply shows nothing. Also, on phones the radar and forecast legend no longer stretches across the middle of the screen; it now sits as a small chip in the bottom-right corner."
+    },
+    {
       "v": "v0.97.47",
       "date": "2026-07-23",
       "line": "Coastal response for Tropical Storm Bertha. The board now covers the upper and mid Texas coast (Matagorda to Sabine, inland to Houston and Beaumont) instead of the Hill Country, so it opens on the coast and shows river gauges, road closures, and low-water crossings there. And a real gap is fixed: Storm Surge, Tropical Storm, Hurricane, and High Wind warnings were being dropped because the alert feed was filtered to the word \"flood,\" so the most dangerous coastal warnings never appeared; they now show. Coverage reverts to the Hill Country once Bertha clears."

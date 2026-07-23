@@ -240,6 +240,38 @@ function setRainWindow(w) {
   updateMrmsLegend();
 }
 
+/* ---------- tropical-cyclone legend: a compact bottom-left key toggled with the NHC tracker layer ---------- */
+
+function tropicalLegendHtml() {
+  const wwRow = (k) => `<div><span class="sw sw-line" style="background:${TCWW_WW[k].color}"></span>${esc(t(TCWW_WW[k].key))}</div>`;
+  return `<div class="lg-title">${esc(t('trop.leg.title'))}</div>` +
+    `<div><span class="sw" style="width:12px;height:10px;background:${TROPICAL_CONE_FILL};opacity:.5;border-radius:2px"></span>${esc(t('trop.leg.cone'))}</div>` +
+    `<div><span class="sw sw-line" style="background:${TROPICAL_TRACK}"></span>${esc(t('trop.leg.otrack'))}</div>` +
+    `<div><span class="sw sw-line" style="background:${TROPICAL_TRACK}"></span>${esc(t('trop.leg.ftrack'))}</div>` +
+    `<div class="lg-title" style="margin-top:6px">${esc(t('trop.leg.ww'))}</div>` +
+    ['HWR', 'TWR', 'SSW', 'HWA', 'TWA', 'SSA'].map(wwRow).join('');
+}
+
+function showTropicalLegend() {
+  if (!state.tropicalLegend) {
+    const c = L.control({ position: 'bottomleft' });
+    c.onAdd = () => {
+      const div = L.DomUtil.create('div', 'map-legend trop-legend');
+      div.innerHTML = tropicalLegendHtml(); // rebuilt on each add so a live language switch localizes it
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      L.DomEvent.on(div, 'click', () => div.classList.toggle('open'));
+      return div;
+    };
+    state.tropicalLegend = c;
+  }
+  state.tropicalLegend.addTo(state.map);
+}
+
+function hideTropicalLegend() {
+  if (state.tropicalLegend) state.tropicalLegend.remove();
+}
+
 /* ---------- map ---------- */
 
 // flyOpenPopup latlng zoom marker — setView, then open once the flight fully settles;
@@ -296,6 +328,9 @@ function initMap() {
   state.map.createPane('radar');
   state.map.getPane('radar').style.zIndex = 350;
   state.map.getPane('radar').style.pointerEvents = 'none';
+  // tropical pane: above alert polygons (400) and radar, below labels (450) and markers (600); interactive for popups
+  state.map.createPane('tropical');
+  state.map.getPane('tropical').style.zIndex = 440;
   state.layers.labelBoost = offlineTile(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
 
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
@@ -329,6 +364,7 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
+    if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { $('#refresh-note').textContent = 'tropical feed unavailable'; }); }
     if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsArlington, state.layers.camsElpBridge].includes(e.layer)) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
@@ -338,6 +374,7 @@ function initMap() {
   state.map.on('overlayremove', (e) => {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
+    if (e.layer === state.layers.tropical) hideTropicalLegend();
     if (e.layer === state.layers.fcstRadar) fcstDisable();
     if (e.layer === state.layers.usgs) {
       if (state.usgsAutoOn && !state.usgsAutoRemoving) state.usgsFallbackDismissed = true; // user closed the auto fallback — don't re-offer until the feed recovers
@@ -381,6 +418,8 @@ function initMap() {
   state.layers.roadClosures = L.layerGroup().addTo(state.map);
   // recently-reopened roads (recovery ✓) — OFF by default, explicit opt-in nested under road closures; flood-scoped
   state.layers.roadReopen = L.layerGroup();
+  // NOAA NHC active tropical cyclones (Esri Living Atlas): cone/track/positions/watches; OFF by default, lazy-loaded on first enable
+  state.layers.tropical = L.layerGroup();
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
   state.layers.lwc = L.layerGroup();
   // cameras — one independent sub-layer per source, all OFF by default, lazy-loaded, clustered;
@@ -405,6 +444,7 @@ function initMap() {
     'Radar & forecast (HRRR)': state.layers.fcstRadar,
     'Rainfall (MRMS)': state.layers.mrms,
     'Flood inundation: NWM model (est.)': state.layers.inundation,
+    'Tropical cyclone tracker (NHC)': state.layers.tropical,
     'Flood alerts (NWS)': state.layers.alerts,
     'River gauges (NOAA)': state.layers.gauges,
     'Forecast crests (RFC max)': state.layers.fcstMax,
@@ -683,6 +723,7 @@ const PILL_LAYERS = (CONFIG.wxUnified
   ? [['wx', 'layers.wx']]
   : [['radar', 'layers.radar'], ['fcstRadar', 'layers.fcstradar']]
 ).concat([
+  ['tropical', 'layers.tropical'],
   ['mrms', 'layers.rain'],
   ['inundation', 'layers.inun'],
   ['usgs', 'layers.usgs'],
@@ -770,6 +811,9 @@ const SHEET_GROUPS = [
   ['sheet.g.rain', WX_RAIN_ROWS.concat([
     ['mrms', '🌧', 'layers.rain', 'sheet.s.rain', null, false],
   ])],
+  ['sheet.g.tropical', [
+    ['tropical', '🌀', 'layers.tropical', 'sheet.s.tropical', 'official', false],
+  ]],
   ['sheet.g.roads', [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],
     ['roadReopen', '<span class="reopen-icon">✓</span>', 'layers.reopen', 'sheet.s.reopen', 'official', false, true],

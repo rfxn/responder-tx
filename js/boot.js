@@ -50,6 +50,7 @@ async function refresh() {
   try {
     $('#refresh-note').textContent = 'refreshing…';
     if (state.refreshRadar) state.refreshRadar();
+    if (state.layers.tropical && state.map.hasLayer(state.layers.tropical)) fetchTropical().catch(() => { /* keep last cone/track on a transient failure */ });
     const gaugesP = fetchGauges();
     // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
     const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
@@ -377,6 +378,7 @@ function renderGlossary() {
   html += glRow('💧', t('glossary.lsr.label'), t('glossary.lsr'));
   html += glRow('🌧', t('glossary.rain.label'), t('glossary.rain'));
   html += glRow('🌦', t('glossary.fcstradar.label'), t('glossary.fcstradar'));
+  html += glRow('🌀', t('glossary.tropical.label'), t('glossary.tropical'));
   html += glRow('📷', t('glossary.cams.label'), t('glossary.cams'));
   html += glRow('<span class="cam-icon cam-snap" style="width:16px;height:16px;font-size:10px">📷</span>', t('glossary.camsnap.label'), t('glossary.camsnap'));
   html += glRow('<span style="color:var(--sev-emergency)">⛔</span>/🌊', t('glossary.roads.label'), t('glossary.roads'));

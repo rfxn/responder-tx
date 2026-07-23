@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.47';
+const APP_VERSION = 'v0.97.48';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -36,6 +36,9 @@ const CONFIG = {
   roadCondUrl: 'https://services5.arcgis.com/Rvw11bGpzJNE7apK/arcgis/rest/services/DriveTexas_API/FeatureServer/0/query',
   // TxGIO low-water-crossing location inventory (CORS-open, no key). Static locations, no live status.
   lwcUrl: 'https://feature.geographic.texas.gov/arcgis/rest/services/Basemap/Low_Water_Crossing/MapServer/0/query',
+  // NOAA NHC active tropical cyclones via Esri Living Atlas (CORS *, keyless, native GeoJSON). Sublayers are
+  // global (all active storms); off-map storms simply do not draw. 0 fcst pos, 1 obs pos, 2 fcst track, 3 obs track, 4 error cone, 5 watches/warnings
+  tropicalBase: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Active_Hurricanes_v1/FeatureServer',
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   // NOAA HRRR model reflectivity WMS (probed 2026-07-19): one layer per forecast minute (refd_0060…),
   // no TIME dim — layers always serve the latest run; run stamp via the per-layer metadata JSON

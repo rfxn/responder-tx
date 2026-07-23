@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.48 · 2026-07-23 (Tropical cyclone tracker layer: NHC forecast cone, track, positions, and coastal watches and warnings)
+
+-- New Features --
+- [New] Tropical cyclone tracker map layer (off by default, opt-in under a new Tropical
+      group in the layer sheet): draws the NHC forecast error cone, forecast and observed
+      tracks, current and forecast storm positions, and coastal watch and warning lines
+      colored by type (hurricane, tropical storm, storm surge; watch vs warning), with
+      popups for storm name, classification, max wind, movement, and advisory or valid time.
+      Data is NOAA NHC via Esri Living Atlas, keyless and CORS-open; the layer lazy-loads on
+      first enable, refreshes on the data cycle while on, and shows nothing when no storms are
+      active or a sublayer is empty, degrading quietly on network failure.
+
+-- Bug Fixes --
+- [Fix] The radar and forecast legend no longer stretches across the middle of a narrow
+      phone screen; on phones it is pinned to a compact bottom-right chip that rides above
+      the radar scrub bar.
+
 ## v0.97.47 · 2026-07-23 (Coastal pivot for Tropical Storm Bertha: upper Texas coast coverage, surge and tropical alerts surfaced)
 
 -- Bug Fixes --

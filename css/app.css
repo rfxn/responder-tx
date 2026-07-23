@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.47') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.48') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.47') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.48') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.47') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.48') format('woff2');
 }
 
 :root {
@@ -1186,6 +1186,13 @@ button.inspect-gauge:hover { color: var(--accent); }
 /* HRRR cells are ~3km blocks — supersampled WMS render + slight blur softens them toward the observed-radar look */
 .fcst-tiles { filter: blur(1.5px) saturate(1.05); }
 .rtl-xfade { transition: opacity 0.35s ease; }
+@media (max-width: 500px) {
+  /* keep the radar/forecast legend a subtle bottom-right chip on phones, not stretched mid-screen (rides above the scrub bar) */
+  #wx-legend { right: 8px; width: auto; max-width: 47vw; bottom: 150px; padding: 5px 8px; }
+  #wx-legend-title { font-size: 10px; margin-bottom: 3px; }
+  .wx-ramp { height: 8px; }
+  .wx-src { font-size: 9px; }
+}
 @media (max-width: 500px) {
   /* left/right-anchored (not centered): keeps the bar clear of the chat-FAB corner at every sheet state (v0.95.1) */
   #radar-scrub { gap: 6px; padding: 5px 8px; left: 6px; right: 76px; transform: none; max-width: none; }

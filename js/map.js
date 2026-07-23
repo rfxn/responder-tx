@@ -579,14 +579,19 @@ function initMap() {
     return div;
   };
   shareCtl.addTo(state.map);
-  // north-up indicator: a matched control box directly below Share; the map is always north up, so it is a static labeled rose, not tappable
+  // compass box under Share: static north-up rose by default; tap to rotate the rose to the device's live heading (progressive enhancement)
   const compassCtl = L.control({ position: 'topright' });
   compassCtl.onAdd = () => {
     const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger compass-ctl');
-    div.innerHTML = `<a role="img" title="${esc(t('ctl.compass.title'))}" aria-label="${esc(t('ctl.compass.aria'))}" data-i18n-title="ctl.compass.title" data-i18n-aria="ctl.compass.aria">${CTL_ICON_COMPASS}</a>`;
+    div.innerHTML = `<a href="#" role="button" title="${esc(t('ctl.compass.title'))}" aria-label="${esc(t('ctl.compass.aria'))}" data-i18n-title="ctl.compass.title" data-i18n-aria="ctl.compass.aria">${CTL_ICON_COMPASS}</a>`;
     L.DomEvent.disableClickPropagation(div);
+    const a = div.firstChild;
+    state.compassEl = div;
+    state.compassRose = a.querySelector('svg');
+    L.DomEvent.on(a, 'click', (e) => { L.DomEvent.stop(e); toggleCompassHeading(a); });
     return div;
   };
+  compassCtl.onRemove = () => stopCompassHeading();
   compassCtl.addTo(state.map);
   initAoJump();
   initLayerPills();
@@ -674,6 +679,83 @@ function retractRecenterHint() {
   const hide = () => { d.hidden = true; d.removeEventListener('transitionend', hide); };
   d.addEventListener('transitionend', hide);
   setTimeout(() => { if (!d.classList.contains('open')) d.hidden = true; }, 400); // fallback if transitionend never fires
+}
+
+/* ---------- live compass heading: tap the rose to rotate it to the device heading; static north-up otherwise ---------- */
+
+function toggleCompassHeading(anchor) {
+  if (state.compassLive) { stopCompassHeading(); return; }
+  const DOE = window.DeviceOrientationEvent;
+  if (typeof DOE === 'undefined') { compassNotice('ctl.compass.unavailable'); return; }
+  if (typeof DOE.requestPermission === 'function') { // iOS 13+ requires a per-gesture permission grant
+    DOE.requestPermission()
+      .then((resp) => { if (resp === 'granted') startCompassHeading(anchor); else compassNotice('ctl.compass.denied'); })
+      .catch(() => compassNotice('ctl.compass.denied'));
+    return;
+  }
+  startCompassHeading(anchor);
+}
+
+function startCompassHeading(anchor) {
+  const evName = ('ondeviceorientationabsolute' in window) ? 'deviceorientationabsolute' : 'deviceorientation';
+  state.compassEvName = evName;
+  state.compassAnchor = anchor;
+  state.compassHandler = onCompassOrientation;
+  state.compassLive = true;
+  state.compassGotFix = false;
+  state.compassHeading = 0;
+  state.compassApplied = null;
+  window.addEventListener(evName, onCompassOrientation, true);
+  if (state.compassEl) L.DomUtil.addClass(state.compassEl, 'live');
+  setCompassLabel(anchor, 'ctl.compass.live', 'ctl.compass.live');
+  // desktop or no-signal: if no valid heading lands shortly, fall back to the static rose so the control never sits blank
+  clearTimeout(state.compassProbeT);
+  state.compassProbeT = setTimeout(() => { if (state.compassLive && !state.compassGotFix) { stopCompassHeading(); compassNotice('ctl.compass.unavailable'); } }, 1500);
+}
+
+function stopCompassHeading() {
+  if (state.compassHandler && state.compassEvName) window.removeEventListener(state.compassEvName, state.compassHandler, true);
+  clearTimeout(state.compassProbeT);
+  if (state.compassRaf) { cancelAnimationFrame(state.compassRaf); state.compassRaf = 0; }
+  state.compassLive = false;
+  state.compassHandler = null;
+  if (state.compassRose) state.compassRose.style.transform = ''; // back to the static north-up rose
+  if (state.compassEl) L.DomUtil.removeClass(state.compassEl, 'live');
+  if (state.compassAnchor) setCompassLabel(state.compassAnchor, 'ctl.compass.title', 'ctl.compass.aria');
+}
+
+function onCompassOrientation(e) {
+  let heading;
+  if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) heading = e.webkitCompassHeading; // iOS: degrees clockwise from magnetic north
+  else if (e.alpha != null) heading = 360 - e.alpha; // alpha runs counter-clockwise, so a north-up rose needs 360 - alpha
+  else return; // no usable reading (typical on desktop), leave the rose static
+  heading = ((heading % 360) + 360) % 360;
+  state.compassGotFix = true;
+  if (state.compassApplied != null && angleGap(heading, state.compassApplied) < 1) return; // sub-degree jitter, skip the repaint
+  state.compassHeading = heading;
+  if (!state.compassRaf) state.compassRaf = requestAnimationFrame(applyCompassRotation);
+}
+
+function applyCompassRotation() {
+  state.compassRaf = 0;
+  if (!state.compassRose) return;
+  state.compassApplied = state.compassHeading;
+  state.compassRose.style.transform = `rotate(${-state.compassHeading}deg)`; // negate heading so the rose's N needle points to true north
+}
+
+function angleGap(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+
+function setCompassLabel(anchor, titleKey, ariaKey) {
+  if (!anchor) return;
+  anchor.setAttribute('data-i18n-title', titleKey);
+  anchor.setAttribute('data-i18n-aria', ariaKey);
+  anchor.title = t(titleKey);
+  anchor.setAttribute('aria-label', t(ariaKey));
+}
+
+function compassNotice(key) {
+  const note = $('#refresh-note');
+  if (note) note.textContent = t(key);
 }
 
 /* ---------- map-control icons — stroke SVGs inherit the themed .leaflet-bar color ---------- */

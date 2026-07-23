@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.54 · 2026-07-23 (Live compass heading: tap the compass to rotate the rose to your device heading)
+
+-- New Features --
+- [New] The compass box now rotates to your live device heading when tapped:
+      the rose turns so its red north needle points to true north as you turn the
+      phone, a hands-free way to orient yourself to what is in front of you. Tap
+      again to lock back to the static north-up rose. It is a progressive
+      enhancement, so it stays a plain north-up indicator on desktops, unsupported
+      browsers, or when motion permission is declined; on iOS 13+ the tap asks for
+      the one-time motion permission first, and if no compass signal arrives it
+      quietly falls back to north up.
+
 ## v0.97.53 · 2026-07-23 (Storm surge risk overlay: NOAA/NHC National Storm Surge Hazard Maps, SLOSH MOM)
 
 -- New Features --

@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.53') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.54') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.53') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.54') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.53') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.54') format('woff2');
 }
 
 :root {
@@ -1029,9 +1029,11 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
   50% { background: var(--accent); color: #fff; }
 }
 
-/* north-up indicator: the third box under Share in the top-right stack; inherits .ls-trigger box chrome + size */
-.compass-ctl a { cursor: default; }
-.compass-ctl svg { display: block; width: 17px; height: 17px; }
+/* compass box: third box under Share in the top-right stack; static north-up rose, tap to rotate the rose to the live device heading */
+.compass-ctl a { cursor: pointer; }
+.compass-ctl svg { display: block; width: 17px; height: 17px; transform-origin: 50% 54%; } /* 54% ~ circle center at y=13/24 so rotation stays wobble-free */
+.compass-ctl.live a { color: var(--accent); } /* subtle active tint: currentColor parts go accent, the red north needle stays red */
+.compass-ctl.live svg { transition: transform 0.12s linear; }
 
 /* ramp endpoints sampled from live IEM q2 tiles (continuous HSV: blue→cyan→green→yellow→orange→red) */
 #mrms-legend {

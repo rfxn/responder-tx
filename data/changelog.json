@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.54",
+      "date": "2026-07-23",
+      "line": "New: the compass button now shows your live heading. Tap it and the compass rose spins so its red north needle keeps pointing at true north as you turn your phone, an easy way to line up the map with what is in front of you. Tap it again to lock it back to a plain north-up compass. This is an extra that only turns on where your device and browser support it: on iPhones it asks once for motion permission, and on desktops or unsupported browsers the compass simply stays north up as before, never blank or broken."
+    },
+    {
       "v": "v0.97.53",
       "date": "2026-07-23",
       "line": "New: a 'Storm surge risk' map layer you can switch on from the Tropical group in the layer picker. It draws NOAA's National Hurricane Center storm surge risk maps (the SLOSH 'Maximum of MEOWs' product) for a near worst-case Category 5 hurricane, shading how deep surge water could get above ground: red for greater than 9 feet, orange for greater than 6, yellow for greater than 3, and blue for less than 3, with levee areas flagged to check with local officials. It is a planning map of what is possible, not a live forecast, so it stays available even when no storm is active. It sits at half opacity so roads and the basemap still read through it, and it quietly shows a small 'unavailable' note if the map service cannot be reached."

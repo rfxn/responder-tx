@@ -957,6 +957,7 @@ function initLayerSheet() {
     y0 = null;
   }, { passive: true });
   state.map.on('overlayadd overlayremove baselayerchange', layerSheetSync);
+  registerModal(el, { focusEl: '.ls-panel' }); // trap within the panel; #layer-sheet toggles hidden
 }
 
 /* ---------- unified radar timeline (v0.96) — observed RainViewer past | NOW | HRRR model future ----------

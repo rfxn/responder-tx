@@ -262,10 +262,13 @@
     const el = document.createElement('div');
     el.id = 'team-drop';
     el.hidden = true;
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-labelledby', 'team-drop-title');
     const segs = MARKER_KINDS.map((k) => `<button type="button" class="tp-seg" data-val="${k}">${esc(MARKER_GLYPH[k])} ${esc(kindLabel(k))}</button>`).join('');
     el.innerHTML =
       '<div class="modal-box team-box">' +
-      `<div class="modal-head"><strong>${esc(tt('team.drop.head', 'Drop a team marker'))}</strong>` +
+      `<div class="modal-head"><strong id="team-drop-title">${esc(tt('team.drop.head', 'Drop a team marker'))}</strong>` +
       `<button id="team-drop-close" title="${esc(tt('team.cancel', 'Cancel'))}">✕</button></div>` +
       '<div class="team-body">' +
       `<p class="tp-dropnote">${esc(tt('team.drop.center', 'Placing at the current map center. Pan the map first to reposition.'))}</p>` +
@@ -285,6 +288,7 @@
       el.querySelectorAll('.tp-seg').forEach((x) => x.classList.toggle('on', x === b));
     });
     document.getElementById('team-drop-go').addEventListener('click', submitDrop);
+    registerModal(el, { initialFocus: '#team-drop-label' });
   }
 
   function applyDefaults() {
@@ -941,11 +945,14 @@
     const el = document.createElement('div');
     el.id = 'team-edit';
     el.hidden = true;
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-labelledby', 'team-edit-title');
     const roleSeg = [['member', tt('team.role.member', '📍 Member (shares)')], ['viewer', tt('team.role.viewer', '👁 Viewer')]]
       .map(([v, l]) => `<button type="button" class="tp-seg" data-val="${v}">${esc(l)}</button>`).join('');
     el.innerHTML =
       '<div class="modal-box team-box">' +
-      `<div class="modal-head"><strong>${esc(tt('team.edit.head', 'Edit my role & status'))}</strong>` +
+      `<div class="modal-head"><strong id="team-edit-title">${esc(tt('team.edit.head', 'Edit my role & status'))}</strong>` +
       `<button id="team-edit-close" title="${esc(tt('team.cancel', 'Cancel'))}">✕</button></div>` +
       '<div class="team-body">' +
       `<div class="tp-field"><label>${esc(tt('team.field.role', 'Role'))}</label><div class="tp-seggroup" data-group="erole">${roleSeg}</div></div>` +
@@ -963,6 +970,7 @@
       document.getElementById('team-edit-profile').hidden = b.dataset.val !== 'member';
     });
     document.getElementById('team-edit-save').addEventListener('click', saveEdit);
+    registerModal(el);
   }
 
   function openEdit() {

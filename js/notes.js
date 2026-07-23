@@ -49,7 +49,7 @@
     return d;
   })();
   flyout.innerHTML =
-    '<div class="nf-head"><div><strong>📍 Field Notes</strong>' +
+    '<div class="nf-head"><div><strong id="nf-title">📍 Field Notes</strong>' +
     '<div class="nf-sub">community + responder annotations · unverified</div></div>' +
     '<button id="nf-close" title="Close">✕</button></div>' +
     '<div class="nf-ro" id="nf-ro" hidden><strong>Read-only public mirror</strong>: notes viewable only. ' +
@@ -68,6 +68,14 @@
     '<div class="row"><button id="nf-post" class="primary">Post</button><button id="nf-cancel">Cancel</button></div></div>' +
     '<div class="nf-note-status" id="nf-status"></div>' +
     '<div class="nf-list" id="nf-list"></div>';
+
+  // modal a11y: trap + inert background while the flyout is open (observes its `hidden` attribute).
+  // Escape closes it via boot.js → window.closeNotesFlyout, which routes through openFlyout to keep N.open synced.
+  flyout.setAttribute('role', 'dialog');
+  flyout.setAttribute('aria-modal', 'true');
+  flyout.setAttribute('aria-labelledby', 'nf-title');
+  if (typeof registerModal === 'function') registerModal(flyout);
+  window.closeNotesFlyout = () => openFlyout(false);
 
   const fab = document.createElement('button');
   fab.id = 'notes-fab';

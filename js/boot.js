@@ -504,6 +504,20 @@ async function boot() {
   initMap();
   initPointInspector();
   initInViewSync();
+  // modal a11y: focus-trap + inert background for every static overlay. Registered before any of
+  // them can open below (safety gate, risk, onboarding). #safety-modal traps + pins focus on its ack
+  // only and is deliberately never given an Escape path — the gate closes solely via #safety-ack.
+  registerModal($('#safety-modal'), { initialFocus: '#safety-ack' });
+  registerModal($('#onboard'));
+  registerModal($('#glossary-modal'));
+  registerModal($('#hydro-modal'));
+  registerModal($('#alert-modal'));
+  registerModal($('#cam-viewer'));
+  registerModal($('#changelog-modal'));
+  registerModal($('#risk-modal'), { initialFocus: '#risk-addr' });
+  registerModal($('#sitrep-modal'), { initialFocus: '#sitrep-copy' });
+  registerModal($('#drive-mode'));
+  registerModal($('#summary-view'));
   applyTheme(document.documentElement.getAttribute('data-theme'));
   loadStore();
   loadHist();
@@ -729,15 +743,17 @@ async function boot() {
   // Escape closes the top-most open overlay
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (!$('#safety-modal').hidden) return; // 911 gate up: Escape is a complete no-op until #safety-ack
     if (!$('#cam-viewer').hidden) { closeCamViewer(); return; } // must tear down the player, not just hide
     if (layerSheetIsOpen()) { closeLayerSheet(); return; }
     if (!$('#sitrep-modal').hidden) { closeSitrepModal(); return; } // routes through close() so focus is restored
+    if (window.closeNotesFlyout && !$('#notes-flyout').hidden) { window.closeNotesFlyout(); return; } // keeps N.open in sync
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
     if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
     // #safety-modal is intentionally absent: the 911 self-deploy gate closes only via #safety-ack (which
     // records the acknowledgment), never on Escape or a backdrop click
-    for (const id of ['#risk-modal', '#hydro-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode']) {
+    for (const id of ['#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#team-drop', '#team-edit']) {
       const m = $(id);
       if (m && !m.hidden) { m.hidden = true; if (id === '#drive-mode') updateDriveFreshness(); break; }
     }

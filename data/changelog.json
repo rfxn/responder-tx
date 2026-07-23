@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.44",
+      "date": "2026-07-23",
+      "line": "Accessibility improvements for keyboard and screen-reader users. Every pop-up dialog now keeps keyboard focus inside it while it is open, moves focus into the dialog when it opens, and returns focus to whatever you were on when it closes; the rest of the page is held inert so you cannot tab out into it by accident. Escape now closes the alert reader, the team marker and role dialogs, and the field notes panel, which previously had no keyboard way to close. The 911 safety notice keeps its single, deliberate close path: it traps focus on its acknowledgment button and never closes on Escape or an outside click, so you always confirm you have read it."
+    },
+    {
       "v": "v0.97.43",
       "date": "2026-07-23",
       "line": "Radar and the HRRR forecast are now a single \"Radar & forecast\" layer with one timeline you scrub from the observed past through NOW out to +12 hours, plus a shared reflectivity legend that tells you whether you are looking at observed radar or the forecast model. Pressing play on the forecast now animates smoothly instead of freezing on the first hour, and turning the layer on while radar is already showing keeps you on the live picture at NOW. The forecast now reaches +12h (it was +18h) so every projected hour stays on one consistent model run."

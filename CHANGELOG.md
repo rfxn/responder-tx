@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.44 · 2026-07-23 (Modal accessibility: focus-trap, inert background, consistent Escape; the 911 gate stays Escape-immune)
+
+-- New Features --
+- [New] Every modal and overlay now traps keyboard focus while open (Tab and Shift-Tab
+      cycle within it), moves focus inside on open, and returns focus to the control that
+      opened it on close; the rest of the page is made inert and hidden from screen readers
+      so only the dialog is reachable.
+- [New] Escape now closes the alert reader, the team marker and team role dialogs, and the
+      field notes flyout, which previously had no keyboard dismiss.
+
+-- Changes --
+- [Change] the 911 self-deploy safety gate is now focus-trapped on its acknowledgment button
+           and stays immune to Escape and backdrop dismissal, so it clears only by
+           acknowledging it; a release check now guards that behavior against regressions.
+
 ## v0.97.43 · 2026-07-23 (Radar and forecast merged into one scrub with a legend; play no longer stalls)
 
 -- Bug Fixes --

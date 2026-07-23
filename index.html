@@ -11,31 +11,31 @@
   <meta property="og:title" content="ResponderTX: Live Hazard Awareness">
   <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://respondertx.org/">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.43">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.44">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness">
   <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.43">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.44">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.43" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.43" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.97.43" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.43">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.44" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.44" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.97.44" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.44">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.43">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.43">
-  <link rel="stylesheet" href="css/app.css?v=0.97.43">
-  <link rel="stylesheet" href="css/notes.css?v=0.97.43">
-  <link rel="stylesheet" href="css/team.css?v=0.97.43">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.44">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.44">
+  <link rel="stylesheet" href="css/app.css?v=0.97.44">
+  <link rel="stylesheet" href="css/notes.css?v=0.97.44">
+  <link rel="stylesheet" href="css/team.css?v=0.97.44">
 </head>
 <body>
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.97.43" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.97.43" alt="ResponderTX" width="677" height="162">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.97.44" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.97.44" alt="ResponderTX" width="677" height="162">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="tiles">
@@ -278,9 +278,9 @@
   </main>
 
   <div id="notes-flyout" hidden></div>
-  <div id="safety-modal" hidden>
+  <div id="safety-modal" role="dialog" aria-modal="true" aria-labelledby="safety-title" hidden>
     <div class="modal-box">
-      <div class="modal-head"><strong data-i18n="safety.head">⚠ Life-threatening emergency → call 911</strong></div>
+      <div class="modal-head"><strong id="safety-title" data-i18n="safety.head">⚠ Life-threatening emergency → call 911</strong></div>
       <div class="safety-body">
         <p data-i18n-html="safety.p1">This board coordinates volunteer monitoring and situational awareness. It is <strong>not a dispatch system</strong> and is not monitored by emergency services. Verify before acting.</p>
         <p class="no-deploy" data-i18n="safety.nodeploy">⛔ DO NOT SELF-DEPLOY into warned or flooded areas</p>
@@ -289,7 +289,7 @@
     </div>
   </div>
 
-  <div id="onboard" hidden>
+  <div id="onboard" role="dialog" aria-modal="true" aria-labelledby="onboard-title" hidden>
     <div class="ob-box">
       <button id="ob-skip" data-i18n="onboard.skip">Skip</button>
       <div class="ob-viewport"><div class="ob-panels" id="ob-panels">
@@ -298,7 +298,7 @@
             <span class="gauge-icon cat-major ob-sw"></span><span class="gauge-icon cat-moderate ob-sw"></span><span class="gauge-icon cat-minor ob-sw"></span>
             <span class="ob-glyph">⚠</span><span class="ob-glyph">⛔</span><span class="ob-glyph">📷</span>
           </div>
-          <div class="ob-text" data-i18n="onboard.p1">The map is live hazards: gauges, warnings, roads, cameras.</div>
+          <div class="ob-text" id="onboard-title" data-i18n="onboard.p1">The map is live hazards: gauges, warnings, roads, cameras.</div>
         </div>
         <div class="ob-panel">
           <div class="ob-art">
@@ -318,16 +318,16 @@
     </div>
   </div>
 
-  <div id="glossary-modal" hidden>
+  <div id="glossary-modal" role="dialog" aria-modal="true" aria-labelledby="glossary-title" hidden>
     <div class="modal-box glossary-box">
-      <div class="modal-head"><strong data-i18n="glossary.head">? What the symbols mean</strong><button id="glossary-close" title="Close" data-i18n-title="risk.close">✕</button></div>
+      <div class="modal-head"><strong id="glossary-title" data-i18n="glossary.head">? What the symbols mean</strong><button id="glossary-close" title="Close" data-i18n-title="risk.close">✕</button></div>
       <div id="glossary-body"></div>
     </div>
   </div>
 
-  <div id="drive-mode" hidden>
+  <div id="drive-mode" role="dialog" aria-modal="true" aria-labelledby="drive-mode-title" hidden>
     <div class="drive-head">
-      <span class="drive-title" data-i18n="drive.title">🚗 DRIVE MODE: nearest hazards</span>
+      <span class="drive-title" id="drive-mode-title" data-i18n="drive.title">🚗 DRIVE MODE: nearest hazards</span>
       <button id="drive-loc" title="Use my location to rank by distance" data-i18n="drive.locate" data-i18n-title="drive.locate.title">⌖ Locate</button>
       <button id="drive-exit" title="Exit Drive Mode" data-i18n="drive.exit" data-i18n-title="drive.exit.title">✕ Exit</button>
     </div>
@@ -337,16 +337,16 @@
     <div class="drive-911" data-i18n="drive.footer">⚠ Life-threatening emergency → call 911 · Turn Around, Don't Drown: never enter flooded roads</div>
   </div>
 
-  <div id="summary-view" hidden>
+  <div id="summary-view" role="dialog" aria-modal="true" aria-labelledby="summary-title" hidden>
     <div class="drive-head">
-      <span class="drive-title" data-i18n="summary.title">📊 CREST SUMMARY: event peaks</span>
+      <span class="drive-title" id="summary-title" data-i18n="summary.title">📊 CREST SUMMARY: event peaks</span>
       <button id="summary-exit" title="Close crest summary" data-i18n="drive.exit" data-i18n-title="summary.exit.title">✕ Exit</button>
     </div>
     <div id="summary-body"></div>
     <div class="drive-911" data-i18n="drive.footer">⚠ Life-threatening emergency → call 911 · Turn Around, Don't Drown: never enter flooded roads</div>
   </div>
 
-  <div id="hydro-modal" hidden>
+  <div id="hydro-modal" role="dialog" aria-modal="true" aria-labelledby="hydro-title" hidden>
     <div class="modal-box hydro-box">
       <div class="modal-head"><strong id="hydro-title" data-i18n="hydro.title">Hydrograph</strong><button id="hydro-close" title="Close" data-i18n-title="risk.close">✕</button></div>
       <div id="hydro-canvas-wrap"><canvas id="hydro-canvas" width="900" height="440"></canvas></div>
@@ -355,14 +355,14 @@
     </div>
   </div>
 
-  <div id="alert-modal" hidden>
+  <div id="alert-modal" role="dialog" aria-modal="true" aria-labelledby="alert-title" hidden>
     <div class="modal-box alert-box">
       <div class="modal-head"><strong id="alert-title" data-i18n="alert.reader.head">Alert</strong><button id="alert-close" title="Close" data-i18n-title="risk.close">✕</button></div>
       <div id="alert-body"></div>
     </div>
   </div>
 
-  <div id="cam-viewer" hidden>
+  <div id="cam-viewer" role="dialog" aria-modal="true" aria-labelledby="cam-title" hidden>
     <div class="modal-box cam-box">
       <div class="modal-head"><strong id="cam-title" data-i18n="cam.title">Camera</strong><button id="cam-close" title="Close" data-i18n-title="risk.close">✕</button></div>
       <div id="cam-stage"></div>
@@ -371,16 +371,16 @@
     </div>
   </div>
 
-  <div id="changelog-modal" hidden>
+  <div id="changelog-modal" role="dialog" aria-modal="true" aria-labelledby="changelog-title" hidden>
     <div class="modal-box">
-      <div class="modal-head"><strong data-i18n="changelog.head">What's new</strong><button id="changelog-close" title="Close" data-i18n-title="changelog.close">✕</button></div>
+      <div class="modal-head"><strong id="changelog-title" data-i18n="changelog.head">What's new</strong><button id="changelog-close" title="Close" data-i18n-title="changelog.close">✕</button></div>
       <div id="changelog-body" data-i18n="changelog.loading">Loading…</div>
     </div>
   </div>
 
-  <div id="risk-modal" hidden>
+  <div id="risk-modal" role="dialog" aria-modal="true" aria-labelledby="risk-title" hidden>
     <div class="modal-box risk-box">
-      <div class="modal-head"><strong data-i18n="risk.head">🏠 Am I at risk? Address flood check</strong><button id="risk-close" title="Close" data-i18n-title="risk.close">✕</button></div>
+      <div class="modal-head"><strong id="risk-title" data-i18n="risk.head">🏠 Am I at risk? Address flood check</strong><button id="risk-close" title="Close" data-i18n-title="risk.close">✕</button></div>
       <div class="risk-body">
         <form id="risk-form" class="risk-inputrow">
           <input id="risk-addr" placeholder="Type an address or place, e.g. Concan, TX" data-i18n-ph="risk.ph" autocomplete="off" autocapitalize="words" enterkeyhint="search">
@@ -412,18 +412,18 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.97.43"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.97.43"></script>
-  <script src="js/usng.js?v=0.97.43"></script>
-  <script src="js/i18n.js?v=0.97.43"></script>
-  <script src="js/core.js?v=0.97.43"></script>
-  <script src="js/map.js?v=0.97.43"></script>
-  <script src="js/sources.js?v=0.97.43"></script>
-  <script src="js/panels.js?v=0.97.43"></script>
-  <script src="js/board.js?v=0.97.43"></script>
-  <script src="js/boot.js?v=0.97.43"></script>
-  <script src="js/notes.js?v=0.97.43"></script>
-  <script src="js/vendor/qrcode.min.js?v=0.97.43"></script>
-  <script src="js/team.js?v=0.97.43"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.97.44"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.97.44"></script>
+  <script src="js/usng.js?v=0.97.44"></script>
+  <script src="js/i18n.js?v=0.97.44"></script>
+  <script src="js/core.js?v=0.97.44"></script>
+  <script src="js/map.js?v=0.97.44"></script>
+  <script src="js/sources.js?v=0.97.44"></script>
+  <script src="js/panels.js?v=0.97.44"></script>
+  <script src="js/board.js?v=0.97.44"></script>
+  <script src="js/boot.js?v=0.97.44"></script>
+  <script src="js/notes.js?v=0.97.44"></script>
+  <script src="js/vendor/qrcode.min.js?v=0.97.44"></script>
+  <script src="js/team.js?v=0.97.44"></script>
 </body>
 </html>

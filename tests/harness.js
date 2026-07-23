@@ -105,6 +105,7 @@ function buildSandbox() {
 const EXPORTS = [
   'CONFIG', 'state', 'FLOOD_CATS', 'CAT_RANK', 'PRI_WEIGHT',
   'esc', 'fmtNum', 'safeUrl', 'ageMins', 'distMi', 'freshClass',
+  'modalCycleIndex', 'modalIsFocusableVisible',
   'toUSNG',
   'alertReach', 'alertSeverity',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'riverOf',

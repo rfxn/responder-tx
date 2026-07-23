@@ -107,9 +107,22 @@ check_staged() {
 }
 if check_staged; then pass "staged-file guard (no working/chat files staged)"; else failck "staged-file guard"; fi
 
+# g. 911-gate Escape immunity — #safety-modal must never appear in the Escape-dismiss loop array
+check_safety_escape() {
+    local arr
+    arr=$(awk '/never on Escape or a backdrop click/{f=1} f&&/for \(const id of \[/{print; exit}' js/boot.js)
+    [ -n "$arr" ] || { echo "Escape-dismiss loop array not found in js/boot.js (anchor comment moved?)" >&2; return 1; }
+    if printf '%s\n' "$arr" | grep -q "safety-modal"; then
+        echo "js/boot.js: #safety-modal in the Escape-dismiss loop array — the 911 gate must stay Escape-immune" >&2
+        return 1
+    fi
+    return 0
+}
+if check_safety_escape; then pass "911-gate Escape immunity (#safety-modal absent from Escape loop)"; else failck "911-gate Escape immunity"; fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 6 checks passed"
+    echo "SUMMARY: all 7 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 6 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 7 checks FAILED"
 exit 1

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.43';
+const APP_VERSION = 'v0.97.44';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -217,4 +217,102 @@ function recordAlertHist() {
 // notices are alerts, not tickets: resolved (curator-set) suppresses immediately, everything else times out — nothing is immortal
 const cardAged = (r) => r.status === 'resolved' || ageMins(r.ts) > (CONFIG.agedCardMinsByType[r.type] || CONFIG.agedCardMins);
 const lsrFreshCutoffMins = () => (state.filters.window ? +state.filters.window : CONFIG.agedLsrMins);
+
+/* ---------- modal a11y — one MutationObserver-driven focus-trap + inert background for every overlay.
+   Overlays toggle via the `hidden` attribute; registerModal watches that and drives trap/inert/focus,
+   so no bespoke open/close site is edited. This helper NEVER handles Escape — Escape stays centralized
+   in boot.js so the 911 safety gate keeps its single close path (#safety-ack). ---------- */
+
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const modalStack = []; // {el, focusEl, opts} bottom→top; last is topmost
+let savedTrigger = null; // element focused before the stack went empty→non-empty
+
+// last element focused OUTSIDE any registered modal — the true restore target even when a modal
+// (e.g. #sitrep-modal) moves focus into itself synchronously before its observer fires
+let lastFocusOutsideModals = document.body;
+document.addEventListener('focusin', (e) => {
+  if (e.target && e.target.closest && !e.target.closest('[data-modal-registered]')) lastFocusOutsideModals = e.target;
+}, true);
+
+const modalIsFocusableVisible = (n) =>
+  !!(n && (n.offsetWidth || n.offsetHeight || (n.getClientRects && n.getClientRects().length)));
+
+function modalFocusables(scope) {
+  return Array.from(scope.querySelectorAll(FOCUSABLE)).filter(modalIsFocusableVisible);
+}
+
+// wrap index for Tab/Shift-Tab within a modal; -1 when nothing focusable, 0 when a single focusable pins
+function modalCycleIndex(count, current, shift) {
+  if (count <= 0) return -1;
+  if (count === 1) return 0;
+  if (current < 0) return 0;
+  if (shift) return current === 0 ? count - 1 : current - 1;
+  return current === count - 1 ? 0 : current + 1;
+}
+
+// topmost open modal stays live; every other body child is inert (keyboard/pointer) + aria-hidden (SR)
+function refreshInert() {
+  const topEl = modalStack.length ? modalStack[modalStack.length - 1].el : null;
+  for (const node of Array.from(document.body.children)) {
+    if (node.tagName === 'SCRIPT') continue;
+    if (topEl && node !== topEl) {
+      node.setAttribute('inert', '');
+      node.setAttribute('aria-hidden', 'true');
+      node.dataset.modalInert = '1';
+    } else if (node.dataset.modalInert) {
+      node.removeAttribute('inert');
+      node.removeAttribute('aria-hidden');
+      delete node.dataset.modalInert;
+    }
+  }
+}
+
+function onModalShow(el, opts) {
+  if (modalStack.some((m) => m.el === el)) return;
+  const focusEl = opts.focusEl ? (el.querySelector(opts.focusEl) || el) : el;
+  if (!modalStack.length) savedTrigger = el.contains(document.activeElement) ? lastFocusOutsideModals : document.activeElement;
+  modalStack.push({ el, focusEl, opts });
+  refreshInert();
+  if (el.contains(document.activeElement)) return; // modal set its own focus (sitrep/risk) — don't fight it
+  let target = opts.initialFocus ? el.querySelector(opts.initialFocus) : null;
+  if (!target || !modalIsFocusableVisible(target)) target = modalFocusables(focusEl)[0];
+  if (target && typeof target.focus === 'function') target.focus();
+}
+
+function onModalHide(el) {
+  const i = modalStack.findIndex((m) => m.el === el);
+  if (i === -1) return;
+  modalStack.splice(i, 1);
+  refreshInert();
+  if (!modalStack.length) {
+    if (savedTrigger && typeof savedTrigger.focus === 'function') savedTrigger.focus();
+    else if (document.body.focus) document.body.focus();
+    savedTrigger = null;
+  } else {
+    const top = modalStack[modalStack.length - 1];
+    if (!top.el.contains(document.activeElement)) { const f = modalFocusables(top.focusEl)[0]; if (f) f.focus(); }
+  }
+}
+
+// opts.initialFocus = selector to focus on open; opts.focusEl = sub-element to trap within (default el)
+function registerModal(el, opts = {}) {
+  if (!el || el.dataset.modalRegistered) return; // idempotent: build fns may re-run
+  el.dataset.modalRegistered = '1';
+  new MutationObserver(() => { if (el.hidden) onModalHide(el); else onModalShow(el, opts); })
+    .observe(el, { attributes: true, attributeFilter: ['hidden'] });
+  if (!el.hidden) onModalShow(el, opts); // registered while already open
+}
+
+// keep Tab within the topmost modal; deliberately Tab-only — Escape is owned by boot.js
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab' || !modalStack.length) return;
+  const top = modalStack[modalStack.length - 1];
+  const f = modalFocusables(top.focusEl);
+  if (!f.length) { e.preventDefault(); return; }
+  const cur = top.focusEl.contains(document.activeElement) ? f.indexOf(document.activeElement) : -1;
+  const next = modalCycleIndex(f.length, cur, e.shiftKey);
+  if (next === cur && f.length > 1) return; // mid-list Tab — let the browser advance naturally
+  e.preventDefault();
+  f[next].focus();
+}, true);
 

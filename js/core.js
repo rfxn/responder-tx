@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.51';
+const APP_VERSION = 'v0.97.52';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -56,6 +56,9 @@ const CONFIG = {
   // NWPS/NWM Analysis-and-Assimilation flood inundation extent (experimental, hourly). Layer 0
   // draws only at street scale (< ~1:400k, z≈11+). MODELED estimate, not observed — labelled as such.
   inunExportUrl: 'https://maps.water.noaa.gov/server/rest/services/nwm/ana_inundation_extent/MapServer/export?bboxSR=3857&imageSR=3857&size=256,256&dpi=96&layers=show:0&format=png32&transparent=true&f=image',
+  // NOAA CO-OPS Tides & Currents datagetter (CORS *, keyless). Observed water level vs same-timestamp
+  // prediction = storm-surge residual at the coastal tide stations; upper/central TX coast seed in sources.js
+  coopBase: 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter',
 };
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
@@ -126,6 +129,9 @@ const state = {
   inView: false,
   camGen: 0,
   tropicalAutoDone: false, // set once the tropical tracker has been auto-enabled or manually toggled off
+  tides: null, // coastal water-level rows (NOAA CO-OPS); null until first Resources-tab open, then per-station
+  tidesAt: 0,
+  tidesLoading: false,
 
   lsCamOpen: new Set(), // camera sub-groups expanded this session (ephemeral, not persisted)
 };

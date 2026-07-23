@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.52 · 2026-07-23 (Coastal water levels: NOAA CO-OPS observed-vs-predicted storm-surge readout in Resources)
+
+-- New Features --
+- [New] Resources now carries a collapsible "Coastal water levels" card reading NOAA CO-OPS
+      tide stations from Sabine to Aransas: per station it shows the observed level (ft MLLW),
+      the storm-surge residual (observed minus the same-timestamp predicted tide) signed and
+      colored, and a rising/falling trend arrow, sorted worst residual first with the
+      observation time and a NOAA Tides & Currents citation; it fetches only while the tab is
+      open, refreshes on the data cycle, and degrades to a subtle unavailable state per
+      station or feed. Ten stations are live; three seed stations with no current sensor data
+      (Sabine Pass North, Freeport, Corpus Christi) were dropped.
+
 ## v0.97.51 · 2026-07-23 (Compass moved under the Share button as a matching control; dead tap removed)
 
 -- Changes --

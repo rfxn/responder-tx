@@ -1510,3 +1510,74 @@ function renderLsrs() {
   pbRefreshCurated(); // playback may have engaged before the LSR fetch arrived
 }
 
+/* ---------- NOAA CO-OPS coastal water levels: observed vs predicted storm-surge residual ----------
+   Lazy: fetched on Resources-tab open and refreshed on the data cycle only while that tab is visible.
+   Per-station failures degrade to an unavailable row; a total feed failure keeps the last-good rows. */
+
+const COOP_STATIONS = [
+  { id: '8770822', name: 'Texas Point, Sabine Pass' },
+  { id: '8770777', name: 'Manchester (Houston Ship Channel)' },
+  { id: '8770613', name: 'Morgans Point, Barbours Cut' },
+  { id: '8771013', name: 'Eagle Point, Galveston Bay' },
+  { id: '8771341', name: 'Galveston Bay Entrance, North Jetty' },
+  { id: '8771450', name: 'Galveston Pier 21' },
+  { id: '8773037', name: 'Seadrift' },
+  { id: '8773701', name: "Port O'Connor" },
+  { id: '8774770', name: 'Rockport' },
+  { id: '8775241', name: 'Aransas, Aransas Pass' },
+];
+
+// CO-OPS returns "YYYY-MM-DD HH:MM" naive station-local (lst_ldt); parse to epoch only for prediction-match delta math
+const tideEpoch = (s) => new Date(String(s).replace(' ', 'T')).getTime();
+
+async function fetchTideStation(s) {
+  const url = (extra) => `${CONFIG.coopBase}?${extra}&station=${s.id}&datum=MLLW&time_zone=lst_ldt&units=english&format=json&application=respondertx.org`;
+  try {
+    const [obsR, predR] = await Promise.all([
+      fetch(url('range=3&product=water_level')),
+      fetch(url('date=today&product=predictions&interval=6')),
+    ]);
+    if (!obsR.ok || !predR.ok) throw new Error('http');
+    const obs = await obsR.json();
+    const pred = await predR.json();
+    const data = (obs && obs.data) || [];
+    const preds = (pred && pred.predictions) || [];
+    if (!data.length) return { id: s.id, name: s.name, ok: false };
+    const last = data[data.length - 1];
+    const obv = +last.v;
+    if (!Number.isFinite(obv)) return { id: s.id, name: s.name, ok: false };
+    let prev = null;
+    for (let i = data.length - 2; i >= 0; i--) { if (Number.isFinite(+data[i].v)) { prev = data[i]; break; } }
+    let pv = null;
+    if (preds.length) {
+      const exact = preds.find((p) => p.t === last.t);
+      if (exact) { pv = +exact.v; }
+      else {
+        const lt = tideEpoch(last.t);
+        let best = null, bestD = Infinity;
+        for (const p of preds) { const d = Math.abs(tideEpoch(p.t) - lt); if (d < bestD) { bestD = d; best = p; } }
+        if (best && bestD <= 1800000) pv = +best.v; // accept a nearest prediction only within 30 min of the obs
+      }
+    }
+    const surge = (pv != null && Number.isFinite(pv)) ? obv - pv : null;
+    let dir = 'steady';
+    if (prev && Number.isFinite(+prev.v)) { const d = obv - +prev.v; dir = d > 0.03 ? 'up' : d < -0.03 ? 'down' : 'steady'; }
+    return { id: s.id, name: s.name, ok: true, obs: obv, pred: pv, surge, dir, t: last.t };
+  } catch { return { id: s.id, name: s.name, ok: false }; }
+}
+
+async function fetchTides() {
+  const rows = await Promise.all(COOP_STATIONS.map(fetchTideStation));
+  if (rows.some((r) => r.ok)) { state.tides = rows; state.tidesAt = Date.now(); } // keep last-good if the whole feed is down
+}
+
+// refetch unless a fetch is already in flight or we already have fresh (<90s) rows (tab-toggle spam guard)
+async function loadTides() {
+  if (state.tidesLoading) { renderTides(); return; }
+  if (state.tides && state.tidesAt && Date.now() - state.tidesAt < 90000) { renderTides(); return; }
+  state.tidesLoading = true;
+  renderTides(); // paint the loading state before the network round-trip
+  try { await fetchTides(); } catch { /* fetchTides already swallows per-station errors */ }
+  finally { state.tidesLoading = false; renderTides(); }
+}
+

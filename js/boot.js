@@ -69,6 +69,8 @@ async function refresh() {
     }
     if (!failed.length) saveCache();
     renderSourceHealth();
+    // keep the coastal water-level card live only while its tab is open; never fetch 20 CO-OPS requests unseen
+    if ($('#tab-resources') && $('#tab-resources').classList.contains('active')) loadTides();
     checkAppVersion();
     if (failed.length) $('#refresh-note').textContent = `degraded: ${failedNames}`;
     else $('#refresh-note').innerHTML = `<span class="fresh-dot fresh"></span> ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
@@ -499,6 +501,7 @@ function relocalizeDynamic() {
   renderRequests();
   if (state.resources) { renderResources(); renderMonitors(); }
   renderCrossings();
+  renderTides();
   renderSourceHealth();
   renderLayerPills();
   if (window.renderTeamTab) renderTeamTab();
@@ -544,6 +547,7 @@ async function boot() {
   document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
     document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
     document.querySelectorAll('.tab-body').forEach((t) => t.classList.toggle('active', t.id === b.dataset.tab));
+    if (b.dataset.tab === 'tab-resources') loadTides(); // lazy: coastal water levels fetch on first Resources open
     if (state.viewReady) saveViewState(); // skip during boot restore/URL apply — only real user taps
     if (window.innerWidth <= 768 && document.querySelector('main').classList.contains('sheet-peek')) setSheet('sheet-half');
   }));

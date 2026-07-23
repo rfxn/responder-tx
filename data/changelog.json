@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.52",
+      "date": "2026-07-23",
+      "line": "New during Tropical Storm Bertha: a 'Coastal water levels' card in the Resources tab shows storm surge at NOAA tide stations along the upper and central Texas coast, from Sabine Pass down to Aransas Pass. For each station it lists the current water level and, most usefully, the surge residual: how far the observed water sits above (or below) the tide that was predicted for that moment, with a rising or falling arrow. Stations are sorted worst first so the hardest-hit float to the top, each with the reading time and a link to NOAA Tides & Currents. It loads only when you open Resources, refreshes while you watch, and quietly shows 'unavailable' for any station that is briefly offline."
+    },
+    {
       "v": "v0.97.51",
       "date": "2026-07-23",
       "line": "The north compass now sits directly below the Share button in the top-right corner and matches its size and look, so the two read as one tidy control pair (it used to be a larger, separate compass floating in the bottom-right). It is now a clean north-up indicator; the tap that did nothing has been removed."

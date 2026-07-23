@@ -331,6 +331,10 @@ function initMap() {
   // tropical pane: above alert polygons (400) and radar, below labels (450) and markers (600); interactive for popups
   state.map.createPane('tropical');
   state.map.getPane('tropical').style.zIndex = 440;
+  // storm-surge risk pane: a raster hazard below radar (350), labels (450), and markers (600)
+  state.map.createPane('surge');
+  state.map.getPane('surge').style.zIndex = 340;
+  state.map.getPane('surge').style.pointerEvents = 'none';
   state.layers.labelBoost = offlineTile(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
 
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
@@ -344,6 +348,14 @@ function initMap() {
     opacity: 0.72, maxZoom: 19,
     attribution: 'Flood inundation: NWM analysis (experimental) &copy; NOAA/NWPS',
   });
+  // NOAA/NHC storm-surge risk (SLOSH MOM near worst-case): off by default (hazard layers
+  // explicit-enable); cached national raster, maxNativeZoom pins the top LOD, Leaflet upsamples past it
+  state.layers.surge = L.tileLayer(CONFIG.surgeUrl(CONFIG.surgeCat), {
+    pane: 'surge', opacity: 0.55, maxNativeZoom: 14, maxZoom: 19,
+    attribution: 'Storm surge risk: NOAA/NHC National Storm Surge Hazard Maps (SLOSH MOM)',
+  });
+  state.layers.surge.on('tileerror', () => { if (!state.surgeErr) { state.surgeErr = true; $('#refresh-note').textContent = t('surge.unavailable'); } });
+  state.layers.surge.on('load', () => { state.surgeErr = false; });
   // HRRR model future-cast — MODEL data (never observed); per-hour WMS layers mounted at opacity 0
   // like the observed-radar frames, so stepping is opacity-only (never a per-step fetch-gated fade)
   state.rtl = { idx: 0, fut: false, hour: 1, playing: false, timer: null, wantNow: false };
@@ -365,6 +377,7 @@ function initMap() {
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { $('#refresh-note').textContent = 'tropical feed unavailable'; }); }
+    if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
     if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsArlington, state.layers.camsElpBridge].includes(e.layer)) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
@@ -375,6 +388,7 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
     if (e.layer === state.layers.tropical) { hideTropicalLegend(); state.tropicalAutoDone = true; } // manual toggle-off stops auto-enable
+    if (e.layer === state.layers.surge) $('#surge-legend').hidden = true;
     if (e.layer === state.layers.fcstRadar) fcstDisable();
     if (e.layer === state.layers.usgs) {
       if (state.usgsAutoOn && !state.usgsAutoRemoving) state.usgsFallbackDismissed = true; // user closed the auto fallback — don't re-offer until the feed recovers
@@ -445,6 +459,7 @@ function initMap() {
     'Rainfall (MRMS)': state.layers.mrms,
     'Flood inundation: NWM model (est.)': state.layers.inundation,
     'Tropical cyclone tracker (NHC)': state.layers.tropical,
+    'Storm surge risk (NHC SLOSH)': state.layers.surge,
     'Flood alerts (NWS)': state.layers.alerts,
     'River gauges (NOAA)': state.layers.gauges,
     'Forecast crests (RFC max)': state.layers.fcstMax,
@@ -728,6 +743,7 @@ const PILL_LAYERS = (CONFIG.wxUnified
   : [['radar', 'layers.radar'], ['fcstRadar', 'layers.fcstradar']]
 ).concat([
   ['tropical', 'layers.tropical'],
+  ['surge', 'layers.surge'],
   ['mrms', 'layers.rain'],
   ['inundation', 'layers.inun'],
   ['usgs', 'layers.usgs'],
@@ -817,6 +833,7 @@ const SHEET_GROUPS = [
   ])],
   ['sheet.g.tropical', [
     ['tropical', '🌀', 'layers.tropical', 'sheet.s.tropical', 'official', false],
+    ['surge', '🌊', 'layers.surge', 'sheet.s.surge', 'official', false],
   ]],
   ['sheet.g.roads', [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],

@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.53 · 2026-07-23 (Storm surge risk overlay: NOAA/NHC National Storm Surge Hazard Maps, SLOSH MOM)
+
+-- New Features --
+- [New] Storm surge risk map layer (off by default, opt-in under the Tropical group):
+      an overlay of the NOAA/NHC National Storm Surge Hazard Maps (SLOSH MOM) showing the
+      near worst-case (Category 5) storm-surge inundation banded by height above ground,
+      greater than 9 ft (red), greater than 6 ft (orange), greater than 3 ft (yellow), and
+      less than 3 ft (blue), plus levee areas, with a compact bottom-right legend citing
+      the product; it is a static planning map, not a live forecast, always available
+      regardless of active storms, drawn at half opacity so roads and the basemap stay
+      readable, and it degrades to a subtle notice if the tile service is unreachable.
+
 ## v0.97.52 · 2026-07-23 (Coastal water levels: NOAA CO-OPS observed-vs-predicted storm-surge readout in Resources)
 
 -- New Features --

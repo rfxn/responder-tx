@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.52') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.53') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.52') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.53') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.52') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.53') format('woff2');
 }
 
 :root {
@@ -1067,6 +1067,22 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 }
 .inun-note { font-size: 10px; line-height: 1.35; color: var(--ink-muted); }
 
+/* storm-surge risk legend: bottom-right chip, stacks above the radar/forecast legend */
+#surge-legend {
+  position: absolute; bottom: 200px; right: 84px; z-index: 900;
+  background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
+  padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+#surge-legend[hidden] { display: none; }
+#surge-legend-title { font-size: 11px; font-weight: 700; color: var(--ink-2); display: block; margin-bottom: 4px; }
+.surge-rows { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: var(--ink-2); }
+.surge-sw {
+  display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px;
+  vertical-align: -1px; border: 1px solid rgba(0,0,0,0.3);
+}
+.surge-levee { background: #fff; }
+.surge-note { font-size: 10px; line-height: 1.35; color: var(--ink-muted); margin-top: 4px; }
+
 /* combined radar + HRRR-forecast legend: shares the rainfall-legend box, rides above the inundation legend */
 #wx-legend {
   position: absolute; bottom: 142px; right: 84px; z-index: 900;
@@ -1213,6 +1229,9 @@ button.inspect-gauge:hover { color: var(--accent); }
   #wx-legend-title { font-size: 10px; margin-bottom: 3px; }
   .wx-ramp { height: 8px; }
   .wx-src { font-size: 9px; }
+  /* keep the surge legend a subtle bottom-right chip too, above the radar/forecast chip */
+  #surge-legend { right: 8px; width: auto; max-width: 52vw; bottom: 206px; padding: 5px 8px; }
+  #surge-legend-title { font-size: 10px; margin-bottom: 3px; }
 }
 @media (max-width: 500px) {
   /* left/right-anchored (not centered): keeps the bar clear of the chat-FAB corner at every sheet state (v0.95.1) */

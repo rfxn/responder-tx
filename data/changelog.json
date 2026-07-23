@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.53",
+      "date": "2026-07-23",
+      "line": "New: a 'Storm surge risk' map layer you can switch on from the Tropical group in the layer picker. It draws NOAA's National Hurricane Center storm surge risk maps (the SLOSH 'Maximum of MEOWs' product) for a near worst-case Category 5 hurricane, shading how deep surge water could get above ground: red for greater than 9 feet, orange for greater than 6, yellow for greater than 3, and blue for less than 3, with levee areas flagged to check with local officials. It is a planning map of what is possible, not a live forecast, so it stays available even when no storm is active. It sits at half opacity so roads and the basemap still read through it, and it quietly shows a small 'unavailable' note if the map service cannot be reached."
+    },
+    {
       "v": "v0.97.52",
       "date": "2026-07-23",
       "line": "New during Tropical Storm Bertha: a 'Coastal water levels' card in the Resources tab shows storm surge at NOAA tide stations along the upper and central Texas coast, from Sabine Pass down to Aransas Pass. For each station it lists the current water level and, most usefully, the surge residual: how far the observed water sits above (or below) the tide that was predicted for that moment, with a rising or falling arrow. Stations are sorted worst first so the hardest-hit float to the top, each with the reading time and a link to NOAA Tides & Currents. It loads only when you open Resources, refreshes while you watch, and quietly shows 'unavailable' for any station that is briefly offline."

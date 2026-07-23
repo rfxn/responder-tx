@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.52';
+const APP_VERSION = 'v0.97.53';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -59,6 +59,11 @@ const CONFIG = {
   // NOAA CO-OPS Tides & Currents datagetter (CORS *, keyless). Observed water level vs same-timestamp
   // prediction = storm-surge residual at the coastal tide stations; upper/central TX coast seed in sources.js
   coopBase: 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter',
+  // NOAA/NHC National Storm Surge Hazard Maps (SLOSH MOM): static planning product, always
+  // available; cat 5 is the near worst-case envelope. Cached PNG8 XYZ tiles (CORS-open,
+  // EPSG:3857, LOD 0-14). Legend text names Category 5, keep it in sync if surgeCat changes.
+  surgeCat: 5,
+  surgeUrl: (cat) => `https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/Storm_Surge_HazardMaps_Category${cat}_v3/MapServer/tile/{z}/{y}/{x}`,
 };
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };

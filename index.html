@@ -11,31 +11,31 @@
   <meta property="og:title" content="ResponderTX: Live Hazard Awareness">
   <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://respondertx.org/">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.52">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.53">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness">
   <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.52">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.53">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.52" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.52" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.97.52" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.52">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.53" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.53" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.97.53" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.53">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.52">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.52">
-  <link rel="stylesheet" href="css/app.css?v=0.97.52">
-  <link rel="stylesheet" href="css/notes.css?v=0.97.52">
-  <link rel="stylesheet" href="css/team.css?v=0.97.52">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.53">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.53">
+  <link rel="stylesheet" href="css/app.css?v=0.97.53">
+  <link rel="stylesheet" href="css/notes.css?v=0.97.53">
+  <link rel="stylesheet" href="css/team.css?v=0.97.53">
 </head>
 <body>
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.97.52" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.97.52" alt="ResponderTX" width="677" height="162">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.97.53" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.97.53" alt="ResponderTX" width="677" height="162">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="tiles">
@@ -225,6 +225,17 @@
         <span id="inun-legend-title"><span class="inun-sw"></span>Flood inundation: NWM model estimate</span>
         <div class="inun-note" data-i18n-html="leg.inun.note">NWS/NWPS National Water Model analysis (experimental): a modeled estimate, <strong>not observed</strong> conditions. Zoom to street level to see extent · updated hourly.</div>
       </div>
+      <div id="surge-legend" hidden>
+        <span id="surge-legend-title" data-i18n="leg.surge.title">Storm surge risk (NHC SLOSH)</span>
+        <div class="surge-rows">
+          <div><span class="surge-sw" style="background:#FF0000"></span><span data-i18n="leg.surge.b9">Greater than 9 ft above ground</span></div>
+          <div><span class="surge-sw" style="background:#FFAA00"></span><span data-i18n="leg.surge.b6">Greater than 6 ft above ground</span></div>
+          <div><span class="surge-sw" style="background:#FFFF00"></span><span data-i18n="leg.surge.b3">Greater than 3 ft above ground</span></div>
+          <div><span class="surge-sw" style="background:#005CE6"></span><span data-i18n="leg.surge.b0">Less than 3 ft above ground</span></div>
+          <div><span class="surge-sw surge-levee"></span><span data-i18n="leg.surge.levee">Levee areas · consult local officials</span></div>
+        </div>
+        <div class="surge-note" data-i18n-html="leg.surge.note">NOAA/NHC National Storm Surge Hazard Maps (SLOSH MOM), Category 5 near worst-case · a planning map, <strong>not a live forecast</strong>.</div>
+      </div>
       <div id="wx-legend" hidden>
         <span id="wx-legend-title" data-i18n="leg.wx">Radar reflectivity (dBZ)</span>
         <div class="wx-ramp"></div>
@@ -410,18 +421,18 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.97.52"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.97.52"></script>
-  <script src="js/usng.js?v=0.97.52"></script>
-  <script src="js/i18n.js?v=0.97.52"></script>
-  <script src="js/core.js?v=0.97.52"></script>
-  <script src="js/map.js?v=0.97.52"></script>
-  <script src="js/sources.js?v=0.97.52"></script>
-  <script src="js/panels.js?v=0.97.52"></script>
-  <script src="js/board.js?v=0.97.52"></script>
-  <script src="js/boot.js?v=0.97.52"></script>
-  <script src="js/notes.js?v=0.97.52"></script>
-  <script src="js/vendor/qrcode.min.js?v=0.97.52"></script>
-  <script src="js/team.js?v=0.97.52"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.97.53"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.97.53"></script>
+  <script src="js/usng.js?v=0.97.53"></script>
+  <script src="js/i18n.js?v=0.97.53"></script>
+  <script src="js/core.js?v=0.97.53"></script>
+  <script src="js/map.js?v=0.97.53"></script>
+  <script src="js/sources.js?v=0.97.53"></script>
+  <script src="js/panels.js?v=0.97.53"></script>
+  <script src="js/board.js?v=0.97.53"></script>
+  <script src="js/boot.js?v=0.97.53"></script>
+  <script src="js/notes.js?v=0.97.53"></script>
+  <script src="js/vendor/qrcode.min.js?v=0.97.53"></script>
+  <script src="js/team.js?v=0.97.53"></script>
 </body>
 </html>

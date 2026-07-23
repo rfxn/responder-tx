@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.43",
+      "date": "2026-07-23",
+      "line": "Radar and the HRRR forecast are now a single \"Radar & forecast\" layer with one timeline you scrub from the observed past through NOW out to +12 hours, plus a shared reflectivity legend that tells you whether you are looking at observed radar or the forecast model. Pressing play on the forecast now animates smoothly instead of freezing on the first hour, and turning the layer on while radar is already showing keeps you on the live picture at NOW. The forecast now reaches +12h (it was +18h) so every projected hour stays on one consistent model run."
+    },
+    {
       "v": "v0.97.42",
       "date": "2026-07-23",
       "line": "Two team fixes. Creating or joining a live team now works from the LAN board, not only the public site (it was failing with \"Could not create the team.\"). And the \"Create team\" button text is now white so it stays readable on the dark accent, instead of near-black text that was hard to see on a dark background."

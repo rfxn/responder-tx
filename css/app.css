@@ -3,21 +3,21 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/inter-regular.woff2?v=0.97.42') format('woff2');
+  src: url('../assets/fonts/inter-regular.woff2?v=0.97.43') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.42') format('woff2');
+  src: url('../assets/fonts/inter-semibold.woff2?v=0.97.43') format('woff2');
 }
 @font-face {
   font-family: 'Oswald';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.42') format('woff2');
+  src: url('../assets/fonts/oswald-bold.woff2?v=0.97.43') format('woff2');
 }
 
 :root {
@@ -1045,6 +1045,21 @@ body.pb-bar-open .compass-ctl { bottom: 206px; }
   vertical-align: -1px; background: rgba(0,110,199,0.55); border: 1px solid rgba(0,110,199,0.9);
 }
 .inun-note { font-size: 10px; line-height: 1.35; color: var(--ink-muted); }
+
+/* combined radar + HRRR-forecast legend: shares the rainfall-legend box, rides above the inundation legend */
+#wx-legend {
+  position: absolute; bottom: 142px; right: 84px; z-index: 900;
+  background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
+  padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+#wx-legend[hidden] { display: none; }
+#wx-legend-title { font-size: 11px; font-weight: 700; color: var(--ink-2); display: block; margin-bottom: 4px; }
+/* NWS-style reflectivity ramp (light→extreme dBZ); serves both RainViewer observed and HRRR forecast */
+.wx-ramp {
+  height: 10px; border-radius: 3px;
+  background: linear-gradient(90deg, #a0f0a0, #00c000, #ffff00, #ff9000, #ff0000, #d000d0);
+}
+.wx-src { font-size: 10px; font-weight: 600; color: var(--ink-muted); margin-top: 3px; }
 
 /* active-layer pills — under the AO chips; hidden entirely when only default layers are on */
 .layer-pills {

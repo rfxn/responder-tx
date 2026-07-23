@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.42';
+const APP_VERSION = 'v0.97.43';
 
 const CONFIG = {
   center: [29.75, -99.35],
@@ -41,8 +41,10 @@ const CONFIG = {
   // no TIME dim — layers always serve the latest run; run stamp via the per-layer metadata JSON
   hrrrWmsUrl: 'https://mesonet.agron.iastate.edu/cgi-bin/wms/hrrr/refd.cgi',
   hrrrMetaUrl: (min) => `https://mesonet.agron.iastate.edu/data/gis/images/4326/hrrr/refd_${String(min).padStart(4, '0')}.json`,
-  // hourly layers ≤18h track the latest hourly run; beyond 18h IEM falls back to the older synoptic run — mixing runs in one scrub would lie
-  hrrrMaxHours: 18,
+  // hourly layers ≤12h track the latest hourly run; beyond that IEM falls back to the older synoptic run — mixing runs in one scrub would lie
+  hrrrMaxHours: 12,
+  // merge the observed-radar + HRRR-forecast toggles into one "Radar & forecast" feature (one scrub, one legend)
+  wxUnified: true,
   // IEM MRMS accumulation windows probed live 2026-07-18: these four serve tiles; 3h/6h/12h do not exist
   mrmsWindows: ['1h', '24h', '48h', '72h'],
   mrmsUrl: (w) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-${w === '1h' ? 'n1p' : `p${w}`}-900913/{z}/{x}/{y}.png`,

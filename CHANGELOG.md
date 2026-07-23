@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.43 · 2026-07-23 (Radar and forecast merged into one scrub with a legend; play no longer stalls)
+
+-- Bug Fixes --
+- [Fix] Pressing play on the HRRR forecast now animates instead of freezing on the
+      first hour. Each forecast hour is now a preloaded map layer and a play step only
+      swaps which one is visible, so it never interrupts an in-flight tile load; the old
+      cross-fade waited on a network event that never landed while playing, leaving the
+      slider and label advancing over a frozen picture.
+
+-- New Features --
+- [New] The observed radar and the HRRR forecast are now one "Radar & forecast" toggle
+      with a single past to NOW to +12h scrubber and a shared reflectivity (dBZ) legend
+      whose source line reads "Observed · RainViewer" or "Forecast · HRRR model" as the
+      playhead crosses NOW; enabling it while radar is on starts on the observed picture
+      at NOW instead of jumping into the forecast.
+
+-- Changes --
+- [Change] the radar-timeline forecast horizon is now +12h (was +18h), keeping every
+           projected hour on a single consistent HRRR model run
+
 ## v0.97.42 · 2026-07-23 (Team creation works on the LAN board; readable Create team button)
 
 -- Bug Fixes --

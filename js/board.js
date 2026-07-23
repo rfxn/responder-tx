@@ -487,7 +487,7 @@ function riskGaugeLine(x) {
     : '';
   return `<button class="risk-gauge" data-lid="${esc(g.lid)}">` +
     `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} ${esc(t('risk.mi'))}</span></div>` +
-    `<div class="rg-now">${esc(t('risk.now'))} ${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${trendBit}</div>` +
+    `<div class="rg-now">${esc(t('risk.now'))} ${o.primary > -999 && Number.isFinite(o.primary) ? `${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${trendBit}` : esc(t('gauge.noreading'))}</div>` +
     (stale ? `<div class="rg-now stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
     fcst + '</button>';
 }

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.41",
+      "date": "2026-07-23",
+      "line": "A small data-accuracy fix. When a river gauge's source has no current reading (a sensor briefly offline), the board now says \"no current reading\" instead of showing a placeholder \"-999 ft\". These gauges were already marked stale and left out of the flood and crest calculations, so nothing about the safety picture changes; a gauge with a real but simply old reading still shows its last value."
+    },
+    {
       "v": "v0.97.40",
       "date": "2026-07-21",
       "line": "Internal cleanup only. We removed some dead code and out-of-date notes in the source and merged a few duplicated pieces of logic into shared helpers. Nothing about how the board looks or works has changed."

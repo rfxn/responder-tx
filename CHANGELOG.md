@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.41 · 2026-07-23 (Gauge no-data: show "no current reading", not the -999 sentinel)
+
+-- Bug Fixes --
+- [Fix] A gauge whose upstream source reports no current reading (the -999 no-data
+      sentinel, e.g. a sensor briefly offline) now shows "no current reading" on the
+      gauge card and the "Am I at risk?" list instead of a literal "-999 ft". These
+      gauges were already flagged stale and kept out of the flood, rising, crest, and
+      record logic; this only cleans up the displayed value. A real reading that has
+      simply gone stale still shows its last value with the stale note.
+
 ## v0.97.40 · 2026-07-21 (Internal cleanup: dead code, stale comments, deduped helpers)
 
 -- Changes --

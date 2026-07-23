@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.56 · 2026-07-23 (Screen stays awake while you share your location in a team or use Drive Mode)
+
+-- New Features --
+- [New] Your screen now stays awake while you are actively sharing your location
+      with a team or using Drive Mode, so the phone no longer dims and locks in the
+      middle of a response. The hold releases the moment you stop sharing, leave the
+      team, close Drive Mode, or switch away from the tab, and it comes back when you
+      return, so it never keeps the screen on in the background. It needs the secure
+      site (https) and a browser that supports screen wake locks; where that is not
+      available, such as the plain http LAN board or older iPhones, everything works
+      as before and the screen just follows your normal auto-lock.
+
 ## v0.97.55 · 2026-07-23 (Radar reliability: missing radar cells now fill in instead of staying blank)
 
 -- Bug Fixes --

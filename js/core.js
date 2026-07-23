@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.55';
+const APP_VERSION = 'v0.97.56';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -171,6 +171,42 @@ function copyText(text) {
     catch (e) { reject(e); }
     finally { ta.remove(); }
   });
+}
+
+/* ---------- screen wake lock: refcounted sentinel shared by team-sharing + Drive Mode ---------- */
+
+// Held while any reason is active; released when the reason set empties. The spec auto-releases the
+// sentinel on tab-hide, so keepAwakeResume() re-requests on return. No-op without Wake Lock support
+// or a secure context (older iOS, plain-http LAN :8080), and a rejected request never throws.
+const _wakeReasons = new Set();
+let _wakeSentinel = null;
+let _wakeAcquiring = false;
+
+async function _wakeAcquire() {
+  if (_wakeSentinel || _wakeAcquiring || !_wakeReasons.size || !('wakeLock' in navigator)) return;
+  _wakeAcquiring = true;
+  try {
+    const s = await navigator.wakeLock.request('screen');
+    if (!_wakeReasons.size) { s.release().catch(() => { /* every reason cleared mid-request; drop it */ }); return; }
+    _wakeSentinel = s;
+    _wakeSentinel.addEventListener('release', () => { _wakeSentinel = null; });
+  } catch { /* rejected while hidden or not allowed; a later resume retries */ }
+  finally { _wakeAcquiring = false; }
+}
+
+function _wakeRelease() {
+  const s = _wakeSentinel;
+  _wakeSentinel = null;
+  if (s) s.release().catch(() => { /* already released by the UA */ });
+}
+
+function keepAwake(on, reason) {
+  if (on) _wakeReasons.add(reason); else _wakeReasons.delete(reason);
+  if (_wakeReasons.size) _wakeAcquire(); else _wakeRelease();
+}
+
+function keepAwakeResume() {
+  if (document.visibilityState === 'visible') _wakeAcquire();
 }
 
 const ageMins = (iso) => (Date.now() - new Date(iso).getTime()) / 60000;

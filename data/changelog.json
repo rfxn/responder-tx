@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.56",
+      "date": "2026-07-23",
+      "line": "New: your screen now stays awake while you are actively sharing your location with a team or using Drive Mode, so your phone does not dim and lock in the middle of a response. The screen-awake hold lets go the moment you stop sharing, leave the team, close Drive Mode, or switch away from the tab, and it comes back when you return, so it never keeps the screen lit in the background and drains your battery. It needs the secure site (the https address) and a browser that supports screen wake locks; where that is not available, such as the plain http LAN board or an older iPhone, everything works as before and the screen just follows your normal auto-lock."
+    },
+    {
       "v": "v0.97.55",
       "date": "2026-07-23",
       "line": "Fix: some radar and forecast cells could stay blank after you switched the layer on. Turning it on used to load every animation frame at the same moment, so if the busy radar server dropped a tile there was no way to get it back and you were left with holes. Now the layer loads the visible 'now' frame first and adds the older frames a moment later, and any tile that fails to load is retried a few times, so the cells fill in instead of leaving gaps. The forecast layer also draws at a lighter resolution that loads faster and more reliably from the slower model server."

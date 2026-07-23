@@ -659,6 +659,7 @@
     if (window.gpsWait) gpsWait(true);
     T.watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
     T.postTimer = setInterval(postPosition, POST_MS);
+    if (window.keepAwake) keepAwake(true, 'team'); // hold the screen awake while actively sharing
   }
 
   // Backgrounding (screen-lock / tab-switch) PAUSES sharing without leaving: stop the GPS watch and
@@ -738,6 +739,7 @@
   function stopWatch() {
     if (T.watchId != null) { try { navigator.geolocation.clearWatch(T.watchId); } catch { /* already cleared */ } T.watchId = null; }
     if (T.postTimer) { clearInterval(T.postTimer); T.postTimer = null; }
+    if (window.keepAwake) keepAwake(false, 'team'); // covers pause/hide, teardown, viewer + unavailable changes
   }
 
   function teardown() {
@@ -1290,7 +1292,7 @@
     document.addEventListener('visibilitychange', () => {
       // screen-lock / tab-switch PAUSES (keeps our DO slot); it must NOT beaconLeave and delete us
       if (document.visibilityState === 'hidden') pauseSharing();
-      else { onForeground(); resumeSharing(); }
+      else { onForeground(); resumeSharing(); if (window.keepAwakeResume) keepAwakeResume(); } // spec dropped the lock on hide
     });
   }
 

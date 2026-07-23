@@ -594,7 +594,7 @@ async function boot() {
   document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', (e) => shareView(e.currentTarget));
-  const enterDrive = () => { $('#drive-mode').hidden = false; if (!state.myPos) { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } else { startLocTrack(); } renderDriveMode(); };
+  const enterDrive = () => { $('#drive-mode').hidden = false; keepAwake(true, 'drive'); if (!state.myPos) { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } else { startLocTrack(); } renderDriveMode(); };
   $('#drive-btn').addEventListener('click', enterDrive);
   // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon.
   // Deferred while the safety/onboarding chain is up: one nudge at a time; it shows on the next visit.
@@ -606,7 +606,7 @@ async function boot() {
     $('#drive-hint-go').addEventListener('click', () => { dismissHint(); enterDrive(); });
     $('#drive-hint-x').addEventListener('click', dismissHint);
   }
-  $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; updateDriveFreshness(); }); // tracking continues in the app
+  $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; updateDriveFreshness(); keepAwake(false, 'drive'); }); // tracking continues in the app
   // owner directive: "Am I at risk?" hidden by default — first-responder/public-info tool, not a
   // consumer address lookup. Code + modal stay intact; ?risk=1 reveals the button and opens the modal.
   const riskEnabled = new URLSearchParams(location.search).has('risk');
@@ -777,7 +777,7 @@ async function boot() {
     // records the acknowledgment), never on Escape or a backdrop click
     for (const id of ['#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#drive-mode', '#team-drop', '#team-edit']) {
       const m = $(id);
-      if (m && !m.hidden) { m.hidden = true; if (id === '#drive-mode') updateDriveFreshness(); break; }
+      if (m && !m.hidden) { m.hidden = true; if (id === '#drive-mode') { updateDriveFreshness(); keepAwake(false, 'drive'); } break; }
     }
   });
 
@@ -871,6 +871,7 @@ async function boot() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') { stopLocTrack(); return; } // no background geolocation drain
     if (state.myPos) startLocTrack(); // resume the fix loop on return, in the app or Drive Mode
+    keepAwakeResume(); // spec auto-released the wake lock on hide; re-request if a reason still holds
     if (state.pendingRefresh) {
       state.pendingRefresh = false;
       refresh();

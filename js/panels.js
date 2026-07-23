@@ -235,6 +235,7 @@ function renderDriveMode() {
     const dc = b.dataset.cam != null && state.driveCams[+b.dataset.cam];
     if (dc) { openCamViewer(dc.cam, dc.kind); return; } // viewer overlays Drive Mode — stays one-handed
     $('#drive-mode').hidden = true;
+    keepAwake(false, 'drive'); // tapping a hazard exits Drive Mode; drop the screen-awake hold
     state.map.setView([+b.dataset.lat, +b.dataset.lon], 13);
   }));
   updateDriveFreshness();

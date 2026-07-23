@@ -284,6 +284,33 @@ body.pb-bar-open #team-drop-fab { bottom: 158px; } /* ride above the open playba
 .team-marker.team-st-unavailable { opacity: 0.55; }
 .team-marker.team-st-unavailable .tm-dot { background: transparent; border-style: dashed; }
 
+/* clearly-stale "last known position" tombstone for a dropped/reaped member */
+.team-marker.team-tomb { opacity: 0.5; }
+.team-marker.team-tomb .tm-dot { background: transparent; border-style: dashed; }
+.team-marker.team-tomb .tm-dot-k9 { background: transparent; border-style: dashed; }
+.team-marker.team-tomb .tm-label { font-style: italic; }
+
+/* persistent team-notice line (safety messages the refresh clock must not flash away) */
+.team-notice {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0 0 10px;
+  padding: 9px 10px; border-radius: 9px; font-size: 12.5px; line-height: 1.4;
+  background: var(--surface-2); border: 1px solid var(--border); border-left-width: 3px; color: var(--ink-1);
+}
+.team-notice[hidden] { display: none; }
+.team-notice .tn-msg { flex: 1 1 auto; min-width: 0; }
+.team-notice .tn-x {
+  flex: 0 0 auto; min-height: 28px; min-width: 28px; padding: 2px 6px; cursor: pointer;
+  background: none; border: none; color: var(--ink-2); font-size: 14px;
+}
+.team-notice .tn-x:hover { color: var(--ink-1); }
+.team-notice-error { border-color: var(--sev-emergency); }
+.team-notice-warn { border-color: var(--sev-warning); }
+.team-notice-ok { border-color: #69f0ae; }
+.team-notice-info { border-color: var(--accent); }
+
+/* lost-contact cue in the roster row */
+.tp-age.tp-lost { color: var(--sev-emergency); font-weight: 700; }
+
 /* shared team-dropped markers */
 .team-tm { position: relative; display: flex; align-items: flex-start; }
 .team-tm .ttm-glyph { font-size: 16px; line-height: 1; filter: drop-shadow(0 0 2px #000); }

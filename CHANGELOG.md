@@ -1,5 +1,28 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.46 · 2026-07-23 (Team: phone backgrounding no longer drops you; lost members leave a last-known tombstone; safety notices persist)
+
+-- New Features --
+- [New] A field member who drops off (reaped after ~20 min of no contact, or who leaves)
+      now leaves a clearly-stale "last known" tombstone on the map, shown hollow, dashed,
+      and time-stamped, in both the in-app roster and the LAN command view, instead of the
+      unit silently vanishing; the tombstone is retained up to 30 minutes, then removed.
+- [New] Team safety notices (team expired, location unavailable, reconnected, you left)
+      now show in a dedicated, dismissible notice line in the Team tab that persists until
+      you dismiss it or the state changes; location-denied is especially sticky since it
+      means you are not actually sharing, and it clears on its own once a fix arrives.
+
+-- Bug Fixes --
+- [Fix] mobile backgrounding no longer deletes you from the team: the pagehide leave
+      beacon is gated on a real unload, so a bfcache (persisted) background keeps your
+      slot, color, and breadcrumb trail instead of re-minting an empty-trail member on
+      return; visibilitychange pause/resume and the server TTL still cover a real exit.
+- [Fix] the command view now flags a dropped member the moment contact is lost, greying
+      the roster row and labelling it "lost contact" with the last-seen time, plus a
+      lost-contact count on the LAN command team card, so command is not left unaware.
+- [Fix] master command-view map tooltips now escape the team name and handle before
+      rendering, matching every other render path (defense-in-depth).
+
 ## v0.97.45 · 2026-07-23 (Team status: Unavailable stops sharing but keeps you on the team; clearer active status; readable buttons)
 
 -- New Features --

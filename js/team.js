@@ -15,6 +15,7 @@
   const POST_MS = 15000;   // publish own position cadence (breadcrumb ~every 15s)
   const HANDLE_MIN = 4;
   const STALE_MS = 90000;  // grey a member marker after this long with no update
+  const TOMB_MS = 1800000; // keep a last-known tombstone up to 30 min after last contact, then drop it
   const SELF_TRAIL_MAX = 400;
   const eidKey = (id) => `respondertx.team.eid.${id}`;
   const selfKey = (id) => `respondertx.team.self.${id}`;
@@ -39,7 +40,7 @@
     id: null, name: '', teamType: 'sar', role: null, ephemeralId: null, pid: null, handle: '',
     mtype: null, specialty: null, k9Name: '', skills: [], status: null,
     watchId: null, pollTimer: null, postTimer: null,
-    layer: null, markerLayer: null, markers: {}, teamMarkers: {},
+    layer: null, markerLayer: null, markers: {}, teamMarkers: {}, lastKnown: {},
     lastMembers: [], lastViewers: [], lastMarkers: [], defaults: null, appliedDefaults: false,
     facilities: null, mapWired: false,
     selfTrail: [], selfPos: null, active: false,
@@ -81,6 +82,19 @@
     });
   }
 
+  // clearly-stale "last known position" marker for a dropped/reaped member: hollow, dashed, timestamped
+  function tombIcon(lk) {
+    const k9 = lk.mtype === 'k9';
+    const dot = k9 ? '<span class="tm-dot tm-dot-k9">🐕</span>' : '<span class="tm-dot"></span>';
+    const when = hhmm(lk.lastSeen);
+    return L.divIcon({
+      className: '',
+      html: `<div class="team-marker team-tomb" style="--tc:${lk.color || '#7a8899'}">${dot}` +
+        `<span class="tm-label">${esc(lk.handle || '')} · ${esc(tt('team.lastknown', 'last known'))}${when ? ' ' + esc(when) : ''}</span></div>`,
+      iconSize: [14, 14], iconAnchor: [7, 7],
+    });
+  }
+
   // renders the cached server roster with the local self-fix overlaid, so a poll that predates
   // the server echoing our own position never wipes our self-marker, and a self GPS tick never
   // wipes other members' markers
@@ -90,6 +104,7 @@
     if (T.role === 'member' && T.selfPos && !members.some((m) => m.pid === T.pid)) {
       members.push({ pid: T.pid, handle: T.handle, color: selfColor(), lastPos: null, lastSeen: Date.now(), trail: [], mtype: T.mtype, k9Name: T.k9Name, status: T.status });
     }
+    const now = Date.now();
     const seen = {};
     for (const m of members) {
       const isSelf = m.pid === T.pid;
@@ -97,10 +112,11 @@
       if (!pos) continue;
       seen[m.pid] = true;
       const color = isSelf ? selfColor() : m.color;
-      const stale = !isSelf && Date.now() - (m.lastSeen || 0) > STALE_MS;
+      const stale = !isSelf && now - (m.lastSeen || 0) > STALE_MS;
       // self-fix overlays the cached record so a fresh GPS tick shows the latest type/status
       const mm = isSelf ? Object.assign({}, m, { mtype: T.mtype || m.mtype, k9Name: T.k9Name || m.k9Name, status: T.status || m.status, handle: T.handle || m.handle }) : m;
       const ll = [pos.lat, pos.lon];
+      if (!isSelf) T.lastKnown[m.pid] = { ll, handle: m.handle, color: m.color, mtype: m.mtype, k9Name: m.k9Name, lastSeen: m.lastSeen || now };
       let entry = T.markers[m.pid];
       if (!entry) {
         entry = {
@@ -114,12 +130,28 @@
         entry.marker.setLatLng(ll);
         entry.marker.setIcon(memberIcon(mm, color, isSelf, stale));
       }
+      entry.tomb = false;
       // self draws its own responsive full-res trail; others render the server's capped copy
       const pts = isSelf && T.selfTrail.length ? T.selfTrail : (m.trail || []).map((p) => [p.lat, p.lon]);
       entry.trail.setLatLngs(pts);
     }
     for (const id of Object.keys(T.markers)) {
-      if (!seen[id]) { T.layer.removeLayer(T.markers[id].marker); T.layer.removeLayer(T.markers[id].trail); delete T.markers[id]; }
+      if (seen[id]) continue;
+      const entry = T.markers[id];
+      const lk = T.lastKnown[id];
+      // a dropped/reaped member is not deleted outright: keep a bounded, clearly-stale "last known"
+      // tombstone so command retains their last position instead of the unit silently vanishing
+      if (id !== T.pid && lk && now - (lk.lastSeen || 0) <= TOMB_MS) {
+        if (!entry.tomb) {
+          entry.marker.setLatLng(lk.ll);
+          entry.marker.setIcon(tombIcon(lk));
+          entry.trail.setLatLngs([]);
+          entry.tomb = true;
+        }
+        continue;
+      }
+      T.layer.removeLayer(entry.marker); T.layer.removeLayer(entry.trail); delete T.markers[id];
+      delete T.lastKnown[id];
     }
   }
 
@@ -310,6 +342,13 @@
     if (s < 60) return `${s}s`;
     if (s < 3600) return `${Math.round(s / 60)}m`;
     return `${Math.round(s / 3600)}h`;
+  }
+
+  // wall-clock HH:MM in the board's Central zone for "last seen / last known" stamps
+  function hhmm(ts) {
+    if (!ts) return '';
+    try { return new Date(ts).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit' }); }
+    catch { return ''; } // toLocaleTimeString options unsupported on a deep-legacy engine; omit the stamp
   }
 
   // profile chips shown under a member's name: type/specialty (+ K9 name) and skill tags
@@ -516,11 +555,15 @@
       const hasFix = !!m.lastPos;
       const stale = Date.now() - (m.lastSeen || 0) > STALE_MS;
       const swColor = m.color || '#40c4ff';
+      // stale-with-a-fix reads as lost contact (command must not miss a dropped field member)
+      const ageTxt = !hasFix ? tt('team.nofix', 'no fix')
+        : stale ? tt('team.lost', 'lost contact') + ' · ' + hhmm(m.lastSeen)
+        : tt('team.seen', 'seen') + ' ' + ageStr(m.lastSeen || Date.now());
       rows.push(`<div class="tp-row tp-mrow${stale ? ' tp-stale' : ''}">
         <span class="tp-sw" style="background:${esc(swColor)}"></span>
         <div class="tp-main">
           <div class="tp-line1"><span class="tp-name">${esc(m.handle)}</span>
-          <span class="tp-age">${hasFix ? tt('team.seen', 'seen') + ' ' + ageStr(m.lastSeen || Date.now()) : tt('team.nofix', 'no fix')}</span></div>
+          <span class="tp-age${stale && hasFix ? ' tp-lost' : ''}">${esc(ageTxt)}</span></div>
           <div class="tp-line2">${statusChip(m)}${m.status === 'unavailable' ? `<span class="tp-notshare">${esc(tt('team.notshare', 'not sharing'))}</span>` : ''}${memberMeta(m)}</div>
         </div>
       </div>`);
@@ -553,7 +596,7 @@
     if (!T.active) return;
     try {
       const r = await api(`${T.id}/state?ephemeralId=${encodeURIComponent(T.ephemeralId || '')}`);
-      if (r.status === 404) { note(tt('team.expired', 'This team has expired or was not found.')); teardown(); return; }
+      if (r.status === 404) { note(tt('team.expired', 'This team has expired or was not found.'), 'error', 'expired'); teardown(); return; }
       if (!r.ok) return;
       const data = await r.json();
       T.name = data.name || T.name;
@@ -588,11 +631,12 @@
     }
     renderAll(); // responsive self render — don't wait for the next poll
     if (window.gpsWait) gpsWait(false);
+    if (_noticeKey === 'geoerr') clearNotice(); // a fix arrived, so the "not sharing" warning no longer applies
   }
 
   function onPosErr() {
     if (window.gpsWait) gpsWait(false);
-    note(tt('team.geoerr', 'Location unavailable (permission denied or no GPS). You are listed but not on the map.'));
+    note(tt('team.geoerr', 'Location unavailable (permission denied or no GPS). You are listed but not on the map.'), 'error', 'geoerr');
   }
 
   let _selfColor = '#40c4ff';
@@ -670,6 +714,7 @@
       const r = await api(`${T.id}/join`, { method: 'POST', body: JSON.stringify(Object.assign({ handle, role, ephemeralId }, profile)) });
       const data = await r.json();
       if (!r.ok) { joinErr(data.error || tt('team.joinfail', 'Could not join this team.')); setJoinBusy(false); return; }
+      clearNotice(); // entering a team clears any lingering expiry/error notice from a prior attempt
       storeSelf(data.you);
       T.name = data.name || '';
       T.teamType = data.teamType || DEFAULT_TEAM_TYPE;
@@ -703,7 +748,7 @@
     if (T.pollTimer) { clearInterval(T.pollTimer); T.pollTimer = null; }
     if (T.layer) { T.layer.clearLayers(); }
     if (T.markerLayer) { T.markerLayer.clearLayers(); }
-    T.markers = {}; T.teamMarkers = {}; T.lastMembers = []; T.lastViewers = []; T.lastMarkers = [];
+    T.markers = {}; T.teamMarkers = {}; T.lastKnown = {}; T.lastMembers = []; T.lastViewers = []; T.lastMarkers = [];
     T.selfTrail = []; T.selfPos = null; T.facilities = null;
     T.mtype = null; T.specialty = null; T.k9Name = ''; T.skills = []; T.status = null;
     T.id = null; T.name = ''; T.teamType = 'sar';
@@ -756,7 +801,7 @@
     try {
       const r = await api(`${T.id}/update`, { method: 'POST', body: JSON.stringify(Object.assign({ ephemeralId: T.ephemeralId }, patch)) });
       const data = await r.json();
-      if (!r.ok) { note(data.error || tt('team.updatefail', 'Could not update your profile.')); return false; }
+      if (!r.ok) { note(data.error || tt('team.updatefail', 'Could not update your profile.'), 'error'); return false; }
       storeSelf(data.you);
       persistSelf(); // keep the saved identity current so a later rejoin restores the latest profile/role
       // reconcile sharing from BOTH role and status: a true role->viewer change drops our fix;
@@ -770,7 +815,7 @@
       updateDropFab();
       poll();
       return true;
-    } catch { note(tt('team.updatefail', 'Could not update your profile.')); return false; }
+    } catch { note(tt('team.updatefail', 'Could not update your profile.'), 'error'); return false; }
   }
 
   async function leave() {
@@ -781,7 +826,7 @@
     if (id && eid) {
       try { await api(`${id}/leave`, { method: 'POST', body: JSON.stringify({ ephemeralId: eid }) }); } catch { /* server TTL is the backstop */ }
     }
-    note(tt('team.left', 'You left the team and stopped sharing.'));
+    note(tt('team.left', 'You left the team and stopped sharing.'), 'info', 'left');
   }
 
   // best-effort drop when the tab is closed/hidden; server TTL still reaps if this never lands. The
@@ -846,7 +891,7 @@
       applyDefaults();
       poll();
       _beaconLeft = false;
-      note(tt('team.rejoined', 'Reconnected to your team.'));
+      note(tt('team.rejoined', 'Reconnected to your team.'), 'ok', 'reconnected');
     } catch { /* transient network — the next foreground retries */ }
     _rejoining = false;
   }
@@ -855,9 +900,43 @@
     if (needsRejoin()) rejoinSelf();
   }
 
-  function note(msg) {
-    const el = document.getElementById('refresh-note');
-    if (el) el.textContent = msg;
+  // Persistent, dismissible team-notice line. Lives beside the tab body (a sibling of #team-tab-body),
+  // NOT in #refresh-note which the header refresh clock overwrites every tick, so safety messages
+  // (expiry, geo-denied, left, reconnect) never flash and vanish.
+  let _noticeKey = null;
+  let _noticeTimer = null;
+  function ensureNoticeEl() {
+    const host = teamHost();
+    if (!host || !host.parentNode) return null;
+    let el = document.getElementById('team-notice');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'team-notice';
+      el.className = 'team-notice';
+      el.hidden = true;
+      host.parentNode.insertBefore(el, host); // sibling above the body, survives host.innerHTML re-renders
+    }
+    return el;
+  }
+  function clearNotice() {
+    if (_noticeTimer) { clearTimeout(_noticeTimer); _noticeTimer = null; }
+    _noticeKey = null;
+    const el = document.getElementById('team-notice');
+    if (el) { el.hidden = true; el.textContent = ''; }
+  }
+  function note(msg, kind, key) {
+    const el = ensureNoticeEl();
+    if (!el) return;
+    if (_noticeTimer) { clearTimeout(_noticeTimer); _noticeTimer = null; }
+    _noticeKey = key || null;
+    el.className = 'team-notice' + (kind ? ' team-notice-' + kind : '');
+    el.innerHTML = `<span class="tn-msg">${esc(msg)}</span>` +
+      `<button type="button" class="tn-x" aria-label="${esc(tt('team.notice.dismiss', 'Dismiss'))}">✕</button>`;
+    el.hidden = false;
+    const x = el.querySelector('.tn-x');
+    if (x) x.addEventListener('click', clearNotice);
+    // good news auto-fades; warnings and errors persist until dismissed or the state changes
+    if (kind === 'ok') _noticeTimer = setTimeout(() => { if (_noticeKey === key) clearNotice(); }, 6000);
   }
 
   /* ---------- reusable SAR profile fields (join + edit) ---------- */
@@ -1204,7 +1283,9 @@
   function armLifecycle() {
     if (_lifecycleArmed) return;
     _lifecycleArmed = true;
-    window.addEventListener('pagehide', beaconLeave); // real tab-close / navigation → leave the team
+    // bfcache (persisted) backgrounding keeps our slot (visibilitychange pause + server TTL cover it);
+    // only a real unload beacons a leave, so a mobile return never re-mints an empty-trail member
+    window.addEventListener('pagehide', (e) => { if (!e.persisted) beaconLeave(); });
     window.addEventListener('pageshow', onForeground);
     document.addEventListener('visibilitychange', () => {
       // screen-lock / tab-switch PAUSES (keeps our DO slot); it must NOT beaconLeave and delete us
@@ -1224,14 +1305,14 @@
     const param = new URLSearchParams(location.search).get('team');
     if (!param) return; // no ?team= link — the tab still shows create/join
     if (!window.isSecureContext) {
-      note(tt('team.needhttps', 'Live team sharing needs the secure site: https://respondertx.org'));
+      note(tt('team.needhttps', 'Live team sharing needs the secure site: https://respondertx.org'), 'warn');
       showTeamTab(); renderTeamTab();
       return;
     }
     ensureLayer();
     armLifecycle();
     if (param === 'new') { showTeamTab(); renderTeamTab(); return; } // landing (create)
-    if (!UUID_RE.test(param)) { note(tt('team.badlink', 'That team link is not valid.')); return; }
+    if (!UUID_RE.test(param)) { note(tt('team.badlink', 'That team link is not valid.'), 'error'); return; }
     T.id = param;
     showTeamTab();
     renderTeamTab(); // join state; heading + type fill in once the name lookup lands

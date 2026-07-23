@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.46",
+      "date": "2026-07-23",
+      "line": "If you use the live team feature on your phone, switching apps or locking your screen no longer drops you from the team: you keep your spot, your color, and your breadcrumb trail instead of coming back as a brand-new blank member. When a teammate drops off the map, either because they lose signal long enough for the server to drop them or because they leave, command now keeps a faded 'last known position' marker with the time, and the roster clearly flags them as lost contact, instead of the person simply vanishing. Team messages such as 'location unavailable', 'this team has expired', 'reconnected', and 'you left the team' now appear in their own notice line in the Team tab that stays put until you dismiss it, instead of flashing once and being overwritten by the refresh clock. The location-denied warning is especially sticky because it means you are not actually sharing your location."
+    },
+    {
       "v": "v0.97.45",
       "date": "2026-07-23",
       "line": "Your team status now does something real: setting yourself Unavailable stops sharing your live location but keeps you on the team, so your crew still sees the roster and you can flip back to In field, Standby, or Rehab to start sharing again. Leaving the team is now a separate button so the two are never confused. The status control is clearer too: it labels which status you are in with a check and a pressed look, tints each button with its status color, and explains the difference between going Unavailable and leaving. Selected buttons in the team dialogs now use white text so they stay readable on the dark background."

@@ -8,6 +8,7 @@
 (function () {
   const POLL_MS = 20000;
   const STALE_MS = 90000;   // grey a member last-seen this long ago
+  const TOMB_MS = 1800000;  // keep a last-known tombstone up to 30 min after last contact, then drop it
   const MTYPES_K9 = 'k9';
 
   const L10N = {
@@ -21,6 +22,7 @@
       allviewers: 'All viewers', noviewers: 'No viewers in any team right now.',
       k9: 'K9', ground: 'ground', markers: 'markers', idle: 'idle', created: 'created',
       seen: 'seen', nofix: 'no fix', on: 'team', unnamed: 'Unnamed team',
+      lost: 'lost contact', lastknown: 'last known',
       st: { infield: 'in field', standby: 'standby', rehab: 'rehab', unavailable: 'unavailable' },
       err503: 'Master oversight is not configured on this LAN server (no admin token set).',
       err403: 'Admin token was rejected by the relay. Check the token matches the Cloudflare secret.',
@@ -36,6 +38,7 @@
       allviewers: 'Todos los observadores', noviewers: 'Ningún observador en ningún equipo ahora.',
       k9: 'K9', ground: 'terrestres', markers: 'marcadores', idle: 'inactivo', created: 'creado',
       seen: 'visto', nofix: 'sin ubicación', on: 'equipo', unnamed: 'Equipo sin nombre',
+      lost: 'sin contacto', lastknown: 'última conocida',
       st: { infield: 'en campo', standby: 'en espera', rehab: 'descanso', unavailable: 'no disponible' },
       err503: 'La vista de mando no está configurada en este servidor LAN (sin token de administrador).',
       err403: 'El token de administrador fue rechazado por el relay. Verifique que coincida con el secreto de Cloudflare.',
@@ -48,7 +51,7 @@
 
   const mv = {
     open: false, overlay: false, data: null, timer: null,
-    layer: null, markers: {},
+    layer: null, markers: {}, lastKnown: {},
   };
 
   const style = document.createElement('style');
@@ -94,6 +97,8 @@
 .mv-sw { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .mv-mrow .mv-mh { flex: 1 1 auto; }
 .mv-age { font-size: 10.5px; color: var(--ink-muted); }
+.mv-age.mv-lost { color: #ff8a80; font-weight: 700; }
+.mv-chip-lost { border-color: #ff8a80; color: #ff8a80; }
 .mv-stale { opacity: 0.55; }
 .mv-vsec { margin-top: 4px; }
 .mv-vhead { font-weight: 700; color: #ffcf6b; font-size: 12px; margin: 4px 0; }
@@ -148,6 +153,22 @@
     return window.teamMemberIcon ? window.teamMemberIcon(m, color, false, stale) : fallbackIcon(m, color, stale);
   }
 
+  function hhmm(ts) {
+    if (!ts) return '';
+    try { return new Date(ts).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit' }); }
+    catch { return ''; } // options unsupported on a deep-legacy engine; omit the stamp
+  }
+
+  // clearly-stale "last known position" marker for a dropped/reaped member (hollow, dashed, timestamped)
+  function tombIcon(lk) {
+    const k9 = lk.mtype === MTYPES_K9;
+    const dot = k9 ? '<span class="tm-dot tm-dot-k9">🐕</span>' : '<span class="tm-dot"></span>';
+    const when = hhmm(lk.lastSeen);
+    return L.divIcon({ className: '', html: '<div class="team-marker team-tomb" style="--tc:' + (lk.color || '#7a8899') +
+      '">' + dot + '<span class="tm-label">' + esc(lk.handle || '') + ' · ' + esc(M('lastknown')) + (when ? ' ' + esc(when) : '') + '</span></div>',
+      iconSize: [14, 14], iconAnchor: [7, 7] });
+  }
+
   function renderOverlay() {
     if (!mv.overlay) { clearOverlay(); return; }
     ensureLayer();
@@ -161,27 +182,45 @@
         seen[key] = true;
         const stale = now - (m.lastSeen || 0) > STALE_MS;
         const ll = [m.lastPos.lat, m.lastPos.lon];
+        // esc() both values; Leaflet injects the tooltip as innerHTML (defense-in-depth; the DO strips <>)
+        const label = esc(tm.name || M('unnamed')) + ' · ' + esc(m.handle);
+        mv.lastKnown[key] = { ll, handle: m.handle, teamName: tm.name || M('unnamed'), color: m.color, mtype: m.mtype, lastSeen: m.lastSeen || now };
         let entry = mv.markers[key];
         if (!entry) {
           entry = L.marker(ll, { pane: 'master', icon: iconFor(m, m.color, stale), zIndexOffset: 0 });
-          entry.bindTooltip((tm.name || M('unnamed')) + ' · ' + m.handle, { direction: 'top', offset: [0, -8] });
+          entry.bindTooltip(label, { direction: 'top', offset: [0, -8] });
           entry.addTo(mv.layer);
           mv.markers[key] = entry;
         } else {
           entry.setLatLng(ll);
           entry.setIcon(iconFor(m, m.color, stale));
-          entry.setTooltipContent((tm.name || M('unnamed')) + ' · ' + m.handle);
+          entry.setTooltipContent(label);
         }
+        entry._tomb = false;
       }
     }
     for (const key of Object.keys(mv.markers)) {
-      if (!seen[key]) { mv.layer.removeLayer(mv.markers[key]); delete mv.markers[key]; }
+      if (seen[key]) continue;
+      const lk = mv.lastKnown[key];
+      // reaped/dropped member: keep a bounded last-known tombstone instead of vanishing from command
+      if (lk && now - (lk.lastSeen || 0) <= TOMB_MS) {
+        const mk = mv.markers[key];
+        if (!mk._tomb) {
+          mk.setLatLng(lk.ll);
+          mk.setIcon(tombIcon(lk));
+          mk.setTooltipContent(esc(lk.teamName) + ' · ' + esc(lk.handle) + ' · ' + esc(M('lastknown')) + (hhmm(lk.lastSeen) ? ' ' + esc(hhmm(lk.lastSeen)) : ''));
+          mk._tomb = true;
+        }
+        continue;
+      }
+      mv.layer.removeLayer(mv.markers[key]); delete mv.markers[key]; delete mv.lastKnown[key];
     }
   }
 
   function clearOverlay() {
     if (mv.layer) mv.layer.clearLayers();
     mv.markers = {};
+    mv.lastKnown = {};
   }
 
   function focusTeam(teamId) {
@@ -223,15 +262,20 @@
     }
     for (const sp of Object.keys(mk.sp)) chips.push('<span class="mv-chip">' + esc(sp) + ' ×' + mk.sp[sp] + '</span>');
     if ((tm.markers || []).length) chips.push('<span class="mv-chip">📍 ' + tm.markers.length + ' ' + esc(M('markers')) + '</span>');
+    const lostN = (tm.members || []).filter((m) => m.lastPos && now - (m.lastSeen || 0) > STALE_MS).length;
+    if (lostN) chips.push('<span class="mv-chip mv-chip-lost">⚠ ' + lostN + ' ' + esc(M('lost')) + '</span>');
 
     const rows = (tm.members || []).map((m) => {
       const stale = now - (m.lastSeen || 0) > STALE_MS;
-      const age = m.lastPos ? (M('seen') + ' ' + ageStr(m.lastSeen)) : M('nofix');
+      // stale-with-a-fix reads as lost contact so command does not miss a dropped field member
+      const age = !m.lastPos ? M('nofix')
+        : stale ? (M('lost') + ' · ' + hhmm(m.lastSeen))
+        : (M('seen') + ' ' + ageStr(m.lastSeen));
       const dog = (m.mtype === MTYPES_K9 && m.k9Name) ? ' · ' + esc(m.k9Name) : '';
       return '<div class="mv-mrow' + (stale ? ' mv-stale' : '') + '">' +
         '<span class="mv-sw" style="background:' + esc(m.color || '#40c4ff') + '"></span>' +
         '<span class="mv-mh">' + esc(m.handle) + dog + ' <span class="mv-st-' + (m.status || 'infield') + '">' + esc(stLabel(m.status || 'infield')) + '</span></span>' +
-        '<span class="mv-age">' + esc(age) + '</span></div>';
+        '<span class="mv-age' + (stale && m.lastPos ? ' mv-lost' : '') + '">' + esc(age) + '</span></div>';
     }).join('') || '<div class="mv-age">' + esc(M('novm')) + '</div>';
 
     const idleTxt = tm.lastActive ? ' · ' + esc(M('idle')) + ' ' + ageStr(tm.lastActive) : '';

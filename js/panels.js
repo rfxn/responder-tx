@@ -985,8 +985,10 @@ function renderThreatStrip() {
   const roads = reqs.filter((r) => r.type === 'road');
   const majors = state.gauges.filter((g) => gaugeCat(g) === 'major');
   const toMajor = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major');
+  const warnings = state.alerts.filter((a) => a._sev === 'warning').length;
   const chips = [
     { n: emergencies, cls: 'emergency', label: t('threat.ffemerg'), glyph: '⚠', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
+    { n: warnings, cls: 'warn', label: t('threat.warnings'), glyph: '🌊', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
     { n: lifeReqs.length, cls: 'emergency', label: t('threat.life'), glyph: '🆘', src: 'curated', act: () => fitTo(lifeReqs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     { n: cutoffs.length, cls: 'emergency', label: t('threat.cutoff'), glyph: '⛔', src: 'curated', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
     { n: majors.length, cls: 'major', label: t('threat.major'), glyph: '●', act: () => focusGauges(majors) },
@@ -994,6 +996,7 @@ function renderThreatStrip() {
     (() => { const rw = recordWatchGauges(); return { n: rw.length, cls: rw.some((g) => recordContext(g).atOrAbove) ? 'emergency' : 'major', label: t('threat.record'), glyph: '⚑', act: () => { fitTo(rw.map((g) => [g.latitude, g.longitude])); document.querySelector('.tabs button[data-tab="tab-gauges"]').click(); } }; })(),
     // roads chip counts operator road-notice cards (requests.json), not the DriveTexas feed — curated
     { n: roads.length, cls: 'warn', label: t('threat.roads'), glyph: '🚧', src: 'curated', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
+    { n: reqs.length, cls: 'warn', label: t('threat.notices'), glyph: '📄', src: 'curated', act: () => document.querySelector('.tabs button[data-tab="tab-requests"]').click() },
     {
       n: state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').length,
       cls: 'good', label: t('threat.falling'), glyph: '▼',
@@ -1132,28 +1135,17 @@ function renderTicker() {
   $('#ticker-track').innerHTML = `<span class="ticker-half">${half}</span><span class="ticker-half">${half}</span>`;
 }
 
-/* ---------- tiles / header ---------- */
+/* ---------- header ---------- */
 
+// the composite entry every refresh calls; the header tiles it also wrote were retired in
+// v0.97.93 (they duplicated the richer, tappable threat strip and were hidden on every phone)
 function renderTiles() {
   renderThreatStrip();
   renderTicker();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
-  const emergencies = state.alerts.filter((a) => a._sev === 'emergency').length;
-  const warnings = state.alerts.filter((a) => a._sev === 'warning').length;
-  const inFlood = state.gauges.filter((g) => FLOOD_CATS.includes(gaugeCat(g)));
-  const major = inFlood.filter((g) => gaugeCat(g) === 'major').length;
-  const rising = state.gauges.filter(gaugeRising).length;
-  const open = activeRequests().filter((r) => r.status !== 'resolved').length;
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical').length;
   const flag = document.title.startsWith('🔴') ? '🔴 ' : '';
   document.title = `${flag}${crit ? `(${crit}) ` : ''}${state.baseTitle}`;
-  $('#tile-emergency .value').innerHTML = `<span class="dot" style="background:var(--sev-emergency)"></span>${emergencies}`;
-  $('#tile-warnings .value').textContent = warnings;
-  // never render a confident 0 when the feed has not loaded — a missing MAJOR is dangerous
-  $('#tile-gauges .value').innerHTML = state.sourceHealth.gauges || state.gauges.length
-    ? `${inFlood.length} <span class="unit">${major} ${esc(t('catw.major').toLowerCase())} · ▲${rising}</span>`
-    : `– <span class="unit">${esc(t('word.nodata'))}</span>`;
-  $('#tile-open .value').textContent = open;
 }
 
 // seeds are re-fetched every refresh so open clients pick up curated data updates

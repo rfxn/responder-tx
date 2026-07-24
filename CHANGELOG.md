@@ -1,5 +1,79 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.93 · 2026-07-24 (landscape stops shrinking the tap targets; the header holds one row)
+
+-- Bug Fixes --
+- [Fix] The degraded-feed status shoved the header nav aside (owner report).
+      #refresh-note is the last item in a nowrap header and every writer
+      assigned it a whole sentence. Measured at 390x844 with all seven sources
+      failing: .refresh-meta went from 77px to 600px, .controls from 281px to
+      804px, the nav slid 85px left, the brand was crushed to zero width, and
+      the document scrolled sideways at 820px on a 390px screen. The plain
+      "offline · cached as of" message did the same at 230px. The status is now
+      width-capped in CSS and written through one function, so the header
+      geometry is identical in a healthy and a fully degraded state.
+- [Fix] The countdown tooltip overwrote the degraded detail once a second,
+      because both wrote #refresh-note.title. They compose now.
+
+-- Changes --
+- [Change] A degraded, offline or snapshot state reads as an amber "⚠ degraded"
+           chip rather than a sentence. The signal is not dropped and is not
+           dismissible, because the state is persistent rather than transient
+           and this board's honesty rules say a stale feed stays visible while
+           it is true. The chip names the state; which source failed stays in
+           Resources > Live feeds, which already tracks every feed, and the
+           chip is a button that opens it. The full list also rides the
+           tooltip for pointer users.
+
+-- Bug Fixes (responsive) --
+- [Fix] The landscape block declared .controls button { min-height: 34px } at
+      the same specificity as the 44px phone rule and later in the file, so
+      holding a phone sideways made every header control SMALLER, in exactly
+      the vehicle-mount posture where they should be largest. Raised to 44px.
+- [Fix] Tablet gap: 769px to 960px wide with a tall viewport matched neither
+      phone query, so an iPad Air in portrait got the full desktop layout. The
+      header wrapped to two rows and the controls sat at about 27px against
+      about 25px feed buttons. A new additive block hides the control labels,
+      compacts the refresh meta, and raises the control, feed, card-action and
+      tab targets to 44px. The 768px breakpoint itself is untouched: roughly 40
+      rules key off it (bottom sheet, marker hit-halos, playback bar, layer
+      sheet, search takeover) and moving it is a far larger blast radius.
+- [Fix] A Pro Max held sideways is 932px wide, clearing the 768px width query
+      entirely, so every sidebar control fell back to desktop sizing near 25px.
+      The landscape block now restores the feed, card-action and tab targets,
+      the map control bar, the layer pills and the AO chips.
+- [Fix] The settings panel widened in v0.97.92 to carry the alerts card, and
+      because the gear is not flush right (the clock sits after it) its left
+      edge ran 3px off a 390px screen. On phones it now spans the viewport
+      under the header, capped at 420px so a 768px phone does not get a slab.
+- [Fix] Import JSON was a 30px tap target at every width; it renders as a badge
+      rather than a button, so no button rule ever reached it.
+
+-- Changes --
+- [Change] The four header tiles are gone. They were display:none on every
+           phone viewport already, and the CSS comment beside them conceded
+           they duplicate the threat strip, which is richer and tappable. The
+           two counts the strip did not carry, flood warnings and active
+           notices, are now chips in it, routing to Alerts and to Feed.
+- [Change] The header holds exactly two things at every width: the brand on
+           the left and one control cluster on the right, with flex-wrap set to
+           nowrap. The lockup scales down inside a squeezed header instead of
+           overflowing it.
+- [Change] Landscape swaps the wordmark lockup for the square mark at 28px. A
+           44px lockup is a large share of a 430px-tall screen, and the mark
+           was already shipped and stamped as the SVG favicon.
+- [Change] renderTiles() keeps its name and its three delegating calls plus the
+           document.title update; only the four tile writes left it. It is the
+           composite entry every refresh calls.
+
+-- New Features --
+- [New] tests/css-contract.test.js: the responsive rules are invisible to every
+      other test in the suite, because there is no DOM in the node harness and
+      nothing else can see a media query. Ten checks over the phone, landscape
+      and tablet blocks, the settings-panel scroll cap, the retired tiles, the
+      promoted chips and the landscape brand swap. Reverting the landscape rule
+      to 34px fails it, which is the proof it discriminates.
+
 ## v0.97.92 · 2026-07-24 (the header menu becomes a real settings sheet)
 
 -- Bug Fixes --

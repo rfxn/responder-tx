@@ -17,7 +17,7 @@ function hydrateFromCache() {
   if (!state.gauges.length && c.gauges) { state.gauges = c.gauges; renderGauges(); renderGaugesTab(); }
   if (!state.alerts.length && c.alertsSlim) { state.alerts = c.alertsSlim; renderAlertList(); }
   renderTiles();
-  $('#refresh-note').textContent = `offline · cached as of ${fmtWhen(new Date(c.ts).toISOString())}`;
+  setFeedNote(t('note.offline'), `${t('note.offline.detail')} ${fmtWhen(new Date(c.ts).toISOString())}`);
   return true;
 }
 
@@ -38,7 +38,7 @@ async function hydrateGaugesSnapshot() {
     renderGaugesTab();
     renderForecastList();
     renderTiles();
-    $('#refresh-note').textContent = `gauges from snapshot · ${fmtWhen(d.generated)}`;
+    setFeedNote(t('note.snapshot'), `${t('note.snapshot.detail')} ${fmtWhen(d.generated)}`);
     return true;
   } catch { return false; } // snapshot absent (old deploy) — nothing to hydrate
 }
@@ -48,7 +48,7 @@ async function refresh() {
   if (state.refreshBusy) { state.refreshQueued = true; return; }
   state.refreshBusy = true;
   try {
-    $('#refresh-note').textContent = 'refreshing…';
+    setFeedNote(t('note.refreshing'), '');
     if (state.refreshRadar) state.refreshRadar();
     if (state.layers.tropical && state.map.hasLayer(state.layers.tropical)) fetchTropical().catch(() => { /* keep last cone/track on a transient failure */ });
     const gaugesP = fetchGauges();
@@ -64,7 +64,7 @@ async function refresh() {
       const snapped = await hydrateGaugesSnapshot();
       renderSourceHealth();
       checkAppVersion(); // degraded clients must still learn of updates
-      if (!hydrated && !snapped) $('#refresh-note').textContent = `degraded: ${failedNames}`;
+      if (!hydrated && !snapped) setFeedNote(t('note.degraded'), `${t('note.degraded.detail')} ${failedNames}`);
       return;
     }
     if (!failed.length) saveCache();
@@ -72,12 +72,53 @@ async function refresh() {
     // keep the coastal water-level card live only while its tab is open; never fetch 20 CO-OPS requests unseen
     if ($('#tab-resources') && $('#tab-resources').classList.contains('active')) loadTides();
     checkAppVersion();
-    if (failed.length) $('#refresh-note').textContent = `degraded: ${failedNames}`;
-    else $('#refresh-note').innerHTML = `<span class="fresh-dot fresh"></span> ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`;
+    if (failed.length) setFeedNote(t('note.degraded'), `${t('note.degraded.detail')} ${failedNames}`);
+    else setFeedNoteHealthy(`<span class="fresh-dot fresh"></span> ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`);
   } finally {
     state.refreshBusy = false;
     if (state.refreshQueued) { state.refreshQueued = false; refresh(); }
   }
+}
+
+/* setFeedNote short, detail — the ONE writer of the header status. Everything that reported a
+   feed problem used to assign a full sentence straight to #refresh-note, which is the last item
+   in a nowrap header: "degraded: <seven source names>" inflated it to 600px, pushed the nav 85px
+   left and crushed the brand to zero width on a 390px phone. The visible text is capped here and
+   in CSS; `detail` is never discarded, it rides the tooltip and the tap-through to Live feeds. */
+function setFeedNote(short, detail) {
+  const el = $('#refresh-note');
+  if (!el) return;
+  el.textContent = short;
+  state.feedNoteDetail = detail || '';
+  el.classList.toggle('degraded', Boolean(detail));
+  el.setAttribute('role', detail ? 'button' : 'status');
+  if (detail) el.setAttribute('tabindex', '0'); else el.removeAttribute('tabindex');
+  refreshNoteTitle();
+}
+
+// healthy: the slim dot + stamp, and any prior degraded chip stands down
+function setFeedNoteHealthy(html) {
+  const el = $('#refresh-note');
+  if (!el) return;
+  el.innerHTML = html;
+  state.feedNoteDetail = '';
+  el.classList.remove('degraded');
+  el.setAttribute('role', 'status');
+  el.removeAttribute('tabindex');
+  refreshNoteTitle();
+}
+
+// the countdown and the degraded detail share one tooltip; the countdown must not wipe the detail
+function refreshNoteTitle() {
+  const el = $('#refresh-note');
+  if (!el) return;
+  const parts = [];
+  if (state.feedNoteDetail) parts.push(state.feedNoteDetail, t('note.feedtap'));
+  if (state.refreshAt) {
+    const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
+    parts.push(`${t('note.nextrefresh')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+  }
+  el.title = parts.join(' · ');
 }
 
 function markHealthy(source) { state.sourceHealth[source] = Date.now(); }
@@ -236,8 +277,7 @@ function tickCountdown() {
   updateDriveFreshness(); // "last fix Xs ago" ticks even before the first data refresh is scheduled
   if (!state.refreshAt) return;
   const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
-  // countdown lives in the tooltip — the visible stamp stays slim; the data-age bar owns staleness
-  $('#refresh-note').title = `next refresh in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  refreshNoteTitle(); // countdown lives in the tooltip; the visible stamp stays slim and never grows
   const fs = $('#feed-status');
   if (fs) fs.textContent = feedStatusText(); // live-tick the Resources feed-status countdown when present
   renderDataAgeBar();
@@ -607,12 +647,6 @@ async function boot() {
     clearTimeout(resizeT);
     resizeT = setTimeout(() => { if (state.map) state.map.invalidateSize(); }, 200);
   });
-  // header tiles mirror the threat-strip act() targets — passive numbers are dead UI
-  const goTab = (tab) => document.querySelector(`.tabs button[data-tab="${tab}"]`).click();
-  for (const [id, tab] of [['#tile-emergency', 'tab-alerts'], ['#tile-warnings', 'tab-alerts'], ['#tile-gauges', 'tab-gauges'], ['#tile-open', 'tab-requests']]) {
-    $(id).addEventListener('click', () => goTab(tab));
-    $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTab(tab); } });
-  }
   $('#theme-toggle').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
   const updateLangToggle = () => { $('#lang-lbl').textContent = getLang() === 'es' ? 'EN' : 'ES'; };
@@ -688,6 +722,15 @@ async function boot() {
   if (window.initTeamTab) initTeamTab(); // paint the first-class Team tab (create/join or roster)
   if (window.initTeam) initTeam(); // ?team= deep-link auto-opens the Team tab; chains behind the 911 ack
   initHeaderSearch();
+  // the header chip names the STATE; Resources > Live feeds names which source, so the chip goes there
+  const openFeedHealth = () => {
+    if (!state.feedNoteDetail) return;
+    document.querySelector('.tabs button[data-tab="tab-resources"]').click();
+    const sh = $('#source-health');
+    if (sh && sh.scrollIntoView) sh.scrollIntoView({ block: 'start' });
+  };
+  $('#refresh-note').addEventListener('click', openFeedHealth);
+  $('#refresh-note').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFeedHealth(); } });
   $('#help-btn').addEventListener('click', openGlossary);
   $('#whatsnew-btn').addEventListener('click', openChangelog);
   $('#safety-btn').addEventListener('click', () => { $('#safety-modal').hidden = false; });
@@ -887,7 +930,7 @@ async function boot() {
   const camParam = new URLSearchParams(location.search).get('cam');
   if (camParam) {
     state.pendingCam = camParam;
-    loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
+    loadCameras().catch(() => { setFeedNote(t('note.camfail'), t('note.camfail')); });
   }
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board

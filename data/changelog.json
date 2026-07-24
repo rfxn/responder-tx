@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.93",
+      "date": "2026-07-24",
+      "line": "When one of the data feeds was not answering, the words saying so ran along the top bar and pushed the buttons out of the way; on a phone it shoved them right off to the left, squashed the logo to nothing and made the whole page slide sideways. That status now stays a small amber ⚠ degraded badge that never grows, so the top bar looks the same whether everything is working or nothing is. The badge is a button: tap it and the Resources tab opens on Live feeds, which lists every source and when each one last answered, so you can still see exactly what is down. Buttons are also now big enough to hit in the places that matter most. Turning a phone sideways, which is how it sits in a dash mount, was actually making every button in the top bar smaller instead of larger; they are now full size. A wide phone held sideways and a tablet held upright both fell through the gaps between the phone and desktop layouts and ended up with buttons around 25 pixels across; both now get proper thumb-sized targets, and the Import button, which was never a full-size target at any width, is fixed too. The four number tiles at the top are gone: they were already hidden on every phone and repeated what the coloured strip above the feed says with more detail, so the two counts they had to themselves, flood warnings and active notices, are now chips in that strip and tapping them opens the right tab. The header stays on one row at every screen size, and sideways it shows the small square logo instead of the full wordmark."
+    },
+    {
       "v": "v0.97.92",
       "date": "2026-07-24",
       "line": "The three dots in the header are now a gear labelled Settings, and what is behind it is organised: Display for theme and language, Alerts for device notifications, Actions for share, and Help for the legend, what's new and the 911 safety notice. Device alerts moved here from the Resources tab, which is where a setting for your own phone belongs, and Notify me on a gauge now opens this panel with that gauge ready instead of switching tabs. The panel also scrolls now: it had no height limit, so on a phone held sideways it could run off the bottom of the screen with no way to reach the rest. The Team entry is gone from the menu because the Team tab is the same thing."

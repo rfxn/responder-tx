@@ -529,7 +529,7 @@ async function openPlayback() {
   try { await loadPlaybackData(); } catch {
     pill.classList.add('pb-disabled');
     pill.title = t('playback.unavail');
-    $('#refresh-note').textContent = t('playback.unavail');
+    setFeedNote(t('playback.unavail'), t('playback.unavail'));
     return;
   }
   if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, speed: 0.5, capKey: null };

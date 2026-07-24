@@ -1088,7 +1088,7 @@ async function fetchTropical() {
   };
   const [cone, ftrack, otrack, ww, fpos, opos] = await Promise.all([grab(4), grab(2), grab(3), grab(5), grab(0), grab(1)]);
   if ([cone, ftrack, otrack, ww, fpos, opos].every((x) => x === null)) {
-    $('#refresh-note').textContent = t('note.tropfail');
+    setFeedNote(t('note.tropfail'), t('note.tropfail'));
     return; // every sublayer failed → network down; keep whatever was last drawn
   }
   markHealthy('tropical');

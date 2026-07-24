@@ -91,14 +91,18 @@ header {
   padding: 6px 14px;
   background: var(--surface-1);
   border-bottom: 1px solid var(--hairline);
-  flex-wrap: wrap;
+  /* one row at every width: brand left, one control cluster right. Wrapping put the header on
+     two rows on an iPad in portrait, which matched neither phone query. */
+  flex-wrap: nowrap;
 }
-.brand { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; }
-.brand-logo { display: block; height: 44px; width: auto; }
+.brand { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-width: 0; }
+/* object-fit lets the lockup scale down inside a squeezed header instead of overflowing it */
+.brand-logo { display: block; height: 44px; width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
 .brand-logo-dark { display: none; }
+.brand-mark { display: none; height: 28px; width: auto; }
 :root[data-theme="dark"] .brand-logo-dark { display: block; }
 :root[data-theme="dark"] .brand-logo-light { display: none; }
-.brand .sub { color: var(--ink-2); font-size: 12px; }
+.brand .sub { color: var(--ink-2); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .brand .sub .live-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   background: var(--brand); margin-right: 4px;
@@ -106,23 +110,7 @@ header {
 }
 @keyframes pulse { 50% { opacity: 0.35; } }
 
-.tiles { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
-.tile {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px 10px;
-  min-width: 92px;
-  cursor: pointer;
-}
-.tile:hover, .tile:focus-visible { border-color: var(--accent); }
-.tile .label { font-size: 10.5px; color: var(--ink-2); }
-.tile .value { font-size: 18px; font-weight: 600; color: var(--tile-value); line-height: 1.2; }
-.tile .value .unit { font-size: 12px; font-weight: 400; color: var(--ink-muted); }
-.tile.alert-tile .value { display: flex; align-items: center; gap: 6px; }
-.tile .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-
-.controls { display: flex; align-items: center; gap: 8px; }
+.controls { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: 0 0 auto; }
 .controls button { padding: 4px 10px; font-size: 12.5px; }
 button, select, input, textarea {
   font: inherit;
@@ -135,8 +123,21 @@ button, select, input, textarea {
 button { cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: #fff; border-color: transparent; }
-.refresh-meta { font-size: 10.5px; color: var(--ink-muted); text-align: right; line-height: 1.35; white-space: nowrap; }
+/* the status is width-capped on purpose: it is the last item in a nowrap header, and a long
+   message ("degraded: <seven source names>") once inflated it to 600px, shoving the nav left and
+   crushing the brand to zero. It never grows now; the per-source detail lives in Resources. */
+.refresh-meta {
+  font-size: 10.5px; color: var(--ink-muted); text-align: right; line-height: 1.35; white-space: nowrap;
+  flex: 0 1 auto; min-width: 0; max-width: 160px; overflow: hidden;
+}
 .refresh-meta .fresh-dot { width: 7px; height: 7px; vertical-align: baseline; }
+#refresh-note { overflow: hidden; text-overflow: ellipsis; }
+/* a degraded or offline feed is honesty-critical: it reads as a warning chip, and it is tappable
+   because the source-by-source truth is the Live feeds list in Resources */
+#refresh-note.degraded {
+  display: inline-block; max-width: 100%; padding: 3px 8px; border-radius: 12px; cursor: pointer;
+  color: var(--sev-warning); border: 1px solid var(--sev-warning); font-weight: 700;
+}
 #update-chip {
   background: var(--good); color: #fff; border-color: transparent;
   font-weight: 700; animation: pulse 2.4s infinite;
@@ -446,6 +447,8 @@ main { flex: 1; display: flex; min-height: 0; }
 #filters-toggle.on { border-color: var(--accent); color: var(--accent); }
 #interchange-body .hint { font-size: 11.5px; color: var(--ink-muted); margin: 2px 0 8px; line-height: 1.4; }
 #interchange-body .feed-actions { margin-bottom: 8px; }
+/* Import is a badge acting as a button; it was a 30px target at every width */
+#interchange-body label[for="import-file"] .badge { display: inline-flex; align-items: center; min-height: 44px; }
 #caltopo-box {
   border: 1px dashed var(--border); border-radius: 8px;
   padding: 8px 10px; margin-bottom: 10px; background: var(--surface-2);
@@ -1342,7 +1345,7 @@ button.inspect-gauge:hover { color: var(--accent); }
     --ink-1: #000; --ink-2: #333; --ink-muted: #555;
     --hairline: #ccc; --border: #999;
   }
-  #map, .controls, .tiles, .feed-actions, #new-request-form, .filters,
+  #map, .controls, .feed-actions, #new-request-form, .filters,
   .tabs, #emergency-banner, .card-actions,
   #changelog-modal, #safety-modal { display: none !important; }
   main { display: block; }
@@ -1359,8 +1362,6 @@ button.inspect-gauge:hover { color: var(--accent); }
   .brand-logo { height: 36px; }
   .brand h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .brand .sub { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  /* tiles duplicate the (richer, tappable) threat strip — reclaim ~55px of list */
-  .tiles { display: none; }
   /* non-flooding gauges are pure clutter on a phone map */
   .leaflet-marker-pane .gauge-hit.hit-none { display: none; }
   /* phone header: icon-only controls in one uncramped row; brand + time get their space */
@@ -1382,7 +1383,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .controls .ctl-lbl { display: none; } /* icon-only — 🔍 🚗 ⟳ ⋮ (the ⋮ menu keeps its labels) */
   .controls button { min-height: 44px; min-width: 44px; padding: 4px 7px; font-size: 15px; }
   #update-chip { font-size: 11.5px; } /* the one control that keeps its words when shown */
-  .refresh-meta { min-width: 0; font-size: 12px; }
+  .refresh-meta { min-width: 0; font-size: 12px; max-width: 104px; }
   main { flex-direction: column; }
   #map { order: -1; flex: 1 1 auto; min-height: 60px; }   /* fills whatever the sheet leaves — no fixed height */
   #sidebar {
@@ -1440,20 +1441,46 @@ button.inspect-gauge:hover { color: var(--accent); }
   .tabs button { font-size: 12.5px; padding: 11px 4px; gap: 4px; }
 }
 
+/* tablet gap: 769–960px wide with a tall viewport matched NEITHER phone query, so an iPad in
+   portrait got the full desktop layout at ~25px controls. Additive sizing only: the 768px
+   breakpoint is not moved, because ~40 rules key off it (bottom sheet, marker hit-halos,
+   playback bar, layer sheet, search takeover) and the blast radius is far larger than this. */
+@media (min-width: 769px) and (max-width: 960px) {
+  .controls .ctl-lbl { display: none; }
+  .controls button { min-height: 44px; min-width: 44px; padding: 4px 8px; font-size: 15px; }
+  .refresh-meta { min-width: 0; font-size: 12px; white-space: nowrap; max-width: 120px; }
+  .feed-actions button, .act-btn, .tabs button { min-height: 44px; }
+  button, select { min-height: 40px; }
+  .filters select, .filters input[type="search"] { min-height: 36px; }
+  .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
+  .layer-pill, .ao-current, .ao-chip { min-height: 32px; }
+}
+
 /* phone held sideways (short + landscape) — the ≤768 WIDTH query misses 844–932px-wide
    phones, dumping them into the too-tall desktop layout. Force a map-favoring side-by-side
    split. Placed AFTER the ≤768 block so equal-specificity rules win the 667×375 overlap. */
 @media (max-height: 500px) and (orientation: landscape) {
-  header { padding: 3px 8px; gap: 8px; flex-wrap: nowrap; }
+  header { padding: 3px 8px; gap: 8px; }
   .brand { min-width: 0; flex: 0 1 auto; }
   .brand h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .brand .sub { display: none; }
-  .tiles { display: none; }
+  /* the square mark replaces the lockup: a 44px-tall wordmark is most of a 430px-tall screen.
+     the dark-theme lockup rule is (1,2,0), so the override has to carry the same weight. */
+  :root .brand-logo, :root[data-theme="dark"] .brand-logo { display: none; }
+  .brand-mark { display: block; }
   #ticker { display: none; }
   .controls { margin-left: auto; gap: 8px; }
   .controls .ctl-lbl { display: none; }
-  .controls button { min-height: 34px; min-width: 38px; padding: 4px 7px; font-size: 15px; }
-  .refresh-meta { min-width: 0; font-size: 12px; }
+  /* vehicle-mount posture: the targets must be the LARGEST here, not the smallest. This rule
+     used to shrink them to 34px, undoing the 44px phone rule it is declared after. */
+  .controls button { min-height: 44px; min-width: 44px; padding: 4px 7px; font-size: 15px; }
+  .refresh-meta { min-width: 0; font-size: 12px; max-width: 120px; }
+  /* 932x430 clears the 768px width query, so every sidebar control fell back to ~25px desktop sizing */
+  .feed-actions button, .act-btn, .tabs button { min-height: 44px; }
+  button, select { min-height: 40px; }
+  .filters select, .filters input[type="search"] { min-height: 36px; }
+  .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
+  .layer-pill, .ao-current, .ao-chip { min-height: 32px; }
 
   main { flex-direction: row; }
   #map { order: 0; flex: 1 1 auto; min-height: 0; }
@@ -1833,6 +1860,17 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 #hmore-menu .ctl-lbl { display: inline; } /* menu entries keep icon + label at every width — discoverability lives here now */
 #hmore-menu #push-body { padding: 0 4px 2px; }
 #hmore-menu #push-body .section-title { display: none; } /* the Alerts group heading already names it */
+@media (max-width: 768px) {
+  /* the gear is not flush right (the clock sits after it), so right-anchoring a 300px panel
+     pushes its left edge off a 390px screen; on phones it spans the viewport under the header */
+  header { position: relative; }
+  .hmore { position: static; }
+  #hmore-menu {
+    top: calc(100% + 4px); left: 8px; right: 8px; width: auto;
+    max-width: 420px; margin-left: auto; /* stays under the gear on a wide phone, never a full-width slab */
+    max-height: min(70vh, 460px);
+  }
+}
 
 /* ---- v0.89: grouped layer sheet — replaces the stock Leaflet checkbox control as the picker ---- */
 .leaflet-control-layers { display: none; } /* control stays mounted as the overlay-event registry; the sheet is the UI */

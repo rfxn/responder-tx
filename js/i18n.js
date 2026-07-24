@@ -292,6 +292,16 @@
       'sheet.reset.title': 'Turn extra layers off, restore defaults, and reframe the full area',
       'sheet.locked': '⏮ Playback is replaying archived layers · press NOW to change layers',
 
+      'views.open': 'Views: switch how the board shows this event',
+      'views.title': '👁 Views',
+      'views.live': 'Live map',
+      'views.live.sub': 'The board as it stands right now · closes any other view',
+      'views.drive.sub': 'Big type, nearest hazards ranked by distance, for the road',
+      'views.basin.sub': 'One river corridor, upstream to downstream, with the crest wave',
+      'views.playback.sub': 'Replay the event over 3 / 7 / 14 days',
+      'views.recovery.sub': 'Receding gauges, reopened roads, open shelters, recovery notices',
+      'views.summary.sub': 'Peak stage per gauge, for after-action review',
+
       'trop.src': 'NOAA NHC via Esri Living Atlas',
       'trop.pop.storm': 'Tropical cyclone',
       'trop.pop.fcst': 'Forecast position',
@@ -1287,6 +1297,16 @@
       'sheet.reset': 'Restablecer la vista predeterminada',
       'sheet.reset.title': 'Apaga las capas extra, restaura lo predeterminado y reencuadra el área completa',
       'sheet.locked': '⏮ La reproducción está repasando capas archivadas · presione AHORA para cambiar capas',
+
+      'views.open': 'Vistas: cambie cómo el panel muestra este evento',
+      'views.title': '👁 Vistas',
+      'views.live': 'Mapa en vivo',
+      'views.live.sub': 'El panel tal como está ahora · cierra cualquier otra vista',
+      'views.drive.sub': 'Letra grande, peligros más cercanos por distancia, para el camino',
+      'views.basin.sub': 'Un corredor de río, de aguas arriba a aguas abajo, con la onda de cresta',
+      'views.playback.sub': 'Repase el evento en 3 / 7 / 14 días',
+      'views.recovery.sub': 'Aforos que bajan, caminos reabiertos, refugios abiertos, avisos de recuperación',
+      'views.summary.sub': 'Nivel máximo por aforo, para revisión posterior',
 
       'trop.src': 'NOAA NHC vía Esri Living Atlas',
       'trop.pop.storm': 'Ciclón tropical',

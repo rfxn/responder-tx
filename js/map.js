@@ -580,6 +580,19 @@ function initMap() {
     return div;
   };
   sheetBtn.addTo(state.map);
+  // views trigger sits with the layers trigger: what the map SHOWS and how you LOOK at it, together
+  const viewsBtn = L.control({ position: 'topright' });
+  viewsBtn.onAdd = () => {
+    const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger views-trigger');
+    div.innerHTML = `<a href="#" role="button" title="${esc(t('views.open'))}" aria-label="${esc(t('views.open'))}" data-i18n-title="views.open" data-i18n-aria="views.open">${CTL_ICON_VIEWS}</a>`;
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.on(div.firstChild, 'click', (e) => {
+      L.DomEvent.stop(e);
+      if (viewsSheetIsOpen()) closeViewsSheet(); else openViewsSheet();
+    });
+    return div;
+  };
+  viewsBtn.addTo(state.map);
   // Share stays first-class — a map control right below the layers trigger (also still in ⋮)
   const shareCtl = L.control({ position: 'topright' });
   shareCtl.onAdd = () => {
@@ -611,6 +624,7 @@ function initMap() {
   initAoJump();
   initLayerPills();
   initLayerSheet();
+  initViewsSheet();
   state.map.on('locationfound', (e) => {
     gpsWait(false);
     const deliberate = state.centerNextFix; // an explicit locate/recenter; watch ticks never set this
@@ -776,6 +790,7 @@ function compassNotice(key) {
 /* ---------- map-control icons — stroke SVGs inherit the themed .leaflet-bar color ---------- */
 
 const CTL_ICON_LAYERS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>';
+const CTL_ICON_VIEWS = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.6 12S5.2 5.6 12 5.6 22.4 12 22.4 12 18.8 18.4 12 18.4 1.6 12 1.6 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const CTL_ICON_LINK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
 // north-up compass rose: red north needle, muted south needle, "N" tick; the map is always north up
 const CTL_ICON_COMPASS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="13" r="7.4" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.65"/><polygon points="12 6.5 8.7 15.2 12 13.2 15.3 15.2" fill="#e5484d" stroke="#e5484d" stroke-width="0.5" stroke-linejoin="round"/><polygon points="12 19.9 8.7 15.2 12 17.2 15.3 15.2" fill="currentColor" opacity="0.7"/><text x="12" y="5.2" text-anchor="middle" font-size="7" font-weight="800" fill="currentColor">N</text></svg>';
@@ -1024,6 +1039,7 @@ function layerSheetSync() { if (layerSheetIsOpen()) renderLayerSheet(); }
 function openLayerSheet() {
   const el = document.getElementById('layer-sheet');
   if (!el) return;
+  if (typeof closeViewsSheet === 'function') closeViewsSheet(); // shared anchor: never stack the two map sheets
   renderLayerSheet();
   const panel = el.querySelector('.ls-panel');
   if (window.innerWidth > 768) {
@@ -1114,6 +1130,106 @@ function initLayerSheet() {
   }, { passive: true });
   state.map.on('overlayadd overlayremove baselayerchange', layerSheetSync);
   registerModal(el, { focusEl: '.ls-panel' }); // trap within the panel; #layer-sheet toggles hidden
+}
+
+/* ---------- views sheet (v0.97.90) — the lens picker, on the map where the lenses act ----------
+   Same .ls-* markup and CSS as the layer sheet, so the 48px rows and the ≤768px bottom sheet
+   come for free. Radio semantics: exactly one lens at a time, and every row routes through
+   openView() rather than clicking a button id. */
+
+// [viewName, iconHtml, labelKey, subKey] — labels reuse the shipped menu keys, no key churn
+const VIEW_ROWS = [
+  ['live', '🗺', 'views.live', 'views.live.sub'],
+  ['drive', '🚗', 'ctl.drive', 'views.drive.sub'],
+  ['basin', '🏞', 'basin.menu', 'views.basin.sub'],
+  ['playback', '⏮', 'playback.menu', 'views.playback.sub'],
+  ['recovery', '📉', 'recovery.menu', 'views.recovery.sub'],
+  ['summary', '📊', 'summary.menu', 'views.summary.sub'],
+];
+
+// the reused menu keys carry their own leading glyph in both languages; .ls-icon renders it instead
+const viewRowLabel = (key) => t(key).replace(/^[^\p{L}\p{N}]+\s*/u, '');
+
+// which lens owns the board right now; read from the panes themselves so no separate state can drift
+function activeViewName() {
+  const shown = (id) => { const el = document.getElementById(id); return !!el && !el.hidden; };
+  if (shown('drive-mode')) return 'drive';
+  if (shown('basin-view')) return 'basin';
+  if (shown('recovery-view')) return 'recovery';
+  if (shown('summary-view')) return 'summary';
+  if (state.pb && shown('playback-bar')) return 'playback';
+  return 'live';
+}
+
+function viewsSheetIsOpen() {
+  const el = document.getElementById('views-sheet');
+  return !!el && !el.hidden;
+}
+
+function renderViewsSheet() {
+  const el = document.getElementById('views-sheet');
+  if (!el) return;
+  el.querySelector('.ls-head strong').textContent = t('views.title');
+  el.querySelector('.ls-close').title = t('risk.close');
+  const active = activeViewName();
+  el.querySelector('.ls-body').innerHTML = VIEW_ROWS.map(([name, icon, labelKey, subKey]) => {
+    const on = name === active;
+    return `<button class="ls-row${on ? ' on' : ''}" data-view="${name}" role="radio" aria-checked="${on}">` +
+      `<span class="ls-icon">${icon}</span>` +
+      `<span class="ls-txt"><span class="ls-name">${esc(viewRowLabel(labelKey))}</span>` +
+      `<span class="ls-sub">${esc(t(subKey))}</span></span>` +
+      `<span class="ls-knob ls-go" aria-hidden="true">${on ? '✓' : '›'}</span></button>`;
+  }).join('');
+}
+
+function openViewsSheet() {
+  const el = document.getElementById('views-sheet');
+  if (!el) return;
+  closeLayerSheet(); // the two map sheets share the same anchor; never stack them
+  renderViewsSheet();
+  const panel = el.querySelector('.ls-panel');
+  if (window.innerWidth > 768) {
+    const r = document.getElementById('map').getBoundingClientRect();
+    panel.style.top = `${Math.max(10, r.top + 10)}px`;
+    panel.style.right = `${Math.max(10, window.innerWidth - r.right + 10)}px`;
+  } else { panel.style.top = ''; panel.style.right = ''; }
+  el.hidden = false;
+}
+
+function closeViewsSheet() {
+  const el = document.getElementById('views-sheet');
+  if (el) el.hidden = true;
+}
+
+function onViewsSheetClick(e) {
+  const row = e.target.closest('.ls-row');
+  if (!row) return;
+  closeViewsSheet(); // the lens needs the map and the sidebar, not a panel over them
+  openView(row.dataset.view);
+}
+
+function initViewsSheet() {
+  const el = document.createElement('div');
+  el.id = 'views-sheet';
+  el.hidden = true;
+  el.innerHTML = '<div class="ls-backdrop"></div>' +
+    '<div class="ls-panel" role="dialog" aria-modal="true"><div class="ls-grab"></div>' +
+    '<div class="ls-head"><strong></strong><button class="ls-close">✕</button></div>' +
+    '<div class="ls-body" role="radiogroup"></div></div>';
+  document.body.appendChild(el);
+  el.querySelector('.ls-backdrop').addEventListener('click', closeViewsSheet);
+  el.querySelector('.ls-close').addEventListener('click', closeViewsSheet);
+  el.querySelector('.ls-body').addEventListener('click', onViewsSheetClick);
+  const panel = el.querySelector('.ls-panel');
+  let y0 = null;
+  panel.addEventListener('touchstart', (e) => {
+    y0 = e.target.closest('.ls-grab, .ls-head') ? e.touches[0].clientY : null;
+  }, { passive: true });
+  panel.addEventListener('touchend', (e) => {
+    if (y0 !== null && e.changedTouches[0].clientY - y0 > 55) closeViewsSheet();
+    y0 = null;
+  }, { passive: true });
+  registerModal(el, { focusEl: '.ls-panel' });
 }
 
 /* ---------- unified radar timeline (v0.96) — observed RainViewer past | NOW | HRRR model future ----------

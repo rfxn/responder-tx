@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.90",
+      "date": "2026-07-24",
+      "line": "The different ways of looking at the board now have a home on the map. A new control next to the layers button opens a Views list: Live map, Drive, Basin, Playback, Recovery and Crest summary, each with a line explaining what it shows. Until now four of those were buried in the Feed tab under More, alongside the export buttons, which is a strange place to keep a whole view. Only one view is open at a time, and Live map takes you back to the plain board from any of them. Every link that already pointed at one of these views still works, and the ⏮ button on the map still opens playback directly."
+    },
+    {
       "v": "v0.97.89",
       "date": "2026-07-24",
       "line": "Housekeeping on the automatic updates. The 15 minute job that refreshes river and road data ran a set of code checks against whatever happened to be on disk, so any moment a new release was half prepared it reported a mismatch and abandoned the cycle, leaving the public board on the previous readings until the next run. That had happened seven times. The job now checks the last released code rather than work in progress, while the freshly fetched data itself is still checked exactly as before, and a genuine mismatch in released code still stops the cycle."

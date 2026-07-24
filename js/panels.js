@@ -301,16 +301,30 @@ function crestRowHtml(g) {
 
 const VIEW_RIVER_SLUG = /^[a-z0-9-]{1,60}$/; // allowlist: an unknown slug falls back to the most active river
 
+// closeLens keep — leave every lens except `keep`; radio semantics for the whole family
+function closeLens(keep) {
+  const shown = (sel) => { const el = $(sel); return !!el && !el.hidden; };
+  if (keep !== 'drive' && shown('#drive-mode')) {
+    $('#drive-mode').hidden = true;
+    updateDriveFreshness();
+    keepAwake(false, 'drive'); // location tracking continues in the app, only the screen lock is released
+  }
+  if (keep !== 'summary' && shown('#summary-view')) $('#summary-view').hidden = true;
+  if (keep !== 'recovery' && shown('#recovery-view')) $('#recovery-view').hidden = true;
+  if (keep !== 'basin' && shown('#basin-view')) closeBasinView();
+  if (keep !== 'playback' && state.pb && shown('#playback-bar')) closePlayback();
+}
+
 // openView name, opts — the one dispatcher for ?view= deep links; routes by name, never by button id
 function openView(name, opts) {
   const river = String((opts && opts.river) || '');
   switch (name) {
-    case 'live': break; // the board itself; accepted for symmetry so every lens has a way back in a URL
-    case 'drive': if (typeof enterDriveMode === 'function') enterDriveMode(); break;
-    case 'basin': if (typeof openBasinView === 'function') openBasinView(VIEW_RIVER_SLUG.test(river) ? river : null); break;
-    case 'playback': if (typeof openPlayback === 'function') openPlayback(); break;
-    case 'recovery': if (typeof openRecoveryView === 'function') openRecoveryView(); break;
-    case 'summary': if (typeof openCrestSummary === 'function') openCrestSummary(); break;
+    case 'live': closeLens(null); break; // the board itself; the way back out of any lens
+    case 'drive': closeLens('drive'); if (typeof enterDriveMode === 'function') enterDriveMode(); break;
+    case 'basin': closeLens('basin'); if (typeof openBasinView === 'function') openBasinView(VIEW_RIVER_SLUG.test(river) ? river : null); break;
+    case 'playback': closeLens('playback'); if (typeof openPlayback === 'function') openPlayback(); break;
+    case 'recovery': closeLens('recovery'); if (typeof openRecoveryView === 'function') openRecoveryView(); break;
+    case 'summary': closeLens('summary'); if (typeof openCrestSummary === 'function') openCrestSummary(); break;
     default: break; // absent or unknown: leave the board where it is rather than throw on a stale link
   }
 }

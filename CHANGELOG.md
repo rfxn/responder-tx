@@ -1,5 +1,35 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.90 · 2026-07-24 (the lenses move to the map, in a views sheet of their own)
+
+-- New Features --
+- [New] Views sheet: a new map control beside the layers trigger opens a picker
+      for how the board is being looked at. Live map, Drive, Basin, Playback,
+      Recovery, Crest summary, each with a one-line plain-language subtitle. It
+      is the layer sheet's own markup and CSS, so the 48px rows and the phone
+      bottom sheet behave identically, and the sheet closes on backdrop, on its
+      ✕, and on Escape.
+- [New] closeLens() in js/panels.js gives the lens family radio semantics: every
+      openView() route leaves whichever lens was open before opening the next
+      one, and the Live map row is the way back out of any of them. The sheet
+      marks the active lens from the panes themselves, so no second copy of
+      "which view am I in" can drift out of step.
+
+-- Changes --
+- [Change] Crest summary, Recovery, Basin and Playback left the Feed > More
+           menu. That menu was a junk drawer holding four whole views next to
+           four export buttons; the views now live on the map, where they act.
+           Playback keeps both of its other paths, the ⏮ map pill and the
+           ?playback=1 deep link, so it lost nothing.
+- [Change] Every views-sheet row dispatches through openView() by route name.
+           The four button ids the menu used are gone from index.html and from
+           js/boot.js, which is exactly what the v0.97.84 router was built to
+           make safe. ?view=drive, ?view=basin, ?view=playback, ?view=recovery
+           and ?view=summary are unchanged, and ?view=live now genuinely exits
+           a lens rather than being accepted and ignored.
+- [Change] Opening either map sheet closes the other; they share one anchor and
+           stacking them read as a bug.
+
 ## v0.97.89 · 2026-07-24 (a mid-bump working tree can no longer fail a data cycle)
 
 -- Bug Fixes --

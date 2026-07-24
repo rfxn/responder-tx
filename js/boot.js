@@ -722,11 +722,8 @@ async function boot() {
   $('#caltopo-copy').addEventListener('click', copyCaltopoUrl);
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
-  $('#summary-btn').addEventListener('click', openCrestSummary);
   $('#summary-exit').addEventListener('click', () => { $('#summary-view').hidden = true; });
-  $('#recovery-btn').addEventListener('click', openRecoveryView);
   $('#recovery-exit').addEventListener('click', () => { $('#recovery-view').hidden = true; });
-  $('#basin-btn').addEventListener('click', () => openBasinView(state.basinRiver));
   $('#basin-exit').addEventListener('click', closeBasinView);
   // ticker halves are duplicated markup — delegate clicks by item index instead of per-node listeners
   $('#ticker').addEventListener('click', (e) => {
@@ -815,6 +812,7 @@ async function boot() {
     if (!$('#safety-modal').hidden) return; // 911 gate up: Escape is a complete no-op until #safety-ack
     if (!$('#cam-viewer').hidden) { closeCamViewer(); return; } // must tear down the player, not just hide
     if (layerSheetIsOpen()) { closeLayerSheet(); return; }
+    if (viewsSheetIsOpen()) { closeViewsSheet(); return; }
     if (!$('#sitrep-modal').hidden) { closeSitrepModal(); return; } // routes through close() so focus is restored
     if (window.closeNotesFlyout && !$('#notes-flyout').hidden) { window.closeNotesFlyout(); return; } // keeps N.open in sync
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
@@ -839,7 +837,6 @@ async function boot() {
   if (new URLSearchParams(location.search).get('fcst') === '1') state.layers.fcstRadar.addTo(state.map);
 
   initPlaybackControls();
-  $('#playback-btn').addEventListener('click', openPlayback);
   if (new URLSearchParams(location.search).get('playback') === '1') openPlayback();
 
   // footer 911 strip stays one row at every width — tap opens the full safety notice

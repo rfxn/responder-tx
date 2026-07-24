@@ -181,6 +181,45 @@ test('i18n: feed and export control keys exist in both languages', () => {
   }
 });
 
+/* Views-sheet parity. The lens picker's rows are built in js/map.js, not in index.html, so the
+   positional markup check above cannot see them. Read the VIEW_ROWS table out of the source and
+   assert every key it names resolves in BOTH languages: a row whose label or subtitle key was
+   never translated renders as a raw key string to a Spanish session. */
+const VIEW_ROWS_RE = /const VIEW_ROWS = \[([\s\S]*?)\];/;
+
+function viewRowKeys() {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'map.js'), 'utf8');
+  const m = src.match(VIEW_ROWS_RE);
+  assert.ok(m, 'VIEW_ROWS table not found in js/map.js');
+  const rows = [...m[1].matchAll(/\[\s*'([a-z]+)',\s*'[^']*',\s*'([^']+)',\s*'([^']+)'\s*\]/g)];
+  assert.equal(rows.length, 6, `expected 6 view rows, parsed ${rows.length}`);
+  return rows.map((r) => ({ name: r[1], labelKey: r[2], subKey: r[3] }));
+}
+
+test('i18n: every views-sheet row label and subtitle exists in both languages', () => {
+  const rows = viewRowKeys();
+  assert.deepEqual(rows.map((r) => r.name), ['live', 'drive', 'basin', 'playback', 'recovery', 'summary']);
+  for (const { labelKey, subKey } of rows) {
+    for (const k of [labelKey, subKey]) {
+      for (const lang of ['en', 'es']) {
+        assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
+        assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+      }
+      assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+    }
+  }
+});
+
+test('i18n: the views sheet chrome keys exist in both languages', () => {
+  for (const k of ['views.open', 'views.title', 'views.live']) {
+    for (const lang of ['en', 'es']) {
+      assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
+      assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+    }
+  }
+  assert.notEqual(I18N.en['views.open'], I18N.es['views.open']);
+});
+
 /* Browser-dialog guard. alert/confirm/prompt paths shipped as English template literals: the
    clipboard fallback is routinely reached on the LAN board (http:// has no secure context, so
    navigator.clipboard is unavailable), and the LAN intake form and JSON import are operator

@@ -126,6 +126,63 @@ test('the active lens is never persisted into saveViewState', () => {
   }
 });
 
+/* Views sheet (v0.97.90). The lens picker replaced four Feed > More buttons, so the rows must
+   name exactly the routes openView() understands, and every row must dispatch through openView()
+   rather than re-introducing a click on a button id. Radio semantics live in closeLens(). */
+
+test('the views sheet rows name exactly the routes openView() handles', () => {
+  const map = read('js/map.js');
+  const m = map.match(/const VIEW_ROWS = \[([\s\S]*?)\];/);
+  assert.ok(m, 'VIEW_ROWS table not found in js/map.js');
+  const names = [...m[1].matchAll(/\[\s*'([a-z]+)'/g)].map((x) => x[1]);
+  assert.deepEqual(names, ['live', 'drive', 'basin', 'playback', 'recovery', 'summary']);
+  const src = openViewSource();
+  for (const n of names) assert.ok(src.includes(`case '${n}':`), `views sheet offers '${n}' but openView has no case for it`);
+});
+
+test('the views sheet dispatches by route name, never by button id', () => {
+  const map = read('js/map.js');
+  const m = map.match(/function onViewsSheetClick\(e\)[\s\S]*?\n\}/);
+  assert.ok(m, 'onViewsSheetClick() not found in js/map.js');
+  assert.ok(/openView\(row\.dataset\.view\)/.test(m[0]), 'the row handler should call openView(row.dataset.view)');
+  // the four Feed > More lens buttons are gone; nothing may resurrect them
+  const html = read('index.html');
+  const boot = read('js/boot.js');
+  for (const id of ['summary-btn', 'recovery-btn', 'basin-btn', 'playback-btn']) {
+    assert.ok(!html.includes(`id="${id}"`), `index.html still declares #${id}`);
+    assert.ok(!boot.includes(`#${id}`), `js/boot.js still references #${id}`);
+  }
+});
+
+test('every lens route closes the other lenses first (one lens at a time)', () => {
+  const src = openViewSource();
+  for (const [name, keep] of [['live', 'null'], ['drive', "'drive'"], ['basin', "'basin'"],
+    ['playback', "'playback'"], ['recovery', "'recovery'"], ['summary', "'summary'"]]) {
+    assert.ok(new RegExp(`case '${name}': closeLens\\(${keep.replace(/'/g, "'")}\\)`).test(src),
+      `openView case '${name}' should call closeLens(${keep})`);
+  }
+  const panels = read('js/panels.js');
+  const cl = panels.match(/function closeLens\(keep\)[\s\S]*?\n\}/);
+  assert.ok(cl, 'closeLens() not found in js/panels.js');
+  for (const sel of ['#drive-mode', '#summary-view', '#recovery-view', '#basin-view', '#playback-bar']) {
+    assert.ok(cl[0].includes(sel), `closeLens() does not handle ${sel}`);
+  }
+});
+
+test('closeLens tolerates a lens pane that is absent from the document', () => {
+  const context = loadContext();
+  // the vm document stub returns element stubs, so drive the null path explicitly
+  const saved = context.document.querySelector;
+  context.document.querySelector = () => null;
+  try { assert.doesNotThrow(() => context.closeLens(null)); } finally { context.document.querySelector = saved; }
+});
+
+test('the Escape chain closes the views sheet', () => {
+  const boot = read('js/boot.js');
+  assert.ok(/if \(viewsSheetIsOpen\(\)\) \{ closeViewsSheet\(\); return; \}/.test(boot),
+    'js/boot.js Escape handler should close the views sheet');
+});
+
 test('applyShareParams delegates view routing instead of dispatching inline', () => {
   const board = read('js/board.js');
   const m = board.match(/function applyShareParams\(q\)[\s\S]*?\n\}/);

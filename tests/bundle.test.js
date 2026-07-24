@@ -43,6 +43,7 @@ const ENTRY_POINTS = [
   'esc', 'registerModal', 'applyShareParams', 'resolveAoPresets',
   // map.js
   'initMap', 'applyTheme', 'openLayerSheet', 'closeLayerSheet', 'layerSheetIsOpen',
+  'initViewsSheet', 'openViewsSheet', 'closeViewsSheet', 'viewsSheetIsOpen',
   'rtlTogglePlay', 'rtlStopPlay', 'rtlSet', 'setRainWindow', 'fetchRadarFrames',
   // playback.js (called from map.js, boot.js, panels.js, board.js, sources.js)
   'pbBlocksLive', 'openPlayback', 'togglePlayback', 'initPlaybackControls',

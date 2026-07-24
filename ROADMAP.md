@@ -1,24 +1,26 @@
 # ResponderTX · MASTER ROADMAP (updated 2026-07-24)
 
-Current build: **v0.97.63** (see `CHANGELOG.md` for the full v0.1.0 → v0.97.63 arc,
+Current build: **v0.97.81** (see `CHANGELOG.md` for the full v0.1.0 → v0.97.81 arc,
 which is the authoritative record of what has shipped). This roadmap tracks
 delivered capabilities and the forward queue; per-cycle volatile status lives in
-CHANGELOG/HANDOFF, not here. Verified against the 2026-07-24 twelve-agent
-product-owner assessment (25 confirmed / 6 partial / 0 refuted findings).
+CHANGELOG/HANDOFF, not here. The forward queue below was re-derived from source
+on 2026-07-24 after the v0.97.64–81 arc, item by item with file-level evidence,
+superseding the earlier twelve-agent product-owner assessment ordering.
 
-> Recently shipped in the v0.97.25–63 arc, reflected below: the live coastal
-> pivot for TS Bertha (board re-targeted to the upper Texas coast through
-> `data/event.json`, v0.97.47); tropical layers (NHC cone/track tracker
-> v0.97.48 with auto-default v0.97.50, SLOSH storm-surge overlay v0.97.53,
-> CO-OPS coastal water levels v0.97.52); the offline app-shell service worker
-> with user-controlled updates (v0.97.63) plus the branded install manifest /
-> PWA (v0.97.60); automated tests + CI (node:test harness, 89 tests across 8
-> files, GitHub Actions running cycle-check; merged 2026-07-19); field-device
-> UX (live compass heading v0.97.54, screen wake lock v0.97.56, continuous
-> follow mode v0.97.28–34, GPS accuracy rings v0.97.57, 44px tap targets
-> v0.97.61); and team wave 2 (rehab status, marker assignment, invite presets
-> v0.97.27; Unavailable status v0.97.45; last-known tombstones v0.97.46;
-> teammate detail taps v0.97.57).
+> The v0.97.64–81 arc drained the entire previous NOW block and nearly all of
+> NEXT, so most of what follows is now delivered inventory rather than queue:
+> offline-shell correctness with Leaflet vendored locally (v0.97.64);
+> event-aware AO presets and the repaired brand hook (v0.97.65); LAN write
+> endpoints gated and rate-limited (v0.97.66); full Spanish coverage on the
+> live surfaces (v0.97.68); device push alerts across three phases, from
+> Flash-Flood-Emergency opt-in through gauge-level alerts to followed gauges
+> with subscription self-heal (v0.97.69, .71, .79); the CSP backstop plus
+> data-contract schema checks (v0.97.70); live FEMA/ARC shelter status
+> (v0.97.72); team dead-zone breadcrumbs (v0.97.73); the LAN shared notice
+> intake (v0.97.74); the Recovery view (v0.97.75); event-revert readiness and
+> observed-radar failover (v0.97.76); module split wave 2 (v0.97.77); CalTopo
+> import URL with QR (v0.97.78); Basin Focus (v0.97.80); and the external
+> public-mirror freshness monitor (v0.97.81).
 
 ---
 
@@ -30,9 +32,12 @@ pivot) and is feature-complete against its own original backlog: the entire NOW
 block, all of the W1–W9 next-wave, most table-stakes (T1/T2/T4/T6/T8), the
 self-audit quick-wins (A1/A2/A4/A5/A6/A7), the **historical-playback flagship**,
 the team layer, and the 2026-07-20 infra NOW block (durable pipeline, tests +
-CI, service worker) have all shipped. What remains is less about missing
-situational-awareness features and more about **offline correctness, security,
-notification delivery, and generalization** (see the forward queue).
+CI, service worker) have all shipped, as has the 2026-07-24 assessment block
+(offline correctness, LAN write security, push notification delivery, CSP, and
+the Recovery and Basin lenses). What remains is less about missing capability
+and more about **making the accumulated capability legible**: consolidating an
+information architecture that grew feature by feature, closing the last two
+single-host feed dependencies, and generalization (see the forward queue).
 
 **Delivered capability clusters** (lead version in parentheses):
 
@@ -117,17 +122,16 @@ notification delivery, and generalization** (see the forward queue).
   respondertx.org (v0.31.0) with all LAN-only surfaces (ops chat, field-notes
   intake) stripped from the artifact.
 
-**Genuinely still open** (detail in the forward queue): offline-shell
-correctness (SW data-cache query-string miss, Leaflet still CDN-only) ·
-event-pivot drift (AO presets still framed on the retired Hill Country AO) ·
-LAN write-endpoint security · web-push threshold alerts (T3, now unblocked by
-the SW) · i18n dynamic-string sweep · CSP backstop · region/event-pack
-generalization remainder (#25) · severe/tornado + wildfire all-hazard remainder ·
-multi-source failover for single-host feeds · T5 evacuation zones (data-gated) ·
-V2 basin-focus, V3 recovery, V4 wall views · live FEMA-shelter poller (#12) ·
-shared curated-board state (#27 remainder) · CalTopo enriched export ·
-trust/governance content · small polish (A3 desktop KPI declutter, A8 LSR
-ranking, #18 measure tool, #19 watchlist star).
+**Genuinely still open** (detail in the forward queue): information-architecture
+consolidation (view lenses, export/import, and alert settings are scattered
+across a feed overflow menu and Resources) · multi-source failover for the two
+remaining single-host feeds (HRRR, DriveTexas) · deploy-credential decoupling
+from the rfxn-infra vault · chat-cursor monotonicity checking ·
+region/event-pack generalization remainder (#25) · severe/tornado + wildfire
+all-hazard remainder · T5 evacuation zones (data-gated) · V4 wall view ·
+CalTopo live-sync stretch (subscription-gated) · trust/governance content ·
+small polish (A3 desktop KPI declutter, A8 LSR ranking, #18 measure tool, #19
+watchlist star).
 
 ---
 
@@ -393,95 +397,66 @@ notifying, and generalized. Ranked top-down within each horizon. Finding IDs
   (see the Team coordination cluster above; Phase-2 SAR remains in the team
   build queue).
 
-### NOW (active build queue, PO-ordered 2026-07-24)
+### NOW (active build queue, re-derived from source 2026-07-24 after v0.97.81)
 
-- **N1. Offline shell correctness** [infra] · IN PROGRESS (release agent
-  building now). Fix the shipped SW's data fallback: cache-busted `/data/*.json`
-  URLs never match the data cache, so offline reload silently loses last-good
-  data; match with `{ignoreSearch:true}` or strip the buster when keying
-  (prod-1). Vendor Leaflet JS+CSS into `js/vendor/` with `?v=` stamps (matching
-  the markercluster/hls/qrcode precedent) and add to the SW precache, so an
-  offline cold boot actually renders a map instead of dying on the unpkg CDN
-  dependency (compat-1, arch-2). Add `vh` fallback lines before the two
-  unfallbacked `100dvh` rules for 2020-2022 WebViews (compat-4).
-- **N2. Event-pivot drift** [ux/data] · AO quick-jump presets and "Reset view"
-  still frame the retired Hill Country AO while the live event is on the coast;
-  read `aoPresets` from `data/event.json` (hardcoded list as fallback) and
-  derive "Full AO" from `CONFIG.gaugeBbox` (prod-2). Fix the swallowed
-  `loadEventConfig` TypeError: the brand hook targets a removed `.brand h1`, so
-  event name/subtitle silently never apply; null-guard and target the logo
-  alt/aria + `document.title` (prod-3). Cheapest first concrete step of #25.
-- **N3. Security: LAN write endpoints** [infra] · gate POST `/api/chat` and
-  `/api/notes` behind `_lan_client_allowed` (parity with the team proxy); the
-  inbox is currently attacker-POST-able while a build-capable watchdog reads it
-  (arch-1). Add a per-IP token-bucket rate limit on the POST endpoints and
-  inbox rotation/archival at a size threshold (arch-7).
-- **N4. Test/CI hardening** [infra] · add tests/i18n.test.js asserting en/es
-  key-set equality plus an em-dash lint over both blocks (test-1); wire
-  tests/chat-poll.test.sh into CI as a step after the unit tests (test-2); make
-  deploy.sh preflight run `node --test tests/` + cycle-check.sh with an
-  explicit emergency skip flag (test-3); extend cycle-check with chat-cursor
-  format/monotonicity checks (test-9).
-- **N5. i18n dynamic-string sweep** [ux] · route the ~10 hardcoded English
-  renderer strings (gauge "no flooding", wave crested/arrival order, crossing
-  CLOSED/CAUTION statuses, Drive Mode subs) through `t()`; keys mostly exist;
-  add a cycle-check grep for English literals in renderer templates (prod-6).
-- **N6. Web-push threshold alerts (T3)** [infra] · now unblocked by the SW
-  (v0.97.63); the single biggest adoption feature vs the 2026 Watch Duty
-  national-flood frame (prod-9). VAPID + edge KV/cron storing
-  endpoint+threshold only (no identity); new-FFE, gauge-to-major, and
-  followed-place alerts; framed as "not a WEA/911 replacement."
-- **N7. CSP backstop + data-contract schemas** [infra] · after N1 vendoring
-  enables `script-src 'self'`, add a Content-Security-Policy to `_headers` and
-  `server.py` as defense-in-depth behind `esc()` at the 150+ innerHTML sites
-  (arch-5); extend cycle-check.sh with per-file required-key schema assertions
-  (history frames, crest-summary lid/peak_category, roads-snapshot,
-  cameras.json) so contract drift fails the cycle instead of degrading silently
-  (arch-3).
+The previous NOW block (N1 offline shell, N2 event-pivot drift, N3 LAN write
+security, N4 test/CI hardening, N5 i18n sweep, N6 web-push, N7 CSP + schemas)
+is **fully delivered** across v0.97.64 through v0.97.79, with one sliver
+carried forward as N4 below. See the delivered-inventory note at the top.
+
+- **N1. Information architecture consolidation** [ux] · IN PROGRESS (design
+  lane running). The owner's standing complaint: the app has grown a junk
+  drawer. Whole-app view lenses (Basin, Playback, Crest Summary, Recovery) are
+  reached through a feed overflow menu; the data-interchange cluster (Export
+  JSON, Export GeoJSON, CalTopo, AAR, plus Import) sits in that same menu with
+  no home of its own; push-alert configuration lives under Resources, which is
+  content rather than settings; and the top of the page stacks hero cards,
+  search, Drive, Refresh, and a hamburger as four competing control idioms with
+  no hierarchy. Resolve with an explicit taxonomy that separates lenses from
+  content from actions from settings/interchange, designed for desktop, mobile
+  portrait, and mobile landscape, with landscape treated as a first-class
+  in-vehicle case rather than a degraded desktop. Must preserve `?view=` deep
+  links and share URLs already in the wild.
+- **N2. Single-host feed failover remainder** [infra] · the v0.97.76 radar leg
+  landed (RainViewer falling back to the IEM NEXRAD archive, `js/map.js`
+  `iemRadarFrames()`), but 2 of 3 single-host feeds still have no second
+  source: HRRR forecast radar and DriveTexas road closures
+  (`js/sources.js` `fetchRoadClosures()`, single `CONFIG.roadCondUrl`, throws on
+  non-200). Both currently degrade honestly rather than failing over, which is
+  correct behavior but not resilience. Find and wire a real alternate for each,
+  or document why none exists and keep the honest degrade as the final answer.
+- **N3. Chat-cursor monotonicity** [infra] · the last sliver of the old N4.
+  `scripts/cycle-check.sh` `check_cursors` asserts cursor **format** and an
+  upper bound against the inbox line count, but never that a cursor moved
+  forward, and never that `.chat-ack-cursor` stays at or behind `.chat-cursor`.
+  Cursor regression is precisely the failure mode that silently re-drops or
+  hides owner messages, so it deserves a real assertion rather than a bound.
+- **N4. i18n renderer-guard coverage gap** [ux/test] · the hardcoded-English
+  guard in `tests/i18n.test.js` checks a denylist across a fixed `RENDER_FILES`
+  set that predates the v0.97.77 module split, so `js/playback.js` and
+  `js/cameras.js` are currently unguarded. Add them, and make the file set
+  derive from the scripts index.html actually loads so the next extraction
+  cannot silently fall out of coverage.
 
 ### NEXT (after the NOW queue)
 
-8. **Post-Bertha event revert readiness** [data] · the v0.97.47 pivot note
-   promises "revert when the event clears"; pre-stage the revert path (event.json
-   swap + tropical layers auto-default off) so it is a config flip, not a build.
-9. **Multi-source failover for single-host feeds** [infra] · the old NOW 1
-   remnant: RainViewer/HRRR/DriveTexas each sit behind one host.
-10. **FEMA NSS open-shelters poller (#12)** [data] · durable server-side poll →
-    `data/shelters-live.json`, merged over curated shelters, absence-tolerant.
-11. **Module split wave 2** [infra] · extract the ~330-reference playback
-    subsystem from map.js (2548 lines) and the camera layer from sources.js
-    (1597) into ordered scripts; add a CI step that evaluates the full
-    concatenated bundle so implicit cross-module references are checked (arch-4).
-12. **Shared notice write path (P2, the #27 remainder)** [infra] · LAN
-    notice-intake endpoint (POST `/api/requests` → notices-inbox.jsonl, merged
-    into data/requests.json by the run-cycle generator, mirroring the
-    notes-inbox pattern) so two coordinators share one board (prod-4).
-13. **Team breadcrumb store-and-forward** [field] · fold into the Phase-2 SAR
-    item already in the team build queue: buffer failed position posts and flush
-    a batched backfill on reconnect so trails survive dead zones and
-    screen-lock pauses (prod-5).
-14. **Honesty-critical test coverage wave** [infra] · record-context boundary
-    math, playback guard predicates, share-URL round-trip, cardAged/suppression
-    (resolved short-circuit + per-type overrides), and the three
-    exported-but-unasserted predicates (test-4..8).
-15. **V3 Recovery Dashboard (`?view=recovery`)** [views] · consolidate the
-    recovery signals (falling gauges, reopened roads, shelter/boil-water/utility
-    cards, declarations chip #22) into one lens.
-16. **V2 Basin Focus (`?view=basin`)** [views] · single-river corridor,
-    upstream→downstream, with the crest wave visualized as it moves down-basin.
-17. **CalTopo / SARTopo enriched export + QR (MVP), live sync (stretch)**
-    [interop] · extend the GeoJSON export into a curated, multi-layer
-    CalTopo-shaped FeatureCollection (folders, `title` labels, per-feature
-    citations + `updated_at`, simplestyle-matched palettes) published at a
-    stable cycle-refreshed URL with a client-side QR share. Stretch
-    (account-gated): true continuous sync via the CalTopo Teams API; CalTopo
-    does NOT poll a static GeoJSON URL, so real sync needs a subscription and a
-    small always-on job. Detail in the internal assessment.
-18. **Deploy resilience** [infra] · decouple deploy credentials from the
-    rfxn-infra vault checkout (dedicated scoped token or wrangler-native login)
-    and add an external freshness monitor that alerts when the mirror's data
-    goes stale; today one host carries cron, LAN server, git push, and Pages
-    deploy (arch-6).
+5. **Deploy-credential decoupling** [infra] · the remaining half of the old
+   item 18 (its freshness-monitor half shipped v0.97.81). `scripts/deploy.sh`
+   still reaches into the rfxn-infra Ansible vault for the Cloudflare token, so
+   deploys are coupled to an unrelated repo checkout. Move to a dedicated
+   scoped token or a wrangler-native login. Needs an owner action to mint the
+   token, so it is queued rather than auto-buildable.
+6. **Generalization / region-event packs (#25)** [infra] · the remaining
+   non-TX-literal sequence. Sequenced after the owner's naming decision (see
+   OWNER-GATED), with the v0.97.65 event-config brand hook as groundwork.
+7. **Trust/governance content** [content] · about/who-runs-this, a methodology
+   and accuracy page surfacing the honesty discipline that is already a
+   strength, a privacy/terms page, a LICENSE file, and a documented browser
+   floor (Chrome/WebView 80+, iOS 13.4+ per compat-3). Promoted out of LATER:
+   with push alerts shipped and a public mirror, provenance now matters more
+   than another layer.
+8. **Team Phase-2 SAR** [field] · the remaining team build-queue item.
+   Breadcrumb store-and-forward already landed (v0.97.73).
 
 ### OWNER-GATED (explicit owner decision required; do NOT auto-build)
 

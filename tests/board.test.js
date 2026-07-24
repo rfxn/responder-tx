@@ -2,6 +2,8 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { loadApp } = require('./harness.js');
 
 const { smartScore, shortId, allRequests, state, CONFIG, pushCardState, pushFreshState } = loadApp();
@@ -124,6 +126,39 @@ test('pushCardState — missing capability reads unsupported, never an error', (
 test('pushCardState — a denied permission is blocked (no re-prompt state)', () => {
   assert.equal(pushCardState(pushFacts({ permission: 'denied' })), 'blocked');
   assert.equal(pushCardState(pushFacts({ permission: 'denied', subscribed: true })), 'blocked', 'blocked wins over a stale local on-flag');
+});
+
+/* ---------- pushCardVisible: who gets the alerts card, and therefore the off switch ---------- */
+
+const { pushCardVisible } = loadApp();
+
+test('pushCardVisible — a subscribed device always gets its card, with or without ?push', () => {
+  // the regression: a Flash Flood Emergency deep link landed on a board with no alerts card,
+  // no state line and no toggle, so an opted-in device had no reachable way to turn alerts off
+  assert.equal(pushCardVisible({ flagged: false, subscribed: true }), true);
+  assert.equal(pushCardVisible({ flagged: true, subscribed: true }), true);
+});
+
+test('pushCardVisible — ?push stays the discovery gate for devices that never opted in', () => {
+  assert.equal(pushCardVisible({ flagged: false, subscribed: false }), false, 'soft launch stays soft');
+  assert.equal(pushCardVisible({ flagged: true, subscribed: false }), true);
+});
+
+test('pushCardVisible — only a real local subscription counts, never a truthy stand-in', () => {
+  assert.equal(pushCardVisible({ flagged: false, subscribed: 'yes' }), false);
+  assert.equal(pushCardVisible({ flagged: false, subscribed: 1 }), false);
+  assert.equal(pushCardVisible({}), false);
+});
+
+test('initPushCard gates on pushCardVisible, not on the ?push flag alone', () => {
+  // the predicate is only worth testing if it is the one the card actually consults
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
+  const fn = src.match(/async function initPushCard\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'initPushCard not found in js/board.js');
+  assert.match(fn[0], /pushCardVisible\(/, 'initPushCard must consult pushCardVisible');
+  assert.match(fn[0], /subscribed: pushLocal\(\)\.on === true/, 'the subscription fact comes from the local record');
+  assert.doesNotMatch(fn[0], /if \(!new URLSearchParams\(location\.search\)\.has\('push'\)\) return/,
+    'the bare ?push early-return is what hid the off switch');
 });
 
 /* ---------- pushFreshState: evaluator freshness chip (web push P2) ---------- */

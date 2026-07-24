@@ -138,6 +138,12 @@ test('every precached file exists in the repo', () => {
   }
 });
 
+test('a payload-free push still lands on a page that shows the alerts card', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  assert.match(src, /data: \{ url: \(data && data\.url\) \|\| '\/\?push=1' \}/,
+    'the payload-free fallback url must carry the flag, or the notification lands with no off switch');
+});
+
 test('push handler prefers the payload language over the cached hint (P2)', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
   assert.match(src, /data\.lang === 'es' \|\| data\.lang === 'en'/, 'payload lang wins when present');

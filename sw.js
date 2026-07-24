@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.97.85';
+const SW_VERSION = '0.97.86';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 const CACHE_DATA = `respondertx-data-${SW_VERSION}`;
 // version-independent: holds the subscriber's language hint so a payload-free push can be
@@ -193,7 +193,7 @@ self.addEventListener('push', (event) => {
       lang,
       icon: 'assets/brand/favicon-180.png',
       badge: 'assets/brand/favicon-32.png',
-      data: { url: (data && data.url) || '/' },
+      data: { url: (data && data.url) || '/?push=1' }, // the flag keeps the alerts card, and its off switch, on the landing page
     });
   })());
 });

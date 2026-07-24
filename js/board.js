@@ -1035,6 +1035,14 @@ function pushCardState(f) {
   return f.subscribed ? 'on' : 'off';
 }
 
+// pure visibility predicate for the alerts card. A device that actually holds a subscription
+// always gets its card, and therefore its off switch, however it arrived (a notification deep
+// link, a bookmark, the plain board). ?push stays the discovery gate for devices that never
+// opted in, so the soft launch is still soft for everyone else.
+function pushCardVisible(f) {
+  return f.subscribed === true || f.flagged === true;
+}
+
 function pushLocal() {
   try { return JSON.parse(localStorage.getItem(PUSH_LS_KEY)) || {}; } catch { return {}; }
 }
@@ -1432,7 +1440,10 @@ async function initPushCard() {
   pushBootSync();
   const host = $('#push-body');
   if (!host) return;
-  if (!new URLSearchParams(location.search).has('push')) return; // P1 soft-launch flag; public exposure is the P2 call
+  if (!pushCardVisible({
+    flagged: new URLSearchParams(location.search).has('push'),
+    subscribed: pushLocal().on === true,
+  })) return;
   const st = pushCardState(pushEnvFacts());
   if (st === 'on' || st === 'off') {
     // capability present: the card renders only when the backend is really there (503/absent hides it)

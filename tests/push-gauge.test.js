@@ -13,6 +13,7 @@ const nodeCrypto = require('node:crypto');
 const {
   newRegistry, mockRes, sandbox, makeClientKeys, decryptPush,
   crossingStep, applyHourlyCap, gaugeRank, verifyNudgeSig, PUSH_STRINGS, CAT_RANK,
+  gaugePayload, digestPayload, ffePayload, confirmPayload,
 } = require('./push-harness.js');
 
 const MIN = 60 * 1000;
@@ -234,7 +235,7 @@ test('a tier subscriber gets an encrypted gauge payload with name, category, and
   assert.equal(payload.lid, 'SRRT2');
   assert.ok(payload.title.includes('San Antonio River at Runge'), 'gauge name in the title');
   assert.ok(payload.title.includes(PUSH_STRINGS.en['cat.moderate']), 'localized category in the title');
-  assert.equal(payload.url, '/?hydro=SRRT2', 'deep link to the hydrograph modal');
+  assert.equal(payload.url, '/?push=1&hydro=SRRT2', 'deep link to the hydrograph modal, carrying the alerts-card flag');
   assert.equal(payload.tag, 'g-SRRT2');
   assert.ok(payload.body.includes('Not a WEA/911 service'));
 
@@ -297,6 +298,37 @@ test('verifyNudgeSig accepts the openssl-style HMAC and rejects tampering', asyn
   assert.equal(await verifyNudgeSig(subtle, NUDGE_KEY, body, sigFor(body, 'wrong-key')), false, 'wrong key');
   assert.equal(await verifyNudgeSig(subtle, NUDGE_KEY, body, 'garbage'), false);
   assert.equal(await verifyNudgeSig(subtle, NUDGE_KEY, body, ''), false);
+});
+
+/* ---------- notification deep links ---------- */
+
+test('every payload builder emits a url carrying the alerts-card flag', () => {
+  // a notification that lands on a board with no alerts card leaves an opted-in device with
+  // no state line, no toggle and no manage view: the flag is what makes the landing coherent
+  const now = Date.UTC(2026, 6, 24, 18, 0, 0);
+  const g = { lid: 'SRRT2', name: 'San Antonio River at Runge', rank: CAT_RANK.moderate, obs: null };
+  const built = {
+    gauge: gaugePayload('en', g, now),
+    digest: digestPayload('en', 4, now),
+    ffe: ffePayload('en', 'Kerr County', 'ffe-1', now),
+    confirm: confirmPayload('en', now),
+  };
+  for (const [kind, json] of Object.entries(built)) {
+    const url = JSON.parse(json).url;
+    assert.ok(url.startsWith('/?'), `${kind}: url must be a same-origin root deep link, got ${url}`);
+    assert.equal(new URLSearchParams(url.slice(2)).get('push'), '1', `${kind}: url must carry push=1, got ${url}`);
+  }
+  assert.equal(JSON.parse(built.gauge).url, '/?push=1&hydro=SRRT2', 'the gauge link keeps its hydrograph target');
+});
+
+test('the alerts-card flag is emitted for every language, not just en', () => {
+  const now = Date.UTC(2026, 6, 24, 18, 0, 0);
+  const g = { lid: 'CALM1', name: 'Rio Frio', rank: CAT_RANK.major, obs: null };
+  for (const lang of ['en', 'es']) {
+    for (const json of [gaugePayload(lang, g, now), digestPayload(lang, 2, now), ffePayload(lang, '', 'x', now), confirmPayload(lang, now)]) {
+      assert.match(JSON.parse(json).url, /[?&]push=1(&|$)/, `${lang}: ${JSON.parse(json).url}`);
+    }
+  }
 });
 
 test('doNudge runs an evaluation for a valid signed fresh nudge', async () => {

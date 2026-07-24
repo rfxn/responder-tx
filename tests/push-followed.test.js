@@ -125,7 +125,7 @@ test('a gauge followed at major stays silent at moderate and fires at major, wit
   const payload = JSON.parse(decryptPush(client, log[0].body).plaintext.toString());
   assert.equal(payload.lid, 'SRRT2');
   assert.ok(payload.title.includes('San Antonio River at Runge'));
-  assert.equal(payload.url, '/?hydro=SRRT2');
+  assert.equal(payload.url, '/?push=1&hydro=SRRT2');
 });
 
 test('AO tier and per-gauge follows coexist in one evaluation pass', async () => {

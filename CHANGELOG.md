@@ -1,5 +1,39 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.86 · 2026-07-24 (device alerts always carry a reachable off switch)
+
+-- Bug Fixes --
+- [Fix] The alerts card rendered only when the board was opened with ?push, and
+      the notifications the Worker sends did not carry that flag. Tapping a
+      Flash Flood Emergency notification landed on a board with no alerts card,
+      no state line, no toggle and no manage view, and with pushManageAvailable()
+      false the gauge-popup bell went with it, while pushBootSync kept renewing
+      the 60 day subscription in the background. An opted-in device had no
+      reachable way to turn alerts off. Card visibility is now a pure predicate,
+      pushCardVisible, over two facts: holding a subscription is on its own
+      sufficient, so the off switch and the honest on/off/blocked state line are
+      always one tap away however the board was opened.
+- [Fix] Every Worker notification payload deep links with push=1 now. The gauge
+      crossing link keeps its hydrograph target, and the digest, Flash Flood
+      Emergency and confirmation links carry the flag too. The service worker's
+      payload-free fallback does the same, so even a push that arrives with no
+      body opens a page the card is on.
+
+-- Changes --
+- [Change] ?push stays exactly what it was for devices that never opted in: the
+           discovery gate. Nothing new is exposed to anyone who has not
+           subscribed, so the soft launch stays soft.
+- [Change] workers/push-alerts is a separate deploy target from Cloudflare
+           Pages, so this release ships in two steps and the Worker deploy is
+           what puts the new deep links on the wire.
+
+-- New Features --
+- [New] Seven tests: the pushCardVisible truth table including the
+      subscribed-without-the-flag case that was broken, a source assertion that
+      initPushCard consults the predicate rather than the bare flag, and
+      coverage that every payload builder emits a url carrying push=1 in both
+      languages plus the service worker's payload-free fallback.
+
 ## v0.97.85 · 2026-07-24 (the deploy gate reads and ships HEAD, not the working tree)
 
 -- Bug Fixes --

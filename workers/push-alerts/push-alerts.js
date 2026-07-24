@@ -130,7 +130,7 @@ function gaugePayload(lang, g, now) {
     t: 'gauge', lid: g.lid, lang,
     title: fmt(s['gauge.title'], { name: g.name, cat }),
     body: stage && time ? fmt(s['gauge.body'], { stage, time }) : s['gauge.body.notime'],
-    url: `/?hydro=${encodeURIComponent(g.lid)}`,
+    url: `/?push=1&hydro=${encodeURIComponent(g.lid)}`,
     ts: new Date(now).toISOString(), tag: `g-${g.lid}`,
   });
 }
@@ -141,7 +141,7 @@ function digestPayload(lang, n, now) {
     t: 'digest', lang,
     title: fmt(s['digest.title'], { n }),
     body: s['digest.body'],
-    url: '/', ts: new Date(now).toISOString(), tag: 'g-digest',
+    url: '/?push=1', ts: new Date(now).toISOString(), tag: 'g-digest',
   });
 }
 
@@ -151,7 +151,7 @@ function ffePayload(lang, area, id, now) {
     t: 'ffe', lang,
     title: area ? `${s['ffe.title']} · ${String(area).slice(0, 80)}` : s['ffe.title'],
     body: s['ffe.body'],
-    url: '/', ts: new Date(now).toISOString(), tag: `ffe-${id}`,
+    url: '/?push=1', ts: new Date(now).toISOString(), tag: `ffe-${id}`,
   });
 }
 

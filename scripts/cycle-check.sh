@@ -251,6 +251,16 @@ if d is not None:
                 or not isinstance(s.get("lon"), (int, float))):
             die("shelters-live.json: shelters[%d] missing name/lat/lon/status" % i)
 
+d = optional("data/caltopo-export.json")
+if d is not None:
+    if d.get("type") != "FeatureCollection" or not isinstance(d.get("features"), list):
+        die("caltopo-export.json: not a FeatureCollection with features[]")
+    for i, f in enumerate(d["features"]):
+        if f.get("type") != "Feature" or "geometry" not in f:
+            die("caltopo-export.json: features[%d] missing type/geometry" % i)
+        if not (f.get("properties") or {}).get("title"):
+            die("caltopo-export.json: features[%d] missing properties.title" % i)
+
 d = optional("data/cameras.json")
 if d is not None:
     nets = ("txdot", "river", "austin", "atxfloods", "houston", "arlington", "elpbridge", "hays")
@@ -297,7 +307,7 @@ if os.path.exists("data/notices-inbox.jsonl"):
             die("notices-inbox.jsonl line %d: missing %s" % (n, ",".join(miss)))
 EOF
 }
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, caltopo-export, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 if [ "$FAILURES" -eq 0 ]; then
     echo "SUMMARY: all 10 checks passed"

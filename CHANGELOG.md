@@ -1,5 +1,36 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.78 · 2026-07-24 (CalTopo / SARTopo interop: stable import URL + QR)
+
+-- New Features --
+- [New] Server-side CalTopo export: new scripts/gen-caltopo.py runs each data
+      cycle and publishes data/caltopo-export.json, a CalTopo/SARTopo-importable
+      FeatureCollection at a stable public URL. Seven folders (NWS alerts,
+      event crest rings, NWPS gauges, TxDOT road closures, low-water crossings,
+      curated notices, NWS storm reports) shaped for CalTopo's GeoJSON import:
+      folder features (class Folder) + folderId membership, properties.title
+      labels (CalTopo ignores name/id), and mapbox simplestyle colors matched
+      to the app palette (AHPS category hexes for gauges/crests, severity hexes
+      for alerts, status hexes for crossings, priority hexes for notices).
+      Every feature description carries its source citation and an Updated
+      stamp; the collection carries the 911 disclaimer, per-folder counts, and
+      an honest one-shot-import note (re-import duplicates; CalTopo does not
+      poll the URL). Public-safety filters: LAN operator intakes, aged or
+      resolved cards, and all contact/handle/details fields never export.
+      Feature cap 500 with lowest-value-first truncation (quiet gauges, oldest
+      storm reports) flagged in collection properties. Live alert/LSR fetch
+      failures degrade to a sources_unavailable note, never a broken file.
+- [New] Feed tab "CalTopo URL" panel under More: the bookmarkable import URL
+      with one-tap copy, a client-side QR code for cross-device handoff, and
+      honest usage copy (Import > Import from URL downloads a fresh copy each
+      time; CalTopo does not refresh it on its own). English and Spanish.
+
+-- Changes --
+- [Change] run-cycle.sh runs gen-caltopo.py non-fatally and commits
+         data/caltopo-export.json with the cycle data files; cycle-check
+         check j validates the export schema (FeatureCollection, per-feature
+         geometry + properties.title; absent file skips gracefully).
+
 ## v0.97.77 · 2026-07-24 (Module split wave 2: playback.js + cameras.js)
 
 -- Changes --

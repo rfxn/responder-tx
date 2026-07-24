@@ -716,6 +716,8 @@ async function boot() {
   $('#new-request-form').addEventListener('submit', submitRequest);
   $('#export-btn').addEventListener('click', exportRequests);
   $('#export-geo-btn').addEventListener('click', exportGeoJSON);
+  $('#caltopo-btn').addEventListener('click', toggleCaltopoBox);
+  $('#caltopo-copy').addEventListener('click', copyCaltopoUrl);
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
   $('#summary-btn').addEventListener('click', openCrestSummary);

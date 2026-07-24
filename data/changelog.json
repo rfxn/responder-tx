@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.78",
+      "date": "2026-07-24",
+      "line": "For teams that plan in CalTopo or SARTopo: there is now a bookmarkable import URL (plus a QR code to pass it between devices) that serves a curated, color-matched map export of gauges, crests, alerts, road closures, crossings, notices, and storm reports, refreshed about every 15 minutes. Find it under More in the Feed tab; in CalTopo use Import from URL. Each import downloads a fresh copy; CalTopo does not update it on its own."
+    },
+    {
       "v": "v0.97.77",
       "date": "2026-07-24",
       "line": "Under-the-hood restructuring only, nothing changes on screen: the historical playback system and the camera layer each moved into their own script file (the two biggest files had grown past easy review), and the release checks gained a new automatic test that loads every script in page order to catch any cross-file wiring mistake before it ships."

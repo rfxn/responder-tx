@@ -699,6 +699,37 @@ function exportGeoJSON() {
     'application/geo+json', `responder-requests-${stamp()}.geojson`);
 }
 
+/* ---------- CalTopo stable import URL: cycle-refreshed server export, QR for cross-device handoff ---------- */
+
+const CALTOPO_EXPORT_URL = 'https://respondertx.org/data/caltopo-export.json';
+
+function renderCaltopoQr(host, url) {
+  if (!host || host.dataset.done) return;
+  try {
+    if (typeof qrcode !== 'function') { host.hidden = true; return; }
+    const qr = qrcode(0, 'M'); // typeNumber 0 = auto-size for the URL length
+    qr.addData(url);
+    qr.make();
+    host.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+    host.dataset.done = '1';
+  } catch { host.hidden = true; }
+}
+
+function toggleCaltopoBox() {
+  const box = $('#caltopo-box');
+  box.hidden = !box.hidden;
+  if (box.hidden) return;
+  $('#caltopo-url').textContent = CALTOPO_EXPORT_URL;
+  renderCaltopoQr($('#caltopo-qr'), CALTOPO_EXPORT_URL);
+}
+
+function copyCaltopoUrl() {
+  const btn = $('#caltopo-copy');
+  copyText(CALTOPO_EXPORT_URL).then(
+    () => { btn.textContent = t('caltopo.copied'); setTimeout(() => { btn.textContent = t('caltopo.copy'); }, 1400); },
+    () => prompt('Copy URL:', CALTOPO_EXPORT_URL));
+}
+
 function importRequests(file) {
   const reader = new FileReader();
   reader.onload = () => {

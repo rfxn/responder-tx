@@ -448,6 +448,19 @@ main { flex: 1; display: flex; min-height: 0; }
   padding: 8px; background: var(--surface-2);
 }
 #filters-toggle.on, #more-toggle.on { border-color: var(--accent); color: var(--accent); }
+#caltopo-box {
+  border: 1px dashed var(--border); border-radius: 8px;
+  padding: 8px 10px; margin-bottom: 10px; background: var(--surface-2);
+}
+#caltopo-box .hint { font-size: 11px; color: var(--ink-muted); margin: 4px 0; }
+.caltopo-url-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.caltopo-url-row code {
+  font-size: 12px; padding: 4px 8px; background: var(--surface-1);
+  border: 1px solid var(--border); border-radius: 6px; word-break: break-all; user-select: all;
+}
+.caltopo-url-row button { font-size: 12px; padding: 4px 10px; }
+#caltopo-qr { width: 148px; margin: 8px 0 4px; background: #fff; border-radius: 6px; padding: 4px; }
+#caltopo-qr svg { display: block; width: 100%; height: auto; }
 .filters[hidden] { display: none; }
 
 /* 911 footer — one row at every width; the full notice lives in #safety-modal (tap) */

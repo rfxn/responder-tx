@@ -109,7 +109,7 @@ const EXPORTS = [
   'modalCycleIndex', 'modalIsFocusableVisible',
   'toUSNG',
   'alertReach', 'alertSeverity',
-  'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'riverOf',
+  'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'gaugeRecoveryState', 'riverOf',
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT',
   'cardAged',
   'buildShareUrl', 'applyShareParams',

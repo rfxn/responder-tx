@@ -195,6 +195,8 @@ function cutoffPopup(r) {
 
 function renderRequests() {
   updateFiltersBadge();
+  if (typeof refreshRecoveryView === 'function') refreshRecoveryView(); // notices lens tracks the feed
+
   const reqs = sortRequests(allRequests());
   const agedCount = reqs.filter(cardAged).length;
   const agedBtn = $('#flt-aged');
@@ -725,6 +727,11 @@ function importRequests(file) {
 
 /* ---------- SITREP ---------- */
 
+// shared by the SITREP RECOVERY line and the recovery view headline
+function sitrepFallingGauges() {
+  return state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
+}
+
 function buildSitrep() {
   const now = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const emerg = state.alerts.filter((a) => a._sev === 'emergency');
@@ -747,7 +754,7 @@ function buildSitrep() {
     const recBit = rc ? (rc.atOrAbove ? ` [⚑ ${Math.abs(rc.margin)} ft OVER ${rc.recFt} ft record ${rc.year}]` : rc.near ? ` [⚑ ${rc.margin} ft below ${rc.recFt} ft record ${rc.year}]` : '') : '';
     L.push(`  RISING ${g.name} - fcst crest ${g.status.forecast.primary} ft ${fmtWhen(g.status.forecast.validTime)}${recBit}`);
   }
-  const falling = state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
+  const falling = sitrepFallingGauges();
   if (falling.length) L.push(`RECOVERY: ${falling.length} in-flood gauges falling (${falling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')}) (official)`);
   if (cutoffs.length) L.push(`CUT-OFF AREAS: ${cutoffs.map((r) => `${r.place} (${r.county} Co.)`).join('; ')} (curated)`);
   L.push(`ACTIVE CRITICAL (${crit.length}) (curated):`);
@@ -823,6 +830,8 @@ function buildShareUrl() {
   for (const [key, lk] of [['radar', 'radar'], ['fcst', 'fcstRadar'], ['cams', 'camsTxdot'], ['camr', 'camsRiver'], ['cama', 'camsAustin'], ['camf', 'camsFlood'], ['camh', 'camsHouston'], ['caml', 'camsArlington'], ['came', 'camsElpBridge'], ['camm', 'camsHays'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
     if (state.layers[lk] && state.map.hasLayer(state.layers[lk])) p.set(key, '1');
   }
+  const rv = $('#recovery-view');
+  if (rv && !rv.hidden) p.set('view', 'recovery');
   p.set('base', state.activeBase);
   p.set('theme', document.documentElement.getAttribute('data-theme'));
   return `${location.origin}${location.pathname}?${p}`;
@@ -864,6 +873,8 @@ function applyShareParams(q) {
   if (feedFiltered) $('#req-filters').hidden = false; // a shared filtered view must be visible, not silent
   apply('#flt-alert-sev', 'as', 'change');
   apply('#flt-alert-q', 'aq', 'input');
+  // ?view=drive|summary open via boot's view chain; recovery restores here so shares round-trip
+  if (q.get('view') === 'recovery' && typeof openRecoveryView === 'function') openRecoveryView();
 }
 
 // team-invite filter presets: snapshot the active feed filters (js/team.js sends these in

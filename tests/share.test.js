@@ -39,6 +39,7 @@ function makeDom(activeTab) {
     '#flt-alert-sev': ctl('SELECT'),
     '#flt-alert-q': ctl('INPUT'),
     '#req-filters': ctl('DIV'),
+    '#recovery-view': ctl('DIV'),
     '.tabs button.active': { dataset: { tab: activeTab } },
   };
   return {
@@ -118,7 +119,7 @@ test('buildShareUrl — a default view stays short (no tab/filter/sort/layer par
   state.sort = 'smart';
   state.map = fakeMap([29.5, -95.1], 8, new Set());
   const q = new URLSearchParams(buildShareUrl().split('?')[1]);
-  for (const k of ['tab', 'ft', 'fc', 'fw', 'fd', 'fq', 'fs', 'as', 'aq', 'rain', 'radar', 'usgs', 'camr']) {
+  for (const k of ['tab', 'ft', 'fc', 'fw', 'fd', 'fq', 'fs', 'as', 'aq', 'rain', 'radar', 'usgs', 'camr', 'view']) {
     assert.equal(q.get(k), null, `unexpected param ${k}`);
   }
   assert.equal(q.get('mlat'), '29.5000');
@@ -171,4 +172,29 @@ test('applyShareParams — mlat without a valid zoom still restores center at th
   state.map = fakeMap([31.0, -100.0], 6, new Set());
   applyShareParams(new URLSearchParams('mlat=29.9&mlon=-97.9'));
   assert.deepEqual(JSON.parse(JSON.stringify(state.map.setViewCalls)), [[[29.9, -97.9], 6]]);
+});
+
+
+test('buildShareUrl — an open recovery view travels as view=recovery; closed emits nothing', () => {
+  const dom = seedState();
+  dom.els['#recovery-view'].hidden = false;
+  assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('view'), 'recovery');
+  dom.els['#recovery-view'].hidden = true;
+  assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('view'), null);
+});
+
+test('share round-trip — applyShareParams reopens the recovery view from view=recovery', () => {
+  const dom = seedState();
+  dom.els['#recovery-view'].hidden = false;
+  const q = new URLSearchParams(buildShareUrl().split('?')[1]);
+  sb.document = makeDom('tab-requests');
+  state.map = fakeMap([31.0, -100.0], 6, new Set());
+  let opened = 0;
+  sb.openRecoveryView = () => { opened += 1; };
+  applyShareParams(q);
+  assert.equal(opened, 1);
+  // and a URL without the param never opens it
+  applyShareParams(new URLSearchParams('mlat=29.9&mlon=-97.9'));
+  assert.equal(opened, 1);
+  delete sb.openRecoveryView;
 });

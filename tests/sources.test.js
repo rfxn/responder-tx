@@ -6,7 +6,7 @@ const { loadApp } = require('./harness.js');
 
 const {
   alertReach, alertSeverity, gaugeObsStale, gaugeObsCat, gaugeCat, CONFIG,
-  gaugeForecastCat, gaugeRising, riverOf, recordContext, recordWatchGauges, RECORD_NEAR_FT, state,
+  gaugeForecastCat, gaugeRising, gaugeRecoveryState, riverOf, recordContext, recordWatchGauges, RECORD_NEAR_FT, state,
 } = loadApp();
 
 /* ---------- alertReach: pull the specific river reach out of NWS prose ---------- */
@@ -248,4 +248,77 @@ test('recordWatchGauges — only RISING gauges within RECORD_NEAR_FT (or above) 
   };
   state.gauges = [atRecord, nearRecord, farBelow, staleNearRecord, flatNearRecord, noRecord];
   assert.deepEqual(recordWatchGauges().map((g) => g.lid).sort(), ['BSMT2', 'GNLT2']);
+});
+
+
+/* ---------- gaugeRecoveryState: the ?view=recovery receding-gauge predicate ---------- */
+
+// crest-summary row fixtures crib real data/crest-summary.json rows (TS Bertha 2026-07-24):
+// BWRT2 falling-from-crest, SRRT2 receded, plus synthetic still-rising / stale variants
+const crestRow = ({ lid = 'SRRT2', peak = 34.78, peakAgoMin = 720, ongoing = false, stale = false } = {}) => ({
+  lid, name: 'San Antonio River at SH 72 near Runge', peak,
+  peak_time: isoInMin(-peakAgoMin), peak_category: 'moderate',
+  last_in_flood: ongoing ? 'ongoing' : isoInMin(-peakAgoMin + 120), ongoing, stale,
+});
+
+// live snapshot row where observed primary/floodCategory are controllable (snapGauge pins primary 12.4)
+const liveGauge = ({ obsFt = 12.71, obsCat = 'no_flooding', obsAgoMin = 30, fcstCat = 'fcst_not_current', fcstFt = -999, fcstInMin = 360 } = {}) => ({
+  lid: 'SRRT2',
+  status: {
+    observed: { primary: obsFt, primaryUnit: 'ft', floodCategory: obsCat, validTime: isoInMin(-obsAgoMin) },
+    forecast: { primary: fcstFt, primaryUnit: 'ft', floodCategory: fcstCat, validTime: isoInMin(fcstInMin) },
+  },
+});
+
+test('gaugeRecoveryState — flooded during the event, now below flood stage, reads receded (real SRRT2 shape)', () => {
+  assert.equal(gaugeRecoveryState(crestRow(), liveGauge(), null), 'receded');
+});
+
+test('gaugeRecoveryState — a closed in-flood window with no live gauge still reads receded (crest data stands)', () => {
+  assert.equal(gaugeRecoveryState(crestRow(), null, null), 'receded');
+});
+
+test('gaugeRecoveryState — re-risen gauge (window closed but live back in flood) is NOT receded', () => {
+  assert.equal(gaugeRecoveryState(crestRow(), liveGauge({ obsFt: 30.2, obsCat: 'minor' }), null), null);
+});
+
+test('gaugeRecoveryState — ongoing at crest with forecast below current category reads falling (real BWRT2 shape)', () => {
+  const row = crestRow({ lid: 'BWRT2', peak: 48.47, peakAgoMin: 30, ongoing: true });
+  const live = liveGauge({ obsFt: 48.47, obsCat: 'major', fcstCat: 'no_flooding', fcstFt: 16.7, fcstInMin: 300 });
+  assert.equal(gaugeRecoveryState(row, live, null), 'falling');
+});
+
+test('gaugeRecoveryState — ongoing with an observed trend down reads falling', () => {
+  const row = crestRow({ ongoing: true });
+  const live = liveGauge({ obsFt: 33.9, obsCat: 'moderate' });
+  assert.equal(gaugeRecoveryState(row, live, { rate: -0.8, dir: 'down' }), 'falling');
+});
+
+test('gaugeRecoveryState — ongoing and off-crest by at least 0.5 ft reads falling without a trend', () => {
+  const row = crestRow({ ongoing: true, peak: 34.78, peakAgoMin: 240 });
+  const live = liveGauge({ obsFt: 34.1, obsCat: 'moderate' });
+  assert.equal(gaugeRecoveryState(row, live, null), 'falling');
+});
+
+test('gaugeRecoveryState — ongoing, holding at crest with no falling evidence is null (not "receding")', () => {
+  const row = crestRow({ ongoing: true, peak: 34.78 });
+  const live = liveGauge({ obsFt: 34.78, obsCat: 'moderate' });
+  assert.equal(gaugeRecoveryState(row, live, null), null);
+});
+
+test('gaugeRecoveryState — still-rising gauge (forecast above current category) is never a recovery signal', () => {
+  const row = crestRow({ ongoing: true });
+  const live = liveGauge({ obsFt: 33.0, obsCat: 'minor', fcstCat: 'major', fcstFt: 40.2, fcstInMin: 600 });
+  assert.equal(gaugeRecoveryState(row, live, { rate: 0.9, dir: 'up' }), null);
+});
+
+test('gaugeRecoveryState — stale crest row or stale live sensor is excluded (no honest current reading)', () => {
+  assert.equal(gaugeRecoveryState(crestRow({ stale: true }), liveGauge(), null), null);
+  const staleLive = liveGauge({ obsAgoMin: CONFIG.gaugeStaleHours * 60 + 60 });
+  assert.equal(gaugeRecoveryState(crestRow({ ongoing: true }), staleLive, { rate: -1, dir: 'down' }), null);
+});
+
+test('gaugeRecoveryState — never-flooded gauges have no crest row: a missing row is null, not a throw', () => {
+  assert.equal(gaugeRecoveryState(null, liveGauge(), null), null);
+  assert.equal(gaugeRecoveryState(undefined, null, null), null);
 });

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.75",
+      "date": "2026-07-24",
+      "line": "New Recovery view: open it from Feed > More > 'Recovery' or share it as ?view=recovery. As TS Bertha winds down, one screen now shows the recovery picture: gauges receding after flooding (with current stage, peak, and falling evidence), recently reopened roads, open shelters, and utility/recovery notices such as boil-water advisories, each with timestamps and sources. Sections that have nothing real to show say so honestly, and the view is explicit that recovery signals are not an all-clear. English and Spanish."
+    },
+    {
       "v": "v0.97.74",
       "date": "2026-07-24",
       "line": "LAN EOC boards: '+ New notice' intakes are now shared between stations. Saving a notice on a LAN ops board still shows it instantly on that device, and now also posts it to the LAN server (validated, rate-limited, LAN-only); each refresh cycle folds it into the shared board so every station sees every station's intakes, with a quiet 'shared to the board' confirmation in English and Spanish. The public mirror is unchanged: notices added there stay on that device, and operator intakes never leave the LAN."

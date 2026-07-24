@@ -354,6 +354,27 @@ function gaugeTrend(lid) {
   return { rate, dir: rate > 0.2 ? 'up' : rate < -0.2 ? 'down' : 'steady' };
 }
 
+// recovery lens (?view=recovery): classify a crest-summary row against its live gauge.
+// 'receded' = flooded during the event window, now below flood stage; 'falling' = still
+// in flood with real falling evidence (trend down, off-crest, or forecast below current cat)
+const RECOVERY_OFF_CREST_FT = 0.5;
+function gaugeRecoveryState(row, live, trend) {
+  if (!row || row.stale) return null;
+  if (live && gaugeObsStale(live)) return null; // dead sensor: no honest current reading
+  const liveCat = live ? gaugeCat(live) : null;
+  if (!row.ongoing) return (liveCat && liveCat !== 'none') ? null : 'receded'; // re-risen gauges drop out
+  if (!live || gaugeRising(live)) return null;
+  if (trend && trend.dir === 'down') return 'falling';
+  const o = live.status.observed.primary;
+  if (Number.isFinite(o) && Number.isFinite(row.peak) && new Date(row.peak_time) < new Date()
+    && o <= row.peak - RECOVERY_OFF_CREST_FT) return 'falling';
+  const fc = live.status.forecast || {};
+  const fRank = fc.floodCategory === 'no_flooding' ? CAT_RANK.none
+    : FLOOD_CATS.includes(fc.floodCategory) ? CAT_RANK[fc.floodCategory] : null;
+  if (fRank !== null && fc.validTime && new Date(fc.validTime) > new Date() && fRank < CAT_RANK[liveCat]) return 'falling';
+  return null;
+}
+
 function renderGauges() {
   state.layers.gauges.clearLayers();
   state.gaugeMarkers = {};

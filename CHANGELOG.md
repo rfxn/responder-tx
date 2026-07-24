@@ -1,5 +1,31 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.75 · 2026-07-24 (Recovery view: the event wind-down on one screen)
+
+-- New Features --
+- [New] Recovery view (V3): one screen for the recovery phase of an event,
+      opened from Feed > More > "Recovery" or shared directly as
+      ?view=recovery. It gathers the recovery signals that were scattered
+      across SITREP lines and separate panels: receding gauges (below flood
+      stage after flooding during the event, or past crest and falling, with
+      current stage, peak, and the falling evidence: trend, off-crest reading,
+      or a forecast below the current category), recently reopened roads from
+      the live DriveTexas feed, open shelters (live FEMA/ARC merged over
+      curated), and utility/recovery notices (boil water, power, debris,
+      reopenings) filtered from the feed. Every section shows timestamps and
+      sources, renders an honest empty state when a signal has nothing real to
+      show, and the header counts what is still in flood; the framing is
+      explicit that recovery signals are not an all-clear. English and
+      Spanish.
+- [New] The receding-gauge classification is derived from the same
+      crest-summary archive and live gauge data the board already ships:
+      stale sensors are excluded, still-rising gauges never count, and a
+      gauge whose in-flood window closed but that is back in flood drops out.
+- [New] Share links round-trip the view: sharing while the recovery view is
+      open carries ?view=recovery, and opening such a link lands directly in
+      the recovery view. Opening the view also turns on the reopened-roads
+      and shelters map layers as its default lens.
+
 ## v0.97.74 · 2026-07-24 (LAN EOC: notice intakes shared between stations)
 
 -- New Features --

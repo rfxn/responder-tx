@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.74';
+const APP_VERSION = 'v0.97.75';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -125,6 +125,7 @@ const state = {
   store: { added: [], overrides: {} },
   resources: null,
   sheltersLive: null, // data/shelters-live.json payload (FEMA NSS poller); null until first successful load
+  recoveryCrest: null, // last crest-summary payload; the open recovery view re-renders from it as live data lands
   alerts: [],
   gauges: [],
   fcstMax: [],

@@ -889,11 +889,24 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 
 /* Drive Mode: big type, high contrast, one-thumb; overrides theme to dark for glare.
    The crest-summary view shares the same full-screen dark chrome. */
-#drive-mode, #summary-view {
+#drive-mode, #summary-view, #recovery-view {
   position: fixed; inset: 0; z-index: 1600; background: #0d1b2a; color: #fff;
   display: flex; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
-#drive-mode[hidden], #summary-view[hidden] { display: none; }
+#drive-mode[hidden], #summary-view[hidden], #recovery-view[hidden] { display: none; }
+
+/* recovery view reuses theme-var renderers (reopened/shelter items) inside the fixed-dark chrome — pin dark values */
+#recovery-view {
+  --surface-2: #1b365d; --ink-1: #ffffff; --ink-2: #d9dee3; --ink-muted: #9ba3b8;
+  --hairline: #274264; --border: rgba(255, 255, 255, 0.12); --good: #0ca30c;
+  --cat-action: #fab219; --cat-minor: #ec835a; --cat-moderate: #d03b3b; --cat-major: #a855f7; --cat-none: #898781;
+}
+#recovery-body { padding: 6px 14px 14px; flex: 1 1 auto; }
+#recovery-body .section-title { color: #d9dee3; margin-top: 18px; }
+.rcv-headline { font-size: 14px; font-weight: 700; color: #fff; margin-top: 4px; }
+.rcv-note { font-size: 11.5px; color: #8a94a8; margin: 2px 0 4px; }
+.rcv-none { color: #d9dee3; font-size: 13px; padding: 8px 2px; }
+#recovery-body .sum-cite { padding: 4px 0 2px; }
 
 #summary-body { padding: 6px 14px 14px; flex: 1 1 auto; }
 .sum-head { padding: 8px 2px 4px; }

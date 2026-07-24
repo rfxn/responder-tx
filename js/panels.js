@@ -321,8 +321,126 @@ async function openCrestSummary() {
     `<tbody>${d.gauges.map(crestRowHtml).join('')}</tbody></table>`;
 }
 
+/* ---------- recovery view — event wind-down lens (?view=recovery) ---------- */
+
+const RECOVERY_NOTICE_RE = /boil[ -]?water|water (notice|advisory|system)|hervir|utilit|power|outage|debris|reopen|restor|recover|lifted|levantad/i;
+const noticeText = (r) => `${r.summary} ${Array.isArray(r.details) ? r.details.join(' ') : (r.details || '')}`;
+
+function recoveryGaugeRowHtml(x) {
+  const cur = x.live ? x.live.status.observed : null;
+  const cat = x.live ? gaugeCat(x.live) : 'none';
+  const badge = x.kind === 'receded'
+    ? `<span class="badge" style="border-color:var(--good);color:var(--good);font-weight:700">${esc(t('recovery.receded'))}</span>`
+    : `<span class="badge" style="border-color:var(--cat-${esc(cat)});color:var(--cat-${esc(cat)});font-weight:700">▼ ${esc(t('recovery.falling'))} · ${esc(catLabel(cat).toUpperCase())}</span>`;
+  const bits = [];
+  if (cur && Number.isFinite(cur.primary) && cur.primary > -999) bits.push(`${t('recovery.now')} ${fmtNum(cur.primary)} ${cur.primaryUnit || 'ft'} @ ${fmtCT(cur.validTime)}`);
+  bits.push(t('recovery.peaked').replace('{ft}', fmtNum(x.row.peak)).replace('{t}', fmtCT(x.row.peak_time)));
+  if (x.kind === 'receded' && x.row.last_in_flood && x.row.last_in_flood !== 'ongoing') bits.push(`${t('recovery.since')} ${fmtCT(x.row.last_in_flood)}`);
+  if (x.kind === 'falling' && x.trend && x.trend.dir === 'down') bits.push(t('recovery.rate').replace('{r}', x.trend.rate.toFixed(1)));
+  if (x.kind === 'falling' && x.live) {
+    const f = x.live.status.forecast || {};
+    const fRank = f.floodCategory === 'no_flooding' ? CAT_RANK.none
+      : FLOOD_CATS.includes(f.floodCategory) ? CAT_RANK[f.floodCategory] : null;
+    if (fRank !== null && fRank < CAT_RANK[cat] && new Date(f.validTime) > new Date()) {
+      bits.push(t('recovery.fcst').replace('{ft}', fmtNum(f.primary)).replace('{t}', fmtCT(f.validTime)));
+    }
+  }
+  return `<div class="resource-item"><strong>${esc(x.row.name)}</strong> <span class="sum-lid">${esc(x.row.lid)}</span> ${badge}` +
+    `<div class="addr">${esc(bits.join(' · '))}</div></div>`;
+}
+
+function recoveryNoticeHtml(r) {
+  const badge = srcBadge(r.source && r.source.platform === 'official' ? 'official' : 'curated');
+  return `<div class="resource-item"><strong>${TYPE_GLYPH[r.type] || 'ℹ️'} ${esc(ntypeLabel(r.type))}</strong>: ${esc(r.summary)}` +
+    `<div class="addr">${esc(r.place || '')}${r.county ? ` · ${esc(r.county)} Co.` : ''} · ${esc(fmtWhen(r.ts))} ${badge}</div></div>`;
+}
+
+const recoverySection = (title, sub, itemsHtml, emptyKey, citeHtml) =>
+  `<div class="section-title">${esc(title)}</div>` +
+  (sub ? `<div class="rcv-note">${esc(sub)}</div>` : '') +
+  (itemsHtml || `<div class="rcv-none">${esc(t(emptyKey))}</div>`) +
+  (citeHtml || '');
+
+function renderRecoveryBody(crest) {
+  const el = $('#recovery-body');
+  const rows = (crest && Array.isArray(crest.gauges)) ? crest.gauges : [];
+  const byLid = {};
+  for (const g of state.gauges) byLid[g.lid] = g;
+  const classified = rows
+    .map((row) => ({ row, live: byLid[row.lid] || null, trend: gaugeTrend(row.lid), kind: null }))
+    .map((x) => Object.assign(x, { kind: gaugeRecoveryState(x.row, x.live, x.trend) }))
+    .filter((x) => x.kind);
+  const falling = classified.filter((x) => x.kind === 'falling');
+  const receded = classified.filter((x) => x.kind === 'receded')
+    .sort((a, b) => new Date(b.row.last_in_flood) - new Date(a.row.last_in_flood));
+  const stillFlood = state.gauges.filter((g) => gaugeCat(g) !== 'none').length;
+
+  const sitFalling = sitrepFallingGauges();
+  const counts = t('recovery.counts').replace('{a}', receded.length).replace('{b}', falling.length).replace('{c}', stillFlood);
+  const head =
+    '<div class="sum-head">' +
+    `<div class="sum-event">${esc(t('recovery.event'))} ${esc((crest && crest.event) || state.baseTitle || '')}${crest && crest.generated ? ` · ${esc(t('summary.generated'))} ${esc(fmtCT(crest.generated))}` : ''}</div>` +
+    `<div class="rcv-headline">${esc(counts)}</div>` +
+    (sitFalling.length ? `<div class="sum-sub">▼ ${esc(t('recovery.sitrep').replace('{n}', sitFalling.length).replace('{list}', sitFalling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')))}</div>` : '') +
+    `<div class="sum-cite">${esc(t('recovery.sub'))}</div>` +
+    '</div>';
+
+  const gaugeItems = falling.concat(receded).map(recoveryGaugeRowHtml).join('');
+  const gaugeCite = `<div class="sum-cite">${esc(t('summary.source'))}</div>`;
+
+  const reo = reopenedRoads();
+  const freshReo = reo.fresh.filter(reopenIsFlood);
+  const agedReo = reo.aged.filter(reopenIsFlood);
+  const roadItems = freshReo.map((r) => reopenedItemHtml(r, false)).join('') +
+    (agedReo.length ? `<div class="rcv-none">${esc(t('reopen.aged').replace('{n}', agedReo.length).replace('{h}', CONFIG.reopenedAgeHours).replace('{d}', CONFIG.histDays))}</div>` : '');
+  const roadCite = `<div class="sum-cite">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · ${esc(t('reopen.cleared'))}</div>`;
+
+  const res = state.resources || {};
+  const shelters = mergeShelters(res.shelters || [], state.sheltersLive && state.sheltersLive.shelters);
+  const shlSrcUrl = shlLiveSrcUrl();
+  const shelterItems = shlLiveUpdatedHtml() +
+    shelters.map((s) => (s.live ? liveShelterHtml(s, shlSrcUrl) : curatedShelterHtml(s))).join('');
+
+  const recMatch = allRequests().filter((r) => RECOVERY_NOTICE_RE.test(noticeText(r)));
+  const recFresh = recMatch.filter((r) => !cardAged(r));
+  const recAged = recMatch.length - recFresh.length;
+  const noticeItems = recFresh.map(recoveryNoticeHtml).join('') +
+    (recAged ? `<div class="rcv-none">${esc(t('recovery.notices.aged').replace('{n}', recAged))}</div>` : '');
+
+  el.innerHTML = head +
+    recoverySection(`📉 ${t('recovery.head.gauges')} (${classified.length})`, t('recovery.head.gauges.sub'), gaugeItems, 'recovery.gauges.none', gaugeCite) +
+    recoverySection(`✓ ${t('recovery.head.roads')} (${freshReo.length})`, '', roadItems, 'recovery.roads.none', roadCite) +
+    recoverySection(`🏠 ${t('recovery.head.shelters')} (${shelters.length})`, '', shelters.length ? shelterItems : '', 'recovery.shelters.none') +
+    recoverySection(`🚰 ${t('recovery.head.notices')} (${recFresh.length})`, '', noticeItems, 'recovery.notices.none');
+}
+
+// data lands after a boot-time ?view=recovery opens (gauges, seeds, resources) — re-render the open lens
+function refreshRecoveryView() {
+  const rv = $('#recovery-view');
+  if (rv && !rv.hidden) renderRecoveryBody(state.recoveryCrest);
+}
+
+async function openRecoveryView() {
+  $('#recovery-view').hidden = false;
+  // recovery lens map defaults: reopened roads + shelters visible behind the view
+  if (state.map) {
+    for (const lk of ['roadReopen', 'shelters']) {
+      const l = state.layers[lk];
+      if (l && !state.map.hasLayer(l)) l.addTo(state.map);
+    }
+  }
+  const el = $('#recovery-body');
+  el.innerHTML = `<div class="sum-quiet">${esc(t('changelog.loading'))}</div>`;
+  let crest = null;
+  try { crest = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null)); }
+  catch { crest = null; } // absent on older deploys or offline — the gauges section shows its honest empty line
+  state.recoveryCrest = crest;
+  renderRecoveryBody(crest);
+}
+
 function renderGaugesTab() {
   renderWave();
+  refreshRecoveryView();
   const el = $('#gauge-list');
   if (!el) return;
   const inFloodAll = state.gauges.filter((g) => gaugeCat(g) !== 'none');
@@ -434,6 +552,15 @@ function liveShelterHtml(s, srcUrl) {
     `<div class="addr">${esc(s.address || '')}${meta.length ? ` · ${esc(meta.join(' · '))}` : ''} · ${esc(t('shl.livesrc'))} <a href="${esc(safeUrl(srcUrl))}" target="_blank" rel="noopener">src</a></div></div>`;
 }
 
+const curatedShelterHtml = (s) =>
+  `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`;
+
+const shlLiveSrcUrl = () => (state.sheltersLive && state.sheltersLive.source && state.sheltersLive.source.url) || 'https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0';
+
+const shlLiveUpdatedHtml = () => (state.sheltersLive && state.sheltersLive.generated
+  ? `<div class="resource-item" style="border-bottom:none;font-size:12px;color:var(--ink-2)">${esc(t('shl.livefeed'))} · ${esc(t('word.updated').toLowerCase())} ${esc(fmtWhen(state.sheltersLive.generated))}</div>`
+  : '');
+
 function renderResources() {
   const r = state.resources;
   if (!r) return;
@@ -441,14 +568,10 @@ function renderResources() {
   const recovery = r.recoveryLinks || [];
   const liveShl = state.sheltersLive;
   const shelters = mergeShelters(r.shelters, liveShl && liveShl.shelters);
-  const shlSrcUrl = (liveShl && liveShl.source && liveShl.source.url) || 'https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0';
+  const shlSrcUrl = shlLiveSrcUrl();
   el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
-    (liveShl && liveShl.generated
-      ? `<div class="resource-item" style="border-bottom:none;font-size:12px;color:var(--ink-2)">${esc(t('shl.livefeed'))} · ${esc(t('word.updated').toLowerCase())} ${esc(fmtWhen(liveShl.generated))}</div>`
-      : '') +
-    shelters.map((s) => (s.live
-      ? liveShelterHtml(s, shlSrcUrl)
-      : `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`)).join('') +
+    shlLiveUpdatedHtml() +
+    shelters.map((s) => (s.live ? liveShelterHtml(s, shlSrcUrl) : curatedShelterHtml(s))).join('') +
     `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
     r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
     `<div class="section-title">${esc(t('res.data'))}</div>` +
@@ -462,6 +585,7 @@ function renderResources() {
     `<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">${esc(t('res.ics'))}</a> · ${esc(t('res.ics.note'))}</div>`;
   const rt = $('#recovery-toggle');
   if (rt) rt.addEventListener('click', () => { state.showRecovery = !state.showRecovery; renderResources(); });
+  refreshRecoveryView(); // shelters lens tracks resources + shelters-live
 
   state.layers.shelters.clearLayers();
   for (const s of shelters) {

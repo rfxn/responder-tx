@@ -1225,6 +1225,8 @@ function pushPendingHtml(cardState, preselect) {
 function renderPushCard() {
   const host = $('#push-body');
   if (!host) return;
+  const grp = document.getElementById('set-alerts');
+  if (grp) grp.hidden = false; // the Alerts group earns its heading only once a card exists to head
   const st = pushCardState(pushEnvFacts());
   const on = st === 'on';
   const toggleable = st === 'on' || st === 'off';
@@ -1300,8 +1302,9 @@ function pushUnfollowGauge(lid) {
   pushSetPrefs(p);
 }
 
-// "Notify me" entry point (gauge popup / hydrograph modal): open Resources with the manage view
-// expanded and that gauge pinned atop the picker. Never auto-follows — the tier tap is the choice.
+// "Notify me" entry point (gauge popup / hydrograph modal): open the settings sheet with the
+// manage view expanded and that gauge pinned atop the picker. Never auto-follows: the tier tap
+// is the choice.
 function pushManageAvailable() {
   return Boolean(state.pushVapidKey); // set only when ?push=1 + a configured backend
 }
@@ -1309,8 +1312,7 @@ function pushManageAvailable() {
 function pushOpenManageFor(lid) {
   pushManageOpen = true;
   pushManagePreselect = String(lid || '').toUpperCase();
-  const btn = document.querySelector('.tabs button[data-tab="tab-resources"]');
-  if (btn) btn.click();
+  if (typeof openSettingsMenu === 'function') openSettingsMenu();
   renderPushCard();
   const row = document.querySelector(`#push-body .push-g-row[data-lid="${pushManagePreselect}"]`);
   if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center' });

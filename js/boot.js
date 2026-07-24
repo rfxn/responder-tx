@@ -623,15 +623,17 @@ async function boot() {
     relocalizeDynamic();
   });
   $('#refresh-now').addEventListener('click', refresh);
-  // ⋮ overflow menu (header declutter) — share/theme/lang/legend live here; same dismiss pattern as other menus
+  // settings sheet (the old ⋮ menu) — display, alerts, share, help; same dismiss pattern as other menus
   const hmoreSetOpen = (open) => {
     $('#hmore-menu').hidden = !open;
     $('#hmore-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
     $('#hmore-btn').classList.toggle('on', open);
   };
+  window.openSettingsMenu = () => hmoreSetOpen(true); // pushOpenManageFor() reaches Alerts without a tab click
   $('#hmore-btn').addEventListener('click', () => hmoreSetOpen($('#hmore-menu').hidden));
   document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
-  $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('button')) hmoreSetOpen(false); });
+  // only the menu's own rows dismiss it; the alerts card's toggle and tier chips live inside it
+  $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('#hmore-menu > button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', (e) => shareView(e.currentTarget));
   const enterDrive = () => { $('#drive-mode').hidden = false; keepAwake(true, 'drive'); if (!state.myPos) { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } else { startLocTrack(); } renderDriveMode(); };
   window.enterDriveMode = enterDrive; // openView('drive') reaches drive mode without depending on #drive-btn
@@ -687,7 +689,8 @@ async function boot() {
   if (window.initTeam) initTeam(); // ?team= deep-link auto-opens the Team tab; chains behind the 911 ack
   initHeaderSearch();
   $('#help-btn').addEventListener('click', openGlossary);
-  $('#team-btn').addEventListener('click', () => { if (window.openTeamEntry) openTeamEntry(); }); // create/join a live team without a ?team= link
+  $('#whatsnew-btn').addEventListener('click', openChangelog);
+  $('#safety-btn').addEventListener('click', () => { $('#safety-modal').hidden = false; });
 
   $('#glossary-close').addEventListener('click', () => { $('#glossary-modal').hidden = true; });
   $('#glossary-modal').addEventListener('click', (e) => { if (e.target.id === 'glossary-modal') $('#glossary-modal').hidden = true; });

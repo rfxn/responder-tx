@@ -188,6 +188,72 @@ test('the interchange controls live in Resources, and Feed > More is gone', () =
   assert.ok(!/#more-menu|#more-toggle/.test(css), 'css/app.css still styles the retired Feed > More drawer');
 });
 
+/* Settings sheet (v0.97.92). The header ⋮ became a labelled gear holding Display, Alerts,
+   Actions and Help. The device-alerts card moved into it from Resources, so #push-body must be
+   declared exactly once and in its new home, and the retired Team shortcut must be gone from
+   markup, wiring and both languages. */
+function indexHtml() {
+  return fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+}
+
+test('the settings sheet declares menu roles and holds the alerts card', () => {
+  const html = indexHtml();
+  const menu = html.slice(html.indexOf('<div id="hmore-menu"'), html.indexOf('<div class="refresh-meta">'));
+  assert.ok(/<div id="hmore-menu" role="menu"/.test(html), '#hmore-menu is missing role="menu"');
+  assert.ok(/id="hmore-btn"[^>]*aria-haspopup="true"/.test(html), '#hmore-btn lost aria-haspopup');
+  // every button the menu owns directly is a menuitem; the alerts card's own buttons are not
+  for (const id of ['theme-toggle', 'lang-toggle', 'share-btn', 'help-btn', 'whatsnew-btn', 'safety-btn']) {
+    assert.ok(new RegExp(`id="${id}" role="menuitem"`).test(menu), `#${id} is not a role="menuitem" in the settings sheet`);
+  }
+  for (const g of ['set.g.display', 'set.g.alerts', 'set.g.actions', 'set.g.help']) {
+    assert.ok(menu.includes(`data-i18n="${g}"`), `settings sheet is missing the ${g} heading`);
+  }
+  assert.equal((html.match(/id="push-body"/g) || []).length, 1, '#push-body is not declared exactly once');
+  assert.ok(menu.includes('id="push-body"'), '#push-body did not move into the settings sheet');
+  assert.ok(menu.includes('id="set-alerts"'), 'the Alerts group wrapper is missing');
+  const resources = html.slice(html.indexOf('id="tab-resources"'), html.indexOf('id="tab-team"'));
+  assert.ok(!resources.includes('id="push-body"'), '#push-body is still in Resources');
+});
+
+test('the Team shortcut is gone from markup, wiring, and both languages', () => {
+  const html = indexHtml();
+  assert.ok(!html.includes('id="team-btn"'), 'index.html still declares #team-btn');
+  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
+  assert.ok(!/#team-btn|openTeamEntry/.test(boot), 'js/boot.js still wires the Team shortcut');
+  const team = fs.readFileSync(path.join(__dirname, '..', 'js', 'team.js'), 'utf8');
+  assert.ok(!/openTeamEntry/.test(team), 'js/team.js still defines the now-unreachable openTeamEntry');
+  for (const k of ['ctl.team', 'ctl.team.title', 'ctl.more.title', 'ctl.more.aria']) {
+    for (const lang of ['en', 'es']) assert.ok(!(k in I18N[lang]), `${lang} still carries retired key ${k}`);
+  }
+});
+
+test('the Notify me entry point opens the settings sheet, not the Resources tab', () => {
+  const board = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
+  const m = board.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
+  assert.ok(m, 'pushOpenManageFor() not found in js/board.js');
+  assert.ok(/openSettingsMenu\(\)/.test(m[0]), 'pushOpenManageFor should open the settings sheet');
+  assert.ok(!/tab-resources/.test(m[0]), 'pushOpenManageFor still clicks the Resources tab');
+  // the three resolvers of #push-body must all still find it in its new home
+  for (const fn of ['renderPushCard', 'initPushCard']) {
+    const f = board.match(new RegExp(`function ${fn}\\(\\)[\\s\\S]*?\\n\\}`));
+    assert.ok(f, `${fn}() not found`);
+    assert.ok(/\$\('#push-body'\)/.test(f[0]), `${fn}() no longer resolves #push-body`);
+  }
+  assert.ok(/async function pushBootSync\(\)/.test(board), 'pushBootSync() not found in js/board.js');
+});
+
+test('i18n: the settings sheet keys exist in both languages', () => {
+  const keys = ['ctl.settings', 'ctl.settings.title', 'ctl.settings.aria',
+    'set.g.display', 'set.g.alerts', 'set.g.actions', 'set.g.help', 'set.safety'];
+  for (const k of keys) {
+    for (const lang of ['en', 'es']) {
+      assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
+      assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+    }
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+  }
+});
+
 test('i18n: feed and export control keys exist in both languages', () => {
   const keys = ['feed.new', 'feed.new.title', 'feed.sitrep', 'feed.sitrep.title',
     'feed.filters', 'feed.filters.n', 'feed.filters.title',

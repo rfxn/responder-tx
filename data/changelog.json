@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.92",
+      "date": "2026-07-24",
+      "line": "The three dots in the header are now a gear labelled Settings, and what is behind it is organised: Display for theme and language, Alerts for device notifications, Actions for share, and Help for the legend, what's new and the 911 safety notice. Device alerts moved here from the Resources tab, which is where a setting for your own phone belongs, and Notify me on a gauge now opens this panel with that gauge ready instead of switching tabs. The panel also scrolls now: it had no height limit, so on a phone held sideways it could run off the bottom of the screen with no way to reach the rest. The Team entry is gone from the menu because the Team tab is the same thing."
+    },
+    {
       "v": "v0.97.91",
       "date": "2026-07-24",
       "line": "The export and import buttons moved to where the rest of the data links already live. Export JSON, Export GeoJSON, the CalTopo URL and its QR code, Export AAR and Import JSON now sit in the Resources tab under a new Data and interchange heading, next to the official data links and the RSS and calendar feeds. They used to be hidden behind a More button in the Feed tab, which is a strange place to look for a way to get data out. That More button is gone, so the Feed tab now shows just New notice, SITREP and Filters."

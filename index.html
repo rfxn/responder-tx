@@ -11,31 +11,31 @@
   <meta property="og:title" content="ResponderTX: Live Hazard Awareness">
   <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://respondertx.org/">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.91">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.92">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness">
   <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.91">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.92">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.91" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.91" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.97.91" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.91">
-  <link rel="manifest" href="manifest.webmanifest?v=0.97.91">
-  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.97.91">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.91">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.91">
-  <link rel="stylesheet" href="css/app.css?v=0.97.91">
-  <link rel="stylesheet" href="css/notes.css?v=0.97.91">
-  <link rel="stylesheet" href="css/team.css?v=0.97.91">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.92" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.92" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.97.92" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.92">
+  <link rel="manifest" href="manifest.webmanifest?v=0.97.92">
+  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.97.92">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.92">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.92">
+  <link rel="stylesheet" href="css/app.css?v=0.97.92">
+  <link rel="stylesheet" href="css/notes.css?v=0.97.92">
+  <link rel="stylesheet" href="css/team.css?v=0.97.92">
 </head>
 <body>
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.97.91" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.97.91" alt="ResponderTX" width="677" height="162">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.97.92" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.97.92" alt="ResponderTX" width="677" height="162">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="tiles">
@@ -55,13 +55,21 @@
       <button id="refresh-now" title="Refresh live layers" aria-label="Refresh live layers" data-i18n-title="ctl.refresh.title" data-i18n-aria="ctl.refresh.title">⟳ <span class="ctl-lbl" data-i18n="ctl.refresh">Refresh</span></button>
       <button id="risk-btn" hidden title="Type an address to see the nearest gauges, alerts, and closed crossings at that point" aria-label="Am I at risk? Address flood check" data-i18n-title="ctl.risk.title" data-i18n-aria="ctl.risk.aria">🏠 <span class="ctl-lbl" data-i18n="ctl.risk">Am I at risk?</span></button>
       <div class="hmore" id="hmore">
-        <button id="hmore-btn" title="More: share, theme, language, legend" aria-label="More controls" aria-haspopup="true" aria-expanded="false" data-i18n-title="ctl.more.title" data-i18n-aria="ctl.more.aria">⋮</button>
-        <div id="hmore-menu" hidden>
-          <button id="share-btn" title="Copy a link that reproduces this exact view: map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
-          <button id="theme-toggle" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
-          <button id="lang-toggle" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
-          <button id="help-btn" title="What do the symbols mean? Board legend &amp; glossary" aria-label="Board legend and glossary" data-i18n-title="glossary.btn.title" data-i18n-aria="glossary.btn.aria">? <span class="ctl-lbl" data-i18n="glossary.btn">Legend</span></button>
-          <button id="team-btn" title="Live team location sharing: create or join a private team" aria-label="Live team location sharing" data-i18n-title="ctl.team.title" data-i18n-aria="ctl.team.title">🧭 <span class="ctl-lbl" data-i18n="ctl.team">Team</span></button>
+        <button id="hmore-btn" title="Settings: display, alerts, share, help" aria-label="Settings" aria-haspopup="true" aria-expanded="false" data-i18n-title="ctl.settings.title" data-i18n-aria="ctl.settings.aria">⚙ <span class="ctl-lbl" data-i18n="ctl.settings">Settings</span></button>
+        <div id="hmore-menu" role="menu" hidden>
+          <div class="hm-group" role="presentation" data-i18n="set.g.display">Display</div>
+          <button id="theme-toggle" role="menuitem" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
+          <button id="lang-toggle" role="menuitem" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
+          <div id="set-alerts" role="group" hidden>
+            <div class="hm-group" role="presentation" data-i18n="set.g.alerts">Alerts</div>
+            <div id="push-body"></div>
+          </div>
+          <div class="hm-group" role="presentation" data-i18n="set.g.actions">Actions</div>
+          <button id="share-btn" role="menuitem" title="Copy a link that reproduces this exact view: map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
+          <div class="hm-group" role="presentation" data-i18n="set.g.help">Help</div>
+          <button id="help-btn" role="menuitem" title="What do the symbols mean? Board legend &amp; glossary" aria-label="Board legend and glossary" data-i18n-title="glossary.btn.title" data-i18n-aria="glossary.btn.aria">? <span class="ctl-lbl" data-i18n="glossary.btn">Legend</span></button>
+          <button id="whatsnew-btn" role="menuitem" title="What's new" aria-label="What's new" data-i18n-title="changelog.head" data-i18n-aria="changelog.head">🆕 <span class="ctl-lbl" data-i18n="changelog.head">What's new</span></button>
+          <button id="safety-btn" role="menuitem" title="Safety notice (911)" aria-label="Safety notice (911)" data-i18n-title="set.safety" data-i18n-aria="set.safety">⚠ <span class="ctl-lbl" data-i18n="set.safety">Safety notice (911)</span></button>
         </div>
       </div>
       <div class="refresh-meta"><div id="refresh-note">loading…</div></div>
@@ -201,7 +209,7 @@
         <div id="lsr-list"></div>
       </div>
       <div class="tab-body" id="tab-gauges"><div id="wave-list" hidden></div><div id="gauge-list"></div></div>
-      <div class="tab-body" id="tab-resources"><div class="tab-sub" data-i18n="tab.resources.sub"></div><div id="source-health"></div><div id="push-body"></div><div id="crossings-body"></div><div id="tides-body"></div><div id="resources-body"></div>
+      <div class="tab-body" id="tab-resources"><div class="tab-sub" data-i18n="tab.resources.sub"></div><div id="source-health"></div><div id="crossings-body"></div><div id="tides-body"></div><div id="resources-body"></div>
         <div id="interchange-body">
           <div class="section-title" data-i18n="res.interchange">Data &amp; interchange</div>
           <div class="hint" data-i18n="res.interchange.sub">Take this board's picture with you: files for another tool, a live URL for CalTopo, or a board file to load back in.</div>
@@ -460,21 +468,21 @@
     </div>
   </div>
 
-  <script src="js/vendor/leaflet.js?v=0.97.91"></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.97.91"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.97.91"></script>
-  <script src="js/usng.js?v=0.97.91"></script>
-  <script src="js/i18n.js?v=0.97.91"></script>
-  <script src="js/core.js?v=0.97.91"></script>
-  <script src="js/map.js?v=0.97.91"></script>
-  <script src="js/playback.js?v=0.97.91"></script>
-  <script src="js/sources.js?v=0.97.91"></script>
-  <script src="js/cameras.js?v=0.97.91"></script>
-  <script src="js/panels.js?v=0.97.91"></script>
-  <script src="js/board.js?v=0.97.91"></script>
-  <script src="js/boot.js?v=0.97.91"></script>
-  <script src="js/notes.js?v=0.97.91"></script>
-  <script src="js/vendor/qrcode.min.js?v=0.97.91"></script>
-  <script src="js/team.js?v=0.97.91"></script>
+  <script src="js/vendor/leaflet.js?v=0.97.92"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.97.92"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.97.92"></script>
+  <script src="js/usng.js?v=0.97.92"></script>
+  <script src="js/i18n.js?v=0.97.92"></script>
+  <script src="js/core.js?v=0.97.92"></script>
+  <script src="js/map.js?v=0.97.92"></script>
+  <script src="js/playback.js?v=0.97.92"></script>
+  <script src="js/sources.js?v=0.97.92"></script>
+  <script src="js/cameras.js?v=0.97.92"></script>
+  <script src="js/panels.js?v=0.97.92"></script>
+  <script src="js/board.js?v=0.97.92"></script>
+  <script src="js/boot.js?v=0.97.92"></script>
+  <script src="js/notes.js?v=0.97.92"></script>
+  <script src="js/vendor/qrcode.min.js?v=0.97.92"></script>
+  <script src="js/team.js?v=0.97.92"></script>
 </body>
 </html>

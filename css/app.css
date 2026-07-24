@@ -1807,20 +1807,32 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .hmore { position: relative; }
 #hmore-btn { font-weight: 800; min-width: 40px; }
 #hmore-btn.on { border-color: var(--accent); }
+/* the panel must scroll: it carries the device-alerts card as well as the menu rows, and an
+   unbounded absolute box overran a 430px-tall landscape viewport with no way to reach the rest */
 #hmore-menu {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 1600;
-  display: flex; flex-direction: column; gap: 2px; min-width: 180px;
+  display: flex; flex-direction: column; gap: 2px;
+  width: 300px; max-width: calc(100vw - 20px);
+  max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain;
   background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.45); padding: 6px;
 }
 #hmore-menu[hidden] { display: none; }
-.controls #hmore-menu button {
+.hm-group {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-muted); margin: 9px 4px 2px;
+}
+#hmore-menu > .hm-group:first-child { margin-top: 2px; }
+/* direct children only: the alerts card inside brings its own toggle, chips and manage buttons */
+.controls #hmore-menu > button {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   background: none; border: none; border-radius: 6px; padding: 8px 10px;
-  font-size: 13px; min-height: 40px; color: var(--ink-1);
+  font-size: 13px; min-height: 44px; color: var(--ink-1);
 }
-.controls #hmore-menu button:hover { background: var(--surface-2); }
+.controls #hmore-menu > button:hover { background: var(--surface-2); }
 #hmore-menu .ctl-lbl { display: inline; } /* menu entries keep icon + label at every width — discoverability lives here now */
+#hmore-menu #push-body { padding: 0 4px 2px; }
+#hmore-menu #push-body .section-title { display: none; } /* the Alerts group heading already names it */
 
 /* ---- v0.89: grouped layer sheet — replaces the stock Leaflet checkbox control as the picker ---- */
 .leaflet-control-layers { display: none; } /* control stays mounted as the overlay-event registry; the sheet is the UI */

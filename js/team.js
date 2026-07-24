@@ -1535,13 +1535,6 @@
     });
   }
 
-  // ⋮ More → Team shortcut and the tab are the same home — just surface the tab.
-  window.openTeamEntry = function openTeamEntry() {
-    showTeamTab();
-    if (window.isSecureContext) armLifecycle();
-    renderTeamTab();
-  };
-
   function start() {
     const param = new URLSearchParams(location.search).get('team');
     if (!param) return; // no ?team= link — the tab still shows create/join

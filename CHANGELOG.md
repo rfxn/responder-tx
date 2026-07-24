@@ -1,5 +1,37 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.92 · 2026-07-24 (the header menu becomes a real settings sheet)
+
+-- Bug Fixes --
+- [Fix] The header overflow menu was an absolutely positioned box with no
+      max-height and no overflow rule. It held five rows at about 212px, which
+      already cleared a 375px-tall landscape viewport, and any sixth row would
+      have run off the bottom with no way to scroll to it. It now caps at
+      min(60vh, 420px) and scrolls, with overscroll-behavior contained so the
+      page underneath does not move with it.
+
+-- Changes --
+- [Change] The ⋮ button is now a gear labelled Settings, and its menu is
+           grouped: Display (theme, language), Alerts, Actions (share), Help
+           (legend and glossary, what's new, the 911 safety notice). What's new
+           and the safety notice were reachable only by tapping the version
+           string or the footer strip; they are named entries now.
+- [Change] Device alerts moved out of Resources into Settings > Alerts, which
+           is where a device-level notification setting belongs. The card keeps
+           its id, so the render, boot-sync and self-heal paths are unchanged,
+           and the group heading stays hidden until there is a card to head.
+- [Change] "Notify me" on a gauge popup or hydrograph now opens Settings with
+           the gauge picker expanded and that gauge pinned, instead of
+           switching to the Resources tab.
+- [Change] The ⋮ Team entry is gone. It called showTeamTab() and re-rendered,
+           which is what the Team tab itself does, so it was a second door onto
+           one room. window.openTeamEntry went with it; the create and join
+           paths arm their own lifecycle handlers, so nothing was left unwired.
+- [Change] The menu declares role="menu" with role="menuitem" rows, matching
+           the aria-haspopup the button already advertised. Only the menu's own
+           rows dismiss it now, so tapping the alerts toggle or a tier chip no
+           longer closes the panel out from under the tap.
+
 ## v0.97.91 · 2026-07-24 (exports move to Resources, and Feed > More is retired)
 
 -- Changes --

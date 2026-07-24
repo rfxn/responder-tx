@@ -22,6 +22,16 @@
       release gate now validates the shelters file schema whenever it is
       present and skips gracefully when it is not.
 
+-- Changes --
+- [Change] Release tooling (deploy infra, no app change): the deploy script
+         now refuses to ship when uncommitted or untracked files exist under
+         functions/, naming the offending files, because wrangler compiles
+         Pages Functions from the repo working tree rather than the deploy
+         directory and half-written code could previously reach production
+         via the 15-minute data-refresh deploy. A loud
+         --allow-dirty-functions override exists for genuine field
+         emergencies, alongside the existing --skip-tests escape hatch.
+
 ## v0.97.71 · 2026-07-24 (Device alerts, phase 2: gauge-level alerts with real notification content)
 
 -- New Features --

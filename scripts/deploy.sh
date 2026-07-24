@@ -1,5 +1,5 @@
 #!/bin/bash
-# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] — verify version agreement, run the test gate, build stripped archive, deploy to Cloudflare Pages
+# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--allow-dirty-functions] — verify version agreement, run the test gate, build stripped archive, deploy to Cloudflare Pages
 set -euo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
@@ -7,16 +7,41 @@ cd "$(dirname "$0")/.." || exit 1
 SKIP_LIVE=0
 PREFLIGHT_ONLY=0
 SKIP_TESTS=0
+ALLOW_DIRTY_FUNCTIONS=0
 for arg in "$@"; do
     case "$arg" in
         --skip-live) SKIP_LIVE=1 ;;
         --preflight-only) PREFLIGHT_ONLY=1 ;;
         --skip-tests) SKIP_TESTS=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live, --skip-tests)" >&2; exit 2 ;;
+        --allow-dirty-functions) ALLOW_DIRTY_FUNCTIONS=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live, --skip-tests, --allow-dirty-functions)" >&2; exit 2 ;;
     esac
 done
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
+
+# --- Pre-flight: functions/ must be clean (wrangler compiles functions/ from the repo CWD, not the deploy dir) ---
+dirty_functions=$(git status --porcelain --untracked-files=all -- functions/) || fail "git status check on functions/ failed"
+if [ -n "$dirty_functions" ]; then
+    if [ "$ALLOW_DIRTY_FUNCTIONS" -eq 1 ]; then
+        echo "##########################################################" >&2
+        echo "# WARNING: --allow-dirty-functions set: DEPLOYING WITH   #" >&2
+        echo "# UNCOMMITTED functions/ CODE. wrangler will compile and #" >&2
+        echo "# SHIP these files to production Pages Functions:        #" >&2
+        echo "##########################################################" >&2
+        echo "$dirty_functions" >&2
+        echo "# This flag is for genuine field emergencies only." >&2
+    else
+        {
+            echo "FAIL: uncommitted/untracked changes under functions/ — refusing to deploy:"
+            echo "$dirty_functions"
+            echo "wrangler pages deploy compiles functions/ from the repo working tree (CWD),"
+            echo "not from the deploy dir, so these files would ship to production as-is."
+            echo "Commit or remove them, or use --allow-dirty-functions for a genuine field emergency."
+        } >&2
+        exit 1
+    fi
+fi
 
 # --- Pre-flight: four-way version agreement ---
 version=$(grep -oP "APP_VERSION = '\K[^']+" js/core.js) || fail "cannot extract APP_VERSION from js/core.js"

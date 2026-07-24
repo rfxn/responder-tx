@@ -1,5 +1,34 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.70 · 2026-07-24 (Security hardening: Content-Security-Policy backstop + data-contract checks)
+
+-- New Features --
+- [New] Content-Security-Policy on both serving surfaces (Cloudflare Pages
+      `_headers` and the LAN `server.py`), built from the app's observed
+      runtime needs: scripts and styles self-hosted only (inline style
+      attributes allowed, no inline scripts), images limited to the tile,
+      radar, surge, and camera-still hosts the map actually uses plus data:
+      (Leaflet's empty-tile placeholder) and blob: (offline tiles, proxied
+      cam stills), network calls limited to the NWS/NOAA/USGS/IEM/TxDOT/
+      RainViewer/geocoder APIs the board reads, HLS camera streams allowed
+      for the two live-stream hosts, plugins blocked, framing restricted to
+      the site itself. This is a defense-in-depth backstop behind the
+      existing output-escaping at every render site; a compromised or
+      hostile upstream feed can no longer pull scripts or exfiltrate to
+      arbitrary origins even if an escaping bug slipped through.
+- [New] cycle-check gains a tenth check: per-file required-key schema
+      assertions for the five generated data files (gauges snapshot, gauge
+      history frames, crest summary, roads snapshot, cameras), with every
+      asserted key derived from the actual generator output and consumer
+      reads; a renamed or dropped key now fails the release cycle instead
+      of silently degrading playback, crest summaries, or camera layers.
+      Files whose absence the app tolerates are skipped when absent; the
+      load-bearing gauges snapshot is not.
+
+-- Changes --
+- [Change] The LAN server now also sends the nosniff, referrer-policy, and
+         frame-options headers the public mirror already sent.
+
 ## v0.97.69 · 2026-07-24 (Device alerts, phase 1 soft launch: opt-in push for Flash Flood Emergencies)
 
 -- New Features --

@@ -63,6 +63,20 @@ ADMIN_RE = re.compile(r'^/api/team/admin/(overview|list)$')
 _TEAM_UUID = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 TEAM_RE = re.compile(r'^/api/team/(?:create|' + _TEAM_UUID + r'/(?:join|leave|position|marker|unmark|update|state))$')
 ADMIN_TTL = 5
+# XSS backstop behind esc() at the innerHTML render sites; keep in sync with _headers (public mirror)
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com "
+       "https://mesonet.agron.iastate.edu https://*.rainviewer.com https://tiles.arcgis.com "
+       "https://maps.water.noaa.gov https://usgs-nims-images.s3.amazonaws.com https://api.atxfloods.com; "
+       "connect-src 'self' https://api.weather.gov https://api.water.noaa.gov https://maps.water.noaa.gov "
+       "https://waterservices.usgs.gov https://mesonet.agron.iastate.edu https://api.rainviewer.com "
+       "https://services5.arcgis.com https://services9.arcgis.com https://feature.geographic.texas.gov "
+       "https://nominatim.openstreetmap.org https://overpass-api.de https://api.tidesandcurrents.noaa.gov "
+       "https://api.atxfloods.com https://usgs-nims-images.s3.amazonaws.com https://tile.openstreetmap.org "
+       "https://*.basemaps.cartocdn.com https://*.skyvdn.com https://zoocams.elpasozoo.org; "
+       "media-src 'self' blob: https://*.skyvdn.com https://zoocams.elpasozoo.org; "
+       "font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; "
+       "base-uri 'self'; form-action 'self'; frame-ancestors 'self'")
 _gauge_cache = {}
 _gauge_lock = threading.Lock()
 _cam_cache = {}
@@ -452,6 +466,10 @@ class Handler(SimpleHTTPRequestHandler):
         # data + api must never be cached — live board state
         if self.path.startswith('/data/') or self.path.startswith('/api/'):
             self.send_header('Cache-Control', 'no-store')
+        self.send_header('Content-Security-Policy', CSP)
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        self.send_header('X-Frame-Options', 'SAMEORIGIN')
         super().end_headers()
 
     def log_message(self, fmt, *args):

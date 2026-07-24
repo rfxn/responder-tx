@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.70",
+      "date": "2026-07-24",
+      "line": "Stricter security policy on the board: both the public site and the LAN server now tell the browser exactly which trusted map, weather, and camera sources the app may load, and block everything else. A behind-the-scenes safety net, nothing changes in how the board looks or works. The pre-release data checks also got stricter, so a malformed data file now stops a release instead of quietly degrading playback, crest summaries, or cameras."
+    },
+    {
       "v": "v0.97.69",
       "date": "2026-07-24",
       "line": "Device alerts, phase 1 soft launch (open the board with ?push=1 to see it): opt-in notifications on this device for new Flash Flood Emergencies in the area. Anonymous by design (endpoint, delivery keys, preference, and language only; expires after 60 days away), permission asked only on your tap, honest state shown for blocked or unsupported browsers and the iPhone add-to-Home-Screen step, English and Spanish. Not Wireless Emergency Alerts and never a substitute for 911 or official warnings."

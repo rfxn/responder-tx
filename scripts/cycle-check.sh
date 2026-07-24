@@ -185,9 +185,85 @@ check_cursors() {
 }
 if check_cursors; then pass "chat cursors (integer, <= inbox line count, rotation-aware)"; else failck "chat cursors"; fi
 
+# j. data-contract schemas — required keys derived from the generator output + js consumer reads,
+# so generator/consumer drift fails the cycle instead of degrading silently
+check_schemas() {
+    python3 - <<'EOF'
+import json, os, sys
+
+
+def die(m):
+    sys.exit(m)
+
+
+def optional(path):
+    # absent tolerated only for files every consumer degrades gracefully without
+    if not os.path.exists(path):
+        print("note: %s absent, schema check skipped (consumers tolerate absence)" % path)
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
+# gauges-snapshot.json is load-bearing (cold-start hydrate + gen-history/gen-crest walk): absence hard-fails
+with open("data/gauges-snapshot.json") as f:
+    d = json.load(f)
+if "generated" not in d or not isinstance(d.get("gauges"), list):
+    die("gauges-snapshot.json: generated/gauges[] missing")
+bad = sum(1 for g in d["gauges"] if not g.get("lid") or g.get("status") is None)
+if bad:
+    die("gauges-snapshot.json: %d gauges missing lid/status" % bad)
+
+d = optional("data/history.json")
+if d is not None:
+    if not isinstance(d.get("frames"), list) or not d["frames"]:
+        die("history.json: frames[] missing or empty")
+    if not isinstance(d.get("gaugeIndex"), dict):
+        die("history.json: gaugeIndex missing")
+    for i, fr in enumerate(d["frames"]):
+        if not fr.get("t") or not isinstance(fr.get("gauges"), dict):
+            die("history.json: frames[%d] missing t/gauges" % i)
+
+d = optional("data/crest-summary.json")
+if d is not None:
+    if not isinstance(d.get("gauges"), list):
+        die("crest-summary.json: gauges[] missing")
+    for i, g in enumerate(d["gauges"]):
+        if not g.get("lid") or "peak_category" not in g:
+            die("crest-summary.json: gauges[%d] missing lid/peak_category" % i)
+
+d = optional("data/roads-snapshot.json")
+if d is not None:
+    if "generated" not in d or not isinstance(d.get("roads"), list):
+        die("roads-snapshot.json: generated/roads[] missing")
+    for i, r in enumerate(d["roads"]):
+        if "route" not in r or not r.get("start") or not isinstance(r.get("v"), list):
+            die("roads-snapshot.json: roads[%d] missing route/start/v" % i)
+
+d = optional("data/cameras.json")
+if d is not None:
+    nets = ("txdot", "river", "austin", "atxfloods", "houston", "arlington", "elpbridge", "hays")
+    miss = [n for n in nets if not isinstance(d.get(n), list)]
+    if miss:
+        die("cameras.json: network arrays missing: %s" % ",".join(miss))
+    need = {"river": "camId", "austin": "id", "atxfloods": "id", "houston": "id",
+            "arlington": "id", "hays": "id", "elpbridge": "httpsurl"}
+    for n in nets:
+        for i, c in enumerate(d[n]):
+            if not isinstance(c.get("lat"), (int, float)) or not isinstance(c.get("lon"), (int, float)):
+                die("cameras.json: %s[%d] missing lat/lon" % (n, i))
+            k = need.get(n)
+            if k and not c.get(k):
+                die("cameras.json: %s[%d] missing %s" % (n, i, k))
+            if n == "txdot" and not (c.get("httpsurl") or (c.get("dist") and c.get("icd"))):
+                die("cameras.json: txdot[%d] missing httpsurl or dist/icd" % i)
+EOF
+}
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, cameras)"; else failck "data schemas (generator/consumer required keys)"; fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 9 checks passed"
+    echo "SUMMARY: all 10 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 9 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 10 checks FAILED"
 exit 1

@@ -40,6 +40,7 @@ function makeDom(activeTab) {
     '#flt-alert-q': ctl('INPUT'),
     '#req-filters': ctl('DIV'),
     '#recovery-view': ctl('DIV'),
+    '#basin-view': ctl('DIV'),
     '.tabs button.active': { dataset: { tab: activeTab } },
   };
   return {
@@ -119,7 +120,7 @@ test('buildShareUrl — a default view stays short (no tab/filter/sort/layer par
   state.sort = 'smart';
   state.map = fakeMap([29.5, -95.1], 8, new Set());
   const q = new URLSearchParams(buildShareUrl().split('?')[1]);
-  for (const k of ['tab', 'ft', 'fc', 'fw', 'fd', 'fq', 'fs', 'as', 'aq', 'rain', 'radar', 'usgs', 'camr', 'view']) {
+  for (const k of ['tab', 'ft', 'fc', 'fw', 'fd', 'fq', 'fs', 'as', 'aq', 'rain', 'radar', 'usgs', 'camr', 'view', 'river']) {
     assert.equal(q.get(k), null, `unexpected param ${k}`);
   }
   assert.equal(q.get('mlat'), '29.5000');
@@ -181,6 +182,46 @@ test('buildShareUrl — an open recovery view travels as view=recovery; closed e
   assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('view'), 'recovery');
   dom.els['#recovery-view'].hidden = true;
   assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('view'), null);
+});
+
+test('buildShareUrl — an open basin view travels as view=basin plus its river slug', () => {
+  const dom = seedState();
+  dom.els['#basin-view'].hidden = false;
+  state.basinRiver = 'sabine-river';
+  let q = new URLSearchParams(buildShareUrl().split('?')[1]);
+  assert.equal(q.get('view'), 'basin');
+  assert.equal(q.get('river'), 'sabine-river');
+  // no river selected yet: the view still travels, the river param stays off
+  state.basinRiver = null;
+  q = new URLSearchParams(buildShareUrl().split('?')[1]);
+  assert.equal(q.get('view'), 'basin');
+  assert.equal(q.get('river'), null);
+  // closed: neither param
+  dom.els['#basin-view'].hidden = true;
+  q = new URLSearchParams(buildShareUrl().split('?')[1]);
+  assert.equal(q.get('view'), null);
+  assert.equal(q.get('river'), null);
+});
+
+test('share round-trip — applyShareParams reopens the basin view with the shared river', () => {
+  const dom = seedState();
+  dom.els['#basin-view'].hidden = false;
+  state.basinRiver = 'sabine-river';
+  const q = new URLSearchParams(buildShareUrl().split('?')[1]);
+  sb.document = makeDom('tab-requests');
+  state.map = fakeMap([31.0, -100.0], 6, new Set());
+  const opened = [];
+  sb.openBasinView = (slug) => { opened.push(slug); };
+  applyShareParams(q);
+  assert.deepEqual(opened, ['sabine-river']);
+  // a crafted slug fails the allowlist and opens the default (most active) river instead
+  applyShareParams(new URLSearchParams('view=basin&river=%22%3E%3Cscript%3E'));
+  assert.deepEqual(opened, ['sabine-river', null]);
+  // and a URL without view=basin never opens it
+  applyShareParams(new URLSearchParams('mlat=29.9&mlon=-97.9'));
+  assert.equal(opened.length, 2);
+  delete sb.openBasinView;
+  state.basinRiver = null;
 });
 
 test('share round-trip — applyShareParams reopens the recovery view from view=recovery', () => {

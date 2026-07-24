@@ -142,7 +142,7 @@ function rolloverBusy() {
   if (state.refreshBusy) return 'refresh';
   if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
   if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
-  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#drive-mode', '#cam-viewer', '#layer-sheet']) {
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet']) {
     const el = $(id);
     if (el && !el.hidden) return id;
   }
@@ -571,6 +571,7 @@ async function boot() {
   registerModal($('#drive-mode'));
   registerModal($('#summary-view'));
   registerModal($('#recovery-view'));
+  registerModal($('#basin-view'));
   applyTheme(document.documentElement.getAttribute('data-theme'));
   loadStore();
   loadHist();
@@ -724,6 +725,8 @@ async function boot() {
   $('#summary-exit').addEventListener('click', () => { $('#summary-view').hidden = true; });
   $('#recovery-btn').addEventListener('click', openRecoveryView);
   $('#recovery-exit').addEventListener('click', () => { $('#recovery-view').hidden = true; });
+  $('#basin-btn').addEventListener('click', () => openBasinView(state.basinRiver));
+  $('#basin-exit').addEventListener('click', () => { $('#basin-view').hidden = true; });
   // ticker halves are duplicated markup — delegate clicks by item index instead of per-node listeners
   $('#ticker').addEventListener('click', (e) => {
     const it = e.target.closest('.ticker-item');
@@ -818,7 +821,7 @@ async function boot() {
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
     // #safety-modal is intentionally absent: the 911 self-deploy gate closes only via #safety-ack (which
     // records the acknowledgment), never on Escape or a backdrop click
-    for (const id of ['#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#drive-mode', '#team-drop', '#team-edit']) {
+    for (const id of ['#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#team-drop', '#team-edit']) {
       const m = $(id);
       if (m && !m.hidden) { m.hidden = true; if (id === '#drive-mode') { updateDriveFreshness(); keepAwake(false, 'drive'); } break; }
     }
@@ -876,7 +879,7 @@ async function boot() {
   const viewParam = new URLSearchParams(location.search).get('view');
   if (viewParam === 'drive') $('#drive-btn').click();
   else if (viewParam === 'summary') $('#summary-btn').click();
-  // viewParam === 'recovery' already opened via applyShareParams above (share round-trip)
+  // viewParam === 'recovery'|'basin' already opened via applyShareParams above (share round-trip)
   const hydroParam = new URLSearchParams(location.search).get('hydro');
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
   // ?cam=<camId|name|id> deep-links straight into the viewer (handled below).

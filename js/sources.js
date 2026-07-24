@@ -375,6 +375,110 @@ function gaugeRecoveryState(row, live, trend) {
   return null;
 }
 
+/* ---------- basin focus (?view=basin) — pure corridor helpers ---------- */
+
+const riverSlug = (river) => String(river || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+// crest time for corridor sequencing: an observed peak (crest-summary row) wins over a
+// forecast crest; stale sensors contribute nothing (their timing is not trustworthy)
+function basinCrestTime(g, row) {
+  if (gaugeObsStale(g)) return null;
+  if (row && !row.stale && row.peak_time) {
+    const pt = Date.parse(row.peak_time);
+    if (Number.isFinite(pt)) return pt;
+  }
+  const f = g.status && g.status.forecast;
+  if (f && Number.isFinite(f.primary) && f.primary > -999 && f.validTime) {
+    const ft = Date.parse(f.validTime);
+    if (Number.isFinite(ft) && ft > 0) return ft; // NWPS "no current forecast" carries year 0001
+  }
+  return null;
+}
+
+// A point rides the wave only when its crest is material: an observed in-flood peak, a
+// forecast at/above action stage, or a forecast rise of >= 0.5 ft. NWPS publishes a
+// "forecast crest" (trace maximum) for flat quiet rivers too; calling that a wave would
+// fabricate motion on a quiet reach.
+const BASIN_WAVE_RISE_FT = 0.5;
+function basinWaveState(g, row, nowMs) {
+  const now = nowMs || Date.now();
+  const crestT = basinCrestTime(g, row);
+  if (crestT == null) return { crestT: null, wave: 'none' };
+  if (row && !row.stale && row.peak_time && Date.parse(row.peak_time) <= now) return { crestT, wave: 'passed' };
+  const f = (g.status && g.status.forecast) || {};
+  const o = (g.status && g.status.observed) || {};
+  const material = !!gaugeForecastCat(g)
+    || (Number.isFinite(f.primary) && Number.isFinite(o.primary) && o.primary > -999 && f.primary - o.primary >= BASIN_WAVE_RISE_FT);
+  if (!material) return { crestT, wave: 'none' };
+  return { crestT, wave: crestT <= now ? 'passed' : 'coming' };
+}
+
+// Corridor order: project gauges onto their best-fit straight axis (lon scaled by cos(lat)
+// so east-west distances are honest), then orient it downstream. Direction comes from crest
+// timing when >=2 points have it (a crest arrives later downstream — the wave-tracker
+// premise); otherwise seaward (SE, toward the Gulf) as an estimate the view must caveat.
+// `mismatch` flags a reach where crest sequence and gauge geometry disagree.
+function basinCorridor(gauges, crestTimes) {
+  const pts = (gauges || []).filter((g) => Number.isFinite(g.latitude) && Number.isFinite(g.longitude));
+  if (pts.length <= 1) return { order: pts, basis: 'single', mismatch: false };
+  const mLat = pts.reduce((s, g) => s + g.latitude, 0) / pts.length;
+  const mLon = pts.reduce((s, g) => s + g.longitude, 0) / pts.length;
+  const kx = Math.cos(mLat * Math.PI / 180);
+  let sxx = 0, sxy = 0, syy = 0;
+  for (const g of pts) {
+    const x = (g.longitude - mLon) * kx, y = g.latitude - mLat;
+    sxx += x * x; sxy += x * y; syy += y * y;
+  }
+  const half = (sxx + syy) / 2;
+  const l1 = half + Math.sqrt(Math.max(0, half * half - (sxx * syy - sxy * sxy)));
+  let ax = sxy, ay = l1 - sxx;
+  if (Math.abs(ax) < 1e-12 && Math.abs(ay) < 1e-12) { ax = 1; ay = 0; }
+  const proj = new Map();
+  for (const g of pts) proj.set(g.lid, ((g.longitude - mLon) * kx) * ax + (g.latitude - mLat) * ay);
+  const ct = crestTimes || {};
+  const timed = pts.filter((g) => Number.isFinite(ct[g.lid]));
+  let basis = 'geo', flip = false;
+  if (timed.length >= 2) {
+    const tMean = timed.reduce((s, g) => s + ct[g.lid], 0) / timed.length;
+    const pMean = timed.reduce((s, g) => s + proj.get(g.lid), 0) / timed.length;
+    let cov = 0;
+    for (const g of timed) cov += (ct[g.lid] - tMean) * (proj.get(g.lid) - pMean);
+    if (cov !== 0) { basis = 'crest'; flip = cov < 0; }
+  }
+  if (basis === 'geo') flip = (ax - ay) < 0; // seaward estimate: Texas rivers run SE to the Gulf
+  const order = pts.slice().sort((a, b) => (flip ? proj.get(b.lid) - proj.get(a.lid) : proj.get(a.lid) - proj.get(b.lid)));
+  let mismatch = false;
+  const seq = order.filter((g) => Number.isFinite(ct[g.lid])).map((g) => ct[g.lid]);
+  for (let i = 1; i < seq.length; i++) if (seq[i] < seq[i - 1] - 3600000) mismatch = true; // near-equal times are noise, not disagreement
+  return { order, basis, mismatch };
+}
+
+// River picker inventory, most-active first: any in-flood/rising/receding gauge now, then
+// crested-this-event, then quiet; ties by worst category, gauge count, name.
+function basinRivers(gauges, crestRows) {
+  const byRiver = {};
+  for (const g of (gauges || [])) {
+    const r = riverOf(g.name);
+    if (!r) continue;
+    (byRiver[r] = byRiver[r] || []).push(g);
+  }
+  const rows = crestRows || {};
+  return Object.keys(byRiver).map((river) => {
+    const gs = byRiver[river];
+    let worst = 0, active = false, crested = false;
+    for (const g of gs) {
+      const cat = gaugeCat(g);
+      if (cat !== 'none' || gaugeRising(g)) active = true;
+      const fRank = gaugeRising(g) ? (CAT_RANK[gaugeForecastCat(g)] || 0) : 0;
+      worst = Math.max(worst, CAT_RANK[cat] || 0, fRank);
+      const row = rows[g.lid];
+      if (row && !row.stale) crested = true;
+    }
+    return { river, slug: riverSlug(river), gauges: gs, active, crested, worst, coastal: /^tide /i.test(river) };
+  }).sort((a, b) => (b.active - a.active) || (b.crested - a.crested) || (b.worst - a.worst)
+    || (b.gauges.length - a.gauges.length) || a.river.localeCompare(b.river));
+}
+
 function renderGauges() {
   state.layers.gauges.clearLayers();
   state.gaugeMarkers = {};
@@ -405,6 +509,7 @@ function renderGauges() {
     state.layers.gauges.addLayer(m);
     state.gaugeMarkers[g.lid] = m;
   }
+  if (typeof basinApplyHighlight === 'function') basinApplyHighlight(); // re-render dropped the corridor rings
 }
 
 function gaugePopup(g) {
@@ -429,12 +534,14 @@ function gaugePopup(g) {
     `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">${esc(t('spark.loading').replace('{h}', CONFIG.sparkHours))}</div></div>` +
     `<button class="popup-expand" data-lid="${esc(g.lid)}">${esc(t('hydro.open'))}</button>` +
     `<button class="popup-expand open-in-gauges">${esc(t('sync.opengauges'))}</button>` +
+    `<button class="popup-expand basin-link">🏞 ${esc(t('basin.popup').replace('{river}', riverOf(g.name)))}</button>` +
     (typeof pushManageAvailable === 'function' && pushManageAvailable()
       ? `<button class="popup-expand push-notify-btn" data-lid="${esc(g.lid)}">🔔 ${esc(t('push.notify'))}</button>` : '') +
     `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage'))}</a></div>`;
   drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
   el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
   el.querySelector('.open-in-gauges').addEventListener('click', () => openInGaugesList(g.lid));
+  el.querySelector('.basin-link').addEventListener('click', () => openBasinView(riverSlug(riverOf(g.name))));
   const nb = el.querySelector('.push-notify-btn');
   if (nb) nb.addEventListener('click', () => pushOpenManageFor(g.lid));
   // eyes-on pairing: a HIVIS cam within 2 km gets a view link (inventory lazy-loads on first popup)

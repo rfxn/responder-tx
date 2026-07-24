@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.79';
+const APP_VERSION = 'v0.97.80';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -132,6 +132,8 @@ const state = {
   resources: null,
   sheltersLive: null, // data/shelters-live.json payload (FEMA NSS poller); null until first successful load
   recoveryCrest: null, // last crest-summary payload; the open recovery view re-renders from it as live data lands
+  basinCrest: null, // crest-summary payload for the basin view; re-renders as live data lands
+  basinRiver: null, // selected river slug in the basin view (share round-trip carries it)
   alerts: [],
   gauges: [],
   fcstMax: [],

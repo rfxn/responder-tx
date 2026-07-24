@@ -1,5 +1,39 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.80 · 2026-07-24 (Basin Focus: single-river corridor view with the crest wave)
+
+-- New Features --
+- [New] Basin Focus view (?view=basin&river=<slug>): a single-river corridor
+      lens, upstream to downstream. A river picker lists every river group in
+      the gauge inventory, most active first (any in-flood, rising, or receding
+      gauge, then rivers that crested this event, then quiet reaches); the
+      selected river renders as a corridor strip: each gauge with its current
+      stage, category, and trend arrow, plus an honest crest status line
+      (crested N ago at X ft from the event's observed peaks, forecast crest at
+      Y, or "no crest signal"), with a dashed crest-wave-front marker between
+      the last point the crest has passed and the next point it is heading to.
+      Selecting a river frames its corridor on the map behind the view and
+      rings its gauge markers in the accent color.
+- [New] Corridor ordering is derived honestly, never fabricated: gauges are
+      placed along the river's best-fit geographic axis, and the flow direction
+      is confirmed by crest timing where two or more points carry an observed
+      peak or a material forecast crest (a crest arrives later downstream);
+      with no usable crest timing the view says so plainly: order approximate,
+      by gauge location only, direction estimated toward the coast. A reach
+      where crest timing and gauge geometry disagree is flagged as approximate,
+      and tide-station groups are labeled coastal stations, not river corridors.
+- [New] Receding-event honesty: the wave framing only counts material crests
+      (an observed in-flood peak, a forecast at or above action stage, or a
+      forecast rise of at least 0.5 ft). NWPS publishes a "forecast crest" even
+      for flat quiet rivers; those render as muted forecast lines with a quiet
+      headline, never as a fabricated wave. Stale sensors keep their stale badge
+      and contribute nothing to wave timing or ordering.
+- [New] Entry points: a Basin button under More in the Feed tab, a basin link
+      in every gauge popup that opens that gauge's river, and full share
+      round-trip: a shared link carries view=basin plus the selected river and
+      restores both on open (crafted river slugs fail an allowlist and fall
+      back to the most active river). English and Spanish throughout.
+
 ## v0.97.79 · 2026-07-24 (Device alerts, phase 3: follow specific gauges + subscription self-heal)
 
 -- New Features --

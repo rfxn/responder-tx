@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.80",
+      "date": "2026-07-24",
+      "line": "New Basin Focus view: open More in the Feed tab and tap Basin (or use a gauge popup's basin link) to see one river at a time as a corridor, upstream to downstream, with the crest wave marked as it moves down-basin: which points the crest has already passed, where it is heading next, and each gauge's current stage, trend, and crest status. Rivers are listed most active first, quiet reaches say so honestly, and the view frames the river's gauges on the map. Shareable as a link that reopens the same river."
+    },
+    {
       "v": "v0.97.79",
       "date": "2026-07-24",
       "line": "Device alerts (still in soft launch behind ?push=1): subscribers can now follow specific gauges, each at its own moderate or major threshold, alongside or instead of the area-wide setting. A new manage view on the Device alerts card lists followed gauges with one-tap threshold change and remove, picks up nearby gauges from the current map view, and includes a Notify me shortcut in every gauge popup and hydrograph. Subscriptions also self-heal now: endpoint rotations, key rotations, and lost browser subscriptions repair themselves on the next visit with preferences preserved, and a revoked permission shows an honest off state without re-prompting."

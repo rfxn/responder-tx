@@ -438,9 +438,179 @@ async function openRecoveryView() {
   renderRecoveryBody(crest);
 }
 
+/* ---------- basin focus — single-river corridor lens (?view=basin) ---------- */
+
+const BASIN_CATS_BY_RANK = ['none', 'action', 'minor', 'moderate', 'major'];
+
+function basinCrestRowsByLid() {
+  const rows = (state.basinCrest && Array.isArray(state.basinCrest.gauges)) ? state.basinCrest.gauges : [];
+  const out = {};
+  for (const r of rows) out[r.lid] = r;
+  return out;
+}
+
+// corridor rings survive marker re-renders: renderGauges calls this after rebuilding markers
+function basinApplyHighlight() {
+  const want = state.basinHiLids || null;
+  for (const lid in (state.gaugeMarkers || {})) {
+    const m = state.gaugeMarkers[lid];
+    const el = m && m.getElement && m.getElement();
+    const hit = el && el.querySelector && el.querySelector('.gauge-hit');
+    if (hit) hit.classList.toggle('basin-hi', !!(want && want.has(lid)));
+  }
+}
+
+function basinCrestLineHtml(x) {
+  const { g, row, crestT } = x;
+  const now = Date.now();
+  if (row && !row.stale && row.peak_time && Date.parse(row.peak_time) <= now) {
+    return `<span style="color:var(--cat-${esc(row.peak_category || 'none')})">` +
+      `${esc(t('basin.crested').replace('{t}', relWhen(row.peak_time)).replace('{ft}', fmtNum(row.peak)))}</span>`;
+  }
+  const f = g.status && g.status.forecast;
+  if (f && Number.isFinite(f.primary) && f.primary > -999 && crestT != null) {
+    const fCat = gaugeForecastCat(g);
+    const col = fCat ? `var(--cat-${fCat})` : '#d9dee3';
+    if (x.wave !== 'none' && Math.abs(crestT - now) <= 90 * 60000) {
+      return `<span style="color:${col}">${esc(t('basin.cresting').replace('{ft}', fmtNum(f.primary)))}</span>`;
+    }
+    const word = crestT > now ? t('gauge.fcrest') : t('wave.crested');
+    return `<span style="color:${col}">${esc(word)} ${fmtNum(f.primary)} ft · ${esc(fmtWhen(f.validTime))}</span>`;
+  }
+  return `<span class="basin-nocrest">${esc(t('basin.nocrest'))}</span>`;
+}
+
+function basinGaugeRowHtml(x, isFront) {
+  const { g, stale } = x;
+  const cat = gaugeCat(g);
+  const o = g.status.observed;
+  const tr = stale ? null : gaugeTrend(g.lid);
+  const site = g.name.slice(riverOf(g.name).length).trim() || g.name;
+  const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
+  const obsBit = (Number.isFinite(o.primary) && o.primary > -999)
+    ? `${esc(t('recovery.now'))} ${fmtNum(o.primary)} ${esc(o.primaryUnit || 'ft')} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catWord(cat))}</span>${esc(trendBit)}`
+    : esc(t('gauge.noreading'));
+  const railCls = x.wave === 'passed' ? 'passed' : x.wave === 'coming' ? 'coming' : 'quiet';
+  const glyph = x.wave === 'passed' ? '✓' : x.wave === 'coming' ? '●' : '○';
+  return (isFront ? `<div class="basin-front">〜 ${esc(t('basin.front'))} 〜</div>` : '') +
+    `<button class="basin-row" data-lid="${esc(g.lid)}">` +
+    `<span class="basin-rail ${railCls}">${glyph}</span>` +
+    `<span class="basin-main"><span class="basin-site">${esc(site)}</span>` +
+    `<span class="basin-obs">${obsBit}</span>` +
+    (stale ? `<span class="basin-crest stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</span>`
+      : `<span class="basin-crest">${basinCrestLineHtml(x)}</span>`) +
+    '</span></button>';
+}
+
+function renderBasinBody() {
+  const el = $('#basin-body');
+  if (!el) return;
+  if (!state.gauges.length) { el.innerHTML = `<div class="sum-quiet">${esc(t('changelog.loading'))}</div>`; return; }
+  const crestRows = basinCrestRowsByLid();
+  const rivers = basinRivers(state.gauges, crestRows);
+  if (!rivers.length) { el.innerHTML = `<div class="sum-quiet">${esc(t('basin.none'))}</div>`; return; }
+  let sel = state.basinRiver ? rivers.find((r) => r.slug === state.basinRiver) : null;
+  if (!sel) sel = rivers[0]; // unknown or absent slug: fall back to the most active river
+  state.basinRiver = sel.slug;
+
+  const activeRivers = rivers.filter((r) => r.active || r.crested);
+  const chips = activeRivers.slice(0, 10).map((r) =>
+    `<button class="basin-chip${r.slug === sel.slug ? ' sel' : ''}" data-river="${esc(r.slug)}">` +
+    `<span class="basin-chip-dot" style="background:var(--cat-${BASIN_CATS_BY_RANK[r.worst] || 'none'})"></span>${esc(r.river)}</button>`).join('');
+  const opts = rivers.map((r) =>
+    `<option value="${esc(r.slug)}"${r.slug === sel.slug ? ' selected' : ''}>${esc(r.river)} (${r.gauges.length})</option>`).join('');
+
+  // only material wave points feed corridor direction and the wave framing (no fabricated motion)
+  const states = {};
+  const waveTimes = {};
+  for (const g of sel.gauges) {
+    states[g.lid] = basinWaveState(g, crestRows[g.lid]);
+    if (states[g.lid].wave !== 'none') waveTimes[g.lid] = states[g.lid].crestT;
+  }
+  const corridor = basinCorridor(sel.gauges, waveTimes);
+  const infos = corridor.order.map((g) => Object.assign({ g, row: crestRows[g.lid], stale: gaugeObsStale(g) }, states[g.lid]));
+  const nPassed = infos.filter((x) => x.wave === 'passed').length;
+  const nComing = infos.filter((x) => x.wave === 'coming').length;
+  const nFlood = sel.gauges.filter((g) => gaugeCat(g) !== 'none').length;
+
+  let headline;
+  const nxt = infos.find((x) => x.wave === 'coming');
+  if (nxt) {
+    const site = nxt.g.name.slice(riverOf(nxt.g.name).length).trim() || nxt.g.name;
+    headline = t('basin.next').replace('{site}', site).replace('{t}', fmtWhen(new Date(nxt.crestT).toISOString()));
+  } else if (nPassed) headline = t('basin.allpassed');
+  else if (nFlood) headline = t('basin.inflood').replace('{k}', nFlood);
+  else headline = t('basin.quiet');
+
+  const caveat = sel.coastal ? t('basin.order.coastal')
+    : corridor.basis === 'single' ? t('basin.single')
+      : corridor.basis === 'crest' ? (corridor.mismatch ? `${t('basin.order.crest')} ${t('basin.order.mismatch')}` : t('basin.order.crest'))
+        : t('basin.order.geo');
+
+  // the front marker sits before the first crest-ahead gauge once at least one point upstream has crested
+  let frontIdx = -1;
+  const firstComing = infos.findIndex((x) => x.wave === 'coming');
+  if (firstComing > -1 && infos.slice(0, firstComing).some((x) => x.wave === 'passed')) frontIdx = firstComing;
+
+  el.innerHTML =
+    '<div class="sum-head">' +
+    `<div class="sum-event">${esc(t('recovery.event'))} ${esc((state.basinCrest && state.basinCrest.event) || state.baseTitle || '')}</div>` +
+    `<div class="sum-cite">${esc(t('basin.sub'))}</div>` +
+    '</div>' +
+    `<div class="basin-chips">${chips}</div>` +
+    `<div class="basin-pickrow"><label for="basin-select">${esc(t('basin.pick'))}</label>` +
+    `<select id="basin-select">${opts}</select></div>` +
+    `<div class="rcv-headline">${esc(sel.river)} · ${esc(t('basin.counts').replace('{n}', infos.length).replace('{p}', nPassed).replace('{c}', nComing))}</div>` +
+    `<div class="basin-headline">${esc(headline)}</div>` +
+    (sel.coastal ? '' : `<div class="basin-dir">${esc(t('basin.updown'))}</div>`) +
+    infos.map((x, i) => basinGaugeRowHtml(x, i === frontIdx)).join('') +
+    `<div class="rcv-note">${esc(caveat)}</div>` +
+    `<div class="sum-cite">${esc(t('summary.source'))}</div>`;
+
+  if (state.basinFramedSlug !== sel.slug) {
+    state.basinFramedSlug = sel.slug;
+    state.basinHiLids = new Set(sel.gauges.map((g) => g.lid));
+    basinApplyHighlight();
+    const pts = sel.gauges.filter((g) => Number.isFinite(g.latitude) && Number.isFinite(g.longitude))
+      .map((g) => [g.latitude, g.longitude]);
+    if (state.map && pts.length) state.map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 11 });
+  }
+
+  el.querySelectorAll('.basin-chip').forEach((b) => b.addEventListener('click', () => {
+    state.basinRiver = b.dataset.river;
+    renderBasinBody();
+  }));
+  const selEl = $('#basin-select');
+  if (selEl) selEl.addEventListener('change', () => { state.basinRiver = selEl.value; renderBasinBody(); });
+  el.querySelectorAll('.basin-row').forEach((b) => b.addEventListener('click', () => {
+    const g = state.gauges.find((x) => x.lid === b.dataset.lid);
+    if (!g) return;
+    $('#basin-view').hidden = true; // tapping a point drops to the map, like Drive Mode rows
+    focusGauge(g);
+  }));
+}
+
+// data lands after a boot-time ?view=basin opens (snapshot hydrate, live refresh) — re-render the open lens
+function refreshBasinView() {
+  const bv = $('#basin-view');
+  if (bv && !bv.hidden) renderBasinBody();
+}
+
+async function openBasinView(slug) {
+  if (slug) state.basinRiver = slug;
+  $('#basin-view').hidden = false;
+  renderBasinBody();
+  let crest = null;
+  try { crest = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null)); }
+  catch { crest = null; } // absent on older deploys or offline — the corridor still renders from live gauges
+  state.basinCrest = crest;
+  renderBasinBody();
+}
+
 function renderGaugesTab() {
   renderWave();
   refreshRecoveryView();
+  refreshBasinView();
   const el = $('#gauge-list');
   if (!el) return;
   const inFloodAll = state.gauges.filter((g) => gaugeCat(g) !== 'none');

@@ -863,6 +863,11 @@ function buildShareUrl() {
   }
   const rv = $('#recovery-view');
   if (rv && !rv.hidden) p.set('view', 'recovery');
+  const bv = $('#basin-view');
+  if (bv && !bv.hidden) {
+    p.set('view', 'basin');
+    if (state.basinRiver) p.set('river', state.basinRiver);
+  }
   p.set('base', state.activeBase);
   p.set('theme', document.documentElement.getAttribute('data-theme'));
   return `${location.origin}${location.pathname}?${p}`;
@@ -904,8 +909,13 @@ function applyShareParams(q) {
   if (feedFiltered) $('#req-filters').hidden = false; // a shared filtered view must be visible, not silent
   apply('#flt-alert-sev', 'as', 'change');
   apply('#flt-alert-q', 'aq', 'input');
-  // ?view=drive|summary open via boot's view chain; recovery restores here so shares round-trip
+  // ?view=drive|summary open via boot's view chain; recovery and basin restore here so shares round-trip
   if (q.get('view') === 'recovery' && typeof openRecoveryView === 'function') openRecoveryView();
+  if (q.get('view') === 'basin' && typeof openBasinView === 'function') {
+    const river = q.get('river') || '';
+    const riverRe = /^[a-z0-9-]{1,60}$/; // slug allowlist — an unknown slug falls back to the most active river
+    openBasinView(riverRe.test(river) ? river : null);
+  }
 }
 
 // team-invite filter presets: snapshot the active feed filters (js/team.js sends these in

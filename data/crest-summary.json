@@ -1,12 +1,31 @@
 {
- "generated": "2026-07-24T18:23:07Z",
+ "generated": "2026-07-24T18:38:07Z",
  "event": "TS Bertha",
  "window": {
   "first": "2026-07-17T15:31:40Z",
-  "last": "2026-07-24T17:53:00Z"
+  "last": "2026-07-24T18:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
+  {
+   "lid": "BWRT2",
+   "name": "Sabine River near Bon Wier",
+   "peak": 48.47,
+   "peak_time": "2026-07-24T18:23:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-24T18:23:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 44.3,
+    "record_date": "2016-03-13",
+    "peak_pct": 109.4,
+    "exceeded": true,
+    "approached": false
+   },
+   "stale": false
+  },
   {
    "lid": "SRRT2",
    "name": "San Antonio River at SH 72 near Runge",

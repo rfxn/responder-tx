@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-24T04:24:43Z",
+ "generated": "2026-07-24T04:38:08Z",
  "event": "TS Bertha",
  "window": {
-  "first": "2026-07-17T05:23:02Z",
-  "last": "2026-07-24T04:08:00Z"
+  "first": "2026-07-17T15:31:40Z",
+  "last": "2026-07-24T04:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [
@@ -17,6 +17,13 @@
    "first_in_flood": "2026-07-18T03:00:40Z",
    "last_in_flood": "2026-07-20T04:38:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 47.6,
+    "record_date": "2016-08-22",
+    "peak_pct": 73.1,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -26,23 +33,17 @@
    "peak_time": "2026-07-18T02:42:54Z",
    "peak_category": "moderate",
    "unit": "ft",
-   "first_in_flood": "2026-07-17T08:23:02Z",
+   "first_in_flood": "2026-07-17T15:31:40Z",
    "last_in_flood": "2026-07-18T20:27:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 39.86,
+    "record_date": "1998-10-19",
+    "peak_pct": 58.9,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
-  },
-  {
-   "lid": "VIMT2",
-   "name": "Village Creek near Village Mills",
-   "peak": 70.88,
-   "peak_time": "2026-07-17T15:23:02Z",
-   "peak_category": "minor",
-   "unit": "ft",
-   "first_in_flood": "2026-07-17T05:23:02Z",
-   "last_in_flood": "2026-07-17T15:23:02Z",
-   "ongoing": false,
-   "stale": false,
-   "src": "usgs"
   },
   {
    "lid": "GLIT2",
@@ -54,26 +55,15 @@
    "first_in_flood": "2026-07-20T05:53:00Z",
    "last_in_flood": "2026-07-21T07:38:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 53.7,
+    "record_date": "1967-09-23",
+    "peak_pct": 49.0,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
-  },
-  {
-   "lid": "MTPT2",
-   "name": "Tres Palacios River near Midfield",
-   "peak": 25.41,
-   "peak_time": "2026-07-17T05:23:02Z",
-   "peak_category": "minor",
-   "unit": "ft",
-   "first_in_flood": "2026-07-17T05:23:02Z",
-   "last_in_flood": "2026-07-17T10:23:02Z",
-   "ongoing": false,
-   "stale": false,
-   "src": "usgs"
   }
  ],
- "skipped_commits": 0,
- "backfill": {
-  "from": "2026-07-17T05:23:02Z",
-  "until": "2026-07-17T15:31:40Z",
-  "src": "usgs"
- }
+ "skipped_commits": 0
 }

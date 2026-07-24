@@ -311,12 +311,32 @@ function progSetView(latlng, zoom, smooth) {
   }
 }
 
+function mapLegendHtml() {
+  return `<div class="lg-title">${esc(t('legend.gauges'))}</div>` +
+    ['major', 'moderate', 'minor', 'action', 'none'].map((c) => {
+      const s = Math.max(9, CAT_SIZE[c] - 3);
+      return `<div><span class="sw gauge-icon cat-${c}" style="width:${s}px;height:${s}px"></span>${esc(catLabel(c))}</div>`;
+    }).join('') +
+    `<div><span class="sw" style="width:10px">▲</span>${esc(t('legend.rise'))}</div>` +
+    `<div><span class="sw" style="width:10px;color:var(--good)">▼</span>${esc(t('legend.fall'))}</div>` +
+    `<div><span class="sw fcst-ring cat-moderate" style="width:10px;height:10px"></span>${esc(t('legend.fcrest'))}</div>` +
+    `<div class="lg-title" style="margin-top:6px">${esc(t('legend.roads'))}</div>` +
+    ['Closure', 'Flooding', 'Damage'].map((k) => {
+      const rc = ROAD_COND[k];
+      return `<div><span class="sw sw-line" style="background:${rc.color}"></span>${esc(roadLabel(rc))}</div>`;
+    }).join('') +
+    `<div><span class="reopen-icon">✓</span>${esc(t('legend.reopen'))}</div>` +
+    `<div class="lg-title" style="margin-top:6px">${esc(t('legend.reports'))}</div>` +
+    `<div><span style="margin-right:6px">💧</span>${esc(t('legend.lsr'))}</div>` +
+    `<div><span style="margin-right:6px">🆘</span>${esc(t('legend.glyph'))}</div>`;
+}
+
 function initMap() {
   // autoPan clear of the AO chip / layer-pill band at the map top — popups otherwise clip against the container edge
   L.Popup.mergeOptions({ autoPanPaddingTopLeft: L.point(8, 120) });
   state.map = L.map('map', { zoomControl: false }).setView(CONFIG.center, CONFIG.zoom);
   // collapse the attribution bar to a tap-to-open ⓘ — it otherwise crowds the legend on short screens; OSM/CARTO/TxDOT credits stay one tap away (ToS + source-citation intact)
-  state.map.attributionControl.setPrefix('<span class="attr-i" title="Map & data sources">ⓘ</span>');
+  state.map.attributionControl.setPrefix(`<span class="attr-i" title="${esc(t('attr.title'))}">ⓘ</span>`);
   const attrEl = state.map.attributionControl.getContainer();
   L.DomEvent.on(attrEl, 'click', (e) => { if (e.target.tagName === 'A') return; L.DomEvent.stop(e); attrEl.classList.toggle('attr-open'); });
   const attrib = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
@@ -380,13 +400,13 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
-    if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { $('#refresh-note').textContent = 'tropical feed unavailable'; }); }
+    if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { $('#refresh-note').textContent = t('note.tropfail'); }); }
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
     if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsArlington, state.layers.camsElpBridge, state.layers.camsHays].includes(e.layer)) loadCameras().catch(() => { $('#refresh-note').textContent = 'camera inventory unavailable'; });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
     rtlSync();
-    fetchRadarFrames().catch(() => { $('#rs-label').textContent = 'radar feed unavailable'; });
+    fetchRadarFrames().catch(() => { $('#rs-label').textContent = t('note.radarfail'); });
   });
   state.map.on('overlayremove', (e) => {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
@@ -490,23 +510,8 @@ function initMap() {
   const legend = L.control({ position: 'bottomleft' });
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'map-legend');
-    div.innerHTML = '<div class="lg-title">River gauge status</div>' +
-      ['major', 'moderate', 'minor', 'action', 'none'].map((c) => {
-        const s = Math.max(9, CAT_SIZE[c] - 3);
-        return `<div><span class="sw gauge-icon cat-${c}" style="width:${s}px;height:${s}px"></span>${esc(CAT_LABEL[c])}</div>`;
-      }).join('') +
-      '<div><span class="sw" style="width:10px">▲</span>forecast to rise</div>' +
-      '<div><span class="sw" style="width:10px;color:var(--good)">▼</span>observed falling</div>' +
-      '<div><span class="sw fcst-ring cat-moderate" style="width:10px;height:10px"></span>forecast crest (RFC)</div>' +
-      '<div class="lg-title" style="margin-top:6px">Roads (DriveTexas)</div>' +
-      ['Closure', 'Flooding', 'Damage'].map((k) => {
-        const rc = ROAD_COND[k];
-        return `<div><span class="sw sw-line" style="background:${rc.color}"></span>${esc(rc.label)}</div>`;
-      }).join('') +
-      '<div><span class="reopen-icon">✓</span>road reopened (recovering)</div>' +
-      '<div class="lg-title" style="margin-top:6px">Reports & notices</div>' +
-      '<div><span style="margin-right:6px">💧</span>storm report (LSR)</div>' +
-      '<div><span style="margin-right:6px">🆘</span>marker glyph = need type</div>';
+    state.legendEl = div; // relocalizeDynamic re-renders this on a live language switch
+    div.innerHTML = mapLegendHtml();
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div); // scrolling the (now scrollable) expanded legend must not zoom the map
     L.DomEvent.on(div, 'click', () => div.classList.toggle('open')); // mobile: collapsed to title pill by default
@@ -613,7 +618,7 @@ function initMap() {
     state.driveFixAt = Date.now();
     if (!state.posLayer) {
       state.posAccuracy = L.circle(e.latlng, { radius: e.accuracy, weight: 1, color: cssVar('--accent') || '#3987e5', fillOpacity: 0.08 });
-      state.posMarker = L.marker(e.latlng, { icon: youIcon(), title: 'Your location', zIndexOffset: 2000, interactive: false });
+      state.posMarker = L.marker(e.latlng, { icon: youIcon(), title: t('you.title'), zIndexOffset: 2000, interactive: false });
       state.posLayer = L.layerGroup([state.posAccuracy, state.posMarker]).addTo(state.map);
     } else {
       state.posAccuracy.setLatLng(e.latlng); state.posAccuracy.setRadius(e.accuracy);
@@ -634,7 +639,7 @@ function initMap() {
   });
   state.map.on('locationerror', () => {
     gpsWait(false);
-    $('#refresh-note').textContent = 'location unavailable (permission or no GPS)';
+    $('#refresh-note').textContent = t('note.locfail');
   });
   // dragstart fires ONLY on a genuine pointer drag (programmatic panTo never fires it), so exit follow
   // unconditionally; this is what lets the user grab the map mid-glide now that a glide is almost always in flight
@@ -652,7 +657,7 @@ function initMap() {
 function youIcon() {
   return L.divIcon({
     className: '',
-    html: '<div class="my-pos-wrap"><div class="my-pos-ring"></div><div class="my-pos-ring d2"></div><div class="my-pos-core"></div><div class="my-pos-label">YOU</div></div>',
+    html: `<div class="my-pos-wrap"><div class="my-pos-ring"></div><div class="my-pos-ring d2"></div><div class="my-pos-core"></div><div class="my-pos-label">${esc(t('you.label'))}</div></div>`,
     iconSize: [48, 48], iconAnchor: [24, 24],
   });
 }
@@ -1514,7 +1519,7 @@ function pbSbwPopup(p) {
     `<div class="popup-meta">NWS ${esc(p.wfo || '')} · ${esc(fmtCT(p.polygon_begin || p.issue))} → ${esc(fmtCT(p.polygon_end || p.expire))}</div>` +
     `<div class="popup-meta">${srcBadge('official')} ${esc(t('playback.warnarchive'))}</div>` +
     `<div class="popup-meta" style="color:var(--sev-warning);font-weight:700">⏮ ${esc(t('playback.pill'))} · ${esc(fmtCT(state.pbData.frames[state.pb.idx].t))}</div>` +
-    (p.href ? `<div class="popup-link"><a href="${safeUrl(p.href)}" target="_blank" rel="noopener">IEM product page →</a></div>` : '');
+    (p.href ? `<div class="popup-link"><a href="${safeUrl(p.href)}" target="_blank" rel="noopener">${esc(t('alert.iemlink'))}</a></div>` : '');
 }
 
 /* time-integrity sweep (v0.93): every live overlay either replays from a real archive, re-renders
@@ -1599,8 +1604,8 @@ function pbBuildCurated() {
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     const icon = L.divIcon({ className: '', html: `<div class="crossing-icon" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     add('crossings', L.marker([c.lat, c.lon], { icon }).bindPopup(() => pbCuratedPopup(
-      `<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} · crossing</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
-      `<div class="popup-meta">${esc(c.reason || '')}</div><div class="popup-meta">Updated ${esc(fmtCT(c.updated_at))}</div>`)), t0, Infinity);
+      `<div class="popup-title" style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))} · ${esc(t('risk.read.crosspost'))}</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
+      `<div class="popup-meta">${esc(c.reason || '')}</div><div class="popup-meta">${esc(t('word.updated'))} ${esc(fmtCT(c.updated_at))}</div>`)), t0, Infinity);
   }
   for (const e of pbLsrRecords()) {
     const t0 = new Date(e.t).getTime();
@@ -1758,7 +1763,7 @@ function pbBuildStory() {
       if (!reopenIsFlood(r)) continue;
       const rt = new Date(r.reopenedAt).getTime();
       if (!(rt >= pb.loT && rt <= pb.hiT)) continue;
-      ev.push({ t: rt, iso: r.reopenedAt, pri: 3, text: t('playback.story.reopen').replace('{road}', prettyRoute(r.route_name) || 'road') });
+      ev.push({ t: rt, iso: r.reopenedAt, pri: 3, text: t('playback.story.reopen').replace('{road}', prettyRoute(r.route_name) || t('ntype.road')) });
     }
   } catch { /* road memory unavailable — reopen captions simply absent */ }
   // closure-onset captions from the posted start times in the archived road index
@@ -1768,7 +1773,7 @@ function pbBuildStory() {
     const ct = ROAD_COND[r.cond] || ROAD_COND_FALLBACK;
     ev.push({
       t: st, iso: r.start, pri: 3,
-      text: `${PB_ROAD_GLYPH[r.cond] || '🚧'} ${t('playback.story.road').replace('{road}', prettyRoute(r.route) || 'road').replace('{cond}', ct.label)}`,
+      text: `${PB_ROAD_GLYPH[r.cond] || '🚧'} ${t('playback.story.road').replace('{road}', prettyRoute(r.route) || t('ntype.road')).replace('{cond}', roadLabel(ct))}`,
     });
   }
   // critical-notice / cut-off / evacuation / shelter events from curated timestamps
@@ -1780,7 +1785,7 @@ function pbBuildStory() {
     if (!sig) continue;
     ev.push({
       t: rt, iso: r.ts, pri: sig[1],
-      text: `${TYPE_GLYPH[r.type] || '🆘'} ${t(sig[0]).replace('{place}', r.place || r.county || '').replace('{type}', r.type)}`,
+      text: `${TYPE_GLYPH[r.type] || '🆘'} ${t(sig[0]).replace('{place}', r.place || r.county || '').replace('{type}', ntypeLabel(r.type))}`,
     });
   }
   state.pbStoryBase = ev;
@@ -2046,7 +2051,7 @@ function pbPopup(lid) {
   if (!rec) return '';
   const { stale, cat } = pbDecode(rec[1]);
   return `<div class="popup-title">${esc(gi.name)}</div>` +
-    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(CAT_LABEL[cat])}</span> · ${fmtNum(rec[0])} ft</div>` +
+    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span> · ${fmtNum(rec[0])} ft</div>` +
     (stale ? `<div class="popup-meta stale-note">⏱ ${esc(t('playback.stale'))}</div>` : '') +
     `<div class="popup-meta" style="color:var(--sev-warning);font-weight:700">⏮ ${esc(t('playback.pill'))} · ${esc(fmtCT(frame.t))}</div>`;
 }
@@ -2153,7 +2158,7 @@ function pbRoadPopup(rid) {
   const frame = state.pbData.frames[state.pb.idx];
   const ct = ROAD_COND[r.cond] || ROAD_COND_FALLBACK;
   const arch = frame._t >= state.pbRoadsFromT;
-  return `<div class="popup-title" style="color:${ct.color}">${PB_ROAD_GLYPH[r.cond] || '🚧'} ${esc(prettyRoute(r.route) || 'Road')} · ${esc(ct.label)}</div>` +
+  return `<div class="popup-title" style="color:${ct.color}">${PB_ROAD_GLYPH[r.cond] || '🚧'} ${esc(prettyRoute(r.route) || t('word.road'))} · ${esc(roadLabel(ct))}</div>` +
     `<div class="popup-meta">${esc(t('playback.road.window'))}: ${esc(fmtCT(r.start))} → ${r.end ? esc(fmtCT(r.end)) : esc(t('playback.road.noend'))}</div>` +
     `<div class="popup-meta">${srcBadge('official')} ${esc(t(arch ? 'playback.road.arch' : 'playback.road.recon'))}</div>` +
     `<div class="popup-meta" style="color:var(--sev-warning);font-weight:700">⏮ ${esc(t('playback.pill'))} · ${esc(fmtCT(frame.t))}</div>`;

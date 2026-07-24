@@ -115,9 +115,9 @@ function dismissEmergencyBanner() {
 function alertPopupHtml(f) {
   const p = f.properties;
   const reach = alertReach(p);
-  return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? ': <span style="color:var(--sev-emergency);font-weight:700">FLASH FLOOD EMERGENCY</span>' : ''}</div>` +
+  return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? `: <span style="color:var(--sev-emergency);font-weight:700">${esc(t('drive.emerg'))}</span>` : ''}</div>` +
     `<div class="popup-meta">${esc(p.areaDesc || '')}${reach ? ` · ${esc(reach)}` : ''}</div>` +
-    `<div class="popup-meta">Expires: ${esc(fmtWhen(p.expires))}</div>` +
+    `<div class="popup-meta">${esc(t('alert.expires'))}: ${esc(fmtWhen(p.expires))}</div>` +
     `<div class="popup-link"><a href="#" class="alert-popup-link" data-alert-id="${esc(f.id)}">${esc(t('alert.full'))} →</a></div>`;
 }
 
@@ -219,7 +219,7 @@ function renderAlertList() {
   if (elsewhere.length) {
     const btn = document.createElement('button');
     btn.className = 'aged-toggle';
-    btn.textContent = `${state.showAlertsElsewhere ? '▾ hide' : '▸ show'} ${elsewhere.length} flood alert${elsewhere.length > 1 ? 's' : ''} elsewhere in TX`;
+    btn.textContent = `${t(state.showAlertsElsewhere ? 'toggle.hide' : 'toggle.show')} ${elsewhere.length > 1 ? t('alert.elsewhere').replace('{n}', elsewhere.length) : t('alert.elsewhere1')}`;
     btn.addEventListener('click', () => { state.showAlertsElsewhere = !state.showAlertsElsewhere; renderAlertList(); });
     el.appendChild(btn);
     if (state.showAlertsElsewhere) for (const f of elsewhere) el.appendChild(alertCardDiv(f));
@@ -240,7 +240,7 @@ function renderAlertHistory(el) {
   if (!expired.length) return;
   const btn = document.createElement('button');
   btn.className = 'aged-toggle';
-  btn.textContent = `${state.showAlertHist ? '▾ hide' : '▸ show'} ${expired.length} expired alerts (kept ${CONFIG.histDays}d)`;
+  btn.textContent = `${t(state.showAlertHist ? 'toggle.hide' : 'toggle.show')} ${t('alert.expired').replace('{n}', expired.length).replace('{d}', CONFIG.histDays)}`;
   btn.addEventListener('click', () => { state.showAlertHist = !state.showAlertHist; renderAlertList(); });
   el.appendChild(btn);
   if (!state.showAlertHist) return;
@@ -394,21 +394,21 @@ function gaugePopup(g) {
   const f = g.status.forecast;
   const fCat = gaugeForecastCat(g);
   const forecastLine = fCat
-    ? `<div class="popup-meta">${gaugeRising(g) ? '▲ RISING · ' : ''}Forecast: ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span> @ ${esc(fmtWhen(f.validTime))}</div>`
+    ? `<div class="popup-meta">${gaugeRising(g) ? `▲ ${esc(t('gauge.rising'))} · ` : ''}${esc(t('word.forecast'))}: ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> @ ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   const tr = gaugeTrend(g.lid);
   const trendLine = tr
-    ? `<div class="popup-meta">Trend: ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→ steady'} (last ~hour)</div>`
+    ? `<div class="popup-meta">${esc(t('gauge.trendlbl'))}: ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : `→ ${esc(t('trend.steady'))}`} ${esc(t('gauge.lasthour'))}</div>`
     : '';
   el.innerHTML = `<div class="popup-title">${esc(g.name)}</div>` +
-    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(CAT_LABEL[cat])}</span> · ${fmtNum(o.primary)} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
-    (stale ? `<div class="popup-meta stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
+    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span> · ${fmtNum(o.primary)} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
+    (stale ? `<div class="popup-meta stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '') +
     trendLine +
     forecastLine +
-    `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">Loading ${CONFIG.sparkHours}h stage history…</div></div>` +
-    `<button class="popup-expand" data-lid="${esc(g.lid)}">⤢ Full hydrograph (obs + forecast + record)</button>` +
+    `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">${esc(t('spark.loading').replace('{h}', CONFIG.sparkHours))}</div></div>` +
+    `<button class="popup-expand" data-lid="${esc(g.lid)}">${esc(t('hydro.open'))}</button>` +
     `<button class="popup-expand open-in-gauges">${esc(t('sync.opengauges'))}</button>` +
-    `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">NOAA gauge page (forecast) →</a></div>`;
+    `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage'))}</a></div>`;
   drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
   el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
   el.querySelector('.open-in-gauges').addEventListener('click', () => openInGaugesList(g.lid));
@@ -430,7 +430,7 @@ async function openHydro(g) {
   $('#hydro-modal').hidden = false;
   $('#hydro-title').textContent = g.name;
   const note = $('#hydro-note');
-  note.textContent = 'Loading observed + forecast…';
+  note.textContent = t('hydro.loading');
   try {
     const [detail, obs, fcst] = await Promise.all([
       gaugeJson(g.lid, 'detail', `${CONFIG.nwpsBase}/gauges/${g.lid}`),
@@ -438,7 +438,7 @@ async function openHydro(g) {
       cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/forecast`).catch(() => ({ data: [] })),
     ]);
     drawHydro(g, detail, obs.data || [], fcst.data || []);
-  } catch { note.textContent = 'Hydrograph data unavailable right now.'; }
+  } catch { note.textContent = t('hydro.unavail'); }
 }
 
 function drawHydro(g, detail, obsData, fcstData) {
@@ -447,7 +447,7 @@ function drawHydro(g, detail, obsData, fcstData) {
   const obs = obsData.filter((p) => new Date(p.validTime).getTime() >= back && p.primary > -999)
     .map((p) => ({ t: new Date(p.validTime).getTime(), v: p.primary }));
   const fcst = fcstData.filter((p) => p.primary > -999).map((p) => ({ t: new Date(p.validTime).getTime(), v: p.primary }));
-  if (obs.length < 2 && fcst.length < 2) { $('#hydro-note').textContent = 'No recent stage data.'; return; }
+  if (obs.length < 2 && fcst.length < 2) { $('#hydro-note').textContent = t('hydro.nodata'); return; }
   const cats = (detail.flood && detail.flood.categories) || {};
   const stages = FLOOD_CATS.map((c) => ({ c, v: cats[c] && cats[c].stage })).filter((s) => s.v > 0);
   const rec = state.records && state.records[g.lid];
@@ -478,7 +478,7 @@ function drawHydro(g, detail, obsData, fcstData) {
     ctx.strokeStyle = cssVar('--ink-1'); ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]);
     ctx.beginPath(); ctx.moveTo(mL, y(rec.record_ft)); ctx.lineTo(W - mR, y(rec.record_ft)); ctx.stroke();
     ctx.setLineDash([]); ctx.fillStyle = cssVar('--ink-1'); ctx.font = 'bold 11px system-ui';
-    ctx.fillText(`⚑ crest of record ${rec.record_ft}ft (${(rec.record_date || '').slice(0, 4)})`, mL + 4, y(rec.record_ft) - 3);
+    ctx.fillText(`⚑ ${t('hydro.recline')} ${rec.record_ft}ft (${(rec.record_date || '').slice(0, 4)})`, mL + 4, y(rec.record_ft) - 3);
   }
   // now marker
   if (now >= minT && now <= maxT) {
@@ -502,11 +502,11 @@ function drawHydro(g, detail, obsData, fcstData) {
   drawTrace(fcst, cssVar('--cat-major'), [6, 4]);
 
   $('#hydro-legend').innerHTML =
-    '<span class="hl"><i style="background:var(--accent)"></i>observed (24h)</span>' +
-    '<span class="hl"><i style="background:var(--cat-major)"></i>forecast</span>' +
-    (rec ? '<span class="hl"><i class="dashed"></i>crest of record</span>' : '') +
-    '<span class="hl">shaded = flood-stage bands</span>';
-  $('#hydro-note').innerHTML = `Observed + NWPS forecast · <a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">NOAA gauge page →</a>`;
+    `<span class="hl"><i style="background:var(--accent)"></i>${esc(t('hydro.obs'))}</span>` +
+    `<span class="hl"><i style="background:var(--cat-major)"></i>${esc(t('word.forecast').toLowerCase())}</span>` +
+    (rec ? `<span class="hl"><i class="dashed"></i>${esc(t('hydro.recline'))}</span>` : '') +
+    `<span class="hl">${esc(t('hydro.shaded'))}</span>`;
+  $('#hydro-note').innerHTML = `${esc(t('hydro.note'))} · <a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage2'))}</a>`;
 }
 
 // 3-min TTL promise cache — popup close/reopen redraws instantly; failures evict so retry works
@@ -533,7 +533,7 @@ async function drawSparkline(g, canvas, note) {
     ]);
     const cutoff = Date.now() - CONFIG.sparkHours * 3600000;
     let pts = (series.data || []).filter((p) => new Date(p.validTime).getTime() >= cutoff && p.primary > -999);
-    if (pts.length < 2) { note.textContent = 'No recent stage history available.'; return; }
+    if (pts.length < 2) { note.textContent = t('spark.nodata'); return; }
     const step = Math.max(1, Math.floor(pts.length / 220));
     pts = pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
 
@@ -570,8 +570,8 @@ async function drawSparkline(g, canvas, note) {
     ctx.fillStyle = cssVar('--ink-1');
     ctx.font = '11px system-ui';
     ctx.fillText(`${last.primary} ft`, W - mR + 4, y(last.primary) + 4);
-    note.textContent = `Last ${CONFIG.sparkHours}h · dashed lines = action/minor/moderate/major stages`;
-  } catch { note.textContent = 'Stage history unavailable.'; }
+    note.textContent = t('spark.legend').replace('{h}', CONFIG.sparkHours);
+  } catch { note.textContent = t('spark.unavail'); }
 }
 
 /* ---------- RFC forecast-max crests (5-day max stage per gauge) ---------- */
@@ -620,9 +620,9 @@ function renderFcstMax() {
     });
     const m = L.marker([lat, lon], { icon });
     m.bindPopup(`<div class="popup-title">${esc(p.nws_name)}</div>` +
-      `<div class="popup-meta">Forecast max: ${fmtNum(p.max_value)} ft · <span class="cat-word" style="color:var(--cat-${cat})">${esc(CAT_LABEL[cat])}</span> (5-day)</div>` +
-      `<div class="popup-meta">Issued ${esc(fmtWhen(fcstIssuedIso(p.issued_time)))}</div>` +
-      `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(p.nws_lid)}" target="_blank" rel="noopener">NOAA gauge page →</a></div>`);
+      `<div class="popup-meta">${esc(t('fcstmax.lbl'))}: ${fmtNum(p.max_value)} ft · <span class="cat-word" style="color:var(--cat-${cat})">${esc(catLabel(cat))}</span> (${esc(t('fcstmax.window'))})</div>` +
+      `<div class="popup-meta">${esc(t('fcstmax.issued'))} ${esc(fmtWhen(fcstIssuedIso(p.issued_time)))}</div>` +
+      `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(p.nws_lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage2'))}</a></div>`);
     state.layers.fcstMax.addLayer(m);
   }
 }
@@ -659,8 +659,8 @@ function renderUsgsIv() {
     const m = L.marker([s.lat, s.lon], { icon });
     // raw stage has no flood-stage thresholds here — never imply a category
     m.bindPopup(`<div class="popup-title">${esc(s.name)}</div>` +
-      `<div class="popup-meta">Stage: ${s.ft} ft @ ${esc(fmtWhen(s.t))} · raw reading, no flood-stage context</div>` +
-      `<div class="popup-link"><a href="https://waterdata.usgs.gov/monitoring-location/${esc(s.site)}" target="_blank" rel="noopener">USGS site page →</a></div>`);
+      `<div class="popup-meta">${esc(t('usgs.stage').replace('{v}', s.ft).replace('{t}', fmtWhen(s.t)))}</div>` +
+      `<div class="popup-link"><a href="https://waterdata.usgs.gov/monitoring-location/${esc(s.site)}" target="_blank" rel="noopener">${esc(t('usgs.link'))}</a></div>`);
     state.layers.usgs.addLayer(m);
   }
 }
@@ -670,11 +670,12 @@ function renderUsgsIv() {
 const ROAD_ATTRIB = 'Road conditions: TxDOT DriveTexas / TDEM (drivetexas.org)';
 // Closure + Flooding are prominent reds; Damage a distinct amber. Construction/Accident excluded server-side.
 const ROAD_COND = {
-  Closure: { label: 'Road CLOSED', color: '#e5342f' },
-  Flooding: { label: 'Flooded / high water', color: '#d81b8c' },
-  Damage: { label: 'Road damage', color: '#e8912b' },
+  Closure: { key: 'road.cond.closure', color: '#e5342f' },
+  Flooding: { key: 'road.cond.flooding', color: '#d81b8c' },
+  Damage: { key: 'road.cond.damage', color: '#e8912b' },
 };
-const ROAD_COND_FALLBACK = { label: 'Road condition', color: '#e8912b' };
+const ROAD_COND_FALLBACK = { key: 'road.cond.other', color: '#e8912b' };
+const roadLabel = (ct) => t(ct.key);
 const roadCondType = (p) => ROAD_COND[p && p.condition] || ROAD_COND_FALLBACK;
 const stripHtml = (s) => String(s ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 // FM0481 → "FM 481", IH0010 → "IH 10"; strips zero-padding after the letter prefix, robust fallback to trimmed original
@@ -781,14 +782,14 @@ const reopenIsFlood = (r) => (r.flood ?? (r.condition === 'Flooding'));
 
 function reopenedPopupHtml(r) {
   const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
-  return `<div class="popup-title" style="color:var(--good)">✓ ${esc(t('reopen.flag'))}: ${esc(prettyRoute(r.route_name) || 'Road')}</div>` +
-    `<div class="popup-meta">${esc(t('reopen.was'))}: ${esc(ct.label)} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))}</div>` +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · cleared from the live feed; verify before routing</div>`;
+  return `<div class="popup-title" style="color:var(--good)">✓ ${esc(t('reopen.flag'))}: ${esc(prettyRoute(r.route_name) || t('word.road'))}</div>` +
+    `<div class="popup-meta">${esc(t('reopen.was'))}: ${esc(roadLabel(ct))} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))}</div>` +
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · ${esc(t('reopen.cleared'))}</div>`;
 }
 
 function roadPopupHtml(p, geo) {
   const ct = roadCondType(p);
-  const road = prettyRoute(p.route_name) || 'Road';
+  const road = prettyRoute(p.route_name) || t('word.road');
   const from = p.from_limit || '';
   const to = p.to_limit || '';
   const dscr = stripHtml(p.description).replace(/^[\s–—-]+/, ''); // TxDOT feeds a leading "- " artifact; display-only strip
@@ -796,14 +797,14 @@ function roadPopupHtml(p, geo) {
   const miles = Math.round(roadSegMiles(geo));
   const seg = miles >= 2 ? t('road.seg').replace('{mi}', String(miles)) : '';
   const isClosure = String(p.condition || '').toLowerCase() === 'closure';
-  return `<div class="popup-title" style="color:${ct.color}">${esc(ct.label)}</div>` +
+  return `<div class="popup-title" style="color:${ct.color}">${esc(roadLabel(ct))}</div>` +
     `<div class="popup-meta"><strong>${esc(road)}</strong></div>` +
     ((from || to || seg) ? `<div class="popup-meta">${esc(from)}${from && to ? ' → ' : ''}${esc(to)}${(from || to) && seg ? ' · ' : ''}${esc(seg)}</div>` : '') +
     (dscr ? `<div class="popup-meta">${esc(dscr)}</div>` : '') +
-    (p.start_time ? `<div class="popup-meta">Since ${esc(fmtWhen(p.start_time))}</div>` : '') +
-    (detour ? '<div class="popup-meta">Detour available</div>' : '') +
+    (p.start_time ? `<div class="popup-meta">${esc(t('road.since'))} ${esc(fmtWhen(p.start_time))}</div>` : '') +
+    (detour ? `<div class="popup-meta">${esc(t('road.detour'))}</div>` : '') +
     `<div class="popup-meta" style="opacity:.8">${esc(t(isClosure ? 'road.note.closure' : 'road.note.cond'))}</div>` +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · live conditions, not a closure guarantee; verify before routing</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · ${esc(t('road.live'))}</div>`;
 }
 
 function renderRoadClosures() {
@@ -945,7 +946,7 @@ async function fetchTropical() {
   };
   const [cone, ftrack, otrack, ww, fpos, opos] = await Promise.all([grab(4), grab(2), grab(3), grab(5), grab(0), grab(1)]);
   if ([cone, ftrack, otrack, ww, fpos, opos].every((x) => x === null)) {
-    $('#refresh-note').textContent = 'tropical feed unavailable';
+    $('#refresh-note').textContent = t('note.tropfail');
     return; // every sublayer failed → network down; keep whatever was last drawn
   }
   markHealthy('tropical');
@@ -988,7 +989,6 @@ function renderTropical(d) {
 /* ---------- TxGIO low-water-crossing location inventory (LOCATIONS, not live status) ---------- */
 
 const LWC_ATTRIB = 'Low-water crossings: TxGIO (Texas Geographic Information Office)';
-const LWC_FOOTER = 'Crossing location inventory (TxGIO): NOT live flood status; check conditions before crossing.';
 
 // lazy: fetched once on first overlayadd; ~3.7k points paginated (maxRecordCount 2000), canvas-rendered
 async function fetchLwc() {
@@ -1035,12 +1035,12 @@ function renderLwc(features) {
 }
 
 function lwcPopupHtml(p) {
-  const road = String(p.road || '').trim() || 'Low-water crossing';
-  const rows = [['County', p.county], ['Type', p.lwx_type], ['Grade', p.grade], ['Signage', p.signage]]
+  const road = String(p.road || '').trim() || t('lwc.generic');
+  const rows = [[t('lwc.county'), p.county], [t('lwc.type'), p.lwx_type], [t('lwc.grade'), p.grade], [t('lwc.signage'), p.signage]]
     .filter(([, v]) => String(v || '').trim());
   return `<div class="popup-title">${esc(road)}</div>` +
     rows.map(([k, v]) => `<div class="popup-meta">${esc(k)}: ${esc(String(v).trim())}</div>`).join('') +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(LWC_FOOTER)}</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(t('lwc.footer'))}</div>`;
 }
 
 /* ---------- road & river cameras (TxDOT HLS live + USGS HIVIS stills) ---------- */
@@ -1075,8 +1075,8 @@ function loadCameras() {
 
 function camTitle(c, kind) {
   if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston' || kind === 'arlington' || kind === 'elpbridge' || kind === 'hays') return c.name;
-  if (c.src === 'its') return c.name || prettyRoute(c.route) || 'Traffic camera'; // ITS names carry the cross-street
-  return c.description || prettyRoute(c.route) || c.name || 'Traffic camera';
+  if (c.src === 'its') return c.name || prettyRoute(c.route) || t('cam.generic'); // ITS names carry the cross-street
+  return c.description || prettyRoute(c.route) || c.name || t('cam.generic');
 }
 
 // per-network marker glyph — distinct outline so river/city/flood cams read apart at a glance
@@ -1458,7 +1458,7 @@ function lsrPopupHtml(e) {
   return `<div class="popup-title">💧 ${esc(e.typetext)}${e.magnitude ? `: ${esc(e.magnitude)} ${esc(e.unit || '')}` : ''}</div>` +
     `<div class="popup-meta">${esc(e.city)}, ${esc(e.county)} Co. · ${esc(e.source)} · ${esc(fmtWhen(e.t))}</div>` +
     (e.remark ? `<div style="margin-top:4px">${highlightRoads(e.remark)}</div>` : '') +
-    `<div class="popup-link"><a href="https://maps.google.com/?q=${e.lat},${e.lon}" target="_blank" rel="noopener">navigate →</a> · USNG ${esc(toUSNG(e.lat, e.lon))}</div>`;
+    `<div class="popup-link"><a href="https://maps.google.com/?q=${e.lat},${e.lon}" target="_blank" rel="noopener">${esc(t('word.nav'))}</a> · USNG ${esc(toUSNG(e.lat, e.lon))}</div>`;
 }
 
 function lsrCardDiv(e, aged) {
@@ -1467,7 +1467,7 @@ function lsrCardDiv(e, aged) {
   div.innerHTML = `<div class="head"><span>💧</span><span class="type-chip">${esc(e.typetext)}</span>` +
     `<span class="when"><span class="fresh-dot ${freshClass(e.t)}"></span> ${esc(fmtWhen(e.t))}</span></div>` +
     (e.remark ? `<div class="summary">${highlightRoads(e.remark)}</div>` : '') +
-    `<div class="meta">📍 ${esc(e.city)}, ${esc(e.county)} Co. · via ${esc(e.source)}` +
+    `<div class="meta">📍 ${esc(e.city)}, ${esc(e.county)} Co. · ${esc(t('word.via'))} ${esc(e.source)}` +
     (state.myPos ? ` · ${distMi(state.myPos.lat, state.myPos.lng, e.lat, e.lon).toFixed(1)} mi` : '') + '</div>';
   div.addEventListener('click', () => state.map.setView([e.lat, e.lon], 12));
   return div;
@@ -1500,14 +1500,14 @@ function renderLsrs() {
   }
 
   const el = $('#lsr-list');
-  el.innerHTML = '<div class="section-title">Ground truth: storm reports (spotter/official)</div>';
-  if (!fresh.length) el.innerHTML += `<div class="card">No flood storm reports in TX in the last ${Math.round(cutoff / 60)}h.</div>`;
+  el.innerHTML = `<div class="section-title">${esc(t('sec.lsr'))}</div>`;
+  if (!fresh.length) el.innerHTML += `<div class="card">${esc(t('sec.lsr.empty').replace('{h}', Math.round(cutoff / 60)))}</div>`;
   const lsrCap = state.showAllLsrs ? 30 : 5;
   for (const e of fresh.slice(0, lsrCap)) el.appendChild(lsrCardDiv(e, false));
   if (fresh.length > 5) {
     const more = document.createElement('button');
     more.className = 'aged-toggle';
-    more.textContent = state.showAllLsrs ? '▾ show fewer reports' : `▸ show ${Math.min(fresh.length, 30) - 5} more recent reports`;
+    more.textContent = state.showAllLsrs ? t('lsr.fewer') : t('lsr.more').replace('{n}', Math.min(fresh.length, 30) - 5);
     more.addEventListener('click', () => { state.showAllLsrs = !state.showAllLsrs; renderLsrs(); });
     el.appendChild(more);
   }
@@ -1515,7 +1515,7 @@ function renderLsrs() {
     const btn = document.createElement('button');
     btn.id = 'lsr-aged-toggle';
     btn.className = 'aged-toggle';
-    btn.textContent = `${state.showAgedLsrs ? '▾ hide' : '▸ show'} ${aged.length} aged reports (>${Math.round(cutoff / 60)}h, kept ${CONFIG.histDays}d)`;
+    btn.textContent = `${t(state.showAgedLsrs ? 'toggle.hide' : 'toggle.show')} ${t('lsr.aged').replace('{n}', aged.length).replace('{h}', Math.round(cutoff / 60)).replace('{d}', CONFIG.histDays)}`;
     btn.addEventListener('click', () => { state.showAgedLsrs = !state.showAgedLsrs; renderLsrs(); });
     el.appendChild(btn);
     if (state.showAgedLsrs) for (const e of aged.slice(0, 40)) el.appendChild(lsrCardDiv(e, true));

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.68",
+      "date": "2026-07-24",
+      "line": "Full Spanish coverage on the live surfaces. About 120 strings the board built in English even in Spanish mode now translate properly: gauge cards and popups (category words, crest lines, stale-sensor notes, record lines), the crest-wave tracker, crossing status chips and popups, Drive Mode subtitles, feed card chips and badges, road closure and reopened-road popups, the map legend, storm reports, show/hide toggles, and hydrograph notes. Statuses that arrive as raw data codes are mapped to translated labels at render time, and switching language now also refreshes the map legend and Drive Mode. A test-suite guard keeps these strings from regressing to English."
+    },
+    {
       "v": "v0.97.67",
       "date": "2026-07-24",
       "line": "Tidier map overlays. The storm surge legend no longer floats mid-map: all overlay legends now sit in one bottom-right stack that hugs the corner, and every legend starts as a small title pill on all screen sizes (tap to expand). The offline map button moved to the top-right column directly below the compass, matching the other map buttons, with its save panel opening leftward so nothing is covered. The offline panel is also fully translated into Spanish."

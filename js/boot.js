@@ -539,6 +539,8 @@ function relocalizeDynamic() {
   renderTides();
   renderSourceHealth();
   renderLayerPills();
+  renderDriveMode();
+  if (state.legendEl) state.legendEl.innerHTML = mapLegendHtml();
   if (window.renderTeamTab) renderTeamTab();
 }
 

@@ -1,5 +1,30 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.68 · 2026-07-24 (Full Spanish coverage on the live surfaces)
+
+-- Bug Fixes --
+- [Fix] Spanish mode no longer shows mixed English on the core surfaces: about
+      120 strings that renderers built in English now translate properly. This
+      covers gauge cards (the category word, "no flooding", crest lines, the
+      stale-sensor note, record-of-crest lines), the crest-wave tracker rows
+      ("crest arrival order", "crested", the rivers/points counter), crossing
+      status chips (CLOSED / CAUTION / LONG-TERM CLOSED and their popups),
+      Drive Mode row subtitles, feed card type/priority/status chips and badges
+      (NEW, aged, stale), gauge and forecast-crest map popups, road closure and
+      reopened-road popups, the map legend, the storm-report list and popups,
+      show/hide toggles, hydrograph and sparkline notes, the low-water-crossing
+      inventory popups, and the "YOU" location marker.
+- [Fix] Statuses that arrive as raw data codes (crossing status, road
+      condition, notice type, priority) are now mapped to translated labels at
+      render time; unknown codes still display as-is instead of breaking.
+- [Fix] Switching language while the board is open now also refreshes the map
+      legend and Drive Mode list, so no stale-language text lingers.
+
+-- Changes --
+- [Change] A regression guard in the test suite now fails the build if any of
+         these formerly-hardcoded English strings reappear in renderer code,
+         and checks that the status label maps keep using translation keys.
+
 ## v0.97.67 · 2026-07-24 (Tidier map overlays: legend stack, offline button under the compass)
 
 -- Changes --

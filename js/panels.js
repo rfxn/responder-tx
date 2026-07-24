@@ -14,9 +14,9 @@ function renderForecastList() {
     const div = document.createElement('div');
     div.className = 'card';
     div.style.borderLeftColor = `var(--cat-${fCat})`;
-    div.innerHTML = `<div class="head"><span>▲</span><span class="type-chip">${esc(CAT_LABEL[gaugeCat(g)])} → <span style="color:var(--cat-${fCat})">${esc(CAT_LABEL[fCat])}</span></span>` +
-      `<span class="when">crest ${esc(fmtWhen(f.validTime))}</span></div>` +
-      `<div class="summary">${esc(g.name)}: forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)}</div>`;
+    div.innerHTML = `<div class="head"><span>▲</span><span class="type-chip">${esc(catLabel(gaugeCat(g)))} → <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span></span>` +
+      `<span class="when">${esc(t('wave.crest'))} ${esc(fmtWhen(f.validTime))}</span></div>` +
+      `<div class="summary">${esc(g.name)}: ${esc(t('gauge.fcrest').toLowerCase())} ${fmtNum(f.primary)} ${esc(f.primaryUnit)}</div>`;
     div.addEventListener('click', () => state.map.setView([g.latitude, g.longitude], 11));
     el.appendChild(div);
   }
@@ -31,7 +31,7 @@ function focusGauge(g) {
 }
 
 function gaugeGlyphHtml(g) {
-  if (gaugeObsStale(g)) return '<span class="stale-glyph" title="stale: no current data">⏱</span>';
+  if (gaugeObsStale(g)) return `<span class="stale-glyph" title="${esc(t('gauge.staleglyph'))}">⏱</span>`;
   if (gaugeRising(g)) return `<span style="color:var(--cat-${gaugeForecastCat(g)})">▲</span>`;
   const cat = gaugeCat(g);
   if (cat === 'none') return '<span style="color:var(--cat-none)">○</span>';
@@ -55,9 +55,9 @@ function gaugeCardDiv(g) {
   div.innerHTML = `<div class="head">${gaugeGlyphHtml(g)}<span class="g-name">${esc(g.name)}</span>` +
     `<span class="geo-flag" title="${esc(t('sync.geoflag.title'))}">📍</span>` +
     `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
-    `<div class="meta">OBS ${o.primary > -999 && Number.isFinite(o.primary) ? `${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${cat === 'none' ? 'no flooding' : esc(cat)}</span>${trendBit}` : esc(t('gauge.noreading'))}</div>` +
-    (stale ? `<div class="meta stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
-    (fCat ? `<div class="meta">crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(fCat)}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
+    `<div class="meta">OBS ${o.primary > -999 && Number.isFinite(o.primary) ? `${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catWord(cat))}</span>${trendBit}` : esc(t('gauge.noreading'))}</div>` +
+    (stale ? `<div class="meta stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '') +
+    (fCat ? `<div class="meta">${esc(t('wave.crest'))} ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(catWord(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
     recordLineHtml(g) +
     (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
   div.addEventListener('click', (ev) => { if (ev.target.closest('a')) return; focusGauge(g); });
@@ -69,10 +69,10 @@ function recordLineHtml(g) {
   const rc = recordContext(g);
   if (!rc) return '';
   if (rc.atOrAbove) {
-    return `<div class="meta record-line at"><strong>⚑ AT/ABOVE CREST OF RECORD</strong>: record ${rc.recFt} ft (${esc(rc.year)}); forecast ${Math.abs(rc.margin)} ft over</div>`;
+    return `<div class="meta record-line at"><strong>⚑ ${esc(t('record.athead'))}</strong>: ${esc(t('record.attail').replace('{rec}', rc.recFt).replace('{y}', rc.year).replace('{m}', Math.abs(rc.margin)))}</div>`;
   }
   if (rc.near) {
-    return `<div class="meta record-line near">⚑ approaching crest of record: record ${rc.recFt} ft (${esc(rc.year)}); forecast ${rc.margin} ft below</div>`;
+    return `<div class="meta record-line near">⚑ ${esc(t('record.nearhead'))}: ${esc(t('record.neartail').replace('{rec}', rc.recFt).replace('{y}', rc.year).replace('{m}', rc.margin))}</div>`;
   }
   return '';
 }
@@ -106,7 +106,7 @@ function renderWave() {
   const now = Date.now();
   let body = '';
   for (const [river, gs] of rivers) {
-    body += `<div class="wave-river">${esc(river)} <span class="wave-hint">crest arrival order →</span></div>`;
+    body += `<div class="wave-river">${esc(river)} <span class="wave-hint">${esc(t('wave.order'))}</span></div>`;
     for (const g of gs) {
       const f = g.status.forecast;
       const fCat = gaugeForecastCat(g);
@@ -115,21 +115,21 @@ function renderWave() {
       body += `<button class="wave-row" data-lid="${esc(g.lid)}">` +
         `<span class="wave-dot" style="background:var(--cat-${fCat})"></span>` +
         `<span class="wave-site">${esc(site)}</span>` +
-        `<span class="wave-stage" style="color:var(--cat-${fCat})">${fmtNum(f.primary)} ft ${esc(fCat)}</span>` +
-        `<span class="wave-eta ${past ? 'past' : ''}">${past ? 'crested' : 'crest'} ${esc(fmtWhen(f.validTime))}</span></button>`;
+        `<span class="wave-stage" style="color:var(--cat-${fCat})">${fmtNum(f.primary)} ft ${esc(catWord(fCat))}</span>` +
+        `<span class="wave-eta ${past ? 'past' : ''}">${esc(t(past ? 'wave.crested' : 'wave.crest'))} ${esc(fmtWhen(f.validTime))}</span></button>`;
     }
   }
   const nGauges = rivers.reduce((s, [, gs]) => s + gs.length, 0);
   el.innerHTML = `<button class="wave-toggle${open ? ' open' : ''}" id="wave-toggle">` +
     `<span>${esc(t('sec.wave'))}</span>` +
-    `<span class="wave-count">${rivers.length} rivers · ${nGauges} pts ${open ? '▾' : '▸'}</span></button>` +
+    `<span class="wave-count">${esc(t('wave.count').replace('{r}', rivers.length).replace('{p}', nGauges))} ${open ? '▾' : '▸'}</span></button>` +
     `<div class="wave-body"${open ? '' : ' hidden'}>${body}</div>`;
   $('#wave-toggle').addEventListener('click', () => {
     const nowOpen = $('.wave-body').hasAttribute('hidden');
     $('.wave-body').hidden = !nowOpen;
     localStorage.setItem('respondertx.waveOpen', nowOpen ? '1' : '0');
     $('#wave-toggle').classList.toggle('open', nowOpen);
-    $('.wave-count').textContent = `${rivers.length} rivers · ${nGauges} pts ${nowOpen ? '▾' : '▸'}`;
+    $('.wave-count').textContent = `${t('wave.count').replace('{r}', rivers.length).replace('{p}', nGauges)} ${nowOpen ? '▾' : '▸'}`;
   });
   el.querySelectorAll('.wave-row').forEach((b) => b.addEventListener('click', () => {
     const g = state.gauges.find((x) => x.lid === b.dataset.lid);
@@ -155,22 +155,22 @@ function driveItems() {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) continue;
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     if (c.status === 'open') continue;
-    items.push({ glyph: st.glyph, color: st.color, name: c.name, sub: `${st.label} crossing`, lat: c.lat, lon: c.lon, rank: c.status === 'closed' ? 0 : 2 });
+    items.push({ glyph: st.glyph, color: st.color, name: c.name, sub: t('drive.sub.crossing').replace('{st}', xstLabel(st)), lat: c.lat, lon: c.lon, rank: c.status === 'closed' ? 0 : 2 });
   }
   for (const r of activeRequests().filter((x) => x.status !== 'resolved')) {
     if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
     if (!LIFE_SAFETY_TYPES.includes(r.type) && r.type !== 'road') continue;
-    items.push({ glyph: TYPE_GLYPH[r.type] || '📍', color: r.priority === 'critical' ? 'var(--sev-emergency)' : 'var(--sev-warning)', name: r.summary, sub: `${r.type} · ${r.place}`, lat: r.lat, lon: r.lon, rank: r.priority === 'critical' ? 0 : 1 });
+    items.push({ glyph: TYPE_GLYPH[r.type] || '📍', color: r.priority === 'critical' ? 'var(--sev-emergency)' : 'var(--sev-warning)', name: r.summary, sub: `${ntypeLabel(r.type)} · ${r.place}`, lat: r.lat, lon: r.lon, rank: r.priority === 'critical' ? 0 : 1 });
   }
   for (const g of state.gauges.filter((x) => gaugeCat(x) === 'major' || (gaugeRising(x) && gaugeForecastCat(x) === 'major'))) {
-    items.push({ glyph: '●', color: 'var(--cat-major)', name: g.name, sub: gaugeCat(g) === 'major' ? 'MAJOR flood now' : 'rising to MAJOR', lat: g.latitude, lon: g.longitude, rank: 1 });
+    items.push({ glyph: '●', color: 'var(--cat-major)', name: g.name, sub: t(gaugeCat(g) === 'major' ? 'drive.majnow' : 'drive.majrise'), lat: g.latitude, lon: g.longitude, rank: 1 });
   }
   const p = state.myPos;
   // recovery: recently reopened roads tail the list as low-priority ✓ entries — never competing with hazards for slots
   const cleared = [];
   for (const r of reopenedRoads().fresh) {
     if (!r.vertex || !reopenIsFlood(r)) continue;
-    cleared.push({ glyph: '✓', color: 'var(--good)', name: `${t('reopen.flag')} · ${prettyRoute(r.route_name) || 'road'}`, sub: `TxDOT DriveTexas · ${t('reopen.at')} ${relWhen(r.reopenedAt)}`, lat: r.vertex[0], lon: r.vertex[1], rank: 3 });
+    cleared.push({ glyph: '✓', color: 'var(--good)', name: `${t('reopen.flag')} · ${prettyRoute(r.route_name) || t('ntype.road')}`, sub: `TxDOT DriveTexas · ${t('reopen.at')} ${relWhen(r.reopenedAt)}`, lat: r.vertex[0], lon: r.vertex[1], rank: 3 });
   }
   // live TxDOT road closures/flooding/damage — representative point = line vertex nearest the driver (midpoint if no GPS)
   for (const f of ((state.roadClosures && state.roadClosures.lines) || [])) {
@@ -185,7 +185,7 @@ function driveItems() {
     if (!pt || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
     const ct = roadCondType(f.properties);
     const cond = f.properties.condition;
-    items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${ct.label} · ${prettyRoute(f.properties.route_name) || 'road'}`, sub: 'TxDOT DriveTexas', lat: pt[1], lon: pt[0], rank: cond === 'Damage' ? 2 : 1 });
+    items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${roadLabel(ct)} · ${prettyRoute(f.properties.route_name) || t('ntype.road')}`, sub: 'TxDOT DriveTexas', lat: pt[1], lon: pt[0], rank: cond === 'Damage' ? 2 : 1 });
   }
   // verify-before-routing: the 2 nearest cameras tail the list like the reopened rows — never competing with hazards
   const cams = [];
@@ -402,8 +402,8 @@ function renderGaugesTab() {
     const btn = document.createElement('button');
     btn.className = 'aged-toggle';
     btn.textContent = normalStale
-      ? `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges: ${normal.length - normalStale} normal · ${normalStale} stale`
-      : `${state.showNormalGauges ? '▾ hide' : '▸ show'} ${normal.length} gauges normal`;
+      ? `${t(state.showNormalGauges ? 'toggle.hide' : 'toggle.show')} ${t('gauges.toggle.split').replace('{n}', normal.length).replace('{a}', normal.length - normalStale).replace('{s}', normalStale)}`
+      : `${t(state.showNormalGauges ? 'toggle.hide' : 'toggle.show')} ${t('gauges.toggle.all').replace('{n}', normal.length)}`;
     btn.addEventListener('click', () => { state.showNormalGauges = !state.showNormalGauges; renderGaugesTab(); });
     el.appendChild(btn);
     if (state.showNormalGauges) for (const g of normal) el.appendChild(gaugeCardDiv(g));
@@ -686,7 +686,7 @@ function renderThreatStrip() {
       const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
       const b = document.createElement('button');
       b.className = 'ffe-chip';
-      b.title = 'Open Alerts tab';
+      b.title = t('ffe.opentab');
       b.innerHTML = `${esc(where)} <span class="until">→ ${esc(until)}</span>`;
       b.addEventListener('click', goAlerts);
       row.appendChild(b);
@@ -706,18 +706,18 @@ function tickerItems() {
   for (const a of state.alerts.filter((x) => x._sev === 'emergency' && new Date(x.properties.expires) > new Date())) {
     const where = (a.properties.areaDesc || '?').split(';')[0].replace(/, TX$/, '');
     const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
-    emerg.push({ text: `⚠ FF EMERGENCY ${where} · until ${until}`, color: 'var(--sev-emergency)', act: goAlerts });
+    emerg.push({ text: t('ticker.ffe').replace('{where}', where).replace('{t}', until), color: 'var(--sev-emergency)', act: goAlerts });
   }
   const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
   for (const g of rising) {
     const fCat = gaugeForecastCat(g);
-    rise.push({ text: `▲ ${riverOf(g.name)} → ${fCat.toUpperCase()} crest ${relWhen(g.status.forecast.validTime)}`, color: `var(--cat-${fCat})`, act: () => focusGauge(g) });
+    rise.push({ text: `▲ ${riverOf(g.name)} → ${catWord(fCat).toUpperCase()} ${t('wave.crest')} ${relWhen(g.status.forecast.validTime)}`, color: `var(--cat-${fCat})`, act: () => focusGauge(g) });
   }
   for (const g of state.gauges.filter((x) => gaugeCat(x) === 'major' && !gaugeRising(x))) {
     const tr = gaugeTrend(g.lid);
     const trendBit = tr ? ` ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
-    majors.push({ text: `● ${riverOf(g.name)} MAJOR ${fmtNum(g.status.observed.primary)} ft${trendBit}`, color: 'var(--cat-major)', act: () => focusGauge(g) });
+    majors.push({ text: `● ${riverOf(g.name)} ${t('catw.major')} ${fmtNum(g.status.observed.primary)} ft${trendBit}`, color: 'var(--cat-major)', act: () => focusGauge(g) });
   }
   const tail = [];
   const freshLsrs = state.lsrs.filter((f) => f.geometry && Array.isArray(f.geometry.coordinates) && ageMins(f.properties.valid) <= lsrFreshCutoffMins()).slice(0, 2);
@@ -777,8 +777,8 @@ function renderTiles() {
   $('#tile-warnings .value').textContent = warnings;
   // never render a confident 0 when the feed has not loaded — a missing MAJOR is dangerous
   $('#tile-gauges .value').innerHTML = state.sourceHealth.gauges || state.gauges.length
-    ? `${inFlood.length} <span class="unit">${major} major · ▲${rising}</span>`
-    : '– <span class="unit">no data</span>';
+    ? `${inFlood.length} <span class="unit">${major} ${esc(t('catw.major').toLowerCase())} · ▲${rising}</span>`
+    : `– <span class="unit">${esc(t('word.nodata'))}</span>`;
   $('#tile-open .value').textContent = open;
 }
 
@@ -819,11 +819,12 @@ async function loadSeeds() {
 
 const CROSSING_STALE_H = 12;
 const CROSSING_STATUS = {
-  closed: { color: 'var(--sev-emergency)', glyph: '⛔', label: 'CLOSED' },
-  caution: { color: 'var(--cat-action)', glyph: '⚠', label: 'CAUTION' },
-  longterm: { color: 'var(--ink-muted)', glyph: '⛔', label: 'LONG-TERM CLOSED' },
-  open: { color: 'var(--good)', glyph: '✓', label: 'OPEN' },
+  closed: { color: 'var(--sev-emergency)', glyph: '⛔', key: 'xword.closed' },
+  caution: { color: 'var(--cat-action)', glyph: '⚠', key: 'xword.caution' },
+  longterm: { color: 'var(--ink-muted)', glyph: '⛔', key: 'xword.longterm' },
+  open: { color: 'var(--good)', glyph: '✓', key: 'xword.open' },
 };
+const xstLabel = (st) => t(st.key).toUpperCase();
 function renderCrossings() {
   const layer = state.layers.crossings;
   if (layer) layer.clearLayers();
@@ -835,9 +836,9 @@ function renderCrossings() {
         list.map((c) => {
           const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
           const staleH = c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity;
-          const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">stale ${Math.round(staleH)}h · reverify</span>` : '';
-          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${st.label}</strong>: ${esc(c.name)} ${srcBadge('curated')}` +
-            `<div class="addr">${esc(c.reason || '')} · updated ${esc(fmtWhen(c.updated_at))}${stale}${c.source && safeUrl(c.source) !== '#' ? ` <a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">src</a>` : ''}</div></div>`;
+          const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">${esc(t('cross.stale').replace('{h}', Math.round(staleH)))}</span>` : '';
+          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</strong>: ${esc(c.name)} ${srcBadge('curated')}` +
+            `<div class="addr">${esc(c.reason || '')} · ${esc(t('word.updated').toLowerCase())} ${esc(fmtWhen(c.updated_at))}${stale}${c.source && safeUrl(c.source) !== '#' ? ` <a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">src</a>` : ''}</div></div>`;
         }).join('') +
         `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
       : '';
@@ -847,10 +848,10 @@ function renderCrossings() {
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     const icon = L.divIcon({ className: '', html: `<div class="crossing-icon" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([c.lat, c.lon], { icon });
-    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${st.label} · crossing</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
+    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))} · ${esc(t('risk.read.crosspost'))}</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
       `<div class="popup-meta">${esc(c.reason || '')}</div>` +
-      `<div class="popup-meta">Updated ${esc(fmtWhen(c.updated_at))} · verify before routing</div>` +
-      (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">source →</a></div>` : ''));
+      `<div class="popup-meta">${esc(t('cross.updated').replace('{t}', fmtWhen(c.updated_at)))}</div>` +
+      (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>` : ''));
     layer.addLayer(m);
   }
   renderReopenedRoads();
@@ -861,8 +862,8 @@ function renderCrossings() {
 function reopenedItemHtml(r, aged) {
   const ct = ROAD_COND[r.condition] || ROAD_COND_FALLBACK;
   const nav = r.vertex ? ` data-lat="${r.vertex[0]}" data-lon="${r.vertex[1]}"` : '';
-  return `<div class="resource-item reopened${aged ? ' aged' : ''}"${nav}><strong>✓ ${esc(t('reopen.flag'))}</strong>: ${esc(prettyRoute(r.route_name) || 'Road')}` +
-    `<div class="addr">${esc(t('reopen.was'))}: ${esc(ct.label)} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))} · <a href="https://drivetexas.org/" target="_blank" rel="noopener">src</a></div></div>`;
+  return `<div class="resource-item reopened${aged ? ' aged' : ''}"${nav}><strong>✓ ${esc(t('reopen.flag'))}</strong>: ${esc(prettyRoute(r.route_name) || t('word.road'))}` +
+    `<div class="addr">${esc(t('reopen.was'))}: ${esc(roadLabel(ct))} · ${esc(t('reopen.at'))} ${esc(fmtWhen(r.reopenedAt))} · <a href="https://drivetexas.org/" target="_blank" rel="noopener">src</a></div></div>`;
 }
 
 function renderReopenedRoads() {
@@ -884,7 +885,7 @@ function renderReopenedRoads() {
   if (aged.length) {
     const btn = document.createElement('button');
     btn.className = 'aged-toggle';
-    btn.textContent = `${state.showAgedReopened ? '▾ hide' : '▸ show'} ${aged.length} reopened >${CONFIG.reopenedAgeHours}h ago (kept ${CONFIG.histDays}d)`;
+    btn.textContent = `${t(state.showAgedReopened ? 'toggle.hide' : 'toggle.show')} ${t('reopen.aged').replace('{n}', aged.length).replace('{h}', CONFIG.reopenedAgeHours).replace('{d}', CONFIG.histDays)}`;
     btn.addEventListener('click', () => { state.showAgedReopened = !state.showAgedReopened; renderReopenedRoads(); });
     el.appendChild(btn);
     if (state.showAgedReopened) el.insertAdjacentHTML('beforeend', aged.map((r) => reopenedItemHtml(r, true)).join(''));

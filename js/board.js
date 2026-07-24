@@ -172,20 +172,20 @@ function initInViewSync() {
 
 function reqPopup(r) {
   const el = document.createElement('div');
-  el.innerHTML = `<div class="popup-title">${TYPE_GLYPH[r.type] || ''} ${esc(r.type.toUpperCase())} · ${esc(r.priority)}</div>` +
+  el.innerHTML = `<div class="popup-title">${TYPE_GLYPH[r.type] || ''} ${esc(ntypeLabel(r.type).toUpperCase())} · ${esc(priLabel(r.priority))}</div>` +
     `<div>${esc(r.summary)}</div>` +
-    `<div class="popup-meta">${shortId(r.id)} · ${esc(r.place)} · ${esc(r.status)} · ${esc(fmtWhen(r.ts))}</div>` +
+    `<div class="popup-meta">${shortId(r.id)} · ${esc(r.place)} · ${esc(nstatLabel(r.status))} · ${esc(fmtWhen(r.ts))}</div>` +
     `<div class="popup-meta">USNG ${esc(toUSNG(r.lat, r.lon))} · ${r.lat.toFixed(4)}, ${r.lon.toFixed(4)}</div>` +
     `<button class="popup-expand open-in-feed">${esc(t('sync.openfeed'))}</button>` +
-    (r.source && r.source.url && safeUrl(r.source.url) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(r.source.url))}" target="_blank" rel="noopener">source →</a></div>` : '');
+    (r.source && r.source.url && safeUrl(r.source.url) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(r.source.url))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>` : '');
   el.querySelector('.open-in-feed').addEventListener('click', () => openInFeed(r.id));
   return el;
 }
 
 function cutoffPopup(r) {
   const el = document.createElement('div');
-  el.innerHTML = `<div class="popup-title">⛔ CUT-OFF AREA (est.)</div><div>${esc(r.summary)}</div>` +
-    `<div class="popup-meta">~${r.radiusMi} mi isolation footprint · operator estimate</div>` +
+  el.innerHTML = `<div class="popup-title">⛔ ${esc(t('cutoff.title'))}</div><div>${esc(r.summary)}</div>` +
+    `<div class="popup-meta">${esc(t('cutoff.foot').replace('{r}', r.radiusMi))}</div>` +
     `<button class="popup-expand open-in-feed">${esc(t('sync.openfeed'))}</button>`;
   el.querySelector('.open-in-feed').addEventListener('click', () => openInFeed(r.id));
   return el;
@@ -196,7 +196,7 @@ function renderRequests() {
   const reqs = sortRequests(allRequests());
   const agedCount = reqs.filter(cardAged).length;
   const agedBtn = $('#flt-aged');
-  agedBtn.textContent = `aged ${agedCount}`;
+  agedBtn.textContent = t('feed.aged').replace('{n}', agedCount);
   agedBtn.classList.toggle('on', state.showAged);
   agedBtn.style.display = agedCount ? '' : 'none';
   const visible = reqs.filter((r) => (state.showAged || !cardAged(r)) && requestVisible(r));
@@ -229,17 +229,17 @@ function renderRequests() {
     const needsReverify = r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins;
     const hasPos = Number.isFinite(r.lat) && Number.isFinite(r.lon);
     div.innerHTML =
-      `<div class="head"><span>${TYPE_GLYPH[r.type] || '📍'}</span><span class="type-chip">${esc(r.type)} · ${esc(r.priority)}</span>` +
-      `<span class="sid" title="Radio reference: tap to copy">${shortId(r.id)}</span>` +
+      `<div class="head"><span>${TYPE_GLYPH[r.type] || '📍'}</span><span class="type-chip">${esc(ntypeLabel(r.type))} · ${esc(priLabel(r.priority))}</span>` +
+      `<span class="sid" title="${esc(t('card.sid.title'))}">${shortId(r.id)}</span>` +
       (hasPos ? `<span class="geo-flag" title="${esc(t('sync.geoflag.title'))}">📍</span>` : '') +
       `<span class="when"><span class="fresh-dot ${freshClass(r.ts)}"></span> ${esc(fmtWhen(r.ts))}</span></div>` +
       `<div class="summary">${esc(r.summary)}</div>` +
       `<div class="meta">📍 ${esc(r.place)} (${esc(r.county)} Co.)${r.contact ? ` · ☎ ${esc(r.contact)}` : ''}` +
       (state.myPos && hasPos ? ` · ${distMi(state.myPos.lat, state.myPos.lng, r.lat, r.lon).toFixed(1)} mi` : '') + '</div>' +
       (r.details ? `<div class="meta" style="margin-top:3px">${esc(r.details)}</div>` : '') +
-      `<div class="badges">${isNew ? '<span class="badge new-chip">NEW</span>' : ''}` +
-      (r.status !== 'open' ? `<span class="badge status-${esc(r.status)}">${esc(r.status)}</span>` : '') +
-      (cardAged(r) ? '<span class="badge aged-chip">aged · suppressed</span>' : (needsReverify ? '<span class="badge reverify">stale · re-verify</span>' : '')) +
+      `<div class="badges">${isNew ? `<span class="badge new-chip">${esc(t('word.new'))}</span>` : ''}` +
+      (r.status !== 'open' ? `<span class="badge status-${esc(r.status)}">${esc(nstatLabel(r.status))}</span>` : '') +
+      (cardAged(r) ? `<span class="badge aged-chip">${esc(t('card.aged'))}</span>` : (needsReverify ? `<span class="badge reverify">${esc(t('card.stale'))}</span>` : '')) +
       srcBadge('curated') + srcLink +
       '</div>' +
       (hasPos ? '<div class="card-actions">' +
@@ -481,14 +481,14 @@ function riskGaugeLine(x) {
   const f = g.status.forecast;
   const o = g.status.observed;
   const tr = stale ? null : gaugeTrend(g.lid);
-  const trendBit = tr ? ` · ${tr.dir === 'up' ? '↑ rising' : tr.dir === 'down' ? '↓ falling' : '→ steady'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
+  const trendBit = tr ? ` · ${tr.dir === 'up' ? `↑ ${t('trend.rising')}` : tr.dir === 'down' ? `↓ ${t('trend.falling')}` : `→ ${t('trend.steady')}`} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
   const fcst = fCat
-    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}Forecast crest ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
+    ? `<div class="rg-fcst">${gaugeRising(g) ? '▲ ' : ''}${esc(t('gauge.fcrest'))} ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span style="color:var(--cat-${fCat})">${esc(catLabel(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>`
     : '';
   return `<button class="risk-gauge" data-lid="${esc(g.lid)}">` +
     `<div class="rg-top"><span class="rg-name">${esc(g.name)}</span><span class="rg-dist">${dist.toFixed(1)} ${esc(t('risk.mi'))}</span></div>` +
     `<div class="rg-now">${esc(t('risk.now'))} ${o.primary > -999 && Number.isFinite(o.primary) ? `${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span>${trendBit}` : esc(t('gauge.noreading'))}</div>` +
-    (stale ? `<div class="rg-now stale-note">⏱ STALE: no current data (last obs ${esc(fmtWhen(o.validTime))})</div>` : '') +
+    (stale ? `<div class="rg-now stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '') +
     fcst + '</button>';
 }
 
@@ -504,7 +504,7 @@ function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
   if (gauges.length) {
     const { g, dist } = gauges[0];
     const nearStale = gaugeObsStale(g);
-    let s = `${t('risk.read.nearest')} ${riverOf(g.name)} (${dist.toFixed(1)} ${mi}) ${t('risk.read.is')} ${catLabel(gaugeObsCat(g))}${nearStale ? ` (stale, last obs ${fmtWhen(g.status.observed.validTime).split(' · ')[0]})` : ''}`;
+    let s = `${t('risk.read.nearest')} ${riverOf(g.name)} (${dist.toFixed(1)} ${mi}) ${t('risk.read.is')} ${catLabel(gaugeObsCat(g))}${nearStale ? ` ${t('gauge.stalebit').replace('{t}', fmtWhen(g.status.observed.validTime).split(' · ')[0])}` : ''}`;
     if (gaugeRising(g)) s += ` ${t('risk.read.forecast')} ${catLabel(gaugeForecastCat(g))} ${fmtWhen(g.status.forecast.validTime)}`;
     parts.push(s);
   } else {
@@ -555,10 +555,10 @@ function runRiskCheck(lat, lon, label) {
   html += `<div class="risk-sec"><div class="risk-sec-t">${t('risk.sec.roads')}</div>`;
   if (xCross) {
     const st = CROSSING_STATUS[xCross.c.status];
-    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${st.label}</span>: ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} ${esc(mi)}</span></div>`;
+    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</span>: ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} ${esc(mi)}</span></div>`;
   }
   if (nNotice) {
-    html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.type)}</span>: ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} ${esc(mi)}</span></div>`;
+    html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(ntypeLabel(nNotice.r.type))}</span>: ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} ${esc(mi)}</span></div>`;
   }
   if (!xCross && !nNotice) html += `<div class="risk-quiet">${esc(t('risk.noroad'))}</div>`;
   html += `<div class="risk-tip">${esc(t('risk.tip'))}</div>`;
@@ -574,7 +574,7 @@ function runRiskCheck(lat, lon, label) {
   const saveBtn = out.querySelector('.rp-save');
   saveBtn.addEventListener('click', () => {
     addPlace({ label, lat: +lat.toFixed(5), lon: +lon.toFixed(5) });
-    saveBtn.textContent = '★ Saved';
+    saveBtn.textContent = t('risk.saved');
     saveBtn.disabled = true;
   });
 }
@@ -611,7 +611,7 @@ function inspectContent(lat, lon) {
   }
   if (xCross) {
     const st = CROSSING_STATUS[xCross.c.status];
-    html += `<div class="inspect-line"><span style="color:${st.color}">${st.glyph} ${esc(st.label)}</span> ${esc(xCross.c.name)} · ${xCross.dist.toFixed(1)} ${esc(mi)}</div>`;
+    html += `<div class="inspect-line"><span style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</span> ${esc(xCross.c.name)} · ${xCross.dist.toFixed(1)} ${esc(mi)}</div>`;
   }
   if (nNotice) {
     html += `<div class="inspect-line">${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.summary.slice(0, 60))} · ${nNotice.dist.toFixed(1)} ${esc(mi)}</div>`;
@@ -808,10 +808,10 @@ function shareView(btn) {
   const copy = () => copyText(url).then(
     () => {
       const orig = btn.innerHTML; // shared by the ⋮ menu entry and the map 🔗 control — restore whatever was there
-      btn.innerHTML = btn.closest('.share-trigger') ? '✓' : '✓ Link copied';
+      btn.innerHTML = btn.closest('.share-trigger') ? '✓' : t('share.copied');
       setTimeout(() => { btn.innerHTML = orig; }, 2000);
     },
-    () => prompt('Copy this link:', url));
+    () => prompt(t('share.prompt'), url));
   if (navigator.share) navigator.share({ url }).catch(copy);
   else copy();
 }

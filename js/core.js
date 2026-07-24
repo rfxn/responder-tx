@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.67';
+const APP_VERSION = 'v0.97.68';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -102,9 +102,13 @@ const FLOOD_ROAD_RE = /flood|high\s*water|water\s*over|low\s*water|washed?\s*out
 const ROAD_RE = /\b(?:FM|RM|RR|CR|SH|US|IH?|LOOP|HWY)[-\s]?\d+\b/gi;
 
 const FLOOD_CATS = ['action', 'minor', 'moderate', 'major'];
-const CAT_LABEL = { major: 'MAJOR flood', moderate: 'Moderate flood', minor: 'Minor flood', action: 'Near flood (action)', none: 'No flooding' };
-// localized severity word for the public "Am I at risk?" modal; map popups/cards keep the English feed vocabulary
 const catLabel = (cat) => t('cat.' + cat);
+// data-enum → localized label; unknown values fall back to the raw enum so nothing renders as a bare key
+const enumLabel = (prefix, v) => { const k = prefix + v, s = t(k); return s === k ? String(v) : s; };
+const ntypeLabel = (v) => enumLabel('ntype.', v);
+const priLabel = (v) => enumLabel('pri.', v);
+const nstatLabel = (v) => enumLabel('nstat.', v);
+const catWord = (cat) => (cat === 'none' ? t('cat.none').toLowerCase() : t('catw.' + cat));
 const CAT_SIZE = { major: 18, moderate: 15, minor: 12, action: 10, none: 8 };
 const TYPE_GLYPH = { rescue: '🆘', evacuation: '🏃', medical: '⚕️', supplies: '📦', shelter: '🏠', animal: '🐾', wellness: '💬', volunteer: '🤝', equipment: '🛠️', road: '🚧', cutoff: '⛔', info: 'ℹ️' };
 const LIFE_SAFETY_TYPES = ['rescue', 'evacuation', 'medical', 'cutoff'];
@@ -261,7 +265,7 @@ function fmtWhen(iso) {
   const mins = Math.round((Date.now() - d.getTime()) / 60000);
   const a = Math.abs(mins);
   const span = a < 60 ? `${a}m` : a < 1440 ? `${Math.round(a / 60)}h` : `${Math.round(a / 1440)}d`;
-  const rel = mins >= 0 ? `${span} ago` : `in ${span}`;
+  const rel = (mins >= 0 ? t('when.ago') : t('when.in')).replace('{s}', span);
   const abs = d.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   return `${rel} · ${abs} CT`;
 }

@@ -3,5 +3,5 @@ VERSION:2.0
 PRODID:-//Responder TX//Crest Calendar//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
-X-WR-CALNAME:Responder TX — forecast river crests
+X-WR-CALNAME:Responder TX · forecast river crests
 END:VCALENDAR

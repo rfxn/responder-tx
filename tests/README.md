@@ -11,7 +11,17 @@ node --test tests/          # whole suite
 node --test tests/usng.test.js   # one file
 ```
 
-CI runs the same command (`.github/workflows/ci.yml`) plus `node --check` on
+The cron-side pipeline scripts are shell and python, so their suites run under
+their own interpreter (each is self-contained, uses a throwaway temp dir, and
+touches neither the network nor the real repo data):
+
+```bash
+bash tests/chat-poll.test.sh          # ops-chat durability
+bash tests/freshness-monitor.test.sh  # public-mirror freshness monitor
+python3 tests/server-gate.test.py     # LAN server write gate
+```
+
+CI runs the same commands (`.github/workflows/ci.yml`) plus `node --check` on
 every `js/*.js` and the release-cycle sanity bundle (`scripts/cycle-check.sh`).
 
 ## How it works

@@ -22,7 +22,8 @@ suspended or mid-task).
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `chat-watchdog.sh` | **The stall watchdog** — build-capable auto-recovery when the in-session revival goes dark. See "Stall watchdog". |
-| `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, **and** stall-watchdog system-cron entries. |
+| `freshness-monitor.sh` | **The public-mirror freshness monitor**: fetches respondertx.org's gauge snapshot over the network, ages its embedded stamp, cross-checks local pipeline health, and alerts the ops chat. See "Freshness monitor". |
+| `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, stall-watchdog, **and** freshness-monitor system-cron entries. |
 | `gen-lan-cert.sh` | Generate the self-signed TLS cert (`cert.pem` + `key.pem` under `/root/.config/responder/tls`, **outside** the repo) that `server.py` serves for LAN HTTPS. Idempotent (skips unless `--force`); prints the fingerprint + SANs. See "LAN HTTPS (self-signed)". |
 
 `gen-cameras.py` is a separate poller and is **not** part of the 15-min cycle.
@@ -260,13 +261,82 @@ in-session path has missed the window), the drain prompt treats message text
 strictly as governed data, and the guardrails cap cost. Log tee's to
 `/var/log/responder-chat-watchdog.log` (falls back to `/tmp`).
 
+## Freshness monitor (`freshness-monitor.sh`)
+
+Every durable job above watches something *local*. None of them notice the worst
+failure mode: **respondertx.org keeps serving a stale flood picture and nobody
+finds out**. One host carries the data cron, the LAN server, the git push, and
+the Pages deploy, so a dead host, a broken deploy path, or a stuck CDN copy all
+end the same way, with the public board frozen at an old crest while the room
+believes it. `freshness-monitor.sh` checks the **published mirror over the
+network**, not local state, and says which of those three actually broke.
+
+Each run:
+
+1. **Fetches the live mirror** (`https://respondertx.org/data/gauges-snapshot.json`,
+   cache-busted) and ages its embedded `generated` stamp. The data cron publishes
+   4x/hour, so the ladder sits well above one missed cycle: **WARN at 45 min**
+   (3 missed cycles), **CRITICAL at 90 min** (6 missed cycles).
+2. **Reads local pipeline health**: the age of the local cycle output
+   (`data/gauges-snapshot.json`), the age of the last commit touching it, and the
+   last `deploy OK` in the cycle log.
+3. **Attributes the fault** from those two halves. Local output stale means the
+   cycle or its host is down. Local output fresh but the commit not landing means
+   the commit and push path broke. Both current with a stale mirror means the
+   publish path (deploy or Cloudflare) is at fault.
+4. **Alerts the ops chat** (`data/chat-outbox.json`) as one `action` entry,
+   written with the same re-read plus atomic-rename swap every other writer uses,
+   so a concurrent session reply is never clobbered. It never touches
+   `data/.chat-cursor`.
+
+Fail-safe and quiet by construction:
+
+- **A fetch failure is not staleness.** Consecutive failures are counted; a lone
+  transient error logs and exits 0. Only `RESPONDER_MONITOR_FAIL_STREAK`
+  failures in a row (default 3, i.e. 45 min at the installed cadence) raise an
+  `UNREACHABLE` alert.
+- **Transition-gated with a cooldown.** An alert posts when the verdict changes
+  or after `RESPONDER_MONITOR_COOLDOWN` (default 6h), so a multi-day outage costs
+  a handful of entries, not one per run. Recovery posts exactly one notice.
+- **No prior state is normal.** A missing state file, missing outbox, missing
+  cycle log, or missing git history all degrade to "unknown" and never fabricate
+  an alert or crash (upgrade path from any earlier version).
+- Single-flight `flock` on `/tmp/responder-freshness-monitor.lock`; state in
+  `/tmp/responder-freshness-state` (`verdict streak last_alert_epoch`), where a
+  reboot reset costs at most one extra alert.
+
+Flags and tunables: `--dry-run` computes and logs the verdict, writing neither
+the outbox nor the state file (use it to check the board by hand). Exit code is
+`0` when fresh or deferring, `1` on any alerting verdict. Overrides:
+`RESPONDER_MONITOR_URL`, `_WARN_MIN`, `_CRIT_MIN`, `_FAIL_STREAK`, `_COOLDOWN`,
+`_TIMEOUT`, `_STATE`, `_LOCK`, `_LOG`, `_OUTBOX`, `_SNAPSHOT`, plus
+`RESPONDER_CYCLE_LOG` for the deploy-history read. Log tees to
+`/var/log/responder-freshness.log` (falls back to `/tmp`).
+
+### Operator runbook: what to do when it fires
+
+Run `scripts/freshness-monitor.sh --dry-run` first to see the current verdict and
+the three local ages, then act on the cause line it prints:
+
+| Alert says | Do this |
+| --- | --- |
+| the data cycle is not producing fresh local output | `tail -50 /var/log/responder-cycle.log`, confirm the cron is still installed (`crontab -l`), clear a stale `/tmp/responder-cycle.lock` if a run died holding it, then `scripts/run-cycle.sh` by hand. |
+| the commit and push path is not landing | Run `git status` and `git log --oneline -3` in the repo. Usually a push rejection (remote moved) or a dirty tree blocking the cycle: `git pull --rebase origin main`, then `scripts/run-cycle.sh`. |
+| the publish path (deploy or Cloudflare) is serving stale data | Run `scripts/deploy.sh` by hand and read the pre-flight output. Most often the Cloudflare token is unreadable (see "Deploy token / ansible-vault") or wrangler failed. The data is already safe in git; the deploy is the only missing step. |
+| UNREACHABLE | Check the site from another network before touching the pipeline. If respondertx.org is genuinely down, this is a Cloudflare or DNS problem, not a data problem, and the local pipeline needs no action. |
+
+Test coverage lives in `tests/freshness-monitor.test.sh` (fresh, stale, transient
+failure, streak, cooldown, fresh-install, recovery); it uses a `file://` mirror
+URL, so it never touches the network or the real repo data.
+
 ## Cron schedule & install
 
 `install-cron.sh` manages independent system-cron entries. The default target is
 the **data-refresh cycle** (`8,23,38,53 * * * *`); `--chat` / `--chat-ack-only`
 manage the **chat-inbox poll** (`*/3 * * * *`); `--watchdog` manages the **stall
-watchdog** (`*/3 * * * *`). Each target is grep-guarded on its own command path,
-so managing one leaves the others intact.
+watchdog** (`*/3 * * * *`); `--monitor` manages the **freshness monitor**
+(`13,28,43,58 * * * *`, offset ~5 min after each data cycle). Each target is
+grep-guarded on its own command path, so managing one leaves the others intact.
 
 ```bash
 # data-refresh cycle (default target) — idempotent, safe to re-run
@@ -286,6 +356,11 @@ so managing one leaves the others intact.
 /root/admin/work/proj/responder/scripts/install-cron.sh --watchdog --dry-run
 /root/admin/work/proj/responder/scripts/install-cron.sh --watchdog
 /root/admin/work/proj/responder/scripts/install-cron.sh --watchdog --remove
+
+# public-mirror freshness monitor (read-only network check, alerts the ops chat)
+/root/admin/work/proj/responder/scripts/install-cron.sh --monitor --dry-run
+/root/admin/work/proj/responder/scripts/install-cron.sh --monitor
+/root/admin/work/proj/responder/scripts/install-cron.sh --monitor --remove
 ```
 
 Installed crontab entries (marker comment on its own line above each):
@@ -297,6 +372,8 @@ Installed crontab entries (marker comment on its own line above each):
 */3 * * * * /root/admin/work/proj/responder/scripts/chat-poll.sh --ack-only >/dev/null 2>&1
 # responder-tx durable chat stall-watchdog (managed by install-cron.sh)
 */3 * * * * /root/admin/work/proj/responder/scripts/chat-watchdog.sh >/dev/null 2>&1
+# responder-tx public-mirror freshness monitor (managed by install-cron.sh)
+13,28,43,58 * * * * /root/admin/work/proj/responder/scripts/freshness-monitor.sh >/dev/null 2>&1
 ```
 
 The installer greps the crontab for the command path and strips any prior

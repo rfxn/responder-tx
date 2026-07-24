@@ -1,5 +1,5 @@
 #!/bin/bash
-# install-cron.sh [--chat|--chat-ack-only|--watchdog] [--remove] [--dry-run] —
+# install-cron.sh [--chat|--chat-ack-only|--watchdog|--monitor] [--remove] [--dry-run] —
 # idempotently install/remove the durable Responder system-cron entries.
 #   (default)        the 15-min data-refresh cycle (run-cycle.sh)
 #   --chat           the chat-inbox poll (chat-poll.sh) — full headless-claude
@@ -7,6 +7,7 @@
 #   --chat-ack-only  the chat-inbox poll in ack-only (no-LLM) safe mode
 #   --watchdog       the chat stall-watchdog (chat-watchdog.sh) — build-capable
 #                    auto-recovery when the in-session revival goes dark
+#   --monitor        the public-mirror freshness monitor (freshness-monitor.sh)
 # Re-running never duplicates an entry (grep-guarded on the command path); each
 # target is managed independently, so the others are left intact.
 set -euo pipefail
@@ -21,7 +22,8 @@ for arg in "$@"; do
         --chat) TARGET=chat ;;
         --chat-ack-only) TARGET=chat-ack-only ;;
         --watchdog) TARGET=watchdog ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --chat, --chat-ack-only, --watchdog, --remove, --dry-run)" >&2; exit 2 ;;
+        --monitor) TARGET=monitor ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --chat, --chat-ack-only, --watchdog, --monitor, --remove, --dry-run)" >&2; exit 2 ;;
     esac
 done
 
@@ -43,11 +45,19 @@ WATCHDOG_SCHEDULE="*/3 * * * *"
 # chat-watchdog.sh self-logs to /var/log/responder-chat-watchdog.log; discard cron stdout
 WATCHDOG_LINE="${WATCHDOG_SCHEDULE} ${WATCHDOG_CMD} >/dev/null 2>&1"
 
+MONITOR_CMD="/root/admin/work/proj/responder/scripts/freshness-monitor.sh"
+MONITOR_MARKER="# responder-tx public-mirror freshness monitor (managed by install-cron.sh)"
+# offset ~5 min after each 8,23,38,53 data cycle so a healthy cycle has published before the check
+MONITOR_SCHEDULE="13,28,43,58 * * * *"
+# freshness-monitor.sh self-logs to /var/log/responder-freshness.log; discard cron stdout
+MONITOR_LINE="${MONITOR_SCHEDULE} ${MONITOR_CMD} >/dev/null 2>&1"
+
 case "$TARGET" in
     data)           MARKER="$DATA_MARKER"; CMD="$DATA_CMD"; LINE="$DATA_LINE"; LABEL="data-refresh cycle" ;;
     chat)           MARKER="$CHAT_MARKER"; CMD="$CHAT_CMD"; LINE="$CHAT_LINE_FULL"; LABEL="chat-inbox poll (headless claude)" ;;
     chat-ack-only)  MARKER="$CHAT_MARKER"; CMD="$CHAT_CMD"; LINE="$CHAT_LINE_ACK"; LABEL="chat-inbox poll (ack-only, no LLM)" ;;
     watchdog)       MARKER="$WATCHDOG_MARKER"; CMD="$WATCHDOG_CMD"; LINE="$WATCHDOG_LINE"; LABEL="chat stall-watchdog (build-capable recovery)" ;;
+    monitor)        MARKER="$MONITOR_MARKER"; CMD="$MONITOR_CMD"; LINE="$MONITOR_LINE"; LABEL="public-mirror freshness monitor" ;;
 esac
 
 if [ "$TARGET" = "chat" ] && [ "$REMOVE" -eq 0 ]; then

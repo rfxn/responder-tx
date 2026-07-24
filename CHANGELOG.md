@@ -1,5 +1,37 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.81 · 2026-07-24 (Deploy resilience: external public-mirror freshness monitor)
+
+-- New Features --
+- [New] External data-freshness monitor (scripts/freshness-monitor.sh). Every
+      durable job in the pipeline watched local state, which left the worst
+      failure mode unseen: respondertx.org serving a stale flood picture with
+      nobody told. The monitor fetches the published gauge snapshot over the
+      network, ages its embedded generation stamp, and rates it on a ladder set
+      well above one missed cycle (warn over 45 min, critical over 90 min,
+      against a data cron that publishes 4x/hour).
+- [New] Fault attribution, not just detection: each run also reads local
+      pipeline health (age of the cycle's own snapshot, age of the last data
+      commit, last successful deploy in the cycle log) and names the likely
+      cause in the alert, separating a dead cron from a commit and push path
+      that is not landing from a publish path (deploy or Cloudflare) serving a
+      stale copy.
+- [New] Alerts post to the ops chat outbox as one action entry through the
+      established re-read plus atomic-rename swap, so a concurrent session
+      reply is never clobbered and data/.chat-cursor is never touched;
+      transition-gated with a 6h cooldown and a single recovery notice, so a
+      multi-day outage costs a handful of entries instead of one per run.
+- [New] Fails safe and quiet: a network error is not staleness, so consecutive
+      fetch failures are counted and only a streak (default 3, about 45 min at
+      the installed cadence) raises an UNREACHABLE alert, while a missing state
+      file, outbox, cycle log, or git history degrades to unknown instead of
+      alerting or crashing.
+- [New] Installable with scripts/install-cron.sh --monitor (13,28,43,58, offset
+      about 5 min after each data cycle), documented in scripts/README.md with
+      an operator runbook per cause line, and covered by
+      tests/freshness-monitor.test.sh (fresh, stale, transient failure, streak,
+      cooldown, fresh install, recovery) which is now a CI step.
+
 ## v0.97.80 · 2026-07-24 (Basin Focus: single-river corridor view with the crest wave)
 
 -- New Features --

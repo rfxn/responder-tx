@@ -39,6 +39,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: bash tests/chat-poll.test.sh
 
+      - name: Freshness-monitor tests
+        if: ${{ !cancelled() }}
+        run: bash tests/freshness-monitor.test.sh
+
       - name: Server write-gate tests
         if: ${{ !cancelled() }}
         run: python3 tests/server-gate.test.py

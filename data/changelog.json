@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.81",
+      "date": "2026-07-24",
+      "line": "Under-the-hood resilience, nothing changes on screen: an external monitor now checks the live public board itself a few times an hour, ages the data it is actually serving, and raises an alert in the ops chat if that data goes stale, saying whether the data cycle, the publish step, or the site itself is at fault. Until now every automated check watched only the local machine, so a board frozen on an old flood picture could have gone unnoticed."
+    },
+    {
       "v": "v0.97.80",
       "date": "2026-07-24",
       "line": "New Basin Focus view: open More in the Feed tab and tap Basin (or use a gauge popup's basin link) to see one river at a time as a corridor, upstream to downstream, with the crest wave marked as it moves down-basin: which points the crest has already passed, where it is heading next, and each gauge's current stage, trend, and crest status. Rivers are listed most active first, quiet reaches say so honestly, and the view frames the river's gauges on the map. Shareable as a link that reopens the same river."

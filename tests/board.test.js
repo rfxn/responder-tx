@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadApp } = require('./harness.js');
 
-const { smartScore, shortId, CONFIG } = loadApp();
+const { smartScore, shortId, CONFIG, pushCardState } = loadApp();
 
 /* ---------- smartScore: priority weight with half-life age decay ---------- */
 
@@ -64,4 +64,35 @@ test('shortId — hashing is deterministic (same id -> same code)', () => {
 
 test('shortId — distinct local ids produce distinct codes', () => {
   assert.notEqual(shortId('local-abc-123'), shortId('local-xyz-999'));
+});
+
+/* ---------- pushCardState: device-alerts card state machine (web push P1) ---------- */
+
+const pushFacts = (over = {}) => ({
+  ios: false, standalone: false, secure: true, hasSW: true, hasPush: true, hasNotif: true,
+  permission: 'default', subscribed: false, ...over,
+});
+
+test('pushCardState — capable browser toggles between off and on', () => {
+  assert.equal(pushCardState(pushFacts()), 'off');
+  assert.equal(pushCardState(pushFacts({ subscribed: true, permission: 'granted' })), 'on');
+});
+
+test('pushCardState — iOS outside a Home Screen install shows the install hint first', () => {
+  // Safari hides PushManager in a plain tab; the install path must win over generic unsupported
+  assert.equal(pushCardState(pushFacts({ ios: true, hasPush: false })), 'ios');
+  assert.equal(pushCardState(pushFacts({ ios: true })), 'ios');
+  assert.equal(pushCardState(pushFacts({ ios: true, standalone: true })), 'off', 'installed iOS app behaves normally');
+});
+
+test('pushCardState — missing capability reads unsupported, never an error', () => {
+  assert.equal(pushCardState(pushFacts({ hasPush: false })), 'unsupported');
+  assert.equal(pushCardState(pushFacts({ hasSW: false })), 'unsupported');
+  assert.equal(pushCardState(pushFacts({ hasNotif: false })), 'unsupported');
+  assert.equal(pushCardState(pushFacts({ secure: false })), 'unsupported');
+});
+
+test('pushCardState — a denied permission is blocked (no re-prompt state)', () => {
+  assert.equal(pushCardState(pushFacts({ permission: 'denied' })), 'blocked');
+  assert.equal(pushCardState(pushFacts({ permission: 'denied', subscribed: true })), 'blocked', 'blocked wins over a stale local on-flag');
 });

@@ -1,5 +1,30 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.69 · 2026-07-24 (Device alerts, phase 1 soft launch: opt-in push for Flash Flood Emergencies)
+
+-- New Features --
+- [New] Opt-in device notifications for new Flash Flood Emergencies in the area,
+      soft-launched behind ?push=1 while it burns in (the card is hidden without
+      the flag). A new "Device alerts" card in the Resources tab explains what
+      you get, asks for notification permission only when you tap the toggle,
+      and always shows the honest state: on, off, blocked in browser settings,
+      not supported on this browser, or the iPhone/iPad add-to-Home-Screen step.
+      English and Spanish throughout, including the notification text.
+- [New] The subscription is anonymous: the server stores only the push endpoint,
+      the browser's delivery keys, the alert preference, and the language. No
+      name, no email, no account, no location. Subscriptions expire on their own
+      60 days after the device last opened the board, and turning alerts off
+      deletes the record.
+- [New] Every alert surface repeats the standing safety framing: these
+      notifications are a convenience layer over public NWS data, can be late or
+      missed, and are not Wireless Emergency Alerts and never a substitute for
+      911 or official warnings.
+- [New] Backend (separate from the site): a Cloudflare Worker checks the NWS
+      alert feed every 5 minutes for new Flash Flood Emergencies intersecting
+      the event area, sends one notification per alert (no repeats for the same
+      alert id), and queues deliveries in polite batches. Device endpoints that
+      go dead are removed immediately.
+
 ## v0.97.68 · 2026-07-24 (Full Spanish coverage on the live surfaces)
 
 -- Bug Fixes --

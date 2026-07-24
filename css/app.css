@@ -1850,3 +1850,14 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   }
   .ls-grab { display: block; flex: 0 0 auto; width: 44px; height: 4px; border-radius: 2px; background: var(--ink-muted); margin: 8px auto 0; }
 }
+
+/* device alerts (web push) card in Resources */
+#push-body .push-card { border-bottom: none; }
+#push-body .push-sub { font-size: 13px; line-height: 1.35; }
+#push-body .push-disclaimer {
+  font-size: 11.5px; color: var(--ink-2); line-height: 1.4;
+  border-left: 3px solid var(--sev-emergency); padding: 4px 0 4px 8px; margin: 7px 0;
+}
+#push-body .push-status { font-size: 12px; font-weight: 650; margin: 6px 0 2px; color: var(--ink-2); }
+#push-body .push-on { color: var(--good); }
+#push-body .push-toggle { flex: 0 1 auto; min-height: 44px; padding: 5px 18px; }

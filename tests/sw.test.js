@@ -12,13 +12,15 @@ const ROOT = path.join(__dirname, '..');
 // exports the constants under test (same non-invasive pattern as harness.js).
 function loadSw() {
   const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  const listeners = [];
   const sandbox = {
-    self: { addEventListener() {}, location: { origin: 'https://respondertx.org' } },
+    self: { addEventListener(type) { listeners.push(type); }, location: { origin: 'https://respondertx.org' } },
     caches: {},
     URL,
   };
   vm.createContext(sandbox);
-  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_UNSTAMPED, CACHE_STATIC, CACHE_DATA, dataCacheKey };`, sandbox);
+  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_UNSTAMPED, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, PUSH_FALLBACK, dataCacheKey };`, sandbox);
+  sandbox.__exports.listeners = listeners;
   return sandbox.__exports;
 }
 
@@ -97,6 +99,35 @@ test('precache covers every stamped local script and stylesheet in index.html', 
   for (const ref of refs) {
     assert.ok(sw.PRECACHE.includes(ref), `index.html asset missing from precache: ${ref}`);
   }
+});
+
+/* ---------- web push (P1 payload-free) ---------- */
+
+test('push and notificationclick handlers are registered', () => {
+  for (const type of ['push', 'notificationclick']) {
+    assert.ok(sw.listeners.includes(type), `missing ${type} listener`);
+  }
+});
+
+test('push fallback table has en/es parity, the WEA/911 line, and no em-dash', () => {
+  assert.deepEqual(Object.keys(sw.PUSH_FALLBACK).sort(), ['en', 'es']);
+  assert.deepEqual(Object.keys(sw.PUSH_FALLBACK.en).sort(), Object.keys(sw.PUSH_FALLBACK.es).sort());
+  assert.ok(sw.PUSH_FALLBACK.en.body.includes('Not a WEA/911 service'));
+  assert.ok(sw.PUSH_FALLBACK.es.body.includes('No sustituye a WEA ni al 911'));
+  for (const lang of ['en', 'es']) {
+    for (const k of Object.keys(sw.PUSH_FALLBACK[lang])) {
+      const v = sw.PUSH_FALLBACK[lang][k];
+      assert.ok(typeof v === 'string' && v.length, `${lang}.${k} empty`);
+      assert.ok(!v.includes('—'), `em-dash in PUSH_FALLBACK.${lang}.${k}`);
+    }
+  }
+});
+
+test('the push-lang cache is version-independent and survives the activate cleanup', () => {
+  assert.ok(!sw.CACHE_PUSH.includes(sw.SW_VERSION), 'CACHE_PUSH must not be version-keyed');
+  assert.ok(sw.CACHE_PUSH.indexOf('respondertx-') === 0, 'CACHE_PUSH stays in the app namespace');
+  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  assert.match(src, /n !== CACHE_STATIC && n !== CACHE_DATA && n !== CACHE_PUSH/, 'activate cleanup must exclude CACHE_PUSH');
 });
 
 test('every precached file exists in the repo', () => {

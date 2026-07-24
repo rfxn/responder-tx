@@ -924,6 +924,7 @@ async function boot() {
   });
   setInterval(tickCountdown, 1000);
   registerServiceWorker();
+  initPushCard();
 }
 
 document.addEventListener('DOMContentLoaded', boot);

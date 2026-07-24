@@ -948,3 +948,152 @@ function exportAAR() {
   downloadBlob(L.join('\n'), 'text/markdown', `responder-aar-${stamp()}.md`);
 }
 
+
+/* ---------- device alerts — web push P1, soft-launch behind ?push=1 ---------- */
+
+const PUSH_LS_KEY = 'respondertx.push';
+
+// pure card-state predicate over environment facts. Order matters: the iOS install hint wins
+// (Safari hides the Push API until the board is a Home Screen app), then capability, then permission.
+function pushCardState(f) {
+  if (f.ios && !f.standalone) return 'ios';
+  if (!f.secure || !f.hasSW || !f.hasPush || !f.hasNotif) return 'unsupported';
+  if (f.permission === 'denied') return 'blocked';
+  return f.subscribed ? 'on' : 'off';
+}
+
+function pushLocal() {
+  try { return JSON.parse(localStorage.getItem(PUSH_LS_KEY)) || {}; } catch { return {}; }
+}
+function pushLocalSet(v) {
+  try { localStorage.setItem(PUSH_LS_KEY, JSON.stringify(v)); } catch { /* private mode — card state falls back to browser truth */ }
+}
+
+function pushEnvFacts() {
+  const ua = navigator.userAgent || '';
+  const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return {
+    ios,
+    standalone: navigator.standalone === true || Boolean(window.matchMedia && matchMedia('(display-mode: standalone)').matches),
+    secure: window.isSecureContext === true,
+    hasSW: 'serviceWorker' in navigator,
+    hasPush: 'PushManager' in window,
+    hasNotif: 'Notification' in window,
+    permission: 'Notification' in window ? Notification.permission : 'default',
+    subscribed: pushLocal().on === true,
+  };
+}
+
+// applicationServerKey wants raw bytes, /api/push/status serves base64url
+function pushKeyBytes(b64u) {
+  const pad = '='.repeat((4 - (b64u.length % 4)) % 4);
+  const raw = atob((b64u + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+function renderPushCard() {
+  const host = $('#push-body');
+  if (!host) return;
+  const st = pushCardState(pushEnvFacts());
+  const on = st === 'on';
+  const toggleable = st === 'on' || st === 'off';
+  host.innerHTML =
+    `<div class="section-title">${esc(t('push.title'))}</div>` +
+    '<div class="resource-item push-card">' +
+      `<div class="push-sub">${esc(t('push.sub'))}</div>` +
+      `<div class="push-disclaimer">${esc(t('push.disclaimer'))}</div>` +
+      `<div class="push-status push-${st}">${esc(t(`push.state.${st}`))}</div>` +
+      (toggleable ? `<div class="card-actions"><button type="button" class="act-btn push-toggle" id="push-toggle">${esc(t(on ? 'push.toggle.off' : 'push.toggle.on'))}</button></div>` : '') +
+    '</div>';
+  const btn = $('#push-toggle');
+  if (btn) btn.addEventListener('click', on ? pushDisable : pushEnable);
+}
+
+async function pushEnable() {
+  const btn = $('#push-toggle');
+  if (btn) btn.disabled = true;
+  try {
+    // permission is requested ONLY here, inside the explicit tap, with the disclaimer on screen
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { renderPushCard(); return; }
+    const reg = state.swReg || await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(state.pushVapidKey) });
+    const r = await fetch('api/push/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), prefs: { ffe: true }, lang: getLang() }),
+    });
+    if (!r.ok) throw new Error(`subscribe HTTP ${r.status}`);
+    pushLocalSet({ on: true, prefs: { ffe: true } });
+    // language hint for payload-free pushes; best-effort, the SW falls back to en
+    try { await (await caches.open('respondertx-push')).put('/push-lang', new Response(getLang())); } catch { /* cache unavailable */ }
+    renderPushCard();
+  } catch (err) {
+    renderPushCard();
+    const status = document.querySelector('#push-body .push-status');
+    if (status) status.textContent = t('push.err');
+  }
+}
+
+async function pushDisable() {
+  // both sides always attempted; either alone is safe (a dangling server row dies on 404/410 or TTL)
+  try {
+    const reg = state.swReg || await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      try {
+        await fetch('api/push/unsubscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+      } catch (err) { /* server delete failed — TTL/410 cleanup covers it */ }
+      try { await sub.unsubscribe(); } catch (err) { /* browser refusal — server row already gone */ }
+    }
+  } catch (err) { /* no registration — nothing to tear down */ }
+  pushLocalSet({ on: false });
+  renderPushCard();
+}
+
+// silent boot-time TTL keepalive for subscribed devices (runs regardless of the ?push=1 flag)
+function pushRenewOnBoot() {
+  if (pushLocal().on !== true) return;
+  if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
+  navigator.serviceWorker.ready
+    .then((reg) => reg.pushManager.getSubscription())
+    .then((sub) => {
+      if (!sub) { pushLocalSet({ on: false }); return null; }
+      return fetch('api/push/renew', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+    })
+    .catch(() => { /* renew is best-effort; the 60-day TTL and the next boot repair it */ });
+}
+
+async function initPushCard() {
+  pushRenewOnBoot();
+  const host = $('#push-body');
+  if (!host) return;
+  if (!new URLSearchParams(location.search).has('push')) return; // P1 soft-launch flag; public exposure is the P2 call
+  const st = pushCardState(pushEnvFacts());
+  if (st === 'on' || st === 'off') {
+    // capability present: the card renders only when the backend is really there (503/absent hides it)
+    let d = null;
+    try {
+      const r = await fetch('api/push/status');
+      if (!r.ok) return;
+      d = await r.json();
+    } catch { return; }
+    if (!d || !d.configured || !d.vapidKey) return;
+    state.pushVapidKey = d.vapidKey;
+    // browser truth wins over the local cache: a revoked subscription flips the card OFF honestly
+    try {
+      const reg = state.swReg || await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub && pushLocal().on) pushLocalSet({ on: false });
+      if (sub && !pushLocal().on) pushLocalSet({ on: true, prefs: { ffe: true } });
+    } catch (err) { /* registration unavailable — local cache stands */ }
+  }
+  renderPushCard();
+}

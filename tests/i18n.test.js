@@ -101,6 +101,23 @@ test('renderer guard: enum label maps carry i18n keys, not English labels', () =
   assert.ok(/ROAD_COND_FALLBACK = \{ key:/.test(sources), 'ROAD_COND_FALLBACK must carry an i18n key');
 });
 
+test('i18n: device-alerts (push) keys exist in both languages, 911 framing intact', () => {
+  const keys = ['push.title', 'push.sub', 'push.disclaimer', 'push.state.off', 'push.state.on',
+    'push.state.blocked', 'push.state.unsupported', 'push.state.ios',
+    'push.toggle.on', 'push.toggle.off', 'push.err'];
+  for (const k of keys) {
+    assert.ok(typeof I18N.en[k] === 'string' && I18N.en[k].length, `en missing ${k}`);
+    assert.ok(typeof I18N.es[k] === 'string' && I18N.es[k].length, `es missing ${k}`);
+    assert.ok(!I18N.en[k].includes('—'), `em-dash in en ${k}`);
+    assert.ok(!I18N.es[k].includes('—'), `em-dash in es ${k}`);
+  }
+  // the not-a-WEA/911 invariant must be present on the disclaimer in both languages
+  assert.ok(/call 911/i.test(I18N.en['push.disclaimer']));
+  assert.ok(/Wireless Emergency Alerts/.test(I18N.en['push.disclaimer']));
+  assert.ok(/llame al 911/i.test(I18N.es['push.disclaimer']));
+  assert.ok(/WEA/.test(I18N.es['push.disclaimer']));
+});
+
 test('i18n: offline-panel keys exist in both languages with placeholders intact', () => {
   const keys = ['off.toggle.title', 'off.toggle.aria', 'off.head', 'off.save', 'off.save.title',
     'off.note', 'off.clear', 'off.cleared', 'off.none', 'off.saved', 'off.savedfull', 'off.saving', 'off.cap'];

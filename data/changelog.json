@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.69",
+      "date": "2026-07-24",
+      "line": "Device alerts, phase 1 soft launch (open the board with ?push=1 to see it): opt-in notifications on this device for new Flash Flood Emergencies in the area. Anonymous by design (endpoint, delivery keys, preference, and language only; expires after 60 days away), permission asked only on your tap, honest state shown for blocked or unsupported browsers and the iPhone add-to-Home-Screen step, English and Spanish. Not Wireless Emergency Alerts and never a substitute for 911 or official warnings."
+    },
+    {
       "v": "v0.97.68",
       "date": "2026-07-24",
       "line": "Full Spanish coverage on the live surfaces. About 120 strings the board built in English even in Spanish mode now translate properly: gauge cards and popups (category words, crest lines, stale-sensor notes, record lines), the crest-wave tracker, crossing status chips and popups, Drive Mode subtitles, feed card chips and badges, road closure and reopened-road popups, the map legend, storm reports, show/hide toggles, and hydrograph notes. Statuses that arrive as raw data codes are mapped to translated labels at render time, and switching language now also refreshes the map legend and Drive Mode. A test-suite guard keeps these strings from regressing to English."

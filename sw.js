@@ -3,9 +3,12 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.97.68';
+const SW_VERSION = '0.97.69';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 const CACHE_DATA = `respondertx-data-${SW_VERSION}`;
+// version-independent: holds the subscriber's language hint so a payload-free push can be
+// localized; must survive SW updates (excluded from the activate cleanup)
+const CACHE_PUSH = 'respondertx-push';
 
 // the LAN-only chat and master clients are deliberately absent: the public mirror strips them
 const PRECACHE_PATHS = [
@@ -55,7 +58,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
     await Promise.all(names
-      .filter((n) => n.indexOf('respondertx-') === 0 && n !== CACHE_STATIC && n !== CACHE_DATA)
+      .filter((n) => n.indexOf('respondertx-') === 0 && n !== CACHE_STATIC && n !== CACHE_DATA && n !== CACHE_PUSH)
       .map((n) => caches.delete(n)));
     await self.clients.claim();
   })());
@@ -131,4 +134,64 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (url.searchParams.has('v')) event.respondWith(stampedCacheFirst(req));
+});
+
+/* ---------- web push (P1: payload-free FFE alerts) ---------- */
+
+// P1 pushes carry no payload (encrypted payloads arrive in P2), so the SW composes a generic
+// localized Flash Flood Emergency notification from this baked table. The last line is the
+// standing invariant short form: never a WEA/911 replacement.
+const PUSH_FALLBACK = {
+  en: {
+    title: 'Flash Flood Emergency · ResponderTX',
+    body: 'New Flash Flood Emergency in the area. Open the board for details. Not a WEA/911 service.',
+  },
+  es: {
+    title: 'Emergencia de inundación repentina · ResponderTX',
+    body: 'Nueva emergencia de inundación repentina en la zona. Abra el tablero para más detalles. No sustituye a WEA ni al 911.',
+  },
+};
+
+async function pushLang() {
+  try {
+    const hit = await (await caches.open(CACHE_PUSH)).match('/push-lang');
+    if (hit && (await hit.text()).trim() === 'es') return 'es';
+  } catch (err) { /* cache unavailable — default language */ }
+  return 'en';
+}
+
+// ALWAYS show exactly one notification, even on empty payload or parse failure — browsers
+// punish silent pushes by revoking the subscription
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    const lang = await pushLang();
+    let data = null;
+    try { data = event.data ? event.data.json() : null; } catch (err) { data = null; }
+    const fb = PUSH_FALLBACK[lang];
+    await self.registration.showNotification((data && data.title) || fb.title, {
+      body: (data && data.body) || fb.body,
+      tag: (data && data.tag) || 'respondertx-push',
+      lang,
+      icon: 'assets/brand/favicon-180.png',
+      badge: 'assets/brand/favicon-32.png',
+      data: { url: (data && data.url) || '/' },
+    });
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of wins) {
+      if (new URL(c.url).origin !== self.location.origin) continue;
+      try {
+        await c.focus();
+        if (url !== '/' && c.navigate) await c.navigate(url);
+      } catch (err) { /* focus/navigate denied — the board tab still exists */ }
+      return;
+    }
+    await self.clients.openWindow(url);
+  })());
 });

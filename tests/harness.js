@@ -112,6 +112,7 @@ const EXPORTS = [
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'riverOf',
   'smartScore', 'shortId',
   'resolveAoPresets', 'aoFullBounds', 'AO_PRESET_FALLBACK',
+  'pushCardState',
 ];
 
 let cached = null;

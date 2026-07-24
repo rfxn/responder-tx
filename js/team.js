@@ -69,6 +69,9 @@
     T.markerLayer = L.layerGroup().addTo(state.map);  // shared team-dropped markers
   }
 
+  // server assigns color, but gate before style interpolation anyway
+  function safeColor(c, fb) { return /^#[0-9a-f]{3,8}$/i.test(c || '') ? c : fb; }
+
   function memberIcon(m, color, isSelf, stale) {
     const st = STATUSES.includes(m.status) ? m.status : 'infield';
     const cls = `team-marker team-st-${st}${isSelf ? ' team-self' : ''}${stale ? ' team-stale' : ''}`;
@@ -77,7 +80,7 @@
     const dogName = k9 && m.k9Name ? ` ${esc(m.k9Name)}` : '';
     return L.divIcon({
       className: '',
-      html: `<div class="${cls}" style="--tc:${color || '#40c4ff'}">${dot}<span class="tm-label">${esc(m.handle)}${dogName}${isSelf ? ' ·' + esc(tt('team.you', 'you')) : ''}</span></div>`,
+      html: `<div class="${cls}" style="--tc:${safeColor(color, '#40c4ff')}">${dot}<span class="tm-label">${esc(m.handle)}${dogName}${isSelf ? ' ·' + esc(tt('team.you', 'you')) : ''}</span></div>`,
       iconSize: [14, 14], iconAnchor: [7, 7],
     });
   }
@@ -89,7 +92,7 @@
     const when = hhmm(lk.lastSeen);
     return L.divIcon({
       className: '',
-      html: `<div class="team-marker team-tomb" style="--tc:${lk.color || '#7a8899'}">${dot}` +
+      html: `<div class="team-marker team-tomb" style="--tc:${safeColor(lk.color, '#7a8899')}">${dot}` +
         `<span class="tm-label">${esc(lk.handle || '')} · ${esc(tt('team.lastknown', 'last known'))}${when ? ' ' + esc(when) : ''}</span></div>`,
       iconSize: [14, 14], iconAnchor: [7, 7],
     });

@@ -1,0 +1,14 @@
+{
+  "name": "ResponderTX",
+  "short_name": "ResponderTX",
+  "description": "Live hazard awareness for Texas: real-time, source-cited flood, road, and weather conditions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D1B2A",
+  "theme_color": "#0D1B2A",
+  "icons": [
+    { "src": "assets/brand/app-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/brand/app-icon.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/brand/app-icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

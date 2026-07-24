@@ -141,11 +141,15 @@
     mv.layer = L.layerGroup().addTo(state.map);
   }
 
+  // server assigns color/status, but gate before style/class interpolation anyway
+  function safeColor(c, fb) { return /^#[0-9a-f]{3,8}$/i.test(c || '') ? c : fb; }
+
   function fallbackIcon(m, color, stale) {
     const k9 = m.mtype === MTYPES_K9;
     const dot = k9 ? '<span class="tm-dot tm-dot-k9">🐕</span>' : '<span class="tm-dot"></span>';
-    const cls = 'team-marker team-st-' + (m.status || 'infield') + (stale ? ' team-stale' : '');
-    return L.divIcon({ className: '', html: '<div class="' + cls + '" style="--tc:' + (color || '#40c4ff') +
+    const st = /^[a-z0-9-]+$/.test(m.status || '') ? m.status : 'infield';
+    const cls = 'team-marker team-st-' + st + (stale ? ' team-stale' : '');
+    return L.divIcon({ className: '', html: '<div class="' + cls + '" style="--tc:' + safeColor(color, '#40c4ff') +
       '">' + dot + '<span class="tm-label">' + esc(m.handle) + '</span></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
   }
 
@@ -164,7 +168,7 @@
     const k9 = lk.mtype === MTYPES_K9;
     const dot = k9 ? '<span class="tm-dot tm-dot-k9">🐕</span>' : '<span class="tm-dot"></span>';
     const when = hhmm(lk.lastSeen);
-    return L.divIcon({ className: '', html: '<div class="team-marker team-tomb" style="--tc:' + (lk.color || '#7a8899') +
+    return L.divIcon({ className: '', html: '<div class="team-marker team-tomb" style="--tc:' + safeColor(lk.color, '#7a8899') +
       '">' + dot + '<span class="tm-label">' + esc(lk.handle || '') + ' · ' + esc(M('lastknown')) + (when ? ' ' + esc(when) : '') + '</span></div>',
       iconSize: [14, 14], iconAnchor: [7, 7] });
   }

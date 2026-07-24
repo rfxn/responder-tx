@@ -1,5 +1,33 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.60 · 2026-07-23 (Mobile legend pills, event-scoped data, record crests, install branding)
+
+-- New Features --
+- [New] Web app manifest plus install icons (192px and maskable 512px): Add to Home
+      Screen now installs a branded ResponderTX app, and the browser chrome color
+      follows the theme (brand navy in dark mode).
+- [New] Crest-of-record data regenerated for the active coverage area: 216 gauges now
+      carry record stage and date from NWPS historic crests via new
+      scripts/gen-records.py, re-lighting record-watch chips and over/near-record
+      headlines; recent preliminary crests are excluded so an ongoing event cannot
+      become its own record.
+
+-- Bug Fixes --
+- [Fix] Mobile legend overhaul: all four map legends (radar, rainfall, inundation,
+      surge) collapse to compact pills on phones with tap-to-expand carets; covers
+      landscape and 501-820px widths that previously showed a full 230px box
+      mid-screen; legends stack above the radar scrub bar without overlap.
+- [Fix] Public feed, crest summary, and history playback are scoped to the active
+      event from event.json (24h feed notice aging, TS Bertha window and naming),
+      ending stale Hill Country carryover on public surfaces.
+- [Fix] Team marker colors are gated to hex values before style interpolation on the
+      team map and the LAN master view; malformed Content-Length on the team proxy
+      now returns a clean 400.
+
+-- Changes --
+- [Change] Drive Mode and Crest Summary text tones moved from legacy warm grays to
+         brand slate and light for palette consistency and better contrast.
+
 ## v0.97.59 · 2026-07-23 (Quality pass: screen-wake reliability, radar retry cleanup, formal Spanish wording)
 
 -- Bug Fixes --

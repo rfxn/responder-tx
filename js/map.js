@@ -18,6 +18,8 @@ function applyTheme(theme) {
   if (theme !== 'dark' && theme !== 'light') theme = 'light'; // invalid ?theme=/storage must never crash boot or persist
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('respondertx.theme', theme);
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', theme === 'dark' ? '#0D1B2A' : '#ffffff'); // browser chrome tracks --surface-1
   $('#theme-toggle').innerHTML = theme === 'dark'
     ? `☀️ <span class="ctl-lbl">${esc(t('ctl.theme.light'))}</span>`
     : `🌙 <span class="ctl-lbl">${esc(t('ctl.theme.dark'))}</span>`;
@@ -511,12 +513,17 @@ function initMap() {
   legend.addTo(state.map);
   initOfflineControl();
 
-  const mrmsLg = $('#mrms-legend');
-  L.DomEvent.disableClickPropagation(mrmsLg);
-  L.DomEvent.disableScrollPropagation(mrmsLg);
-  const wxLg = $('#wx-legend');
-  L.DomEvent.disableClickPropagation(wxLg);
-  L.DomEvent.disableScrollPropagation(wxLg);
+  // overlay legends: tap toggles pill/expanded; small or short screens start collapsed (msg 128)
+  const bigViewport = !window.matchMedia('(max-width: 820px), (max-height: 500px)').matches;
+  document.querySelectorAll('.ov-legend').forEach((lg) => {
+    L.DomEvent.disableClickPropagation(lg);
+    L.DomEvent.disableScrollPropagation(lg);
+    lg.classList.toggle('open', bigViewport);
+    L.DomEvent.on(lg, 'click', (e) => {
+      if (e.target.closest('#mrms-legend-chips')) return; // chips pick a window, not toggle
+      lg.classList.toggle('open');
+    });
+  });
   $('#mrms-legend-chips').addEventListener('click', (e) => {
     const b = e.target.closest('.mrms-chip');
     if (b) setRainWindow(b.dataset.win);

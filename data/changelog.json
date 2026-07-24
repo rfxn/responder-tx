@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.60",
+      "date": "2026-07-23",
+      "line": "Mobile legends and event accuracy. The radar, rainfall, inundation, and surge map legends now collapse to small pills on phones (tap to expand), so nothing covers the middle of the screen, and landscape phones are handled too. The public feed, crest summary, and history playback now follow the active event (TS Bertha) instead of carrying the prior Hill Country event, and record-crest context is live again for 216 coastal gauges. You can also add ResponderTX to your home screen as a branded app, and Drive Mode text now matches the brand palette."
+    },
+    {
       "v": "v0.97.59",
       "date": "2026-07-23",
       "line": "Quality pass. The screen-wake hold is more reliable: a rare timing case could let the screen dim while you were sharing your location or using Drive Mode, and that is fixed. Radar tile retries no longer reload tiles that a radar refresh already replaced. And the Spanish interface now uses the formal “toque” wording consistently in the map flag tooltip, the tide table, and the compass controls."

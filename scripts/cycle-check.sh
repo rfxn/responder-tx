@@ -1,12 +1,48 @@
 #!/bin/bash
-# cycle-check.sh — pre-commit sanity bundle for the release cycle; runs all checks, reports each, exits non-zero if any fail
+# cycle-check.sh [--code-from-head] — pre-commit sanity bundle for the release cycle; runs all checks, reports each, exits non-zero if any fail
 set -euo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 
+CODE_FROM_HEAD=0
+for arg in "$@"; do
+    case "$arg" in
+        --code-from-head) CODE_FROM_HEAD=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --code-from-head)" >&2; exit 2 ;;
+    esac
+done
+
 FAILURES=0
 pass() { echo "OK:   $*"; }
 failck() { echo "FAIL: $*"; FAILURES=$((FAILURES + 1)); }
+
+# Two lanes. The DATA lane (JSON validity, feeds, snapshot, staged files, cursors, schemas) always
+# reads the working tree: that is the data the cycle is about to commit. The CODE lane (JS syntax,
+# version agreement, the 911-gate and brand-hook source checks) reads HEAD under --code-from-head,
+# so a release agent's half-finished version bump cannot fail a data cycle and strand the public
+# board on stale flood data. Without the flag the code lane reads the tree at full strength, which
+# is what a release agent needs before committing a bump.
+CODE_ROOT="."
+CODE_TMP=""
+# shellcheck disable=SC2317  # reached only via the EXIT trap below
+cleanup_code_snapshot() {
+    rc=$?
+    if [ -n "$CODE_TMP" ]; then rm -rf "$CODE_TMP"; fi
+    exit "$rc"
+}
+if [ "$CODE_FROM_HEAD" -eq 1 ]; then
+    git rev-parse --verify HEAD >/dev/null 2>&1 || { echo "FAIL: --code-from-head needs a commit to read" >&2; exit 1; }
+    CODE_TMP=$(mktemp -d "${TMPDIR:-/tmp}/responder-codecheck.XXXXXX") || { echo "FAIL: mktemp for the HEAD code snapshot failed" >&2; exit 1; }
+    trap cleanup_code_snapshot EXIT
+    CODE_ROOT="$CODE_TMP"
+    mkdir -p "$CODE_ROOT/js" "$CODE_ROOT/data"
+    while IFS= read -r f; do
+        git show "HEAD:$f" > "$CODE_ROOT/$f" || { echo "FAIL: cannot read ${f} from HEAD" >&2; exit 1; }
+    done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/event.json \
+        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|event)\.json$')
+    echo "note: code-lane checks read HEAD ($(git rev-parse --short HEAD)); data-lane checks read the working tree"
+fi
+export CODE_ROOT
 
 # a. JSON validity
 check_json() {
@@ -33,7 +69,7 @@ if check_json; then pass "JSON validity (data/*.json, chat-inbox.jsonl)"; else f
 # b. JS syntax (js/*.js glob excludes js/vendor/)
 check_js() {
     local f
-    for f in js/*.js; do
+    for f in "$CODE_ROOT"/js/*.js; do
         node --check "$f" || return 1
     done
     return 0
@@ -43,27 +79,27 @@ if check_js; then pass "JS syntax (node --check, js/*.js excl. vendor)"; else fa
 # c. Four-way version agreement
 check_versions() {
     local app_version stamp_version stamps stamp cl_version md_version sw_version
-    app_version=$(grep -oP "APP_VERSION = '\K[^']+" js/core.js) || { echo "no APP_VERSION in js/core.js" >&2; return 1; }
+    app_version=$(grep -oP "APP_VERSION = '\K[^']+" "$CODE_ROOT/js/core.js") || { echo "no APP_VERSION in js/core.js" >&2; return 1; }
     stamp_version="${app_version#v}"
-    stamps=$(grep -o '?v=[^"]*' index.html) || { echo "no ?v= stamps in index.html" >&2; return 1; }
+    stamps=$(grep -o '?v=[^"]*' "$CODE_ROOT/index.html") || { echo "no ?v= stamps in index.html" >&2; return 1; }
     while IFS= read -r stamp; do
         if [ "$stamp" != "?v=${stamp_version}" ]; then
             echo "index.html stamp '${stamp}' != '?v=${stamp_version}'" >&2
             return 1
         fi
     done <<< "$stamps"
-    cl_version=$(python3 -c "import json; print(json.load(open('data/changelog.json'))['versions'][0]['v'])") \
+    cl_version=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['versions'][0]['v'])" "$CODE_ROOT/data/changelog.json") \
         || { echo "cannot read versions[0].v from data/changelog.json" >&2; return 1; }
     if [ "$cl_version" != "$app_version" ]; then
         echo "changelog.json '${cl_version}' != APP_VERSION '${app_version}'" >&2
         return 1
     fi
-    md_version=$(grep -m1 -oP '^## \Kv[0-9][^ ]*' CHANGELOG.md) || { echo "no '## vX.Y.Z' heading in CHANGELOG.md" >&2; return 1; }
+    md_version=$(grep -m1 -oP '^## \Kv[0-9][^ ]*' "$CODE_ROOT/CHANGELOG.md") || { echo "no '## vX.Y.Z' heading in CHANGELOG.md" >&2; return 1; }
     if [ "$md_version" != "$app_version" ]; then
         echo "CHANGELOG.md top heading '${md_version}' != APP_VERSION '${app_version}'" >&2
         return 1
     fi
-    sw_version=$(grep -m1 -oP "SW_VERSION = '\K[^']+" sw.js) || { echo "no SW_VERSION in sw.js" >&2; return 1; }
+    sw_version=$(grep -m1 -oP "SW_VERSION = '\K[^']+" "$CODE_ROOT/sw.js") || { echo "no SW_VERSION in sw.js" >&2; return 1; }
     if [ "$sw_version" != "$stamp_version" ]; then
         echo "sw.js SW_VERSION '${sw_version}' != stamp version '${stamp_version}'" >&2
         return 1
@@ -116,7 +152,7 @@ if check_staged; then pass "staged-file guard (no working/chat files staged)"; e
 # g. 911-gate Escape immunity — #safety-modal must never appear in the Escape-dismiss loop array
 check_safety_escape() {
     local arr
-    arr=$(awk '/never on Escape or a backdrop click/{f=1} f&&/for \(const id of \[/{print; exit}' js/boot.js)
+    arr=$(awk '/never on Escape or a backdrop click/{f=1} f&&/for \(const id of \[/{print; exit}' "$CODE_ROOT/js/boot.js")
     [ -n "$arr" ] || { echo "Escape-dismiss loop array not found in js/boot.js (anchor comment moved?)" >&2; return 1; }
     if printf '%s\n' "$arr" | grep -q "safety-modal"; then
         echo "js/boot.js: #safety-modal in the Escape-dismiss loop array — the 911 gate must stay Escape-immune" >&2
@@ -131,9 +167,10 @@ check_event_brand() {
     node - <<'EOF'
 const fs = require('fs');
 const fail = (m) => { console.error(`event-brand gate: ${m}`); process.exit(1); };
-const boot = fs.readFileSync('js/boot.js', 'utf8');
-const html = fs.readFileSync('index.html', 'utf8');
-const ev = JSON.parse(fs.readFileSync('data/event.json', 'utf8'));
+const root = process.env.CODE_ROOT || '.';
+const boot = fs.readFileSync(`${root}/js/boot.js`, 'utf8');
+const html = fs.readFileSync(`${root}/index.html`, 'utf8');
+const ev = JSON.parse(fs.readFileSync(`${root}/data/event.json`, 'utf8'));
 const m = boot.match(/async function loadEventConfig\(\)[\s\S]*?\n\}/);
 if (!m) fail('loadEventConfig() not found in js/boot.js');
 const fn = m[0];

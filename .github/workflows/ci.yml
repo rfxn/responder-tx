@@ -43,6 +43,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: bash tests/deploy.test.sh
 
+      - name: Cycle-check immunity tests
+        if: ${{ !cancelled() }}
+        run: bash tests/cycle-check.test.sh
+
       - name: Freshness-monitor tests
         if: ${{ !cancelled() }}
         run: bash tests/freshness-monitor.test.sh

@@ -73,7 +73,7 @@ if ! python3 scripts/gen-caltopo.py; then
 fi
 
 log "step: cycle-check.sh (validation)"
-bash scripts/cycle-check.sh
+bash scripts/cycle-check.sh --code-from-head
 
 if [ "$DRY_RUN" -eq 1 ]; then
     log "DRY-RUN OK: fetch + generators + validation composed; stopping before git/deploy"

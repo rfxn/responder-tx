@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.89",
+      "date": "2026-07-24",
+      "line": "Housekeeping on the automatic updates. The 15 minute job that refreshes river and road data ran a set of code checks against whatever happened to be on disk, so any moment a new release was half prepared it reported a mismatch and abandoned the cycle, leaving the public board on the previous readings until the next run. That had happened seven times. The job now checks the last released code rather than work in progress, while the freshly fetched data itself is still checked exactly as before, and a genuine mismatch in released code still stops the cycle."
+    },
+    {
       "v": "v0.97.88",
       "date": "2026-07-24",
       "line": "Four smaller fixes. The offline copy of the flood data is no longer erased every time you accept an app update, so a responder who loses signal right after updating still has the last readings the board saw, and the copies saved under the old scheme are carried over rather than thrown away. Tapping Notify me on a gauge while device alerts are off now says what is missing instead of switching to a panel that looks inert, and the gauge you picked is still selected once alerts are on. Leaving Basin Focus now clears the corridor rings it drew on the map instead of leaving a dozen gauges circled with nothing to explain them. And the copy, import, intake and shelter dialogs that had only ever spoken English now speak Spanish too."

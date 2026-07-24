@@ -18,6 +18,7 @@ touches neither the network nor the real repo data):
 ```bash
 bash tests/chat-poll.test.sh          # ops-chat durability
 bash tests/deploy.test.sh             # release gate: deploy.sh reads and ships HEAD
+bash tests/cycle-check.test.sh        # data cycle: cycle-check is immune to a mid-bump tree
 bash tests/freshness-monitor.test.sh  # public-mirror freshness monitor
 python3 tests/server-gate.test.py     # LAN server write gate
 python3 tests/gen-notices.test.py     # LAN intake merge semantics

@@ -1,5 +1,46 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.89 · 2026-07-24 (a mid-bump working tree can no longer fail a data cycle)
+
+-- Bug Fixes --
+- [Fix] scripts/cycle-check.sh read APP_VERSION, and the four files it must
+      agree with, from the working tree, and scripts/run-cycle.sh runs it as the
+      data cycle's validation step. Any cycle that landed between a release's
+      first version-bump edit and its commit therefore failed the whole cycle,
+      so fresh gauge, road and shelter data did not reach the public board until
+      a later run. This fired seven times in the cycle log, the last four
+      including sw.js, one of them during the v0.97.86 bump in this same wave.
+      It is the same root cause as the v0.97.85 deploy fix: cron-side validation
+      reading a tree a release agent is actively editing.
+- [Fix] The same working-tree read affected the JS-syntax check, the 911-gate
+      Escape-immunity check and the event-config brand-hook check, so a
+      half-saved js file could fail a data cycle too. Fixed as a class rather
+      than one instance: all four code-lane checks now read one source.
+
+-- Changes --
+- [Change] cycle-check.sh takes --code-from-head, which points the code lane
+           (JS syntax, version agreement, 911 gate, brand hook) at a throwaway
+           snapshot of HEAD. The data lane (JSON validity, feeds, snapshot
+           sanity, staged files, chat cursors, data schemas) always reads the
+           working tree, because that is the data the cycle is about to commit.
+           run-cycle.sh passes the flag. A release agent running cycle-check
+           before committing a bump still gets the working tree at full
+           strength, which is what that call exists for. An unknown argument is
+           now rejected rather than silently ignored.
+- [Change] deploy.sh needs no change here: since v0.97.85 it runs cycle-check
+           inside its own HEAD worktree, where the tree and HEAD are the same
+           thing.
+
+-- New Features --
+- [New] tests/cycle-check.test.sh: ten regressions against a scratch git repo.
+      A mid-bump tree fails the release lane but not the data cycle; a complete
+      but uncommitted bump passes both ways; a committed four-way disagreement
+      still fails, so the check is not weakened into a no-op; a syntax error at
+      HEAD still fails; the 911-gate check still fires when read from HEAD;
+      uncommitted data is still validated, so the flag cannot blind the data
+      lane; run-cycle.sh is asserted to pass the flag; and an unknown argument
+      is rejected. Wired into CI.
+
 ## v0.97.88 · 2026-07-24 (the offline data cache survives updates, plus three smaller fixes)
 
 -- Bug Fixes --

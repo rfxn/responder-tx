@@ -27,6 +27,7 @@ cd "$REPO_ROOT" || exit 1
 # prepend the standard dirs so claude/node/python3/git resolve as in a login shell.
 export HOME="${HOME:-/root}"  # cron may not set HOME; claude reads ~/.claude/.credentials.json
 export PATH="$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"  # ~/.local/bin holds the claude binary
+export IS_SANDBOX="${IS_SANDBOX:-1}"  # claude -p --permission-mode bypassPermissions refuses to run as root without this; cron runs as root and its clean env lacks it, so recovery exited 1 instantly (msg waited 54m 2026-07-24)
 
 INBOX="${RESPONDER_CHAT_INBOX:-data/chat-inbox.jsonl}"
 OUTBOX="${RESPONDER_CHAT_OUTBOX:-data/chat-outbox.json}"

@@ -29,6 +29,7 @@ cd "$REPO_ROOT" || exit 1
 # way an interactive shell does (same lesson as run-cycle.sh).
 export HOME="${HOME:-/root}"  # cron may not set HOME; claude reads ~/.claude/.credentials.json
 export PATH="$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"  # ~/.local/bin holds the claude binary
+export IS_SANDBOX="${IS_SANDBOX:-1}"  # full-mode claude -p (--chat) uses bypassPermissions; refuses to run as root without this in cron's clean env
 
 INBOX="${RESPONDER_CHAT_INBOX:-data/chat-inbox.jsonl}"
 OUTBOX="${RESPONDER_CHAT_OUTBOX:-data/chat-outbox.json}"

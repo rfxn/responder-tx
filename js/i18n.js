@@ -218,6 +218,7 @@
       'ao.current.title': 'Area of operations view: tap to change area',
       'ao.chip.title': 'Jump the map to this area',
       'ao.custom': 'custom view',
+      'ao.full': 'Full AO',
 
       'sheet.open': 'Map layers: choose what the map shows',
       'sheet.title': '🗂 Map layers',
@@ -943,6 +944,7 @@
       'ao.current.title': 'Vista del área de operaciones: toque para cambiar de área',
       'ao.chip.title': 'Mover el mapa a esta área',
       'ao.custom': 'vista personalizada',
+      'ao.full': 'AO completa',
 
       'sheet.open': 'Capas del mapa: elija qué muestra el mapa',
       'sheet.title': '🗂 Capas del mapa',

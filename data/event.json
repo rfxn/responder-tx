@@ -1,9 +1,15 @@
 {
-  "name": "Responder TX",
+  "name": "ResponderTX · TS Bertha",
   "event": "TS Bertha",
   "region": "the upper Texas coast",
   "start": "2026-07-22T00:00:00Z",
   "center": [29.5, -95.1],
   "zoom": 8,
-  "gaugeBbox": { "xmin": -98.0, "ymin": 27.5, "xmax": -93.4, "ymax": 31.0 }
+  "gaugeBbox": { "xmin": -98.0, "ymin": 27.5, "xmax": -93.4, "ymax": 31.0 },
+  "aoPresets": [
+    { "id": "houston", "label": "Houston metro", "labelEs": "Houston metro", "bounds": [[29.4, -95.9], [30.2, -94.9]] },
+    { "id": "beaumont", "label": "Beaumont · Port Arthur", "labelEs": "Beaumont · Port Arthur", "bounds": [[29.6, -94.5], [30.6, -93.4]] },
+    { "id": "galvestonbay", "label": "Galveston Bay", "labelEs": "Bahía de Galveston", "bounds": [[28.9, -95.5], [29.75, -94.35]] },
+    { "id": "matagorda", "label": "Matagorda · Victoria", "labelEs": "Matagorda · Victoria", "bounds": [[28.0, -97.6], [29.2, -95.9]] }
+  ]
 }

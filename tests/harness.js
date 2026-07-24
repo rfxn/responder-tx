@@ -93,6 +93,7 @@ function buildSandbox() {
     Event: function Event(type) { this.type = type; },
     Option: function Option(text, value) { this.text = text; this.value = value; },
     fetch() { return Promise.reject(new Error('network disabled in tests')); },
+    t(key) { return key; }, // i18n.js is not loaded; key-echo keeps t()-calling helpers exercisable
     L,
   };
   sandbox.window = sandbox;
@@ -110,6 +111,7 @@ const EXPORTS = [
   'alertReach', 'alertSeverity',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'riverOf',
   'smartScore', 'shortId',
+  'resolveAoPresets', 'aoFullBounds', 'AO_PRESET_FALLBACK',
 ];
 
 let cached = null;

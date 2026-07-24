@@ -507,7 +507,13 @@ async function loadEventConfig() {
     if (Array.isArray(ev.center)) CONFIG.center = ev.center;
     if (ev.zoom) CONFIG.zoom = ev.zoom;
     if (ev.gaugeBbox) CONFIG.gaugeBbox = ev.gaugeBbox;
-    if (ev.name) { document.querySelector('.brand h1').textContent = ev.name; state.baseTitle = ev.name; }
+    if (Array.isArray(ev.aoPresets)) CONFIG.aoPresets = ev.aoPresets;
+    if (ev.name) {
+      // brand is logo imgs (no h1 since the lockup rebrand); the name lands on alt text + tab title
+      document.querySelectorAll('.brand .brand-logo').forEach((img) => { img.alt = ev.name; });
+      state.baseTitle = ev.name;
+      document.title = ev.name;
+    }
     if (ev.subtitle) {
       const st = document.querySelector('.brand .sub-text');
       if (st) {

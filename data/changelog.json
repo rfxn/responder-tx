@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.65",
+      "date": "2026-07-24",
+      "line": "The area quick-jump pills and Reset view now follow the live event. Full AO is derived from the active gauge coverage box and the sub-area pills come from the event configuration: for TS Bertha they frame Houston metro, Beaumont · Port Arthur, Galveston Bay, and Matagorda · Victoria (the old pills still pointed at the retired Hill Country area and cut off the coast). The event name also shows again in the tab title and brand accessible text, with a release check guarding it."
+    },
+    {
       "v": "v0.97.64",
       "date": "2026-07-24",
       "line": "Offline fixes. The Leaflet map library now ships with the app instead of loading from a CDN, so the map renders even with no internet and no third-party dependency. The offline data fallback is fixed: saved copies of gauges and board data now match when you are out of signal (cache-busted fetches previously never hit the saved copy). Also adds a viewport-height fallback for older browsers so the legend and list keep their sizing."

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.64';
+const APP_VERSION = 'v0.97.65';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -8,6 +8,8 @@ const CONFIG = {
   // Upper/mid Texas coast (Matagorda to Sabine, inland to Houston/Beaumont) for TS Bertha; data/event.json
   // overrides this per-event. Pivoted 2026-07-23 from the Hill Country box; revert both when the event clears
   gaugeBbox: { xmin: -98.0, ymin: 27.5, xmax: -93.4, ymax: 31.0 },
+  // sub-AO quick-jump presets; data/event.json aoPresets overrides per-event (null = built-in fallback)
+  aoPresets: null,
   alertsUrl: 'https://api.weather.gov/alerts/active?area=TX',
   nwpsBase: 'https://api.water.noaa.gov/nwps/v1',
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
@@ -65,6 +67,33 @@ const CONFIG = {
   surgeCat: 5,
   surgeUrl: (cat) => `https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/Storm_Surge_HazardMaps_Category${cat}_v3/MapServer/tile/{z}/{y}/{x}`,
 };
+
+// last-resort sub-AO pills when data/event.json carries no aoPresets (Hill Country, July 2026 event)
+const AO_PRESET_FALLBACK = [
+  ['Kerr/Guadalupe', [[29.85, -99.6], [30.2, -98.9]]],
+  ['Uvalde/Frio-Nueces', [[28.9, -100.1], [29.6, -99.4]]],
+  ['Val Verde/Pecos', [[29.3, -101.9], [30.35, -100.8]]],
+  ['Sonora/Ozona', [[30.3, -101.4], [30.95, -100.3]]],
+  ['Cibolo corridor', [[28.9, -98.4], [29.4, -97.9]]],
+];
+
+function aoFullBounds() {
+  const b = CONFIG.gaugeBbox;
+  return [[b.ymin, b.xmin], [b.ymax, b.xmax]];
+}
+
+function aoBoundsOk(b) {
+  return Array.isArray(b) && b.length === 2 &&
+    b.every((c) => Array.isArray(c) && c.length === 2 && c.every(Number.isFinite));
+}
+
+// [label, bounds] pill list: Full AO (always first, from CONFIG.gaugeBbox) + event sub-AOs or fallback
+function resolveAoPresets(lang) {
+  const evp = (Array.isArray(CONFIG.aoPresets) ? CONFIG.aoPresets : [])
+    .filter((p) => p && typeof p.label === 'string' && aoBoundsOk(p.bounds))
+    .map((p) => [(lang === 'es' && typeof p.labelEs === 'string') ? p.labelEs : p.label, p.bounds]);
+  return [[t('ao.full'), aoFullBounds()]].concat(evp.length ? evp : AO_PRESET_FALLBACK);
+}
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
 const LSR_FLOOD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE/i;

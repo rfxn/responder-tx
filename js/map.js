@@ -776,16 +776,8 @@ const CTL_ICON_COMPASS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-h
 
 /* ---------- AO quick-jump — pills along the map top edge, never another stacked box ---------- */
 
-const AO_PRESETS = [
-  ['Full AO', [[28.0, -102.0], [31.1, -97.0]]],
-  ['Kerr/Guadalupe', [[29.85, -99.6], [30.2, -98.9]]],
-  ['Uvalde/Frio-Nueces', [[28.9, -100.1], [29.6, -99.4]]],
-  ['Val Verde/Pecos', [[29.3, -101.9], [30.35, -100.8]]],
-  ['Sonora/Ozona', [[30.3, -101.4], [30.95, -100.3]]],
-  ['Cibolo corridor', [[28.9, -98.4], [29.4, -97.9]]],
-];
-
 function initAoJump() {
+  const AO_PRESETS = resolveAoPresets(getLang()); // event-config pills (data/event.json) or built-in fallback
   const jump = L.DomUtil.create('div', 'ao-jump', state.map.getContainer());
   const cur = L.DomUtil.create('button', 'ao-current', jump);
   cur.setAttribute('aria-haspopup', 'true');
@@ -1088,7 +1080,7 @@ function layerSheetReset() {
     state.baseLayers.streets.addTo(state.map);
   }
   state.lsCamOpen.clear(); // reset returns the camera sub-groups to all-collapsed
-  state.map.fitBounds(AO_PRESETS[0][1]);
+  state.map.fitBounds(aoFullBounds());
   renderLayerSheet();
 }
 

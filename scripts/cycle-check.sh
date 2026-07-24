@@ -125,9 +125,45 @@ check_safety_escape() {
 }
 if check_safety_escape; then pass "911-gate Escape immunity (#safety-modal absent from Escape loop)"; else failck "911-gate Escape immunity"; fi
 
+# h. event-config brand hook — the loadEventConfig name/subtitle application must target elements that exist in index.html
+check_event_brand() {
+    node - <<'EOF'
+const fs = require('fs');
+const fail = (m) => { console.error(`event-brand gate: ${m}`); process.exit(1); };
+const boot = fs.readFileSync('js/boot.js', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8');
+const ev = JSON.parse(fs.readFileSync('data/event.json', 'utf8'));
+const m = boot.match(/async function loadEventConfig\(\)[\s\S]*?\n\}/);
+if (!m) fail('loadEventConfig() not found in js/boot.js');
+const fn = m[0];
+if (ev.name && typeof ev.name === 'string') {
+  if (!/state\.baseTitle\s*=/.test(fn)) fail('event.json has a name but loadEventConfig no longer sets state.baseTitle');
+  if (!/document\.title\s*=/.test(fn)) fail('event.json has a name but loadEventConfig no longer sets document.title');
+}
+const sels = [...fn.matchAll(/querySelector(?:All)?\('([^']+)'\)/g)].map((x) => x[1]);
+if (!sels.length) fail('loadEventConfig references no DOM selectors; the brand/subtitle hook is gone');
+for (const sel of sels) {
+  for (const cls of sel.match(/\.[A-Za-z0-9_-]+/g) || []) {
+    const name = cls.slice(1);
+    if (!new RegExp(`class="([^"]* )?${name}( [^"]*)?"`).test(html)) {
+      fail(`loadEventConfig targets '${sel}' but index.html has no element with class '${name}'`);
+    }
+  }
+  // bare tag tokens too: the original defect was '.brand h1' where .brand existed but no h1 did
+  for (const part of sel.split(/[\s>+~]+/)) {
+    const tag = (part.match(/^[a-zA-Z][a-zA-Z0-9]*/) || [])[0];
+    if (tag && !new RegExp(`<${tag}[\\s>]`, 'i').test(html)) {
+      fail(`loadEventConfig targets '${sel}' but index.html has no <${tag}> element`);
+    }
+  }
+}
+EOF
+}
+if check_event_brand; then pass "event-config brand hook (event.json name/subtitle targets exist in index.html)"; else failck "event-config brand hook"; fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 7 checks passed"
+    echo "SUMMARY: all 8 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 7 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 8 checks FAILED"
 exit 1

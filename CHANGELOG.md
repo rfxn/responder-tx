@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.65 · 2026-07-24 (Event-aware AO presets and event name in the header)
+
+-- Bug Fixes --
+- [Fix] The area quick-jump pills and the layer sheet's "Reset view" now follow
+      the live event instead of the retired Hill Country operation: "Full AO" is
+      derived from the active gauge coverage box, and the sub-area pills come from
+      the event configuration (data/event.json), with the previous list kept as a
+      fallback when no event presets exist. For TS Bertha the pills now frame the
+      upper Texas coast: Houston metro, Beaumont · Port Arthur, Galveston Bay, and
+      Matagorda · Victoria. Previously "Full AO" cut off everything east of -97.0,
+      excluding the entire Houston and Beaumont operational area.
+- [Fix] The event name set in the event configuration shows again in the browser
+      tab title and on the brand logo's accessible text; the hook silently broke
+      when the header heading was replaced by logo images, and the error was
+      swallowed. A release-check gate now verifies the hook targets elements that
+      actually exist in the page.
+
 ## v0.97.64 · 2026-07-24 (Offline correctness: map library served locally, data fallback fixed)
 
 -- Bug Fixes --

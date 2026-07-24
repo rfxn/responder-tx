@@ -35,7 +35,9 @@ function allowedEndpoint(endpoint) {
   if (u.protocol !== 'https:') return false;
   const h = u.hostname.toLowerCase();
   const suffix = (base) => h === base || h.endsWith(`.${base}`);
-  return h === 'fcm.googleapis.com' || h === 'updates.push.services.mozilla.com'
+  return h === 'fcm.googleapis.com' || h === 'android.googleapis.com'
+    || /^jmt\d+\.google\.com$/.test(h) // FCM edge host minted by (unbranded) Chromium builds
+    || h === 'updates.push.services.mozilla.com'
     || suffix('push.services.mozilla.com') || suffix('notify.windows.com')
     || h === 'web.push.apple.com' || suffix('push.apple.com');
 }

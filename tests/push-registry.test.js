@@ -40,6 +40,9 @@ test('allowlist accepts the known push-service hosts, https only', () => {
   assert.ok(allowedEndpoint('https://updates.push.services.mozilla.com/wpush/v2/x'));
   assert.ok(allowedEndpoint('https://ab12.notify.windows.com/w/?token=x'));
   assert.ok(allowedEndpoint('https://web.push.apple.com/QOr...'));
+  assert.ok(allowedEndpoint('https://jmt17.google.com/fcm/send/abc'), 'Chromium FCM edge host');
+  assert.ok(!allowedEndpoint('https://jmt17x.google.com/fcm/send/abc'), 'jmt pattern is digits-only');
+  assert.ok(!allowedEndpoint('https://accounts.google.com/x'), 'google.com is not broadly allowed');
   assert.ok(!allowedEndpoint('http://fcm.googleapis.com/fcm/send/abc'), 'http rejected');
   assert.ok(!allowedEndpoint('https://evil.example.com/collect'), 'unknown host rejected');
   assert.ok(!allowedEndpoint('https://fcm.googleapis.com.evil.com/x'), 'suffix spoof rejected');

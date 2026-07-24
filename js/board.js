@@ -52,7 +52,7 @@ function updateFiltersBadge() {
   const n = ['type', 'county', 'q', 'window'].filter((k) => f[k]).length
     + (f.dist && state.myPos ? 1 : 0) // dist only applies with a GPS fix, matching requestVisible + the all-clear check
     + (state.sort !== 'smart' ? 1 : 0) + (state.showAged ? 1 : 0) + (state.inView ? 1 : 0);
-  $('#filters-toggle').textContent = n ? `☰ Filters (${n})` : '☰ Filters';
+  $('#filters-toggle').textContent = n ? t('feed.filters.n').replace('{n}', n) : t('feed.filters');
   $('#filters-toggle').classList.toggle('on', n > 0 || !$('#req-filters').hidden);
 }
 

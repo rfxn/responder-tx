@@ -131,3 +131,60 @@ test('i18n: offline-panel keys exist in both languages with placeholders intact'
     }
   }
 });
+
+/* Markup parity for the feed action rows. These controls shipped untranslated: the export,
+   import, SITREP, filters, more, and new-notice buttons carried no data-i18n attribute at all,
+   so a Spanish session still read them in English (v0.97.83 backfilled them). The check is
+   positional rather than by id, so it keeps holding as later IA phases relocate these controls
+   into a views sheet or a settings sheet. */
+const FEED_ACTION_ROWS = /<div class="feed-actions"[^>]*>([\s\S]*?)<\/div>\s*(?=<div|<\/div>)/g;
+
+function feedActionRows() {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '');
+  const rows = [...html.matchAll(FEED_ACTION_ROWS)].map((m) => m[1]);
+  return rows;
+}
+
+test('i18n: every control in the feed action rows carries a data-i18n attribute', () => {
+  const rows = feedActionRows();
+  assert.ok(rows.length >= 2, `expected the feed-actions row and #more-menu, found ${rows.length}`);
+
+  const missing = [];
+  for (const row of rows) {
+    // buttons carry their own label; a <label> delegates to the text-bearing <span> inside it
+    for (const tag of [...row.matchAll(/<(button|span)\b([^>]*)>/g)]) {
+      const attrs = tag[2];
+      if (/type="file"/.test(attrs)) continue;
+      if (!/\bdata-i18n(=|-html=)/.test(attrs)) {
+        missing.push(`<${tag[1]}${attrs.replace(/\s+/g, ' ')}>`.slice(0, 90));
+      }
+    }
+  }
+  assert.deepEqual(missing, [], 'untranslated control in a .feed-actions row (add data-i18n / data-i18n-title)');
+});
+
+test('i18n: feed and export control keys exist in both languages', () => {
+  const keys = ['feed.new', 'feed.new.title', 'feed.sitrep', 'feed.sitrep.title',
+    'feed.filters', 'feed.filters.n', 'feed.filters.title', 'feed.more', 'feed.more.title',
+    'data.export.json', 'data.export.json.title', 'data.export.geo', 'data.export.geo.title',
+    'data.export.aar', 'data.export.aar.title', 'data.import.json', 'data.import.json.title'];
+  for (const k of keys) {
+    assert.ok(typeof I18N.en[k] === 'string' && I18N.en[k].length, `en missing ${k}`);
+    assert.ok(typeof I18N.es[k] === 'string' && I18N.es[k].length, `es missing ${k}`);
+    assert.ok(!I18N.en[k].includes('—'), `em-dash in en ${k}`);
+    assert.ok(!I18N.es[k].includes('—'), `em-dash in es ${k}`);
+  }
+  // the count variant must keep its placeholder in both languages
+  for (const lang of ['en', 'es']) {
+    assert.ok(I18N[lang]['feed.filters.n'].includes('{n}'), `${lang} feed.filters.n lost its {n} placeholder`);
+  }
+});
+
+test('renderer guard: the filters badge label is not a hardcoded literal', () => {
+  const board = strippedSource('board.js');
+  assert.ok(!/'☰ Filters'|`☰ Filters/.test(board),
+    'js/board.js rebuilds the filters label from an English literal (route it through t(\'feed.filters\'))');
+  assert.ok(/t\('feed\.filters'\)/.test(board) && /t\('feed\.filters\.n'\)/.test(board),
+    'updateFiltersBadge() should read both feed.filters and feed.filters.n');
+});

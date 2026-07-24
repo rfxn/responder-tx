@@ -1,5 +1,29 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.83 · 2026-07-24 (Spanish parity for the feed and export controls)
+
+-- Bug Fixes --
+- [Fix] Eight shipped Feed-tab controls had no translation binding at all, so a
+      Spanish session still read them in English: New notice, SITREP, Filters,
+      More, Export JSON, Export GeoJSON, Export AAR, and Import JSON. Each now
+      carries data-i18n and data-i18n-title, with real Spanish added alongside
+      the English in both language tables.
+- [Fix] The filters button rebuilt its own label from an English literal on
+      every feed render, which would have overwritten a translated label even
+      once the markup was bound. It now reads feed.filters and feed.filters.n,
+      the latter keeping the active-filter count in an {n} placeholder.
+
+-- Changes --
+- [Change] Export JSON and Import JSON gained the hover tooltip their
+           neighbours already had; every control in both feed action rows now
+           has a label and a title in both languages.
+
+-- New Features --
+- [New] tests/i18n.test.js gained a markup-parity gate: it parses index.html
+      and fails if any control in a feed action row lacks a data-i18n
+      attribute. The check is positional, not id-based, so it keeps holding as
+      later restructuring moves these controls into other surfaces.
+
 ## v0.97.82 · 2026-07-24 (Fix: the Recovery view rendered into the wrong container)
 
 -- Bug Fixes --

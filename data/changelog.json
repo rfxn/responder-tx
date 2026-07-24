@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.83",
+      "date": "2026-07-24",
+      "line": "Spanish coverage fix: eight buttons in the Feed tab (New notice, SITREP, Filters, More, Export JSON, Export GeoJSON, Export AAR, and Import JSON) were still showing English even with the board set to Spanish, because they had never been wired to the translation system. They are translated now, including the Filters button's active-filter count. Export JSON and Import JSON also picked up the hover tooltip their neighbours already had. Nothing moves or changes for English users."
+    },
+    {
       "v": "v0.97.82",
       "date": "2026-07-24",
       "line": "Bug fix: the Recovery view (More › Recovery in the Feed tab) was opening empty, showing only its title bar and the 911 reminder. The dashboard was being written into a hidden section of the Resources tab instead, because two different parts of the page were using the same internal name for their container. Recovery now opens with its receding gauges, reopened roads, and wind-down guidance as intended. Nothing else on the board changes."

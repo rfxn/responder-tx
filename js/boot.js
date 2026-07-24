@@ -249,7 +249,7 @@ function tickCountdown() {
 function autoUsgsFallback(on) {
   const lyr = state.layers.usgs;
   if (!lyr) return false;
-  if (state.pb && !state.pb.live) return false; // playback engaged — never add a live layer under a historical frame
+  if (pbBlocksLive(state)) return false; // playback engaged — never add a live layer under a historical frame
   const was = state.usgsFeedStale || false;
   state.usgsFeedStale = on;
   if (on && !was && !state.usgsFallbackDismissed && (state.usgsSites || []).length && !state.map.hasLayer(lyr)) {

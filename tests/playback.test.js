@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadMapApp } = require('./harness.js');
 
-const { pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, state } = loadMapApp();
+const { pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, state } = loadMapApp();
 
 /* frame-selection math for historical playback: frames are as-of snapshots, so a scrub
    time must resolve to the latest frame at-or-before it, clamped inside the 3d/7d/14d
@@ -70,4 +70,26 @@ test('pbRadarStampAt — floors to the IEM 5-minute archive step in UTC', () => 
 test('pbMrmsStampAt — floors to the hourly MRMS archive stamp (minutes always 00)', () => {
   assert.equal(pbMrmsStampAt(Date.UTC(2026, 6, 24, 12, 59, 59)), '202607241200');
   assert.equal(pbMrmsStampAt(Date.UTC(2026, 6, 24, 13, 0, 0)), '202607241300');
+});
+
+/* pbBlocksLive — the one predicate behind every "playback owns the map" lock (layer sheet,
+   layer pills, rain-window chips, radar scrub, live-layer adds). */
+
+test('pbBlocksLive — no playback session yet (state.pb null/undefined) never blocks', () => {
+  assert.equal(pbBlocksLive({}), false);
+  assert.equal(pbBlocksLive({ pb: null }), false);
+});
+
+test('pbBlocksLive — playback bar open but on LIVE does not block live layers', () => {
+  assert.equal(pbBlocksLive({ pb: { live: true } }), false);
+});
+
+test('pbBlocksLive — engaged playback (historical frame showing) blocks live mutations', () => {
+  assert.equal(pbBlocksLive({ pb: { live: false } }), true);
+});
+
+test('pbBlocksLive — returns a real boolean, never a truthy object (callers assign it to DOM state)', () => {
+  assert.strictEqual(pbBlocksLive({ pb: { live: false } }), true);
+  assert.strictEqual(pbBlocksLive({ pb: { live: true } }), false);
+  assert.strictEqual(pbBlocksLive({}), false);
 });

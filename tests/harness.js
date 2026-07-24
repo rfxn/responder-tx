@@ -53,6 +53,8 @@ function makeElementStub() {
 function buildSandbox() {
   const documentStub = {
     title: '',
+    readyState: 'loading', // classic scripts evaluate before DOMContentLoaded; notes.js branches on this
+
     querySelector() { return makeElementStub(); },
     querySelectorAll() { return []; },
     createElement() { return makeElementStub(); },
@@ -119,8 +121,8 @@ const EXPORTS = [
   'pushCardState', 'pushFreshState',
 ];
 
-// map.js adds the playback frame-selection / archive-stamp math (pure, state-driven)
-const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'iemRadarFrames', 'wxFcstDegraded']);
+// map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
+const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'iemRadarFrames', 'wxFcstDegraded']);
 
 function buildBundle(files, exports) {
   const sources = files.map(read).join('\n;\n');
@@ -136,8 +138,9 @@ function buildBundle(files, exports) {
 let cached = null;
 
 // Load the app's pure logic once and return the exported symbols.
+// playback.js precedes sources.js/board.js as in index.html (their pb* calls are runtime-only).
 function loadApp() {
-  if (!cached) cached = buildBundle(['core.js', 'usng.js', 'sources.js', 'board.js'], EXPORTS);
+  if (!cached) cached = buildBundle(['core.js', 'usng.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js'], EXPORTS);
   return cached;
 }
 
@@ -145,8 +148,8 @@ let mapCached = null;
 
 // Same bundle plus map.js (declaration-only at load, like the rest).
 function loadMapApp() {
-  if (!mapCached) mapCached = buildBundle(['core.js', 'usng.js', 'sources.js', 'board.js', 'map.js'], MAP_EXPORTS);
+  if (!mapCached) mapCached = buildBundle(['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js'], MAP_EXPORTS);
   return mapCached;
 }
 
-module.exports = { loadApp, loadMapApp };
+module.exports = { loadApp, loadMapApp, buildSandbox };

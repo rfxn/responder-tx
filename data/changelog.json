@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.77",
+      "date": "2026-07-24",
+      "line": "Under-the-hood restructuring only, nothing changes on screen: the historical playback system and the camera layer each moved into their own script file (the two biggest files had grown past easy review), and the release checks gained a new automatic test that loads every script in page order to catch any cross-file wiring mistake before it ships."
+    },
+    {
       "v": "v0.97.76",
       "date": "2026-07-24",
       "line": "Under-the-hood readiness: if the usual radar source (RainViewer) goes down, the radar layer now falls back automatically to the NOAA NEXRAD archive via IEM, with the legend saying which source you are seeing; feeds that have never loaded now say 'no data yet' instead of staying blank. Also groundwork so the board can re-target cleanly to a future event from config alone: gauge, road, camera, and shelter data scoping plus the coastal tide-station list all follow data/event.json now. Nothing changes on screen for the current event."

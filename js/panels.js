@@ -766,7 +766,7 @@ function bindHeadline(el) {
 function renderThreatStrip() {
   const el = $('#threat-strip');
   // playback engaged: the dimmed strip stays LIVE data — say so, never let it read as the frame
-  const pbNote = state.pb && !state.pb.live ? `<div class="strip-live-note">${esc(t('playback.striplive'))}</div>` : '';
+  const pbNote = pbBlocksLive(state) ? `<div class="strip-live-note">${esc(t('playback.striplive'))}</div>` : '';
   const reqs = activeRequests().filter((r) => r.status !== 'resolved');
   const emergencies = state.alerts.filter((a) => a._sev === 'emergency').length;
   const lifeReqs = reqs.filter((r) => r.priority === 'critical' && LIFE_SAFETY_TYPES.includes(r.type) && r.type !== 'cutoff');

@@ -1,5 +1,28 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.77 · 2026-07-24 (Module split wave 2: playback.js + cameras.js)
+
+-- Changes --
+- [Change] Behavior-neutral refactor of the two post-v0.78 monolith hotspots:
+         the historical-playback subsystem (state machine, timeline bar, IEM
+         archive tile faders, story captions, ~1170 lines) moved from js/map.js
+         into new js/playback.js, and the camera layer (8 networks, markers,
+         inventory load, HLS/still viewer, ~390 lines) moved from js/sources.js
+         into new js/cameras.js. Pure moves, byte-identical bodies; load order
+         is map.js then playback.js, sources.js then cameras.js (all
+         cross-file references are runtime-only). Service worker precache and
+         asset stamps carry both new files.
+- [Change] The repeated inline playback lock expression (state.pb &&
+         !state.pb.live) at 12 call sites across map, panels, board, and boot
+         is now one named predicate, pbBlocksLive(state), with unit tests.
+
+-- New Features --
+- [New] Cross-module load-order gate (tests/bundle.test.js): every first-party
+      script from index.html is evaluated in tag order in a shared scope, so a
+      script referencing an identifier defined by a later-loaded file now
+      fails the test suite instead of only surfacing as a browser boot error;
+      a built-in mutation test proves the check trips on a mis-ordered pair.
+
 ## v0.97.76 · 2026-07-24 (Event-revert readiness + radar failover)
 
 -- New Features --

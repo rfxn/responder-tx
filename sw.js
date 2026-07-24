@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.97.76';
+const SW_VERSION = '0.97.77';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 const CACHE_DATA = `respondertx-data-${SW_VERSION}`;
 // version-independent: holds the subscriber's language hint so a payload-free push can be
@@ -26,7 +26,9 @@ const PRECACHE_PATHS = [
   'js/i18n.js',
   'js/core.js',
   'js/map.js',
+  'js/playback.js',
   'js/sources.js',
+  'js/cameras.js',
   'js/panels.js',
   'js/board.js',
   'js/boot.js',

@@ -20,8 +20,10 @@ is no bundler; each file adds to a shared global `state` and `CONFIG` defined in
 | `core.js` | `APP_VERSION`, `CONFIG` (endpoints, poll interval, staleness thresholds, map center/bbox), global `state` |
 | `i18n.js` | English / Spanish string tables and the `t()` translation helper |
 | `usng.js` | WGS84 lat/lon &#8594; USNG/MGRS conversion (validated against the NGA `mgrs` library) |
-| `map.js` | Leaflet map, themes, basemaps and panes, the unified radar timeline (observed &#8594; NOW &#8594; HRRR), rainfall (MRMS), cameras, low-water crossings, layer control |
-| `sources.js` | Fetch + parse of NWS alerts, NWPS gauges/forecast, USGS, Local Storm Reports, and DriveTexas roads |
+| `map.js` | Leaflet map, themes, basemaps and panes, the unified radar timeline (observed &#8594; NOW &#8594; HRRR), rainfall (MRMS), layer sheet/pills, offline tiles |
+| `playback.js` | Historical playback: archived gauge/road/warning replay, IEM archive tile faders, story captions, the `pbBlocksLive` lock; loads right after `map.js` |
+| `sources.js` | Fetch + parse of NWS alerts, NWPS gauges/forecast, USGS, Local Storm Reports, DriveTexas roads, tropical, low-water crossings, tides |
+| `cameras.js` | Camera networks (TxDOT, USGS HIVIS, city/flood cams): markers, inventory load, HLS/still viewer; loads right after `sources.js` |
 | `panels.js` | Sidebar rendering: forecast-to-flood list, gauges tab, alert list |
 | `board.js` | Curated feed store (localStorage), smart sort, Nominatim search, JSON/GeoJSON/AAR/SITREP exports |
 | `boot.js` | Cache save/hydrate, cold-start snapshot hydration, the init + poll loop; conditionally loads `chat.js` |

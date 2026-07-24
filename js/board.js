@@ -618,7 +618,7 @@ function inspectContent(lat, lon) {
   let html = `<div class="inspect-head"><span class="inspect-t">${esc(t('inspect.title'))}</span>` +
     `<button class="inspect-x" title="${esc(t('risk.close'))}" aria-label="${esc(t('risk.close'))}">✕</button></div>`;
   // playback engaged: this card reads live data while the map shows a historical frame — say so (striplive pattern)
-  if (state.pb && !state.pb.live) html += `<div class="inspect-line sev-warning">${esc(t('inspect.live'))}</div>`;
+  if (pbBlocksLive(state)) html += `<div class="inspect-line sev-warning">${esc(t('inspect.live'))}</div>`;
   html += `<button class="inspect-usng" title="${esc(t('inspect.copy'))}">${esc(usngLbl)}</button>`;
   html += `<div class="inspect-read">${esc(read)}</div>`;
   if (nearAlerts.length) {

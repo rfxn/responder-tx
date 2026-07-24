@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.61 · 2026-07-23 (Field-use polish: 44px tap targets, always-visible tabs, legible freshness text)
+
+-- Bug Fixes --
+- [Fix] A river no longer shows in the ticker or record watch as rising toward a
+      crest whose forecast validTime has already passed; the staleness gate now
+      lives in gaugeRising so every consumer inherits it.
+
+-- Changes --
+- [Change] Field-use tap targets on phones: feed actions, card actions, and header
+         controls raised to 44px; bottom-sheet handle to 40px; rain-window chips to
+         a 30px touch height. Desktop density unchanged.
+- [Change] All five tabs stay physically on-screen at phone widths in English and
+         Spanish via shrink plus ellipsis (Team and Resources were scrolling away
+         behind a hidden scrollbar); count badges never shrink.
+- [Change] Freshness and citation text floored at 12px on phones: refresh meta,
+         card timestamps and meta, and source badges.
+
 ## v0.97.60 · 2026-07-23 (Mobile legend pills, event-scoped data, record crests, install branding)
 
 -- New Features --

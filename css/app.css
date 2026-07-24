@@ -315,16 +315,18 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 .tabs::-webkit-scrollbar { display: none; }
 .tabs button {
-  flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   white-space: nowrap; border: none; border-radius: 0; background: none;
   padding: 9px 8px; color: var(--ink-2); font-size: 13px; font-weight: 500;
   border-bottom: 2px solid transparent;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
+/* labels shrink with ellipsis so all five tabs stay on-screen at narrow widths; counts never shrink */
+.tabs button > span:not(.count) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tabs button:hover { color: var(--ink-1); }
 .tabs button.active { color: var(--ink-1); border-bottom-color: var(--accent); font-weight: 600; }
 .tabs button .count {
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
   min-width: 18px; height: 16px; padding: 0 5px;
   border-radius: 8px; font-size: 10.5px; font-weight: 700;
   font-variant-numeric: tabular-nums; line-height: 1;
@@ -1249,7 +1251,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   #surge-legend { bottom: 214px; }
   .mrms-ramp, .wx-ramp { height: 8px; }
   .wx-src, .mrms-labels, .inun-note, .surge-note, .surge-rows { font-size: 9px; }
-  .mrms-chip { font-size: 10px; padding: 3px 6px; }
+  .mrms-chip { font-size: 10px; padding: 3px 6px; min-height: 30px; }
 }
 @media (max-width: 500px) {
   /* left/right-anchored (not centered): keeps the bar clear of the chat-FAB corner at every sheet state (v0.95.1) */
@@ -1262,10 +1264,10 @@ button.inspect-gauge:hover { color: var(--accent); }
   /* scannable, not cramped: tighten card rhythm and give the action buttons a real thumb target */
   .card { padding: 9px 11px; margin-bottom: 7px; }
   .card .summary { font-size: 13px; margin: 3px 0; }
-  .card .meta { font-size: 11px; }
+  .card .meta { font-size: 12px; }
   .card .badges { gap: 5px; margin-top: 6px; }
   .card-actions { gap: 7px; margin-top: 8px; }
-  .act-btn { min-height: 40px; font-size: 12.5px; }
+  .act-btn { min-height: 44px; font-size: 12.5px; }
   .badge.src-link { max-width: 150px; }
   /* Alerts density on phones (owner: cards ran too tall) — .card.alert-card outranks the ≤768 .card padding */
   .card.alert-card { padding: 7px 10px; margin-bottom: 5px; }
@@ -1293,7 +1295,7 @@ button.inspect-gauge:hover { color: var(--accent); }
 
 @media (max-width: 768px) {
   body { font-size: 15px; }
-  header { padding: 2px 8px; gap: 8px; } /* 40px tap targets + 2px pad = the same header height as v0.88.0's 36px + 4px */
+  header { padding: 2px 8px; gap: 8px; } /* 44px tap targets + 2px pad keeps the header one uncramped row */
   .brand { min-width: 0; flex: 1; }
   .brand-logo { height: 36px; }
   .brand h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1311,7 +1313,7 @@ button.inspect-gauge:hover { color: var(--accent); }
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   }
   #sheet-handle button {
-    min-width: 34px; min-height: 30px; padding: 0; font-size: 13px; font-weight: 700; border-radius: 0;
+    min-width: 40px; min-height: 40px; padding: 0; font-size: 13px; font-weight: 700; border-radius: 0;
     background: var(--surface-1); color: var(--ink-2); border: none; border-bottom: 1px solid var(--hairline);
   }
   #sheet-handle button:last-child { border-bottom: none; }
@@ -1319,9 +1321,9 @@ button.inspect-gauge:hover { color: var(--accent); }
 
   .controls { margin-left: auto; gap: 8px; }
   .controls .ctl-lbl { display: none; } /* icon-only — 🔍 🚗 ⟳ ⋮ (the ⋮ menu keeps its labels) */
-  .controls button { min-height: 40px; min-width: 40px; padding: 4px 7px; font-size: 15px; }
+  .controls button { min-height: 44px; min-width: 44px; padding: 4px 7px; font-size: 15px; }
   #update-chip { font-size: 11.5px; } /* the one control that keeps its words when shown */
-  .refresh-meta { min-width: 0; font-size: 10px; }
+  .refresh-meta { min-width: 0; font-size: 12px; }
   main { flex-direction: column; }
   #map { order: -1; flex: 1 1 auto; min-height: 60px; }   /* fills whatever the sheet leaves — no fixed height */
   #sidebar {
@@ -1348,16 +1350,18 @@ button.inspect-gauge:hover { color: var(--accent); }
   .ffe-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 5px; }
   .ffe-row::-webkit-scrollbar { display: none; }
   .strip-ok .ok-sub { display: none; }
-  .tabs button { padding: 11px 7px; font-size: 13.5px; }
+  .tabs button { padding: 11px 5px; font-size: 13.5px; }
   .tab-body { padding-bottom: 76px; } /* keep the chat FAB off card actions */
   button, select { min-height: 42px; }
-  /* condense the feed-actions strip on phones — shorter buttons reclaim vertical real estate, still tappable */
   .feed-actions { gap: 4px; margin-bottom: 6px; }
-  .feed-actions button { min-height: 34px; padding: 3px 9px; font-size: 11.5px; line-height: 1.1; }
+  .feed-actions button { min-height: 44px; padding: 3px 9px; font-size: 12px; line-height: 1.1; }
   #more-menu { padding: 6px; }
   .filters select, .filters input[type="search"] { min-height: 36px; }
   .card { padding: 10px 12px; }
-  .badge { padding: 4px 9px; font-size: 11.5px; }
+  .card .when { font-size: 12px; }
+  .card .meta { font-size: 12px; }
+  .act-btn { min-height: 44px; }
+  .badge { padding: 4px 9px; font-size: 12px; }
   .map-legend { font-size: 10px; line-height: 1.5; max-width: 140px; padding: 6px 8px; opacity: 0.92; }
   /* collapse behavior is now in the base rules (both breakpoints) */
   /* one-thumb targets on the merged + / − / ⌖ bar */
@@ -1370,6 +1374,11 @@ button.inspect-gauge:hover { color: var(--accent); }
   .ao-jump.open .ao-row { flex-wrap: nowrap; overflow-x: auto; pointer-events: auto; padding-bottom: 4px; }
   .offline-ctl { max-width: 168px; padding: 6px 8px; opacity: 0.95; }
   .offline-ctl .off-note { font-size: 9.5px; }
+}
+
+/* small phones: tighter tab type keeps all five Spanish labels readable before ellipsis kicks in */
+@media (max-width: 400px) {
+  .tabs button { font-size: 12.5px; padding: 11px 4px; gap: 4px; }
 }
 
 /* phone held sideways (short + landscape) — the ≤768 WIDTH query misses 844–932px-wide
@@ -1385,7 +1394,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .controls { margin-left: auto; gap: 8px; }
   .controls .ctl-lbl { display: none; }
   .controls button { min-height: 34px; min-width: 38px; padding: 4px 7px; font-size: 15px; }
-  .refresh-meta { min-width: 0; font-size: 10px; }
+  .refresh-meta { min-width: 0; font-size: 12px; }
 
   main { flex-direction: row; }
   #map { order: 0; flex: 1 1 auto; min-height: 0; }

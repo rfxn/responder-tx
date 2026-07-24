@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.61",
+      "date": "2026-07-23",
+      "line": "Field usability polish. Buttons you tap in the field (feed actions, card actions, header controls) are now full 44px touch targets on phones, all five tabs stay visible on-screen in English and Spanish (Team and Resources no longer scroll away invisibly), and freshness and source text is larger and easier to read in glare. Also fixed: a river no longer shows as rising toward a crest that already passed."
+    },
+    {
       "v": "v0.97.60",
       "date": "2026-07-23",
       "line": "Mobile legends and event accuracy. The radar, rainfall, inundation, and surge map legends now collapse to small pills on phones (tap to expand), so nothing covers the middle of the screen, and landscape phones are handled too. The public feed, crest summary, and history playback now follow the active event (TS Bertha) instead of carrying the prior Hill Country event, and record-crest context is live again for 216 coastal gauges. You can also add ResponderTX to your home screen as a branded app, and Drive Mode text now matches the brand palette."

@@ -305,7 +305,10 @@ function gaugeForecastCat(g) {
 function gaugeRising(g) {
   if (gaugeObsStale(g)) return false; // no trustworthy baseline — keep dead gauges out of rising/record-watch
   const f = gaugeForecastCat(g);
-  return f !== null && CAT_RANK[f] > CAT_RANK[gaugeCat(g)];
+  if (f === null) return false;
+  const vt = g.status.forecast && g.status.forecast.validTime;
+  if (!vt || new Date(vt) <= new Date()) return false; // a crest already past is not rising
+  return CAT_RANK[f] > CAT_RANK[gaugeCat(g)];
 }
 
 // crest-of-record context (data/records.json = NWPS historic crests). Honest by design:

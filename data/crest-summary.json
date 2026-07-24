@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-24T17:53:09Z",
+ "generated": "2026-07-24T18:23:07Z",
  "event": "TS Bertha",
  "window": {
   "first": "2026-07-17T15:31:40Z",
-  "last": "2026-07-24T17:38:00Z"
+  "last": "2026-07-24T17:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window backfilled from USGS/NWPS observed via history.json",
  "gauges": [

@@ -1,5 +1,47 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.85 · 2026-07-24 (the deploy gate reads and ships HEAD, not the working tree)
+
+-- Bug Fixes --
+- [Fix] deploy.sh read the app version out of the working tree but shipped
+      `git archive HEAD`, so a release bumped-but-not-yet-committed made the
+      post-deploy smoke check wait two minutes for a version that was never
+      uploaded, then fail a deploy that had in fact succeeded. Seven cycles
+      failed this way between 7/19 and 7/24, four of them during Tropical Storm
+      Bertha. The version gate, the test gate and the live smoke check now all
+      read a throwaway checkout of HEAD, which is what actually ships.
+- [Fix] Any uncommitted change under functions/ aborted deploy.sh before every
+      other step, which marked the whole 15 minute data cycle failed, skipped
+      the push-evaluator nudge, and left the public board serving stale flood
+      data until a later clean cycle recovered. wrangler compiles functions/
+      from its working directory, so that directory is now the HEAD checkout:
+      uncommitted Functions code cannot reach production, and a dirty code lane
+      no longer blocks the data publish. It warns instead of aborting.
+
+-- Changes --
+- [Change] --allow-dirty-functions keeps its exact meaning. The working tree
+           functions/ is copied over the HEAD checkout so uncommitted Functions
+           code really does ship, behind the same loud warning. --skip-tests
+           keeps bypassing both halves of the test gate.
+- [Change] --preflight-only now also builds and strip-verifies the deploy
+           archive, so a strip regression surfaces before the push instead of
+           after it, and the gated version is asserted against the version in
+           the upload directory. deploy.sh gained RESPONDER_DEPLOY_WRANGLER and
+           RESPONDER_DEPLOY_DIR overrides and honors a preset
+           CLOUDFLARE_API_TOKEN, which is what lets a test drive it against a
+           scratch repo.
+
+-- New Features --
+- [New] tests/deploy.test.sh: eight release-gate regressions driven against a
+      scratch git repo with a stub wrangler and a local bare remote, never the
+      live repo or the live Pages project. Covers the HEAD version read, the
+      upload directory matching the gated version, a dirty functions/ still
+      publishing, uncommitted Functions reaching neither wrangler's working
+      directory nor the upload directory, --allow-dirty-functions still
+      shipping them on purpose, the test gate running at HEAD, a red HEAD suite
+      still blocking, --skip-tests still bypassing, and no leaked git worktree
+      on the success or the failure path. Wired into CI.
+
 ## v0.97.84 · 2026-07-24 (openView() router for the ?view= deep links, no visual change)
 
 -- Changes --

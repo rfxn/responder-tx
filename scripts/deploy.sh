@@ -1,8 +1,9 @@
 #!/bin/bash
-# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--allow-dirty-functions] — verify version agreement, run the test gate, build stripped archive, deploy to Cloudflare Pages
+# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--allow-dirty-functions] — gate HEAD, build the stripped archive, deploy to Cloudflare Pages
 set -euo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
+REPO_ROOT="$PWD"
 
 SKIP_LIVE=0
 PREFLIGHT_ONLY=0
@@ -20,7 +21,29 @@ done
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
-# --- Pre-flight: functions/ must be clean (wrangler compiles functions/ from the repo CWD, not the deploy dir) ---
+WRANGLER="${RESPONDER_DEPLOY_WRANGLER:-wrangler}"
+deploy_dir="${RESPONDER_DEPLOY_DIR:-/tmp/responder-deploy}"
+case "$deploy_dir" in
+    /*) ;;
+    *) fail "RESPONDER_DEPLOY_DIR must be an absolute path, got '${deploy_dir}'" ;;
+esac
+
+# --- Materialize HEAD. The version gate, the test gate, and the Functions tree wrangler compiles
+# all read from here, so a working-tree edit can neither block a deploy nor contaminate one. ---
+SRC=$(mktemp -d "${TMPDIR:-/tmp}/responder-src.XXXXXX") || fail "mktemp for the HEAD source tree failed"
+cleanup() {
+    rc=$?
+    cd "$REPO_ROOT" || exit "$rc"
+    git worktree remove --force "$SRC" >/dev/null 2>&1 || rm -rf "$SRC"  # remove is the clean path; rm covers a half-created worktree
+    git worktree prune >/dev/null 2>&1 || :  # a stale admin entry is cosmetic, never worth failing a deploy over
+    exit "$rc"
+}
+trap cleanup EXIT
+git worktree add --detach "$SRC" HEAD >/dev/null || fail "could not check HEAD out to ${SRC}"
+head_commit=$(git rev-parse --short HEAD) || fail "git rev-parse HEAD failed"
+
+# --- Pre-flight: functions/ hygiene. wrangler compiles functions/ from its CWD, which is the HEAD
+# tree above, so uncommitted Functions code cannot ship by accident and no longer aborts the cycle. ---
 dirty_functions=$(git status --porcelain --untracked-files=all -- functions/) || fail "git status check on functions/ failed"
 if [ -n "$dirty_functions" ]; then
     if [ "$ALLOW_DIRTY_FUNCTIONS" -eq 1 ]; then
@@ -31,41 +54,44 @@ if [ -n "$dirty_functions" ]; then
         echo "##########################################################" >&2
         echo "$dirty_functions" >&2
         echo "# This flag is for genuine field emergencies only." >&2
+        rm -rf "$SRC/functions"
+        cp -a functions "$SRC/functions" || fail "could not overlay the working-tree functions/ onto ${SRC}"
     else
-        {
-            echo "FAIL: uncommitted/untracked changes under functions/ — refusing to deploy:"
-            echo "$dirty_functions"
-            echo "wrangler pages deploy compiles functions/ from the repo working tree (CWD),"
-            echo "not from the deploy dir, so these files would ship to production as-is."
-            echo "Commit or remove them, or use --allow-dirty-functions for a genuine field emergency."
-        } >&2
-        exit 1
+        echo "NOTE: functions/ has uncommitted changes; shipping HEAD (${head_commit}) Functions instead:" >&2
+        echo "$dirty_functions" >&2
+        echo "NOTE: static data still publishes. Commit the Functions work, or pass --allow-dirty-functions to ship it." >&2
     fi
 fi
 
-# --- Pre-flight: four-way version agreement ---
-version=$(grep -oP "APP_VERSION = '\K[^']+" js/core.js) || fail "cannot extract APP_VERSION from js/core.js"
-[ -n "$version" ] || fail "APP_VERSION extracted from js/core.js is empty"
+# --- Pre-flight: four-way version agreement, read from HEAD because HEAD is what ships ---
+version=$(grep -oP "APP_VERSION = '\K[^']+" "$SRC/js/core.js") || fail "cannot extract APP_VERSION from HEAD js/core.js"
+[ -n "$version" ] || fail "APP_VERSION extracted from HEAD js/core.js is empty"
 stamp_version="${version#v}"
 
-stamps=$(grep -o '?v=[^"]*' index.html) || fail "no ?v= stamps found in index.html"
+tree_version=$(grep -oP "APP_VERSION = '\K[^']+" js/core.js) || tree_version=''  # an edited/absent tree copy is not fatal: HEAD is authoritative
+if [ -n "$tree_version" ] && [ "$tree_version" != "$version" ]; then
+    echo "NOTE: working tree is ${tree_version} but HEAD (${head_commit}) is ${version}; ${version} is what deploys." >&2
+fi
+
+stamps=$(grep -o '?v=[^"]*' "$SRC/index.html") || fail "no ?v= stamps found in HEAD index.html"
 stamp_count=0
 while IFS= read -r stamp; do
     stamp_count=$((stamp_count + 1))
     [ "$stamp" = "?v=${stamp_version}" ] || fail "index.html stamp mismatch: '${stamp}' (expected '?v=${stamp_version}')"
 done <<< "$stamps"
-[ "$stamp_count" -gt 0 ] || fail "no ?v= stamps found in index.html"
+[ "$stamp_count" -gt 0 ] || fail "no ?v= stamps found in HEAD index.html"
 
-cl_version=$(python3 -c "import json; print(json.load(open('data/changelog.json'))['versions'][0]['v'])") || fail "cannot read versions[0].v from data/changelog.json"
+cl_version=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['versions'][0]['v'])" "$SRC/data/changelog.json") \
+    || fail "cannot read versions[0].v from HEAD data/changelog.json"
 [ "$cl_version" = "$version" ] || fail "data/changelog.json versions[0].v is '${cl_version}', expected '${version}'"
 
-sw_version=$(grep -m1 -oP "SW_VERSION = '\K[^']+" sw.js) || fail "cannot extract SW_VERSION from sw.js"
+sw_version=$(grep -m1 -oP "SW_VERSION = '\K[^']+" "$SRC/sw.js") || fail "cannot extract SW_VERSION from HEAD sw.js"
 [ "$sw_version" = "$stamp_version" ] || fail "sw.js SW_VERSION is '${sw_version}', expected '${stamp_version}'"
 
 heading_re="^## ${version//./\\.} "
-grep -qE "$heading_re" CHANGELOG.md || fail "CHANGELOG.md has no '## ${version} ' heading"
+grep -qE "$heading_re" "$SRC/CHANGELOG.md" || fail "CHANGELOG.md has no '## ${version} ' heading"
 
-echo "pre-flight OK: ${version} (${stamp_count} index.html stamps, changelog.json, CHANGELOG.md all agree)"
+echo "pre-flight OK: ${version} @ ${head_commit} (${stamp_count} index.html stamps, changelog.json, CHANGELOG.md all agree)"
 
 # --- Pre-flight: test gate (never ship on a red suite; --skip-tests is for genuine field emergencies only) ---
 if [ "$SKIP_TESTS" -eq 1 ]; then
@@ -75,33 +101,14 @@ if [ "$SKIP_TESTS" -eq 1 ]; then
     echo "# This flag is for genuine field emergencies only.       #" >&2
     echo "##########################################################" >&2
 else
-    node --test tests/ || fail "test gate: node --test tests/ failed (fix it, or --skip-tests for a genuine field emergency)"
-    bash scripts/cycle-check.sh || fail "test gate: scripts/cycle-check.sh failed (fix it, or --skip-tests for a genuine field emergency)"
-    echo "test gate OK: node --test tests/ + cycle-check.sh green"
+    ( cd "$SRC" && node --test tests/ ) || fail "test gate: node --test tests/ failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
+    ( cd "$SRC" && bash scripts/cycle-check.sh ) || fail "test gate: scripts/cycle-check.sh failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
+    echo "test gate OK: node --test tests/ + cycle-check.sh green at HEAD"
 fi
-
-if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
-    echo "OK: pre-flight only, stopping before push/deploy"
-    exit 0
-fi
-
-# --- Push ---
-git push origin main || fail "git push origin main failed"
-
-# --- Cloudflare credentials ---
-export CLOUDFLARE_ACCOUNT_ID=bfa0d8d232102bbf18dd50d9edc064a1
-CLOUDFLARE_API_TOKEN=$(
-    cd /root/admin/work/proj/rfxn-infra/ansible || exit 1
-    ansible-vault view inventory/group_vars/all/vault.yml \
-        | python3 -c "import sys,yaml; print(yaml.safe_load(sys.stdin)['vault_cloudflare_api_token_admin'])"
-) || fail "could not derive CLOUDFLARE_API_TOKEN from ansible vault"
-[ -n "$CLOUDFLARE_API_TOKEN" ] || fail "CLOUDFLARE_API_TOKEN is empty"
-export CLOUDFLARE_API_TOKEN
 
 # --- Build stripped deploy dir ---
-deploy_dir=/tmp/responder-deploy
 rm -rf "$deploy_dir"
-mkdir "$deploy_dir"
+mkdir -p "$deploy_dir"
 git archive HEAD | tar -x -C "$deploy_dir" || fail "git archive extraction failed"
 rm -f "$deploy_dir/js/chat.js"
 rm -f "$deploy_dir/js/master.js"
@@ -123,10 +130,32 @@ fi
 if grep -q 'js/chat\.js\|js/master\.js' "$deploy_dir/sw.js"; then
     fail "LAN-only client (chat.js/master.js) referenced in deploy sw.js"
 fi
-echo "strip-verify OK: chat + master surfaces absent from ${deploy_dir}"
+archive_version=$(grep -oP "APP_VERSION = '\K[^']+" "$deploy_dir/js/core.js") || fail "cannot extract APP_VERSION from the deploy dir"
+[ "$archive_version" = "$version" ] || fail "deploy dir APP_VERSION is '${archive_version}', expected the gated HEAD value '${version}'"
+echo "strip-verify OK: ${version} archive, chat + master surfaces absent from ${deploy_dir}"
 
-# --- Deploy ---
-wrangler pages deploy "$deploy_dir" --project-name responder-tx --branch main --commit-dirty=true \
+if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
+    echo "OK: pre-flight only, stopping before push/deploy"
+    exit 0
+fi
+
+# --- Push ---
+git push origin main || fail "git push origin main failed"
+
+# --- Cloudflare credentials ---
+export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-bfa0d8d232102bbf18dd50d9edc064a1}"
+if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    CLOUDFLARE_API_TOKEN=$(
+        cd /root/admin/work/proj/rfxn-infra/ansible || exit 1
+        ansible-vault view inventory/group_vars/all/vault.yml \
+            | python3 -c "import sys,yaml; print(yaml.safe_load(sys.stdin)['vault_cloudflare_api_token_admin'])"
+    ) || fail "could not derive CLOUDFLARE_API_TOKEN from ansible vault"
+fi
+[ -n "$CLOUDFLARE_API_TOKEN" ] || fail "CLOUDFLARE_API_TOKEN is empty"
+export CLOUDFLARE_API_TOKEN
+
+# --- Deploy. CWD is the HEAD tree, so the Functions wrangler compiles are the committed ones. ---
+( cd "$SRC" && "$WRANGLER" pages deploy "$deploy_dir" --project-name responder-tx --branch main --commit-dirty=true ) \
     || fail "wrangler pages deploy failed"
 
 # --- Post-deploy smoke ---

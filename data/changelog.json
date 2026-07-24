@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.85",
+      "date": "2026-07-24",
+      "line": "The automated publisher had two ways to fail on a busy day, and both hit during Tropical Storm Bertha. It checked the version number in the files still being edited rather than the version it was actually uploading, so a release in progress made it wait for something it had never sent and then report a failure for a deploy that had worked. Separately, any unfinished edit to the server side code stopped the whole 15 minute cycle before it started, which left the public board showing older river data until a later cycle recovered. Publishing now always happens from the last committed snapshot, so unfinished work can neither reach the site by accident nor hold up the flood data."
+    },
+    {
       "v": "v0.97.84",
       "date": "2026-07-24",
       "line": "Internal restructuring, nothing changes on screen: the shareable view links (Drive mode, Crest summary, Recovery, Basin Focus) are now handled by one piece of routing code instead of four scattered paths, two of which worked by pretending to press a button. Those links keep working as before, a mistyped or outdated one now quietly opens the normal board instead of doing nothing odd, and playback gained a matching link of its own. Recovery still never reopens by itself on a later visit, which is deliberate: an automatic reopen would read as an all-clear the data cannot promise."

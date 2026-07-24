@@ -1,5 +1,28 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.91 · 2026-07-24 (exports move to Resources, and Feed > More is retired)
+
+-- Changes --
+- [Change] Export JSON, Export GeoJSON, CalTopo URL, Export AAR, Import JSON and
+           the CalTopo URL/QR box moved out of the Feed tab into Resources,
+           under a new "Data & interchange" heading with a line saying what the
+           section is for. Resources already held the authoritative-data links
+           and the RSS and calendar feeds, so every way of getting this board's
+           picture in or out now sits in one place.
+- [Change] The Feed > More drawer is gone. With the four lens entries removed in
+           v0.97.90 and the exports moved here, it held nothing, and the Feed
+           action row is now three buttons: New notice, SITREP, Filters.
+- [Change] The button ids did not change, so the export, import and CalTopo
+           handlers in js/boot.js needed no edit; only the containing markup
+           moved. The #more-menu and #more-toggle CSS went with the drawer.
+
+-- New Features --
+- [New] tests/i18n.test.js gains a placement guard: the interchange controls
+      must be declared exactly once and inside Resources, and neither js/boot.js
+      nor css/app.css may still reference the retired drawer. The action-row
+      translation check now also asserts no row grew a nested div, which is what
+      the extractor it uses depends on.
+
 ## v0.97.90 · 2026-07-24 (the lenses move to the map, in a views sheet of their own)
 
 -- New Features --

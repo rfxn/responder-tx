@@ -779,12 +779,6 @@ async function boot() {
     localStorage.setItem('respondertx.filtersOpen', open ? '1' : '0');
     updateFiltersBadge();
   });
-  $('#more-toggle').addEventListener('click', () => {
-    const menu = $('#more-menu');
-    menu.hidden = !menu.hidden;
-    $('#more-toggle').classList.toggle('on', !menu.hidden);
-  });
-
   state.lastSeen = +localStorage.getItem('respondertx.lastSeen') || 0;
   localStorage.setItem('respondertx.lastSeen', String(Date.now()));
   $('#app-version').textContent = APP_VERSION;

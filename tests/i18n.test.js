@@ -132,12 +132,13 @@ test('i18n: offline-panel keys exist in both languages with placeholders intact'
   }
 });
 
-/* Markup parity for the feed action rows. These controls shipped untranslated: the export,
-   import, SITREP, filters, more, and new-notice buttons carried no data-i18n attribute at all,
+/* Markup parity for the action rows. These controls shipped untranslated: the export,
+   import, SITREP, filters, and new-notice buttons carried no data-i18n attribute at all,
    so a Spanish session still read them in English (v0.97.83 backfilled them). The check is
    positional rather than by id, so it keeps holding as later IA phases relocate these controls
-   into a views sheet or a settings sheet. */
-const FEED_ACTION_ROWS = /<div class="feed-actions"[^>]*>([\s\S]*?)<\/div>\s*(?=<div|<\/div>)/g;
+   (v0.97.91 moved the export/import row out of Feed > More into Resources > Data & interchange).
+   These rows contain no nested <div>, so the first </div> closes the row. */
+const FEED_ACTION_ROWS = /<div class="feed-actions"[^>]*>([\s\S]*?)<\/div>/g;
 
 function feedActionRows() {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
@@ -148,7 +149,8 @@ function feedActionRows() {
 
 test('i18n: every control in the feed action rows carries a data-i18n attribute', () => {
   const rows = feedActionRows();
-  assert.ok(rows.length >= 2, `expected the feed-actions row and #more-menu, found ${rows.length}`);
+  assert.ok(rows.length >= 2, `expected the feed row and the interchange row, found ${rows.length}`);
+  assert.ok(!rows.some((r) => /<div/.test(r)), 'a feed-actions row gained a nested <div>; the row extractor needs updating');
 
   const missing = [];
   for (const row of rows) {
@@ -164,9 +166,32 @@ test('i18n: every control in the feed action rows carries a data-i18n attribute'
   assert.deepEqual(missing, [], 'untranslated control in a .feed-actions row (add data-i18n / data-i18n-title)');
 });
 
+/* Placement guard (v0.97.91). The export/import controls and the CalTopo box moved out of the
+   Feed > More drawer into Resources > Data & interchange, and the drawer itself is gone. The
+   listeners in js/boot.js keep the same element ids, so nothing would fail loudly if the markup
+   drifted back; assert the containment instead. */
+test('the interchange controls live in Resources, and Feed > More is gone', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '');
+  for (const gone of ['id="more-toggle"', 'id="more-menu"']) {
+    assert.ok(!html.includes(gone), `index.html still declares ${gone}`);
+  }
+  const resources = html.slice(html.indexOf('id="tab-resources"'), html.indexOf('id="tab-team"'));
+  assert.ok(resources.includes('id="interchange-body"'), '#interchange-body is not inside #tab-resources');
+  for (const id of ['export-btn', 'export-geo-btn', 'caltopo-btn', 'aar-btn', 'import-file', 'caltopo-box']) {
+    assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `#${id} is not declared exactly once`);
+    assert.ok(resources.includes(`id="${id}"`), `#${id} did not move into Resources`);
+  }
+  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
+  assert.ok(!/#more-toggle|#more-menu/.test(boot), 'js/boot.js still wires the retired Feed > More drawer');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'app.css'), 'utf8');
+  assert.ok(!/#more-menu|#more-toggle/.test(css), 'css/app.css still styles the retired Feed > More drawer');
+});
+
 test('i18n: feed and export control keys exist in both languages', () => {
   const keys = ['feed.new', 'feed.new.title', 'feed.sitrep', 'feed.sitrep.title',
-    'feed.filters', 'feed.filters.n', 'feed.filters.title', 'feed.more', 'feed.more.title',
+    'feed.filters', 'feed.filters.n', 'feed.filters.title',
+    'res.interchange', 'res.interchange.sub',
     'data.export.json', 'data.export.json.title', 'data.export.geo', 'data.export.geo.title',
     'data.export.aar', 'data.export.aar.title', 'data.import.json', 'data.import.json.title'];
   for (const k of keys) {

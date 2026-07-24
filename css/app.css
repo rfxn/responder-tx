@@ -443,11 +443,9 @@ main { flex: 1; display: flex; min-height: 0; }
 .feed-actions { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .feed-actions button { font-size: 12px; padding: 4px 10px; }
 .feed-actions[hidden] { display: none; }
-#more-menu {
-  border: 1px dashed var(--border); border-radius: 8px;
-  padding: 8px; background: var(--surface-2);
-}
-#filters-toggle.on, #more-toggle.on { border-color: var(--accent); color: var(--accent); }
+#filters-toggle.on { border-color: var(--accent); color: var(--accent); }
+#interchange-body .hint { font-size: 11.5px; color: var(--ink-muted); margin: 2px 0 8px; line-height: 1.4; }
+#interchange-body .feed-actions { margin-bottom: 8px; }
 #caltopo-box {
   border: 1px dashed var(--border); border-radius: 8px;
   padding: 8px 10px; margin-bottom: 10px; background: var(--surface-2);
@@ -1416,7 +1414,6 @@ button.inspect-gauge:hover { color: var(--accent); }
   button, select { min-height: 42px; }
   .feed-actions { gap: 4px; margin-bottom: 6px; }
   .feed-actions button { min-height: 44px; padding: 3px 9px; font-size: 12px; line-height: 1.1; }
-  #more-menu { padding: 6px; }
   .filters select, .filters input[type="search"] { min-height: 36px; }
   .card { padding: 10px 12px; }
   .card .when { font-size: 12px; }

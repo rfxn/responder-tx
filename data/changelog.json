@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.91",
+      "date": "2026-07-24",
+      "line": "The export and import buttons moved to where the rest of the data links already live. Export JSON, Export GeoJSON, the CalTopo URL and its QR code, Export AAR and Import JSON now sit in the Resources tab under a new Data and interchange heading, next to the official data links and the RSS and calendar feeds. They used to be hidden behind a More button in the Feed tab, which is a strange place to look for a way to get data out. That More button is gone, so the Feed tab now shows just New notice, SITREP and Filters."
+    },
+    {
       "v": "v0.97.90",
       "date": "2026-07-24",
       "line": "The different ways of looking at the board now have a home on the map. A new control next to the layers button opens a Views list: Live map, Drive, Basin, Playback, Recovery and Crest summary, each with a line explaining what it shows. Until now four of those were buried in the Feed tab under More, alongside the export buttons, which is a strange place to keep a whole view. Only one view is open at a time, and Live map takes you back to the plain board from any of them. Every link that already pointed at one of these views still works, and the ⏮ button on the map still opens playback directly."

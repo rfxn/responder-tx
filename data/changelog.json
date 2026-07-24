@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.84",
+      "date": "2026-07-24",
+      "line": "Internal restructuring, nothing changes on screen: the shareable view links (Drive mode, Crest summary, Recovery, Basin Focus) are now handled by one piece of routing code instead of four scattered paths, two of which worked by pretending to press a button. Those links keep working as before, a mistyped or outdated one now quietly opens the normal board instead of doing nothing odd, and playback gained a matching link of its own. Recovery still never reopens by itself on a later visit, which is deliberate: an automatic reopen would read as an all-clear the data cannot promise."
+    },
+    {
       "v": "v0.97.83",
       "date": "2026-07-24",
       "line": "Spanish coverage fix: eight buttons in the Feed tab (New notice, SITREP, Filters, More, Export JSON, Export GeoJSON, Export AAR, and Import JSON) were still showing English even with the board set to Spanish, because they had never been wired to the translation system. They are translated now, including the Filters button's active-filter count. Export JSON and Import JSON also picked up the hover tooltip their neighbours already had. Nothing moves or changes for English users."

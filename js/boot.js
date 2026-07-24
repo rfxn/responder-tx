@@ -634,6 +634,7 @@ async function boot() {
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', (e) => shareView(e.currentTarget));
   const enterDrive = () => { $('#drive-mode').hidden = false; keepAwake(true, 'drive'); if (!state.myPos) { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } else { startLocTrack(); } renderDriveMode(); };
+  window.enterDriveMode = enterDrive; // openView('drive') reaches drive mode without depending on #drive-btn
   $('#drive-btn').addEventListener('click', enterDrive);
   // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon.
   // Deferred while the safety/onboarding chain is up: one nudge at a time; it shows on the next visit.
@@ -876,10 +877,7 @@ async function boot() {
   }
   applyShareParams(new URLSearchParams(location.search)); // URL share-params win for this load
   state.viewReady = true;
-  const viewParam = new URLSearchParams(location.search).get('view');
-  if (viewParam === 'drive') $('#drive-btn').click();
-  else if (viewParam === 'summary') $('#summary-btn').click();
-  // viewParam === 'recovery'|'basin' already opened via applyShareParams above (share round-trip)
+  // every ?view= value is dispatched by openView() from applyShareParams above, button ids not involved
   const hydroParam = new URLSearchParams(location.search).get('hydro');
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
   // ?cam=<camId|name|id> deep-links straight into the viewer (handled below).

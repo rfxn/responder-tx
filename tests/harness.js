@@ -142,7 +142,7 @@ let cached = null;
 // Load the app's pure logic once and return the exported symbols.
 // playback.js precedes sources.js/board.js as in index.html (their pb* calls are runtime-only).
 function loadApp() {
-  if (!cached) cached = buildBundle(['core.js', 'usng.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js'], EXPORTS);
+  if (!cached) cached = buildBundle(['core.js', 'usng.js', 'playback.js', 'sources.js', 'cameras.js', 'panels.js', 'board.js'], EXPORTS);
   return cached;
 }
 

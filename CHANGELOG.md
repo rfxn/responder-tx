@@ -1,5 +1,34 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.84 · 2026-07-24 (openView() router for the ?view= deep links, no visual change)
+
+-- Changes --
+- [Change] Every ?view= deep link now routes through one openView(name, opts)
+           dispatcher in js/panels.js instead of being spread across two files
+           and two dispatch styles. ?view=drive and ?view=summary were opened
+           by synthesizing clicks on #drive-btn and #summary-btn, which tied
+           two shipped links to two button ids: relocating either button would
+           have broken the link with nothing failing loudly. ?view=recovery and
+           ?view=basin took a second, separate path through applyShareParams.
+           Both now go through the router, and applyShareParams delegates to
+           it. Nothing changes on screen.
+- [Change] The river slug allowlist that guards ?view=basin moved into the
+           router unchanged, so a crafted slug still falls back to the most
+           active river rather than being passed through.
+
+-- New Features --
+- [New] ?view=playback and ?view=live are accepted route names, playback
+      opening the historical playback lens (the existing ?playback=1 still
+      works) and live being a documented no-op so the plain board has a name.
+      An unknown or missing view name stays a silent no-op and never throws,
+      so a stale or mistyped bookmark opens the board rather than failing.
+- [New] tests/views.test.js covers the router: every value buildShareUrl can
+      emit has a matching case, each route reaches its own opener without any
+      button id, crafted and oversized river slugs fall back to null, unknown
+      and non-string names are inert, and the active lens is asserted absent
+      from saveViewState. That last one is deliberate: restoring "Recovery" on
+      a later boot would imply an all-clear the data does not support.
+
 ## v0.97.83 · 2026-07-24 (Spanish parity for the feed and export controls)
 
 -- Bug Fixes --

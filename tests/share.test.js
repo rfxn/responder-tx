@@ -239,3 +239,38 @@ test('share round-trip — applyShareParams reopens the recovery view from view=
   assert.equal(opened, 1);
   delete sb.openRecoveryView;
 });
+
+/* ?view=summary and ?view=drive are accepted on the way in but buildShareUrl never emits them,
+   so they only reach the board through a hand-written or bookmarked link. They used to be
+   dispatched by clicking #summary-btn / #drive-btn from boot(); both now route through
+   openView() so relocating those buttons cannot silently break the link. */
+test('share round-trip — applyShareParams reopens the crest summary from view=summary', () => {
+  seedState();
+  sb.document = makeDom('tab-requests');
+  state.map = fakeMap([31.0, -100.0], 6, new Set());
+  let opened = 0;
+  sb.openCrestSummary = () => { opened += 1; };
+  applyShareParams(new URLSearchParams('view=summary'));
+  assert.equal(opened, 1);
+  // it travels alongside the rest of a shared view without disturbing them
+  applyShareParams(new URLSearchParams('view=summary&mlat=29.9&mlon=-97.9&fq=rescue'));
+  assert.equal(opened, 2);
+  assert.equal(sb.document.els['#flt-q'].value, 'rescue');
+  // and a URL without the param never opens it
+  applyShareParams(new URLSearchParams('mlat=29.9&mlon=-97.9'));
+  assert.equal(opened, 2);
+  delete sb.openCrestSummary;
+});
+
+test('share round-trip — applyShareParams reopens drive mode from view=drive', () => {
+  seedState();
+  sb.document = makeDom('tab-requests');
+  state.map = fakeMap([31.0, -100.0], 6, new Set());
+  let opened = 0;
+  sb.enterDriveMode = () => { opened += 1; };
+  applyShareParams(new URLSearchParams('view=drive'));
+  assert.equal(opened, 1);
+  applyShareParams(new URLSearchParams('mlat=29.9&mlon=-97.9'));
+  assert.equal(opened, 1);
+  delete sb.enterDriveMode;
+});

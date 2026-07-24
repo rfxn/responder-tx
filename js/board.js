@@ -909,13 +909,8 @@ function applyShareParams(q) {
   if (feedFiltered) $('#req-filters').hidden = false; // a shared filtered view must be visible, not silent
   apply('#flt-alert-sev', 'as', 'change');
   apply('#flt-alert-q', 'aq', 'input');
-  // ?view=drive|summary open via boot's view chain; recovery and basin restore here so shares round-trip
-  if (q.get('view') === 'recovery' && typeof openRecoveryView === 'function') openRecoveryView();
-  if (q.get('view') === 'basin' && typeof openBasinView === 'function') {
-    const river = q.get('river') || '';
-    const riverRe = /^[a-z0-9-]{1,60}$/; // slug allowlist — an unknown slug falls back to the most active river
-    openBasinView(riverRe.test(river) ? river : null);
-  }
+  // every ?view= lens (drive, basin, playback, recovery, summary) restores through the one router
+  if (typeof openView === 'function') openView(q.get('view'), { river: q.get('river') });
 }
 
 // team-invite filter presets: snapshot the active feed filters (js/team.js sends these in

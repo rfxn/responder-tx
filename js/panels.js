@@ -299,6 +299,22 @@ function crestRowHtml(g) {
     '</tr>';
 }
 
+const VIEW_RIVER_SLUG = /^[a-z0-9-]{1,60}$/; // allowlist: an unknown slug falls back to the most active river
+
+// openView name, opts — the one dispatcher for ?view= deep links; routes by name, never by button id
+function openView(name, opts) {
+  const river = String((opts && opts.river) || '');
+  switch (name) {
+    case 'live': break; // the board itself; accepted for symmetry so every lens has a way back in a URL
+    case 'drive': if (typeof enterDriveMode === 'function') enterDriveMode(); break;
+    case 'basin': if (typeof openBasinView === 'function') openBasinView(VIEW_RIVER_SLUG.test(river) ? river : null); break;
+    case 'playback': if (typeof openPlayback === 'function') openPlayback(); break;
+    case 'recovery': if (typeof openRecoveryView === 'function') openRecoveryView(); break;
+    case 'summary': if (typeof openCrestSummary === 'function') openCrestSummary(); break;
+    default: break; // absent or unknown: leave the board where it is rather than throw on a stale link
+  }
+}
+
 async function openCrestSummary() {
   $('#summary-view').hidden = false;
   const el = $('#summary-body');

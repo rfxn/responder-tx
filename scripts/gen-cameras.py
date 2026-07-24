@@ -7,6 +7,7 @@ flood cams (CameraFTP/DriveHQ stills, San Marcos corridor). Hand-maintained
 sources are liveness-checked at gen time. Run at build time; the inventory is
 near-static, so the output is committed. Stdlib only."""
 
+import http.client
 import json
 import math
 import os
@@ -328,7 +329,7 @@ def hls_live(url):
         req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
         with urllib.request.urlopen(req, timeout=20) as r:
             return r.getcode() == 200 and r.read(32).lstrip().startswith(b'#EXTM3U')
-    except OSError:
+    except (OSError, http.client.HTTPException):
         return False
 
 
@@ -352,7 +353,7 @@ def hays_thumb_live(url):
             ctype = (r.headers.get('Content-Type') or '').lower()
             clen = int(r.headers.get('Content-Length') or 0)
             return r.getcode() == 200 and 'image/jpeg' in ctype and clen >= HAYS_MIN_BYTES
-    except (OSError, ValueError):
+    except (OSError, ValueError, http.client.HTTPException):
         return False
 
 

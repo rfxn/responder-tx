@@ -29,7 +29,7 @@ cd "$REPO_ROOT" || exit 1
 # way an interactive shell does (same lesson as run-cycle.sh).
 export HOME="${HOME:-/root}"  # cron may not set HOME; claude reads ~/.claude/.credentials.json
 export PATH="$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"  # ~/.local/bin holds the claude binary
-export IS_SANDBOX="${IS_SANDBOX:-1}"  # full-mode claude -p (--chat) uses bypassPermissions; refuses to run as root without this in cron's clean env
+export IS_SANDBOX="${IS_SANDBOX:-1}"  # defensive parity with chat-watchdog.sh for root-cron environments (this file's claude call is read-only allowedTools)
 
 INBOX="${RESPONDER_CHAT_INBOX:-data/chat-inbox.jsonl}"
 OUTBOX="${RESPONDER_CHAT_OUTBOX:-data/chat-outbox.json}"
@@ -287,7 +287,7 @@ rc=0
 reply=$(timeout -k "$CLAUDE_KILL_AFTER" "$CLAUDE_TIMEOUT" "$CLAUDE_CMD" -p "$PROMPT" \
     --allowedTools "$ALLOWED_TOOLS" \
     --disallowedTools "$DISALLOWED_TOOLS" \
-    --output-format text < /dev/null) || rc=$?
+    --output-format text < /dev/null 9>&-) || rc=$?  # 9>&- keeps a surviving grandchild from holding the flock forever
 
 reply_nows="${reply//[[:space:]]/}"
 if [ "$rc" -ne 0 ] || [ -z "$reply_nows" ]; then

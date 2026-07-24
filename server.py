@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Responder TX LAN server: static files + POST /api/chat|/api/notes -> data/*.jsonl; serves HTTPS on :8443 (self-signed) with an :8080 HTTP->HTTPS redirect when a TLS cert is present, else plain HTTP on :8080."""
 import base64
+import http.client
 import ipaddress
 import json
 import os
@@ -167,7 +168,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if not jpeg:
                     raise ValueError('empty snapshot')
                 stamp = re.sub(r'[^\x20-\x7e]+', ' ', str(d.get('timestampFormatted', ''))).strip()[:64]
-            except (OSError, ValueError, KeyError, TypeError):
+            except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException):
                 self.send_error(502)
                 return
             entry = (now, jpeg, stamp)
@@ -197,7 +198,7 @@ class Handler(SimpleHTTPRequestHandler):
                     stamp = re.sub(r'[^\x20-\x7e]+', ' ', str(r.headers.get('Last-Modified', ''))).strip()[:64]
                 if not jpeg or 'image' not in ctype.lower():
                     raise ValueError('not an image')
-            except (OSError, ValueError):
+            except (OSError, ValueError, http.client.HTTPException):
                 self.send_error(502)
                 return
             entry = (now, jpeg, stamp)

@@ -103,7 +103,7 @@ else
     done
     [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version} after ~2min (CDN propagation lag or deploy failure)"
 
-    chat_status=$(curl -s -o /dev/null -w '%{http_code}' https://respondertx.org/js/chat.js) \
+    chat_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/js/chat.js?_cb=$(date +%s)") \
         || fail "curl status check for live js/chat.js failed"
     [ "$chat_status" = "404" ] || fail "live js/chat.js returned HTTP ${chat_status}, expected 404"
 fi

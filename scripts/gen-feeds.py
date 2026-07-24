@@ -102,12 +102,12 @@ def build_rss(emergencies, crests, notices, built):
     items = []
     for e in emergencies:
         pub = parse_iso(e.get("sent")) or built
-        title = f"{e['threat']} flash flood — {e['area']}"
+        title = f"{e['threat']} flash flood · {e['area']}"
         desc = f"{e.get('headline','')} Expires {e.get('expires','')}. Life-threatening emergency: call 911."
         items.append((pub, title, desc, e.get("url") or SITE, e.get("id") or title))
     for c in crests:
         pub = built
-        title = f"MAJOR crest forecast — {c['name']} ({c['crest']} ft)"
+        title = f"MAJOR crest forecast · {c['name']} ({c['crest']} ft)"
         desc = f"Observed {c['obs']} ft ({c['ocat']}); forecast crest {c['crest']} ft MAJOR at {c['when']}. Source: NOAA NWPS."
         link = f"{SITE}/?hydro={c['lid']}"
         items.append((pub, title, desc, link, f"crest-{c['lid']}-{c['when']}"))
@@ -115,16 +115,16 @@ def build_rss(emergencies, crests, notices, built):
         pub = parse_iso(n.get("ts")) or built
         title = f"[{n.get('priority','').upper()}] {n.get('summary','')}"
         place = f"{n.get('place','')} ({n.get('county','')} Co.)"
-        desc = f"{n.get('details','')} — {place}".strip(" —")
+        desc = f"{n.get('details','')} · {place}".strip(" ·")
         link = (n.get("source") or {}).get("url") or SITE
         items.append((pub, title, desc, link, n.get("id") or title))
     items.sort(key=lambda x: x[0], reverse=True)
 
     parts = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<rss version="2.0"><channel>',
-             "<title>Responder TX — Hill Country Flood Ops</title>",
+             "<title>Responder TX · Hill Country Flood Ops</title>",
              f"<link>{SITE}/</link>",
-             "<description>Flash flood emergencies, forecast river crests, and active notices for the Texas Hill Country. Situational awareness — not a dispatch system; call 911 for emergencies.</description>",
+             "<description>Flash flood emergencies, forecast river crests, and active notices for the Texas Hill Country. Situational awareness, not a dispatch system; call 911 for emergencies.</description>",
              "<language>en-us</language>",
              f"<lastBuildDate>{rfc822(built)}</lastBuildDate>"]
     for pub, title, desc, link, guid in items[:40]:
@@ -145,7 +145,7 @@ def ics_escape(s):
 
 def build_ics(crests, built):
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Responder TX//Crest Calendar//EN",
-             "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Responder TX — forecast river crests"]
+             "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Responder TX · forecast river crests"]
     for c in crests:
         start = parse_iso(c["when"])
         if not start:
@@ -156,8 +156,8 @@ def build_ics(crests, built):
                   f"DTSTAMP:{ics_stamp(built)}",
                   f"DTSTART:{ics_stamp(start)}",
                   f"DTEND:{ics_stamp(end)}",
-                  f"SUMMARY:{ics_escape('MAJOR crest — ' + c['name'] + ' (' + str(c['crest']) + ' ft)')}",
-                  f"DESCRIPTION:{ics_escape('Forecast MAJOR crest ' + str(c['crest']) + ' ft (observed ' + str(c['obs']) + ' ft). NOAA NWPS. Not a dispatch system — call 911 for emergencies.')}",
+                  f"SUMMARY:{ics_escape('MAJOR crest · ' + c['name'] + ' (' + str(c['crest']) + ' ft)')}",
+                  f"DESCRIPTION:{ics_escape('Forecast MAJOR crest ' + str(c['crest']) + ' ft (observed ' + str(c['obs']) + ' ft). NOAA NWPS. Not a dispatch system; call 911 for emergencies.')}",
                   f"URL:{SITE}/?hydro={c['lid']}",
                   "END:VEVENT"]
     lines.append("END:VCALENDAR")

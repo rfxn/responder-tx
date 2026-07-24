@@ -97,7 +97,7 @@ try:
     obj = json.loads(lines[cursor])  # line cursor+1 is index `cursor` (0-based)
     ts = obj["ts"]
     epoch = calendar.timegm(time.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S"))
-except (ValueError, KeyError, IndexError):
+except (ValueError, KeyError, IndexError, TypeError):
     sys.exit(0)
 print(int(time.time() - epoch))
 PY
@@ -295,7 +295,7 @@ log "firing build-capable recovery (timeout ${WATCHDOG_TIMEOUT}s +${WATCHDOG_KIL
 rc=0
 timeout -k "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD" -p "$PROMPT" \
     --permission-mode bypassPermissions \
-    --output-format text < /dev/null || rc=$?
+    --output-format text < /dev/null 9>&- || rc=$?  # 9>&- keeps a surviving grandchild from holding the flock forever
 
 CURSOR_AFTER=$(read_int "$CURSOR")
 if [ "$CURSOR_AFTER" -gt "$CURSOR_VAL" ]; then

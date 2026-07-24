@@ -57,11 +57,16 @@ python3 scripts/gen-crest-summary.py
 log "step: gen-feeds.py"
 python3 scripts/gen-feeds.py
 
+log "step: gen-shelters.py (optional feed)"
+if ! python3 scripts/gen-shelters.py; then
+    log "WARN: gen-shelters.py failed (non-fatal); keeping previous shelters-live.json"
+fi
+
 log "step: cycle-check.sh (validation)"
 bash scripts/cycle-check.sh
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    log "DRY-RUN OK: fetch + 4 generators + validation composed; stopping before git/deploy"
+    log "DRY-RUN OK: fetch + 5 generators + validation composed; stopping before git/deploy"
     exit 0
 fi
 
@@ -71,6 +76,7 @@ DATA_FILES=(
     data/crest-summary.json
     data/gauge-meta.json
     data/history.json
+    data/shelters-live.json
     feed.xml
     crests.ics
 )
@@ -85,7 +91,7 @@ git add "${DATA_FILES[@]}"
 GAUGE_COUNT=$(python3 -c "import json;print(len(json.load(open('data/gauges-snapshot.json'))['gauges']))")
 STAMP=$(date -u '+%Y-%m-%dT%H:%MZ')
 git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' \
-    commit -m "Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + roads/history/crest/feeds regen"
+    commit -m "Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + roads/history/crest/feeds/shelters regen"
 log "committed: $(git log --oneline -1)"
 
 log "step: git push origin main"

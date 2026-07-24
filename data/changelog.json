@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.72",
+      "date": "2026-07-24",
+      "line": "Live shelter status arrived in the Resources tab: the board now polls the FEMA National Shelter System (synced with the American Red Cross) each cycle and lists open shelters in the event area first, with status in your language, address, capacity when reported, a freshness line, and a source link on every entry. Live entries replace matching curated shelters; curated listings and the map layer keep working unchanged when no live data exists."
+    },
+    {
       "v": "v0.97.71",
       "date": "2026-07-24",
       "line": "Gauge-level alerts arrived for device-alert subscribers: pick Flash Flood Emergencies, gauges reaching major, or gauges reaching moderate, and get notifications with real content in your language (gauge name, flood stage, reading, and a link straight to that gauge's chart). Turning alerts on now sends an instant confirmation notification, the card shows how recently the alert checker ran, and anti-noise rules keep a flapping river to one useful notification instead of a stream."

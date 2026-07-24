@@ -414,13 +414,41 @@ function renderGaugesTab() {
 
 const dataLinkHtml = (d) => `<div class="resource-item"><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`;
 
+const SHELTER_STATUS = {
+  open: { key: 'shl.st.open', color: 'var(--good)' },
+  standby: { key: 'shl.st.standby', color: 'var(--cat-action)' },
+  full: { key: 'shl.st.full', color: 'var(--cat-action)' },
+  closed: { key: 'shl.st.closed', color: 'var(--ink-muted)' },
+};
+function shlStatus(status) {
+  const st = SHELTER_STATUS[String(status || '').toLowerCase()];
+  return { label: (st ? t(st.key) : String(status || '')).toUpperCase(), color: st ? st.color : 'var(--ink-2)' };
+}
+function liveShelterHtml(s, srcUrl) {
+  const st = shlStatus(s.status);
+  const meta = [];
+  if (Number.isFinite(s.capacity)) meta.push(t('shl.cap').replace('{n}', s.capacity));
+  if (Number.isFinite(s.occupancy)) meta.push(t('shl.occ').replace('{n}', s.occupancy));
+  if (s.org) meta.push(s.org);
+  return `<div class="resource-item"><strong style="color:${st.color}">🏠 ${esc(st.label)}</strong>: <strong>${esc(s.name)}</strong> ${srcBadge('official')}` +
+    `<div class="addr">${esc(s.address || '')}${meta.length ? ` · ${esc(meta.join(' · '))}` : ''} · ${esc(t('shl.livesrc'))} <a href="${esc(safeUrl(srcUrl))}" target="_blank" rel="noopener">src</a></div></div>`;
+}
+
 function renderResources() {
   const r = state.resources;
   if (!r) return;
   const el = $('#resources-body');
   const recovery = r.recoveryLinks || [];
+  const liveShl = state.sheltersLive;
+  const shelters = mergeShelters(r.shelters, liveShl && liveShl.shelters);
+  const shlSrcUrl = (liveShl && liveShl.source && liveShl.source.url) || 'https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0';
   el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
-    r.shelters.map((s) => `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`).join('') +
+    (liveShl && liveShl.generated
+      ? `<div class="resource-item" style="border-bottom:none;font-size:12px;color:var(--ink-2)">${esc(t('shl.livefeed'))} · ${esc(t('word.updated').toLowerCase())} ${esc(fmtWhen(liveShl.generated))}</div>`
+      : '') +
+    shelters.map((s) => (s.live
+      ? liveShelterHtml(s, shlSrcUrl)
+      : `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`)).join('') +
     `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
     r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
     `<div class="section-title">${esc(t('res.data'))}</div>` +
@@ -436,10 +464,19 @@ function renderResources() {
   if (rt) rt.addEventListener('click', () => { state.showRecovery = !state.showRecovery; renderResources(); });
 
   state.layers.shelters.clearLayers();
-  for (const s of r.shelters) {
+  for (const s of shelters) {
+    if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) continue;
     const icon = L.divIcon({ className: '', html: '<div class="shelter-icon">🏠</div>', iconSize: [24, 24] });
     const m = L.marker([s.lat, s.lon], { icon });
-    m.bindPopup(`<div class="popup-title">🏠 ${esc(s.name)}</div><div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div><div class="popup-meta">Location approximate; confirm before routing.</div>`);
+    if (s.live) {
+      const st = shlStatus(s.status);
+      m.bindPopup(`<div class="popup-title">🏠 <span style="color:${st.color}">${esc(st.label)}</span> · ${esc(s.name)} ${srcBadge('official')}</div>` +
+        `<div class="popup-meta">${esc(s.address || '')}</div>` +
+        `<div class="popup-meta">${esc(t('shl.livefeed'))}</div>` +
+        `<div class="popup-link"><a href="${esc(safeUrl(shlSrcUrl))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>`);
+    } else {
+      m.bindPopup(`<div class="popup-title">🏠 ${esc(s.name)}</div><div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div><div class="popup-meta">Location approximate; confirm before routing.</div>`);
+    }
     state.layers.shelters.addLayer(m);
   }
 }
@@ -798,6 +835,9 @@ async function loadSeeds() {
     const xing = await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (xing && Array.isArray(xing.crossings)) state.crossings = xing.crossings;
     else state.crossings = state.crossings || [];
+    // live NSS shelters — absence-tolerant (poller may never have run); transient failure keeps last-good
+    const shl = await fetch(`data/shelters-live.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (shl && Array.isArray(shl.shelters)) state.sheltersLive = shl;
     markHealthy('seeds');
     state.seedRequests = reqs.requests || [];
     state.resources = res;
@@ -805,7 +845,7 @@ async function loadSeeds() {
     // but aged/stale/fresh-bucket transitions on idle clients still repaint list, tiles, and crossings
     const agingFp = allRequests().map((r) => [r.id, cardAged(r) ? 1 : 0, r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins ? 1 : 0, freshClass(r.ts)]);
     const crossingFp = state.crossings.map((c) => (c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity) > CROSSING_STALE_H ? 1 : 0);
-    const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp]);
+    const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp, state.sheltersLive]);
     if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
     state.seedHash = hash;
     renderRequests();

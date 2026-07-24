@@ -111,6 +111,7 @@ const EXPORTS = [
   'alertReach', 'alertSeverity',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'riverOf',
   'smartScore', 'shortId',
+  'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'AO_PRESET_FALLBACK',
   'pushCardState', 'pushFreshState',
 ];

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.71';
+const APP_VERSION = 'v0.97.72';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -124,6 +124,7 @@ const state = {
   seedRequests: [],
   store: { added: [], overrides: {} },
   resources: null,
+  sheltersLive: null, // data/shelters-live.json payload (FEMA NSS poller); null until first successful load
   alerts: [],
   gauges: [],
   fcstMax: [],
@@ -252,6 +253,22 @@ function distMi(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * toR, dLon = (lon2 - lon1) * toR;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toR) * Math.cos(lat2 * toR) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+const shelterKey = (name) => String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+function shelterDup(a, b) {
+  const ka = shelterKey(a.name), kb = shelterKey(b.name);
+  if (ka && kb && (ka === kb || (ka.length >= 6 && kb.length >= 6 && (ka.includes(kb) || kb.includes(ka))))) return true;
+  return Number.isFinite(a.lat) && Number.isFinite(a.lon) && Number.isFinite(b.lat) && Number.isFinite(b.lon)
+    && distMi(a.lat, a.lon, b.lat, b.lon) < 0.3;
+}
+
+// live NSS entries win over curated duplicates (name match or <0.3 mi proximity); live first
+function mergeShelters(curated, live) {
+  const liveList = (Array.isArray(live) ? live : []).filter((s) => s && s.name);
+  const kept = (Array.isArray(curated) ? curated : []).filter((c) => c && !liveList.some((s) => shelterDup(s, c)));
+  return liveList.map((s) => Object.assign({ live: true }, s)).concat(kept);
 }
 
 function inMapView(lat, lon) {

@@ -1,5 +1,27 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.72 · 2026-07-24 (Live FEMA/ARC shelter status in Resources)
+
+-- New Features --
+- [New] The Resources tab now folds in live open-shelter status from the FEMA
+      National Shelter System (the federal shelter database synced with the
+      American Red Cross). A new pipeline poller queries the FEMA Open
+      Shelters layer for the event area every cycle and publishes
+      data/shelters-live.json; live entries render first with their status
+      (open, standby, full, closed) in both languages, address, capacity and
+      occupancy when the feed reports them, a freshness line showing when the
+      data was generated, and a source link on every card. When a live entry
+      matches a curated shelter by name or location, the live entry wins;
+      curated shelters from official statements remain listed otherwise, and
+      the board behaves exactly as before when no live data exists. The
+      Shelters map layer shows the same merged set, with live markers citing
+      FEMA/ARC in their popups.
+- [New] Honest-data plumbing throughout: an empty result from a healthy feed
+      is published as real data (no shelters open in the area), while a fetch
+      failure keeps the previous file and never clobbers last-good; the
+      release gate now validates the shelters file schema whenever it is
+      present and skips gracefully when it is not.
+
 ## v0.97.71 · 2026-07-24 (Device alerts, phase 2: gauge-level alerts with real notification content)
 
 -- New Features --

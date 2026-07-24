@@ -240,6 +240,16 @@ if d is not None:
         if "route" not in r or not r.get("start") or not isinstance(r.get("v"), list):
             die("roads-snapshot.json: roads[%d] missing route/start/v" % i)
 
+d = optional("data/shelters-live.json")
+if d is not None:
+    if "generated" not in d or not isinstance(d.get("shelters"), list):
+        die("shelters-live.json: generated/shelters[] missing")
+    for i, s in enumerate(d["shelters"]):
+        if (not s.get("name") or not s.get("status")
+                or not isinstance(s.get("lat"), (int, float))
+                or not isinstance(s.get("lon"), (int, float))):
+            die("shelters-live.json: shelters[%d] missing name/lat/lon/status" % i)
+
 d = optional("data/cameras.json")
 if d is not None:
     nets = ("txdot", "river", "austin", "atxfloods", "houston", "arlington", "elpbridge", "hays")
@@ -259,7 +269,7 @@ if d is not None:
                 die("cameras.json: txdot[%d] missing httpsurl or dist/icd" % i)
 EOF
 }
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, cameras)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, cameras)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 if [ "$FAILURES" -eq 0 ]; then
     echo "SUMMARY: all 10 checks passed"

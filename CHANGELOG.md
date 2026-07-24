@@ -1,5 +1,43 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.76 · 2026-07-24 (Event-revert readiness + radar failover)
+
+-- New Features --
+- [New] Observed-radar failover: if the RainViewer frame API is down, the radar
+      layer now rebuilds its timeline from the IEM NEXRAD composite archive
+      (the same tiles playback already replays): past-only 10-minute frames
+      over ~2 hours, no fabricated nowcast, with the legend and attribution
+      switching to "Observed · NEXRAD via IEM (backup source)". Recovery is
+      automatic: every refresh retries RainViewer first.
+- [New] Honest degraded states where no secondary source exists: the forecast
+      radar legend says "Forecast radar unavailable" when the HRRR/IEM source
+      is failing and no model tile has painted, and Resources feed chips for a
+      source that has never loaded now read "no data yet" instead of a blank
+      stale dot. English and Spanish.
+- [New] Coastal tide stations are now event config: data/event.json
+      tideStations drives the Coastal water levels card (the TS Bertha station
+      list moved there unchanged); an inland event.json without stations
+      renders no coastal card and makes no CO-OPS fetches. event.json can also
+      pin tropicalAutoEnable off per event (the NHC tracker auto-default
+      stays data-driven: it engages only on an active TX tropical
+      warning/watch).
+
+-- Changes --
+- [Change] Event-revert readiness: closing or re-targeting an event is now
+         config-only. fetch-snapshot.py, gen-roads-snapshot.py, gen-cameras.py,
+         and gen-shelters.py all take their AO bbox from data/event.json
+         (previously the gauge/roads/cameras fetches hardcoded the Bertha
+         coastal box and would have silently kept fetching it into a new
+         event); built-in code fallbacks (CONFIG center/zoom/bbox, snapshot
+         floor, cycle-check floor) are event-neutral Texas-wide values; the
+         stale Hill Country sub-AO pill fallback is removed (no event presets =
+         Full AO pill only). The gauge-snapshot partial-response guard is now
+         bbox-aware: same-bbox refreshes must return at least half the previous
+         count, a re-target only clears the absolute floor. Operator runbook
+         for closing an event added to scripts/README.md. Verified by a
+         scratch-checkout dry run with a synthetic Hill Country event.json:
+         pipeline plus headless boot render with zero Bertha/coastal residue.
+
 ## v0.97.75 · 2026-07-24 (Recovery view: the event wind-down on one screen)
 
 -- New Features --

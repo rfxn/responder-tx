@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadApp } = require('./harness.js');
 
-const { CONFIG, resolveAoPresets, aoFullBounds, AO_PRESET_FALLBACK } = loadApp();
+const { CONFIG, resolveAoPresets, aoFullBounds } = loadApp();
 
 // harness t() echoes keys, so the Full AO pill label resolves to its i18n key here
 const FULL_LABEL = 'ao.full';
@@ -30,12 +30,12 @@ test('aoFullBounds — derives [[s,w],[n,e]] from CONFIG.gaugeBbox, not literals
   });
 });
 
-test('resolveAoPresets — absent event presets fall back to the built-in sub-AO list', () => {
+test('resolveAoPresets: absent event presets leave only the Full AO pill (no stale-event fallback)', () => {
   withConfig({ aoPresets: null }, () => {
     const p = resolveAoPresets('en');
+    assert.equal(p.length, 1);
     assert.equal(p[0][0], FULL_LABEL);
     deq(p[0][1], aoFullBounds());
-    deq(p.slice(1), AO_PRESET_FALLBACK);
   });
 });
 
@@ -65,7 +65,7 @@ test('resolveAoPresets — labelEs wins under es, label under en or when labelEs
   });
 });
 
-test('resolveAoPresets — malformed entries are dropped; all-malformed falls back', () => {
+test('resolveAoPresets: malformed entries are dropped; all-malformed leaves only Full AO', () => {
   const good = { id: 'ok', label: 'OK area', bounds: [[29.0, -95.0], [30.0, -94.0]] };
   const bad = [
     null,
@@ -80,6 +80,6 @@ test('resolveAoPresets — malformed entries are dropped; all-malformed falls ba
     deq(p[1], ['OK area', good.bounds]);
   });
   withConfig({ aoPresets: bad }, () => {
-    deq(resolveAoPresets('en').slice(1), AO_PRESET_FALLBACK);
+    deq(resolveAoPresets('en').slice(1), []);
   });
 });

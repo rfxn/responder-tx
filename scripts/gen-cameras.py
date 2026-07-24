@@ -18,8 +18,23 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-BBOX = (-98.0, 27.5, -93.4, 31.0)  # xmin, ymin, xmax, ymax — gauge AO, matches CONFIG.gaugeBbox
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)  # event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
 CAM_RIVER_BBOX = (-107.0, 25.5, -93.5, 33.8)  # statewide-TX river-cam clip — pulls Houston/DFW/Laredo flood-gage cams the gauge AO drops
+
+
+def ao_bbox():
+    try:
+        with open(os.path.join(ROOT, 'data', 'event.json'), encoding='utf-8') as f:
+            b = json.load(f).get('gaugeBbox') or {}
+        if all(isinstance(b.get(k), (int, float)) for k in ('xmin', 'ymin', 'xmax', 'ymax')):
+            return (b['xmin'], b['ymin'], b['xmax'], b['ymax'])
+    except Exception as e:  # noqa: BLE001 — a broken event.json must not kill the poller; fallback matches core.js
+        print(f'warn: event.json bbox unreadable, using default: {e}', file=sys.stderr)
+    return DEFAULT_BBOX
+
+
+BBOX = ao_bbox()  # xmin, ymin, xmax, ymax — gauge AO from data/event.json
 MAPLARGE = 'https://dtx-e-cdn.maplarge.com/Api/ProcessDirect'
 NIMS = 'https://api.waterdata.usgs.gov/nims/v0/cameras'
 ITS = 'https://its.txdot.gov/its/DistrictIts/GetCctvStatusListByDistrict?districtCode='
@@ -64,7 +79,6 @@ ARLINGTON_PIC_RE = re.compile(r'^https?://webapps\.arlingtontx\.gov/webcams/(.+)
 HAYS_ID_RE = re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$')  # composite parentID-shareID; mirrors the /api/cam/hays proxy validator
 TX_MIN_LAT, TX_MAX_LAT, TX_MIN_LON, TX_MAX_LON = 25.0, 37.0, -107.5, -93.0  # generous Texas coord sanity gate
 ITS_NEAR_M = 150.0  # an ITS cam this close to a MapLarge streamable cam is the same head — streamable wins
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'data', 'cameras.json')
 PAGE = 1000
 

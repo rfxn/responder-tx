@@ -17,16 +17,30 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "roads-snapshot.json")
 URL = "https://services5.arcgis.com/Rvw11bGpzJNE7apK/arcgis/rest/services/DriveTexas_API/FeatureServer/0/query"
-BBOX = (-98.0, 27.5, -93.4, 31.0)
+# event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
+DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)
 # mirror js/sources.js roadParams — construction-coded closures excluded
 WHERE = ("condition IN ('Flooding','Closure','Damage') AND "
          "(description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')")
 
 
+def ao_bbox():
+    try:
+        with open(os.path.join(ROOT, "data", "event.json"), encoding="utf-8") as f:
+            b = json.load(f).get("gaugeBbox") or {}
+        if all(isinstance(b.get(k), (int, float)) for k in ("xmin", "ymin", "xmax", "ymax")):
+            return (b["xmin"], b["ymin"], b["xmax"], b["ymax"])
+    except Exception as e:  # noqa: BLE001 — a broken event.json must not kill the cycle; fallback matches core.js
+        print(f"warn: event.json bbox unreadable, using default: {e}", file=sys.stderr)
+    return DEFAULT_BBOX
+
+
 def main():
+    bbox = ao_bbox()
+    print(f"gen-roads-snapshot: AO bbox {bbox}")
     params = urllib.parse.urlencode({
         "where": WHERE,
-        "geometry": f"{BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]}",
+        "geometry": f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}",
         "geometryType": "esriGeometryEnvelope",
         "inSR": "4326",
         "spatialRel": "esriSpatialRelIntersects",

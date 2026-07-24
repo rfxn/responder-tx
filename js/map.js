@@ -383,7 +383,7 @@ function initMap() {
   // HRRR model future-cast — MODEL data (never observed); per-hour WMS layers mounted at opacity 0
   // like the observed-radar frames, so stepping is opacity-only (never a per-step fetch-gated fade)
   state.rtl = { idx: 0, fut: false, hour: 1, playing: false, timer: null, wantNow: false };
-  state.fcst = { runIso: null, hourLayers: [] };
+  state.fcst = { runIso: null, hourLayers: [], metaFail: false, tileOk: false };
   state.layers.fcstRadar = L.layerGroup();
   state.inunBucket = Math.floor(Date.now() / 3600000);
   state.refreshRadar = () => {
@@ -1184,7 +1184,8 @@ function rtlUpdateLabel(R) {
   const rtl = state.rtl, label = $('#rs-label');
   // combined-legend source: observed until the RainViewer nowcast seam, forecast beyond (nowcast + HRRR)
   const wxFcst = !R.pastN || (state.radar && rtl.idx >= state.radar.castStart);
-  $('#wx-legend-src').textContent = t(wxFcst ? 'leg.wx.fcst' : 'leg.wx.obs');
+  const obsKey = state.radar && state.radar.src === 'iem' ? 'leg.wx.obs.iem' : 'leg.wx.obs';
+  $('#wx-legend-src').textContent = t(wxFcst ? (wxFcstDegraded(state.fcst) ? 'leg.wx.fcst.down' : 'leg.wx.fcst') : obsKey);
   $('#radar-scrub').classList.toggle('rs-future', rtl.fut);
   $('#rs-badge').hidden = !rtl.fut;
   if (rtl.fut) {
@@ -1265,22 +1266,39 @@ function radarMountFramesDeferred(r, primaryIdx) {
   setTimeout(mountRest, 1200); // fallback when the visible frame paints no tiles (offscreen)
 }
 
+// RainViewer-down fallback: synthesize a past-only frame set from the IEM NEXRAD composite archive
+// (the same tiles playback replays). 10-min steps over ~2h, floored to 5-min buckets with a 10-min
+// ingest lag so the newest stamp already serves tiles. No nowcast segment — honesty over projection.
+const IEM_RADAR_STEP_MS = 600000;
+const IEM_RADAR_FRAMES = 13;
+function iemRadarFrames(nowMs) {
+  const newest = Math.floor((nowMs - 600000) / 300000) * 300000;
+  const frames = [];
+  for (let i = IEM_RADAR_FRAMES - 1; i >= 0; i--) frames.push({ time: (newest - i * IEM_RADAR_STEP_MS) / 1000 });
+  return frames;
+}
+
 async function fetchRadarFrames() {
-  const res = await fetch(CONFIG.rainviewerApi);
-  if (!res.ok) throw new Error(`RainViewer HTTP ${res.status}`);
-  const d = await res.json();
-  const past = (d.radar && d.radar.past) || []; // full published history (~2h @ 10-min steps)
-  const cast = (d.radar && d.radar.nowcast) || [];
-  if (!past.length) throw new Error('no radar frames');
+  let d = null;
+  try {
+    const res = await fetch(CONFIG.rainviewerApi);
+    if (!res.ok) throw new Error(`RainViewer HTTP ${res.status}`);
+    d = await res.json();
+    if (!((d.radar && d.radar.past) || []).length) throw new Error('no radar frames');
+  } catch { d = null; } // primary down — fall back to the IEM archive frame set below
+  const past = d ? d.radar.past : iemRadarFrames(Date.now());
+  const cast = d ? (d.radar.nowcast || []) : [];
   const keepIdx = state.radar ? state.radar.idx : -1;
   const wasPlaying = state.rtl.playing;
   rtlStopPlay();
-  state.radar = { host: d.host, frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, frameLayers: [] };
+  state.radar = { src: d ? 'rainviewer' : 'iem', host: d ? d.host : '', frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, frameLayers: [] };
   const r = state.radar;
   state.layers.radar.clearLayers();
-  r.frameLayers = r.frames.map((f) => L.tileLayer(`${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
-    pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, className: 'rtl-xfade', attribution: 'Radar: RainViewer',
-  }));
+  r.frameLayers = r.frames.map((f) => L.tileLayer(
+    d ? `${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png` : PB_RADAR_URL(pbRadarStampAt(f.time * 1000)), {
+      pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, className: 'rtl-xfade',
+      attribution: d ? 'Radar: RainViewer' : 'Radar: NEXRAD via IEM',
+    }));
   r.frameLayers.forEach(attachTileRetry);
   const rf = parseInt(new URLSearchParams(location.search).get('rf'), 10); // debug/deep-link: initial frame index
   const primaryIdx = (state.rtl.wantNow || state.rtl.fut) ? r.nowIdx
@@ -1300,6 +1318,10 @@ async function fetchRadarFrames() {
 const FCST_WIN_BEHIND = 1; // sliding preload window around the playhead; bounds the concurrent WMS load on mobile
 const FCST_WIN_AHEAD = 3;  // lead enough at the play cadence that an hour paints before it is shown
 
+// HRRR has no secondary source — degraded means the IEM run metadata is failing and no model tile has
+// ever painted; the legend then says so instead of showing silently blank forecast frames
+const wxFcstDegraded = (f) => !!(f && f.metaFail && !f.tileOk);
+
 // one supersampled, mobile-tuned HRRR hour layer (mirrors the observed-radar frame tuning), mounted at opacity 0
 function fcstMakeHourLayer(h) {
   const l = L.tileLayer.wms(CONFIG.hrrrWmsUrl, {
@@ -1310,6 +1332,7 @@ function fcstMakeHourLayer(h) {
   });
   l.wmsParams.width = l.wmsParams.height = FCST_WMS_PX; // render size (initialize() pins these to tileSize)
   if (state.fcst.runIso) l.wmsParams._run = state.fcst.runIso; // stay on the same run as its already-mounted siblings
+  l.on('tileload', () => { state.fcst.tileOk = true; });
   attachTileRetry(l);
   return l;
 }
@@ -1361,6 +1384,7 @@ function fcstDisable() {
 function fcstFetchRun() {
   fetch(CONFIG.hrrrMetaUrl(60)).then((r) => (r.ok ? r.json() : null)).then((d) => {
     const f = state.fcst;
+    if (f) f.metaFail = !d || !d.model_init_utc;
     if (!f || !d || !d.model_init_utc || f.runIso === d.model_init_utc) return;
     const stale = f.runIso !== null;
     f.runIso = d.model_init_utc;
@@ -1369,7 +1393,10 @@ function fcstFetchRun() {
       if (state.rtl.fut) fcstShow(state.rtl.hour); // repaint the visible hour onto the new run
     }
     if (state.rtl.fut) rtlUpdateLabel(rtlDomain());
-  }).catch(() => { /* metadata is decorative — the scrub still works with +Nh labels only */ });
+  }).catch(() => {
+    if (state.fcst) state.fcst.metaFail = true; // with no tile ever painted this flips the legend to "unavailable"
+    if (state.rtl.fut) rtlUpdateLabel(rtlDomain());
+  });
 }
 
 /* ---------- historical playback (v0.82) — replay archived gauge frames over 3d/7d/14d ----------

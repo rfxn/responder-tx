@@ -115,12 +115,12 @@ const EXPORTS = [
   'buildShareUrl', 'applyShareParams',
   'smartScore', 'shortId', 'allRequests',
   'mergeShelters', 'shelterDup', 'shelterKey',
-  'resolveAoPresets', 'aoFullBounds', 'AO_PRESET_FALLBACK',
+  'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
   'pushCardState', 'pushFreshState',
 ];
 
 // map.js adds the playback frame-selection / archive-stamp math (pure, state-driven)
-const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt']);
+const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'iemRadarFrames', 'wxFcstDegraded']);
 
 function buildBundle(files, exports) {
   const sources = files.map(read).join('\n;\n');

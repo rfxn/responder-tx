@@ -11,5 +11,17 @@
     { "id": "beaumont", "label": "Beaumont · Port Arthur", "labelEs": "Beaumont · Port Arthur", "bounds": [[29.6, -94.5], [30.6, -93.4]] },
     { "id": "galvestonbay", "label": "Galveston Bay", "labelEs": "Bahía de Galveston", "bounds": [[28.9, -95.5], [29.75, -94.35]] },
     { "id": "matagorda", "label": "Matagorda · Victoria", "labelEs": "Matagorda · Victoria", "bounds": [[28.0, -97.6], [29.2, -95.9]] }
+  ],
+  "tideStations": [
+    { "id": "8770822", "name": "Texas Point, Sabine Pass" },
+    { "id": "8770777", "name": "Manchester (Houston Ship Channel)" },
+    { "id": "8770613", "name": "Morgans Point, Barbours Cut" },
+    { "id": "8771013", "name": "Eagle Point, Galveston Bay" },
+    { "id": "8771341", "name": "Galveston Bay Entrance, North Jetty" },
+    { "id": "8771450", "name": "Galveston Pier 21" },
+    { "id": "8773037", "name": "Seadrift" },
+    { "id": "8773701", "name": "Port O'Connor" },
+    { "id": "8774770", "name": "Rockport" },
+    { "id": "8775241", "name": "Aransas, Aransas Pass" }
   ]
 }

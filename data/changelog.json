@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.76",
+      "date": "2026-07-24",
+      "line": "Under-the-hood readiness: if the usual radar source (RainViewer) goes down, the radar layer now falls back automatically to the NOAA NEXRAD archive via IEM, with the legend saying which source you are seeing; feeds that have never loaded now say 'no data yet' instead of staying blank. Also groundwork so the board can re-target cleanly to a future event from config alone: gauge, road, camera, and shelter data scoping plus the coastal tide-station list all follow data/event.json now. Nothing changes on screen for the current event."
+    },
+    {
       "v": "v0.97.75",
       "date": "2026-07-24",
       "line": "New Recovery view: open it from Feed > More > 'Recovery' or share it as ?view=recovery. As TS Bertha winds down, one screen now shows the recovery picture: gauges receding after flooding (with current stage, peak, and falling evidence), recently reopened roads, open shelters, and utility/recovery notices such as boil-water advisories, each with timestamps and sources. Sections that have nothing real to show say so honestly, and the view is explicit that recovery signals are not an all-clear. English and Spanish."

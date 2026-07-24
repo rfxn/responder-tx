@@ -1549,18 +1549,8 @@ function renderLsrs() {
    Lazy: fetched on Resources-tab open and refreshed on the data cycle only while that tab is visible.
    Per-station failures degrade to an unavailable row; a total feed failure keeps the last-good rows. */
 
-const COOP_STATIONS = [
-  { id: '8770822', name: 'Texas Point, Sabine Pass' },
-  { id: '8770777', name: 'Manchester (Houston Ship Channel)' },
-  { id: '8770613', name: 'Morgans Point, Barbours Cut' },
-  { id: '8771013', name: 'Eagle Point, Galveston Bay' },
-  { id: '8771341', name: 'Galveston Bay Entrance, North Jetty' },
-  { id: '8771450', name: 'Galveston Pier 21' },
-  { id: '8773037', name: 'Seadrift' },
-  { id: '8773701', name: "Port O'Connor" },
-  { id: '8774770', name: 'Rockport' },
-  { id: '8775241', name: 'Aransas, Aransas Pass' },
-];
+// station seed comes from data/event.json tideStations (coastal events only); empty = no card, no fetches
+const coopStations = () => (Array.isArray(CONFIG.tideStations) ? CONFIG.tideStations : []);
 
 // CO-OPS returns "YYYY-MM-DD HH:MM" naive station-local (lst_ldt); parse to epoch only for prediction-match delta math
 const tideEpoch = (s) => new Date(String(s).replace(' ', 'T')).getTime();
@@ -1602,12 +1592,13 @@ async function fetchTideStation(s) {
 }
 
 async function fetchTides() {
-  const rows = await Promise.all(COOP_STATIONS.map(fetchTideStation));
+  const rows = await Promise.all(coopStations().map(fetchTideStation));
   if (rows.some((r) => r.ok)) { state.tides = rows; state.tidesAt = Date.now(); } // keep last-good if the whole feed is down
 }
 
 // refetch unless a fetch is already in flight or we already have fresh (<90s) rows (tab-toggle spam guard)
 async function loadTides() {
+  if (!coopStations().length) { renderTides(); return; } // inland event: no stations configured, no card
   if (state.tidesLoading) { renderTides(); return; }
   if (state.tides && state.tidesAt && Date.now() - state.tidesAt < 90000) { renderTides(); return; }
   state.tidesLoading = true;

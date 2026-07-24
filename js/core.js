@@ -1,15 +1,16 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.75';
+const APP_VERSION = 'v0.97.76';
 
 const CONFIG = {
-  center: [29.5, -95.1],
-  zoom: 8,
-  // Upper/mid Texas coast (Matagorda to Sabine, inland to Houston/Beaumont) for TS Bertha; data/event.json
-  // overrides this per-event. Pivoted 2026-07-23 from the Hill Country box; revert both when the event clears
-  gaugeBbox: { xmin: -98.0, ymin: 27.5, xmax: -93.4, ymax: 31.0 },
-  // sub-AO quick-jump presets; data/event.json aoPresets overrides per-event (null = built-in fallback)
+  // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
+  center: [31.0, -99.0],
+  zoom: 6,
+  gaugeBbox: { xmin: -106.65, ymin: 25.83, xmax: -93.4, ymax: 36.5 },
+  // sub-AO quick-jump presets from data/event.json; empty = only the Full AO pill renders
   aoPresets: null,
+  // NOAA CO-OPS tide stations from data/event.json (coastal events only); empty = card hidden
+  tideStations: [],
   alertsUrl: 'https://api.weather.gov/alerts/active?area=TX',
   nwpsBase: 'https://api.water.noaa.gov/nwps/v1',
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
@@ -59,7 +60,7 @@ const CONFIG = {
   // draws only at street scale (< ~1:400k, z≈11+). MODELED estimate, not observed — labelled as such.
   inunExportUrl: 'https://maps.water.noaa.gov/server/rest/services/nwm/ana_inundation_extent/MapServer/export?bboxSR=3857&imageSR=3857&size=256,256&dpi=96&layers=show:0&format=png32&transparent=true&f=image',
   // NOAA CO-OPS Tides & Currents datagetter (CORS *, keyless). Observed water level vs same-timestamp
-  // prediction = storm-surge residual at the coastal tide stations; upper/central TX coast seed in sources.js
+  // prediction = storm-surge residual at the tide stations configured in data/event.json tideStations
   coopBase: 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter',
   // NOAA/NHC National Storm Surge Hazard Maps (SLOSH MOM): static planning product, always
   // available; cat 5 is the near worst-case envelope. Cached PNG8 XYZ tiles (CORS-open,
@@ -68,14 +69,19 @@ const CONFIG = {
   surgeUrl: (cat) => `https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/Storm_Surge_HazardMaps_Category${cat}_v3/MapServer/tile/{z}/{y}/{x}`,
 };
 
-// last-resort sub-AO pills when data/event.json carries no aoPresets (Hill Country, July 2026 event)
-const AO_PRESET_FALLBACK = [
-  ['Kerr/Guadalupe', [[29.85, -99.6], [30.2, -98.9]]],
-  ['Uvalde/Frio-Nueces', [[28.9, -100.1], [29.6, -99.4]]],
-  ['Val Verde/Pecos', [[29.3, -101.9], [30.35, -100.8]]],
-  ['Sonora/Ozona', [[30.3, -101.4], [30.95, -100.3]]],
-  ['Cibolo corridor', [[28.9, -98.4], [29.4, -97.9]]],
-];
+// apply data/event.json onto CONFIG (pure re CONFIG; DOM name/subtitle handled by the caller)
+function applyEventConfig(ev) {
+  if (!ev || typeof ev !== 'object') return;
+  if (Array.isArray(ev.center) && ev.center.length === 2 && ev.center.every(Number.isFinite)) CONFIG.center = ev.center;
+  if (Number.isFinite(ev.zoom)) CONFIG.zoom = ev.zoom;
+  const b = ev.gaugeBbox;
+  if (b && [b.xmin, b.ymin, b.xmax, b.ymax].every(Number.isFinite)) CONFIG.gaugeBbox = b;
+  if (Array.isArray(ev.aoPresets)) CONFIG.aoPresets = ev.aoPresets;
+  if (Array.isArray(ev.tideStations)) {
+    CONFIG.tideStations = ev.tideStations.filter((s) => s && typeof s.id === 'string' && typeof s.name === 'string');
+  }
+  if (typeof ev.tropicalAutoEnable === 'boolean') CONFIG.tropicalAutoEnable = ev.tropicalAutoEnable;
+}
 
 function aoFullBounds() {
   const b = CONFIG.gaugeBbox;
@@ -87,12 +93,12 @@ function aoBoundsOk(b) {
     b.every((c) => Array.isArray(c) && c.length === 2 && c.every(Number.isFinite));
 }
 
-// [label, bounds] pill list: Full AO (always first, from CONFIG.gaugeBbox) + event sub-AOs or fallback
+// [label, bounds] pill list: Full AO (always first, from CONFIG.gaugeBbox) + event sub-AOs, if any
 function resolveAoPresets(lang) {
   const evp = (Array.isArray(CONFIG.aoPresets) ? CONFIG.aoPresets : [])
     .filter((p) => p && typeof p.label === 'string' && aoBoundsOk(p.bounds))
     .map((p) => [(lang === 'es' && typeof p.labelEs === 'string') ? p.labelEs : p.label, p.bounds]);
-  return [[t('ao.full'), aoFullBounds()]].concat(evp.length ? evp : AO_PRESET_FALLBACK);
+  return [[t('ao.full'), aoFullBounds()]].concat(evp);
 }
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
@@ -249,6 +255,12 @@ const ageMins = (iso) => (Date.now() - new Date(iso).getTime()) / 60000;
 function freshClass(iso) {
   const m = ageMins(iso);
   return m < 60 ? 'fresh' : m < 180 ? 'recent' : m < CONFIG.staleMins ? 'aging' : 'stale';
+}
+// feed-chip freshness: dot class + age text; a source that has never loaded says so instead of staying blank
+function chipHealth(ts, now) {
+  if (!ts) return { cls: 'stale', txt: ` · ${t('health.nodata')}` };
+  const age = (now - ts) / 60000;
+  return { cls: age < 10 ? 'fresh' : age < 30 ? 'aging' : 'stale', txt: ` ${Math.round(age)}m` };
 }
 function distMi(lat1, lon1, lat2, lon2) {
   const R = 3958.8, toR = Math.PI / 180;

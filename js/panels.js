@@ -642,6 +642,8 @@ function tideSurgeColor(surge) {
 function renderTides() {
   const el = $('#tides-body');
   if (!el) return;
+  // no configured tide stations (inland event) — the coastal card does not render at all
+  if (!Array.isArray(CONFIG.tideStations) || !CONFIG.tideStations.length) { el.innerHTML = ''; return; }
   const rows = state.tides;
   const open = localStorage.getItem('respondertx.tidesOpen') !== '0'; // default open once the operator picks the tab
   const live = rows ? rows.filter((r) => r.ok) : [];

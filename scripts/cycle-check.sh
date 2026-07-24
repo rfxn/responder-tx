@@ -83,20 +83,21 @@ check_feeds() {
 }
 if check_feeds; then pass "feeds (feed.xml well-formed, crests.ics non-empty)"; else failck "feeds (feed.xml, crests.ics)"; fi
 
-# e. Snapshot sanity (no freshness window — must pass on a quiet-day repo)
+# e. Snapshot sanity (no freshness window — must pass on a quiet-day repo).
+# Floor is event-agnostic (fetch-snapshot.py owns the same-bbox 50% partial guard)
 check_snapshot() {
     python3 -c '
 import json, sys
 from datetime import datetime
 d = json.load(open("data/gauges-snapshot.json"))
 n = len(d["gauges"])
-if n < 200:
-    sys.exit(f"only {n} gauges (need >=200)")
+if n < 25:
+    sys.exit(f"only {n} gauges (need >=25)")
 datetime.fromisoformat(d["generated"].replace("Z", "+00:00"))
 ' || return 1
     return 0
 }
-if check_snapshot; then pass "snapshot (>=200 gauges, ISO-8601 generated stamp)"; else failck "snapshot (data/gauges-snapshot.json)"; fi
+if check_snapshot; then pass "snapshot (>=25 gauges, ISO-8601 generated stamp)"; else failck "snapshot (data/gauges-snapshot.json)"; fi
 
 # f. Staged-file guard
 check_staged() {

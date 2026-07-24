@@ -23,7 +23,8 @@ SOURCE = {
     "url": "https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0",
 }
 UA = "responder-tx-ops/gen-shelters (rfxnryan@gmail.com)"
-DEFAULT_BBOX = {"xmin": -98.0, "ymin": 27.5, "xmax": -93.4, "ymax": 31.0}
+# event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
+DEFAULT_BBOX = {"xmin": -106.65, "ymin": 25.83, "xmax": -93.4, "ymax": 36.5}
 MARGIN = 0.5
 
 

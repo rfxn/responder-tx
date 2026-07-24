@@ -99,11 +99,8 @@ function renderSourceHealth() {
   const sources = [['alerts', t('health.alerts')], ['gauges', t('health.gauges')], ['roads', t('health.roads')],
     ['fcstMax', t('health.fcst')], ['usgs', t('health.usgs')], ['lsrs', t('health.reports')], ['seeds', t('health.board')]];
   const chips = sources.map(([k, label]) => {
-    const ts = state.sourceHealth[k];
-    const age = ts ? (Date.now() - ts) / 60000 : Infinity;
-    const cls = age < 10 ? 'fresh' : age < 30 ? 'aging' : 'stale';
-    const when = ts ? ` ${Math.round(age)}m` : '';
-    return `<span class="feed-chip"><span class="fresh-dot ${cls}"></span>${esc(label)}${when}</span>`;
+    const { cls, txt } = chipHealth(state.sourceHealth[k], Date.now());
+    return `<span class="feed-chip"><span class="fresh-dot ${cls}"></span>${esc(label)}${esc(txt)}</span>`;
   }).join(' · ');
   el.innerHTML = `<div class="section-title">${esc(t('health.title'))}</div>` +
     `<div class="feed-chips">${chips}</div>` +
@@ -504,10 +501,7 @@ function initOnboarding() {
 async function loadEventConfig() {
   try {
     const ev = await fetch('data/event.json').then((r) => r.json());
-    if (Array.isArray(ev.center)) CONFIG.center = ev.center;
-    if (ev.zoom) CONFIG.zoom = ev.zoom;
-    if (ev.gaugeBbox) CONFIG.gaugeBbox = ev.gaugeBbox;
-    if (Array.isArray(ev.aoPresets)) CONFIG.aoPresets = ev.aoPresets;
+    applyEventConfig(ev);
     if (ev.name) {
       // brand is logo imgs (no h1 since the lockup rebrand); the name lands on alt text + tab title
       document.querySelectorAll('.brand .brand-logo').forEach((img) => { img.alt = ev.name; });

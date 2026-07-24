@@ -63,6 +63,35 @@ to `/tmp/responder-cycle.log` if `/var/log` is not writable). Each line is
 UTC-timestamped. The cron entry sends its own stdout to `/dev/null` because the
 script already persists the durable copy — tail the logfile to watch cycles.
 
+## Event close / re-target runbook
+
+Closing an event (or re-targeting the board to a new one) is config + curated
+data only; no code edits. All geography flows from `data/event.json`.
+
+1. **Edit `data/event.json`:** `name`, `event`, `region`, `start` (new event
+   start; drives history backfill and crest windows), `center`/`zoom`,
+   `gaugeBbox` (drives the gauge fetch, roads/shelters/cameras scoping, and the
+   LSR/alert in-AO filters), `aoPresets` (sub-AO pills; omit for Full AO only),
+   `tideStations` (coastal events only; omit or empty inland and the coastal
+   water-level card does not render), and optionally
+   `tropicalAutoEnable: false` to pin the NHC tracker auto-default off (it is
+   otherwise data-driven: it engages only while TX has an active tropical
+   warning/watch).
+2. **Refresh curated data for the new AO:** `data/requests.json` seeds,
+   `data/resources.json`, `data/records.json`; rerun `gen-cameras.py` (its AO
+   bbox comes from event.json).
+3. **Validate, then let the cron propagate:** run `scripts/cycle-check.sh`; the
+   next `:08/:23/:38/:53` `run-cycle.sh` fetches the new-bbox gauge snapshot
+   and regenerates roads/history/crest/feeds. History and crest depth rebuild
+   from new-bbox snapshots over subsequent cycles (first cycle commits the
+   first new-AO frame; playback depth grows from there). The snapshot guard is
+   bbox-aware: a bbox change only has to clear the absolute gauge floor, not
+   50% of the old event's count.
+4. **Verify:** board title/tab name, map center and Full AO pill extent, gauge
+   markers inside the new AO, roads layer scoped to the new bbox, no coastal
+   card for an inland event, `feed.xml` `<title>` carries the new name. Commit
+   `data/event.json` plus the regenerated data files by name, then deploy.
+
 ## Chat processor (`chat-poll.sh`)
 
 Owner ops-chat messages typed in the app (💬 panel → `POST /api/chat` →

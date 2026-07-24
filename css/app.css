@@ -770,19 +770,14 @@ main { flex: 1; display: flex; min-height: 0; }
 
 .locate-btn { font-size: 18px; }
 
-/* offline tile save — bottomleft, stacked under the legend */
-.offline-ctl { font: 11.5px system-ui, sans-serif; color: var(--ink-1); }
-/* subtle: a small square toggle matching the zoom/layer controls; panel expands on tap */
-.off-toggle {
-  width: 34px; height: 34px; padding: 0; font-size: 16px; line-height: 1; border-radius: 7px;
-  background: var(--surface-1); border: 1px solid var(--border); color: var(--ink-2);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.3);
-}
-.off-toggle.open { color: var(--accent); border-color: var(--accent); }
-.off-toggle.has-cache { color: var(--good); border-color: var(--good); } /* something is cached */
+/* offline tile save — topright stack, directly below the compass; panel slides out leftward */
+.offline-ctl { position: relative; font: 11.5px system-ui, sans-serif; color: var(--ink-1); }
+.off-toggle.open { color: var(--accent); }
+.off-toggle.has-cache { color: var(--good); } /* something is cached */
 .off-panel {
-  margin-top: 6px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 9px; max-width: 214px; box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+  position: absolute; top: 0; right: calc(100% + 8px); width: 214px;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 9px; box-shadow: 0 1px 6px rgba(0,0,0,0.35);
 }
 .off-panel[hidden] { display: none; }
 .off-panel-head { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: var(--ink-2); margin-bottom: 6px; text-transform: uppercase; }
@@ -1037,9 +1032,18 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .compass-ctl.live a { color: var(--accent); } /* subtle active tint: currentColor parts go accent, the red north needle stays red */
 .compass-ctl.live svg { transition: transform 0.12s linear; }
 
+/* overlay-legend stack: one bottom-right flex column (bottom→top: rain, radar, surge, inundation);
+   hidden legends leave the flow, so whatever is visible always hugs the corner with no mid-map floating */
+#ov-legend-stack {
+  /* above the corner cluster: attribution (0..20), playback pill (26..59), LAN chat FAB (46..94) */
+  position: absolute; bottom: 100px; right: 16px; z-index: 900;
+  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 6px;
+  pointer-events: none;
+}
+#ov-legend-stack > * { pointer-events: auto; }
+
 /* ramp endpoints sampled from live IEM q2 tiles (continuous HSV: blue→cyan→green→yellow→orange→red) */
 #mrms-legend {
-  position: absolute; bottom: 26px; right: 84px; z-index: 900; /* clear of the chat FAB corner */
   background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
   padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
@@ -1059,7 +1063,6 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .mrms-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-muted); margin-top: 2px; }
 
 #inun-legend {
-  position: absolute; bottom: 84px; right: 84px; z-index: 900; /* stacks above the rainfall legend */
   background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
   padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
@@ -1071,9 +1074,8 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 }
 .inun-note { font-size: 10px; line-height: 1.35; color: var(--ink-muted); }
 
-/* storm-surge risk legend: bottom-right chip, stacks above the radar/forecast legend */
+/* storm-surge risk legend: rides in the stack directly above the radar/forecast legend */
 #surge-legend {
-  position: absolute; bottom: 200px; right: 84px; z-index: 900;
   background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
   padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
@@ -1087,9 +1089,8 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .surge-levee { background: #fff; }
 .surge-note { font-size: 10px; line-height: 1.35; color: var(--ink-muted); margin-top: 4px; }
 
-/* combined radar + HRRR-forecast legend: shares the rainfall-legend box, rides above the inundation legend */
+/* combined radar + HRRR-forecast legend: shares the rainfall-legend box */
 #wx-legend {
-  position: absolute; bottom: 142px; right: 84px; z-index: 900;
   background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
   padding: 6px 10px 7px; width: 230px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
@@ -1102,7 +1103,7 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 }
 .wx-src { font-size: 10px; font-weight: 600; color: var(--ink-muted); margin-top: 3px; }
 
-/* overlay legends (rain/inundation/surge/radar): tap title pill to toggle, mirrors .map-legend; JS collapses small screens by default */
+/* overlay legends (rain/inundation/surge/radar): collapsed to their title pill by default at every size; tap toggles */
 .ov-legend { cursor: pointer; }
 .ov-legend > :first-child::after { content: ' ▸'; color: var(--accent); font-weight: 700; }
 .ov-legend.open > :first-child::after { content: ' ▾'; color: var(--ink-muted); }
@@ -1113,7 +1114,6 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 #surge-legend:not(.open), #wx-legend:not(.open) { width: auto; }
 #mrms-legend:not(.open) > :first-child, #inun-legend:not(.open) > :first-child,
 #surge-legend:not(.open) > :first-child, #wx-legend:not(.open) > :first-child { margin-bottom: 0; }
-#mrms-legend.open, #inun-legend.open, #surge-legend.open, #wx-legend.open { z-index: 910; }
 
 /* active-layer pills — under the AO chips; hidden entirely when only default layers are on */
 .layer-pills {
@@ -1241,14 +1241,12 @@ button.inspect-gauge:hover { color: var(--accent); }
 .fcst-tiles { filter: blur(1.5px) saturate(1.05); }
 .rtl-xfade { transition: opacity 0.35s ease; }
 @media (max-width: 820px), (max-height: 500px) {
-  /* small/short screens: all four overlay legends become a subtle right-anchored pill column above the scrub bar (msg 128) */
-  #mrms-legend, #inun-legend, #surge-legend, #wx-legend { right: 8px; width: auto; max-width: 40vw; padding: 5px 8px; }
+  /* small/short screens: the legend stack hugs the corner tighter and rides above the scrub bar */
+  #ov-legend-stack { right: 8px; bottom: 76px; gap: 4px; }
+  #mrms-legend, #inun-legend, #surge-legend, #wx-legend { width: auto; max-width: 40vw; padding: 5px 8px; }
+  /* an expanded legend may widen past the pill cap so its title is not clipped */
+  #mrms-legend.open, #inun-legend.open, #surge-legend.open, #wx-legend.open { max-width: min(66vw, 230px); }
   #mrms-legend-title, #inun-legend-title, #surge-legend-title, #wx-legend-title { font-size: 10px; margin-bottom: 3px; }
-  /* 46px steps: collapsed pills wrap to two 10px lines (~42px tall) at 40vw on narrow phones */
-  #mrms-legend { bottom: 76px; }
-  #wx-legend { bottom: 122px; }
-  #inun-legend { bottom: 168px; }
-  #surge-legend { bottom: 214px; }
   .mrms-ramp, .wx-ramp { height: 8px; }
   .wx-src, .mrms-labels, .inun-note, .surge-note, .surge-rows { font-size: 9px; }
   .mrms-chip { font-size: 10px; padding: 3px 6px; min-height: 30px; }
@@ -1373,7 +1371,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .ao-current, .ao-chip { min-height: 30px; }
   /* expanded row scrolls sideways — six wrapped pills would bury the 42vh map */
   .ao-jump.open .ao-row { flex-wrap: nowrap; overflow-x: auto; pointer-events: auto; padding-bottom: 4px; }
-  .offline-ctl { max-width: 168px; padding: 6px 8px; opacity: 0.95; }
+  .offline-ctl .off-panel { width: 200px; }
   .offline-ctl .off-note { font-size: 9.5px; }
 }
 

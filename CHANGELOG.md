@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.67 · 2026-07-24 (Tidier map overlays: legend stack, offline button under the compass)
+
+-- Changes --
+- [Change] The storm surge legend no longer floats mid-map: all four overlay
+         legends (rainfall, radar, storm surge, inundation) now live in one
+         tidy bottom-right stack that hugs the corner, with surge directly
+         above the radar legend when both are on. Every overlay legend starts
+         as a small title pill on all screen sizes (tap to expand); the full
+         panel only opens when you ask for it, so the map stays uncluttered.
+- [Change] The offline map button moved from the bottom-left corner to the
+         top-right control column, directly below the compass, and now matches
+         the other map buttons. Its save panel opens leftward from the button
+         so it never covers the compass or runs off screen on phones.
+- [Change] The offline map panel is now fully translated: every label and
+         status message (save, progress, tile counts, cache cleared, too-large
+         area) shows in Spanish when the board is in Spanish.
+
 ## v0.97.66 · 2026-07-24 (LAN server hardening: writes limited to the local network)
 
 -- Changes --

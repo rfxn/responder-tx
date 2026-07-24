@@ -120,7 +120,7 @@ function viewportTileCoords(z) {
 function refreshOfflineStatus() {
   return OfflineTiles.count().then((n) => {
     const s = $('#off-status');
-    if (s) { s.textContent = n > 0 ? `✓ ${n} tiles saved` : 'No tiles saved yet'; s.classList.remove('over'); }
+    if (s) { s.textContent = n > 0 ? t('off.saved').replace('{n}', n) : t('off.none'); s.classList.remove('over'); }
     const clr = $('#off-clear');
     if (clr) clr.hidden = n === 0;
     const toggle = $('#off-toggle');
@@ -140,7 +140,7 @@ async function saveViewportOffline() {
   const jobs = [];
   for (const z of zooms) for (const c of viewportTileCoords(z)) for (const l of layers) jobs.push({ l, c });
   if (jobs.length > OFFLINE_TILE_CAP) {
-    statusEl.textContent = `This area needs ${jobs.length} tiles (cap ${OFFLINE_TILE_CAP}); zoom in, then save`;
+    statusEl.textContent = t('off.cap').replace('{n}', jobs.length).replace('{m}', OFFLINE_TILE_CAP);
     statusEl.classList.add('over');
     return;
   }
@@ -159,42 +159,44 @@ async function saveViewportOffline() {
           if (r.ok) await OfflineTiles.put(key, await r.blob());
         }
       } catch (e) { /* skip unreachable/blocked tile — partial cache is still useful offline */ }
-      statusEl.textContent = `Saving ${++done}/${jobs.length}…`;
+      statusEl.textContent = t('off.saving').replace('{n}', ++done).replace('{m}', jobs.length);
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
   if (saveBtn) saveBtn.disabled = false;
   const total = await refreshOfflineStatus();
-  statusEl.textContent = `✓ ${total} tiles saved (${zooms.length} zoom levels) · available offline`;
+  statusEl.textContent = t('off.savedfull').replace('{n}', total).replace('{m}', zooms.length);
 }
 
 async function clearOfflineCache() {
   try { await OfflineTiles.clear(); } catch (e) { /* ignore — nothing to clear */ }
   await refreshOfflineStatus();
   const s = $('#off-status');
-  if (s) s.textContent = 'Offline cache cleared';
+  if (s) s.textContent = t('off.cleared');
 }
 
 function initOfflineControl() {
   if (!OfflineTiles.available()) return;
-  const ctl = L.control({ position: 'bottomleft' });
+  const ctl = L.control({ position: 'topright' }); // added after the compass so it stacks directly below it
   ctl.onAdd = () => {
     const div = L.DomUtil.create('div', 'offline-ctl');
-    // subtle by default: a small ⬇ toggle; the panel (save/status/clear) expands only on tap
-    div.innerHTML = '<button class="off-toggle" id="off-toggle" title="Offline map: save this area to view with no signal">⬇</button>' +
+    div.innerHTML = `<div class="leaflet-bar ls-trigger"><a href="#" role="button" class="off-toggle" id="off-toggle" aria-expanded="false" title="${esc(t('off.toggle.title'))}" aria-label="${esc(t('off.toggle.aria'))}" data-i18n-title="off.toggle.title" data-i18n-aria="off.toggle.aria">⬇</a></div>` +
       '<div class="off-panel" id="off-panel" hidden>' +
-      '<div class="off-panel-head">Offline map</div>' +
-      '<button class="off-save" title="Cache the current view + 2 deeper zooms for use with no signal">⬇ Save this area</button>' +
+      `<div class="off-panel-head" data-i18n="off.head">${esc(t('off.head'))}</div>` +
+      `<button class="off-save" title="${esc(t('off.save.title'))}" data-i18n="off.save" data-i18n-title="off.save.title">${esc(t('off.save'))}</button>` +
       '<div class="off-status" id="off-status">…</div>' +
-      '<div class="off-note">Basemap only; live gauge/alert data still needs a connection.</div>' +
-      '<button class="off-clear" id="off-clear" hidden>Clear offline cache</button>' +
+      `<div class="off-note" data-i18n="off.note">${esc(t('off.note'))}</div>` +
+      `<button class="off-clear" id="off-clear" hidden data-i18n="off.clear">${esc(t('off.clear'))}</button>` +
       '</div>';
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
-    L.DomEvent.on(div.querySelector('#off-toggle'), 'click', () => {
+    L.DomEvent.on(div.querySelector('#off-toggle'), 'click', (e) => {
+      L.DomEvent.stop(e);
       const p = div.querySelector('#off-panel');
       p.hidden = !p.hidden;
-      div.querySelector('#off-toggle').classList.toggle('open', !p.hidden);
+      const tg = div.querySelector('#off-toggle');
+      tg.classList.toggle('open', !p.hidden);
+      tg.setAttribute('aria-expanded', String(!p.hidden));
     });
     L.DomEvent.on(div.querySelector('.off-save'), 'click', saveViewportOffline);
     L.DomEvent.on(div.querySelector('#off-clear'), 'click', clearOfflineCache);
@@ -511,14 +513,12 @@ function initMap() {
     return div;
   };
   legend.addTo(state.map);
-  initOfflineControl();
 
-  // overlay legends: tap toggles pill/expanded; small or short screens start collapsed (msg 128)
-  const bigViewport = !window.matchMedia('(max-width: 820px), (max-height: 500px)').matches;
+  // overlay legends: collapsed to their title pill by default at every size; tap toggles pill/expanded
   document.querySelectorAll('.ov-legend').forEach((lg) => {
     L.DomEvent.disableClickPropagation(lg);
     L.DomEvent.disableScrollPropagation(lg);
-    lg.classList.toggle('open', bigViewport);
+    lg.classList.remove('open');
     L.DomEvent.on(lg, 'click', (e) => {
       if (e.target.closest('#mrms-legend-chips')) return; // chips pick a window, not toggle
       lg.classList.toggle('open');
@@ -602,6 +602,7 @@ function initMap() {
   };
   compassCtl.onRemove = () => stopCompassHeading();
   compassCtl.addTo(state.map);
+  initOfflineControl(); // after the compass so the ⬇ box stacks directly below it (owner ask 7/24)
   initAoJump();
   initLayerPills();
   initLayerSheet();

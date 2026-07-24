@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.67",
+      "date": "2026-07-24",
+      "line": "Tidier map overlays. The storm surge legend no longer floats mid-map: all overlay legends now sit in one bottom-right stack that hugs the corner, and every legend starts as a small title pill on all screen sizes (tap to expand). The offline map button moved to the top-right column directly below the compass, matching the other map buttons, with its save panel opening leftward so nothing is covered. The offline panel is also fully translated into Spanish."
+    },
+    {
       "v": "v0.97.66",
       "date": "2026-07-24",
       "line": "LAN server hardening. Chat and note posts are now accepted only from devices on the local network (the same rule the team relay already used), with blocked posts logged for easy diagnosis. Posts are rate limited per device (burst of 12, then 12 per minute, never felt when typing normally), and the chat inbox rotates to a dated archive once it grows large, only after every message has been read, so nothing is lost or replayed. Reading the board is unchanged."

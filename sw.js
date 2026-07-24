@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.97.78';
+const SW_VERSION = '0.97.79';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 const CACHE_DATA = `respondertx-data-${SW_VERSION}`;
 // version-independent: holds the subscriber's language hint so a payload-free push can be
@@ -138,7 +138,7 @@ self.addEventListener('fetch', (event) => {
   if (url.searchParams.has('v')) event.respondWith(stampedCacheFirst(req));
 });
 
-/* ---------- web push (P2: encrypted localized payloads, payload-free fallback) ---------- */
+/* ---------- web push (P3: encrypted payloads, rotation self-heal, payload-free fallback) ---------- */
 
 // P2 pushes carry an encrypted pre-localized payload (title/body/tag/url/lang composed server
 // side per the stored subscription language). A payload-free or unparseable push still shows a
@@ -155,12 +155,26 @@ const PUSH_FALLBACK = {
   },
 };
 
-async function pushLang() {
+async function pushCacheText(path) {
   try {
-    const hit = await (await caches.open(CACHE_PUSH)).match('/push-lang');
-    if (hit && (await hit.text()).trim() === 'es') return 'es';
-  } catch (err) { /* cache unavailable — default language */ }
-  return 'en';
+    const hit = await (await caches.open(CACHE_PUSH)).match(path);
+    if (hit) return (await hit.text()).trim();
+  } catch (err) { /* cache unavailable — caller falls back to defaults */ }
+  return '';
+}
+
+async function pushLang() {
+  return (await pushCacheText('/push-lang')) === 'es' ? 'es' : 'en';
+}
+
+// base64url VAPID public key → the raw bytes pushManager.subscribe wants
+function pushKeyFromB64u(s) {
+  if (!s) return null;
+  const pad = '='.repeat((4 - (s.length % 4)) % 4);
+  const raw = atob((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
 }
 
 // ALWAYS show exactly one notification, even on empty payload or parse failure — browsers
@@ -181,6 +195,37 @@ self.addEventListener('push', (event) => {
       badge: 'assets/brand/favicon-32.png',
       data: { url: (data && data.url) || '/' },
     });
+  })());
+});
+
+// P3 self-heal: the push service rotated our endpoint. Re-subscribe with the same server key
+// (from the expiring subscription, else the mirrored copy) and migrate the server row via
+// /api/push/resubscribe so prefs survive; if the old row is gone, fall back to a fresh subscribe
+// with the mirrored prefs. Best-effort: on failure the boot-time check and 60-day TTL repair it.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil((async () => {
+    try {
+      const old = event.oldSubscription || null;
+      let key = (old && old.options && old.options.applicationServerKey) || null;
+      if (!key) key = pushKeyFromB64u(await pushCacheText('/push-key'));
+      if (!key) return;
+      const sub = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      let migrated = null;
+      try {
+        migrated = await fetch('api/push/resubscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldEndpoint: (old && old.endpoint) || '', subscription: sub.toJSON() }),
+        });
+      } catch (err) { migrated = null; }
+      if (!migrated || !migrated.ok) {
+        let prefs = {};
+        try { prefs = JSON.parse(await pushCacheText('/push-prefs')) || {}; } catch (err) { prefs = {}; }
+        await fetch('api/push/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub.toJSON(), prefs, lang: await pushLang() }),
+        });
+      }
+    } catch (err) { /* re-subscribe denied or offline — next board visit self-heals */ }
   })());
 });
 

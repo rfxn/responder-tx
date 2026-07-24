@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.79",
+      "date": "2026-07-24",
+      "line": "Device alerts (still in soft launch behind ?push=1): subscribers can now follow specific gauges, each at its own moderate or major threshold, alongside or instead of the area-wide setting. A new manage view on the Device alerts card lists followed gauges with one-tap threshold change and remove, picks up nearby gauges from the current map view, and includes a Notify me shortcut in every gauge popup and hydrograph. Subscriptions also self-heal now: endpoint rotations, key rotations, and lost browser subscriptions repair themselves on the next visit with preferences preserved, and a revoked permission shows an honest off state without re-prompting."
+    },
+    {
       "v": "v0.97.78",
       "date": "2026-07-24",
       "line": "For teams that plan in CalTopo or SARTopo: there is now a bookmarkable import URL (plus a QR code to pass it between devices) that serves a curated, color-matched map export of gauges, crests, alerts, road closures, crossings, notices, and storm reports, refreshed about every 15 minutes. Find it under More in the Feed tab; in CalTopo use Import from URL. Each import downloads a fresh copy; CalTopo does not update it on its own."

@@ -1,4 +1,4 @@
-# responder-push-alerts — Durable Object backend for web-push device alerts (P2)
+# responder-push-alerts — Durable Object backend for web-push device alerts (P3)
 
 This is a **standalone Cloudflare Worker** that hosts the `PushRegistry` Durable Object. A Pages
 project cannot define its own Durable Object, so the DO ships here and the Pages site
@@ -9,11 +9,15 @@ This directory is `export-ignore`d in `.gitattributes`, so it is **not** part of
 ## What it holds
 
 One well-known DO instance (`idFromName('registry')`) is the only copy of every anonymous push
-subscription: endpoint URL, browser-minted `p256dh`/`auth` keys, prefs (P1: FFE on/off only,
-schema forward-stable for gauge tiers/places), and language (`en`/`es`). No name, no email, no
-account, no IP retention (IPs touch only a transient in-memory rate bucket). Rows expire 60 days
-after their last renew; the client silently renews on each app boot while subscribed. Any 404/410
-from a push service deletes the row immediately.
+subscription: endpoint URL, browser-minted `p256dh`/`auth` keys, prefs
+(`{ffe, tier, gauges:[{lid, tier}]}` — FFE on/off, AO-wide gauge tier, and up to 20 followed
+gauges each with its own moderate/major threshold), and language (`en`/`es`). No name, no email,
+no account, no IP retention (IPs touch only a transient in-memory rate bucket). Rows expire 60
+days after their last renew; the client silently renews on each app boot while subscribed (the
+renew response carries the stored prefs back — the endpoint-authenticated self-lookup). Any
+404/410 from a push service deletes the row immediately. `POST /api/push/resubscribe`
+(`{oldEndpoint, subscription}`) migrates prefs/language/dedup state to a rotated endpoint for the
+service worker's `pushsubscriptionchange` self-heal.
 
 ## Evaluator (P2: Flash Flood Emergencies + AO-wide gauge tiers)
 
@@ -31,7 +35,8 @@ gauge crossings ride the fast path. Each pass:
    the push must never claim something the board cannot show); skip when `generated` is
    unchanged. For each fresh (non-stale, 12h obs-recency rule) gauge, compute the observed
    category rank and run the per-(subscription, gauge) state machine: notify only on an upward
-   crossing into the subscriber's tier (moderate implies major), escalation notifies again,
+   crossing into the subscriber's effective threshold for that gauge (the AO-wide tier and a
+   per-gauge follow coexist; the most sensitive applicable one wins), escalation notifies again,
    30-min cooldown per key, re-arm only after 2 consecutive below-tier evals (hysteresis),
    max 6 gauge sends per subscription per rolling hour with overflow collapsed into one digest
    (FFE exempt from the cap).
@@ -77,9 +82,10 @@ node -e "const c=require('node:crypto');const{publicKey,privateKey}=c.generateKe
 
 **Rotation runbook:** mint a new pair, `secret put` the private key, update `VAPID_PUBLIC_KEY`,
 redeploy. Every existing subscription becomes undeliverable (push services reject the mismatched
-JWT key); clients self-heal on their next board visit in P3, and until then sends failing 403
-delete rows lazily. Devices that never reopen the board are unrecoverable by design (no identity,
-nothing to migrate) — rotate deliberately, not casually.
+JWT key); clients self-heal on their next board visit (P3 boot check: key mismatch →
+unsubscribe + resubscribe + prefs re-upsert), and until then sends failing 403 delete rows
+lazily. Devices that never reopen the board are unrecoverable by design (no identity, nothing to
+migrate) — rotate deliberately, not casually.
 
 ## Bind the Pages project to the DO — CONTROLLER STEP (Cloudflare dashboard)
 
@@ -103,7 +109,9 @@ curl -s https://respondertx.org/api/push/status
 curl -s -X POST -H "X-Admin-Token: $(cat /root/.config/responder/push-admin-token)" https://respondertx.org/api/push/admin/peek
 # token-gated real test push to one stored subscription (omit endpoint = all, capped one batch).
 # kind "gauge" fires an encrypted sample gauge-tier payload (lid/name/cat overridable),
-# kind "confirm" the confirmation payload; no kind = payload-free.
+# kind "confirm" the confirmation payload; kind "crossing" runs the same payload THROUGH each
+# subscription's stored pref filter (per-gauge follows + AO tier; non-matching subs report
+# "skipped", dedup state untouched) so the P3 chain is verifiable; no kind = payload-free.
 curl -s -X POST -H "X-Admin-Token: $(cat /root/.config/responder/push-admin-token)" \
   -H 'Content-Type: application/json' \
   -d '{"endpoint":"https://fcm.googleapis.com/...","kind":"gauge","lid":"SRRT2","name":"San Antonio River at Runge","cat":"moderate"}' \

@@ -1,5 +1,37 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.79 · 2026-07-24 (Device alerts, phase 3: follow specific gauges + subscription self-heal)
+
+-- New Features --
+- [New] Device-alert subscribers can now follow specific gauges, each at its
+      own threshold (moderate or major), alongside or instead of the area-wide
+      setting; the most sensitive applicable threshold wins per gauge, and up
+      to 20 gauges can be followed per device. The alert evaluator's per-gauge
+      dedup, hysteresis, cooldown, and hourly-cap machinery applies to followed
+      gauges exactly as it does to area-wide tiers, and the subscription record
+      stays anonymous: endpoint, keys, preferences, language, nothing else.
+- [New] The Device alerts card (still behind ?push=1) gains a manage view:
+      every followed gauge listed with its threshold, one-tap threshold change
+      and remove, a nearest-gauges picker seeded from the current map view
+      (pan the map to follow gauges around any point of interest), and a
+      turn-off-everything action. A "Notify me" entry in each gauge popup and
+      the hydrograph modal opens the manage view with that gauge preselected.
+      English and Spanish throughout.
+- [New] Subscriptions now self-heal: if the push service rotates a device's
+      endpoint, the service worker re-subscribes and migrates the stored
+      preferences to the new endpoint automatically; if the server's VAPID key
+      rotates or the browser subscription disappears, the next board visit
+      transparently re-subscribes and restores the device's preferences. A
+      revoked notification permission shows the honest blocked/off state and
+      never re-prompts; preferences are kept locally for a later manual
+      re-enable.
+
+-- Changes --
+- [Change] Boot-time renew now doubles as the endpoint-authenticated
+         self-lookup: the server's stored preferences (the authoritative copy)
+         sync back to the device on every visit, so the manage view always
+         shows the registry truth.
+
 ## v0.97.78 · 2026-07-24 (CalTopo / SARTopo interop: stable import URL + QR)
 
 -- New Features --

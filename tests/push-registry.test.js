@@ -61,9 +61,9 @@ test('subscribe stores an anonymous row and sanitizes P2 prefs (ffe + tier only)
   const out = await reg.doSubscribe(subBody(1, { prefs: { ffe: false, tier: 'moderate', bogus: 1 } }), '1.2.3.4', Date.now());
   assert.equal(out.ok, true);
   // JSON round-trip: the DO's objects come from another vm realm (prototype identity differs)
-  assert.deepEqual(JSON.parse(JSON.stringify(out.prefs)), { ffe: false, tier: 'moderate' }, 'user choices honored, unknown keys stripped');
+  assert.deepEqual(JSON.parse(JSON.stringify(out.prefs)), { ffe: false, tier: 'moderate', gauges: [] }, 'user choices honored, unknown keys stripped');
   const bogusTier = await reg.doSubscribe(subBody(2, { prefs: { tier: 'minor' } }), '1.2.3.4', Date.now());
-  assert.deepEqual(JSON.parse(JSON.stringify(bogusTier.prefs)), { ffe: true, tier: null }, 'invalid tier collapses to null');
+  assert.deepEqual(JSON.parse(JSON.stringify(bogusTier.prefs)), { ffe: true, tier: null, gauges: [] }, 'invalid tier collapses to null');
   const rows = [...state._store.entries()].filter(([k]) => k.startsWith('sub:'));
   assert.equal(rows.length, 2);
   const row = rows.find(([k, v]) => v.endpoint === FCM + '1')[1];

@@ -103,8 +103,8 @@ test('precache covers every stamped local script and stylesheet in index.html', 
 
 /* ---------- web push (P1 payload-free) ---------- */
 
-test('push and notificationclick handlers are registered', () => {
-  for (const type of ['push', 'notificationclick']) {
+test('push, notificationclick, and pushsubscriptionchange handlers are registered', () => {
+  for (const type of ['push', 'notificationclick', 'pushsubscriptionchange']) {
     assert.ok(sw.listeners.includes(type), `missing ${type} listener`);
   }
 });
@@ -142,4 +142,13 @@ test('push handler prefers the payload language over the cached hint (P2)', () =
   const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
   assert.match(src, /data\.lang === 'es' \|\| data\.lang === 'en'/, 'payload lang wins when present');
   assert.match(src, /await pushLang\(\)/, 'cached hint still localizes payload-free fallbacks');
+});
+
+test('pushsubscriptionchange re-subscribes and migrates prefs (P3 self-heal)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  assert.match(src, /api\/push\/resubscribe/, 'migrates the server row via resubscribe');
+  assert.match(src, /oldEndpoint/, 'presents the old endpoint as the credential');
+  assert.match(src, /\/push-key/, 'mirrored VAPID key covers a missing oldSubscription');
+  assert.match(src, /\/push-prefs/, 'mirrored prefs back the fresh-subscribe fallback');
+  assert.match(src, /api\/push\/subscribe/, 'fresh subscribe fallback when the old row is gone');
 });

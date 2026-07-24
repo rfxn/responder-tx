@@ -138,6 +138,63 @@ test('pushFreshState — hidden without data, ok within 20 min, stale past it', 
   assert.equal(pushFreshState(now - 21 * 60000, now), 'stale', 'past 20 min: honest delayed state');
 });
 
+/* ---------- web push P3: prefs normalizer, self-heal plan, key compare, nearby picker ---------- */
+
+const { pushNormalizePrefs, pushKeysMatch, pushBootPlan, pushNearbyGauges } = loadApp();
+
+test('pushNormalizePrefs: followed gauges uppercased, deduped, invalid entries dropped, capped at 20', () => {
+  const out = pushNormalizePrefs({
+    ffe: false, tier: 'major',
+    gauges: [
+      { lid: 'srrt2', tier: 'moderate' },
+      { lid: 'SRRT2', tier: 'major' },     // dup after uppercasing
+      { lid: 'x', tier: 'major' },         // lid too short
+      { lid: 'CMKT2', tier: 'minor' },     // invalid tier
+      { lid: 'CMKT2', tier: 'major' },
+    ],
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(out)), {
+    ffe: false, tier: 'major',
+    gauges: [{ lid: 'SRRT2', tier: 'moderate' }, { lid: 'CMKT2', tier: 'major' }],
+  });
+  const over = pushNormalizePrefs({ gauges: Array.from({ length: 25 }, (_, i) => ({ lid: `G${i}LID`, tier: 'major' })) });
+  assert.equal(over.gauges.length, 20, 'client mirrors the registry cap');
+  assert.deepEqual(JSON.parse(JSON.stringify(pushNormalizePrefs(null))), { ffe: true, tier: null, gauges: [] });
+});
+
+test('pushKeysMatch: byte-wise, ArrayBuffer or view, null-safe', () => {
+  const a = new Uint8Array([4, 1, 2, 3]);
+  assert.equal(pushKeysMatch(a, new Uint8Array([4, 1, 2, 3])), true);
+  assert.equal(pushKeysMatch(a.buffer, new Uint8Array([4, 1, 2, 3])), true, 'ArrayBuffer accepted (subscription option shape)');
+  assert.equal(pushKeysMatch(a, new Uint8Array([4, 1, 2, 9])), false);
+  assert.equal(pushKeysMatch(a, new Uint8Array([4, 1, 2])), false, 'length mismatch');
+  assert.equal(pushKeysMatch(null, a), false);
+  assert.equal(pushKeysMatch(a, null), false);
+});
+
+test('pushBootPlan: renew when healthy, rekey on rotation, resubscribe when the sub vanished, honest off on revocation', () => {
+  const f = (over) => ({ localOn: true, permission: 'granted', hasSub: true, keyMatches: true, ...over });
+  assert.equal(pushBootPlan(f({ localOn: false })), 'none');
+  assert.equal(pushBootPlan(f()), 'renew');
+  assert.equal(pushBootPlan(f({ keyMatches: false })), 'rekey', 'VAPID rotation self-heal');
+  assert.equal(pushBootPlan(f({ hasSub: false, keyMatches: null })), 'resubscribe', 'prefs exist locally, sub vanished');
+  assert.equal(pushBootPlan(f({ permission: 'denied' })), 'off', 'revoked permission never re-prompts');
+  assert.equal(pushBootPlan(f({ hasSub: false, permission: 'default', keyMatches: null })), 'off', 'no sub + no grant = honest off');
+});
+
+test('pushNearbyGauges: nearest-first, excludes followed and coordinate-less gauges, capped', () => {
+  const gs = [
+    { lid: 'FAR11', name: 'Far', latitude: 31.0, longitude: -99.0 },
+    { lid: 'NEAR1', name: 'Near', latitude: 29.51, longitude: -95.01 },
+    { lid: 'MID11', name: 'Mid', latitude: 29.8, longitude: -95.4 },
+    { lid: 'FOLW1', name: 'Followed', latitude: 29.5, longitude: -95.0 },
+    { lid: 'NOPOS', name: 'No coords' },
+  ];
+  const out = pushNearbyGauges(gs, [{ lid: 'FOLW1', tier: 'major' }], 29.5, -95.0, 2);
+  assert.deepEqual(out.map((x) => x.g.lid), ['NEAR1', 'MID11']);
+  assert.ok(out[0].dist < out[1].dist);
+});
+
 /* ---------- CalTopo stable import URL + QR affordance ---------- */
 
 const { CALTOPO_EXPORT_URL, renderCaltopoQr } = loadApp();

@@ -1898,3 +1898,18 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 }
 #push-body .push-fresh { font-size: 11.5px; color: var(--ink-2); margin: 4px 0 2px; }
 #push-body .push-fresh-stale { color: var(--sev-emergency); font-weight: 650; }
+#push-body .push-manage-btn {
+  display: block; background: none; border: none; padding: 8px 0; min-height: 44px;
+  color: var(--accent); font-size: 12.5px; font-weight: 650; cursor: pointer; text-align: left;
+}
+#push-body .push-m-title { font-size: 12px; font-weight: 650; margin: 8px 0 2px; color: var(--ink-2); }
+#push-body .push-m-note { font-size: 11.5px; color: var(--ink-2); margin: 4px 0 2px; }
+#push-body .push-g-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 5px 0; border-bottom: 1px solid var(--hairline);
+}
+#push-body .push-g-row.preselect { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 6px; padding-left: 4px; }
+#push-body .push-g-name { font-size: 12.5px; flex: 1 1 auto; min-width: 0; }
+#push-body .push-g-dist { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+#push-body .push-g-tiers { display: flex; gap: 4px; flex: 0 0 auto; }
+#push-body .push-unsub-all { flex: 0 1 auto; min-height: 44px; padding: 5px 14px; }

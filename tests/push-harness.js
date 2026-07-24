@@ -25,7 +25,7 @@ function loadPushRegistry() {
   const epilogue = '\n;globalThis.__PUSH = { PushRegistry, allowedEndpoint, isFfe, geomBbox, bboxOverlap, '
     + 'vapidJwk, signVapidJwt, b64u, b64uDecode, encryptPayload, '
     + 'CAT_RANK, PUSH_STRINGS, fmt, gaugePayload, digestPayload, ffePayload, confirmPayload, '
-    + 'sanitizePrefs, gaugeRank, crossingStep, applyHourlyCap, verifyNudgeSig };\n';
+    + 'sanitizePrefs, effectiveTierRank, gaugeRank, crossingStep, applyHourlyCap, verifyNudgeSig };\n';
 
   const sandbox = {
     console,

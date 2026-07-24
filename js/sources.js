@@ -429,10 +429,14 @@ function gaugePopup(g) {
     `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">${esc(t('spark.loading').replace('{h}', CONFIG.sparkHours))}</div></div>` +
     `<button class="popup-expand" data-lid="${esc(g.lid)}">${esc(t('hydro.open'))}</button>` +
     `<button class="popup-expand open-in-gauges">${esc(t('sync.opengauges'))}</button>` +
+    (typeof pushManageAvailable === 'function' && pushManageAvailable()
+      ? `<button class="popup-expand push-notify-btn" data-lid="${esc(g.lid)}">🔔 ${esc(t('push.notify'))}</button>` : '') +
     `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage'))}</a></div>`;
   drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
   el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
   el.querySelector('.open-in-gauges').addEventListener('click', () => openInGaugesList(g.lid));
+  const nb = el.querySelector('.push-notify-btn');
+  if (nb) nb.addEventListener('click', () => pushOpenManageFor(g.lid));
   // eyes-on pairing: a HIVIS cam within 2 km gets a view link (inventory lazy-loads on first popup)
   loadCameras().then(() => {
     const cam = nearestRiverCam(g.latitude, g.longitude, 2);
@@ -527,7 +531,17 @@ function drawHydro(g, detail, obsData, fcstData) {
     `<span class="hl"><i style="background:var(--cat-major)"></i>${esc(t('word.forecast').toLowerCase())}</span>` +
     (rec ? `<span class="hl"><i class="dashed"></i>${esc(t('hydro.recline'))}</span>` : '') +
     `<span class="hl">${esc(t('hydro.shaded'))}</span>`;
-  $('#hydro-note').innerHTML = `${esc(t('hydro.note'))} · <a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage2'))}</a>`;
+  $('#hydro-note').innerHTML = `${esc(t('hydro.note'))} · <a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage2'))}</a>` +
+    (typeof pushManageAvailable === 'function' && pushManageAvailable()
+      ? ` · <a href="#" id="hydro-notify">🔔 ${esc(t('push.notify'))}</a>` : '');
+  const hn = $('#hydro-notify');
+  if (hn) {
+    hn.addEventListener('click', (e) => {
+      e.preventDefault();
+      $('#hydro-modal').hidden = true;
+      pushOpenManageFor(g.lid);
+    });
+  }
 }
 
 // 3-min TTL promise cache — popup close/reopen redraws instantly; failures evict so retry works

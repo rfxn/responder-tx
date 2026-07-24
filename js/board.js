@@ -1016,7 +1016,7 @@ function exportAAR() {
 }
 
 
-/* ---------- device alerts — web push P2 (FFE + AO-wide gauge tiers), behind ?push=1 ---------- */
+/* ---------- device alerts, web push P3 (FFE + AO tiers + followed gauges), behind ?push=1 ---------- */
 
 const PUSH_LS_KEY = 'respondertx.push';
 const PUSH_STALE_MS = 20 * 60 * 1000; // evaluator freshness threshold (spec §4.3)
@@ -1037,13 +1037,31 @@ function pushLocalSet(v) {
   try { localStorage.setItem(PUSH_LS_KEY, JSON.stringify(v)); } catch { /* private mode — card state falls back to browser truth */ }
 }
 
-// normalized prefs from the local cache: FFE on/off + AO-wide gauge tier (P2 granularity)
-function pushPrefs() {
-  const p = pushLocal().prefs || {};
+const PUSH_MAX_GAUGES = 20; // registry cap per subscription (worker rejects above)
+const PUSH_LID_RE = /^[A-Z0-9]{3,10}$/;
+
+// pure prefs normalizer (client mirror of the worker's sanitizePrefs): FFE on/off + AO-wide
+// gauge tier + followed gauges [{lid, tier}] deduped by lid, capped
+function pushNormalizePrefs(p) {
+  const src = p && typeof p === 'object' ? p : {};
+  const gauges = [];
+  const seen = {};
+  for (const g of Array.isArray(src.gauges) ? src.gauges.slice(0, PUSH_MAX_GAUGES) : []) {
+    const lid = String((g && g.lid) || '').toUpperCase();
+    const tier = g && (g.tier === 'moderate' || g.tier === 'major') ? g.tier : null;
+    if (!tier || !PUSH_LID_RE.test(lid) || seen[lid]) continue;
+    seen[lid] = 1;
+    gauges.push({ lid, tier });
+  }
   return {
-    ffe: p.ffe !== false,
-    tier: p.tier === 'moderate' || p.tier === 'major' ? p.tier : null,
+    ffe: src.ffe !== false,
+    tier: src.tier === 'moderate' || src.tier === 'major' ? src.tier : null,
+    gauges,
   };
+}
+
+function pushPrefs() {
+  return pushNormalizePrefs(pushLocal().prefs);
 }
 
 // honest-failure chip over /api/push/status lastEval: null = unknown (chip hidden), 'ok' with
@@ -1077,6 +1095,108 @@ function pushKeyBytes(b64u) {
   return out;
 }
 
+// byte-wise compare of the subscription's applicationServerKey against the served VAPID key;
+// accepts ArrayBuffer or typed-array views (avoids cross-realm instanceof)
+function pushKeysMatch(a, b) {
+  const bytes = (k) => {
+    if (!k) return null;
+    if (typeof k.length === 'number' && typeof k.byteLength === 'number') return k; // typed array
+    if (typeof k.byteLength === 'number') return new Uint8Array(k); // ArrayBuffer
+    return null;
+  };
+  const x = bytes(a), y = bytes(b);
+  if (!x || !y || x.length !== y.length) return false;
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
+  return true;
+}
+
+// pure boot-time self-heal decision. facts: {localOn, permission, hasSub, keyMatches}.
+// 'off' = permission revoked or unrecoverable: flip the card off honestly, keep local prefs
+// so a later manual re-enable restores them (re-prompting is never allowed outside a tap).
+function pushBootPlan(f) {
+  if (!f.localOn) return 'none';
+  if (f.permission === 'denied') return 'off';
+  if (!f.hasSub) return f.permission === 'granted' ? 'resubscribe' : 'off';
+  if (f.keyMatches === false) return 'rekey';
+  return 'renew';
+}
+
+// mirror key/lang/prefs into the version-independent push cache so the SW can re-subscribe
+// with preserved prefs on pushsubscriptionchange (a SW cannot read localStorage)
+async function pushSwMirror(vapidKey, prefs) {
+  try {
+    const c = await caches.open('respondertx-push');
+    await c.put('/push-lang', new Response(getLang()));
+    await c.put('/push-key', new Response(String(vapidKey || '')));
+    await c.put('/push-prefs', new Response(JSON.stringify(prefs || {})));
+  } catch (err) { /* cache unavailable — SW falls back to generic defaults */ }
+}
+
+// nearest unfollowed gauges to a point, for the manage picker (pan the map to look elsewhere)
+function pushNearbyGauges(gauges, followed, lat, lon, n) {
+  const have = {};
+  for (const f of followed || []) have[f.lid] = 1;
+  return (gauges || [])
+    .filter((g) => g.lid && !have[String(g.lid).toUpperCase()] && Number.isFinite(g.latitude) && Number.isFinite(g.longitude))
+    .map((g) => ({ g, dist: distMi(lat, lon, g.latitude, g.longitude) }))
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, n);
+}
+
+let pushManageOpen = false;      // in-card manage view (followed gauges) expanded
+let pushManagePreselect = null;  // lid pinned atop the picker by a "Notify me" entry point
+
+function pushGaugeName(lid) {
+  const g = (state.gauges || []).find((x) => String(x.lid).toUpperCase() === lid);
+  return g ? g.name : lid;
+}
+
+// in-card manage view: each followed gauge with its tier + remove, a nearby-gauges picker
+// seeded from the current map view, and the everything-off action
+function pushManageHtml(prefs) {
+  const tierBtns = (lid, current, cls) => ['moderate', 'major'].map((tier) =>
+    `<button type="button" class="push-chip ${cls}${current === tier ? ' active' : ''}" data-lid="${esc(lid)}" data-tier="${tier}" aria-pressed="${current === tier}">${esc(t(`push.tier.${tier}`))}</button>`).join('');
+  const followedRows = prefs.gauges.map((f) =>
+    `<div class="push-g-row${pushManagePreselect === f.lid ? ' preselect' : ''}" data-lid="${esc(f.lid)}">` +
+      `<span class="push-g-name">${esc(pushGaugeName(f.lid))}</span>` +
+      `<span class="push-g-tiers" role="group">${tierBtns(f.lid, f.tier, 'push-g-tier')}` +
+        `<button type="button" class="push-chip push-g-remove" data-lid="${esc(f.lid)}" aria-label="${esc(t('push.manage.removearia').replace('{g}', pushGaugeName(f.lid)))}">✕</button>` +
+      '</span>' +
+    '</div>').join('');
+  const atCap = prefs.gauges.length >= PUSH_MAX_GAUGES;
+  let pickerRows = '';
+  if (!atCap) {
+    const c = state.map && state.map.getCenter ? state.map.getCenter() : null;
+    const lat = c ? c.lat : CONFIG.center[0];
+    const lon = c ? c.lng : CONFIG.center[1];
+    let nearby = pushNearbyGauges(state.gauges, prefs.gauges, lat, lon, 8);
+    if (pushManagePreselect && !prefs.gauges.some((f) => f.lid === pushManagePreselect)) {
+      const pre = (state.gauges || []).find((g) => String(g.lid).toUpperCase() === pushManagePreselect);
+      if (pre) {
+        nearby = nearby.filter((x) => String(x.g.lid).toUpperCase() !== pushManagePreselect);
+        nearby.unshift({ g: pre, dist: null });
+        nearby = nearby.slice(0, 8);
+      }
+    }
+    pickerRows = nearby.map(({ g, dist }) => {
+      const lid = String(g.lid).toUpperCase();
+      return `<div class="push-g-row push-nearby-row${pushManagePreselect === lid ? ' preselect' : ''}" data-lid="${esc(lid)}">` +
+        `<span class="push-g-name">${esc(g.name)}${Number.isFinite(dist) ? ` <span class="push-g-dist">${dist.toFixed(1)} mi</span>` : ''}</span>` +
+        `<span class="push-g-tiers" role="group">${tierBtns(lid, null, 'push-g-follow')}</span>` +
+      '</div>';
+    }).join('');
+  }
+  return '<div class="push-manage">' +
+    `<div class="push-m-title">${esc(t('push.manage.followed'))}</div>` +
+    (followedRows || `<div class="push-m-note">${esc(t('push.manage.none'))}</div>`) +
+    `<div class="push-m-note">${esc(t('push.manage.hint'))}</div>` +
+    (atCap
+      ? `<div class="push-m-note">${esc(t('push.manage.limit'))}</div>`
+      : `<div class="push-m-title">${esc(t('push.manage.nearby'))}</div>${pickerRows || `<div class="push-m-note">${esc(t('push.manage.nogauges'))}</div>`}`) +
+    `<div class="card-actions"><button type="button" class="act-btn push-unsub-all" id="push-unsub-all">${esc(t('push.manage.unsuball'))}</button></div>` +
+  '</div>';
+}
+
 function renderPushCard() {
   const host = $('#push-body');
   if (!host) return;
@@ -1101,14 +1221,73 @@ function renderPushCard() {
             chip('ffe', prefs.ffe) + chip('major', prefs.tier === 'major') + chip('moderate', prefs.tier === 'moderate') +
           '</div>'
         : '') +
+      (on
+        ? `<button type="button" class="push-manage-btn" id="push-manage-btn" aria-expanded="${pushManageOpen}">${esc(t(pushManageOpen ? 'push.manage.hide' : 'push.manage.show'))}</button>`
+        : '') +
+      (on && pushManageOpen ? pushManageHtml(prefs) : '') +
       (fresh ? `<div class="push-fresh push-fresh-${fresh}">${esc(freshTxt)}</div>` : '') +
       (toggleable ? `<div class="card-actions"><button type="button" class="act-btn push-toggle" id="push-toggle">${esc(t(on ? 'push.toggle.off' : 'push.toggle.on'))}</button></div>` : '') +
     '</div>';
   const btn = $('#push-toggle');
   if (btn) btn.addEventListener('click', on ? pushDisable : pushEnable);
-  host.querySelectorAll('.push-chip').forEach((el) => {
+  host.querySelectorAll('.push-chip[data-pref]').forEach((el) => {
     el.addEventListener('click', () => pushChipTap(el.getAttribute('data-pref')));
   });
+  const mbtn = $('#push-manage-btn');
+  if (mbtn) {
+    mbtn.addEventListener('click', () => {
+      pushManageOpen = !pushManageOpen;
+      if (!pushManageOpen) pushManagePreselect = null;
+      renderPushCard();
+    });
+  }
+  host.querySelectorAll('.push-g-tier, .push-g-follow').forEach((el) => {
+    el.addEventListener('click', () => pushFollowGauge(el.getAttribute('data-lid'), el.getAttribute('data-tier')));
+  });
+  host.querySelectorAll('.push-g-remove').forEach((el) => {
+    el.addEventListener('click', () => pushUnfollowGauge(el.getAttribute('data-lid')));
+  });
+  const unsub = $('#push-unsub-all');
+  if (unsub) unsub.addEventListener('click', pushDisable);
+}
+
+// follow (or retier) a gauge; the worker enforces the cap and lid shape authoritatively
+function pushFollowGauge(lid, tier) {
+  const id = String(lid || '').toUpperCase();
+  const p = pushPrefs();
+  const hit = p.gauges.find((g) => g.lid === id);
+  if (hit) {
+    if (hit.tier === tier) return; // already at that tier
+    hit.tier = tier;
+  } else {
+    if (p.gauges.length >= PUSH_MAX_GAUGES) return; // card shows the limit note
+    p.gauges.push({ lid: id, tier });
+  }
+  pushSetPrefs(p);
+}
+
+function pushUnfollowGauge(lid) {
+  const id = String(lid || '').toUpperCase();
+  const p = pushPrefs();
+  p.gauges = p.gauges.filter((g) => g.lid !== id);
+  if (pushManagePreselect === id) pushManagePreselect = null;
+  pushSetPrefs(p);
+}
+
+// "Notify me" entry point (gauge popup / hydrograph modal): open Resources with the manage view
+// expanded and that gauge pinned atop the picker. Never auto-follows — the tier tap is the choice.
+function pushManageAvailable() {
+  return Boolean(state.pushVapidKey); // set only when ?push=1 + a configured backend
+}
+
+function pushOpenManageFor(lid) {
+  pushManageOpen = true;
+  pushManagePreselect = String(lid || '').toUpperCase();
+  const btn = document.querySelector('.tabs button[data-tab="tab-resources"]');
+  if (btn) btn.click();
+  renderPushCard();
+  const row = document.querySelector(`#push-body .push-g-row[data-lid="${pushManagePreselect}"]`);
+  if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center' });
 }
 
 // tier chips are one choice (moderate implies major — a lower rung, not a second stream)
@@ -1132,6 +1311,7 @@ async function pushSetPrefs(next) {
     });
     if (!r.ok) throw new Error(`subscribe HTTP ${r.status}`);
     pushLocalSet({ on: true, prefs: next });
+    pushSwMirror(state.pushVapidKey, next);
   } catch (err) { /* server unreachable — chips fall back to the last stored prefs */ }
   renderPushCard();
 }
@@ -1152,8 +1332,8 @@ async function pushEnable() {
     });
     if (!r.ok) throw new Error(`subscribe HTTP ${r.status}`);
     pushLocalSet({ on: true, prefs });
-    // language hint for payload-free pushes; best-effort, the SW falls back to en
-    try { await (await caches.open('respondertx-push')).put('/push-lang', new Response(getLang())); } catch { /* cache unavailable */ }
+    // lang/key/prefs mirror for the SW's payload-free fallback + rotation self-heal; best-effort
+    await pushSwMirror(state.pushVapidKey, prefs);
     renderPushCard();
   } catch (err) {
     renderPushCard();
@@ -1181,24 +1361,70 @@ async function pushDisable() {
   renderPushCard();
 }
 
-// silent boot-time TTL keepalive for subscribed devices (runs regardless of the ?push=1 flag)
-function pushRenewOnBoot() {
+// silent boot-time keepalive + self-heal for subscribed devices (runs regardless of ?push=1):
+// renew the TTL and sync prefs from the authoritative server row; transparently re-subscribe
+// when the browser subscription vanished or the VAPID key rotated (spec §4.4); flip the card
+// off honestly (prefs kept locally) when permission was revoked.
+async function pushBootSync() {
   if (pushLocal().on !== true) return;
-  if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
-  navigator.serviceWorker.ready
-    .then((reg) => reg.pushManager.getSubscription())
-    .then((sub) => {
-      if (!sub) { pushLocalSet({ on: false }); return null; }
-      return fetch('api/push/renew', {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.isSecureContext) return;
+  try {
+    const reg = state.swReg || await navigator.serviceWorker.ready;
+    const perm = 'Notification' in window ? Notification.permission : 'default';
+    const sub = await reg.pushManager.getSubscription();
+    let vapidKey = state.pushVapidKey || null;
+    if (!vapidKey) {
+      try {
+        const r = await fetch('api/push/status');
+        if (r.ok) {
+          const d = await r.json();
+          if (d && d.configured && d.vapidKey) vapidKey = d.vapidKey;
+        }
+      } catch (err) { /* status unreachable — fall through to the plain renew path */ }
+    }
+    const keyMatches = sub && vapidKey ? pushKeysMatch(sub.options.applicationServerKey, pushKeyBytes(vapidKey)) : null;
+    const plan = pushBootPlan({ localOn: true, permission: perm, hasSub: Boolean(sub), keyMatches });
+    if (plan === 'off') { pushLocalSet({ on: false, prefs: pushPrefs() }); return; }
+    if (plan === 'resubscribe' || plan === 'rekey') {
+      if (!vapidKey) return; // cannot mint a subscription without the served key; next boot retries
+      if (plan === 'rekey' && sub) {
+        try { await sub.unsubscribe(); } catch (err) { /* stale sub — the fresh subscribe replaces it */ }
+      }
+      const fresh = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(vapidKey) });
+      const prefs = pushPrefs();
+      const r = await fetch('api/push/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: fresh.toJSON(), prefs, lang: getLang() }),
+      });
+      if (r.ok) {
+        pushLocalSet({ on: true, prefs });
+        await pushSwMirror(vapidKey, prefs);
+      }
+      return;
+    }
+    if (plan === 'renew' && sub) {
+      const r = await fetch('api/push/renew', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: sub.endpoint }),
       });
-    })
-    .catch(() => { /* renew is best-effort; the 60-day TTL and the next boot repair it */ });
+      if (r.ok) {
+        const d = await r.json();
+        // renew doubles as the endpoint-authenticated self-lookup: server prefs are authoritative
+        if (d && d.prefs) pushLocalSet({ on: true, prefs: pushNormalizePrefs(d.prefs) });
+      } else if (r.status === 404) {
+        // server row gone (expiry / rotation cleanup) but the browser sub lives: re-upsert
+        await fetch('api/push/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub.toJSON(), prefs: pushPrefs(), lang: getLang() }),
+        });
+      }
+      if (vapidKey) await pushSwMirror(vapidKey, pushPrefs());
+    }
+  } catch (err) { /* self-heal is best-effort; the 60-day TTL and the next boot repair it */ }
 }
 
 async function initPushCard() {
-  pushRenewOnBoot();
+  pushBootSync();
   const host = $('#push-body');
   if (!host) return;
   if (!new URLSearchParams(location.search).has('push')) return; // P1 soft-launch flag; public exposure is the P2 call

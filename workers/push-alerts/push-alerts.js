@@ -1,6 +1,6 @@
-// responder-push-alerts — Cloudflare Worker hosting the PushRegistry Durable Object (web-push P2).
+// responder-push-alerts — Cloudflare Worker hosting the PushRegistry Durable Object (web-push P3).
 // One well-known DO instance (idFromName('registry')) holds every anonymous push subscription:
-// endpoint + browser keys + prefs (ffe on/off, AO-wide gauge tier) + language, nothing else
+// endpoint + browser keys + prefs (ffe on/off, AO-wide gauge tier, followed gauges) + language, nothing else
 // (no name, no email, no IP retention). A Pages project cannot host a Durable Object, so this
 // ships as a standalone Worker and the Pages Functions under functions/api/push/ bind to it
 // (env.PUSH) and forward requests here. The evaluator is the */5 cron on this Worker (plus the
@@ -22,6 +22,8 @@ const RATE_MAX = 10;                           // subscribe-family calls per IP 
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const ENDPOINT_MAX = 1024;
 const KEY_MAX = 256;
+const MAX_GAUGES = 20;                         // followed gauges per subscription (400 above)
+const LID_RE = /^[A-Z0-9]{3,10}$/;
 const ZONE_FETCH_MAX = 3;                      // zone-geometry lookups per polygon-less alert
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
@@ -163,13 +165,39 @@ function confirmPayload(lang, now) {
   });
 }
 
-// P2 prefs: ffe on/off + AO-wide gauge tier (moderate implies major); per-gauge choices are P3
+// P3 prefs: ffe on/off + AO-wide gauge tier (moderate implies major) + followed gauges
+// [{lid, tier}] deduped by lid, capped at MAX_GAUGES
 function sanitizePrefs(p) {
   const src = p && typeof p === 'object' ? p : {};
+  const gauges = [];
+  const seen = new Set();
+  for (const g of Array.isArray(src.gauges) ? src.gauges.slice(0, MAX_GAUGES) : []) {
+    const lid = String((g && g.lid) || '').toUpperCase();
+    const tier = g && (g.tier === 'moderate' || g.tier === 'major') ? g.tier : null;
+    if (!tier || !LID_RE.test(lid) || seen.has(lid)) continue;
+    seen.add(lid);
+    gauges.push({ lid, tier });
+  }
   return {
     ffe: src.ffe !== false,
     tier: src.tier === 'moderate' || src.tier === 'major' ? src.tier : null,
+    gauges,
   };
+}
+
+// effective threshold for one (prefs, gauge): the AO-wide tier and a per-gauge follow coexist,
+// and the most sensitive applicable threshold wins. 0 = not watched at all.
+function effectiveTierRank(prefs, lid) {
+  const p = prefs && typeof prefs === 'object' ? prefs : {};
+  let rank = p.tier === 'moderate' || p.tier === 'major' ? CAT_RANK[p.tier] : 0;
+  for (const g of Array.isArray(p.gauges) ? p.gauges : []) {
+    if (g && g.lid === lid && (g.tier === 'moderate' || g.tier === 'major')) {
+      const r = CAT_RANK[g.tier];
+      if (!rank || r < rank) rank = r;
+      break;
+    }
+  }
+  return rank;
 }
 
 // observed category rank with the client's stale-sensor suppression: a frozen gauge keeps
@@ -261,6 +289,7 @@ export class PushRegistry {
       case 'subscribe': out = await this.doSubscribe(body, ip, now); break;
       case 'unsubscribe': out = await this.doUnsubscribe(body, ip, now); break;
       case 'renew': out = await this.doRenew(body, ip, now); break;
+      case 'resubscribe': out = await this.doResubscribe(body, ip, now); break;
       case 'status': out = await this.doStatus(now); break;
       case 'evaluate': out = await this.doEvaluate(now); break;
       case 'nudge': out = await this.doNudge(raw, request.headers.get('X-Push-Sig') || '', now); break;
@@ -302,6 +331,10 @@ export class PushRegistry {
     if (!endpoint || endpoint.length > ENDPOINT_MAX || !allowedEndpoint(endpoint)) {
       return { _status: 400, error: 'endpoint not accepted' };
     }
+    const rawGauges = body.prefs && body.prefs.gauges;
+    if (Array.isArray(rawGauges) && rawGauges.length > MAX_GAUGES) {
+      return { _status: 400, error: 'too many gauges' };
+    }
     const keys = s.keys || {};
     const p256dh = String(keys.p256dh || '').slice(0, KEY_MAX);
     const auth = String(keys.auth || '').slice(0, KEY_MAX);
@@ -318,8 +351,8 @@ export class PushRegistry {
       renewed: now,
     };
     await this.state.storage.put(`sub:${id}`, row);
-    // dropping the gauge tier resets that dedup state — a later re-enable starts fresh
-    if (!prefs.tier) await this.state.storage.delete(`ns:${id}`);
+    // dropping every gauge pref resets that dedup state — a later re-enable starts fresh
+    if (!prefs.tier && !prefs.gauges.length) await this.state.storage.delete(`ns:${id}`);
     // confirmation push on NEW subscriptions only (spec §4.1): proves delivery end to end and
     // kills fabricated endpoints on real push hosts within one send
     let confirmed = false;
@@ -352,7 +385,43 @@ export class PushRegistry {
     if (!row) return { _status: 404, error: 'not subscribed' };
     row.renewed = now;
     await this.state.storage.put(`sub:${id}`, row);
-    return { ok: true };
+    // renew doubles as the endpoint-authenticated self-lookup: possession of the unguessable
+    // endpoint URL is the only credential, so the stored prefs ride back for the manage view
+    return { ok: true, prefs: row.prefs };
+  }
+
+  // pushsubscriptionchange migration: the push service rotated the endpoint; carry prefs, lang,
+  // created, and dedup state to the new endpoint row. Silent by design (no confirmation push).
+  async doResubscribe(body, ip, now) {
+    if (!this.configured()) return { _status: 503, error: 'push not configured' };
+    if (this.rateLimited(ip, now)) return { _status: 429, error: 'too many requests' };
+    const oldEndpoint = String(body.oldEndpoint || '');
+    if (!oldEndpoint || oldEndpoint.length > ENDPOINT_MAX) return { _status: 400, error: 'oldEndpoint required' };
+    const s = body.subscription || {};
+    const endpoint = String(s.endpoint || '');
+    if (!endpoint || endpoint.length > ENDPOINT_MAX || !allowedEndpoint(endpoint)) {
+      return { _status: 400, error: 'endpoint not accepted' };
+    }
+    const oldId = await sha256hex(crypto.subtle, oldEndpoint);
+    const old = await this.state.storage.get(`sub:${oldId}`);
+    if (!old) return { _status: 404, error: 'not subscribed' };
+    const keys = s.keys || {};
+    const id = await sha256hex(crypto.subtle, endpoint);
+    const row = {
+      id, endpoint,
+      p256dh: String(keys.p256dh || '').slice(0, KEY_MAX),
+      auth: String(keys.auth || '').slice(0, KEY_MAX),
+      lang: old.lang, prefs: old.prefs,
+      created: old.created, renewed: now,
+    };
+    await this.state.storage.put(`sub:${id}`, row);
+    if (id !== oldId) {
+      const ns = await this.state.storage.get(`ns:${oldId}`);
+      if (ns) await this.state.storage.put(`ns:${id}`, ns);
+      await this.state.storage.delete(`sub:${oldId}`);
+      await this.state.storage.delete(`ns:${oldId}`);
+    }
+    return { ok: true, prefs: row.prefs };
   }
 
   async doStatus(now) {
@@ -370,14 +439,22 @@ export class PushRegistry {
     const q = (await this.state.storage.get('sendq')) || [];
     const subs = await this.state.storage.list({ prefix: 'sub:' });
     const tiers = { moderate: 0, major: 0 };
+    const followedGauges = {};   // lid → follower count (counts only, no endpoints)
+    let follows = 0;
     for (const row of subs.values()) {
       const tier = row.prefs && row.prefs.tier;
       if (tier === 'moderate' || tier === 'major') tiers[tier] += 1;
+      for (const g of (row.prefs && row.prefs.gauges) || []) {
+        follows += 1;
+        followedGauges[`${g.lid}:${g.tier}`] = (followedGauges[`${g.lid}:${g.tier}`] || 0) + 1;
+      }
     }
     return {
       configured: this.configured(),
       subCount: subs.size,
       tiers,
+      follows,
+      followedGauges,
       queue: q.length,
       lastEval: meta.lastEval || null,
       lastSnapshotGen: meta.lastSnapshotGen || null,
@@ -488,12 +565,14 @@ export class PushRegistry {
     };
   }
 
-  // P2 gauge pass: upward category crossings from the DEPLOYED mirror snapshot (the push must
+  // gauge pass: upward category crossings from the DEPLOYED mirror snapshot (the push must
   // never claim something the board cannot show); per-(sub, gauge) dedup + hysteresis + cooldown
   // + rolling-hour cap with digest collapse. Skips entirely when nothing new was deployed.
+  // P3: the crossing filter honors per-gauge follows alongside the AO-wide tier (§effectiveTierRank).
   async gaugePass(live, meta, now) {
     const out = { ok: true, crossings: 0, digests: 0, skipped: false };
-    const tierSubs = live.filter((r) => r.prefs && (r.prefs.tier === 'moderate' || r.prefs.tier === 'major'));
+    const watchers = live.filter((r) => r.prefs && (r.prefs.tier === 'moderate' || r.prefs.tier === 'major'
+      || (Array.isArray(r.prefs.gauges) && r.prefs.gauges.length)));
     try {
       const res = await fetch(SNAPSHOT_URL, { headers: { 'User-Agent': UA } });
       if (!res.ok) throw new Error(`snapshot HTTP ${res.status}`);
@@ -501,7 +580,7 @@ export class PushRegistry {
       const gen = String((snap && snap.generated) || '');
       if (gen && gen === meta.lastSnapshotGen) { out.skipped = true; return out; }
       meta.lastSnapshotGen = gen;
-      if (!tierSubs.length) return out;
+      if (!watchers.length) return out;
       const ranked = [];
       for (const g of ((snap && snap.gauges) || [])) {
         const lid = String(g.lid || '');
@@ -509,12 +588,13 @@ export class PushRegistry {
         ranked.push({ lid, name: String(g.name || lid), rank: gaugeRank(g, now), obs: g.status && g.status.observed });
       }
       const q = (await this.state.storage.get('sendq')) || [];
-      for (const row of tierSubs) {
-        const tierRank = CAT_RANK[row.prefs.tier];
+      for (const row of watchers) {
         const ns = (await this.state.storage.get(`ns:${row.id}`)) || { g: {}, hourly: [] };
         const candidates = [];
         for (const g of ranked) {
+          const tierRank = effectiveTierRank(row.prefs, g.lid);
           const prev = ns.g[g.lid];
+          if (!tierRank) { if (prev) delete ns.g[g.lid]; continue; } // gauge no longer watched — drop armed state
           if (g.rank < tierRank && !prev) continue; // no crossing, no armed state — nothing to do
           const step = crossingStep(g.rank, tierRank, prev || {}, now);
           if (step.notify) candidates.push({ g, st: step.st });
@@ -643,7 +723,9 @@ export class PushRegistry {
   // ops verification only, token-gated at the edge: send a real push to one stored subscription
   // (by endpoint) or to every stored subscription when none is named. kind 'gauge' fires an
   // encrypted sample gauge-tier payload (lid/name/cat overridable), 'confirm' the confirmation
-  // payload; no kind = payload-free like P1. Returns push-service status codes.
+  // payload; kind 'crossing' runs the same payload THROUGH each subscription's stored pref filter
+  // (effectiveTierRank; dedup state untouched) so the per-gauge chain is verifiable end to end;
+  // no kind = payload-free like P1. Returns push-service status codes ('skipped' = filtered out).
   async doTestfire(body, now) {
     if (!this.configured()) return { _status: 503, error: 'push not configured' };
     let targets = [];
@@ -656,16 +738,25 @@ export class PushRegistry {
       const subs = await this.state.storage.list({ prefix: 'sub:' });
       targets = [...subs.values()].slice(0, SEND_BATCH);
     }
-    const kind = body.kind === 'gauge' || body.kind === 'confirm' ? body.kind : null;
+    const kind = body.kind === 'gauge' || body.kind === 'confirm' || body.kind === 'crossing' ? body.kind : null;
     const results = [];
     for (const row of targets) {
       let payload = null;
       if (kind === 'confirm') payload = confirmPayload(row.lang, now);
-      else if (kind === 'gauge') {
+      else if (kind === 'gauge' || kind === 'crossing') {
+        const lid = String(body.lid || 'TEST').slice(0, 16);
+        const rank = CAT_RANK[body.cat] >= CAT_RANK.moderate ? CAT_RANK[body.cat] : CAT_RANK.moderate;
+        if (kind === 'crossing') {
+          const tierRank = effectiveTierRank(row.prefs, lid.toUpperCase());
+          if (!tierRank || rank < tierRank) {
+            results.push({ id: row.id.slice(0, 8), status: 'skipped' });
+            continue;
+          }
+        }
         payload = gaugePayload(row.lang, {
-          lid: String(body.lid || 'TEST').slice(0, 16),
+          lid,
           name: String(body.name || 'Test gauge').slice(0, 120),
-          rank: CAT_RANK[body.cat] >= CAT_RANK.moderate ? CAT_RANK[body.cat] : CAT_RANK.moderate,
+          rank,
           obs: null,
         }, now);
       }
@@ -694,7 +785,7 @@ export default {
 
   async fetch(request, env) {
     const url = new URL(request.url);
-    const m = url.pathname.match(/^\/api\/push\/(subscribe|unsubscribe|renew|status|nudge|evaluate|peek|testfire)$/);
+    const m = url.pathname.match(/^\/api\/push\/(subscribe|unsubscribe|renew|resubscribe|status|nudge|evaluate|peek|testfire)$/);
     if (!m) return new Response('not found', { status: 404 });
     const action = m[1];
     if (action !== 'status' && request.method !== 'POST') return new Response('method not allowed', { status: 405 });

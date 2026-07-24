@@ -1,5 +1,30 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.73 · 2026-07-24 (Team: dead-zone breadcrumbs no longer vanish; queued fixes send when signal returns)
+
+-- New Features --
+- [New] A team member's position fixes are no longer lost in a dead zone. When a
+      position update cannot reach the relay (no signal, a timeout, or the relay
+      briefly down) the fix is saved on the phone instead of dropped, up to about
+      2 hours of fixes, and the queue survives an app reload. When signal returns
+      (or the next update lands) the whole backlog sends in one batch, each fix
+      keeping its original time and GPS accuracy, and the breadcrumb trail at
+      command fills in the missing stretch.
+- [New] While fixes are waiting, the Team tab says so plainly: "N fixes queued,
+      sending when signal returns", in English and Spanish. The line clears once
+      the backlog sends.
+- [New] When the screen locks or you switch apps, the last position already in
+      hand is saved into the queue before sharing pauses, so command sees an
+      honest final point from before the pause instead of a trail that just
+      stops. Sharing still pauses while the screen is off, exactly as before
+      (battery, and the "foreground, screen-on only" promise).
+- [New] Relay: a new batched backfill endpoint accepts queued fixes with the same
+      membership checks and per-fix validation as a live update, refuses fixes
+      stamped in the future or older than the 2 hour trail window, caps the batch
+      size, and slots accepted points into the trail in time order without ever
+      overwriting a fresher live position. Existing clients posting single
+      updates are untouched.
+
 ## v0.97.72 · 2026-07-24 (Live FEMA/ARC shelter status in Resources)
 
 -- New Features --

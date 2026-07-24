@@ -61,7 +61,7 @@ ADMIN_RE = re.compile(r'^/api/team/admin/(overview|list)$')
 # on Cloudflare; the LAN server has no DO). Fixed allowlist, never an open proxy; admin
 # endpoints stay on the token-gated ADMIN_RE path above.
 _TEAM_UUID = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
-TEAM_RE = re.compile(r'^/api/team/(?:create|' + _TEAM_UUID + r'/(?:join|leave|position|marker|unmark|update|state))$')
+TEAM_RE = re.compile(r'^/api/team/(?:create|' + _TEAM_UUID + r'/(?:join|leave|positions|position|marker|unmark|update|state))$')
 ADMIN_TTL = 5
 # XSS backstop behind esc() at the innerHTML render sites; keep in sync with _headers (public mirror)
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "

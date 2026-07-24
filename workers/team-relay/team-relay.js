@@ -23,6 +23,7 @@ const TRAIL_MAX_POINTS = 300;
 const TRAIL_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2h
 const TRAIL_MIN_MOVE_M = 15;                 // decimate: skip points closer than this
 const TRAIL_MIN_GAP_MS = 12 * 1000;          // ...unless this much time has passed
+const BACKFILL_MAX = 480;                    // batch cap — matches the client store-and-forward queue bound
 
 // SAR member model + team-scoped shared markers (v0.97.4). These allow-sets are the
 // authoritative server-side whitelist; the client picklists mirror them but the DO enforces.
@@ -82,6 +83,12 @@ function sanitizeText(s, max) {
   return String(s == null ? '' : s).replace(/[\x00-\x1f\x7f<>]/g, '').trim().slice(0, max);
 }
 
+function validLatLon(lat, lon) {
+  return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+}
+
+const numOrNull = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+
 function haversineM(a, b) {
   const R = 6371000, toR = Math.PI / 180;
   const dLat = (b.lat - a.lat) * toR, dLon = (b.lon - a.lon) * toR;
@@ -137,6 +144,7 @@ export class TeamRelay {
       case 'join': out = await this.doJoin(body, now); break;
       case 'update': out = await this.doUpdate(body, now); break;
       case 'position': out = await this.doPosition(body, now); break;
+      case 'positions': out = await this.doPositions(body, now); break;
       case 'marker': out = await this.doMarker(body, now); break;
       case 'unmark': out = await this.doUnmark(body, now); break;
       case 'state': out = await this.doState(url, now); break;
@@ -294,13 +302,8 @@ export class TeamRelay {
     if (!person) return { _status: 403, error: 'not a member of this team' };
     if (person.role !== 'member') return { _status: 403, error: 'viewers cannot publish a position' };
     const lat = Number(body.lat), lon = Number(body.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      return { _status: 400, error: 'invalid coordinates' };
-    }
-    const acc = Number.isFinite(Number(body.acc)) ? Number(body.acc) : null;
-    const hdg = Number.isFinite(Number(body.hdg)) ? Number(body.hdg) : null;
-    const spd = Number.isFinite(Number(body.spd)) ? Number(body.spd) : null;
-    person.lastPos = { lat, lon, acc, hdg, spd, ts: now };
+    if (!validLatLon(lat, lon)) return { _status: 400, error: 'invalid coordinates' };
+    person.lastPos = { lat, lon, acc: numOrNull(body.acc), hdg: numOrNull(body.hdg), spd: numOrNull(body.spd), ts: now };
     person.lastSeen = now;
     if (!person.trail) person.trail = [];
     const last = person.trail[person.trail.length - 1];
@@ -311,6 +314,52 @@ export class TeamRelay {
     this.reap(now);
     await this.persist(now);
     return { ok: true };
+  }
+
+  // Batched backfill (store-and-forward): a member flushes fixes its client queued through a dead
+  // zone or screen-lock pause. Same auth and per-fix validation as a live post; each accepted fix
+  // keeps its ORIGINAL client timestamp. Future-stamped fixes and fixes older than the trail
+  // retention window are rejected (counted, never inserted). Additive route — the legacy single
+  // /position protocol is untouched.
+  async doPositions(body, now) {
+    if (!this.team) return { _status: 404, error: 'team not found or expired' };
+    const id = String(body.ephemeralId || '');
+    const person = UUID_RE.test(id) ? this.team.people[id] : null;
+    if (!person) return { _status: 403, error: 'not a member of this team' };
+    if (person.role !== 'member') return { _status: 403, error: 'viewers cannot publish a position' };
+    if (!Array.isArray(body.fixes)) return { _status: 400, error: 'fixes must be an array' };
+    if (body.fixes.length > BACKFILL_MAX) return { _status: 400, error: `too many fixes (max ${BACKFILL_MAX})` };
+    const points = [];
+    let rejected = 0;
+    for (const f of body.fixes) {
+      const lat = Number(f && f.lat), lon = Number(f && f.lon), ts = Number(f && f.ts);
+      if (!validLatLon(lat, lon) || !Number.isFinite(ts) || ts > now || now - ts > TRAIL_MAX_AGE_MS) { rejected++; continue; }
+      points.push({ lat, lon, ts: Math.round(ts), acc: numOrNull(f.acc), hdg: numOrNull(f.hdg), spd: numOrNull(f.spd) });
+    }
+    if (points.length) {
+      points.sort((a, b) => a.ts - b.ts);
+      if (!person.trail) person.trail = [];
+      const have = new Set(person.trail.map((pt) => pt.ts));
+      const merged = person.trail
+        .concat(points.filter((pt) => !have.has(pt.ts)).map((pt) => ({ lat: pt.lat, lon: pt.lon, ts: pt.ts })))
+        .sort((a, b) => a.ts - b.ts);
+      // same decimation rule as the live path, applied across the merged timeline
+      const kept = [];
+      for (const pt of merged) {
+        const prev = kept[kept.length - 1];
+        if (!prev || pt.ts - prev.ts > TRAIL_MIN_GAP_MS || haversineM(prev, pt) > TRAIL_MIN_MOVE_M) kept.push(pt);
+      }
+      person.trail = kept.filter((pt) => now - pt.ts <= TRAIL_MAX_AGE_MS).slice(-TRAIL_MAX_POINTS);
+      const newest = points[points.length - 1];
+      // a backfilled fix only advances lastPos, never regresses a fresher live one
+      if (!person.lastPos || !Number.isFinite(person.lastPos.ts) || newest.ts >= person.lastPos.ts) {
+        person.lastPos = { lat: newest.lat, lon: newest.lon, acc: newest.acc, hdg: newest.hdg, spd: newest.spd, ts: newest.ts };
+      }
+    }
+    person.lastSeen = now; // the batch POST itself is live contact
+    this.reap(now);
+    await this.persist(now);
+    return { ok: true, accepted: points.length, rejected };
   }
 
   async doState(url, now) {
@@ -532,7 +581,7 @@ export class TeamRelay {
 // not publicly routable (workers_dev=false, no routes); Pages Functions reach the DO via the
 // TEAM binding and invoke TeamRelay.fetch() directly. Kept as a thin forwarder so the exact
 // same DO code path is exercised locally and in production.
-const TEAM_PATH_RE = /^\/api\/team\/(?:(create)|([0-9a-f-]{36})\/(join|update|position|marker|unmark|state|leave))$/i;
+const TEAM_PATH_RE = /^\/api\/team\/(?:(create)|([0-9a-f-]{36})\/(join|update|positions|position|marker|unmark|state|leave))$/i;
 
 export default {
   async fetch(request, env) {

@@ -271,3 +271,115 @@ test('rejoin — re-joining with the saved ephemeralId reuses one person; after 
   const finalState = await relay.doState(stateUrl(restored.ephemeralId), now);
   assert.equal(finalState.members.length, 1, 'exactly one member after a beacon leave then a foreground rejoin');
 });
+
+/* ---------- batched backfill (store-and-forward, /positions) ---------- */
+
+test('backfill — a valid batch inserts trail points with their ORIGINAL timestamps, in ts order', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'AlphaOne', role: 'member' }, now)).you;
+  const fixes = [
+    { lat: 29.7500, lon: -99.3500, acc: 8, ts: now - 90000 },
+    { lat: 29.7520, lon: -99.3520, acc: 9, ts: now - 60000 },
+    { lat: 29.7540, lon: -99.3540, acc: 7, ts: now - 30000 },
+  ];
+  // send deliberately out of order — the relay must sort by ts
+  const out = await relay.doPositions({ ephemeralId: you.ephemeralId, fixes: [fixes[2], fixes[0], fixes[1]] }, now);
+  assert.equal(out.ok, true);
+  assert.equal(out.accepted, 3);
+  assert.equal(out.rejected, 0);
+  const state = await relay.doState(stateUrl(you.ephemeralId), now);
+  const row = state.members.find((m) => m.pid === you.pid);
+  const ts = row.trail.map((pt) => pt.ts);
+  assert.deepEqual([...ts], fixes.map((f) => f.ts), 'trail carries the original client timestamps, sorted');
+  assert.equal(row.lastPos.ts, fixes[2].ts, 'lastPos advanced to the newest backfilled fix');
+  assert.equal(row.lastPos.acc, 7, 'accuracy of the newest fix is preserved');
+});
+
+test('backfill — future-stamped and older-than-retention fixes are rejected, valid ones still land', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'AlphaOne', role: 'member' }, now)).you;
+  const out = await relay.doPositions({
+    ephemeralId: you.ephemeralId,
+    fixes: [
+      { lat: 29.75, lon: -99.35, ts: now + 60000 },              // future — rejected
+      { lat: 29.75, lon: -99.35, ts: now - 3 * 3600 * 1000 },    // older than the 2h trail window — rejected
+      { lat: 200, lon: -99.35, ts: now - 30000 },                // bad coordinates — rejected
+      { lat: 29.76, lon: -99.36, ts: now - 30000 },              // valid
+    ],
+  }, now);
+  assert.equal(out.ok, true);
+  assert.equal(out.accepted, 1);
+  assert.equal(out.rejected, 3);
+  const state = await relay.doState(stateUrl(you.ephemeralId), now);
+  const row = state.members.find((m) => m.pid === you.pid);
+  assert.equal(row.trail.length, 1, 'only the valid fix entered the trail');
+  assert.equal(row.trail[0].ts, now - 30000);
+});
+
+test('backfill — an oversized batch is rejected whole (400), matching the client queue bound', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'AlphaOne', role: 'member' }, now)).you;
+  const fixes = [];
+  for (let i = 0; i < 481; i++) fixes.push({ lat: 29.75, lon: -99.35, ts: now - i * 1000 });
+  const out = await relay.doPositions({ ephemeralId: you.ephemeralId, fixes }, now);
+  assert.equal(out._status, 400);
+  assert.match(out.error, /480/);
+  assert.equal((await relay.doPositions({ ephemeralId: you.ephemeralId, fixes: 'nope' }, now))._status, 400, 'a non-array fixes payload is rejected');
+});
+
+test('backfill — auth matches a live post: stolen pid rejected, viewer rejected, non-member rejected', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const m = (await relay.doJoin({ handle: 'AlphaOne', role: 'member' }, now)).you;
+  const v = (await relay.doJoin({ handle: 'Watcher1', role: 'viewer' }, now)).you;
+  const fixes = [{ lat: 29.75, lon: -99.35, ts: now - 1000 }];
+  // the public pid is not a write credential (same spoof-closure as /position)
+  assert.equal((await relay.doPositions({ ephemeralId: m.pid, fixes }, now))._status, 403);
+  // a viewer's own secret still cannot publish
+  assert.equal((await relay.doPositions({ ephemeralId: v.ephemeralId, fixes }, now))._status, 403);
+  // garbage credential
+  assert.equal((await relay.doPositions({ ephemeralId: 'not-a-uuid', fixes }, now))._status, 403);
+  // the real member works
+  assert.equal((await relay.doPositions({ ephemeralId: m.ephemeralId, fixes }, now)).ok, true);
+});
+
+test('backfill — merges into an existing live trail in time order and never regresses a fresher lastPos', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'AlphaOne', role: 'member' }, now)).you;
+  // a live post lands NOW (server-stamped)
+  assert.equal((await relay.doPosition({ ephemeralId: you.ephemeralId, lat: 29.7600, lon: -99.3600, acc: 5 }, now)).ok, true);
+  // then the dead-zone backlog arrives: all OLDER than the live fix
+  const out = await relay.doPositions({
+    ephemeralId: you.ephemeralId,
+    fixes: [
+      { lat: 29.7500, lon: -99.3500, ts: now - 60000 },
+      { lat: 29.7550, lon: -99.3550, ts: now - 30000 },
+    ],
+  }, now);
+  assert.equal(out.accepted, 2);
+  const state = await relay.doState(stateUrl(you.ephemeralId), now);
+  const row = state.members.find((m) => m.pid === you.pid);
+  const ts = row.trail.map((pt) => pt.ts);
+  assert.deepEqual([...ts], [...ts].sort((a, b) => a - b), 'trail is time-ordered after the merge');
+  assert.equal(row.trail.length, 3, 'backfilled points joined the live point');
+  assert.equal(row.lastPos.lat, 29.76, 'the fresher live lastPos is NOT regressed by older backfill');
+});
+
+test('backfill — the legacy single /position protocol is unchanged alongside the batch route', async () => {
+  const { relay } = await newTeam();
+  const now = Date.now();
+  const you = (await relay.doJoin({ handle: 'AlphaOne', role: 'member' }, now)).you;
+  const single = await relay.doPosition({ ephemeralId: you.ephemeralId, lat: 29.75, lon: -99.35, acc: 4, hdg: 90, spd: 1.5 }, now);
+  assert.deepEqual(JSON.parse(JSON.stringify(single)), { ok: true }, 'single-post response shape is unchanged');
+  const state = await relay.doState(stateUrl(you.ephemeralId), now);
+  const row = state.members.find((m) => m.pid === you.pid);
+  assert.equal(row.lastPos.ts, now, 'a live post is still server-stamped');
+  assert.equal(row.lastPos.acc, 4);
+  assert.equal(row.trail.length, 1);
+  // out-of-range live coordinates still reject exactly as before
+  assert.equal((await relay.doPosition({ ephemeralId: you.ephemeralId, lat: 200, lon: 0 }, now))._status, 400);
+});

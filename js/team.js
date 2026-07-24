@@ -17,8 +17,10 @@
   const STALE_MS = 90000;  // grey a member marker after this long with no update
   const TOMB_MS = 1800000; // keep a last-known tombstone up to 30 min after last contact, then drop it
   const SELF_TRAIL_MAX = 400;
+  const QUEUE_MAX = 480;   // store-and-forward bound: ~2h of missed fixes at the 15s POST cadence
   const eidKey = (id) => `respondertx.team.eid.${id}`;
   const selfKey = (id) => `respondertx.team.self.${id}`;
+  const queueKey = (id) => `respondertx.team.queue.${id}`;
 
   // Picklists — mirror the DO's authoritative allow-sets (workers/team-relay/team-relay.js)
   const MTYPES = ['ground', 'k9'];
@@ -43,7 +45,7 @@
     layer: null, markerLayer: null, markers: {}, teamMarkers: {}, lastKnown: {},
     lastMembers: [], lastViewers: [], lastMarkers: [], defaults: null, appliedDefaults: false,
     facilities: null, mapWired: false,
-    selfTrail: [], selfPos: null, active: false, armDrop: false,
+    selfTrail: [], selfPos: null, active: false, armDrop: false, queue: [],
   };
 
   const api = (path, opts) => fetch(`/api/team/${path}`, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts));
@@ -661,6 +663,7 @@
       '</div>' +
       (isMember
         ? (notSharing ? `<div class="tt-sharestate tt-sharestate-off">${esc(tt('team.notsharing', 'Unavailable · not sharing'))}</div>` : '') +
+          '<div class="tt-sharestate tt-sharestate-q" id="team-queue-state" hidden></div>' +
           '<div class="tt-statuswrap">' +
           `<div class="tt-statuscap">${statusCap}</div>` +
           `<div class="tt-statusrow" id="team-statusrow" role="group" aria-label="${statusCap}">${stSeg}</div>` +
@@ -670,6 +673,7 @@
     const sr = bar.querySelector('#team-statusrow');
     if (sr) sr.addEventListener('click', (e) => { const b = e.target.closest('.tt-stbtn'); if (b && b.dataset.st !== T.status) doUpdateSelf({ status: b.dataset.st }); });
     bar.querySelector('#team-edit-btn').addEventListener('click', openEdit);
+    renderQueueState();
   }
 
   function renderRoster(data) {
@@ -752,7 +756,7 @@
 
   function onPos(p) {
     const { latitude: lat, longitude: lon, accuracy: acc, heading: hdg, speed: spd } = p.coords;
-    T.selfPos = { lat, lon, acc, hdg, spd };
+    T.selfPos = { lat, lon, acc, hdg, spd, ts: Date.now() }; // ts = capture time, kept for queued backfill
     const last = T.selfTrail[T.selfTrail.length - 1];
     if (!last || Math.abs(last[0] - lat) > 1e-5 || Math.abs(last[1] - lon) > 1e-5) {
       T.selfTrail.push([lat, lon]);
@@ -771,14 +775,110 @@
   let _selfColor = '#40c4ff';
   const selfColor = () => _selfColor;
 
+  /* ---------- store-and-forward queue (dead zones / screen-lock pauses) ---------- */
+
+  function qValidFix(f) {
+    return !!f && Number.isFinite(f.lat) && Number.isFinite(f.lon) && Number.isFinite(f.ts)
+      && f.lat >= -90 && f.lat <= 90 && f.lon >= -180 && f.lon <= 180;
+  }
+
+  // bounded FIFO push: keeps the ORIGINAL fix timestamp/accuracy, drops oldest past the cap,
+  // skips a same-timestamp duplicate (an unchanged GPS fix retried across ticks is one fix)
+  function qPush(q, fix, max) {
+    if (!qValidFix(fix)) return q;
+    const last = q[q.length - 1];
+    if (last && last.ts === fix.ts) return q;
+    q.push({
+      lat: fix.lat, lon: fix.lon, ts: fix.ts,
+      acc: Number.isFinite(fix.acc) ? fix.acc : null,
+      hdg: Number.isFinite(fix.hdg) ? fix.hdg : null,
+      spd: Number.isFinite(fix.spd) ? fix.spd : null,
+    });
+    if (q.length > max) q.splice(0, q.length - max);
+    return q;
+  }
+
+  function qSanitize(raw, max) {
+    if (!Array.isArray(raw)) return [];
+    const out = [];
+    for (const f of raw) qPush(out, f, max);
+    return out;
+  }
+
+  function loadQueue(id) {
+    if (!id) return [];
+    try { return qSanitize(JSON.parse(localStorage.getItem(queueKey(id)) || '[]'), QUEUE_MAX); }
+    catch { return []; }
+  }
+
+  function saveQueue() {
+    if (!T.id) return;
+    try {
+      if (T.queue.length) localStorage.setItem(queueKey(T.id), JSON.stringify(T.queue));
+      else localStorage.removeItem(queueKey(T.id));
+    } catch { /* quota/private mode — the queue still flushes from memory this session */ }
+  }
+
+  function enqueueFix(fix) {
+    qPush(T.queue, fix, QUEUE_MAX);
+    saveQueue();
+    renderQueueState();
+  }
+
+  function selfFix() {
+    if (!T.selfPos) return null;
+    return { lat: T.selfPos.lat, lon: T.selfPos.lon, acc: T.selfPos.acc, hdg: T.selfPos.hdg, spd: T.selfPos.spd, ts: T.selfPos.ts || Date.now() };
+  }
+
+  // honest queue state in the you-bar: fixes are held on the phone, not silently dropped
+  function renderQueueState() {
+    const el = document.getElementById('team-queue-state');
+    if (!el) return;
+    const n = T.queue.length;
+    if (!n || T.role !== 'member') { el.hidden = true; el.textContent = ''; return; }
+    el.textContent = n === 1
+      ? tt('team.queue.one', '1 fix queued, sending when signal returns')
+      : `${n} ${tt('team.queue.many', 'fixes queued, sending when signal returns')}`;
+    el.hidden = false;
+  }
+
+  // flush the queue as one batched backfill; triggers: online event, a landed live post,
+  // visibility resume, and a successful (re)join
+  let _flushing = false;
+  async function flushQueue() {
+    if (_flushing || !T.queue.length || !T.active || T.role !== 'member' || !T.ephemeralId) return;
+    _flushing = true;
+    try {
+      const batch = T.queue.slice(0, QUEUE_MAX); // oldest first; the relay re-sorts by ts
+      const r = await api(`${T.id}/positions`, { method: 'POST', body: JSON.stringify({ ephemeralId: T.ephemeralId, fixes: batch }) });
+      if (r.ok) {
+        T.queue.splice(0, batch.length);
+        saveQueue();
+        renderQueueState();
+        poll(); // pull the backfilled trail promptly
+      } else if (r.status === 400) {
+        T.queue = []; saveQueue(); renderQueueState(); // a malformed batch can never succeed — drop, never wedge
+      } // 403/404/5xx: keep the queue; a rejoin or the next trigger retries
+    } catch { /* still offline — the next trigger retries */ }
+    _flushing = false;
+  }
+
   async function postPosition() {
     if (!T.active || T.role !== 'member' || !T.selfPos) return;
+    const fix = selfFix();
+    if (navigator.onLine === false) { enqueueFix(fix); return; } // known-offline: queue, skip the doomed request
     try {
-      await api(`${T.id}/position`, {
+      const r = await api(`${T.id}/position`, {
         method: 'POST',
-        body: JSON.stringify({ ephemeralId: T.ephemeralId, lat: T.selfPos.lat, lon: T.selfPos.lon, acc: T.selfPos.acc, hdg: T.selfPos.hdg, spd: T.selfPos.spd }),
+        body: JSON.stringify({ ephemeralId: T.ephemeralId, lat: fix.lat, lon: fix.lon, acc: fix.acc, hdg: fix.hdg, spd: fix.spd }),
       });
-    } catch { /* transient — next tick retries */ }
+      if (!r.ok) {
+        // relay-side trouble is a delivery gap worth retrying; a 4xx protocol reject never succeeds later
+        if (r.status >= 500 || r.status === 429 || r.status === 408) enqueueFix(fix);
+        return;
+      }
+      if (T.queue.length) flushQueue(); // a landed post proves the link is back
+    } catch { enqueueFix(fix); } // network failure — keep the fix, flush on reconnect
   }
 
   function startSharing() {
@@ -796,11 +896,16 @@
   // the server stale window) instead of losing us the instant the screen locks. Resume restarts the
   // watch + posts and re-polls; a member reaped during a long suspend is restored by poll's reap check.
   function pauseSharing() {
-    if (T.active && T.role === 'member') stopWatch();
+    if (T.active && T.role === 'member') {
+      // queue the already-held last-known fix (no new sensor spin-up) so command gets an honest
+      // final point on the next flush; the pause itself is deliberate (battery + foreground-only promise)
+      if (T.watchId != null && T.status !== 'unavailable' && T.selfPos) enqueueFix(selfFix());
+      stopWatch();
+    }
   }
   function resumeSharing() {
     if (!T.active) return;
-    if (T.role === 'member') startSharing(); // idempotent — no-op if the watch is still live
+    if (T.role === 'member') { startSharing(); flushQueue(); } // startSharing is idempotent — no-op if the watch is still live
     poll();
   }
 
@@ -852,11 +957,12 @@
       try { localStorage.setItem(eidKey(T.id), T.ephemeralId); } catch { /* private mode — reload starts a fresh member */ }
       T.active = true;
       _beaconLeft = false;
+      T.queue = loadQueue(T.id); // a reload in a dead zone must not lose queued fixes
       armLifecycle(); // guarantee the background/foreground handlers are wired for this joined session
       persistSelf();
       renderTeamTab();
       applyDefaults();
-      if (T.role === 'member') startSharing();
+      if (T.role === 'member') { startSharing(); flushQueue(); }
       poll();
       T.pollTimer = setInterval(poll, POLL_MS);
     } catch {
@@ -880,7 +986,7 @@
     if (T.layer) { T.layer.clearLayers(); }
     if (T.markerLayer) { T.markerLayer.clearLayers(); }
     T.markers = {}; T.teamMarkers = {}; T.lastKnown = {}; T.lastMembers = []; T.lastViewers = []; T.lastMarkers = [];
-    T.selfTrail = []; T.selfPos = null; T.facilities = null;
+    T.selfTrail = []; T.selfPos = null; T.facilities = null; T.queue = [];
     T.mtype = null; T.specialty = null; T.k9Name = ''; T.skills = []; T.status = null;
     T.id = null; T.name = ''; T.teamType = 'sar';
     const em = document.getElementById('team-edit'); // rebuilt per team so its fields match the next team's type
@@ -923,6 +1029,7 @@
     if (!id) return;
     try { localStorage.removeItem(selfKey(id)); } catch { /* private mode */ }
     try { localStorage.removeItem(eidKey(id)); } catch { /* private mode */ }
+    try { localStorage.removeItem(queueKey(id)); } catch { /* private mode */ }
   }
 
   // change my own record after joining (role / type / specialty / skills / status)
@@ -1015,12 +1122,14 @@
       if (data.defaults && !T.defaults) T.defaults = data.defaults;
       try { localStorage.setItem(eidKey(T.id), T.ephemeralId); } catch { /* private mode */ }
       T.active = true;
+      if (!T.queue.length) T.queue = loadQueue(T.id);
       persistSelf();
       if (T.role === 'member' && T.watchId == null) startSharing();
       if (!T.pollTimer) T.pollTimer = setInterval(poll, POLL_MS);
       renderTeamTab();
       applyDefaults();
       poll();
+      flushQueue(); // membership restored — drain any dead-zone backlog
       _beaconLeft = false;
       note(tt('team.rejoined', 'Reconnected to your team.'), 'ok', 'reconnected');
     } catch { /* transient network — the next foreground retries */ }
@@ -1418,6 +1527,7 @@
     // only a real unload beacons a leave, so a mobile return never re-mints an empty-trail member
     window.addEventListener('pagehide', (e) => { if (!e.persisted) beaconLeave(); });
     window.addEventListener('pageshow', onForeground);
+    window.addEventListener('online', flushQueue); // reconnect drains the dead-zone backlog
     document.addEventListener('visibilitychange', () => {
       // screen-lock / tab-switch PAUSES (keeps our DO slot); it must NOT beaconLeave and delete us
       if (document.visibilityState === 'hidden') { pauseSharing(); disarmDrop(); }
@@ -1469,4 +1579,7 @@
   // reused by the LAN-only master oversight view (js/master.js) to plot members with the exact
   // same marker style; inert on the public mirror where master.js never loads
   window.teamMemberIcon = memberIcon;
+
+  // pure store-and-forward queue ops, exposed for the node test harness (no DOM, no network)
+  window.teamQueueOps = { push: qPush, sanitize: qSanitize, valid: qValidFix, MAX: QUEUE_MAX };
 })();

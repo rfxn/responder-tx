@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.73",
+      "date": "2026-07-24",
+      "line": "Team: position fixes are no longer lost in a dead zone. Failed or offline updates are saved on the phone (about 2 hours' worth, reload-safe) and send in one batch when signal returns, each keeping its original time and accuracy, so the breadcrumb trail at command fills in the gap; the Team tab shows \"N fixes queued, sending when signal returns\" while a backlog waits, and on screen lock the last known position is queued before sharing pauses so command gets a true final point."
+    },
+    {
       "v": "v0.97.72",
       "date": "2026-07-24",
       "line": "Live shelter status arrived in the Resources tab: the board now polls the FEMA National Shelter System (synced with the American Red Cross) each cycle and lists open shelters in the event area first, with status in your language, address, capacity when reported, a freshness line, and a source link on every entry. Live entries replace matching curated shelters; curated listings and the map layer keep working unchanged when no live data exists."

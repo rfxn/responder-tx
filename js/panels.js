@@ -748,7 +748,7 @@ function renderResources() {
     r.dataLinks.map(dataLinkHtml).join('') +
     (recovery.length
       ? `<button class="aged-toggle" id="recovery-toggle">${state.showRecovery ? '▾' : '▸'} ${esc(t('res.recovery'))}</button>` +
-        `<div id="recovery-body"${state.showRecovery ? '' : ' hidden'}>${recovery.map(dataLinkHtml).join('')}</div>`
+        `<div id="res-recovery-body"${state.showRecovery ? '' : ' hidden'}>${recovery.map(dataLinkHtml).join('')}</div>`
       : '') +
     `<div class="section-title">${esc(t('res.follow'))}</div>` +
     `<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">${esc(t('res.rss'))}</a> · ${esc(t('res.rss.note'))}</div>` +

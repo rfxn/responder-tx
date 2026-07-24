@@ -1,5 +1,28 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.82 · 2026-07-24 (Fix: the Recovery view rendered into the wrong container)
+
+-- Bug Fixes --
+- [Fix] Recovery view opened empty. renderResources() emitted a second element
+      carrying id "recovery-body" inside the Resources tab whenever the curated
+      recovery links list was non-empty (it currently holds 6). Because `$` is
+      document.querySelector and the Resources tab precedes the Recovery
+      overlay in the document, openRecoveryView() and renderRecoveryBody() both
+      resolved to the Resources copy, writing the whole dashboard into a hidden
+      collapsed disclosure while the overlay showed only its header and the 911
+      footer. Present since the view shipped in v0.97.75. The resources-side
+      container is now id "res-recovery-body"; the lens keeps "recovery-body".
+- [Fix] Removes an unintended style leak: the lens rules in css/app.css
+      (padding plus flex sizing) were also matching the Resources disclosure,
+      which was never their target.
+
+-- New Features --
+- [New] tests/dom-ids.test.js guards the class, not just the instance: it
+      intersects every id declared in index.html with every id a renderer
+      template literal emits across panels, board, map, sources, team,
+      playback, notes, and cameras, and fails on any overlap, so a future
+      renderer cannot silently shadow a container the page already owns.
+
 ## v0.97.81 · 2026-07-24 (Deploy resilience: external public-mirror freshness monitor)
 
 -- New Features --

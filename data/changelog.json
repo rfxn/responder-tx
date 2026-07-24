@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.82",
+      "date": "2026-07-24",
+      "line": "Bug fix: the Recovery view (More › Recovery in the Feed tab) was opening empty, showing only its title bar and the 911 reminder. The dashboard was being written into a hidden section of the Resources tab instead, because two different parts of the page were using the same internal name for their container. Recovery now opens with its receding gauges, reopened roads, and wind-down guidance as intended. Nothing else on the board changes."
+    },
+    {
       "v": "v0.97.81",
       "date": "2026-07-24",
       "line": "Under-the-hood resilience, nothing changes on screen: an external monitor now checks the live public board itself a few times an hour, ages the data it is actually serving, and raises an alert in the ops chat if that data goes stale, saying whether the data cycle, the publish step, or the site itself is at fault. Until now every automated check watched only the local machine, so a board frozen on an old flood picture could have gone unnoticed."

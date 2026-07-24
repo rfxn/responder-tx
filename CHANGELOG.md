@@ -1,5 +1,24 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.63 · 2026-07-24 (Offline app shell: service worker with user-controlled updates)
+
+-- New Features --
+- [New] Service worker (/sw.js): the app shell (page, styles, scripts, and brand
+      assets at their exact versioned URLs) is saved on install, so opening the
+      board with no signal still renders the full frame, complementing the
+      existing offline basemap tiles. Live data and the page itself stay
+      network-first and only fall back to the saved copy when offline; map tiles,
+      radar, and all /api/ endpoints are never intercepted.
+- [New] Controlled updates: when a new build is ready, a small "Update available"
+      notice offers Reload and Later (English and Spanish); applying swaps to the
+      new version with one reload and nothing ever reloads on its own mid-session.
+
+-- Changes --
+- [Change] Release tooling now enforces sw.js version agreement (cycle-check plus
+         deploy preflight) and verifies the public deploy's service worker carries
+         no LAN-only client references; /sw.js is served no-cache so new versions
+         propagate immediately.
+
 ## v0.97.62 · 2026-07-24 (Visible compass on phones)
 
 -- Changes --

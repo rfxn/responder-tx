@@ -32,6 +32,9 @@ done <<< "$stamps"
 cl_version=$(python3 -c "import json; print(json.load(open('data/changelog.json'))['versions'][0]['v'])") || fail "cannot read versions[0].v from data/changelog.json"
 [ "$cl_version" = "$version" ] || fail "data/changelog.json versions[0].v is '${cl_version}', expected '${version}'"
 
+sw_version=$(grep -m1 -oP "SW_VERSION = '\K[^']+" sw.js) || fail "cannot extract SW_VERSION from sw.js"
+[ "$sw_version" = "$stamp_version" ] || fail "sw.js SW_VERSION is '${sw_version}', expected '${stamp_version}'"
+
 heading_re="^## ${version//./\\.} "
 grep -qE "$heading_re" CHANGELOG.md || fail "CHANGELOG.md has no '## ${version} ' heading"
 
@@ -74,6 +77,10 @@ fi
 # index.html must never statically reference the LAN-only clients (boot.js injects them at runtime)
 if grep -q 'js/master\.js\|js/chat\.js' "$deploy_dir/index.html"; then
     fail "LAN-only client (chat.js/master.js) statically referenced in deploy index.html"
+fi
+[ -f "$deploy_dir/sw.js" ] || fail "sw.js missing from deploy dir"
+if grep -q 'js/chat\.js\|js/master\.js' "$deploy_dir/sw.js"; then
+    fail "LAN-only client (chat.js/master.js) referenced in deploy sw.js"
 fi
 echo "strip-verify OK: chat + master surfaces absent from ${deploy_dir}"
 

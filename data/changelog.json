@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.63",
+      "date": "2026-07-24",
+      "line": "Offline app shell. The board now installs a service worker that saves the page, styles, and scripts at their exact current version, so opening with no signal still renders the app frame (live data and the page itself stay network-first and refresh normally; tiles, radar, and APIs are untouched). When a new build is ready you get a small Update available notice with Reload and Later choices, in English and Spanish; nothing reloads on its own mid-session."
+    },
+    {
       "v": "v0.97.62",
       "date": "2026-07-24",
       "line": "Visible compass on phones. The compass rose in the map controls was too small to read on mobile: the N label and the red north needle are now larger and bolder, the ring has stronger contrast, and the whole rose scales up to match the bigger phone buttons. Live-heading rotation works exactly as before."

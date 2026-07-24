@@ -118,6 +118,7 @@ async function checkAppVersion() {
     if (!latest || latest === APP_VERSION) return;
     $('#update-chip').hidden = false;
     armRollover(latest);
+    if (state.swReg) state.swReg.update().catch(() => {}); // long-lived tabs: nudge the SW update check with the version poll
   } catch { /* offline — no update signal */ }
 }
 
@@ -204,6 +205,34 @@ function showUpdatedConfirm() {
   $('#update-toast').classList.add('confirm');
   $('#update-toast').hidden = false;
   setTimeout(() => { if ($('#update-toast').classList.contains('confirm')) $('#update-toast').hidden = true; }, 2000);
+}
+
+/* ---------- service worker: app-shell cache + user-applied update ---------- */
+
+function swShowUpdate(reg) {
+  if (!reg.waiting || !navigator.serviceWorker.controller) return; // first install: nothing to apply
+  state.swWaitingReg = reg;
+  $('#sw-toast').hidden = false;
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
+  try {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!state.swApplying || state.swReloaded) return; // claim on first install must never reload the tab
+      state.swReloaded = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      state.swReg = reg;
+      if (reg.waiting) swShowUpdate(reg);
+      reg.addEventListener('updatefound', () => {
+        const w = reg.installing;
+        if (!w) return;
+        w.addEventListener('statechange', () => { if (w.state === 'installed') swShowUpdate(reg); });
+      });
+    }).catch(() => { /* registration failed (old browser, LAN cert quirk) — board runs without the offline shell */ });
+  } catch { /* SW APIs unusable — degrade silently */ }
 }
 
 function tickCountdown() {
@@ -562,6 +591,12 @@ async function boot() {
     if (e.target.id === 'update-toast-later') return;
     if ($('#update-toast').classList.contains('confirm')) { $('#update-toast').hidden = true; openChangelog(); }
   });
+  $('#sw-toast-reload').addEventListener('click', () => {
+    const reg = state.swWaitingReg;
+    $('#sw-toast').hidden = true;
+    if (reg && reg.waiting) { state.swApplying = true; reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
+  });
+  $('#sw-toast-later').addEventListener('click', () => { $('#sw-toast').hidden = true; });
   // device rotation reflows the map container — Leaflet needs invalidateSize or tiles stay grey
   let resizeT;
   window.addEventListener('resize', () => {
@@ -880,6 +915,7 @@ async function boot() {
     tryRollover(); // a pending rollover deferred while hidden fires on return instead
   });
   setInterval(tickCountdown, 1000);
+  registerServiceWorker();
 }
 
 document.addEventListener('DOMContentLoaded', boot);

@@ -42,7 +42,7 @@ if check_js; then pass "JS syntax (node --check, js/*.js excl. vendor)"; else fa
 
 # c. Four-way version agreement
 check_versions() {
-    local app_version stamp_version stamps stamp cl_version md_version
+    local app_version stamp_version stamps stamp cl_version md_version sw_version
     app_version=$(grep -oP "APP_VERSION = '\K[^']+" js/core.js) || { echo "no APP_VERSION in js/core.js" >&2; return 1; }
     stamp_version="${app_version#v}"
     stamps=$(grep -o '?v=[^"]*' index.html) || { echo "no ?v= stamps in index.html" >&2; return 1; }
@@ -63,11 +63,16 @@ check_versions() {
         echo "CHANGELOG.md top heading '${md_version}' != APP_VERSION '${app_version}'" >&2
         return 1
     fi
+    sw_version=$(grep -m1 -oP "SW_VERSION = '\K[^']+" sw.js) || { echo "no SW_VERSION in sw.js" >&2; return 1; }
+    if [ "$sw_version" != "$stamp_version" ]; then
+        echo "sw.js SW_VERSION '${sw_version}' != stamp version '${stamp_version}'" >&2
+        return 1
+    fi
     VERSION_DETAIL="$app_version"
     return 0
 }
 VERSION_DETAIL=""
-if check_versions; then pass "version agreement (${VERSION_DETAIL}: core.js, index.html, changelog.json, CHANGELOG.md)"; else failck "version agreement (core.js, index.html, changelog.json, CHANGELOG.md)"; fi
+if check_versions; then pass "version agreement (${VERSION_DETAIL}: core.js, index.html, changelog.json, CHANGELOG.md, sw.js)"; else failck "version agreement (core.js, index.html, changelog.json, CHANGELOG.md, sw.js)"; fi
 
 # d. Feed freshness sanity
 check_feeds() {

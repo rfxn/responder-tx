@@ -69,6 +69,7 @@ DATA_FILES=(
     data/gauges-snapshot.json
     data/roads-snapshot.json
     data/crest-summary.json
+    data/gauge-meta.json
     data/history.json
     feed.xml
     crests.ics

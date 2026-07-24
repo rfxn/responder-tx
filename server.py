@@ -270,7 +270,11 @@ class Handler(SimpleHTTPRequestHandler):
         method = self.command
         body = None
         if method in ('POST', 'PUT'):
-            n = int(self.headers.get('Content-Length', 0) or 0)
+            try:
+                n = int(self.headers.get('Content-Length', 0) or 0)
+            except ValueError:
+                self.send_error(400)
+                return
             if not 0 <= n <= 65536:
                 self.send_error(413)
                 return

@@ -16,6 +16,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
@@ -25,7 +26,34 @@ CAT_RANK = {"minor": 2, "moderate": 3, "major": 4}
 CODE_CAT = {2: "minor", 3: "moderate", 4: "major"}
 STALE_HOURS = 12
 RECORD_NEAR_PCT = 0.90
-EVENT_NAME = "July 2026"
+
+
+def load_event():
+    try:
+        with open(os.path.join(ROOT, "data", "event.json"), encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def event_name(ev, now):
+    return ev.get("event") or ev.get("eventName") or now.strftime("%B %Y")
+
+
+def event_bbox(ev):
+    b = ev.get("gaugeBbox") or {}
+    try:
+        return (float(b["xmin"]), float(b["ymin"]), float(b["xmax"]), float(b["ymax"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def in_bbox(lat, lon, bbox):
+    if bbox is None:
+        return True
+    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+        return False
+    return bbox[0] <= lon <= bbox[2] and bbox[1] <= lat <= bbox[3]
 
 
 def git(*args):
@@ -62,7 +90,7 @@ def obs_stale(observed, snap_dt):
     return (snap_dt - obs_dt).total_seconds() > STALE_HOURS * 3600
 
 
-def fold_backfill(gauges):
+def fold_backfill(gauges, bbox):
     """Seed peaks from history.json's src-tagged pre-archive frames; returns first backfill stamp."""
     try:
         with open(os.path.join(ROOT, HISTORY_PATH), encoding="utf-8") as f:
@@ -80,6 +108,9 @@ def fold_backfill(gauges):
             continue
         first_t = first_t or t
         for lid, pair in (fr.get("gauges") or {}).items():
+            gi = index.get(lid) or {}
+            if not in_bbox(gi.get("lat"), gi.get("lon"), bbox):
+                continue
             try:
                 stage, code = pair[0], pair[1]
             except (IndexError, TypeError):
@@ -103,7 +134,7 @@ def fold_backfill(gauges):
     return first_t
 
 
-def walk(commits, gauges):
+def walk(commits, gauges, bbox):
     skipped = 0
     first_snap = last_snap = None
     for chash, _ciso in commits:
@@ -130,6 +161,8 @@ def walk(commits, gauges):
                     continue
                 lid = g["lid"]
             except (KeyError, TypeError):
+                continue
+            if not in_bbox(g.get("latitude"), g.get("longitude"), bbox):
                 continue
             rec = gauges.setdefault(lid, {
                 "lid": lid, "name": g.get("name", lid), "peak": None, "peak_time": None,
@@ -178,9 +211,11 @@ def main():
     commits = snapshot_commits()
     if not commits:
         sys.exit("no committed snapshots found — nothing to summarize")
+    ev = load_event()
+    bbox = event_bbox(ev)
     gauges = {}
-    backfill_from = fold_backfill(gauges)
-    gauges, skipped, first_snap, last_snap = walk(commits, gauges)
+    backfill_from = fold_backfill(gauges, bbox)
+    gauges, skipped, first_snap, last_snap = walk(commits, gauges, bbox)
     if not gauges:
         sys.exit("no gauges reached minor+ flood in the snapshot history")
     mark_ongoing(gauges, last_snap)
@@ -193,9 +228,10 @@ def main():
         if src:
             r["src"] = src
             n_backfill += 1
+    now = datetime.datetime.now(datetime.timezone.utc)
     out = {
-        "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "event": EVENT_NAME,
+        "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "event": event_name(ev, now),
         "window": {"first": backfill_from or first_snap, "last": last_snap},
         "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; "
                   "pre-archive window backfilled from USGS/NWPS observed via history.json",
@@ -205,9 +241,15 @@ def main():
     if backfill_from:
         out["backfill"] = {"from": backfill_from, "until": first_snap, "src": "usgs"}
     path = os.path.join(ROOT, "data", "crest-summary.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=1)
-        f.write("\n")
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".crest-summary.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(out, f, indent=1)
+            f.write("\n")
+        os.replace(tmp, path)
+    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+        os.unlink(tmp)
+        raise
     print(f"crest-summary.json: {len(commits)} commits walked ({skipped} skipped), "
           f"{len(rows)} gauges ({n_backfill} peaks from backfill), "
           f"window {out['window']['first']} → {last_snap}")

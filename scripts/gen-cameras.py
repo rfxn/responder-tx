@@ -13,6 +13,7 @@ import math
 import os
 import re
 import sys
+import tempfile
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -407,9 +408,15 @@ def main():
         'elpbridge': elp,
         'hays': ha,
     }
-    with open(OUT, 'w') as f:
-        json.dump(out, f, separators=(',', ':'))
-        f.write('\n')
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(out, f, separators=(',', ':'))
+            f.write('\n')
+        os.replace(tmp, OUT)
+    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+        os.unlink(tmp)
+        raise
     print(f'{OUT}: {len(tx)} TxDOT streamable + {len(its)} ITS snapshot-only cams, {len(rv)} USGS river cams, '
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
           f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, {os.path.getsize(OUT)} bytes')

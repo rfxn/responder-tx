@@ -10,6 +10,7 @@ import datetime
 import json
 import os
 import sys
+import tempfile
 import urllib.parse
 import urllib.request
 
@@ -36,10 +37,15 @@ def main():
     try:
         with urllib.request.urlopen(f"{URL}?{params}", timeout=30) as r:
             gj = json.load(r)
-        feats = gj.get("features", [])
     except Exception as e:  # noqa: BLE001 — archive is best-effort; cycle must not fail on TxDOT flakes
         print(f"warn: roads snapshot fetch failed, keeping previous file: {e}", file=sys.stderr)
         return
+    # ArcGIS returns 200 OK with an {"error":...} body; never archive that as an empty-roads day
+    if not isinstance(gj, dict) or "error" in gj or not isinstance(gj.get("features"), list):
+        print(f"warn: roads snapshot response is not a FeatureCollection, "
+              f"keeping previous file: {str(gj)[:200]}", file=sys.stderr)
+        return
+    feats = gj["features"]
     roads = []
     for f in feats:
         try:
@@ -63,8 +69,14 @@ def main():
             print(f"warn: skipped malformed road feature: {e!r}", file=sys.stderr)
             continue
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    with open(OUT, "w", encoding="utf-8") as fh:
-        json.dump({"generated": now, "roads": roads}, fh, separators=(",", ":"))
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".roads-snapshot.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump({"generated": now, "roads": roads}, fh, separators=(",", ":"))
+        os.replace(tmp, OUT)
+    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+        os.unlink(tmp)
+        raise
     print(f"roads-snapshot.json: {len(roads)} closures @ {now}")
 
 

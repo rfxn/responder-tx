@@ -36,6 +36,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 
@@ -51,7 +52,7 @@ SIZE_BUDGET = 600 * 1024
 THIN_KEEP_FULL_DAYS = 3            # over budget: >3d-old frames thin to 30-min spacing
 THIN_OLD_GAP_S = 29 * 60
 
-BACKFILL_START = "2026-07-05T00:00:00Z"
+BACKFILL_FALLBACK_DAYS = 7         # no event start in data/event.json: rolling window
 TOTAL_SIZE_BUDGET = 1150 * 1024    # over budget: thin backfill from 1-hour to 2-hour spacing
 NWPS_GAUGE_URL = "https://api.water.noaa.gov/nwps/v1/gauges/"
 USGS_IV_URL = "https://waterservices.usgs.gov/nwis/iv/"
@@ -74,6 +75,39 @@ def parse_iso(s):
     return dt
 
 
+def load_event():
+    try:
+        with open(os.path.join(ROOT, "data", "event.json"), encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def event_bbox(ev):
+    b = ev.get("gaugeBbox") or {}
+    try:
+        return (float(b["xmin"]), float(b["ymin"]), float(b["xmax"]), float(b["ymax"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def in_bbox(lat, lon, bbox):
+    if bbox is None:
+        return True
+    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+        return False
+    return bbox[0] <= lon <= bbox[2] and bbox[1] <= lat <= bbox[3]
+
+
+def backfill_start(ev):
+    for key in ("start", "eventStart", "backfillStart"):
+        dt = parse_iso(ev.get(key))
+        if dt:
+            return dt.astimezone(datetime.timezone.utc)
+    return (datetime.datetime.now(datetime.timezone.utc)
+            - datetime.timedelta(days=BACKFILL_FALLBACK_DAYS))
+
+
 def snapshot_commits():
     out = git("log", "--format=%H %cI", "--follow", "--", SNAPSHOT_PATH)
     commits = [line.split(" ", 1) for line in out.splitlines() if line.strip()]
@@ -87,7 +121,7 @@ def load_snapshot(commit_hash):
     return json.loads(raw)
 
 
-def frame_from(snap, snap_dt, gauge_index):
+def frame_from(snap, snap_dt, gauge_index, bbox):
     gauges = {}
     for g in snap["gauges"]:
         try:
@@ -98,6 +132,8 @@ def frame_from(snap, snap_dt, gauge_index):
         except (KeyError, TypeError):
             continue
         if cat not in CAT_CODE or not isinstance(stage, (int, float)) or stage <= -999:
+            continue
+        if not in_bbox(g.get("latitude"), g.get("longitude"), bbox):
             continue
         code = CAT_CODE[cat]
         obs_dt = parse_iso(observed.get("validTime"))
@@ -111,7 +147,7 @@ def frame_from(snap, snap_dt, gauge_index):
     return gauges
 
 
-def walk(commits):
+def walk(commits, bbox):
     frames = []
     gauge_index = {}
     skipped = 0
@@ -127,7 +163,7 @@ def walk(commits):
             continue
         if last_kept and (snap_dt - last_kept).total_seconds() < FRAME_MIN_GAP_S:
             continue
-        gauges = frame_from(snap, snap_dt, gauge_index)
+        gauges = frame_from(snap, snap_dt, gauge_index, bbox)
         if not gauges:
             skipped += 1
             continue
@@ -267,9 +303,15 @@ def load_gauge_meta(lids):
         meta[lid] = entry
         time.sleep(FETCH_SPACING_S)
     if missing:
-        with open(meta_path, "w", encoding="utf-8") as f:
-            json.dump(meta, f, separators=(",", ":"), sort_keys=True)
-            f.write("\n")
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(meta_path), prefix=".gauge-meta.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(meta, f, separators=(",", ":"), sort_keys=True)
+                f.write("\n")
+            os.replace(tmp, meta_path)
+        except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+            os.unlink(tmp)
+            raise
         print(f"gauge-meta.json: fetched {len(missing)} lids from NWPS, {len(meta)} total cached")
     return meta
 
@@ -327,11 +369,10 @@ def fetch_nwps_observed(lid, start_dt, end_dt):
     return pts
 
 
-def build_backfill(gauge_index, first_git_dt):
+def build_backfill(gauge_index, first_git_dt, start_dt):
     meta = load_gauge_meta(gauge_index.keys())
     site_by_lid = {lid: m["usgs"] for lid, m in meta.items()
                    if lid in gauge_index and m.get("usgs")}
-    start_dt = parse_iso(BACKFILL_START)
     if first_git_dt <= start_dt:
         return [], {}
     end_dt = first_git_dt - datetime.timedelta(seconds=1)
@@ -396,9 +437,10 @@ def report_backfill(backfill, src_by_lid, lid_count):
         print(f"  {day}: majors={len(lids)}" + (f" ({','.join(sorted(lids))})" if lids else ""))
 
 
-def salvage_backfill(first_git_dt):
+def salvage_backfill(first_git_dt, start_dt, gauge_index):
     # Archive APIs flake (USGS 503s); a regen must never silently drop the
-    # static Jul-5+ backfill — reuse the src-tagged frames already on disk.
+    # backfill window: reuse the src-tagged frames already on disk,
+    # rescoped to the current event window and gauge set.
     try:
         with open(os.path.join(ROOT, OUT_PATH), encoding="utf-8") as f:
             prev = json.load(f)
@@ -407,9 +449,14 @@ def salvage_backfill(first_git_dt):
             if fr.get("src") != "usgs":
                 continue
             dt = parse_iso(fr.get("t"))
-            if dt and dt < first_git_dt:
-                fr["_dt"] = dt
-                out.append(fr)
+            if not dt or not (start_dt <= dt < first_git_dt):
+                continue
+            gauges = {lid: v for lid, v in (fr.get("gauges") or {}).items() if lid in gauge_index}
+            if not gauges:
+                continue
+            fr["gauges"] = gauges
+            fr["_dt"] = dt
+            out.append(fr)
         return out
     except Exception:  # noqa: BLE001 — salvage is best-effort on top of best-effort
         return []
@@ -420,7 +467,10 @@ def main():
     commits = snapshot_commits()
     if not commits:
         sys.exit("no committed snapshots found — nothing to archive")
-    frames, gauge_index, skipped = walk(commits)
+    ev = load_event()
+    bbox = event_bbox(ev)
+    start_dt = backfill_start(ev)
+    frames, gauge_index, skipped = walk(commits, bbox)
     if not frames:
         sys.exit("no usable frames in the snapshot history")
     if len(serialize(frames, gauge_index)) > SIZE_BUDGET:
@@ -428,9 +478,9 @@ def main():
     backfill, src_by_lid = [], {}
     if not no_backfill:
         try:
-            backfill, src_by_lid = build_backfill(gauge_index, frames[0]["_dt"])
+            backfill, src_by_lid = build_backfill(gauge_index, frames[0]["_dt"], start_dt)
         except Exception as e:  # noqa: BLE001 — backfill is best-effort; git frames must still ship
-            backfill = salvage_backfill(frames[0]["_dt"])
+            backfill = salvage_backfill(frames[0]["_dt"], start_dt, gauge_index)
             print(f"warn: backfill fetch failed ({e}); salvaged {len(backfill)} "
                   "frames from existing history.json", file=sys.stderr)
     git_count = len(frames)
@@ -443,8 +493,15 @@ def main():
         backfill = [f for f in frames if f.get("src") == "usgs"]
         payload = serialize(frames, gauge_index, road_index, roads_from)
         thinned = True
-    with open(os.path.join(ROOT, OUT_PATH), "w", encoding="utf-8") as f:
-        f.write(payload)
+    out_abs = os.path.join(ROOT, OUT_PATH)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(out_abs), prefix=".history.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(payload)
+        os.replace(tmp, out_abs)
+    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+        os.unlink(tmp)
+        raise
     print(f"history.json: {len(commits)} commits walked ({skipped} skipped), "
           f"{len(frames)} frames ({len(backfill)} usgs backfill + {git_count} git), "
           f"{len(gauge_index)} gauges indexed, "

@@ -38,6 +38,18 @@ def load_json(path, default):
         return default
 
 
+def event_branding():
+    ev = load_json("data/event.json", {})
+    name = ev.get("name") or "Responder TX"
+    label = ev.get("event") or ev.get("eventName") or ""
+    region = ev.get("region") or ""
+    title = f"{name} · {label}" if label else f"{name} · Flood Ops"
+    area = region or label or "the current coverage area"
+    desc = (f"Flash flood emergencies, forecast river crests, and active notices for {area}. "
+            "Situational awareness, not a dispatch system; call 911 for emergencies.")
+    return title, desc
+
+
 def fetch_emergencies():
     url = "https://api.weather.gov/alerts/active?event=Flash%20Flood%20Warning&area=TX"
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/geo+json"})
@@ -98,7 +110,7 @@ def parse_iso(s):
     return dt
 
 
-def build_rss(emergencies, crests, notices, built):
+def build_rss(emergencies, crests, notices, built, title, desc):
     items = []
     for e in emergencies:
         pub = parse_iso(e.get("sent")) or built
@@ -122,9 +134,9 @@ def build_rss(emergencies, crests, notices, built):
 
     parts = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<rss version="2.0"><channel>',
-             "<title>Responder TX · Hill Country Flood Ops</title>",
+             f"<title>{sx.escape(title)}</title>",
              f"<link>{SITE}/</link>",
-             "<description>Flash flood emergencies, forecast river crests, and active notices for the Texas Hill Country. Situational awareness, not a dispatch system; call 911 for emergencies.</description>",
+             f"<description>{sx.escape(desc)}</description>",
              "<language>en-us</language>",
              f"<lastBuildDate>{rfc822(built)}</lastBuildDate>"]
     for pub, title, desc, link, guid in items[:40]:
@@ -168,14 +180,22 @@ def main():
     built = now_utc()
     snapshot = load_json("data/gauges-snapshot.json", {"gauges": []})
     reqs = load_json("data/requests.json", {"requests": []})
+    cutoff = built - datetime.timedelta(hours=24)  # mirror the UI aging invariant: stale notices drop out
+
+    def fresh(r):
+        ts = parse_iso(r.get("ts"))
+        return ts is not None and ts >= cutoff
+
     notices = [r for r in reqs.get("requests", [])
-               if r.get("status") != "resolved" and r.get("priority") in ("critical", "high")]
+               if r.get("status") != "resolved" and r.get("priority") in ("critical", "high")
+               and fresh(r)]
     notices.sort(key=lambda r: r.get("ts", ""), reverse=True)
     emergencies = fetch_emergencies()
     crests = rising_crests(snapshot)
+    title, desc = event_branding()
 
     with open(os.path.join(ROOT, "feed.xml"), "w", encoding="utf-8") as f:
-        f.write(build_rss(emergencies, crests, notices[:20], built))
+        f.write(build_rss(emergencies, crests, notices[:20], built, title, desc))
     with open(os.path.join(ROOT, "crests.ics"), "w", encoding="utf-8") as f:
         f.write(build_ics(crests, built))
     print(f"feed.xml + crests.ics: {len(emergencies)} emergencies, {len(crests)} crests, {len(notices)} notices")

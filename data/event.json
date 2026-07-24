@@ -1,5 +1,8 @@
 {
   "name": "Responder TX",
+  "event": "TS Bertha",
+  "region": "the upper Texas coast",
+  "start": "2026-07-22T00:00:00Z",
   "center": [29.5, -95.1],
   "zoom": 8,
   "gaugeBbox": { "xmin": -98.0, "ymin": 27.5, "xmax": -93.4, "ymax": 31.0 }

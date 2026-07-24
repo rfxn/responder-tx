@@ -70,11 +70,11 @@ function buildSandbox() {
     clear() { storage.clear(); },
   };
 
-  // Leaflet stub — only referenced inside function bodies we do not call here.
+  // Leaflet stub — recursive so load-time chains (L.TileLayer.extend({...})) resolve too.
   const L = new Proxy(function () {}, {
-    get() { return () => ({}); },
-    apply() { return {}; },
-    construct() { return {}; },
+    get(target, key) { return key === Symbol.toPrimitive ? () => 'L-stub' : L; },
+    apply() { return L; },
+    construct() { return L; },
   });
 
   const sandbox = {
@@ -110,25 +110,43 @@ const EXPORTS = [
   'toUSNG',
   'alertReach', 'alertSeverity',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'riverOf',
+  'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT',
+  'cardAged',
+  'buildShareUrl', 'applyShareParams',
   'smartScore', 'shortId',
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'AO_PRESET_FALLBACK',
   'pushCardState', 'pushFreshState',
 ];
 
+// map.js adds the playback frame-selection / archive-stamp math (pure, state-driven)
+const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt']);
+
+function buildBundle(files, exports) {
+  const sources = files.map(read).join('\n;\n');
+  const epilogue = `\n;globalThis.__RESPONDER = { ${exports.join(', ')} };\n`;
+  const sandbox = buildSandbox();
+  const context = vm.createContext(sandbox);
+  vm.runInContext(sources + epilogue, context, { filename: 'responder-bundle.js' });
+  const out = sandbox.__RESPONDER;
+  out._sandbox = sandbox;
+  return out;
+}
+
 let cached = null;
 
 // Load the app's pure logic once and return the exported symbols.
 function loadApp() {
-  if (cached) return cached;
-  const sources = ['core.js', 'usng.js', 'sources.js', 'board.js'].map(read).join('\n;\n');
-  const epilogue = `\n;globalThis.__RESPONDER = { ${EXPORTS.join(', ')} };\n`;
-  const sandbox = buildSandbox();
-  const context = vm.createContext(sandbox);
-  vm.runInContext(sources + epilogue, context, { filename: 'responder-bundle.js' });
-  cached = sandbox.__RESPONDER;
-  cached._sandbox = sandbox;
+  if (!cached) cached = buildBundle(['core.js', 'usng.js', 'sources.js', 'board.js'], EXPORTS);
   return cached;
 }
 
-module.exports = { loadApp };
+let mapCached = null;
+
+// Same bundle plus map.js (declaration-only at load, like the rest).
+function loadMapApp() {
+  if (!mapCached) mapCached = buildBundle(['core.js', 'usng.js', 'sources.js', 'board.js', 'map.js'], MAP_EXPORTS);
+  return mapCached;
+}
+
+module.exports = { loadApp, loadMapApp };

@@ -48,6 +48,19 @@
       present and skips gracefully when it is not.
 
 -- Changes --
+- [Change] Test infrastructure (no app change): 37 new unit tests (216 total)
+         covering crest-of-record context and the record-watch list (exact-zero
+         and exact-near margin boundaries, missing record/forecast, stale or
+         non-rising gauges excluded), playback frame selection and archive tile
+         stamps (at-or-before frame resolution, window clamping, 5-minute and
+         hourly stamp flooring), a full share-URL round trip (every encoded
+         param restored field-for-field through applyShareParams on a fresh
+         mock DOM), card aging (resolved suppresses immediately, per-type
+         cutoff beats the default, strict greater-than boundaries), and the
+         forecast-category / rising / river-grouping predicates including the
+         stale-sensor and stale-forecast honesty rules. Harness now also loads
+         map.js in the sandbox and exports the symbols under test; key
+         boundary tests were mutation-verified against flipped comparisons.
 - [Change] Release tooling (deploy infra, no app change): the deploy script
          now refuses to ship when uncommitted or untracked files exist under
          functions/, naming the offending files, because wrangler compiles

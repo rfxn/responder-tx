@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadApp } = require('./harness.js');
 
-const { esc, fmtNum, safeUrl, distMi, freshClass, CONFIG } = loadApp();
+const { esc, fmtNum, safeUrl, distMi, freshClass, cardAged, CONFIG } = loadApp();
 
 test('esc — HTML injection payloads never produce raw markup', () => {
   const payloads = [
@@ -90,4 +90,52 @@ test('freshClass — buckets age into fresh/recent/aging/stale', () => {
 test('freshClass — boundary at the configured stale cutoff is "stale"', () => {
   const iso = (minAgo) => new Date(Date.now() - minAgo * 60000).toISOString();
   assert.equal(freshClass(iso(CONFIG.staleMins + 5)), 'stale');
+});
+
+/* ---------- cardAged: resolved suppresses now; per-type cutoffs beat the default ---------- */
+
+// freeze the clock so ts ages are exact at the cutoff boundaries (same pattern as smartScore)
+function withFrozenNow(fn) {
+  const realNow = Date.now;
+  Date.now = () => 1700000000000;
+  try { fn((min) => new Date(Date.now() - min * 60000).toISOString()); } finally { Date.now = realNow; }
+}
+
+test('cardAged — resolved status suppresses immediately regardless of age', () => {
+  withFrozenNow((tsMinAgo) => {
+    assert.equal(cardAged({ status: 'resolved', type: 'rescue', ts: tsMinAgo(0) }), true);
+    assert.equal(cardAged({ status: 'resolved', type: 'info', ts: tsMinAgo(1) }), true);
+  });
+});
+
+test('cardAged — a fresh unresolved card is not aged', () => {
+  withFrozenNow((tsMinAgo) => {
+    assert.equal(cardAged({ status: 'unverified', type: 'rescue', ts: tsMinAgo(5) }), false);
+  });
+});
+
+test('cardAged — default cutoff is strictly greater-than: exactly agedCardMins is NOT aged', () => {
+  withFrozenNow((tsMinAgo) => {
+    // 'rescue' has no agedCardMinsByType entry, so the agedCardMins default governs
+    assert.equal(cardAged({ status: 'unverified', type: 'rescue', ts: tsMinAgo(CONFIG.agedCardMins) }), false);
+    assert.equal(cardAged({ status: 'unverified', type: 'rescue', ts: tsMinAgo(CONFIG.agedCardMins + 1) }), true);
+  });
+});
+
+test('cardAged — per-type agedCardMinsByType override beats the default', () => {
+  withFrozenNow((tsMinAgo) => {
+    const infoCutoff = CONFIG.agedCardMinsByType.info;
+    assert.ok(infoCutoff < CONFIG.agedCardMins, 'fixture premise: info override is shorter than default');
+    const betweenMin = infoCutoff + 60; // over the info override, under the default
+    assert.equal(cardAged({ status: 'unverified', type: 'info', ts: tsMinAgo(betweenMin) }), true);
+    assert.equal(cardAged({ status: 'unverified', type: 'rescue', ts: tsMinAgo(betweenMin) }), false);
+  });
+});
+
+test('cardAged — override boundary is also strictly greater-than', () => {
+  withFrozenNow((tsMinAgo) => {
+    const infoCutoff = CONFIG.agedCardMinsByType.info;
+    assert.equal(cardAged({ status: 'unverified', type: 'info', ts: tsMinAgo(infoCutoff) }), false);
+    assert.equal(cardAged({ status: 'unverified', type: 'info', ts: tsMinAgo(infoCutoff + 1) }), true);
+  });
 });

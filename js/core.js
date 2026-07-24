@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.58';
+const APP_VERSION = 'v0.97.59';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -189,7 +189,7 @@ async function _wakeAcquire() {
     const s = await navigator.wakeLock.request('screen');
     if (!_wakeReasons.size) { s.release().catch(() => { /* every reason cleared mid-request; drop it */ }); return; }
     _wakeSentinel = s;
-    _wakeSentinel.addEventListener('release', () => { _wakeSentinel = null; });
+    s.addEventListener('release', () => { if (_wakeSentinel === s) _wakeSentinel = null; });
   } catch { /* rejected while hidden or not allowed; a later resume retries */ }
   finally { _wakeAcquiring = false; }
 }

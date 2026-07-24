@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.59",
+      "date": "2026-07-23",
+      "line": "Quality pass. The screen-wake hold is more reliable: a rare timing case could let the screen dim while you were sharing your location or using Drive Mode, and that is fixed. Radar tile retries no longer reload tiles that a radar refresh already replaced. And the Spanish interface now uses the formal “toque” wording consistently in the map flag tooltip, the tide table, and the compass controls."
+    },
+    {
       "v": "v0.97.58",
       "date": "2026-07-23",
       "line": "New map layer: Hays County flood cams. It gathers the Hays County Office of Emergency Services flood cameras along the San Marcos corridor: Post Road and Little Arkansas Rd at the Blanco River, the FM150 Onion Creek double crossing (north and south), and the two Upper San Marcos NRCS dams. Find it under the flood cameras group in the map layers sheet; it is off by default, and tapping a camera opens the latest still with its capture time, marked stale if the image gets old, just like the other camera sources. Each camera is checked for a live picture when the camera list is rebuilt, so an offline camera is left out instead of showing a broken image."

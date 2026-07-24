@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.59 · 2026-07-23 (Quality pass: screen-wake reliability, radar retry cleanup, formal Spanish wording)
+
+-- Bug Fixes --
+- [Fix] The screen-wake hold could be dropped early in a rare case: if an old wake
+      sentinel reported its release after a new one had already been acquired, the
+      app forgot the new hold and the screen could dim mid-response. A stale release
+      no longer clears a newer hold.
+- [Fix] Radar tile retries no longer re-fetch tiles that were already discarded by a
+      radar data refresh; a pending retry now checks the tile is still on the map
+      before reloading it, saving wasted requests on slow connections.
+
+-- Changes --
+- [Change] Spanish interface strings now use the formal register consistently:
+         "toca" became "toque" in the map flag tooltip, the tide table loading hint,
+         and the three compass control labels.
+
 ## v0.97.58 · 2026-07-23 (New camera layer: Hays County flood cams along the San Marcos corridor)
 
 -- New Features --

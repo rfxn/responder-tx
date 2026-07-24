@@ -1238,7 +1238,7 @@ function attachTileRetry(layer) {
     tileRetries.set(img, n + 1);
     const base = img.src.replace(/[?&]_rtry=\d+/, '').replace(/[?&]$/, '');
     const sep = base.includes('?') ? '&' : '?';
-    setTimeout(() => { img.src = `${base}${sep}_rtry=${n + 1}`; }, 400 + n * 300);
+    setTimeout(() => { if (!img.isConnected) return; img.src = `${base}${sep}_rtry=${n + 1}`; }, 400 + n * 300);
   });
 }
 

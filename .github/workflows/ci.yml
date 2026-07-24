@@ -30,13 +30,19 @@ jobs:
             node --check "$f"
           done
 
+      # Suite steps run with !cancelled() so one red suite never hides the others.
       - name: Unit tests (node:test)
+        if: ${{ !cancelled() }}
         run: node --test tests/
 
+      - name: Chat-poll durability tests
+        if: ${{ !cancelled() }}
+        run: bash tests/chat-poll.test.sh
+
+      - name: Server write-gate tests
+        if: ${{ !cancelled() }}
+        run: python3 tests/server-gate.test.py
+
       - name: Release-cycle sanity checks
-        run: |
-          if [ -x scripts/cycle-check.sh ]; then
-            bash scripts/cycle-check.sh
-          else
-            echo "scripts/cycle-check.sh not present or not executable — skipping"
-          fi
+        if: ${{ !cancelled() }}
+        run: bash scripts/cycle-check.sh

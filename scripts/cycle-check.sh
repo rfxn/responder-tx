@@ -161,9 +161,33 @@ EOF
 }
 if check_event_brand; then pass "event-config brand hook (event.json name/subtitle targets exist in index.html)"; else failck "event-config brand hook"; fi
 
+# i. chat-cursor sanity — cursors are non-negative ints and never exceed the inbox line count
+check_cursors() {
+    local lines=0 f val
+    local int_re='^[0-9]+$'
+    if [ -f data/chat-inbox.jsonl ]; then
+        lines=$(wc -l < data/chat-inbox.jsonl)
+    fi
+    for f in data/.chat-cursor data/.chat-ack-cursor; do
+        # absent cursor file = 0 (fresh checkout, or inbox just rotated to an archive)
+        [ -f "$f" ] || continue
+        val=$(tr -d '[:space:]' < "$f")
+        if ! [[ "$val" =~ $int_re ]]; then
+            echo "${f}: '${val}' does not match ^[0-9]+\$" >&2
+            return 1
+        fi
+        if [ "$val" -gt "$lines" ]; then
+            echo "${f}: ${val} exceeds data/chat-inbox.jsonl line count ${lines}" >&2
+            return 1
+        fi
+    done
+    return 0
+}
+if check_cursors; then pass "chat cursors (integer, <= inbox line count, rotation-aware)"; else failck "chat cursors"; fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 8 checks passed"
+    echo "SUMMARY: all 9 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 8 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 9 checks FAILED"
 exit 1

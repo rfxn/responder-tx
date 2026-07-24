@@ -16,6 +16,15 @@
 - [Change] The offline map panel is now fully translated: every label and
          status message (save, progress, tile counts, cache cleared, too-large
          area) shows in Spanish when the board is in Spanish.
+- [Change] Release tooling (post-release infra, no app change): CI now runs
+         every test suite on each push (unit tests, chat-poll durability,
+         server write-gate, release sanity checks) and reports each even when
+         one fails; deploys run the full test gate first and refuse to ship on
+         a red suite unless an explicit emergency skip flag is given; the
+         release sanity bundle gains a ninth check that chat cursors are valid
+         integers within the inbox size; the language test now lints every
+         English and Spanish string, the public changelog, and the page markup
+         for stray em-dashes.
 
 ## v0.97.66 · 2026-07-24 (LAN server hardening: writes limited to the local network)
 

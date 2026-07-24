@@ -1,16 +1,18 @@
 #!/bin/bash
-# deploy.sh [--preflight-only] [--skip-live] — verify version agreement, build stripped archive, deploy to Cloudflare Pages
+# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] — verify version agreement, run the test gate, build stripped archive, deploy to Cloudflare Pages
 set -euo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 
 SKIP_LIVE=0
 PREFLIGHT_ONLY=0
+SKIP_TESTS=0
 for arg in "$@"; do
     case "$arg" in
         --skip-live) SKIP_LIVE=1 ;;
         --preflight-only) PREFLIGHT_ONLY=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live)" >&2; exit 2 ;;
+        --skip-tests) SKIP_TESTS=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live, --skip-tests)" >&2; exit 2 ;;
     esac
 done
 
@@ -39,6 +41,20 @@ heading_re="^## ${version//./\\.} "
 grep -qE "$heading_re" CHANGELOG.md || fail "CHANGELOG.md has no '## ${version} ' heading"
 
 echo "pre-flight OK: ${version} (${stamp_count} index.html stamps, changelog.json, CHANGELOG.md all agree)"
+
+# --- Pre-flight: test gate (never ship on a red suite; --skip-tests is for genuine field emergencies only) ---
+if [ "$SKIP_TESTS" -eq 1 ]; then
+    echo "##########################################################" >&2
+    echo "# WARNING: --skip-tests set: TEST GATE BYPASSED.         #" >&2
+    echo "# Deploying WITHOUT running node --test / cycle-check.   #" >&2
+    echo "# This flag is for genuine field emergencies only.       #" >&2
+    echo "##########################################################" >&2
+else
+    node --test tests/ || fail "test gate: node --test tests/ failed (fix it, or --skip-tests for a genuine field emergency)"
+    bash scripts/cycle-check.sh || fail "test gate: scripts/cycle-check.sh failed (fix it, or --skip-tests for a genuine field emergency)"
+    echo "test gate OK: node --test tests/ + cycle-check.sh green"
+fi
+
 if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
     echo "OK: pre-flight only, stopping before push/deploy"
     exit 0

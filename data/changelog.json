@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.62",
+      "date": "2026-07-24",
+      "line": "Visible compass on phones. The compass rose in the map controls was too small to read on mobile: the N label and the red north needle are now larger and bolder, the ring has stronger contrast, and the whole rose scales up to match the bigger phone buttons. Live-heading rotation works exactly as before."
+    },
+    {
       "v": "v0.97.61",
       "date": "2026-07-23",
       "line": "Field usability polish. Buttons you tap in the field (feed actions, card actions, header controls) are now full 44px touch targets on phones, all five tabs stay visible on-screen in English and Spanish (Team and Resources no longer scroll away invisibly), and freshness and source text is larger and easier to read in glare. Also fixed: a river no longer shows as rising toward a crest that already passed."

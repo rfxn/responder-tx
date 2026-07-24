@@ -1033,7 +1033,7 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 
 /* compass box: third box under Share in the top-right stack; static north-up rose, tap to rotate the rose to the live device heading */
 .compass-ctl a { cursor: pointer; }
-.compass-ctl svg { display: block; width: 17px; height: 17px; transform-origin: 50% 54%; } /* 54% ~ circle center at y=13/24 so rotation stays wobble-free */
+.compass-ctl svg { display: block; width: 20px; height: 20px; transform-origin: 50% 54%; } /* 54% ~ circle center at y=13/24 so rotation stays wobble-free */
 .compass-ctl.live a { color: var(--accent); } /* subtle active tint: currentColor parts go accent, the red north needle stays red */
 .compass-ctl.live svg { transition: transform 0.12s linear; }
 
@@ -1366,6 +1366,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   /* collapse behavior is now in the base rules (both breakpoints) */
   /* one-thumb targets on the merged + / − / ⌖ bar */
   .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
+  .compass-ctl svg { width: 28px; height: 28px; } /* scale the rose with the 42px phone buttons */
   .ao-jump { left: 62px; right: 62px; }
   .layer-pills { left: 62px; right: 62px; }
   .layer-pill { min-height: 30px; }

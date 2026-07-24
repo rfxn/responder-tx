@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.62 · 2026-07-24 (Visible compass on phones)
+
+-- Changes --
+- [Change] The compass rose is far easier to read on phones: the N label and the
+         red north needle are larger and bolder, the ring has stronger contrast,
+         and the rose now scales up to match the 42px phone map buttons instead
+         of staying at desktop size.
+
 ## v0.97.61 · 2026-07-23 (Field-use polish: 44px tap targets, always-visible tabs, legible freshness text)
 
 -- Bug Fixes --

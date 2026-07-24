@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.71",
+      "date": "2026-07-24",
+      "line": "Gauge-level alerts arrived for device-alert subscribers: pick Flash Flood Emergencies, gauges reaching major, or gauges reaching moderate, and get notifications with real content in your language (gauge name, flood stage, reading, and a link straight to that gauge's chart). Turning alerts on now sends an instant confirmation notification, the card shows how recently the alert checker ran, and anti-noise rules keep a flapping river to one useful notification instead of a stream."
+    },
+    {
       "v": "v0.97.70",
       "date": "2026-07-24",
       "line": "Stricter security policy on the board: both the public site and the LAN server now tell the browser exactly which trusted map, weather, and camera sources the app may load, and block everything else. A behind-the-scenes safety net, nothing changes in how the board looks or works. The pre-release data checks also got stricter, so a malformed data file now stops a release instead of quietly degrading playback, crest summaries, or cameras."

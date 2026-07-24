@@ -1,5 +1,42 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.71 · 2026-07-24 (Device alerts, phase 2: gauge-level alerts with real notification content)
+
+-- New Features --
+- [New] Gauge-level alerts arrived for device-alert subscribers: opt in to a
+      notification when any gauge in the area reaches moderate or major flood
+      stage (choosing moderate includes major). New selection chips on the
+      Device alerts card (still behind ?push=1) let each device pick Flash
+      Flood Emergencies, gauges at major, or gauges at moderate. Crossings are
+      evaluated against the same published gauge snapshot the board shows, so
+      a notification never claims something the board cannot back up; frozen
+      or stale sensors never fire an alert.
+- [New] Notifications now carry real content in your language: the gauge name,
+      the flood stage reached, the observed reading, and a link that opens the
+      board directly on that gauge's hydrograph. Payloads are end-to-end
+      encrypted to your browser per the Web Push standard; devices that cannot
+      accept payloads still get the generic notification as before.
+- [New] Turning alerts on now sends a clearly labeled confirmation
+      notification right away, so you know delivery works on that device
+      before an emergency does.
+- [New] The card shows evaluator freshness honestly: "Alerts checked N min
+      ago" when the alert checker is current, and a delayed-checks warning
+      when it has not run for over 20 minutes, so the board never pretends
+      the alert channel is live when it is not.
+- [New] Anti-noise machinery for flapping rivers: one notification per
+      upward crossing, a repeat only if the gauge escalates further, a 30
+      minute floor between notifications for the same gauge, re-arm only
+      after the river has genuinely receded, and at most 6 gauge
+      notifications per device per hour with the overflow collapsed into a
+      single "N more gauges" digest. Emergency alerts are exempt from the
+      cap.
+
+-- Changes --
+- [Change] The data pipeline now nudges the alert evaluator right after each
+         deploy so gauge notifications follow the board's refresh promptly;
+         the every-5-minutes check remains the guaranteed path. The nudge is
+         authenticated and can never inject alert content.
+
 ## v0.97.70 · 2026-07-24 (Security hardening: Content-Security-Policy backstop + data-contract checks)
 
 -- New Features --

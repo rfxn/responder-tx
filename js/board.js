@@ -949,9 +949,10 @@ function exportAAR() {
 }
 
 
-/* ---------- device alerts — web push P1, soft-launch behind ?push=1 ---------- */
+/* ---------- device alerts — web push P2 (FFE + AO-wide gauge tiers), behind ?push=1 ---------- */
 
 const PUSH_LS_KEY = 'respondertx.push';
+const PUSH_STALE_MS = 20 * 60 * 1000; // evaluator freshness threshold (spec §4.3)
 
 // pure card-state predicate over environment facts. Order matters: the iOS install hint wins
 // (Safari hides the Push API until the board is a Home Screen app), then capability, then permission.
@@ -967,6 +968,22 @@ function pushLocal() {
 }
 function pushLocalSet(v) {
   try { localStorage.setItem(PUSH_LS_KEY, JSON.stringify(v)); } catch { /* private mode — card state falls back to browser truth */ }
+}
+
+// normalized prefs from the local cache: FFE on/off + AO-wide gauge tier (P2 granularity)
+function pushPrefs() {
+  const p = pushLocal().prefs || {};
+  return {
+    ffe: p.ffe !== false,
+    tier: p.tier === 'moderate' || p.tier === 'major' ? p.tier : null,
+  };
+}
+
+// honest-failure chip over /api/push/status lastEval: null = unknown (chip hidden), 'ok' with
+// the age, 'stale' past the threshold — the board never pretends the alert channel is live
+function pushFreshState(lastEval, now) {
+  if (!Number.isFinite(lastEval) || lastEval <= 0) return null;
+  return now - lastEval > PUSH_STALE_MS ? 'stale' : 'ok';
 }
 
 function pushEnvFacts() {
@@ -999,16 +1016,57 @@ function renderPushCard() {
   const st = pushCardState(pushEnvFacts());
   const on = st === 'on';
   const toggleable = st === 'on' || st === 'off';
+  const prefs = pushPrefs();
+  const fresh = pushFreshState(state.pushLastEval, Date.now());
+  const freshTxt = fresh === 'ok'
+    ? t('push.fresh.ok').replace('{m}', String(Math.max(0, Math.round((Date.now() - state.pushLastEval) / 60000))))
+    : t('push.fresh.stale');
+  const chip = (key, active) =>
+    `<button type="button" class="push-chip${active ? ' active' : ''}" data-pref="${key}" aria-pressed="${active}">${esc(t(`push.chip.${key}`))}</button>`;
   host.innerHTML =
     `<div class="section-title">${esc(t('push.title'))}</div>` +
     '<div class="resource-item push-card">' +
       `<div class="push-sub">${esc(t('push.sub'))}</div>` +
       `<div class="push-disclaimer">${esc(t('push.disclaimer'))}</div>` +
       `<div class="push-status push-${st}">${esc(t(`push.state.${st}`))}</div>` +
+      (on
+        ? `<div class="push-chips" role="group" aria-label="${esc(t('push.chips.label'))}">` +
+            chip('ffe', prefs.ffe) + chip('major', prefs.tier === 'major') + chip('moderate', prefs.tier === 'moderate') +
+          '</div>'
+        : '') +
+      (fresh ? `<div class="push-fresh push-fresh-${fresh}">${esc(freshTxt)}</div>` : '') +
       (toggleable ? `<div class="card-actions"><button type="button" class="act-btn push-toggle" id="push-toggle">${esc(t(on ? 'push.toggle.off' : 'push.toggle.on'))}</button></div>` : '') +
     '</div>';
   const btn = $('#push-toggle');
   if (btn) btn.addEventListener('click', on ? pushDisable : pushEnable);
+  host.querySelectorAll('.push-chip').forEach((el) => {
+    el.addEventListener('click', () => pushChipTap(el.getAttribute('data-pref')));
+  });
+}
+
+// tier chips are one choice (moderate implies major — a lower rung, not a second stream)
+function pushChipTap(key) {
+  const p = pushPrefs();
+  if (key === 'ffe') p.ffe = !p.ffe;
+  else if (key === 'major') p.tier = p.tier === 'major' ? null : 'major';
+  else if (key === 'moderate') p.tier = p.tier === 'moderate' ? null : 'moderate';
+  pushSetPrefs(p);
+}
+
+// persist a prefs change server-side (subscribe upserts by endpoint); local cache only on success
+async function pushSetPrefs(next) {
+  try {
+    const reg = state.swReg || await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) { pushLocalSet({ on: false }); renderPushCard(); return; }
+    const r = await fetch('api/push/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), prefs: next, lang: getLang() }),
+    });
+    if (!r.ok) throw new Error(`subscribe HTTP ${r.status}`);
+    pushLocalSet({ on: true, prefs: next });
+  } catch (err) { /* server unreachable — chips fall back to the last stored prefs */ }
+  renderPushCard();
 }
 
 async function pushEnable() {
@@ -1020,12 +1078,13 @@ async function pushEnable() {
     if (perm !== 'granted') { renderPushCard(); return; }
     const reg = state.swReg || await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(state.pushVapidKey) });
+    const prefs = pushPrefs(); // restore this device's last prefs; defaults: FFE on, no gauge tier
     const r = await fetch('api/push/subscribe', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON(), prefs: { ffe: true }, lang: getLang() }),
+      body: JSON.stringify({ subscription: sub.toJSON(), prefs, lang: getLang() }),
     });
     if (!r.ok) throw new Error(`subscribe HTTP ${r.status}`);
-    pushLocalSet({ on: true, prefs: { ffe: true } });
+    pushLocalSet({ on: true, prefs });
     // language hint for payload-free pushes; best-effort, the SW falls back to en
     try { await (await caches.open('respondertx-push')).put('/push-lang', new Response(getLang())); } catch { /* cache unavailable */ }
     renderPushCard();
@@ -1087,12 +1146,13 @@ async function initPushCard() {
     } catch { return; }
     if (!d || !d.configured || !d.vapidKey) return;
     state.pushVapidKey = d.vapidKey;
+    state.pushLastEval = typeof d.lastEval === 'number' ? d.lastEval : 0;
     // browser truth wins over the local cache: a revoked subscription flips the card OFF honestly
     try {
       const reg = state.swReg || await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (!sub && pushLocal().on) pushLocalSet({ on: false });
-      if (sub && !pushLocal().on) pushLocalSet({ on: true, prefs: { ffe: true } });
+      if (sub && !pushLocal().on) pushLocalSet({ on: true, prefs: pushPrefs() });
     } catch (err) { /* registration unavailable — local cache stands */ }
   }
   renderPushCard();

@@ -19,15 +19,19 @@ const ffeFeature = (id, coords) => ({
   properties: { event: 'Flash Flood Warning', description: 'This is a FLASH FLOOD EMERGENCY for the area.', parameters: {} },
 });
 
-// route the DO's outbound fetches: NWS alerts, event.json, and push-service sends
-function mockNet({ features = [], pushStatus = 201, pushLog = [] } = {}) {
+// route the DO's outbound fetches: NWS alerts, event.json, the mirror gauges snapshot,
+// and push-service sends
+function mockNet({ features = [], snapshot = null, pushStatus = 201, pushLog = [] } = {}) {
   sandbox.__fetchMock = async (url, opts = {}) => {
     const u = String(url);
     if (u.includes('api.weather.gov')) return mockRes(200, { features });
     if (u.includes('respondertx.org/data/event.json')) {
       return mockRes(200, { gaugeBbox: { xmin: -98.0, ymin: 27.5, xmax: -93.4, ymax: 31.0 } });
     }
-    pushLog.push({ url: u, headers: (opts && opts.headers) || {} });
+    if (u.includes('respondertx.org/data/gauges-snapshot.json')) {
+      return mockRes(200, snapshot || { generated: '', gauges: [] });
+    }
+    pushLog.push({ url: u, headers: (opts && opts.headers) || {}, body: (opts && opts.body) || null });
     return mockRes(typeof pushStatus === 'function' ? pushStatus(u) : pushStatus, {});
   };
   return pushLog;
@@ -51,16 +55,18 @@ test('allowlist accepts the known push-service hosts, https only', () => {
 
 /* ---------- subscribe validation ---------- */
 
-test('subscribe stores an anonymous row and forces P1 prefs to {ffe:true}', async () => {
+test('subscribe stores an anonymous row and sanitizes P2 prefs (ffe + tier only)', async () => {
   const { reg, state } = newRegistry();
-  const out = await reg.doSubscribe(subBody(1, { prefs: { ffe: false, bogus: 1 } }), '1.2.3.4', Date.now());
+  mockNet({}); // confirmation send lands 201
+  const out = await reg.doSubscribe(subBody(1, { prefs: { ffe: false, tier: 'moderate', bogus: 1 } }), '1.2.3.4', Date.now());
   assert.equal(out.ok, true);
   // JSON round-trip: the DO's objects come from another vm realm (prototype identity differs)
-  assert.deepEqual(JSON.parse(JSON.stringify(out.prefs)), { ffe: true });
+  assert.deepEqual(JSON.parse(JSON.stringify(out.prefs)), { ffe: false, tier: 'moderate' }, 'user choices honored, unknown keys stripped');
+  const bogusTier = await reg.doSubscribe(subBody(2, { prefs: { tier: 'minor' } }), '1.2.3.4', Date.now());
+  assert.deepEqual(JSON.parse(JSON.stringify(bogusTier.prefs)), { ffe: true, tier: null }, 'invalid tier collapses to null');
   const rows = [...state._store.entries()].filter(([k]) => k.startsWith('sub:'));
-  assert.equal(rows.length, 1);
-  const row = rows[0][1];
-  assert.equal(row.endpoint, FCM + '1');
+  assert.equal(rows.length, 2);
+  const row = rows.find(([k, v]) => v.endpoint === FCM + '1')[1];
   assert.equal(row.lang, 'en');
   assert.deepEqual(Object.keys(row).sort(), ['auth', 'created', 'endpoint', 'id', 'lang', 'p256dh', 'prefs', 'renewed'], 'no extra identity fields stored');
 });
@@ -82,6 +88,7 @@ test('subscribe is 503 when VAPID keys are not configured', async () => {
 test('subscribe-family rate limit trips per IP within the window', async () => {
   const { reg } = newRegistry();
   const now = Date.now();
+  mockNet({});
   for (let i = 0; i < 10; i++) {
     const out = await reg.doSubscribe(subBody(i), '9.9.9.9', now);
     assert.equal(out.ok, true, `call ${i} should pass`);
@@ -97,6 +104,7 @@ test('subscribe-family rate limit trips per IP within the window', async () => {
 test('unsubscribe deletes the row for the presented endpoint', async () => {
   const { reg, state } = newRegistry();
   const now = Date.now();
+  mockNet({});
   await reg.doSubscribe(subBody(1), '', now);
   const out = await reg.doUnsubscribe({ endpoint: FCM + '1' }, '', now);
   assert.equal(out.ok, true);
@@ -106,6 +114,7 @@ test('unsubscribe deletes the row for the presented endpoint', async () => {
 test('renew refreshes the TTL stamp and 404s for unknown endpoints', async () => {
   const { reg, state } = newRegistry();
   const t0 = Date.now() - 1000;
+  mockNet({});
   await reg.doSubscribe(subBody(1), '', t0);
   const out = await reg.doRenew({ endpoint: FCM + '1' }, '', t0 + 500);
   assert.equal(out.ok, true);
@@ -117,9 +126,10 @@ test('renew refreshes the TTL stamp and 404s for unknown endpoints', async () =>
 
 /* ---------- evaluator: FFE detection, AO filter, dedup by alert id ---------- */
 
-test('evaluate sends one payload-free push per subscription for a new in-AO FFE, then dedups by id', async () => {
+test('evaluate sends one push per subscription for a new in-AO FFE, then dedups by id', async () => {
   const { reg } = newRegistry();
   const now = Date.now();
+  mockNet({}); // confirmation sends drain here, before the pass under test
   await reg.doSubscribe(subBody(1), '', now);
   await reg.doSubscribe(subBody(2), '', now);
   const log = mockNet({ features: [ffeFeature('urn:oid:ffe-1')] });
@@ -143,6 +153,7 @@ test('evaluate sends one payload-free push per subscription for a new in-AO FFE,
 test('evaluate ignores FFE products whose polygon is outside the AO and non-FFE products', async () => {
   const { reg } = newRegistry();
   const now = Date.now();
+  mockNet({});
   await reg.doSubscribe(subBody(1), '', now);
   const outside = ffeFeature('urn:oid:far', [[-103.5, 31.5], [-103.4, 31.5], [-103.4, 31.6], [-103.5, 31.6], [-103.5, 31.5]]);
   const plainWarning = {
@@ -159,6 +170,7 @@ test('evaluate ignores FFE products whose polygon is outside the AO and non-FFE 
 test('a 410 from the push service deletes the subscription row', async () => {
   const { reg, state } = newRegistry();
   const now = Date.now();
+  mockNet({});
   await reg.doSubscribe(subBody(1), '', now);
   mockNet({ features: [ffeFeature('urn:oid:gone')], pushStatus: 410 });
   await reg.doEvaluate(now);
@@ -168,6 +180,7 @@ test('a 410 from the push service deletes the subscription row', async () => {
 test('rows older than the 60-day TTL are pruned during evaluation', async () => {
   const { reg, state } = newRegistry();
   const now = Date.now();
+  mockNet({});
   await reg.doSubscribe(subBody(1), '', now - 61 * 24 * 3600 * 1000);
   await reg.doSubscribe(subBody(2), '', now - 1000);
   mockNet({ features: [] });
@@ -181,6 +194,7 @@ test('rows older than the 60-day TTL are pruned during evaluation', async () => 
 test('sends drain in batches of 40 with an alarm chained for the remainder', async () => {
   const { reg, state } = newRegistry();
   const now = Date.now();
+  mockNet({});
   for (let i = 0; i < 41; i++) await reg.doSubscribe(subBody(i), '', now);
   mockNet({ features: [ffeFeature('urn:oid:big')] });
   const out = await reg.doEvaluate(now);
@@ -205,6 +219,7 @@ test('status exposes configured flag, lastEval, and the public VAPID key only', 
 test('testfire pushes to one named stored subscription and reports the service status', async () => {
   const { reg } = newRegistry();
   const now = Date.now();
+  mockNet({});
   await reg.doSubscribe(subBody(1), '', now);
   await reg.doSubscribe(subBody(2), '', now);
   const log = mockNet({ pushStatus: 201 });

@@ -1861,3 +1861,14 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 #push-body .push-status { font-size: 12px; font-weight: 650; margin: 6px 0 2px; color: var(--ink-2); }
 #push-body .push-on { color: var(--good); }
 #push-body .push-toggle { flex: 0 1 auto; min-height: 44px; padding: 5px 18px; }
+#push-body .push-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+#push-body .push-chip {
+  min-height: 44px; padding: 4px 12px; font-size: 12px; font-weight: 600;
+  color: var(--ink-2); background: var(--surface-1);
+  border: 1px solid var(--border); border-radius: 16px; cursor: pointer;
+}
+#push-body .push-chip.active {
+  color: #fff; background: var(--accent); border-color: transparent;
+}
+#push-body .push-fresh { font-size: 11.5px; color: var(--ink-2); margin: 4px 0 2px; }
+#push-body .push-fresh-stale { color: var(--sev-emergency); font-weight: 650; }

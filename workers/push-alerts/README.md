@@ -1,4 +1,4 @@
-# responder-push-alerts — Durable Object backend for web-push device alerts (P1)
+# responder-push-alerts — Durable Object backend for web-push device alerts (P2)
 
 This is a **standalone Cloudflare Worker** that hosts the `PushRegistry` Durable Object. A Pages
 project cannot define its own Durable Object, so the DO ships here and the Pages site
@@ -15,20 +15,31 @@ account, no IP retention (IPs touch only a transient in-memory rate bucket). Row
 after their last renew; the client silently renews on each app boot while subscribed. Any 404/410
 from a push service deletes the row immediately.
 
-## Evaluator (P1: Flash Flood Emergency only)
+## Evaluator (P2: Flash Flood Emergencies + AO-wide gauge tiers)
 
-A `*/5` Cloudflare Cron Trigger on this Worker calls the DO's `/evaluate`:
+A `*/5` Cloudflare Cron Trigger on this Worker calls the DO's `/evaluate`; `run-cycle.sh` also
+sends an HMAC-signed best-effort nudge (`POST /api/push/nudge`) right after each data deploy so
+gauge crossings ride the fast path. Each pass:
 
-1. Fetch `api.weather.gov/alerts/active?area=TX`, classify with the client's rule
+1. **FFE:** fetch `api.weather.gov/alerts/active?area=TX`, classify with the client's rule
    (`FLASH FLOOD EMERGENCY` in the description, or a CATASTROPHIC flash-flood damage threat tag).
-2. Keep products whose polygon bbox (else zone bbox, capped lookups; unresolvable geometry counts
+   Keep products whose polygon bbox (else zone bbox, capped lookups; unresolvable geometry counts
    as in-AO — fail toward notifying) intersects the event AO from
    `https://respondertx.org/data/event.json` (cached 15 min, last-good on fetch failure).
-3. New alert ids not in the seen-ring get one payload-free push per subscription (dedup by alert
-   id; an extension/replacement product with a new id counts as new). The service worker composes
-   the localized notification text client-side (P1 payload-free; encrypted payloads arrive in P2).
+   New alert ids not in the seen-ring get one push per FFE subscriber (dedup by alert id).
+2. **Gauges:** fetch `https://respondertx.org/data/gauges-snapshot.json` (the DEPLOYED mirror —
+   the push must never claim something the board cannot show); skip when `generated` is
+   unchanged. For each fresh (non-stale, 12h obs-recency rule) gauge, compute the observed
+   category rank and run the per-(subscription, gauge) state machine: notify only on an upward
+   crossing into the subscriber's tier (moderate implies major), escalation notifies again,
+   30-min cooldown per key, re-arm only after 2 consecutive below-tier evals (hysteresis),
+   max 6 gauge sends per subscription per rolling hour with overflow collapsed into one digest
+   (FFE exempt from the cap).
+3. Payloads are RFC 8291 aes128gcm-encrypted (`webpush-encrypt.js`), pre-localized per the stored
+   subscription language (en/es table in the Worker), and deep-link `/?hydro=LID`. Rows without
+   usable keys degrade to payload-free sends (the SW's baked fallback table).
 4. Sends drain through a queue in batches of 40 via a chained DO alarm, respecting the free-plan
-   ~50-subrequest ceiling.
+   ~50-subrequest ceiling. A new subscription gets one localized confirmation push immediately.
 
 ## Deploy (one-time + on change) — CONTROLLER STEP, needs the Cloudflare API token
 
@@ -51,6 +62,13 @@ node -e "const c=require('node:crypto');const{publicKey,privateKey}=c.generateKe
 - **Local backup** (loss recovery only): `/root/.config/responder/vapid-private-key` and
   `vapid-public-key`, mode 600 on the LAN controller host — the same convention as
   `/root/.config/responder/team-admin-token`.
+- **Nudge key** (`PUSH_NUDGE_KEY`, P2): random 32-byte hex shared between this Worker and the
+  LAN controller. Mint with `openssl rand -hex 32`, store at
+  `/root/.config/responder/push-nudge-key` (mode 600) for `run-cycle.sh`, and set it as a Worker
+  secret: `npx -y wrangler@3.114.0 secret put PUSH_NUDGE_KEY`. The nudge body `{"ts":<epoch s>}`
+  is HMAC-SHA256-signed over the raw bytes (`openssl dgst -sha256 -hmac "$key"`), verified in the
+  DO with a ±10 min replay window. Unset = `/api/push/nudge` returns 503; the cron still covers
+  everything.
 - **Admin token** for the test-fire/peek ops endpoints: random value set BOTH as a Worker secret
   (`npx -y wrangler@3.114.0 secret put PUSH_ADMIN_TOKEN`, guards the local-dev forwarder) and as a
   Pages secret (`npx -y wrangler@3.114.0 pages secret put PUSH_ADMIN_TOKEN --project-name
@@ -83,9 +101,12 @@ client hides the card entirely (same posture as the team feature without `env.TE
 curl -s https://respondertx.org/api/push/status
 # token-gated registry counts (no endpoints ever disclosed)
 curl -s -X POST -H "X-Admin-Token: $(cat /root/.config/responder/push-admin-token)" https://respondertx.org/api/push/admin/peek
-# token-gated real test push to one stored subscription (omit endpoint = all, capped one batch)
+# token-gated real test push to one stored subscription (omit endpoint = all, capped one batch).
+# kind "gauge" fires an encrypted sample gauge-tier payload (lid/name/cat overridable),
+# kind "confirm" the confirmation payload; no kind = payload-free.
 curl -s -X POST -H "X-Admin-Token: $(cat /root/.config/responder/push-admin-token)" \
-  -H 'Content-Type: application/json' -d '{"endpoint":"https://fcm.googleapis.com/..."}' \
+  -H 'Content-Type: application/json' \
+  -d '{"endpoint":"https://fcm.googleapis.com/...","kind":"gauge","lid":"SRRT2","name":"San Antonio River at Runge","cat":"moderate"}' \
   https://respondertx.org/api/push/admin/fire
 ```
 

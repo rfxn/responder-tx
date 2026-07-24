@@ -2,7 +2,7 @@
 // route this file. Mirrors functions/api/team/: env.PUSH binding check, body size cap, 503 when
 // unbound (the client hides the card entirely on 503).
 
-const BODY_MAX = 4096;
+export const BODY_MAX = 4096;
 
 export function json(obj, status) {
   return new Response(JSON.stringify(obj), {

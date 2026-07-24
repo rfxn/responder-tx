@@ -137,3 +137,9 @@ test('every precached file exists in the repo', () => {
     assert.ok(fs.existsSync(path.join(ROOT, file)), `precached file missing on disk: ${file}`);
   }
 });
+
+test('push handler prefers the payload language over the cached hint (P2)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  assert.match(src, /data\.lang === 'es' \|\| data\.lang === 'en'/, 'payload lang wins when present');
+  assert.match(src, /await pushLang\(\)/, 'cached hint still localizes payload-free fallbacks');
+});

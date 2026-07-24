@@ -100,4 +100,22 @@ else
     exit "$rc"
 fi
 
+# best-effort push-evaluator nudge (fast path; the Worker's */5 cron is the guaranteed path).
+# HMAC over the raw body with the shared key; NEVER fatal — push infra must not break the cycle.
+NUDGE_KEY_FILE=/root/.config/responder/push-nudge-key
+if [ -s "$NUDGE_KEY_FILE" ]; then
+    log "step: push nudge (best-effort)"
+    if nudge_out=$(
+        key=$(cat "$NUDGE_KEY_FILE") &&
+        body="{\"ts\":$(date +%s)}" &&
+        sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$key" | awk '{print $NF}') &&
+        curl -sf -m 20 -X POST -H 'Content-Type: application/json' -H "X-Push-Sig: ${sig}" \
+            -d "$body" https://respondertx.org/api/push/nudge
+    ); then
+        log "push nudge OK: ${nudge_out}"
+    else
+        log "WARN: push nudge failed (non-fatal); the */5 worker cron covers it"
+    fi
+fi
+
 log "=== cycle complete ==="

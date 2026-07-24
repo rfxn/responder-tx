@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.97.70';
+const SW_VERSION = '0.97.71';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 const CACHE_DATA = `respondertx-data-${SW_VERSION}`;
 // version-independent: holds the subscriber's language hint so a payload-free push can be
@@ -136,11 +136,12 @@ self.addEventListener('fetch', (event) => {
   if (url.searchParams.has('v')) event.respondWith(stampedCacheFirst(req));
 });
 
-/* ---------- web push (P1: payload-free FFE alerts) ---------- */
+/* ---------- web push (P2: encrypted localized payloads, payload-free fallback) ---------- */
 
-// P1 pushes carry no payload (encrypted payloads arrive in P2), so the SW composes a generic
-// localized Flash Flood Emergency notification from this baked table. The last line is the
-// standing invariant short form: never a WEA/911 replacement.
+// P2 pushes carry an encrypted pre-localized payload (title/body/tag/url/lang composed server
+// side per the stored subscription language). A payload-free or unparseable push still shows a
+// generic localized Flash Flood Emergency notification from this baked table (compat rule). The
+// last line is the standing invariant short form: never a WEA/911 replacement.
 const PUSH_FALLBACK = {
   en: {
     title: 'Flash Flood Emergency · ResponderTX',
@@ -164,9 +165,11 @@ async function pushLang() {
 // punish silent pushes by revoking the subscription
 self.addEventListener('push', (event) => {
   event.waitUntil((async () => {
-    const lang = await pushLang();
     let data = null;
     try { data = event.data ? event.data.json() : null; } catch (err) { data = null; }
+    // the payload's own language wins (it matches the stored subscription pref); the cached
+    // hint only localizes payload-free fallbacks
+    const lang = (data && (data.lang === 'es' || data.lang === 'en')) ? data.lang : await pushLang();
     const fb = PUSH_FALLBACK[lang];
     await self.registration.showNotification((data && data.title) || fb.title, {
       body: (data && data.body) || fb.body,

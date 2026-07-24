@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadApp } = require('./harness.js');
 
-const { smartScore, shortId, CONFIG, pushCardState } = loadApp();
+const { smartScore, shortId, CONFIG, pushCardState, pushFreshState } = loadApp();
 
 /* ---------- smartScore: priority weight with half-life age decay ---------- */
 
@@ -95,4 +95,16 @@ test('pushCardState — missing capability reads unsupported, never an error', (
 test('pushCardState — a denied permission is blocked (no re-prompt state)', () => {
   assert.equal(pushCardState(pushFacts({ permission: 'denied' })), 'blocked');
   assert.equal(pushCardState(pushFacts({ permission: 'denied', subscribed: true })), 'blocked', 'blocked wins over a stale local on-flag');
+});
+
+/* ---------- pushFreshState: evaluator freshness chip (web push P2) ---------- */
+
+test('pushFreshState — hidden without data, ok within 20 min, stale past it', () => {
+  const now = 1700000000000;
+  assert.equal(pushFreshState(undefined, now), null, 'no status yet: chip hidden');
+  assert.equal(pushFreshState(null, now), null);
+  assert.equal(pushFreshState(0, now), null);
+  assert.equal(pushFreshState(now - 3 * 60000, now), 'ok', 'checked 3 min ago');
+  assert.equal(pushFreshState(now - 19 * 60000, now), 'ok', 'just inside the threshold');
+  assert.equal(pushFreshState(now - 21 * 60000, now), 'stale', 'past 20 min: honest delayed state');
 });

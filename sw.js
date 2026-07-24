@@ -7,7 +7,7 @@ const SW_VERSION = '0.97.63';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 const CACHE_DATA = `respondertx-data-${SW_VERSION}`;
 
-// LAN-only chat.js/master.js are deliberately absent: the public mirror strips them
+// the LAN-only chat and master clients are deliberately absent: the public mirror strips them
 const PRECACHE_PATHS = [
   'css/app.css',
   'css/notes.css',

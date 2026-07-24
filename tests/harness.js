@@ -113,7 +113,7 @@ const EXPORTS = [
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT',
   'cardAged',
   'buildShareUrl', 'applyShareParams',
-  'smartScore', 'shortId',
+  'smartScore', 'shortId', 'allRequests',
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'AO_PRESET_FALLBACK',
   'pushCardState', 'pushFreshState',

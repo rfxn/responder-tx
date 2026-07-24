@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.74",
+      "date": "2026-07-24",
+      "line": "LAN EOC boards: '+ New notice' intakes are now shared between stations. Saving a notice on a LAN ops board still shows it instantly on that device, and now also posts it to the LAN server (validated, rate-limited, LAN-only); each refresh cycle folds it into the shared board so every station sees every station's intakes, with a quiet 'shared to the board' confirmation in English and Spanish. The public mirror is unchanged: notices added there stay on that device, and operator intakes never leave the LAN."
+    },
+    {
       "v": "v0.97.73",
       "date": "2026-07-24",
       "line": "Team: position fixes are no longer lost in a dead zone. Failed or offline updates are saved on the phone (about 2 hours' worth, reload-safe) and send in one batch when signal returns, each keeping its original time and accuracy, so the breadcrumb trail at command fills in the gap; the Team tab shows \"N fixes queued, sending when signal returns\" while a backlog waits, and on screen lock the last known position is queued before sharing pauses so command gets a true final point."

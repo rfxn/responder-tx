@@ -9,7 +9,9 @@ function loadStore() {
 function saveStore() { localStorage.setItem(LS_KEY, JSON.stringify(state.store)); }
 
 function allRequests(includeArchived = false) {
-  const merged = state.seedRequests.concat(state.store.added)
+  // a LAN-shared intake comes back in requests.json under the same id — that copy supersedes the local one
+  const seedIds = new Set(state.seedRequests.map((r) => r.id));
+  const merged = state.seedRequests.concat(state.store.added.filter((r) => !seedIds.has(r.id)))
     .map((r) => Object.assign({}, r, state.store.overrides[r.id] || {}));
   return includeArchived ? merged : merged.filter((r) => !state.store.archived.includes(r.id));
 }
@@ -357,10 +359,33 @@ function submitRequest(ev) {
   }
   state.store.added.push(r);
   saveStore();
+  shareNoticeToLan(r);
   ev.target.reset();
   state.pendingLatLng = null;
   $('#new-request-form').classList.remove('open');
   renderRequests();
+}
+
+// On LAN EOC surfaces the saved intake also POSTs to /api/requests so every station gets it
+// after the next refresh cycle; the local copy above keeps it instantly visible for the author.
+// Any failure (offline LAN, endpoint absent) leaves the existing local-only behavior untouched.
+function shareNoticeToLan(r) {
+  if (!state.lanIntake) return;
+  fetch('/api/requests', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(r),
+  }).then((res) => { if (res.ok) intakeToast(t('intake.shared')); })
+    .catch(() => { /* LAN unreachable — the notice stays device-local, same as before this feature */ });
+}
+
+function intakeToast(msg) {
+  const el = $('#intake-toast');
+  if (!el) return;
+  $('#intake-toast-text').textContent = msg;
+  el.hidden = false;
+  clearTimeout(intakeToast._t);
+  intakeToast._t = setTimeout(() => { el.hidden = true; }, 6000);
 }
 
 /* ---------- "Am I at risk?" address check + saved my-places (client-only, no PII) ---------- */

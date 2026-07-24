@@ -2,8 +2,9 @@
 """tests/server-gate.test.py — LAN write-endpoint hardening tests for server.py.
 Covers: the POST client gate (LAN/loopback allowed, public rejected), the per-IP
 token-bucket rate limit (13th rapid post blocked, slow posting never blocked),
-drained-only inbox rotation with coherent cursor reset, and a live loopback
-round-trip on an ephemeral port. Run: python3 tests/server-gate.test.py"""
+drained-only inbox rotation with coherent cursor reset, live loopback round-trips
+on an ephemeral port, and /api/requests notice-intake validation (field caps,
+tag stripping, bbox, rate limit). Run: python3 tests/server-gate.test.py"""
 import json
 import os
 import shutil
@@ -67,8 +68,10 @@ server._rate_buckets.clear()
 
 # --- rotation: fires only when both cursors equal the line count, resets both ---
 tmp = tempfile.mkdtemp()
-orig = (server.INBOX, server.CHAT_CURSOR, server.CHAT_ACK_CURSOR, server.INBOX_ARCHIVE_FMT, server.INBOX_MAX_LINES)
+orig = (server.INBOX, server.CHAT_CURSOR, server.CHAT_ACK_CURSOR, server.INBOX_ARCHIVE_FMT,
+        server.INBOX_MAX_LINES, server.NOTICES_INBOX)
 try:
+    server.NOTICES_INBOX = os.path.join(tmp, 'notices-inbox.jsonl')
     server.INBOX = os.path.join(tmp, 'chat-inbox.jsonl')
     server.CHAT_CURSOR = os.path.join(tmp, '.chat-cursor')
     server.CHAT_ACK_CURSOR = os.path.join(tmp, '.chat-ack-cursor')
@@ -137,12 +140,62 @@ try:
         check('live: 13th rapid post over HTTP -> 429', codes[:11] == [204] * 11 and codes[11] == 429)
         req = urllib.request.Request('http://127.0.0.1:%d/api/ping' % port)
         with urllib.request.urlopen(req, timeout=5) as r:
-            check('live: GET /api/ping still 200', r.status == 200 and json.loads(r.read())['ok'] is True)
+            ping = json.loads(r.read())
+            check('live: GET /api/ping still 200', r.status == 200 and ping['ok'] is True)
+            check('live: /api/ping advertises requests capability', ping.get('requests') is True)
+
+        # --- /api/requests: shared notice intake — gate, validation, caps, tag strip, bbox, rate limit ---
+        h = make_handler('8.8.8.8', '/api/requests')
+        server.Handler.do_POST(h)
+        check('requests: non-LAN POST -> 403', h.sent == [403])
+        server._rate_buckets.clear()
+
+        def post_req(payload):
+            body = json.dumps(payload).encode()
+            req = urllib.request.Request('http://127.0.0.1:%d/api/requests' % port, data=body,
+                                         headers={'Content-Type': 'application/json'})
+            try:
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    return r.status
+            except urllib.error.HTTPError as e:
+                return e.code
+
+        def last_line():
+            return json.loads(open(server.NOTICES_INBOX).read().splitlines()[-1])
+
+        notice = {'id': 'local-abc-1234', 'ts': '2026-07-24T18:00:00.000Z', 'type': 'road',
+                  'priority': 'high', 'status': 'open', 'county': 'Hays', 'place': 'Test crossing',
+                  'lat': 29.9, 'lon': -97.9, 'summary': 'Gate-test notice', 'details': 'water over road',
+                  'source': {'platform': 'field', 'handle': '', 'url': ''}, 'contact': ''}
+        check('requests: valid intake -> 204', post_req(notice) == 204)
+        line = last_line()
+        check('requests: line keeps client id + ts and adds received_at',
+              line['id'] == 'local-abc-1234' and line['ts'].startswith('2026-07-24T18:00')
+              and bool(line.get('received_at')) and line['status'] == 'open')
+        check('requests: html stripped from text fields',
+              post_req(dict(notice, id='local-abc-9999', summary='before <script>x</script>after')) == 204
+              and last_line()['summary'] == 'before xafter')
+        check('requests: overlong summary truncated to cap',
+              post_req(dict(notice, id='local-cap-0001', summary='S' * 500)) == 204
+              and len(last_line()['summary']) == 300)
+        check('requests: markup-only summary -> 400', post_req(dict(notice, summary='<b></b>')) == 400)
+        check('requests: missing place -> 400',
+              post_req({k: v for k, v in notice.items() if k != 'place'}) == 400)
+        check('requests: coords outside sane bbox -> 400', post_req(dict(notice, lat=61.0)) == 400)
+        check('requests: one-sided coords -> 400', post_req(dict(notice, lon=None)) == 400)
+        check('requests: pinless (null coords) intake -> 204',
+              post_req(dict(notice, id='local-nopin-01', lat=None, lon=None)) == 204
+              and 'lat' not in last_line())
+        check('requests: oversize body -> 413', post_req(dict(notice, details='x' * 70000)) == 413)
+        server._rate_buckets.clear()
+        codes = [post_req(dict(notice, id='local-burst-%03d' % i)) for i in range(13)]
+        check('requests: 13th rapid post -> 429', codes[:12] == [204] * 12 and codes[12] == 429)
     finally:
         srv.shutdown()
         srv.server_close()
 finally:
-    (server.INBOX, server.CHAT_CURSOR, server.CHAT_ACK_CURSOR, server.INBOX_ARCHIVE_FMT, server.INBOX_MAX_LINES) = orig
+    (server.INBOX, server.CHAT_CURSOR, server.CHAT_ACK_CURSOR, server.INBOX_ARCHIVE_FMT,
+     server.INBOX_MAX_LINES, server.NOTICES_INBOX) = orig
     server._rate_buckets.clear()
     shutil.rmtree(tmp)
 

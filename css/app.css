@@ -190,7 +190,7 @@ main { flex: 1; display: flex; min-height: 0; }
 #risk-btn { border-color: var(--accent); color: var(--accent); font-weight: 650; }
 #risk-btn:hover { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
 /* graceful-update toast — quiet notice before/after the idle rollover reload */
-#update-toast, #sw-toast {
+#update-toast, #sw-toast, #intake-toast {
   position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
   z-index: 1750; max-width: min(92vw, 460px);
   display: flex; align-items: center; gap: 10px; padding: 10px 14px;
@@ -198,7 +198,7 @@ main { flex: 1; display: flex; min-height: 0; }
   border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--ink-1);
   box-shadow: 0 6px 24px rgba(0,0,0,0.45);
 }
-#update-toast[hidden], #sw-toast[hidden] { display: none; }
+#update-toast[hidden], #sw-toast[hidden], #intake-toast[hidden] { display: none; }
 #update-toast.confirm { cursor: pointer; }
 #update-toast button, #sw-toast button { min-height: 0; padding: 4px 10px; font-size: 12px; flex: 0 0 auto; }
 

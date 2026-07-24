@@ -102,7 +102,7 @@ if check_snapshot; then pass "snapshot (>=200 gauges, ISO-8601 generated stamp)"
 check_staged() {
     local staged banned rc=0
     staged=$(git diff --cached --name-only) || { echo "git diff --cached failed" >&2; return 1; }
-    for banned in HANDOFF.md data/chat-inbox.jsonl data/.chat-cursor data/chat-outbox.json data/notes-inbox.jsonl; do
+    for banned in HANDOFF.md data/chat-inbox.jsonl data/.chat-cursor data/chat-outbox.json data/notes-inbox.jsonl data/notices-inbox.jsonl; do
         if printf '%s\n' "$staged" | grep -qxF "$banned"; then
             echo "working file staged: ${banned}" >&2
             rc=1
@@ -267,9 +267,36 @@ if d is not None:
                 die("cameras.json: %s[%d] missing %s" % (n, i, k))
             if n == "txdot" and not (c.get("httpsurl") or (c.get("dist") and c.get("icd"))):
                 die("cameras.json: txdot[%d] missing httpsurl or dist/icd" % i)
+
+with open("data/requests.json") as f:
+    d = json.load(f)
+if not isinstance(d.get("requests"), list):
+    die("requests.json: requests[] missing")
+seen = set()
+for i, r in enumerate(d["requests"]):
+    if not r.get("id") or not r.get("ts") or not r.get("summary"):
+        die("requests.json: requests[%d] missing id/ts/summary" % i)
+    if r["id"] in seen:
+        die("requests.json: duplicate id %s" % r["id"])
+    seen.add(r["id"])
+    if r.get("origin") == "operator" and not r.get("received_at"):
+        die("requests.json: operator entry %s missing received_at" % r["id"])
+
+if os.path.exists("data/notices-inbox.jsonl"):
+    for n, line in enumerate(open("data/notices-inbox.jsonl"), 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            e = json.loads(line)
+        except ValueError as exc:
+            die("notices-inbox.jsonl line %d: %s" % (n, exc))
+        miss = [k for k in ("id", "ts", "received_at", "summary", "place") if not e.get(k)]
+        if miss:
+            die("notices-inbox.jsonl line %d: missing %s" % (n, ",".join(miss)))
 EOF
 }
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, cameras)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 if [ "$FAILURES" -eq 0 ]; then
     echo "SUMMARY: all 10 checks passed"

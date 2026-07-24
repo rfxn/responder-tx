@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.73';
+const APP_VERSION = 'v0.97.74';
 
 const CONFIG = {
   center: [29.5, -95.1],
@@ -166,6 +166,7 @@ const state = {
   showNormalGauges: false,
   gaugeGroup: 'priority',
   inView: false,
+  lanIntake: false, // LAN server advertises POST /api/requests — intakes also share board-wide
   camGen: 0,
   tropicalAutoDone: false, // set once the tropical tracker has been auto-enabled or manually toggled off
   tides: null, // coastal water-level rows (NOAA CO-OPS); null until first Resources-tab open, then per-station

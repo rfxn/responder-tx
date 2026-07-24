@@ -1,5 +1,35 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.74 · 2026-07-24 (LAN EOC: notice intakes shared between stations)
+
+-- New Features --
+- [New] On a LAN ops board, saving a '+ New notice' intake now also shares it
+      with every other station. The notice still appears instantly on the
+      device that entered it, exactly as before, and a quiet confirmation
+      says it was shared to the board and will appear for everyone after the
+      next refresh cycle (English and Spanish). Two EOC coordinators triaging
+      on different stations finally see each other's intakes without passing
+      Export/Import files around.
+- [New] LAN server: a new POST /api/requests intake endpoint behind the same
+      LAN/loopback client gate and per-IP rate limiter as chat and notes. It
+      validates the notice server-side (required summary and place, length
+      caps on every text field, HTML tags stripped, coordinates rejected
+      outside a sane bounding box, type/priority/source coerced to known
+      values) and appends one server-stamped line per intake to
+      data/notices-inbox.jsonl.
+- [New] Pipeline: a new gen-notices step folds accepted intakes into
+      data/requests.json each refresh cycle with origin "operator" provenance,
+      fully re-derived from the inbox every run so reruns never duplicate and
+      removing an inbox line removes its entry; curated entries are never
+      touched, and a station's own intake is superseded in place by the shared
+      copy (same id) instead of doubling up. The release gate now validates
+      the notices inbox and the merged provenance.
+- [New] Privacy fences: operator intakes stay on the LAN. They are excluded
+      from the public feed.xml, the inbox file is never git-tracked, never
+      served over HTTP, and never part of the cycle commit, so the public
+      mirror keeps exactly its current behavior (notices added there remain
+      device-local, as its banner already says).
+
 ## v0.97.73 · 2026-07-24 (Team: dead-zone breadcrumbs no longer vanish; queued fixes send when signal returns)
 
 -- New Features --

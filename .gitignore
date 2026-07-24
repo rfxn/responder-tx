@@ -9,3 +9,4 @@ nohup.out
 *.log
 data/chat-outbox.json
 data/notes-inbox.jsonl
+data/notices-inbox.jsonl

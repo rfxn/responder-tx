@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadApp } = require('./harness.js');
 
-const { smartScore, shortId, CONFIG, pushCardState, pushFreshState } = loadApp();
+const { smartScore, shortId, allRequests, state, CONFIG, pushCardState, pushFreshState } = loadApp();
 
 /* ---------- smartScore: priority weight with half-life age decay ---------- */
 
@@ -56,6 +56,35 @@ test('shortId — seed ids map to zero-padded R-NNN', () => {
 test('shortId — non-seed ids hash to a valid 3-char base36 code', () => {
   const out = shortId('f47ac10b-58cc-4372-a567-0e02b2c3d479');
   assert.match(out, /^R-[0-9A-Z]{3}$/);
+});
+
+/* ---------- allRequests: LAN-shared copy supersedes the local intake (same id) ---------- */
+
+test('allRequests — a seed entry with the same id supersedes the local copy', () => {
+  const saved = { seed: state.seedRequests, store: state.store };
+  try {
+    state.seedRequests = [{ id: 'local-x1', summary: 'shared copy', status: 'open', ts: 'T' }];
+    state.store = { added: [{ id: 'local-x1', summary: 'local copy', status: 'open', ts: 'T' }], overrides: {}, archived: [] };
+    const all = allRequests();
+    assert.equal(all.length, 1);
+    assert.equal(all[0].summary, 'shared copy');
+  } finally {
+    state.seedRequests = saved.seed;
+    state.store = saved.store;
+  }
+});
+
+test('allRequests — local intakes not yet shared still render beside seeds', () => {
+  const saved = { seed: state.seedRequests, store: state.store };
+  try {
+    state.seedRequests = [{ id: 'seed-001', summary: 'curated', status: 'open', ts: 'T' }];
+    state.store = { added: [{ id: 'local-x2', summary: 'device-local', status: 'open', ts: 'T' }], overrides: {}, archived: [] };
+    const all = allRequests();
+    assert.deepEqual(all.map((r) => r.id).sort(), ['local-x2', 'seed-001']);
+  } finally {
+    state.seedRequests = saved.seed;
+    state.store = saved.store;
+  }
 });
 
 test('shortId — hashing is deterministic (same id -> same code)', () => {

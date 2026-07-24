@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Responder TX LAN server: static files + POST /api/chat|/api/notes -> data/*.jsonl; serves HTTPS on :8443 (self-signed) with an :8080 HTTP->HTTPS redirect when a TLS cert is present, else plain HTTP on :8080."""
+"""Responder TX LAN server: static files + POST /api/chat|/api/notes|/api/requests -> data/*.jsonl; serves HTTPS on :8443 (self-signed) with an :8080 HTTP->HTTPS redirect when a TLS cert is present, else plain HTTP on :8080."""
 import base64
 import http.client
 import ipaddress
@@ -28,6 +28,15 @@ POST_RATE_BURST = 12  # per-IP token bucket: 12-post burst, then 12/min sustaine
 POST_RATE_PER_SEC = 0.2
 NOTE_KINDS = ('marker', 'general', 'comment')
 NOTE_CATS = ('info', 'hazard', 'road', 'water', 'photo')
+NOTICES_INBOX = os.path.join(ROOT, 'data', 'notices-inbox.jsonl')
+NOTICE_TYPES = ('rescue', 'evacuation', 'medical', 'supplies', 'shelter', 'animal',
+                'wellness', 'volunteer', 'equipment', 'road', 'cutoff', 'info')
+NOTICE_PRIORITIES = ('critical', 'high', 'medium', 'low')
+NOTICE_SOURCES = ('x', 'facebook', 'nextdoor', 'news', 'official', 'field')
+NOTICE_BBOX = (15.0, 55.0, -130.0, -60.0)  # lat min/max, lon min/max — CONUS-wide sanity fence, not an AO fence
+NOTICE_ID_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{2,47}$')
+NOTICE_TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$')
+TAG_RE = re.compile(r'<[^>]*>')
 GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
 NWPS_BASE = 'https://api.water.noaa.gov/nwps/v1/gauges/'
 GAUGE_TTL = 180
@@ -49,7 +58,7 @@ CAM_TTL = 120
 DENY_PREFIXES = ('/.git', '/.rdf', '/.claude')
 DENY_DIRS = ('.git', '.rdf', '.claude', '.github', 'docs', 'pkg', 'audit-output')  # dev/working dirs, never served on the LAN
 DENY_EXTS = ('.py', '.sh', '.md', '.toml', '.yml', '.yaml')  # source/config/working docs — the app only fetches html/js/css/json/assets/feeds, so denying these blocks git-excluded notes (CLAUDE.md, *-SCOPE.md, BRAND-SPEC.md, etc.) and source (server.py) from LAN clients
-DENY_PATHS = ('/data/.chat-cursor', '/data/notes-inbox.jsonl')  # HANDOFF.md now covered by the .md ext deny; chat-inbox.jsonl stays served so the app can show the owner's own messages (git-ignored; never on the public mirror)
+DENY_PATHS = ('/data/.chat-cursor', '/data/notes-inbox.jsonl', '/data/notices-inbox.jsonl')  # HANDOFF.md now covered by the .md ext deny; chat-inbox.jsonl stays served so the app can show the owner's own messages (git-ignored; never on the public mirror)
 # Master oversight proxy: the LAN board reaches the Cloudflare-only team registry through here so
 # the secret admin token stays server-side (env only, never in git or the browser). Unset → the
 # master view is disabled (ping.master=false) and the endpoints 503.
@@ -86,6 +95,11 @@ _admin_lock = threading.Lock()
 _rate_buckets = {}
 _rate_lock = threading.Lock()
 _inbox_lock = threading.Lock()
+
+
+def _notice_text(v, cap):
+    # tag-strip is a backstop: the board escapes at render, but inbox lines outlive the app
+    return TAG_RE.sub('', str(v or '')).strip()[:cap]
 
 
 def _read_cursor(path):
@@ -126,7 +140,7 @@ class Handler(SimpleHTTPRequestHandler):
         # master is advertised only when the admin token is configured, so the LAN board hides the
         # oversight tool on servers that cannot reach the token-gated registry.
         if self.path == '/api/ping':
-            body = json.dumps({'ok': True, 'chat': True, 'notes': True, 'master': bool(TEAM_ADMIN_TOKEN)}).encode()
+            body = json.dumps({'ok': True, 'chat': True, 'notes': True, 'requests': True, 'master': bool(TEAM_ADMIN_TOKEN)}).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
@@ -356,7 +370,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(resp)
 
     def do_POST(self):
-        if self.path in ('/api/chat', '/api/notes'):
+        if self.path in ('/api/chat', '/api/notes', '/api/requests'):
             # same client gate as the team/master proxies — the inbox feeds a build-capable session, so non-LAN writes are refused
             if not self._lan_client_allowed():
                 self._reject_post(403, 'client not LAN/loopback')
@@ -366,6 +380,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             if self.path == '/api/chat':
                 self._append_chat()
+            elif self.path == '/api/requests':
+                self._append_request()
             else:
                 self._append_note()
         elif TEAM_RE.match(self.path.split('?', 1)[0]):
@@ -459,6 +475,59 @@ class Handler(SimpleHTTPRequestHandler):
                     return
                 entry['parent'] = parent
             self._append_line(NOTES_INBOX, entry)
+        except (ValueError, TypeError, OSError):
+            self.send_error(400)
+
+    # Shared multi-operator notice intake: the '+ New notice' form on a LAN board POSTs its
+    # notice here; gen-notices.py folds accepted lines into data/requests.json each cycle so
+    # every station sees every station's intakes. Validation mirrors _append_note.
+    def _append_request(self):
+        try:
+            d = self._read_body()
+            if d is None:
+                return
+            summary = _notice_text(d.get('summary'), 300)
+            place = _notice_text(d.get('place'), 120)
+            if not summary or not place:
+                self.send_error(400)
+                return
+            rid = str(d.get('id', '')).strip()
+            if not NOTICE_ID_RE.match(rid):
+                rid = 'r-%x' % int(time.time() * 1000)
+            now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            ts = str(d.get('ts', '')).strip()[:32]
+            if not NOTICE_TS_RE.match(ts):
+                ts = now
+            src = d.get('source') if isinstance(d.get('source'), dict) else {}
+            url = str(src.get('url', '')).strip()[:300]
+            if url and not url.lower().startswith(('http://', 'https://')):
+                url = ''
+            entry = {
+                'received_at': now,
+                'ts': ts,
+                'id': rid,
+                'type': d.get('type') if d.get('type') in NOTICE_TYPES else 'info',
+                'priority': d.get('priority') if d.get('priority') in NOTICE_PRIORITIES else 'medium',
+                'status': 'open',
+                'county': _notice_text(d.get('county'), 40) or 'Unknown',
+                'place': place,
+                'summary': summary,
+                'details': _notice_text(d.get('details'), 2000),
+                'source': {'platform': src.get('platform') if src.get('platform') in NOTICE_SOURCES else 'field',
+                           'handle': _notice_text(src.get('handle'), 80), 'url': url},
+                'contact': _notice_text(d.get('contact'), 80),
+            }
+            lat, lon = d.get('lat'), d.get('lon')
+            if lat is not None or lon is not None:
+                lat, lon = float(lat), float(lon)  # one-sided/non-numeric coords raise -> 400
+                if not (NOTICE_BBOX[0] <= lat <= NOTICE_BBOX[1] and NOTICE_BBOX[2] <= lon <= NOTICE_BBOX[3]):
+                    self.send_error(400)
+                    return
+                entry['lat'], entry['lon'] = round(lat, 5), round(lon, 5)
+            radius = d.get('radiusMi')
+            if isinstance(radius, (int, float)) and not isinstance(radius, bool) and 0 < radius <= 100:
+                entry['radiusMi'] = round(float(radius), 1)
+            self._append_line(NOTICES_INBOX, entry)
         except (ValueError, TypeError, OSError):
             self.send_error(400)
 

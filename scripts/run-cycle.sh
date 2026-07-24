@@ -54,6 +54,11 @@ python3 scripts/gen-history.py
 log "step: gen-crest-summary.py"
 python3 scripts/gen-crest-summary.py
 
+log "step: gen-notices.py (LAN intake merge)"
+if ! python3 scripts/gen-notices.py; then
+    log "WARN: gen-notices.py failed (non-fatal); keeping previous requests.json"
+fi
+
 log "step: gen-feeds.py"
 python3 scripts/gen-feeds.py
 

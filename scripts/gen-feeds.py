@@ -188,6 +188,7 @@ def main():
 
     notices = [r for r in reqs.get("requests", [])
                if r.get("status") != "resolved" and r.get("priority") in ("critical", "high")
+               and r.get("origin") != "operator"  # LAN operator intakes never ship to the public feed
                and fresh(r)]
     notices.sort(key=lambda r: r.get("ts", ""), reverse=True)
     emergencies = fetch_emergencies()

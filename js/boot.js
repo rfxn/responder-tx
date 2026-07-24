@@ -850,6 +850,7 @@ async function boot() {
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (d && d.chat) loadLanScript('js/chat.js');
     else markMirror();
+    if (d && d.requests) state.lanIntake = true; // LAN write endpoint present — intakes also share board-wide
     if (d && d.master) loadLanScript('js/master.js'); // command-side, all-teams oversight view
   }).catch(markMirror);
   restoreViewState(); // saved view first, so any URL param below overrides it for this load

@@ -3,9 +3,11 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.97.87';
+const SW_VERSION = '0.97.88';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
-const CACHE_DATA = `respondertx-data-${SW_VERSION}`;
+// version-independent: /data/ is not versioned by app release, and the last-good copies here are
+// the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
+const CACHE_DATA = 'respondertx-data';
 // version-independent: holds the subscriber's language hint so a payload-free push can be
 // localized; must survive SW updates (excluded from the activate cleanup)
 const CACHE_PUSH = 'respondertx-push';
@@ -56,9 +58,28 @@ self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_STATIC).then((cache) => cache.addAll(PRECACHE)));
 });
 
+// carry the last-good /data/ copies over from the retired per-version caches, so the release that
+// stops wiping the offline fallback is not itself the last wipe. Best-effort by design.
+async function adoptLegacyDataCache(names) {
+  try {
+    const legacy = names.filter((n) => n.indexOf(`${CACHE_DATA}-`) === 0);
+    if (!legacy.length) return;
+    const cache = await caches.open(CACHE_DATA);
+    if ((await cache.keys()).length) return; // already carried over, or already refilled from the network
+    for (const name of legacy) { // insertion order: the newest legacy cache wins on overlap
+      const old = await caches.open(name);
+      for (const req of await old.keys()) {
+        const hit = await old.match(req);
+        if (hit) await cache.put(req, hit);
+      }
+    }
+  } catch (err) { /* adoption is best-effort — the next successful /data/ fetch refills the cache */ }
+}
+
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
+    await adoptLegacyDataCache(names);
     await Promise.all(names
       .filter((n) => n.indexOf('respondertx-') === 0 && n !== CACHE_STATIC && n !== CACHE_DATA && n !== CACHE_PUSH)
       .map((n) => caches.delete(n)));

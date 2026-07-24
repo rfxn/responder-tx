@@ -623,6 +623,15 @@ async function openBasinView(slug) {
   renderBasinBody();
 }
 
+// leaving Basin Focus must drop the corridor rings: they carry no legend once the view is gone,
+// and renderGauges re-applies them on every 90s marker rebuild until the frame is cleared
+function closeBasinView() {
+  $('#basin-view').hidden = true;
+  state.basinHiLids = null;
+  state.basinFramedSlug = null; // reopening the same river must re-frame, not silently no-op
+  basinApplyHighlight();
+}
+
 function renderGaugesTab() {
   renderWave();
   refreshRecoveryView();
@@ -787,7 +796,7 @@ function renderResources() {
         `<div class="popup-meta">${esc(t('shl.livefeed'))}</div>` +
         `<div class="popup-link"><a href="${esc(safeUrl(shlSrcUrl))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>`);
     } else {
-      m.bindPopup(`<div class="popup-title">🏠 ${esc(s.name)}</div><div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div><div class="popup-meta">Location approximate; confirm before routing.</div>`);
+      m.bindPopup(`<div class="popup-title">🏠 ${esc(s.name)}</div><div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div><div class="popup-meta">${esc(t('shl.approx'))}</div>`);
     }
     state.layers.shelters.addLayer(m);
   }

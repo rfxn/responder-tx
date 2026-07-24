@@ -161,6 +161,48 @@ test('initPushCard gates on pushCardVisible, not on the ?push flag alone', () =>
     'the bare ?push early-return is what hid the off switch');
 });
 
+/* ---------- pushFollowPending: what the "Notify me" bell can actually deliver ---------- */
+
+const { pushFollowPending, pushPendingHtml } = loadApp();
+
+test('pushFollowPending — a follow requested with alerts off is pending, not silently dropped', () => {
+  // the regression: tapping the gauge-popup bell with alerts off switched to a card with no
+  // manage view, no preselected gauge and no explanation, and v0.97.79 claimed otherwise
+  for (const st of ['off', 'blocked', 'unsupported', 'ios']) {
+    assert.equal(pushFollowPending(st, 'SRRT2'), true, `${st} must explain itself`);
+  }
+});
+
+test('pushFollowPending — on a subscribed device the picker opens, so nothing is pending', () => {
+  assert.equal(pushFollowPending('on', 'SRRT2'), false);
+});
+
+test('pushFollowPending — no requested gauge means no note, in any card state', () => {
+  for (const st of ['on', 'off', 'blocked', 'unsupported', 'ios']) {
+    assert.equal(pushFollowPending(st, null), false);
+    assert.equal(pushFollowPending(st, ''), false);
+  }
+});
+
+test('pushPendingHtml renders a translated explanation when off, and nothing when on', () => {
+  const off = pushPendingHtml('off', 'SRRT2');
+  assert.match(off, /push-m-note/, 'the note uses the card note style');
+  assert.match(off, /push\.manage\.pending/, 'and is routed through t(), never a bare literal');
+  assert.equal(pushPendingHtml('on', 'SRRT2'), '', 'a subscribed device just gets the picker');
+  assert.equal(pushPendingHtml('off', null), '', 'no requested gauge, no note');
+  for (const st of ['blocked', 'unsupported', 'ios']) {
+    assert.match(pushPendingHtml(st, 'SRRT2'), /push-m-note/, `${st} must still explain itself`);
+  }
+});
+
+test('renderPushCard emits the pending note unconditionally, not behind a dead gate', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
+  const fn = src.match(/function renderPushCard\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderPushCard not found in js/board.js');
+  assert.match(fn[0], /^\s*pushPendingHtml\(st, pushManagePreselect\) \+$/m,
+    'the card must concatenate the note directly, with nothing short-circuiting it');
+});
+
 /* ---------- pushFreshState: evaluator freshness chip (web push P2) ---------- */
 
 test('pushFreshState — hidden without data, ok within 20 min, stale past it', () => {

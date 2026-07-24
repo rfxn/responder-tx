@@ -157,3 +157,39 @@ test('basinRivers — tide station groups are flagged coastal, never dressed up 
   assert.equal(rivers[0].coastal, true);
   assert.equal(riverOf('Tide Station (LCH) at Texas Point'), 'Tide Station (LCH)');
 });
+
+/* Corridor-ring lifecycle. state.basinHiLids drives a 3px accent ring on every gauge in the
+   framed corridor, and renderGauges re-applies it on each 90s marker rebuild. Leaving the view
+   without clearing it left ~12 gauges ringed on the live map with no legend and no open view. */
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const panelsSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+const bootSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
+
+test('closeBasinView clears the highlight set, the framed slug, and re-applies', () => {
+  const fn = panelsSrc.match(/function closeBasinView\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'closeBasinView not found in js/panels.js');
+  assert.match(fn[0], /basin-view'\)\.hidden = true/, 'it still hides the view');
+  assert.match(fn[0], /state\.basinHiLids = null/, 'the ring set must be dropped');
+  assert.match(fn[0], /state\.basinFramedSlug = null/, 'else reopening the same river never re-frames');
+  assert.match(fn[0], /basinApplyHighlight\(\)/, 'the rings must be repainted off the live markers');
+});
+
+test('every exit path from Basin Focus goes through closeBasinView', () => {
+  assert.match(bootSrc, /\$\('#basin-exit'\)\.addEventListener\('click', closeBasinView\)/,
+    'the exit button must call it');
+  // anchor on the same comment scripts/cycle-check.sh uses: boot.js has more than one such loop
+  const esc = bootSrc.match(/never on Escape or a backdrop click[\s\S]*?\n {4}\}/);
+  assert.ok(esc, 'the Escape-dismiss loop was not found in js/boot.js (anchor comment moved?)');
+  assert.match(esc[0], /'#basin-view'/, 'Escape still dismisses the basin view');
+  assert.match(esc[0], /closeBasinView\(\)/, 'and Escape must clear the rings too, not just hide the panel');
+});
+
+test('renderBasinBody is the only place that populates the ring set', () => {
+  const assigns = panelsSrc.match(/state\.basinHiLids = [^;]+;/g) || [];
+  assert.equal(assigns.length, 2, `expected one set and one clear, found: ${assigns.join(' | ')}`);
+  assert.ok(assigns.some((a) => a.includes('new Set(')), 'renderBasinBody still frames the corridor');
+  assert.ok(assigns.some((a) => a.includes('null')), 'closeBasinView still clears it');
+});

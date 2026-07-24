@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.88",
+      "date": "2026-07-24",
+      "line": "Four smaller fixes. The offline copy of the flood data is no longer erased every time you accept an app update, so a responder who loses signal right after updating still has the last readings the board saw, and the copies saved under the old scheme are carried over rather than thrown away. Tapping Notify me on a gauge while device alerts are off now says what is missing instead of switching to a panel that looks inert, and the gauge you picked is still selected once alerts are on. Leaving Basin Focus now clears the corridor rings it drew on the map instead of leaving a dozen gauges circled with nothing to explain them. And the copy, import, intake and shelter dialogs that had only ever spoken English now speak Spanish too."
+    },
+    {
       "v": "v0.97.87",
       "date": "2026-07-24",
       "line": "Two honesty fixes. A shelter that the FEMA feed lists without reporting a status used to appear as a green OPEN with a FEMA and Red Cross citation, asserting something no official source actually said; those now read as status unknown, in English and Spanish, and only a reported status is shown as fact. Separately, opening the Recovery view while historical playback was running switched today's shelter markers and reopened road markers back on underneath the playback frame, so live positions sat on top of a picture of three days ago. Recovery now leaves the map alone while playback owns it, and reopened roads join the layers that step aside for a historical frame."

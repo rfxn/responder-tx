@@ -120,7 +120,7 @@ const EXPORTS = [
   'CALTOPO_EXPORT_URL', 'renderCaltopoQr',
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
-  'pushCardState', 'pushCardVisible', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges',
+  'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges',
 ];
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)

@@ -181,6 +181,49 @@ test('i18n: feed and export control keys exist in both languages', () => {
   }
 });
 
+/* Browser-dialog guard. alert/confirm/prompt paths shipped as English template literals: the
+   clipboard fallback is routinely reached on the LAN board (http:// has no secure context, so
+   navigator.clipboard is unavailable), and the LAN intake form and JSON import are operator
+   surfaces. A Spanish session read all of them in English. */
+const DIALOG_FILES = ['board.js', 'panels.js', 'team.js'];
+
+test('renderer guard: no alert/confirm/prompt is called with a bare English literal', () => {
+  const hits = [];
+  for (const f of DIALOG_FILES) {
+    const src = strippedSource(f);
+    for (const m of src.matchAll(/\b(alert|confirm|prompt)\(\s*([`'"])/g)) {
+      // a translated call opens with t(...) or tt(...), never with a string literal
+      hits.push(`${f}: ${src.slice(m.index, m.index + 60).split('\n')[0]}`);
+    }
+  }
+  assert.deepEqual(hits, [], 'browser dialog called with a hardcoded string (route it through t()/tt())');
+});
+
+test('i18n: the dialog and shelter-status keys exist in both languages with placeholders intact', () => {
+  const keys = ['share.prompt', 'shl.approx', 'shl.st.unknown', 'intake.required', 'intake.dup',
+    'import.done', 'import.failed', 'push.manage.pending'];
+  for (const k of keys) {
+    assert.ok(typeof I18N.en[k] === 'string' && I18N.en[k].length, `en missing ${k}`);
+    assert.ok(typeof I18N.es[k] === 'string' && I18N.es[k].length, `es missing ${k}`);
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+    for (const ph of I18N.en[k].match(/\{[a-z]+\}/g) || []) {
+      assert.ok(I18N.es[k].includes(ph), `es ${k} missing placeholder ${ph}`);
+    }
+  }
+});
+
+test('renderer guard: the formerly hardcoded dialog strings do not reappear', () => {
+  const denylist = ['Summary and place are required', 'Possible duplicate: same type',
+    "'Copy URL:'", "'Copy team link:'", 'Import: ${added}', 'Import failed: ${e.message}',
+    'Location approximate; confirm before routing'];
+  const hits = [];
+  for (const f of DIALOG_FILES) {
+    const src = strippedSource(f);
+    for (const term of denylist) if (src.includes(term)) hits.push(`${f}: ${term}`);
+  }
+  assert.deepEqual(hits, [], 'hardcoded dialog English literal reappeared (route it through t()/tt())');
+});
+
 test('renderer guard: the filters badge label is not a hardcoded literal', () => {
   const board = strippedSource('board.js');
   assert.ok(!/'☰ Filters'|`☰ Filters/.test(board),

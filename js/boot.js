@@ -727,7 +727,7 @@ async function boot() {
   $('#recovery-btn').addEventListener('click', openRecoveryView);
   $('#recovery-exit').addEventListener('click', () => { $('#recovery-view').hidden = true; });
   $('#basin-btn').addEventListener('click', () => openBasinView(state.basinRiver));
-  $('#basin-exit').addEventListener('click', () => { $('#basin-view').hidden = true; });
+  $('#basin-exit').addEventListener('click', closeBasinView);
   // ticker halves are duplicated markup — delegate clicks by item index instead of per-node listeners
   $('#ticker').addEventListener('click', (e) => {
     const it = e.target.closest('.ticker-item');
@@ -824,7 +824,12 @@ async function boot() {
     // records the acknowledgment), never on Escape or a backdrop click
     for (const id of ['#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#team-drop', '#team-edit']) {
       const m = $(id);
-      if (m && !m.hidden) { m.hidden = true; if (id === '#drive-mode') { updateDriveFreshness(); keepAwake(false, 'drive'); } break; }
+      if (m && !m.hidden) {
+        m.hidden = true;
+        if (id === '#drive-mode') { updateDriveFreshness(); keepAwake(false, 'drive'); }
+        if (id === '#basin-view') closeBasinView(); // Escape must drop the corridor rings too
+        break;
+      }
     }
   });
 

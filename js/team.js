@@ -636,7 +636,7 @@
       const url = `${location.origin}/?team=${T.id}`;
       const btn = document.getElementById('team-share');
       const orig = btn.innerHTML;
-      copyText(url).then(() => { btn.textContent = '✓ ' + tt('team.copied', 'Copied ✓'); setTimeout(() => { btn.innerHTML = orig; }, 1500); }, () => prompt('Copy team link:', url));
+      copyText(url).then(() => { btn.textContent = '✓ ' + tt('team.copied', 'Copied ✓'); setTimeout(() => { btn.innerHTML = orig; }, 1500); }, () => prompt(tt('share.prompt', 'Copy this link:'), url));
     });
     host.querySelector('#team-fac-btn').addEventListener('click', toggleFacilities);
     ensureDropFab();
@@ -1440,7 +1440,7 @@
       go.disabled = false;
       host.querySelector('#team-create-copy').addEventListener('click', () => {
         const b = host.querySelector('#team-create-copy');
-        copyText(url).then(() => { b.textContent = tt('team.copied', 'Copied ✓'); }, () => prompt('Copy team link:', url));
+        copyText(url).then(() => { b.textContent = tt('team.copied', 'Copied ✓'); }, () => prompt(tt('share.prompt', 'Copy this link:'), url));
       });
       host.querySelector('#team-create-enter').addEventListener('click', () => {
         T.id = data.teamId; T.name = data.name || ''; T.teamType = data.teamType || DEFAULT_TEAM_TYPE;

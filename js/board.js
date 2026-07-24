@@ -350,13 +350,13 @@ function submitRequest(ev) {
     source: { platform: $('#f-source').value, handle: $('#f-handle').value.trim(), url: $('#f-url').value.trim() },
     contact: $('#f-contact').value.trim(),
   };
-  if (!r.summary || !r.place) { alert('Summary and place are required.'); return; }
+  if (!r.summary || !r.place) { alert(t('intake.required')); return; }
   if (Number.isFinite(r.lat)) {
     const dup = allRequests().find((x) => x.status !== 'resolved' && x.type === r.type
       && Number.isFinite(x.lat) && distMi(x.lat, x.lon, r.lat, r.lon) < 3);
     if (dup) {
       const dist = distMi(dup.lat, dup.lon, r.lat, r.lon).toFixed(1);
-      if (!confirm(`Possible duplicate: same type ${dist} mi away (${dup.status}):\n"${dup.summary.slice(0, 100)}"\n\nAdd anyway?`)) return;
+      if (!confirm(t('intake.dup').replace('{d}', dist).replace('{s}', dup.status).replace('{q}', dup.summary.slice(0, 100)))) return;
     }
   }
   state.store.added.push(r);
@@ -727,7 +727,7 @@ function copyCaltopoUrl() {
   const btn = $('#caltopo-copy');
   copyText(CALTOPO_EXPORT_URL).then(
     () => { btn.textContent = t('caltopo.copied'); setTimeout(() => { btn.textContent = t('caltopo.copy'); }, 1400); },
-    () => prompt('Copy URL:', CALTOPO_EXPORT_URL));
+    () => prompt(t('share.prompt'), CALTOPO_EXPORT_URL));
 }
 
 function importRequests(file) {
@@ -750,8 +750,8 @@ function importRequests(file) {
       }
       saveStore();
       renderRequests();
-      alert(`Import: ${added} new, ${updated} status updates.`);
-    } catch (e) { alert(`Import failed: ${e.message}`); }
+      alert(t('import.done').replace('{a}', added).replace('{u}', updated));
+    } catch (e) { alert(t('import.failed').replace('{e}', e.message)); }
   };
   reader.readAsText(file);
 }
@@ -1043,6 +1043,12 @@ function pushCardVisible(f) {
   return f.subscribed === true || f.flagged === true;
 }
 
+// the gauge picker only exists on a subscribed device, so a "Notify me" tap that arrives with
+// alerts off has to say what is missing instead of switching to a card that looks inert
+function pushFollowPending(cardState, preselect) {
+  return Boolean(preselect) && cardState !== 'on';
+}
+
 function pushLocal() {
   try { return JSON.parse(localStorage.getItem(PUSH_LS_KEY)) || {}; } catch { return {}; }
 }
@@ -1210,6 +1216,12 @@ function pushManageHtml(prefs) {
   '</div>';
 }
 
+// the pending-follow explanation, or '' when the tap will really open the picker
+function pushPendingHtml(cardState, preselect) {
+  if (!pushFollowPending(cardState, preselect)) return '';
+  return `<div class="push-m-note">${esc(t('push.manage.pending').replace('{g}', pushGaugeName(preselect)))}</div>`;
+}
+
 function renderPushCard() {
   const host = $('#push-body');
   if (!host) return;
@@ -1229,6 +1241,7 @@ function renderPushCard() {
       `<div class="push-sub">${esc(t('push.sub'))}</div>` +
       `<div class="push-disclaimer">${esc(t('push.disclaimer'))}</div>` +
       `<div class="push-status push-${st}">${esc(t(`push.state.${st}`))}</div>` +
+      pushPendingHtml(st, pushManagePreselect) +
       (on
         ? `<div class="push-chips" role="group" aria-label="${esc(t('push.chips.label'))}">` +
             chip('ffe', prefs.ffe) + chip('major', prefs.tier === 'major') + chip('moderate', prefs.tier === 'moderate') +

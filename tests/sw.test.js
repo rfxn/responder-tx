@@ -8,19 +8,40 @@ const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..');
 
+// in-memory CacheStorage stand-in: name -> Map(key -> value). Enough surface for the
+// activate-time cache bookkeeping (keys/open/delete, and per-cache keys/match/put).
+function makeCaches(seed = {}) {
+  const store = new Map(Object.entries(seed).map(([n, m]) => [n, new Map(Object.entries(m))]));
+  const wrap = (name) => ({
+    async keys() { return [...(store.get(name) || new Map()).keys()]; },
+    async match(k) { return (store.get(name) || new Map()).get(String(k)); },
+    async put(k, v) {
+      if (!store.has(name)) store.set(name, new Map());
+      store.get(name).set(String(k), v);
+    },
+  });
+  return {
+    _store: store,
+    async keys() { return [...store.keys()]; },
+    async open(name) { if (!store.has(name)) store.set(name, new Map()); return wrap(name); },
+    async delete(name) { return store.delete(name); },
+  };
+}
+
 // Evaluate sw.js top-level in a vm with minimal SW globals; the epilogue
 // exports the constants under test (same non-invasive pattern as harness.js).
-function loadSw() {
+function loadSw(caches = makeCaches()) {
   const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const listeners = [];
   const sandbox = {
     self: { addEventListener(type) { listeners.push(type); }, location: { origin: 'https://respondertx.org' } },
-    caches: {},
+    caches,
     URL,
   };
   vm.createContext(sandbox);
-  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_UNSTAMPED, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, PUSH_FALLBACK, dataCacheKey };`, sandbox);
+  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_UNSTAMPED, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, PUSH_FALLBACK, dataCacheKey, adoptLegacyDataCache };`, sandbox);
   sandbox.__exports.listeners = listeners;
+  sandbox.__exports.caches = caches;
   return sandbox.__exports;
 }
 
@@ -33,10 +54,59 @@ test('SW_VERSION agrees with APP_VERSION in js/core.js', () => {
   assert.equal(sw.SW_VERSION, m[1]);
 });
 
-test('cache names are keyed to the version', () => {
-  assert.ok(sw.CACHE_STATIC.includes(sw.SW_VERSION));
-  assert.ok(sw.CACHE_DATA.includes(sw.SW_VERSION));
+test('the app shell is version-keyed and the data cache deliberately is not', () => {
+  // /data/ is not versioned by app release, and the copies here ARE the offline fallback.
+  // Version-keying emptied that fallback on every accepted update toast: on a 17-release day
+  // a responder who lost signal after an update had nothing left to fall back to.
+  assert.ok(sw.CACHE_STATIC.includes(sw.SW_VERSION), 'the shell must version so a release invalidates it');
+  assert.ok(!sw.CACHE_DATA.includes(sw.SW_VERSION), 'CACHE_DATA must not be version-keyed');
+  assert.equal(sw.CACHE_DATA, 'respondertx-data');
   assert.notEqual(sw.CACHE_STATIC, sw.CACHE_DATA);
+});
+
+test('the data cache survives the activate cleanup, like the push cache', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  assert.match(src, /n !== CACHE_STATIC && n !== CACHE_DATA && n !== CACHE_PUSH/,
+    'activate cleanup must exclude CACHE_DATA');
+  assert.match(src, /await adoptLegacyDataCache\(names\);[\s\S]*?caches\.delete/,
+    'the carry-over must run before the retired caches are deleted');
+});
+
+test('adoptLegacyDataCache carries the last-good data over from the retired per-version caches', async () => {
+  const s = loadSw(makeCaches({
+    'respondertx-static-0.97.87': { 'https://respondertx.org/js/core.js?v=0.97.87': 'shell' },
+    'respondertx-data-0.97.86': { 'https://respondertx.org/data/gauges-snapshot.json': 'older' },
+    'respondertx-data-0.97.87': {
+      'https://respondertx.org/data/gauges-snapshot.json': 'newest',
+      'https://respondertx.org/data/roads-snapshot.json': 'roads',
+    },
+    'respondertx-push': { '/push-lang': 'es' },
+  }));
+  await s.adoptLegacyDataCache(await s.caches.keys());
+  const adopted = s.caches._store.get('respondertx-data');
+  assert.deepEqual([...adopted.keys()].sort(), [
+    'https://respondertx.org/data/gauges-snapshot.json',
+    'https://respondertx.org/data/roads-snapshot.json',
+  ]);
+  assert.equal(adopted.get('https://respondertx.org/data/gauges-snapshot.json'), 'newest',
+    'the newest retired cache wins where two hold the same file');
+});
+
+test('adoptLegacyDataCache never clobbers a data cache that already has content', async () => {
+  const s = loadSw(makeCaches({
+    'respondertx-data': { 'https://respondertx.org/data/gauges-snapshot.json': 'fresh' },
+    'respondertx-data-0.97.87': { 'https://respondertx.org/data/gauges-snapshot.json': 'stale' },
+  }));
+  await s.adoptLegacyDataCache(await s.caches.keys());
+  assert.equal(s.caches._store.get('respondertx-data').get('https://respondertx.org/data/gauges-snapshot.json'), 'fresh');
+});
+
+test('adoptLegacyDataCache is a silent no-op on a first install and never throws', async () => {
+  const s = loadSw(makeCaches({ 'respondertx-push': { '/push-lang': 'en' } }));
+  await assert.doesNotReject(s.adoptLegacyDataCache(await s.caches.keys()));
+  assert.equal(s.caches._store.has('respondertx-data'), false, 'no empty cache is created for nothing');
+  const broken = loadSw({ async keys() { return ['respondertx-data-1']; }, async open() { throw new Error('cache unavailable'); } });
+  await assert.doesNotReject(broken.adoptLegacyDataCache(['respondertx-data-1']), 'a cache failure must not block activation');
 });
 
 test('precache excludes the LAN-only clients the public mirror strips', () => {
@@ -126,8 +196,8 @@ test('push fallback table has en/es parity, the WEA/911 line, and no em-dash', (
 test('the push-lang cache is version-independent and survives the activate cleanup', () => {
   assert.ok(!sw.CACHE_PUSH.includes(sw.SW_VERSION), 'CACHE_PUSH must not be version-keyed');
   assert.ok(sw.CACHE_PUSH.indexOf('respondertx-') === 0, 'CACHE_PUSH stays in the app namespace');
-  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  assert.match(src, /n !== CACHE_STATIC && n !== CACHE_DATA && n !== CACHE_PUSH/, 'activate cleanup must exclude CACHE_PUSH');
+  assert.ok(sw.CACHE_DATA.indexOf('respondertx-') === 0, 'CACHE_DATA stays in the app namespace');
+  assert.notEqual(sw.CACHE_PUSH, sw.CACHE_DATA);
 });
 
 test('every precached file exists in the repo', () => {

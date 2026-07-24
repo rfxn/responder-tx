@@ -1,5 +1,50 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.88 · 2026-07-24 (the offline data cache survives updates, plus three smaller fixes)
+
+-- Bug Fixes --
+- [Fix] CACHE_DATA was keyed to SW_VERSION and the activate handler deletes
+      every respondertx-* cache except the current three, so every accepted
+      update toast emptied the last-good /data/ cache. On a day with 17
+      releases that is 17 wipes, and a responder who lost signal before the
+      next successful fetch had no offline fallback left. The data cache now
+      has a stable name and survives activation, exactly as CACHE_PUSH already
+      did in the same file. The app shell still versions per release.
+- [Fix] Activation now carries the contents of the retired per-version data
+      caches into the stable one before deleting them, so the release that
+      stops the wiping is not itself the last wipe. It is best effort, never
+      blocks activation, and never overwrites a data cache that already holds
+      something fresher.
+- [Fix] "Notify me" rendered whenever a VAPID key was configured, independent
+      of subscription state, so tapping it with alerts off switched to a card
+      with no manage view, no preselected gauge and no explanation. The card
+      now states what is missing, and because the request is remembered,
+      turning alerts on opens the picker with that gauge pinned, which is what
+      v0.97.79 claimed it already did.
+- [Fix] Leaving Basin Focus never cleared state.basinHiLids, so roughly a dozen
+      gauges kept a 3px corridor ring on the live map with no legend and no
+      open view explaining them, re-applied by every 90 second marker rebuild.
+      Both exits, the close button and Escape, now go through closeBasinView,
+      which drops the ring set and the framed slug so reopening the same river
+      re-frames instead of silently doing nothing.
+- [Fix] The LAN board is served over http:// and therefore has no secure
+      context, so navigator.clipboard is unavailable and the prompt fallback is
+      routinely reached. That fallback, the JSON import result and failure
+      dialogs, the intake form validation and duplicate confirmation, the team
+      link copy fallback and the curated shelter location note were all
+      hardcoded English. All now route through t() with real Spanish.
+
+-- New Features --
+- [New] A CacheStorage stand-in in tests/sw.test.js drives the carry-over
+      directly: the newest retired cache wins on overlap, a populated cache is
+      never clobbered, a first install is a silent no-op, and a cache failure
+      cannot block activation. That file previously asserted
+      CACHE_DATA.includes(SW_VERSION), codifying the bug; the assertion now
+      states the intended lifetime instead. Added with it: the pushPendingHtml
+      and pushFollowPending tables, the basin ring lifecycle across both exit
+      paths, and a renderer guard that fails if any alert, confirm or prompt is
+      called with a bare string literal.
+
 ## v0.97.87 · 2026-07-24 (two honesty fixes: shelter status, and Recovery under playback)
 
 -- Bug Fixes --

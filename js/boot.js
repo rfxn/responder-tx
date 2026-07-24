@@ -608,10 +608,16 @@ async function boot() {
   registerModal($('#changelog-modal'));
   registerModal($('#risk-modal'), { initialFocus: '#risk-addr' });
   registerModal($('#sitrep-modal'), { initialFocus: '#sitrep-copy' });
-  registerModal($('#drive-mode'));
-  registerModal($('#summary-view'));
-  registerModal($('#recovery-view'));
-  registerModal($('#basin-view'));
+  registerModal($('#drive-mode')); // eyes-off-road by design: it SHOULD cover the map and trap focus
+  // the three docked lenses are deliberately NOT modals. registerModal marks the rest of the page
+  // inert, which would make the map they exist to describe unclickable. They keep their exit
+  // buttons and their place in the Escape chain; Leaflet just has to re-measure when they move.
+  for (const id of ['#summary-view', '#recovery-view', '#basin-view']) {
+    const el = $(id);
+    if (!el) continue;
+    new MutationObserver(() => { if (state.map) setTimeout(() => state.map.invalidateSize(), 260); })
+      .observe(el, { attributes: true, attributeFilter: ['hidden'] });
+  }
   applyTheme(document.documentElement.getAttribute('data-theme'));
   loadStore();
   loadHist();

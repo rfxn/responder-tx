@@ -6,9 +6,68 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { loadApp } = require('./harness.js');
 
 const { modalCycleIndex, modalIsFocusableVisible } = loadApp();
+
+/* Which surfaces are modal is a correctness question, not a style one: registerModal() marks the
+   rest of the page inert. Drive Mode is eyes-off-road and SHOULD cover and trap. The three docked
+   lenses must not, because Basin fits the corridor and rings its gauges, so making the map inert
+   is making the thing the lens exists to show unusable (v0.97.94). */
+const ROOT = path.join(__dirname, '..');
+const BOOT = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
+const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+test('Drive Mode is registered as a modal; the docked lenses are not', () => {
+  assert.ok(/registerModal\(\$\('#drive-mode'\)\)/.test(BOOT), '#drive-mode must stay a registered modal');
+  for (const id of ['#summary-view', '#recovery-view', '#basin-view']) {
+    assert.ok(!new RegExp(`registerModal\\(\\$\\('${id}'\\)\\)`).test(BOOT),
+      `${id} is registered as a modal; that marks the map inert and the lens exists to show the map`);
+  }
+});
+
+test('the docked lenses drop the modal ARIA that no longer describes them', () => {
+  for (const id of ['summary-view', 'recovery-view', 'basin-view']) {
+    const m = HTML.match(new RegExp(`<div id="${id}"[^>]*>`));
+    assert.ok(m, `#${id} not found in index.html`);
+    assert.ok(m[0].includes('class="lens-pane"'), `#${id} is not a .lens-pane`);
+    assert.ok(!m[0].includes('aria-modal="true"'), `#${id} still claims aria-modal while not being modal`);
+    assert.ok(/aria-labelledby="/.test(m[0]), `#${id} lost its accessible name`);
+  }
+  const drive = HTML.match(/<div id="drive-mode"[^>]*>/);
+  assert.ok(drive && drive[0].includes('aria-modal="true"'), '#drive-mode must stay aria-modal');
+});
+
+test('the docked lenses live inside <main> and stay in the Escape chain', () => {
+  const main = HTML.slice(HTML.indexOf('<main>'), HTML.indexOf('</main>'));
+  for (const id of ['summary-view', 'recovery-view', 'basin-view']) {
+    assert.ok(main.includes(`id="${id}"`), `#${id} must be inside <main> for the docked geometry to anchor`);
+  }
+  assert.ok(!main.includes('id="drive-mode"'), '#drive-mode is full-screen fixed; it does not belong in <main>');
+  const esc = BOOT.match(/for \(const id of \['#risk-modal'[\s\S]*?\]/);
+  assert.ok(esc, 'the Escape-dismiss loop array was not found');
+  for (const id of ['#summary-view', '#recovery-view', '#basin-view']) {
+    assert.ok(esc[0].includes(id), `${id} left the Escape chain`);
+  }
+});
+
+test('Leaflet is told to re-measure when a lens pane opens or closes', () => {
+  assert.ok(/attributeFilter: \['hidden'\][\s\S]{0,80}?/.test(BOOT) && /invalidateSize/.test(BOOT),
+    'a lens pane appearing or leaving must trigger map.invalidateSize() or Leaflet greys out');
+  const block = BOOT.match(/for \(const id of \['#summary-view', '#recovery-view', '#basin-view'\][\s\S]*?\n  \}/);
+  assert.ok(block, 'the lens-pane observer block was not found');
+  assert.ok(/invalidateSize\(\)/.test(block[0]), 'the lens-pane observer must call invalidateSize()');
+});
+
+test('the Recovery lens keeps the v0.97.87 playback guard', () => {
+  const panels = fs.readFileSync(path.join(ROOT, 'js', 'panels.js'), 'utf8');
+  const fn = panels.match(/async function openRecoveryView\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'openRecoveryView() not found');
+  assert.ok(/!pbBlocksLive\(state\)/.test(fn[0]),
+    'openRecoveryView lost its playback guard; it would re-add live markers under a historical frame');
+});
 
 test('modalCycleIndex — empty focus set yields -1 (nothing to focus)', () => {
   assert.equal(modalCycleIndex(0, -1, false), -1);

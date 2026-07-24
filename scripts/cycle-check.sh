@@ -353,11 +353,34 @@ if os.path.exists("data/notices-inbox.jsonl"):
             die("notices-inbox.jsonl line %d: missing %s" % (n, ",".join(miss)))
 EOF
 }
+# k. 911 footer on every lens — Drive Mode and the three docked lenses each carry .drive-911, and
+# the board keeps its #disclaimer strip. A lens that fills the screen without the 911 line is the
+# one place a responder could read this board and never see it.
+check_lens_911() {
+    node - <<'EOF'
+const fs = require('fs');
+const root = process.env.CODE_ROOT || '.';
+const html = fs.readFileSync(`${root}/index.html`, 'utf8');
+const fail = (m) => { console.error(`lens-911 gate: ${m}`); process.exit(1); };
+if (!/id="disclaimer"/.test(html)) fail('#disclaimer strip missing from index.html');
+for (const id of ['drive-mode', 'summary-view', 'recovery-view', 'basin-view']) {
+  const at = html.indexOf(`id="${id}"`);
+  if (at === -1) fail(`#${id} missing from index.html`);
+  // the root's own markup runs to the next lens root or to </main>; close enough to catch a drop
+  const rest = html.slice(at);
+  const end = Math.min(...['id="summary-view"', 'id="recovery-view"', 'id="basin-view"', '</main>', '<script']
+    .map((s) => { const i = rest.indexOf(s, 1); return i === -1 ? rest.length : i; }));
+  if (!/class="drive-911"/.test(rest.slice(0, end))) fail(`#${id} has no .drive-911 footer`);
+}
+EOF
+}
+if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin) + #disclaimer"; else failck "911 footer on every lens"; fi
+
 if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, caltopo-export, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 10 checks passed"
+    echo "SUMMARY: all 11 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 10 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 11 checks FAILED"
 exit 1

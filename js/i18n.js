@@ -15,6 +15,7 @@
 
 
       'ctl.update': '⬆ Updated · tap to reload',
+      'ctl.update.lbl': 'Updated · tap to reload',
       'ctl.update.title': 'A newer board version is live; reloads this tab',
       'update.reloading': 'Board updated to {v}, reloading…',
       'update.later': 'Later',
@@ -1030,6 +1031,7 @@
 
 
       'ctl.update': '⬆ Actualizado · toque para recargar',
+      'ctl.update.lbl': 'Actualizado · toque para recargar',
       'ctl.update.title': 'Hay una versión más reciente del panel; recarga esta pestaña',
       'update.reloading': 'Panel actualizado a {v}, recargando…',
       'update.later': 'Después',

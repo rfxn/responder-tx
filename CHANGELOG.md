@@ -1,5 +1,41 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.94 · 2026-07-24 (Basin, Recovery and Crest summary dock beside the map they describe)
+
+-- Changes --
+- [Change] Basin Focus, Recovery and Crest summary are lenses now, not covers.
+           All three rendered position:fixed inset:0 and registered as modals,
+           which marks the rest of the page inert. Basin was the clearest case:
+           it fits the map to the river corridor and rings that river's gauges,
+           then covered the map it had just framed, and the map could not be
+           touched. They take the sidebar column instead, matching #sidebar at
+           every width: 420px on desktop, the bottom sheet at the height the
+           sheet handle is set to on a phone held upright, and 40vw capped at
+           340px sideways, leaving the map the other 60%.
+- [Change] Drive Mode deliberately did NOT change. It stays full-screen and
+           stays a registered modal: it is eyes-off-road, big-type and
+           glare-hardened, and covering the map is the correct behavior there.
+- [Change] The three docked panes drop aria-modal, which no longer described
+           them, and keep an accessible name, their Exit buttons and their
+           place in the Escape chain. Leaflet is told to re-measure whenever a
+           pane appears or leaves.
+- [Change] The update chip goes icon-only on a phone like every other header
+           control. Since v0.97.93 the header no longer wraps, so a chip
+           carrying its full sentence squeezed the brand out of the row; its
+           title and aria-label carry the meaning.
+
+-- New Features --
+- [New] scripts/cycle-check.sh gains an eleventh check: every lens root
+      (Drive, Crest summary, Recovery, Basin) must carry its .drive-911 footer
+      and the board must keep its #disclaimer strip. A lens that fills the
+      screen without the 911 line is the one place a responder could read this
+      board and never see it.
+- [New] tests/modal-a11y.test.js asserts which surfaces are modal, because
+      that is a correctness question rather than a style one: registerModal
+      marks the page inert. Drive Mode must be registered, the three lenses
+      must not, they must live inside <main>, they must stay in the Escape
+      chain, and the Recovery playback guard from v0.97.87 must survive.
+
 ## v0.97.93 · 2026-07-24 (landscape stops shrinking the tap targets; the header holds one row)
 
 -- Bug Fixes --

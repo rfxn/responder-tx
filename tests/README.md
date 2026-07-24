@@ -20,6 +20,9 @@ bash tests/chat-poll.test.sh          # ops-chat durability
 bash tests/deploy.test.sh             # release gate: deploy.sh reads and ships HEAD
 bash tests/freshness-monitor.test.sh  # public-mirror freshness monitor
 python3 tests/server-gate.test.py     # LAN server write gate
+python3 tests/gen-notices.test.py     # LAN intake merge semantics
+python3 tests/gen-shelters.test.py    # shelter-status honesty + the schema gate
+python3 tests/gen-caltopo.test.py     # CalTopo GeoJSON export
 ```
 
 CI runs the same commands (`.github/workflows/ci.yml`) plus `node --check` on

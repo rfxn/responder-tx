@@ -159,6 +159,7 @@ function pbSbwPopup(p) {
    as-of the frame from item timestamps, or hides — nothing live may impersonate the past. */
 const PB_LIVE_HIDE = [
   ['shelters', 'layers.shelters'],
+  ['roadReopen', 'layers.reopen'],
   ['camsTxdot', 'layers.cams.txdot'],
   ['camsRiver', 'layers.cams.river'],
   ['camsAustin', 'layers.cams.austin'],

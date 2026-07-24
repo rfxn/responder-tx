@@ -14,7 +14,7 @@ import tempfile
 import urllib.parse
 import urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "shelters-live.json")
 EVENT = os.path.join(ROOT, "data", "event.json")
 URL = "https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0/query"
@@ -80,7 +80,9 @@ def main():
                 "address": addr,
                 "lat": round(lat, 5),
                 "lon": round(lon, 5),
-                "status": str(p.get("shelter_status") or "OPEN"),
+                # a record the layer published with no status stays "unknown": defaulting it to
+                # OPEN would assert an openness no authoritative source reported
+                "status": str(p.get("shelter_status") or "").strip() or "unknown",
             }
             if isinstance(p.get("evacuation_capacity"), (int, float)):
                 entry["capacity"] = int(p["evacuation_capacity"])
@@ -103,7 +105,8 @@ def main():
     except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
         os.unlink(tmp)
         raise
-    print(f"shelters-live.json: {len(shelters)} open shelters in AO @ {now}")
+    unknown = sum(1 for s in shelters if s["status"] == "unknown")
+    print(f"shelters-live.json: {len(shelters)} shelters in AO ({unknown} with no reported status) @ {now}")
 
 
 if __name__ == "__main__":

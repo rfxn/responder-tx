@@ -2,9 +2,11 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { loadMapApp } = require('./harness.js');
 
-const { pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, state } = loadMapApp();
+const { pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, PB_LIVE_HIDE, state } = loadMapApp();
 
 /* frame-selection math for historical playback: frames are as-of snapshots, so a scrub
    time must resolve to the latest frame at-or-before it, clamped inside the 3d/7d/14d
@@ -92,4 +94,43 @@ test('pbBlocksLive — returns a real boolean, never a truthy object (callers as
   assert.strictEqual(pbBlocksLive({ pb: { live: false } }), true);
   assert.strictEqual(pbBlocksLive({ pb: { live: true } }), false);
   assert.strictEqual(pbBlocksLive({}), false);
+});
+
+/* time-integrity: nothing live may impersonate the past. PB_LIVE_HIDE is the list playbackEngage
+   strips and playbackGoLive restores; every opener that adds one of these back must first ask
+   pbBlocksLive, or today's markers appear under the historical frame with a live citation. */
+
+const SRC = (f) => fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8');
+
+test('PB_LIVE_HIDE covers both layers the Recovery lens turns on', () => {
+  const keys = PB_LIVE_HIDE.map(([k]) => k);
+  assert.ok(keys.includes('shelters'), 'shelters must hide under a historical frame');
+  assert.ok(keys.includes('roadReopen'), 'reopened roads were absent from the sweep entirely');
+});
+
+test('PB_LIVE_HIDE entries are [layerKey, i18nKey] pairs with no duplicates', () => {
+  const keys = PB_LIVE_HIDE.map(([k]) => k);
+  assert.equal(new Set(keys).size, keys.length, 'a duplicate key would double-restore on go-live');
+  for (const entry of PB_LIVE_HIDE) {
+    assert.equal(entry.length, 2, `malformed entry: ${JSON.stringify(entry)}`);
+    assert.ok(entry[0] && typeof entry[0] === 'string', `bad layer key: ${JSON.stringify(entry)}`);
+    assert.match(entry[1], /^layers\./, `the locked-layer note needs an i18n key: ${JSON.stringify(entry)}`);
+  }
+});
+
+test('every PB_LIVE_HIDE layer key is a real state.layers key assigned in js/map.js', () => {
+  const map = SRC('map.js');
+  for (const [k] of PB_LIVE_HIDE) {
+    assert.match(map, new RegExp(`state\\.layers(\\.${k}\\b|\\.cams\\.)`),
+      `${k} is not a layer js/map.js creates, so hiding it is a no-op`);
+  }
+});
+
+test('openRecoveryView refuses to add live layers while playback is engaged', () => {
+  // the regression: engage playback, scrub back 3 days, open Recovery, and today's shelter
+  // markers appeared under the PLAYBACK badge with popups citing the live FEMA/ARC feed
+  const fn = SRC('panels.js').match(/async function openRecoveryView\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'openRecoveryView not found in js/panels.js');
+  const guarded = fn[0].slice(0, fn[0].indexOf('addTo(state.map)'));
+  assert.match(guarded, /pbBlocksLive\(state\)/, 'the live-layer adds must sit behind pbBlocksLive');
 });

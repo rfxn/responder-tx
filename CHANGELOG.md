@@ -1,5 +1,52 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.87 · 2026-07-24 (two honesty fixes: shelter status, and Recovery under playback)
+
+-- Bug Fixes --
+- [Fix] A FEMA NSS record with a null, empty or absent shelter_status published
+      as OPEN, so the board rendered a green "OPEN: <name>" carrying a FEMA and
+      ARC citation for a shelter no authoritative source had called open. The
+      layer is named OpenShelters, but it demonstrably carries standby, full and
+      closed rows, so the name is not a warrant. gen-shelters.py now emits
+      "unknown" for a record with no reported status and passes a real reported
+      status through verbatim, trimmed. data/shelters-live.json holds zero
+      shelters today, so this landed before the first status-less record could
+      ship the false positive.
+- [Fix] shlStatus gained an explicit "unknown" mapping with its own en and es
+      string and the muted colour, instead of falling through to a raw
+      uppercased English word. Only a reported status is now presented as fact.
+- [Fix] The Recovery view called addTo(state.map) for reopened roads and
+      shelters with no playback guard, so engaging playback, scrubbing back
+      three days and opening Recovery put today's shelter markers under the
+      PLAYBACK badge with popups citing the live FEMA and ARC feed. Both adds
+      now sit behind pbBlocksLive, matching the pattern the USGS fallback
+      already used, so nothing live is added while playback owns the map.
+- [Fix] roadReopen was absent from PB_LIVE_HIDE entirely, a pre-existing hole in
+      the same time-integrity sweep: engaging playback left reopened road
+      markers on a historical frame. It now hides on engage and restores on
+      go-live like every other live-only layer.
+
+-- Changes --
+- [Change] The cycle-check shelter schema gate no longer accepts any truthy
+           string as a status, which is what once rewarded the OPEN default. It
+           names the mapped vocabulary, requires a status-less record to publish
+           as "unknown", and prints a note for upstream vocabulary drift rather
+           than aborting the data cycle over it.
+- [Change] gen-shelters.py honors RESPONDER_ROOT like gen-notices.py and
+           gen-caltopo.py, so a test can drive it against a fixture instead of
+           the real data directory, and its summary line now reports how many
+           shelters arrived with no status.
+
+-- New Features --
+- [New] tests/gen-shelters.test.py: the status default across null, empty,
+      whitespace and absent, real statuses passing through, and the cycle-check
+      schema gate itself extracted from scripts/cycle-check.sh and run against
+      fixture output, so "unknown" is proven to pass the gate the generator now
+      feeds. Four playback tests cover PB_LIVE_HIDE membership and shape, that
+      every key in it is a layer map.js really creates, and that
+      openRecoveryView guards on pbBlocksLive. The three generator suites are
+      now wired into CI, which had been running none of them.
+
 ## v0.97.86 · 2026-07-24 (device alerts always carry a reachable off switch)
 
 -- Bug Fixes --

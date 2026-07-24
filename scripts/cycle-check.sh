@@ -245,11 +245,20 @@ d = optional("data/shelters-live.json")
 if d is not None:
     if "generated" not in d or not isinstance(d.get("shelters"), list):
         die("shelters-live.json: generated/shelters[] missing")
+    # "unknown" is a first-class expected value: a record the feed published with no status
+    # must say so. Accepting any truthy string here is what once rewarded an OPEN default.
+    shelter_vocab = ("open", "standby", "full", "closed", "unknown")
     for i, s in enumerate(d["shelters"]):
-        if (not s.get("name") or not s.get("status")
+        if (not s.get("name")
                 or not isinstance(s.get("lat"), (int, float))
                 or not isinstance(s.get("lon"), (int, float))):
-            die("shelters-live.json: shelters[%d] missing name/lat/lon/status" % i)
+            die("shelters-live.json: shelters[%d] missing name/lat/lon" % i)
+        st = str(s.get("status") or "").strip()
+        if not st:
+            die("shelters-live.json: shelters[%d] has no status; a status-less record must publish as 'unknown'" % i)
+        if st.lower() not in shelter_vocab:
+            # upstream vocabulary drift renders verbatim and must never abort the data cycle
+            print("note: shelters-live.json shelters[%d] status %r is outside the mapped vocabulary" % (i, st))
 
 d = optional("data/caltopo-export.json")
 if d is not None:

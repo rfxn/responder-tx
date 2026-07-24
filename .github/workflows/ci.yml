@@ -51,6 +51,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 tests/server-gate.test.py
 
+      - name: Generator tests (notices, shelters, caltopo)
+        if: ${{ !cancelled() }}
+        run: |
+          python3 tests/gen-notices.test.py
+          python3 tests/gen-shelters.test.py
+          python3 tests/gen-caltopo.test.py
+
       - name: Release-cycle sanity checks
         if: ${{ !cancelled() }}
         run: bash scripts/cycle-check.sh

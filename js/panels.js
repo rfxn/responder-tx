@@ -439,7 +439,7 @@ function refreshRecoveryView() {
 async function openRecoveryView() {
   $('#recovery-view').hidden = false;
   // recovery lens map defaults: reopened roads + shelters visible behind the view
-  if (state.map) {
+  if (state.map && !pbBlocksLive(state)) { // playback engaged: never add a live layer under a historical frame
     for (const lk of ['roadReopen', 'shelters']) {
       const l = state.layers[lk];
       if (l && !state.map.hasLayer(l)) l.addTo(state.map);
@@ -723,6 +723,8 @@ const SHELTER_STATUS = {
   standby: { key: 'shl.st.standby', color: 'var(--cat-action)' },
   full: { key: 'shl.st.full', color: 'var(--cat-action)' },
   closed: { key: 'shl.st.closed', color: 'var(--ink-muted)' },
+  // the feed listed the site but reported no status: say so rather than imply open
+  unknown: { key: 'shl.st.unknown', color: 'var(--ink-2)' },
 };
 function shlStatus(status) {
   const st = SHELTER_STATUS[String(status || '').toLowerCase()];

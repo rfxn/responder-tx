@@ -124,7 +124,7 @@ const EXPORTS = [
 ];
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
-const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'iemRadarFrames', 'wxFcstDegraded']);
+const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded']);
 
 function buildBundle(files, exports) {
   const sources = files.map(read).join('\n;\n');

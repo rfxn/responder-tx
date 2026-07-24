@@ -19,6 +19,13 @@ from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, Thread
 ROOT = os.path.dirname(os.path.abspath(__file__))
 INBOX = os.path.join(ROOT, 'data', 'chat-inbox.jsonl')
 NOTES_INBOX = os.path.join(ROOT, 'data', 'notes-inbox.jsonl')
+CHAT_CURSOR = os.path.join(ROOT, 'data', '.chat-cursor')
+CHAT_ACK_CURSOR = os.path.join(ROOT, 'data', '.chat-ack-cursor')
+INBOX_ARCHIVE_FMT = os.path.join(ROOT, 'data', 'chat-inbox-archive-%s.jsonl')
+INBOX_MAX_BYTES = 2 * 1024 * 1024
+INBOX_MAX_LINES = 5000
+POST_RATE_BURST = 12  # per-IP token bucket: 12-post burst, then 12/min sustained — a human typing chat never hits it
+POST_RATE_PER_SEC = 0.2
 NOTE_KINDS = ('marker', 'general', 'comment')
 NOTE_CATS = ('info', 'hazard', 'road', 'water', 'photo')
 GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
@@ -62,6 +69,41 @@ _cam_cache = {}
 _cam_lock = threading.Lock()
 _admin_cache = {}
 _admin_lock = threading.Lock()
+_rate_buckets = {}
+_rate_lock = threading.Lock()
+_inbox_lock = threading.Lock()
+
+
+def _read_cursor(path):
+    try:
+        with open(path) as f:
+            return int(f.read().strip() or 0)
+    except (OSError, ValueError):
+        return 0
+
+
+def _write_cursor(path, n):
+    tmp = path + '.tmp'
+    with open(tmp, 'w') as f:
+        f.write('%d\n' % n)
+    os.replace(tmp, path)
+
+
+def _rotate_inbox_if_due():
+    # Rotation rule: only when BOTH cursors equal the current line count (fully drained), then reset both to 0 — otherwise defer, so rotation never strands or replays a message.
+    try:
+        size = os.path.getsize(INBOX)
+        with open(INBOX, 'rb') as f:
+            lines = sum(1 for _ in f)
+    except OSError:
+        return
+    if size < INBOX_MAX_BYTES and lines < INBOX_MAX_LINES:
+        return
+    if _read_cursor(CHAT_CURSOR) != lines or _read_cursor(CHAT_ACK_CURSOR) != lines:
+        return
+    os.replace(INBOX, INBOX_ARCHIVE_FMT % time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()))
+    _write_cursor(CHAT_CURSOR, 0)
+    _write_cursor(CHAT_ACK_CURSOR, 0)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -300,14 +342,39 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(resp)
 
     def do_POST(self):
-        if self.path == '/api/chat':
-            self._append_chat()
-        elif self.path == '/api/notes':
-            self._append_note()
+        if self.path in ('/api/chat', '/api/notes'):
+            # same client gate as the team/master proxies — the inbox feeds a build-capable session, so non-LAN writes are refused
+            if not self._lan_client_allowed():
+                self._reject_post(403, 'client not LAN/loopback')
+                return
+            if not self._post_rate_ok():
+                self._reject_post(429, 'rate limited')
+                return
+            if self.path == '/api/chat':
+                self._append_chat()
+            else:
+                self._append_note()
         elif TEAM_RE.match(self.path.split('?', 1)[0]):
             self._team_proxy()
         else:
             self.send_error(404)
+
+    def _reject_post(self, code, why):
+        sys.stderr.write('%s blocked POST %s from %s: %s\n' % (
+            time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), self.path, self.client_address[0], why))
+        self.send_error(code)
+
+    def _post_rate_ok(self):
+        ip = self.client_address[0]
+        now = time.time()
+        with _rate_lock:
+            for k in [k for k, v in _rate_buckets.items() if now - v[1] > 300]:
+                del _rate_buckets[k]  # idle-bucket sweep keeps memory bounded
+            tokens, last = _rate_buckets.get(ip, (float(POST_RATE_BURST), now))
+            tokens = min(float(POST_RATE_BURST), tokens + (now - last) * POST_RATE_PER_SEC)
+            allowed = tokens >= 1
+            _rate_buckets[ip] = (tokens - 1 if allowed else tokens, now)
+        return allowed
 
     def _read_body(self):
         # CSRF guard: cross-origin simple requests can't set application/json, and a
@@ -342,7 +409,9 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_error(400)
                 return
             entry = {'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'role': 'user', 'text': text}
-            self._append_line(INBOX, entry)
+            with _inbox_lock:
+                _rotate_inbox_if_due()
+                self._append_line(INBOX, entry)
         except (ValueError, OSError):
             self.send_error(400)
 

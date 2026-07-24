@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.66 · 2026-07-24 (LAN server hardening: writes limited to the local network)
+
+-- Changes --
+- [Change] The LAN server now accepts chat and note posts only from devices on
+      the local network (private, loopback, and link-local addresses, the same
+      rule the team relay already used). Posts from outside addresses are
+      refused with a logged one-line notice (path and client address) so a
+      blocked device is easy to diagnose. Reading the board and its data is
+      unchanged, and the public respondertx.org mirror is unaffected.
+- [Change] Chat and note posts are rate limited per device (a burst of 12,
+      then 12 per minute) so a runaway or hostile client cannot flood the
+      inbox; normal typing never hits the limit. The chat inbox also rotates
+      to a dated archive file once it passes 2 MB or 5000 lines, and only
+      after every message has been read and acknowledged, so no message is
+      ever lost or replayed.
+
 ## v0.97.65 · 2026-07-24 (Event-aware AO presets and event name in the header)
 
 -- Bug Fixes --

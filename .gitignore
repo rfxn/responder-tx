@@ -1,5 +1,6 @@
 HANDOFF.md
 data/chat-inbox.jsonl
+data/chat-inbox-archive-*.jsonl
 data/.chat-cursor
 data/.chat-ack-cursor
 data/.chat-drain-active

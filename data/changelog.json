@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.66",
+      "date": "2026-07-24",
+      "line": "LAN server hardening. Chat and note posts are now accepted only from devices on the local network (the same rule the team relay already used), with blocked posts logged for easy diagnosis. Posts are rate limited per device (burst of 12, then 12 per minute, never felt when typing normally), and the chat inbox rotates to a dated archive once it grows large, only after every message has been read, so nothing is lost or replayed. Reading the board is unchanged."
+    },
+    {
       "v": "v0.97.65",
       "date": "2026-07-24",
       "line": "The area quick-jump pills and Reset view now follow the live event. Full AO is derived from the active gauge coverage box and the sub-area pills come from the event configuration: for TS Bertha they frame Houston metro, Beaumont · Port Arthur, Galveston Bay, and Matagorda · Victoria (the old pills still pointed at the retired Hill Country area and cut off the coast). The event name also shows again in the tab title and brand accessible text, with a release check guarding it."

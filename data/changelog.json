@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.64",
+      "date": "2026-07-24",
+      "line": "Offline fixes. The Leaflet map library now ships with the app instead of loading from a CDN, so the map renders even with no internet and no third-party dependency. The offline data fallback is fixed: saved copies of gauges and board data now match when you are out of signal (cache-busted fetches previously never hit the saved copy). Also adds a viewport-height fallback for older browsers so the legend and list keep their sizing."
+    },
+    {
       "v": "v0.97.63",
       "date": "2026-07-24",
       "line": "Offline app shell. The board now installs a service worker that saves the page, styles, and scripts at their exact current version, so opening with no signal still renders the app frame (live data and the page itself stay network-first and refresh normally; tiles, radar, and APIs are untouched). When a new build is ready you get a small Update available notice with Reload and Later choices, in English and Spanish; nothing reloads on its own mid-session."

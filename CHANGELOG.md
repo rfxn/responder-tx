@@ -1,5 +1,23 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.64 · 2026-07-24 (Offline correctness: map library served locally, data fallback fixed)
+
+-- Bug Fixes --
+- [Fix] Offline data fallback now actually serves saved data: live feeds are
+      fetched with unique cache-busting query strings, so the service worker's
+      saved copies never matched when offline. The worker now keys /data/ files
+      by their bare path (one saved copy per file), so gauges, changelog, and
+      other board data reappear from the last good fetch when there is no signal.
+- [Fix] The map now loads with no internet: the Leaflet map library (1.9.4,
+      scripts, styles, and marker/control images) is served from the app itself
+      instead of the unpkg CDN, and is saved for offline with the rest of the app
+      shell. A cold start with no signal previously left the whole board blank
+      because the map library could not be fetched; this also removes the CDN as
+      a live single point of failure.
+- [Fix] The map legend's scroll cap and the full-sheet list height now include a
+      viewport-height fallback for older browsers (roughly Chrome 80-107 and
+      iOS 13.4-15.3) that do not understand dynamic viewport units.
+
 ## v0.97.63 · 2026-07-24 (Offline app shell: service worker with user-controlled updates)
 
 -- New Features --

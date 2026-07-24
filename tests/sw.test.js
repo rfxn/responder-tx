@@ -15,9 +15,10 @@ function loadSw() {
   const sandbox = {
     self: { addEventListener() {}, location: { origin: 'https://respondertx.org' } },
     caches: {},
+    URL,
   };
   vm.createContext(sandbox);
-  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, CACHE_STATIC, CACHE_DATA };`, sandbox);
+  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_UNSTAMPED, CACHE_STATIC, CACHE_DATA, dataCacheKey };`, sandbox);
   return sandbox.__exports;
 }
 
@@ -50,11 +51,40 @@ test('precache is same-origin relative and never touches /api/', () => {
   }
 });
 
-test('every entry except the shell root carries the exact version stamp', () => {
+test('every entry except the shell root and css-relative images carries the exact version stamp', () => {
   for (const url of sw.PRECACHE) {
-    if (url === './') continue;
+    if (url === './' || sw.PRECACHE_UNSTAMPED.includes(url)) continue;
     assert.ok(url.endsWith(`?v=${sw.SW_VERSION}`), `unstamped precache entry: ${url}`);
   }
+  for (const url of sw.PRECACHE_UNSTAMPED) {
+    assert.ok(!url.includes('?'), `PRECACHE_UNSTAMPED entry carries a query: ${url}`);
+  }
+});
+
+test('precache vendors Leaflet js, css, and its image assets', () => {
+  assert.ok(sw.PRECACHE.includes(`js/vendor/leaflet.js?v=${sw.SW_VERSION}`));
+  assert.ok(sw.PRECACHE.includes(`js/vendor/leaflet.css?v=${sw.SW_VERSION}`));
+  for (const img of ['marker-icon.png', 'marker-icon-2x.png', 'marker-shadow.png', 'layers.png', 'layers-2x.png']) {
+    assert.ok(sw.PRECACHE.includes(`js/vendor/images/${img}`), `leaflet image missing from precache: ${img}`);
+  }
+});
+
+test('no unpkg (or any CDN leaflet) reference remains in index.html or sw.js', () => {
+  for (const f of ['index.html', 'sw.js']) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    assert.ok(!/unpkg\.com/i.test(src), `unpkg reference in ${f}`);
+    assert.ok(!/https?:\/\/[^"' ]*leaflet/i.test(src), `cross-origin leaflet reference in ${f}`);
+  }
+});
+
+test('dataCacheKey maps a cache-busted URL and its bare form to the same key', () => {
+  const bare = sw.dataCacheKey('https://respondertx.org/data/gauges-snapshot.json');
+  const busted = sw.dataCacheKey(`https://respondertx.org/data/gauges-snapshot.json?_=${Date.now()}`);
+  assert.equal(busted, bare);
+  assert.equal(bare, 'https://respondertx.org/data/gauges-snapshot.json');
+  const rel = sw.dataCacheKey('data/changelog.json?_=123');
+  assert.equal(rel, 'https://respondertx.org/data/changelog.json');
+  assert.notEqual(sw.dataCacheKey('data/changelog.json?_=1'), sw.dataCacheKey('data/history.json?_=1'));
 });
 
 test('precache covers every stamped local script and stylesheet in index.html', () => {

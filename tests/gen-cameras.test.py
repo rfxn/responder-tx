@@ -212,6 +212,57 @@ try:
 finally:
     shutil.rmtree(root)
 
+# ---------------------------------------------------------------------------
+# The icd is a path segment, so a '/' has to be carried as a stand-in and reversed by the
+# proxies. The three validators are hand-mirrored across three languages, so the drift that
+# would silently drop a district's cameras again is asserted here rather than trusted.
+root = fixture({})
+try:
+    g = load_gen(root)
+    check('an icd with a slash becomes a path-safe key',
+          g.its_icd_key('BMT BU90 @ FM1006/7th St  - Orange') == 'BMT BU90 @ FM1006~7th St  - Orange',
+          str(g.its_icd_key('BMT BU90 @ FM1006/7th St  - Orange')))
+    check('the key reverses back to exactly the upstream icd',
+          g.its_icd_key('BMT FM105 @ Sandbar Rd/Granger Rd - Orange').replace(g.ITS_ICD_SLASH, '/')
+          == 'BMT FM105 @ Sandbar Rd/Granger Rd - Orange')
+    check('an ordinary icd is unchanged, so nothing already shipping moves',
+          g.its_icd_key('BMT SH73 @ FM366') == 'BMT SH73 @ FM366')
+    check('an icd already holding the stand-in cannot round-trip and is dropped',
+          g.its_icd_key('BMT SH73 ~ FM366') is None)
+    check('an icd outside the charset is still rejected', g.its_icd_key('BMT <script>') is None)
+    check('an empty icd is rejected', g.its_icd_key('') is None)
+    check('the stand-in is not a character any upstream icd uses',
+          g.ITS_ICD_SLASH == '~' and g.ITS_ICD_RE.match('~'))
+
+    srv = open(os.path.join(HERE, '..', 'server.py'), encoding='utf-8').read()
+    edge = open(os.path.join(HERE, '..', 'functions', 'api', 'cam', '[district]', '[icd].js'),
+                encoding='utf-8').read()
+    charset = g.ITS_ICD_RE.pattern[1:-1]  # drop the ^ and $ anchors; the class is identical in all three
+    check('server.py mirrors the generator icd charset', charset in srv, charset)
+    check('the Pages Function mirrors the generator icd charset', charset in edge, charset)
+    check('server.py reverses the stand-in before the upstream call',
+          "replace(CAM_ICD_SLASH, '/')" in srv)
+    check('the Pages Function reverses the stand-in before the upstream call',
+          "split(ICD_SLASH).join('/')" in edge)
+    check('both proxies pin the same stand-in character',
+          ("CAM_ICD_SLASH = '~'" in srv) and ("ICD_SLASH = '~'" in edge))
+
+    arl = g.ARLINGTON_ID_RE.pattern[1:-1]
+    check('server.py mirrors the Arlington id charset', arl in srv, arl)
+    check('the Pages Function mirrors the Arlington id charset', arl in edge, arl)
+    check('the Arlington id charset admits a space, which one camera id contains',
+          bool(g.ARLINGTON_ID_RE.match('Sublett-Twin Maple')))
+    check('the Arlington id charset still admits no dot or slash, so no traversal',
+          not g.ARLINGTON_ID_RE.match('../../etc/passwd') and not g.ARLINGTON_ID_RE.match('a.b'))
+    check('server.py percent-encodes the id it interpolates into the upstream URL',
+          "quote(cid, safe='')" in srv)
+    check('the Pages Function percent-encodes the Arlington id',
+          'encodeURIComponent(id)}.jpg' in edge)
+    check('the Arlington query asks for geometry, which is where the missing positions live',
+          'returnGeometry=true' in g.ARLINGTON and 'outSR=4326' in g.ARLINGTON)
+finally:
+    shutil.rmtree(root)
+
 print('---')
 if FAILS:
     print('%d FAILURE(S)' % FAILS)

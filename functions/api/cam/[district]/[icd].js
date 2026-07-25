@@ -4,7 +4,8 @@
 // each source pins a fixed upstream host and validates its id.
 const ITS_UPSTREAM = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId';
 const DIST_RE = /^[A-Z]{3}$/;
-const ICD_RE = /^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$/; // matches gen-cameras.py ITS_ICD_RE
+const ICD_SLASH = '~'; // stands in for '/' in the path segment; reversed before the upstream call
+const ICD_RE = /^[A-Za-z0-9 @\-.'_()&,#+~]{1,64}$/; // matches gen-cameras.py ITS_ICD_RE
 const UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'; // some CDNs 1010-block the default fetch UA
 const ATX_LIST = 'https://api.atxfloods.com/api/cameras';
 const ATX_IMG = 'https://api.atxfloods.com/uploads/';
@@ -15,7 +16,7 @@ const ATX_NAME_RE = /^[A-Za-z0-9._-]{1,160}\.jpe?g$/i; // upstream-supplied file
 const BYTES_SOURCES = {
   austin: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://cctv.austinmobility.io/image/${id}.jpg` },
   houston: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://www.houstontranstar.org/snapshots/cctv/${id}.jpg` },
-  arlington: { idRe: /^[A-Za-z0-9_-]{1,64}$/, url: (id) => `https://webapps.arlingtontx.gov/webcams/${id}.jpg` },
+  arlington: { idRe: /^[A-Za-z0-9 _-]{1,64}$/, url: (id) => `https://webapps.arlingtontx.gov/webcams/${encodeURIComponent(id)}.jpg` },
   porthou: { idRe: /^[A-Za-z0-9_]{1,32}$/, url: (id) => `https://info.porthouston.com/vtraffic/gateimages/${id}.jpg` },
   hays: { idRe: /^[0-9]{1,12}-[0-9]{1,12}$/, url: (id) => { const [pid, sid] = id.split('-'); return `https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID=${pid}&shareID=${sid}`; } },
 };
@@ -52,7 +53,7 @@ async function itsSnapshot(context, district, icd) {
   if (hit) return hit;
   let jpeg, captured;
   try {
-    const up = await fetch(`${ITS_UPSTREAM}?icdId=${encodeURIComponent(icd)}&districtCode=${district}`, { headers: { Accept: 'application/json', 'User-Agent': UA } });
+    const up = await fetch(`${ITS_UPSTREAM}?icdId=${encodeURIComponent(icd.split(ICD_SLASH).join('/'))}&districtCode=${district}`, { headers: { Accept: 'application/json', 'User-Agent': UA } });
     if (!up.ok) return new Response(`upstream ${up.status}`, { status: 502 });
     const d = await up.json();
     if (!d || typeof d.snippet !== 'string' || !d.snippet) return new Response('no snapshot', { status: 502 });

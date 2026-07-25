@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.25 · 2026-07-25 (cameras we could already reach, now reachable)
+
+-- New Features --
+- [New] 28 more TxDOT district cameras are on the map, most of them along the
+      Beaumont flood corridor: Orange, Bridge City, Silsbee, Kountze, Jasper,
+      Liberty, Dayton, Port Arthur and Lumberton, plus El Paso, Yoakum and Tyler
+- [New] 19 more City of Arlington cameras are on the map. They were in the city
+      feed all along without a usable position in the columns the board read
+
+-- Changes --
+- [Change] Houston TranStar cameras the operator publishes with no position are
+           now named in the build log instead of vanishing without a trace.
+           Eleven cameras on US-290 Northwest and the Westpark Tollway are
+           affected, and they stay off the map until a position is available,
+           because a camera pinned to the wrong intersection is worse than one
+           that is missing
+
 ## v0.99.24 · 2026-07-25 (the camera list holds through an upstream dropout)
 
 -- Bug Fixes --

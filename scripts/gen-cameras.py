@@ -54,7 +54,8 @@ AUSTIN = 'https://data.austintexas.gov/resource/b4k4-adkb.json'
 ATXFLOODS = 'https://api.atxfloods.com/api/cameras'
 ATX_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/atxfloods proxy validator
 HOUSTON = 'https://traffic.houstontranstar.org/data/layers/cctvSnapshots_out.js'
-ARLINGTON = 'https://services.arcgis.com/jXi5GuMZwfCYtZP9/arcgis/rest/services/Traffic_Camera_Updates/FeatureServer/0/query?where=1%3D1&outFields=Camera_Location,Status,Pic_URL,Lat,Long&returnGeometry=false&f=json'
+# geometry is requested because 18 online rows carry a valid point but NULL Lat/Long columns
+ARLINGTON = 'https://services.arcgis.com/jXi5GuMZwfCYtZP9/arcgis/rest/services/Traffic_Camera_Updates/FeatureServer/0/query?where=1%3D1&outFields=Camera_Location,Status,Pic_URL,Lat,Long&returnGeometry=true&outSR=4326&f=json'
 ELP_BRIDGE_HOST = 'https://zoocams.elpasozoo.org'
 # NOT a growth source: elpasotexas.gov/disclaimer forbids copying or reproduction "without the
 # prior written consent of the CITY OF EL PASO" (verified 2026-07-25). bridgesantafe2.m3u8 is
@@ -103,11 +104,14 @@ HAYS_CAMS = (
     {'name': 'NRCS Dam 5 Upper San Marcos', 'lat': 29.870300, 'lon': -97.968622, 'pid': 313579755, 'sid': 14844919},
 )
 BROWSER_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some hosts block the default urllib UA
-# must mirror the /api/cam proxy validators (edge + server.py); no '/' — it is the URL path separator
-ITS_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")
+# must mirror the /api/cam proxy validators (edge + server.py). The icd is a path segment, so a
+# literal '/' cannot survive the round trip; ITS_ICD_SLASH stands in for it and both proxies
+# reverse the substitution before calling upstream. No icd upstream contains it (0 of 3745).
+ITS_ICD_SLASH = '~'
+ITS_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+~]{1,64}$")
 AUSTIN_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/austin proxy validator
 HOUSTON_PATH_RE = re.compile(r'^([0-9]{1,8})\.jpg$')  # TranStar snapshot filename; id mirrors the /api/cam/houston validator
-ARLINGTON_ID_RE = re.compile(r'^[A-Za-z0-9_-]{1,64}$')  # mirrors the /api/cam/arlington proxy validator
+ARLINGTON_ID_RE = re.compile(r'^[A-Za-z0-9 _-]{1,64}$')  # mirrors the /api/cam/arlington proxy validator; no '.' or '/', so no traversal
 ARLINGTON_PIC_RE = re.compile(r'^https?://webapps\.arlingtontx\.gov/webcams/(.+)\.jpg$', re.I)  # snapshot stem = proxy id
 HAYS_ID_RE = re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$')  # composite parentID-shareID; mirrors the /api/cam/hays proxy validator
 TX_MIN_LAT, TX_MAX_LAT, TX_MIN_LON, TX_MAX_LON = 25.0, 37.0, -107.5, -93.0  # generous Texas coord sanity gate
@@ -178,6 +182,18 @@ def txdot_cams():
             print(f'MapLarge: {pages} pages, {len(cams)} cams kept')
             return sorted(cams, key=lambda c: c['name'])
         start += PAGE
+
+
+def its_icd_key(icd):
+    """Path-segment-safe form of an ITS icd, or None when it cannot round-trip.
+
+    Both /api/cam proxies reverse ITS_ICD_SLASH before calling upstream, so an icd already
+    holding that character is unrepresentable and is dropped rather than mis-resolved.
+    """
+    if not icd or ITS_ICD_SLASH in icd:
+        return None
+    key = icd.replace('/', ITS_ICD_SLASH)
+    return key if ITS_ICD_RE.match(key) else None
 
 
 def prev_its():
@@ -255,8 +271,8 @@ def its_cams(streamable):
             for c in lst:
                 if c.get('statusDescription') != 'Device Online' or not c.get('hasSnapshot'):
                     continue
-                icd = str(c.get('icd_Id') or '')
-                if not ITS_ICD_RE.match(icd):
+                icd = its_icd_key(str(c.get('icd_Id') or ''))
+                if icd is None:
                     skipped_icd += 1
                     continue
                 try:
@@ -402,7 +418,7 @@ def houston_cams():
     txt = fetch_text(HOUSTON)
     rec_re = re.compile(r'new CctvCamera\((.*?)\);')
     arg_re = re.compile(r"'([^']*)'")
-    cams, seen = [], set()
+    cams, seen, nocoord = [], set(), []
     for m in rec_re.finditer(txt):
         a = arg_re.findall(m.group(1))
         if len(a) < 9 or a[8] != 'True':  # a[8] = validimg — skip cams the operator flags as no live image
@@ -415,7 +431,10 @@ def houston_cams():
         except ValueError:
             continue
         cid = pm.group(1)
-        if not in_texas(lat, lon) or cid in seen:
+        if cid in seen:
+            continue
+        if not in_texas(lat, lon):
+            nocoord.append(f'{cid} {a[0]}')  # upstream publishes 0,0 for these; unplaceable, not unreal
             continue
         seen.add(cid)
         cams.append({
@@ -424,14 +443,15 @@ def houston_cams():
             'lon': round(lon, 6),
             'id': cid,
         })
-    print(f'Houston TranStar: {len(cams)} cams kept (validimg + in-TX)')
+    print(f'Houston TranStar: {len(cams)} cams kept (validimg + in-TX), '
+          f'{len(nocoord)} dropped with no usable position: {", ".join(nocoord) or "none"}')
     return sorted(cams, key=lambda c: int(c['id']))
 
 
 def arlington_cams():
     # City of Arlington ArcGIS FeatureServer: Online cams only; the snapshot filename stem is the proxy id
     d = fetch_json(ARLINGTON)
-    cams, skipped = [], 0
+    cams, skipped, from_geom, nocoord = [], 0, 0, 0
     for f in (d.get('features') or []):
         a = f.get('attributes') or {}
         if not str(a.get('Status') or '').startswith('Online'):
@@ -440,14 +460,22 @@ def arlington_cams():
         if not pm:
             continue
         cid = pm.group(1)
-        if not ARLINGTON_ID_RE.match(cid):  # a stem the strict proxy id rejects (e.g. an embedded space) is dropped
+        if not ARLINGTON_ID_RE.match(cid):  # a stem the strict proxy id rejects is dropped
             skipped += 1
             continue
         try:
             lat, lon = float(a['Lat']), float(a['Long'])
         except (KeyError, TypeError, ValueError):
-            continue
+            # the Lat/Long columns are NULL on a fifth of the layer; the point geometry is not
+            g = f.get('geometry') or {}
+            try:
+                lat, lon = float(g['y']), float(g['x'])
+            except (KeyError, TypeError, ValueError):
+                nocoord += 1
+                continue
+            from_geom += 1
         if not in_texas(lat, lon):
+            nocoord += 1
             continue
         cams.append({
             'name': (a.get('Camera_Location') or f'Camera {cid}').strip(),
@@ -455,7 +483,8 @@ def arlington_cams():
             'lon': round(lon, 6),
             'id': cid,
         })
-    print(f'Arlington: {len(cams)} online city cams kept ({skipped} skipped on id charset)')
+    print(f'Arlington: {len(cams)} online city cams kept ({from_geom} positioned from geometry, '
+          f'{skipped} skipped on id charset, {nocoord} dropped with no usable position)')
     return sorted(cams, key=lambda c: c['name'])
 
 

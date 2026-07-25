@@ -41,7 +41,8 @@ GAUGE_RE = re.compile(r'^/api/gauge/([A-Za-z0-9]{3,8})/(detail|series)$')
 NWPS_BASE = 'https://api.water.noaa.gov/nwps/v1/gauges/'
 GAUGE_TTL = 180
 CAM_RE = re.compile(r'^/api/cam/([A-Za-z]{3,12})/([^/]{1,200})$')  # {source}/{id}: 3-letter ITS district or a named source
-CAM_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+]{1,64}$")  # matches gen-cameras.py ITS_ICD_RE — not an open proxy
+CAM_ICD_SLASH = '~'  # stands in for '/' in the path segment; reversed before the upstream call
+CAM_ICD_RE = re.compile(r"^[A-Za-z0-9 @\-.'_()&,#+~]{1,64}$")  # matches gen-cameras.py ITS_ICD_RE — not an open proxy
 CAM_DIST_RE = re.compile(r'^[A-Z]{3}$')  # ITS districts route to the base64-JSON upstream
 ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
 # Strict per-source allowlist for direct-JPEG passthrough — fixed upstream host per key, NOT an open image proxy.
@@ -50,7 +51,7 @@ ITS_SNAP = 'https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId'
 CAM_BYTES_SOURCES = {
     'austin': (re.compile(r'^[0-9]{1,8}$'), 'https://cctv.austinmobility.io/image/{id}.jpg'),
     'houston': (re.compile(r'^[0-9]{1,8}$'), 'https://www.houstontranstar.org/snapshots/cctv/{id}.jpg'),
-    'arlington': (re.compile(r'^[A-Za-z0-9_-]{1,64}$'), 'https://webapps.arlingtontx.gov/webcams/{id}.jpg'),
+    'arlington': (re.compile(r'^[A-Za-z0-9 _-]{1,64}$'), 'https://webapps.arlingtontx.gov/webcams/{id}.jpg'),
     'porthou': (re.compile(r'^[A-Za-z0-9_]{1,32}$'), 'https://info.porthouston.com/vtraffic/gateimages/{id}.jpg'),
     'hays': (re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$'), 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'),
 }
@@ -238,7 +239,7 @@ class Handler(SimpleHTTPRequestHandler):
             hit = _cam_cache.get(key)
         entry = hit if hit and now - hit[0] < CAM_TTL else None
         if entry is None:
-            url = ITS_SNAP + '?icdId=' + urllib.parse.quote(icd) + '&districtCode=' + district
+            url = ITS_SNAP + '?icdId=' + urllib.parse.quote(icd.replace(CAM_ICD_SLASH, '/')) + '&districtCode=' + district
             try:
                 req = urllib.request.Request(url, headers={'Accept': 'application/json', 'User-Agent': CAM_UA})
                 with urllib.request.urlopen(req, timeout=15) as r:
@@ -268,7 +269,7 @@ class Handler(SimpleHTTPRequestHandler):
         entry = hit if hit and now - hit[0] < CAM_TTL else None
         if entry is None:
             pid, _, sid = cid.partition('-')  # composite id: {pid}-{sid} for hays; single-id sources ignore pid/sid
-            url = tmpl.format(id=cid, pid=pid, sid=sid)
+            url = tmpl.format(id=urllib.parse.quote(cid, safe=''), pid=pid, sid=sid)
             try:
                 req = urllib.request.Request(url, headers={'Accept': 'image/jpeg', 'User-Agent': CAM_UA})
                 with urllib.request.urlopen(req, timeout=15) as r:

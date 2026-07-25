@@ -30,7 +30,13 @@ function focusGauge(g) {
   if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
 }
 
+const DEG_GLYPH = { nothresh: '◌', stale: '⏱', oos: '⊘' };
+
 function gaugeGlyphHtml(g) {
+  if (gaugeDegraded(g)) {
+    const gs = gaugeState(g);
+    return `<span class="stale-glyph" title="${esc(gaugeStateLabel(gs))}">${DEG_GLYPH[gs] || '◌'}</span>`;
+  }
   if (gaugeObsStale(g)) return `<span class="stale-glyph" title="${esc(t('gauge.staleglyph'))}">⏱</span>`;
   if (gaugeRising(g)) return `<span style="color:var(--cat-${gaugeForecastCat(g)})">▲</span>`;
   const cat = gaugeCat(g);
@@ -39,7 +45,12 @@ function gaugeGlyphHtml(g) {
   return `<span style="color:var(--cat-${cat})">●</span>`;
 }
 
+/* A card for a gauge NWPS reports as degraded says the degraded state where a severity word would
+   go, never a category. "Normal" off a gauge with no thresholds defined would be the board reading
+   a severity it does not have, which is the whole reason these gauges are split out. */
 function gaugeCardDiv(g) {
+  const deg = gaugeDegraded(g);
+  const gs = gaugeState(g);
   const stale = gaugeObsStale(g);
   const cat = gaugeObsCat(g);
   const o = g.status.observed;
@@ -48,15 +59,20 @@ function gaugeCardDiv(g) {
   const f = g.status.forecast;
   const site = g.name.slice(riverOf(g.name).length).trim();
   const div = document.createElement('div');
-  div.className = `card gauge-card${stale ? ' stale' : (cat === 'none' && !gaugeRising(g) ? ' aged' : '')}`;
+  div.className = `card gauge-card${deg ? ' degraded' : ''}${stale ? ' stale' : (cat === 'none' && !gaugeRising(g) ? ' aged' : '')}`;
   div.dataset.lid = g.lid;
-  div.style.borderLeftColor = stale ? 'var(--cat-none)' : `var(--cat-${cat})`;
+  div.dataset.gstate = gs;
+  div.style.borderLeftColor = deg || stale ? 'var(--cat-none)' : `var(--cat-${cat})`;
   const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
+  const word = deg
+    ? `<span class="cat-word deg-word">${esc(gaugeStateLabel(gs))}</span>`
+    : `<span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catWord(cat))}</span>${trendBit}`;
   div.innerHTML = `<div class="head">${gaugeGlyphHtml(g)}<span class="g-name">${esc(g.name)}</span>` +
     `<span class="geo-flag" title="${esc(t('sync.geoflag.title'))}">📍</span>` +
     `<span class="when"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener" style="color:var(--accent)">NWPS →</a></span></div>` +
-    `<div class="meta">OBS ${o.primary > -999 && Number.isFinite(o.primary) ? `${fmtNum(o.primary)} ${esc(o.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catWord(cat))}</span>${trendBit}` : esc(t('gauge.noreading'))}</div>` +
-    (stale ? `<div class="meta stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '') +
+    `<div class="meta">OBS ${gaugeHasReading(g) ? `${fmtNum(o.primary)} ${esc(o.primaryUnit)} · ${word}` : (deg ? word : esc(t('gauge.noreading')))}</div>` +
+    (deg ? `<div class="meta stale-note">${esc(t(`gstate.${gs}.note`))}</div>`
+      : (stale ? `<div class="meta stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '')) +
     (fCat ? `<div class="meta">${esc(t('wave.crest'))} ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(catWord(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
     recordLineHtml(g) +
     (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
@@ -659,6 +675,22 @@ function closeBasinView() {
   basinApplyHighlight();
 }
 
+/* The degraded set is deliberately absent from state.gauges, so every bucket below is blind to it.
+   It still belongs in the list: 411 of 1018 sites unlistable is not a filter, it is a hole. Its own
+   fold, its own counts, never merged into the severity buckets or the tab badge. */
+const degradedGaugePool = () => {
+  const all = state.gaugesDegraded || [];
+  return state.inView ? all.filter((g) => inMapView(g.latitude, g.longitude)) : all;
+};
+const degradedGaugeList = () => degradedGaugePool().slice().sort((a, b) => a.name.localeCompare(b.name));
+
+function degradedStateCounts(list) {
+  const n = {};
+  for (const s of GAUGE_DEGRADED) n[s] = 0;
+  for (const g of list) n[gaugeState(g)] = (n[gaugeState(g)] || 0) + 1;
+  return n;
+}
+
 function renderGaugesTab() {
   renderWave();
   refreshRecoveryView();
@@ -732,21 +764,32 @@ function renderGaugesTab() {
     if (holding.length) section(`${t('sec.gauge.inflood')} (${holding.length})`, holding);
     if (falling.length) section(`${t('sec.gauge.falling')} (${falling.length})`, falling);
   }
+  const degraded = degradedGaugeList();
   if (!rising.length && !holding.length && !falling.length) {
     const none = document.createElement('div');
     none.className = 'card';
-    none.textContent = state.gauges.length ? t('sec.gauge.empty') : t('sec.gauge.noload');
+    none.textContent = (state.gauges.length || degraded.length) ? t('sec.gauge.empty') : t('sec.gauge.noload');
     el.appendChild(none);
   }
-  if (normal.length) {
+  const fold = (cls, label, list, on, set) => {
     const btn = document.createElement('button');
-    btn.className = 'aged-toggle';
-    btn.textContent = normalStale
-      ? `${t(state.showNormalGauges ? 'toggle.hide' : 'toggle.show')} ${t('gauges.toggle.split').replace('{n}', normal.length).replace('{a}', normal.length - normalStale).replace('{s}', normalStale)}`
-      : `${t(state.showNormalGauges ? 'toggle.hide' : 'toggle.show')} ${t('gauges.toggle.all').replace('{n}', normal.length)}`;
-    btn.addEventListener('click', () => { state.showNormalGauges = !state.showNormalGauges; renderGaugesTab(); });
+    btn.className = cls;
+    btn.textContent = `${t(on ? 'toggle.hide' : 'toggle.show')} ${label}`;
+    btn.addEventListener('click', () => { set(!on); renderGaugesTab(); });
     el.appendChild(btn);
-    if (state.showNormalGauges) for (const g of normal) el.appendChild(gaugeCardDiv(g));
+    if (on) for (const g of list) el.appendChild(gaugeCardDiv(g));
+  };
+  if (normal.length) {
+    fold('aged-toggle', normalStale
+      ? t('gauges.toggle.split').replace('{n}', normal.length).replace('{a}', normal.length - normalStale).replace('{s}', normalStale)
+      : t('gauges.toggle.all').replace('{n}', normal.length),
+    normal, state.showNormalGauges, (v) => { state.showNormalGauges = v; });
+  }
+  if (degraded.length) {
+    const dc = degradedStateCounts(degraded);
+    fold('aged-toggle deg-toggle', t('gauges.toggle.degraded')
+      .replace('{n}', degraded.length).replace('{t}', dc.nothresh).replace('{s}', dc.stale).replace('{o}', dc.oos),
+    degraded, state.showDegradedGauges, (v) => { state.showDegradedGauges = v; });
   }
 }
 

@@ -694,6 +694,9 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 /* aged/suppressed items — dimmed, retrievable, never deleted */
 .card.aged { opacity: 0.55; border-left-style: dashed; }
 .card.gauge-card.stale { opacity: 0.72; border-left-style: dashed; }
+/* greyscale where the board cannot read the river, matching the map legend's degraded rows */
+.card.gauge-card.degraded { opacity: 0.72; border-left-style: dotted; }
+.card.gauge-card.degraded .deg-word { color: var(--ink-muted); font-weight: 700; }
 .stale-note { color: var(--ink-muted); font-weight: 600; }
 .stale-glyph { color: var(--ink-muted); }
 .badge.aged-chip { border-color: var(--ink-muted); color: var(--ink-muted); }

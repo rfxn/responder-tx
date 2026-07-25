@@ -259,12 +259,15 @@ function renderAlertHistory(el) {
    stays exactly the severity-bearing set every count, tile and threat chip reads, so a gauge without
    thresholds or without current data can still never inflate a flood claim; state.gaugesDegraded
    carries the rest so the map and the legend can show them as what they are. */
+// the NWPS-reported degraded set. One predicate for the split, the card, the popup and the
+// guards below, so no surface can disagree with another about what a gauge is.
+const gaugeDegraded = (g) => !!NWPS_DEGRADED_CAT[g && g.status && g.status.observed && g.status.observed.floodCategory];
+
 function splitGauges(list) {
   const live = [], degraded = [];
   for (const g of (list || [])) {
-    const c = g.status && g.status.observed && g.status.observed.floodCategory;
-    if (!c) continue;
-    (NWPS_DEGRADED_CAT[c] ? degraded : live).push(g);
+    if (!(g.status && g.status.observed && g.status.observed.floodCategory)) continue;
+    (gaugeDegraded(g) ? degraded : live).push(g);
   }
   return { live, degraded };
 }
@@ -335,6 +338,7 @@ function gaugeForecastCat(g) {
 }
 
 function gaugeRising(g) {
+  if (gaugeDegraded(g)) return false; // no severity to rise from, whatever the forecast field says
   if (gaugeObsStale(g)) return false; // no trustworthy baseline — keep dead gauges out of rising/record-watch
   const f = gaugeForecastCat(g);
   if (f === null) return false;
@@ -347,6 +351,7 @@ function gaugeRising(g) {
 // reports the forecast's margin to the all-time crest, never claims a break unless fcst ≥ record.
 const RECORD_NEAR_FT = 5;
 function recordContext(g) {
+  if (gaugeDegraded(g)) return null; // its forecast is not current either: no margin to report off it
   const rec = state.records && state.records[g.lid];
   const f = g.status && g.status.forecast;
   if (!rec || !f || !(f.primary > 0) || !(rec.record_ft > 0)) return null;

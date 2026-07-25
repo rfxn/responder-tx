@@ -1,5 +1,29 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.15 · 2026-07-25 (every gauge on the map is in the Gauges list)
+
+-- New Features --
+- [New] The Gauges list has a fold for the gauges NWPS reports without a usable
+      flood category, 411 of the 1018 statewide today. It counts them by state:
+      no thresholds defined, data not current, and out of service
+- [New] Those cards say which state the gauge is in where a severity word would
+      go, and what that state means, so they never read as normal
+
+-- Bug Fixes --
+- [Fix] Gauges that show on the map but report no flood category could not be
+      found in the Gauges list at all
+- [Fix] The gauge popup's open in gauges list button lands on the gauge you
+      tapped. For a gauge with no flood category it found nothing, switched the
+      Show gauges reading normal filter on the way, and left you on a list
+      without it
+- [Fix] A gauge with no flood category no longer shows a crest of record line
+      off a forecast that is not current either
+
+-- Changes --
+- [Change] In view scopes the new fold the same way it scopes the rest of the
+           list, and is turned off when it is the only thing hiding a gauge you
+           asked to open
+
 ## v0.99.14 · 2026-07-25 (Playback replays with no signal)
 
 -- Bug Fixes --

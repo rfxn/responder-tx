@@ -92,6 +92,7 @@ function buildSandbox() {
     localStorage: localStorageStub,
     location: { origin: 'https://example.test', pathname: '/', search: '' },
     getComputedStyle() { return { getPropertyValue() { return ''; } }; },
+    CSS: { escape: (v) => String(v).replace(/(["'\\\]])/g, '\\$1') }, // reveal selectors are built with it
     Event: function Event(type) { this.type = type; },
     Option: function Option(text, value) { this.text = text; this.value = value; },
     fetch() { return Promise.reject(new Error('network disabled in tests')); },
@@ -115,7 +116,7 @@ const EXPORTS = [
   'splitGauges', 'gaugeState', 'gaugeStateCounts', 'gaugeHasReading', 'gaugeAll', 'GAUGE_STATES', 'GAUGE_DEGRADED',
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
   'riverSlug', 'basinCrestTime', 'basinCorridor', 'basinRivers', 'basinWaveState',
-  'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT',
+  'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT', 'gaugeDegraded',
   'cardAged',
   'buildShareUrl', 'applyShareParams',
   'smartScore', 'shortId', 'allRequests',
@@ -129,7 +130,9 @@ const EXPORTS = [
 
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay
 // out of MAP_EXPORTS or the map bundle fails to resolve them
-const PANEL_EXPORTS = ['openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',
+const PANEL_EXPORTS = ['gaugeCardDiv', 'gaugeGlyphHtml', 'degradedGaugePool', 'degradedGaugeList', 'degradedStateCounts',
+  'openInGaugesList', 'gaugeListUnfoldFor', 'DEG_GLYPH',
+  'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',
   'curatedShelterAgeH', 'SHELTER_CURATED_STALE_H', 'shelterOpen',
   'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H'];
 

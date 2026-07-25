@@ -104,10 +104,30 @@ function openInFeed(id) {
   revealInList('tab-requests', `#request-list .card[data-rid="${CSS.escape(id)}"]`);
 }
 
+/* Two folds can hide a gauge row: the normal-category fold and the degraded fold. Which one holds
+   a gauge is a fact about the gauge, so read it from the data. Deciding from the row simply being
+   absent used to unfold the normal set for a degraded gauge, which changed a filter the user never
+   touched and still revealed nothing. */
+function gaugeListUnfoldFor(lids) {
+  let changed = false;
+  for (const lid of lids) {
+    if ((state.gaugesDegraded || []).some((g) => g.lid === lid)) {
+      if (!state.showDegradedGauges) { state.showDegradedGauges = true; changed = true; }
+    } else if (!state.showNormalGauges && state.gauges.some((g) => g.lid === lid && gaugeCat(g) === 'none')) {
+      state.showNormalGauges = true;
+      changed = true;
+    }
+  }
+  if (changed) renderGaugesTab();
+  return changed;
+}
+
 function openInGaugesList(lid) {
   const sel = `#gauge-list .gauge-card[data-lid="${CSS.escape(lid)}"]`;
-  // normal-category gauges hide behind the "show N gauges normal" fold — unfold before revealing
-  if (!document.querySelector(sel) && !state.showNormalGauges) { state.showNormalGauges = true; renderGaugesTab(); }
+  gaugeListUnfoldFor([lid]);
+  // In view is the only filter left that can hide a gauge the user just asked for by name; drop
+  // the scope rather than land them on a list without the row they tapped
+  if (state.inView && !document.querySelector(sel) && gaugeAll().some((g) => g.lid === lid)) setInView(false);
   revealInList('tab-gauges', sel);
 }
 
@@ -137,9 +157,7 @@ function focusGauges(gauges) {
   state.map.once('moveend', pulse); // pulse once the eye follows the pan…
   setTimeout(pulse, 750);           // …or right away if the view was already framed
   const sels = lids.map((lid) => `#gauge-list .gauge-card[data-lid="${CSS.escape(lid)}"]`);
-  if (sels.some((s) => !document.querySelector(s)) && !state.showNormalGauges) {
-    state.showNormalGauges = true; renderGaugesTab();
-  }
+  gaugeListUnfoldFor(lids);
   const btn = document.querySelector('.tabs button[data-tab="tab-gauges"]');
   if (btn) btn.click();
   requestAnimationFrame(() => {

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.14';
+const APP_VERSION = 'v0.99.15';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -230,6 +230,7 @@ const state = {
   showAlertHist: false,
   tickerOpen: false, // the hazard line's remainder list; never auto-opens, never auto-scrolls
   showNormalGauges: false,
+  showDegradedGauges: false,
   gaugeGroup: 'priority',
   inView: false,
   lanIntake: false, // LAN server advertises POST /api/requests — intakes also share board-wide

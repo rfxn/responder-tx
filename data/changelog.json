@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.15",
+      "date": "2026-07-25",
+      "line": "Every gauge on the map can now be found in the Gauges list. The gauges NWPS reports without a usable flood category, 411 of the 1018 statewide today, had no place in the list at all; they now have their own fold, counted by state: no thresholds defined, data not current, out of service. Their cards say which state the gauge is in where a severity word would go, plus what that state means, so they never read as normal, and they no longer show a crest of record line off a forecast that is not current either. The gauge popup's open in gauges list button now lands on the gauge you tapped instead of switching an unrelated filter and leaving you on a list without it."
+    },
+    {
       "v": "v0.99.14",
       "date": "2026-07-25",
       "line": "Playback works offline again. With no signal it reported the history archive as unavailable, on installs added since the archive moved to its current form. An install that has never opened Playback now also has recent days to replay the first time it loses signal. The offline copy holds one file per day, refreshes its index whenever there is a connection, is capped by size, is topped up at most twice a day, and is skipped entirely on a connection set to save data. A day that is not held is still drawn as an unloaded stretch on the timeline rather than filled in."

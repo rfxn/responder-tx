@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.24",
+      "date": "2026-07-25",
+      "line": "Cameras hold their place when an upstream feed drops out. If a TxDOT district returns a short list, that district keeps its last known cameras until the feed recovers, and releases them as retired only if the feed stays short for two weeks. A district that loses cameras a few at a time still shows the loss straight away, so a camera taken out of service still leaves the map. Hand-checked flood, bridge and port cameras now get a second check before they are dropped, so one timeout no longer removes a working camera. A Hays County flood camera is back on the map."
+    },
+    {
       "v": "v0.99.23",
       "date": "2026-07-25",
       "line": "The hazard line is just the scrolling feed now. The static hazard item and the count button that sat beside it have been removed. The loop carries every hazard, worst first, so the most serious one still comes past first and nothing is hidden behind a button. On a phone the line is shorter and the moving items meet the same touch size as the rest of the board. A device set to reduce motion gets the whole hazard list as a still list instead of a single item."

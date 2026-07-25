@@ -56,7 +56,7 @@ if [ "$SUITE" = shell ] || [ "$SUITE" = all ]; then
 fi
 
 if [ "$SUITE" = py ] || [ "$SUITE" = all ]; then
-    for f in server-gate gen-notices gen-shelters gen-caltopo gen-history; do
+    for f in server-gate gen-notices gen-shelters gen-caltopo gen-history gen-cameras; do
         run_one "tests/${f}.test.py" python3 "tests/${f}.test.py"
     done
 fi

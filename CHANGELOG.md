@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.24 · 2026-07-25 (the camera list holds through an upstream dropout)
+
+-- Bug Fixes --
+- [Fix] Cameras no longer drop off the map when a TxDOT district feed comes back
+      short. That district keeps its last known set until the feed recovers, and
+      releases it as genuinely retired if the feed stays short for two weeks. A
+      district losing cameras a few at a time still shows the loss straight away
+- [Fix] A hand-checked flood, bridge or port camera that misses one check is
+      checked again before it is dropped, so a single timeout no longer takes a
+      working camera off the map. One Hays County flood camera is back
+
 ## v0.99.23 · 2026-07-25 (the hazard line scrolls, and nothing sits still beside it)
 
 -- Changes --

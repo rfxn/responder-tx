@@ -20,7 +20,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get('RESPONDER_ROOT') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)  # event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
 # statewide-TX river-cam clip. The north edge sits above the Panhandle line so the Canadian River
 # at Amarillo and the NM Pecos headwaters that feed Texas are not clipped out of their own basins.
@@ -112,6 +112,11 @@ ARLINGTON_PIC_RE = re.compile(r'^https?://webapps\.arlingtontx\.gov/webcams/(.+)
 HAYS_ID_RE = re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$')  # composite parentID-shareID; mirrors the /api/cam/hays proxy validator
 TX_MIN_LAT, TX_MAX_LAT, TX_MIN_LON, TX_MAX_LON = 25.0, 37.0, -107.5, -93.0  # generous Texas coord sanity gate
 ITS_NEAR_M = 150.0  # an ITS cam this close to a MapLarge streamable cam is the same head — streamable wins
+# A district returning under half its last-known count is a partial response, not a retirement:
+# the aggregate floor cannot see it (834 -> 672 still clears 300). Same shape as the
+# fetch-snapshot.py partial-response guard, per district instead of per file.
+ITS_DISTRICT_KEEP = 2  # divisor: live must reach last-known // 2 or the district is held
+ITS_CARRY_MAX_D = 14  # a district that stays collapsed this long has really lost the cameras
 OUT = os.path.join(ROOT, 'data', 'cameras.json')
 PAGE = 1000
 
@@ -175,6 +180,53 @@ def txdot_cams():
         start += PAGE
 
 
+def prev_its():
+    """Last committed ITS rows grouped by district, plus the carry-forward clock."""
+    try:
+        with open(OUT, encoding='utf-8') as f:
+            prev = json.load(f)
+    except (OSError, ValueError):
+        return {}, {}
+    by_dist = {}
+    for c in prev.get('txdot') or []:
+        if c.get('src') == 'its' and c.get('dist') and c.get('icd'):
+            by_dist.setdefault(c['dist'], []).append(c)
+    clock = prev.get('itsCarried')
+    return by_dist, dict(clock) if isinstance(clock, dict) else {}
+
+
+def its_hold_collapsed(live, near_streamable):
+    """Hold a district whose feed collapsed, so an upstream outage cannot prune the inventory.
+
+    Gradual loss passes straight through, because a camera taken out of service is real. A
+    district under half its last-known count is treated as a partial response and keeps the
+    last-known rows, but only for ITS_CARRY_MAX_D — past that the loss is accepted as real.
+    """
+    prev_rows, prev_clock = prev_its()
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    cams, clock = [], {}
+    for d in ITS_DISTRICTS:
+        rows = live.get(d) or []
+        known = prev_rows.get(d) or []
+        floor = len(known) // ITS_DISTRICT_KEEP
+        if not known or len(rows) >= floor:
+            cams.extend(rows)
+            continue
+        since = (prev_clock.get(d) or {}).get('since') or now
+        held_d = iso_age_days(since)
+        if held_d is not None and held_d > ITS_CARRY_MAX_D:
+            print(f'ITS {d}: {len(rows)} of {len(known)} last known, collapsed over {ITS_CARRY_MAX_D}d — accepting the loss as real')
+            cams.extend(rows)
+            continue
+        merged = {c['icd']: c for c in known}
+        merged.update({c['icd']: c for c in rows})  # a row the feed still returns wins: fresh name and coords
+        held = [c for c in merged.values() if not near_streamable(c['lat'], c['lon'])]
+        print(f'ITS {d}: {len(rows)} of {len(known)} last known (floor {floor}) — partial response, holding {len(held)} since {since}')
+        cams.extend(held)
+        clock[d] = {'since': since, 'known': len(known)}
+    return cams, clock
+
+
 def its_cams(streamable):
     cell = 0.002
     grid = {}
@@ -192,13 +244,13 @@ def its_cams(streamable):
                         return True
         return False
 
-    cams, seen, skipped_icd, dropped_near = [], set(), 0, 0
+    live, skipped_icd, dropped_near = {}, 0, 0
     for d in ITS_DISTRICTS:
         try:
             data = fetch_json(ITS + d)
         except OSError:
             data = fetch_json(ITS + d)  # one retry; a second failure is fatal — never commit a silently reduced set
-        n0 = len(cams)
+        rows, seen = [], set()
         for lst in (data.get('roadwayCctvStatuses') or {}).values():
             for c in lst:
                 if c.get('statusDescription') != 'Device Online' or not c.get('hasSnapshot'):
@@ -213,13 +265,13 @@ def its_cams(streamable):
                     continue
                 if not (25.0 <= lat <= 37.0 and -107.5 <= lon <= -93.0):
                     continue  # placeholder/junk coords — keep to a generous Texas envelope
-                if (d, icd) in seen:
+                if icd in seen:
                     continue
                 if near_streamable(lat, lon):
                     dropped_near += 1
                     continue
-                seen.add((d, icd))
-                cams.append({
+                seen.add(icd)
+                rows.append({
                     'name': c.get('name') or icd,
                     'route': (c.get('equipLoc') or {}).get('roadway') or '',
                     'lat': round(lat, 6),
@@ -228,9 +280,11 @@ def its_cams(streamable):
                     'icd': icd,
                     'dist': d,
                 })
-        print(f'ITS {d}: +{len(cams) - n0}')
+        live[d] = rows
+        print(f'ITS {d}: +{len(rows)}')
+    cams, carried = its_hold_collapsed(live, near_streamable)
     print(f'ITS: {len(cams)} snapshot-only cams kept ({dropped_near} dropped as near-duplicates of streamable, {skipped_icd} skipped on icd charset)')
-    return sorted(cams, key=lambda c: (c['dist'], c['name']))
+    return sorted(cams, key=lambda c: (c['dist'], c['name'])), carried
 
 
 def iso_age_days(stamp):
@@ -405,6 +459,12 @@ def arlington_cams():
     return sorted(cams, key=lambda c: c['name'])
 
 
+def live_twice(probe, url):
+    # a hand-kept camera is only called dead on a second failure; one transient miss silently
+    # dropped a live Hays cam that the floor of 0 could not catch. Mirrors the its_cams retry.
+    return probe(url) or probe(url)
+
+
 def hls_live(url):
     try:
         req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
@@ -418,7 +478,7 @@ def elpbridge_cams():
     cams = []
     for c in ELP_BRIDGE_CAMS:
         url = f"{ELP_BRIDGE_HOST}/{c['file']}"
-        if not hls_live(url):
+        if not live_twice(hls_live, url):
             print(f"El Paso bridge: {c['file']} not live — dropped")
             continue
         cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'httpsurl': url})
@@ -454,7 +514,7 @@ def porthou_cams():
     for c in PORTHOU_CAMS:
         if not PORTHOU_ID_RE.match(c['id']):  # an id the strict proxy would reject is never emitted
             continue
-        if not porthou_still_live(f"{PORTHOU_HOST}/{c['id']}.jpg"):
+        if not live_twice(porthou_still_live, f"{PORTHOU_HOST}/{c['id']}.jpg"):
             print(f"Port Houston: {c['id']} not live (empty or offline), dropped")
             continue
         cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id']})
@@ -468,7 +528,7 @@ def hays_cams():
         cid = f"{c['pid']}-{c['sid']}"
         if not HAYS_ID_RE.match(cid):  # a composite id the strict proxy would reject is never emitted
             continue
-        if not hays_thumb_live(HAYS_THUMB.format(pid=c['pid'], sid=c['sid'])):
+        if not live_twice(hays_thumb_live, HAYS_THUMB.format(pid=c['pid'], sid=c['sid'])):
             print(f"Hays OES: {c['name']} not live (placeholder/offline), dropped")
             continue
         cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': cid})
@@ -478,7 +538,7 @@ def hays_cams():
 
 def main():
     tx = txdot_cams()
-    its = its_cams(tx)
+    its, its_carried = its_cams(tx)
     rv = river_cams()
     au = austin_cams()
     af = atxfloods_cams()
@@ -494,6 +554,7 @@ def main():
     out = {
         'generated': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'bbox': list(BBOX),
+        'itsCarried': its_carried,  # districts held through a collapsed feed, with the clock that expires the hold
         'attribution': {
             'txdot': 'Traffic cameras: TxDOT (Lonestar/DriveTexas + ITS district snapshots); imagery not recorded',
             'river': 'River cameras: USGS HIVIS (public domain, provisional imagery)',

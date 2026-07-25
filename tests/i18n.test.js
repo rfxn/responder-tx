@@ -85,6 +85,40 @@ test('renderer guard: formerly-hardcoded English literals stay routed through t(
   assert.deepEqual(hits, [], 'hardcoded renderer English literal reappeared (route it through t())');
 });
 
+/* Renderer guard for the degraded tooltip. refresh() concatenated a hardcoded English SOURCE_NAMES
+ * array onto the localized note.degraded.detail, so a Spanish reader got "Estas fuentes no
+ * respondieron en la ultima actualizacion: NWS alerts, NWPS gauges, ...". The names now come from
+ * the Live feeds chip labels, which is also the list the chip taps through to. Order is the one
+ * thing that can silently rot here: REFRESH_SOURCE_KEYS is indexed by Promise.allSettled position,
+ * NOT the life-safety-first order renderSourceHealth() displays, so the arity is asserted too. */
+test('renderer guard: the degraded tooltip names sources in both languages', () => {
+  const boot = strippedSource('boot.js');
+  const englishNames = ['NWS alerts', 'NWPS gauges', 'RFC forecast', 'USGS stage', 'storm reports', 'board data', 'TxDOT roads'];
+  const hits = englishNames.filter((n) => boot.includes(n));
+  assert.deepEqual(hits, [], 'hardcoded English source names are back in the degraded tooltip (use t(REFRESH_SOURCE_KEYS[i]))');
+  assert.ok(!/SOURCE_NAMES/.test(boot), 'the SOURCE_NAMES English array must stay gone');
+
+  const decl = boot.match(/const REFRESH_SOURCE_KEYS = \[([^\]]*)\];/);
+  assert.ok(decl, 'REFRESH_SOURCE_KEYS not found in js/boot.js');
+  const keys = [...decl[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  for (const k of keys) {
+    assert.ok(k in I18N.en && k in I18N.es, `${k} is not a key in both languages`);
+  }
+
+  // arity: one label per settled promise, or every failure past the short one is mislabeled
+  const settled = boot.match(/Promise\.allSettled\(\[([\s\S]*?)\]\)/);
+  assert.ok(settled, 'the refresh() Promise.allSettled call was not found');
+  let depth = 0;
+  let arity = 1;
+  for (const ch of settled[1]) {
+    if ('([{'.includes(ch)) depth += 1;
+    else if (')]}'.includes(ch)) depth -= 1;
+    else if (ch === ',' && depth === 0) arity += 1;
+  }
+  assert.equal(keys.length, arity,
+    'REFRESH_SOURCE_KEYS must have exactly one entry per settled source, in the same order');
+});
+
 test('renderer guard: enum label maps carry i18n keys, not English labels', () => {
   for (const f of RENDER_FILES) {
     const src = strippedSource(f);

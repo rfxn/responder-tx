@@ -154,4 +154,52 @@ function loadMapApp() {
   return mapCached;
 }
 
-module.exports = { loadApp, loadMapApp, buildSandbox };
+/* Header-status sandbox. The freshness-slot invariant is behavioral, not textual: a transient
+   notice must not be able to leave the degraded chip, its tooltip or its role behind. That needs
+   elements that actually record classList/attribute writes, which the minimal stub above does not,
+   so this builds a small tracking DOM and loads boot.js (its only top-level statement is a
+   DOMContentLoaded listener, a no-op here) alongside the files that raise transient notices. */
+function makeTrackedElement(id) {
+  const classes = new Set();
+  const attrs = new Map();
+  return {
+    id,
+    style: {}, dataset: {}, options: [], value: '', textContent: '', innerHTML: '', title: '', hidden: false,
+    classList: {
+      add: (c) => classes.add(c),
+      remove: (c) => classes.delete(c),
+      toggle: (c, on) => (on === undefined ? (classes.has(c) ? classes.delete(c) : classes.add(c)) : (on ? classes.add(c) : classes.delete(c))),
+      contains: (c) => classes.has(c),
+    },
+    classes,
+    attrs,
+    setAttribute(k, v) { attrs.set(k, String(v)); },
+    getAttribute(k) { return attrs.has(k) ? attrs.get(k) : null; },
+    removeAttribute(k) { attrs.delete(k); },
+    appendChild() {}, append() {}, remove() {}, add() {},
+    addEventListener() {}, removeEventListener() {},
+    querySelector() { return null; }, querySelectorAll() { return []; },
+    dispatchEvent() { return true; }, closest() { return null; }, scrollIntoView() {},
+  };
+}
+
+function loadHeaderStatus() {
+  const sandbox = buildSandbox();
+  const nodes = new Map();
+  sandbox.document.querySelector = (sel) => {
+    if (!nodes.has(sel)) nodes.set(sel, makeTrackedElement(String(sel).replace(/^#/, '')));
+    return nodes.get(sel);
+  };
+  // hold the timers: opNotice arms a 6s auto-dismiss, and a real one would keep the runner alive
+  const timers = [];
+  sandbox.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
+  sandbox.clearTimeout = () => {};
+  sandbox.__timers = timers;
+  const files = ['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js', 'boot.js'];
+  const exports = ['state', 'setFeedNote', 'setFeedNoteHealthy', 'refreshNoteTitle', 'opNotice', 'compassNotice', 'REFRESH_SOURCE_KEYS'];
+  const epilogue = `\n;globalThis.__HDR = { ${exports.join(', ')} };\n`;
+  vm.runInContext(files.map(read).join('\n;\n') + epilogue, vm.createContext(sandbox), { filename: 'header-status.js' });
+  return { ...sandbox.__HDR, node: (sel) => sandbox.document.querySelector(sel), timers, sandbox };
+}
+
+module.exports = { loadApp, loadMapApp, buildSandbox, loadHeaderStatus };

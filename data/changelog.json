@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.95",
+      "date": "2026-07-24",
+      "line": "A message about one thing no longer wipes out a warning about something else. When the board could not reach some of its data sources it said so in the top right corner, but tapping the compass and denying it permission replaced that warning with \"compass unavailable\", kept the same amber warning styling, and quietly dropped the only notice that some feeds were not answering. Small notices like a denied compass, a failed locate, or an optional map layer that did not load now appear briefly above the map and clear themselves, and the top-right corner is reserved for one thing only: how current the data is. The list of feeds that did not answer is also translated now, so a Spanish reader no longer gets that list in English."
+    },
+    {
       "v": "v0.97.94",
       "date": "2026-07-24",
       "line": "Basin Focus, Recovery and Crest summary now sit beside the map instead of on top of it. Basin Focus in particular zooms the map to one river and circles that river's gauges, and then used to cover the very thing it had just set up, with the map frozen behind it. All three now take the side panel: the full column on a computer, the lower sheet on a phone held upright, and a narrow column sideways, leaving the map visible and usable the whole time. Drive Mode is deliberately unchanged and still fills the screen, because it is meant to be read at a glance with your eyes off the road. Every one of these views still carries the call 911 line at the bottom, and there is now an automatic check that refuses to publish the board if any of them loses it. The update button in the top bar also shrinks to just its arrow on a phone, like the other buttons up there, so it stops crowding out the logo."

@@ -83,7 +83,6 @@
       'health.nodata': 'no data yet',
 
       'disc.short': '<strong>⚠ 911 emergencies</strong> · not a dispatch system · tap for full notice',
-      'disc.full': '<strong>Life-threatening emergency → call 911.</strong> This board coordinates volunteer monitoring and situational awareness; it is not a dispatch system and is not monitored by emergency services. Verify before acting. Do not self-deploy into warned areas.',
 
       'safety.head': '⚠ Life-threatening emergency → call 911',
       'safety.p1': 'This board coordinates volunteer monitoring and situational awareness. It is <strong>not a dispatch system</strong> and is not monitored by emergency services. Verify before acting.',
@@ -1099,7 +1098,6 @@
       'health.nodata': 'sin datos aún',
 
       'disc.short': '<strong>⚠ Emergencias al 911</strong> · no es un sistema de despacho · toque para ver el aviso completo',
-      'disc.full': '<strong>Emergencia potencialmente mortal → llame al 911.</strong> Este panel coordina el monitoreo voluntario y la conciencia situacional; no es un sistema de despacho y no está supervisado por los servicios de emergencia. Verifique antes de actuar. No se autodespliegue en zonas bajo advertencia.',
 
       'safety.head': '⚠ Emergencia potencialmente mortal → llame al 911',
       'safety.p1': 'Este panel coordina el monitoreo voluntario y la conciencia situacional. <strong>No es un sistema de despacho</strong> y no está supervisado por los servicios de emergencia. Verifique antes de actuar.',

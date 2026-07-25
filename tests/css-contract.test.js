@@ -12,6 +12,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { loadHeaderStatus } = require('./harness.js');
 
 const CSS = fs.readFileSync(path.join(__dirname, '..', 'css', 'app.css'), 'utf8');
 
@@ -156,17 +157,24 @@ test('the header status is width-capped so it can never displace the nav', () =>
   assert.ok(/#refresh-note\.degraded \{/.test(CSS), 'the degraded state needs its own visible chip style');
 });
 
+/* The v0.97.93 version of this test matched only `$('#refresh-note').textContent =`, so
+   compassNotice()'s two-line `const note = $('#refresh-note'); note.textContent = t(key)` walked
+   straight through it. Match the LOOKUP instead of the assignment: once a file outside boot.js
+   holds a reference to the slot there is no regex that can police what it does with it. */
+const SLOT_LOOKUP = /(?:\$\(\s*['"]#refresh-note['"]|querySelector\(\s*['"]#refresh-note['"]|getElementById\(\s*['"]refresh-note['"])/g;
+
+const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+
 test('the header status has exactly one writer, so no call site can uncap it', () => {
-  const files = ['boot', 'map', 'sources', 'playback', 'panels', 'board', 'team'];
+  const files = ['map', 'sources', 'playback', 'panels', 'board', 'team', 'cameras', 'core', 'notes'];
   const offenders = [];
   for (const f of files) {
-    const src = fs.readFileSync(path.join(__dirname, '..', 'js', `${f}.js`), 'utf8');
-    for (const m of src.matchAll(/\$\('#refresh-note'\)\s*\.\s*(textContent|innerHTML)\s*=/g)) {
-      offenders.push(`js/${f}.js: ${m[0]}`);
-    }
+    const src = stripComments(fs.readFileSync(path.join(__dirname, '..', 'js', `${f}.js`), 'utf8'));
+    for (const m of src.matchAll(SLOT_LOOKUP)) offenders.push(`js/${f}.js: ${m[0]}`);
   }
   assert.deepEqual(offenders, [],
-    'assign the header status through setFeedNote()/setFeedNoteHealthy(); a raw write is what broke the header');
+    'only js/boot.js may reach #refresh-note; route feed state through setFeedNote()/setFeedNoteHealthy() ' +
+    'and transient failures through opNotice()');
   const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
   // the detail must survive: it is honesty-critical and is the reason the chip is tappable
   const fn = boot.match(/function setFeedNote\(short, detail\)[\s\S]*?\n\}/);
@@ -178,6 +186,51 @@ test('the header status has exactly one writer, so no call site can uncap it', (
     'the countdown must compose the tooltip, not overwrite the degraded detail every second');
   assert.ok(/#refresh-note'\)\.addEventListener\('click'/.test(boot),
     'the degraded chip must open the source-by-source detail');
+});
+
+/* The behavioral half of the same invariant, and the reason the static guard above was not enough.
+   Sequence that shipped in v0.97.93/94: feeds go degraded, the user taps the compass, iOS denies
+   motion, compassNotice() overwrites the slot. The header then read "compass unavailable" wearing
+   the amber degraded chip, still tappable through to Live feeds, still carrying the stale "these
+   sources did not answer" tooltip, while the real degraded state vanished from the only place it
+   was shown. A board that looks healthier than it is. */
+test('a transient notice cannot overwrite, restyle or impersonate the degraded feed state', () => {
+  const h = loadHeaderStatus();
+  const slot = h.node('#refresh-note');
+
+  h.setFeedNote('note.degraded', 'note.degraded.detail NWPS gauges');
+  assert.equal(slot.textContent, 'note.degraded');
+  assert.ok(slot.classList.contains('degraded'), 'setup: the degraded chip should be on');
+  assert.equal(slot.getAttribute('role'), 'button');
+  assert.equal(slot.getAttribute('tabindex'), '0');
+  const degradedTitle = slot.title;
+  assert.ok(degradedTitle.includes('note.degraded.detail'), 'setup: the tooltip should carry the detail');
+
+  for (const raise of [() => h.compassNotice('ctl.compass.denied'), () => h.opNotice('note.locfail')]) {
+    raise();
+    assert.equal(slot.textContent, 'note.degraded', 'a transient notice overwrote the freshness slot');
+    assert.ok(slot.classList.contains('degraded'), 'a transient notice cleared the degraded chip');
+    assert.equal(h.state.feedNoteDetail, 'note.degraded.detail NWPS gauges', 'the degraded detail was lost');
+    assert.equal(slot.getAttribute('role'), 'button', 'the tap-through role was reset');
+    assert.equal(slot.getAttribute('tabindex'), '0', 'the chip stopped being keyboard reachable');
+    assert.equal(slot.title, degradedTitle, 'the degraded tooltip was replaced');
+  }
+
+  // it landed somewhere: its own auto-dismissing toast, which carries no feed-health affordance
+  const toast = h.node('#op-toast');
+  assert.equal(toast.hidden, false, 'the transient notice must still be shown, just not in the slot');
+  assert.equal(h.node('#op-toast-text').textContent, 'note.locfail');
+  assert.ok(!toast.classList.contains('degraded'), 'the op toast must not wear the degraded chip');
+  assert.equal(toast.getAttribute('role'), null, 'the op toast must not be a tap-through to Live feeds');
+  assert.ok(h.timers.some((x) => x.ms > 0), 'the op toast must arm an auto-dismiss');
+});
+
+test('every freshness-slot write is a data-currency state, not an op failure', () => {
+  const boot = stripComments(fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8'));
+  const keys = [...boot.matchAll(/setFeedNote\(\s*t\('([^']+)'\)/g)].map((m) => m[1]);
+  assert.deepEqual([...new Set(keys)].sort(),
+    ['note.degraded', 'note.offline', 'note.refreshing', 'note.snapshot'],
+    'the freshness slot may only say how current the data is; route anything else through opNotice()');
 });
 
 test('landscape swaps the lockup for the square mark at the dark-theme specificity', () => {

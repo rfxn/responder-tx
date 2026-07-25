@@ -378,7 +378,7 @@ function initMap() {
     pane: 'surge', opacity: 0.55, maxNativeZoom: 14, maxZoom: 19,
     attribution: 'Storm surge risk: NOAA/NHC National Storm Surge Hazard Maps (SLOSH MOM)',
   });
-  state.layers.surge.on('tileerror', () => { if (!state.surgeErr) { state.surgeErr = true; setFeedNote(t('surge.unavailable'), t('surge.unavailable')); } });
+  state.layers.surge.on('tileerror', () => { if (!state.surgeErr) { state.surgeErr = true; opNotice(t('surge.unavailable')); } });
   state.layers.surge.on('load', () => { state.surgeErr = false; });
   // HRRR model future-cast — MODEL data (never observed); per-hour WMS layers mounted at opacity 0
   // like the observed-radar frames, so stepping is opacity-only (never a per-step fetch-gated fade)
@@ -400,9 +400,9 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
-    if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { setFeedNote(t('note.tropfail'), t('note.tropfail')); }); }
+    if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { opNotice(t('note.tropfail')); }); }
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
-    if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsArlington, state.layers.camsElpBridge, state.layers.camsHays].includes(e.layer)) loadCameras().catch(() => { setFeedNote(t('note.camfail'), t('note.camfail')); });
+    if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsArlington, state.layers.camsElpBridge, state.layers.camsHays].includes(e.layer)) loadCameras().catch(() => { opNotice(t('note.camfail')); });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
     rtlSync();
@@ -653,7 +653,7 @@ function initMap() {
   });
   state.map.on('locationerror', () => {
     gpsWait(false);
-    setFeedNote(t('note.locfail'), t('note.locfail'));
+    opNotice(t('note.locfail'));
   });
   // dragstart fires ONLY on a genuine pointer drag (programmatic panTo never fires it), so exit follow
   // unconditionally; this is what lets the user grab the map mid-glide now that a glide is almost always in flight
@@ -782,10 +782,7 @@ function setCompassLabel(anchor, titleKey, ariaKey) {
   anchor.setAttribute('aria-label', t(ariaKey));
 }
 
-function compassNotice(key) {
-  const note = $('#refresh-note');
-  if (note) note.textContent = t(key);
-}
+function compassNotice(key) { opNotice(t(key)); }
 
 /* ---------- map-control icons — stroke SVGs inherit the themed .leaflet-bar color ---------- */
 

@@ -1,5 +1,45 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.95 · 2026-07-24 (the freshness slot has one writer again, and tells the truth in Spanish)
+
+-- Bug Fixes --
+- [Fix] A transient failure can no longer erase or impersonate a degraded-feed
+      warning. compassNotice() still wrote #refresh-note directly, so with feeds
+      degraded a denied compass permission left the header reading "compass
+      unavailable" while wearing the amber degraded chip, still tapping through
+      to Live feeds and still carrying the stale "these sources did not answer"
+      tooltip, with the real degraded state gone from the only place it was
+      shown.
+- [Fix] The degraded tooltip is fully localized. A hardcoded English SOURCE_NAMES
+      array was concatenated onto the translated note.degraded.detail, so a
+      Spanish reader got "Estas fuentes no respondieron en la ultima
+      actualizacion: NWS alerts, NWPS gauges"; the names now come from the Live
+      feeds chip labels in both languages, indexed in Promise.allSettled order
+      rather than the life-safety display order.
+
+-- Changes --
+- [Change] Transient op failures get their own home, #op-toast: compass denied
+           or unavailable, locate failed, camera list, tropical feed, storm
+           surge tiles and the history archive. They are gesture feedback, not
+           statements about data currency, so they auto-dismiss above the map,
+           are styled apart from the degraded chip and carry no tap-through to
+           Live feeds. The freshness slot is now written only by js/boot.js and
+           only says how current the data is.
+- [Change] Removed the .disc-full footer span and its disc.full key in both
+           languages. It was display:none with no rule anywhere that ever
+           showed it, so a full 911 notice was being translated and shipped to
+           no screen; the live wording is disc.short in the footer and the
+           safety modal it opens, both unchanged.
+
+-- Tests --
+- [New] tests/css-contract.test.js asserts the freshness slot behaviorally: a
+      transient notice cannot change its text, degraded class, tooltip, role or
+      tabindex, and every setFeedNote() call must be a data-currency state. The
+      single-writer guard now matches the LOOKUP of #refresh-note rather than
+      the assignment, which is how the two-line compass write slipped past it.
+- [New] tests/i18n.test.js forbids the English source-name array returning and
+      pins REFRESH_SOURCE_KEYS to one entry per settled source.
+
 ## v0.97.94 · 2026-07-24 (Basin, Recovery and Crest summary dock beside the map they describe)
 
 -- Changes --

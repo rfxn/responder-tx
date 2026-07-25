@@ -43,6 +43,11 @@ async function hydrateGaugesSnapshot() {
   } catch { return false; } // snapshot absent (old deploy) — nothing to hydrate
 }
 
+/* Labels for the degraded tooltip, in refresh()'s Promise.allSettled order, which is NOT the
+   life-safety-first order renderSourceHealth() displays. They reuse the Live feeds chip labels on
+   purpose: the tooltip names now match the list the chip taps through to, in both languages. */
+const REFRESH_SOURCE_KEYS = ['health.alerts', 'health.gauges', 'health.fcst', 'health.usgs', 'health.reports', 'health.board', 'health.roads'];
+
 async function refresh() {
   // in-flight guard: overlapping triggers (interval, #refresh-now, visibility catch-up) queue one trailing run instead of racing
   if (state.refreshBusy) { state.refreshQueued = true; return; }
@@ -55,9 +60,8 @@ async function refresh() {
     // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
     const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
     const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds(), fetchRoadClosures()]);
-    const SOURCE_NAMES = ['NWS alerts', 'NWPS gauges', 'RFC forecast', 'USGS stage', 'storm reports', 'board data', 'TxDOT roads'];
     const failed = results.filter((r) => r.status === 'rejected');
-    const failedNames = results.map((r, i) => (r.status === 'rejected' ? SOURCE_NAMES[i] : null)).filter(Boolean).join(', ');
+    const failedNames = results.map((r, i) => (r.status === 'rejected' ? t(REFRESH_SOURCE_KEYS[i]) : null)).filter(Boolean).join(', ');
     state.refreshAt = Date.now() + CONFIG.refreshMs;
     if (failed.length && (!state.alerts.length || !state.gauges.length)) {
       const hydrated = hydrateFromCache();
@@ -106,6 +110,20 @@ function setFeedNoteHealthy(html) {
   el.setAttribute('role', 'status');
   el.removeAttribute('tabindex');
   refreshNoteTitle();
+}
+
+/* opNotice msg — transient op failures (compass denied, locate failed, an optional overlay that
+   did not load). These are gesture feedback, not statements about data currency, so they get their
+   own auto-dismissing toast and never touch the freshness slot: routing them through #refresh-note
+   erased a live degraded/offline warning and left the amber chip, its tooltip and its tap-through
+   behind, so the board read healthier than it was. Same shape as note.radarfail on #rs-label. */
+function opNotice(msg) {
+  const el = $('#op-toast');
+  if (!el) return;
+  $('#op-toast-text').textContent = msg;
+  el.hidden = false;
+  clearTimeout(opNotice._t);
+  opNotice._t = setTimeout(() => { el.hidden = true; }, 6000);
 }
 
 // the countdown and the degraded detail share one tooltip; the countdown must not wipe the detail
@@ -936,7 +954,7 @@ async function boot() {
   const camParam = new URLSearchParams(location.search).get('cam');
   if (camParam) {
     state.pendingCam = camParam;
-    loadCameras().catch(() => { setFeedNote(t('note.camfail'), t('note.camfail')); });
+    loadCameras().catch(() => { opNotice(t('note.camfail')); });
   }
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board

@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.10 · 2026-07-25 (River Sentry siren sites, as reported locations)
+
+-- New Features --
+- [New] New map layer under Water: River Sentry flood siren sites, 105 towers
+      across 26 Hill Country sites. Off by default. The layer states that it
+      carries reported locations from a public map export with no named author
+      and no date, and that no feed says whether a tower is powered, working or
+      still standing. The popup names the site, how many towers the map places
+      there, and where the data came from
+- [New] The map legend and the glossary both name the siren-site marker
+
+-- Changes --
+- [Change] The siren layer hides during playback, like shelters, because an
+           undated location snapshot cannot be redrawn as it stood on a past
+           date
+
 ## v0.99.9 · 2026-07-25 (the changelog says what changed, not how it was found)
 
 -- Changes --

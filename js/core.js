@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.9';
+const APP_VERSION = 'v0.99.10';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event

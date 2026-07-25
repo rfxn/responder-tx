@@ -159,6 +159,7 @@ function pbSbwPopup(p) {
    as-of the frame from item timestamps, or hides — nothing live may impersonate the past. */
 const PB_LIVE_HIDE = [
   ['shelters', 'layers.shelters'],
+  ['riverSentry', 'layers.rsentry'], // undated location snapshot — cannot re-render as-of a past frame
   ['roadReopen', 'layers.reopen'],
   ['usgs', 'layers.usgs'],
   ['fcstMax', 'layers.fcst'],

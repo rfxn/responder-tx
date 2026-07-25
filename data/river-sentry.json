@@ -1,0 +1,747 @@
+{
+ "generated": "2026-07-25T15:46:20Z",
+ "captured": "2026-07-25T15:46:20Z",
+ "source": {
+  "name": "Public “River Sentry Towers” map (Google My Maps), author not identified",
+  "url": "https://www.google.com/maps/d/viewer?mid=1Iiu6CdjrASAdCpdXBhgOS6-pNJeYzGw"
+ },
+ "note": "Reported tower positions transcribed from a public Google My Maps export. The map names no author and carries no revision date. Locations only: no operational, power, or activation status is available from any published feed.",
+ "sites": [
+  {
+   "site": "Bear Creek Scout Ranch",
+   "towers": 9
+  },
+  {
+   "site": "Camp Chrysalis",
+   "towers": 4
+  },
+  {
+   "site": "Camp Honey Creek",
+   "towers": 12
+  },
+  {
+   "site": "Camp Kickapoo",
+   "towers": 3
+  },
+  {
+   "site": "Camp La Junta",
+   "towers": 5
+  },
+  {
+   "site": "Camp Mystic",
+   "towers": 1
+  },
+  {
+   "site": "Camp Mystic Cypress Lake",
+   "towers": 4
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "towers": 19
+  },
+  {
+   "site": "Camp Stewart",
+   "towers": 7
+  },
+  {
+   "site": "Camp Waldemar",
+   "towers": 2
+  },
+  {
+   "site": "Casa Bonita",
+   "towers": 2
+  },
+  {
+   "site": "Criders Rodeo and Dancehall",
+   "towers": 1
+  },
+  {
+   "site": "Cypress Point",
+   "towers": 1
+  },
+  {
+   "site": "El Tambo Torre",
+   "towers": 1
+  },
+  {
+   "site": "Heart O' The Hills",
+   "towers": 2
+  },
+  {
+   "site": "Hope House",
+   "towers": 1
+  },
+  {
+   "site": "Howdy's Bar and Chill",
+   "towers": 4
+  },
+  {
+   "site": "Johnston Residence",
+   "towers": 1
+  },
+  {
+   "site": "Mo Ranch",
+   "towers": 6
+  },
+  {
+   "site": "Pawnee Path Tower",
+   "towers": 1
+  },
+  {
+   "site": "River Inn",
+   "towers": 4
+  },
+  {
+   "site": "River Run",
+   "towers": 2
+  },
+  {
+   "site": "Sherman Mills Neighborhood",
+   "towers": 2
+  },
+  {
+   "site": "Texas Lions Camp",
+   "towers": 2
+  },
+  {
+   "site": "Vista Camps",
+   "towers": 6
+  },
+  {
+   "site": "Waltonia",
+   "towers": 3
+  }
+ ],
+ "towers": [
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 1",
+   "lat": 30.06641,
+   "lon": -99.425227
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 2",
+   "lat": 30.066826,
+   "lon": -99.425492
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 3",
+   "lat": 30.068753,
+   "lon": -99.426637
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 4",
+   "lat": 30.070018,
+   "lon": -99.427776
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 5",
+   "lat": 30.07095,
+   "lon": -99.428452
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 6",
+   "lat": 30.071223,
+   "lon": -99.431959
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 7",
+   "lat": 30.071034,
+   "lon": -99.431235
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 8",
+   "lat": 30.069586,
+   "lon": -99.427094
+  },
+  {
+   "site": "Bear Creek Scout Ranch",
+   "label": "Tower 9",
+   "lat": 30.062195,
+   "lon": -99.41791
+  },
+  {
+   "site": "Camp Chrysalis",
+   "label": "Tower 1",
+   "lat": 29.980971,
+   "lon": -99.222417
+  },
+  {
+   "site": "Camp Chrysalis",
+   "label": "Tower 2",
+   "lat": 29.980611,
+   "lon": -99.222755
+  },
+  {
+   "site": "Camp Chrysalis",
+   "label": "Tower 3",
+   "lat": 29.980386,
+   "lon": -99.223019
+  },
+  {
+   "site": "Camp Chrysalis",
+   "label": "Tower 4",
+   "lat": 29.97993,
+   "lon": -99.22374
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 1",
+   "lat": 30.092692,
+   "lon": -99.353718
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 10",
+   "lat": 30.094948,
+   "lon": -99.351378
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 11",
+   "lat": 30.09498,
+   "lon": -99.351572
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 12",
+   "lat": 30.094697,
+   "lon": -99.350178
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 2",
+   "lat": 30.092917,
+   "lon": -99.353654
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 3",
+   "lat": 30.093226,
+   "lon": -99.353489
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 4",
+   "lat": 30.094496,
+   "lon": -99.349663
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 5",
+   "lat": 30.094387,
+   "lon": -99.349586
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 6",
+   "lat": 30.094242,
+   "lon": -99.349541
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 7",
+   "lat": 30.094969,
+   "lon": -99.350169
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 8",
+   "lat": 30.095055,
+   "lon": -99.350414
+  },
+  {
+   "site": "Camp Honey Creek",
+   "label": "Tower 9",
+   "lat": 30.095117,
+   "lon": -99.350663
+  },
+  {
+   "site": "Camp Kickapoo",
+   "label": "Tower 1",
+   "lat": 29.972965,
+   "lon": -99.223192
+  },
+  {
+   "site": "Camp Kickapoo",
+   "label": "Tower 2",
+   "lat": 29.974548,
+   "lon": -99.224676
+  },
+  {
+   "site": "Camp Kickapoo",
+   "label": "Tower 3",
+   "lat": 29.972214,
+   "lon": -99.221135
+  },
+  {
+   "site": "Camp La Junta",
+   "label": "Tower 1",
+   "lat": 30.060443,
+   "lon": -99.338059
+  },
+  {
+   "site": "Camp La Junta",
+   "label": "Tower 2",
+   "lat": 30.060879,
+   "lon": -99.338021
+  },
+  {
+   "site": "Camp La Junta",
+   "label": "Tower 3",
+   "lat": 30.061322,
+   "lon": -99.337954
+  },
+  {
+   "site": "Camp La Junta",
+   "label": "Tower 4",
+   "lat": 30.061729,
+   "lon": -99.337908
+  },
+  {
+   "site": "Camp La Junta",
+   "label": "Tower 5",
+   "lat": 30.062332,
+   "lon": -99.3376
+  },
+  {
+   "site": "Camp Mystic",
+   "label": "Tower 1",
+   "lat": 30.012062,
+   "lon": -99.377902
+  },
+  {
+   "site": "Camp Mystic Cypress Lake",
+   "label": "Tower 1",
+   "lat": 30.004147,
+   "lon": -99.370943
+  },
+  {
+   "site": "Camp Mystic Cypress Lake",
+   "label": "Tower 2",
+   "lat": 30.004146,
+   "lon": -99.371586
+  },
+  {
+   "site": "Camp Mystic Cypress Lake",
+   "label": "Tower 3",
+   "lat": 30.00424,
+   "lon": -99.373596
+  },
+  {
+   "site": "Camp Mystic Cypress Lake",
+   "label": "Tower 4",
+   "lat": 30.004116,
+   "lon": -99.372142
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 1",
+   "lat": 30.009978,
+   "lon": -99.369474
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 10",
+   "lat": 30.009122,
+   "lon": -99.3716
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 11",
+   "lat": 30.009789,
+   "lon": -99.371973
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 12",
+   "lat": 30.00986,
+   "lon": -99.372168
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 13",
+   "lat": 30.009972,
+   "lon": -99.372389
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 14",
+   "lat": 30.009972,
+   "lon": -99.372389
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 15",
+   "lat": 30.009349,
+   "lon": -99.372424
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 16",
+   "lat": 30.009586,
+   "lon": -99.371993
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 17",
+   "lat": 30.008635,
+   "lon": -99.372407
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 18",
+   "lat": 30.008301,
+   "lon": -99.372801
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 19",
+   "lat": 30.008091,
+   "lon": -99.371274
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 20",
+   "lat": 30.00779,
+   "lon": -99.371106
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 23",
+   "lat": 30.007591,
+   "lon": -99.370686
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 24",
+   "lat": 30.00736,
+   "lon": -99.367534
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 25",
+   "lat": 30.006568,
+   "lon": -99.374944
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 26",
+   "lat": 30.007034,
+   "lon": -99.368063
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 7",
+   "lat": 30.009689,
+   "lon": -99.370344
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 8",
+   "lat": 30.009608,
+   "lon": -99.370633
+  },
+  {
+   "site": "Camp Mystic Guadalupe",
+   "label": "Tower 9",
+   "lat": 30.009448,
+   "lon": -99.371011
+  },
+  {
+   "site": "Camp Stewart",
+   "label": "Tower 1",
+   "lat": 30.064658,
+   "lon": -99.365453
+  },
+  {
+   "site": "Camp Stewart",
+   "label": "Tower 2",
+   "lat": 30.064362,
+   "lon": -99.365834
+  },
+  {
+   "site": "Camp Stewart",
+   "label": "Tower 3",
+   "lat": 30.064066,
+   "lon": -99.366259
+  },
+  {
+   "site": "Camp Stewart",
+   "label": "Tower 4",
+   "lat": 30.063819,
+   "lon": -99.366803
+  },
+  {
+   "site": "Camp Stewart",
+   "label": "Tower 5",
+   "lat": 30.063744,
+   "lon": -99.367365
+  },
+  {
+   "site": "Camp Stewart",
+   "label": "Tower 6",
+   "lat": 30.06098,
+   "lon": -99.366434
+  },
+  {
+   "site": "Camp Stewart",
+   "label": "Tower 7",
+   "lat": 30.061046,
+   "lon": -99.366765
+  },
+  {
+   "site": "Camp Waldemar",
+   "label": "Tower 1",
+   "lat": 30.061714,
+   "lon": -99.397741
+  },
+  {
+   "site": "Camp Waldemar",
+   "label": "Tower 2",
+   "lat": 30.061995,
+   "lon": -99.399792
+  },
+  {
+   "site": "Casa Bonita",
+   "label": "Tower 1",
+   "lat": 30.046359,
+   "lon": -99.348513
+  },
+  {
+   "site": "Casa Bonita",
+   "label": "Tower 2",
+   "lat": 30.046193,
+   "lon": -99.349003
+  },
+  {
+   "site": "Criders Rodeo and Dancehall",
+   "label": "Tower 1",
+   "lat": 30.032001,
+   "lon": -99.359156
+  },
+  {
+   "site": "Cypress Point",
+   "label": "Tower 1",
+   "lat": 30.065682,
+   "lon": -99.319543
+  },
+  {
+   "site": "El Tambo Torre",
+   "label": "",
+   "lat": 30.058006,
+   "lon": -99.417199
+  },
+  {
+   "site": "Heart O' The Hills",
+   "label": "Tower 1",
+   "lat": 30.064801,
+   "lon": -99.372922
+  },
+  {
+   "site": "Heart O' The Hills",
+   "label": "Tower 2",
+   "lat": 30.065461,
+   "lon": -99.373844
+  },
+  {
+   "site": "Hope House",
+   "label": "Tower 1",
+   "lat": 30.640359,
+   "lon": -97.999681
+  },
+  {
+   "site": "Howdy's Bar and Chill",
+   "label": "Tower 1",
+   "lat": 30.068777,
+   "lon": -99.224683
+  },
+  {
+   "site": "Howdy's Bar and Chill",
+   "label": "Tower 2",
+   "lat": 30.068639,
+   "lon": -99.224312
+  },
+  {
+   "site": "Howdy's Bar and Chill",
+   "label": "Tower 3",
+   "lat": 30.068632,
+   "lon": -99.223984
+  },
+  {
+   "site": "Howdy's Bar and Chill",
+   "label": "Tower 4",
+   "lat": 30.068432,
+   "lon": -99.223797
+  },
+  {
+   "site": "Johnston Residence",
+   "label": "Tower 1",
+   "lat": 30.065682,
+   "lon": -99.319543
+  },
+  {
+   "site": "Mo Ranch",
+   "label": "Tower 1",
+   "lat": 30.062077,
+   "lon": -99.469616
+  },
+  {
+   "site": "Mo Ranch",
+   "label": "Tower 2",
+   "lat": 30.061789,
+   "lon": -99.46995
+  },
+  {
+   "site": "Mo Ranch",
+   "label": "Tower 3",
+   "lat": 30.059896,
+   "lon": -99.470755
+  },
+  {
+   "site": "Mo Ranch",
+   "label": "Tower 4",
+   "lat": 30.059677,
+   "lon": -99.470835
+  },
+  {
+   "site": "Mo Ranch",
+   "label": "Tower 5",
+   "lat": 30.059521,
+   "lon": -99.470898
+  },
+  {
+   "site": "Mo Ranch",
+   "label": "Tower 6",
+   "lat": 30.059268,
+   "lon": -99.471023
+  },
+  {
+   "site": "Pawnee Path Tower",
+   "label": "",
+   "lat": 30.045918,
+   "lon": -99.353548
+  },
+  {
+   "site": "River Inn",
+   "label": "Tower 1",
+   "lat": 30.000838,
+   "lon": -99.387552
+  },
+  {
+   "site": "River Inn",
+   "label": "Tower 2",
+   "lat": 30.00069,
+   "lon": -99.387308
+  },
+  {
+   "site": "River Inn",
+   "label": "Tower 3",
+   "lat": 30.000332,
+   "lon": -99.386646
+  },
+  {
+   "site": "River Inn",
+   "label": "Tower 4",
+   "lat": 30.000181,
+   "lon": -99.386289
+  },
+  {
+   "site": "River Run",
+   "label": "Tower 1",
+   "lat": 30.067989,
+   "lon": -99.222893
+  },
+  {
+   "site": "River Run",
+   "label": "Tower 2",
+   "lat": 30.06812,
+   "lon": -99.223159
+  },
+  {
+   "site": "Sherman Mills Neighborhood",
+   "label": "Joan",
+   "lat": 30.06888,
+   "lon": -99.297699
+  },
+  {
+   "site": "Sherman Mills Neighborhood",
+   "label": "Sherman",
+   "lat": 30.068538,
+   "lon": -99.296648
+  },
+  {
+   "site": "Texas Lions Camp",
+   "label": "Tower 1",
+   "lat": 30.015317,
+   "lon": -99.097576
+  },
+  {
+   "site": "Texas Lions Camp",
+   "label": "Tower 2",
+   "lat": 30.013596,
+   "lon": -99.103394
+  },
+  {
+   "site": "Vista Camps",
+   "label": "Tower 1",
+   "lat": 30.067879,
+   "lon": -99.283669
+  },
+  {
+   "site": "Vista Camps",
+   "label": "Tower 2",
+   "lat": 30.067995,
+   "lon": -99.283502
+  },
+  {
+   "site": "Vista Camps",
+   "label": "Tower 3",
+   "lat": 30.068173,
+   "lon": -99.283268
+  },
+  {
+   "site": "Vista Camps",
+   "label": "Tower 4",
+   "lat": 30.069167,
+   "lon": -99.281354
+  },
+  {
+   "site": "Vista Camps",
+   "label": "Tower 5",
+   "lat": 30.069978,
+   "lon": -99.276573
+  },
+  {
+   "site": "Vista Camps",
+   "label": "Tower 6",
+   "lat": 30.07008,
+   "lon": -99.276159
+  },
+  {
+   "site": "Waltonia",
+   "label": "Tower 1",
+   "lat": 30.068017,
+   "lon": -99.295346
+  },
+  {
+   "site": "Waltonia",
+   "label": "Tower 2",
+   "lat": 30.067646,
+   "lon": -99.295298
+  },
+  {
+   "site": "Waltonia",
+   "label": "Tower 3",
+   "lat": 30.067581,
+   "lon": -99.294879
+  }
+ ]
+}

@@ -493,6 +493,7 @@ function renderGlossary() {
   html += glRow('<span style="color:var(--good)">✓</span>', t('glossary.reopen.label'), t('glossary.reopen'));
   html += glRow('⛔⚠✓', t('glossary.cross.label'), t('glossary.cross'));
   html += glRow('🆘', t('glossary.notice.label'), t('glossary.notice'));
+  html += glRow('<span class="rsentry-icon" style="width:16px;height:16px;font-size:10px">📢</span>', t('glossary.rsentry.label'), t('glossary.rsentry'));
   html += sec('glossary.sec.strip');
   html += `<div class="gl-note">${esc(t('glossary.strip'))}</div>`;
   for (const [glyph, key] of [['⚠', 'threat.ffemerg'], ['🆘', 'threat.life'], ['⛔', 'threat.cutoff'], ['●', 'threat.major'],

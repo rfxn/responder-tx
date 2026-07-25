@@ -1264,6 +1264,74 @@ function lwcPopupHtml(p) {
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(t('lwc.footer'))}</div>`;
 }
 
+/* ---------- River Sentry siren tower sites (REPORTED LOCATIONS, no status feed) ----------
+   data/river-sentry.json is a static committed transcription of a public My Maps export that
+   names no author. Every string this renders has to keep saying "reported location", because a
+   marker asserting a working warning siren is the one claim this board must never make blind. */
+
+const RSENTRY_ATTRIB = 'River Sentry tower sites: public Google My Maps export (author not identified)';
+
+// lazy: fetched once on first overlayadd; same-origin static file, no CSP surface
+async function fetchRiverSentry() {
+  if (state._rsentryLoaded) return;
+  state._rsentryLoaded = true;
+  try {
+    const res = await fetch(`data/river-sentry.json?_=${Date.now()}`);
+    if (!res.ok) throw new Error(`river-sentry HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data || !Array.isArray(data.towers)) throw new Error('river-sentry payload has no towers');
+    state.riverSentry = data;
+    renderRiverSentry();
+  } catch (err) {
+    state._rsentryLoaded = false; // allow a retry the next time the layer is toggled on
+    opNotice(t('note.rsentryfail'));
+  }
+}
+
+function rsentrySiteCount(site) {
+  const rows = ((state.riverSentry || {}).sites) || [];
+  const hit = rows.find((s) => s.site === site);
+  return hit ? hit.towers : 0;
+}
+
+function renderRiverSentry() {
+  const layer = state.layers.riverSentry;
+  const data = state.riverSentry;
+  if (!layer || !data) return;
+  layer.clearLayers();
+  const lbl = esc(t('layers.rsentry'));
+  for (const tw of data.towers || []) {
+    if (!Number.isFinite(tw.lat) || !Number.isFinite(tw.lon)) continue;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="rsentry-icon" role="img" aria-label="${lbl}" title="${lbl}">📢</div>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11],
+    });
+    const m = L.marker([tw.lat, tw.lon], { icon, attribution: RSENTRY_ATTRIB });
+    m.bindPopup(() => rsentryPopupHtml(tw));
+    layer.addLayer(m);
+  }
+}
+
+function rsentryPopupHtml(tw) {
+  const data = state.riverSentry || {};
+  const src = data.source || {};
+  const n = rsentrySiteCount(tw.site);
+  const title = tw.label ? `${tw.site} · ${tw.label}` : tw.site;
+  const link = safeUrl(src.url) !== '#'
+    ? `<div class="popup-link"><a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>`
+    : '';
+  return `<div class="popup-title">📢 ${esc(title)}</div>` +
+    (n ? `<div class="popup-meta">${esc(t('rs.towers'))}: ${esc(String(n))}</div>` : '') +
+    `<div class="popup-meta">${esc(t('rs.what'))}</div>` +
+    `<div class="popup-meta" style="margin-top:4px">${esc(t('rs.nostatus'))}</div>` +
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(t('rs.reported'))}` +
+    (data.captured ? ` ${esc(t('rs.captured').replace('{t}', fmtWhen(data.captured)))}` : '') + '</div>' +
+    (src.name ? `<div class="popup-meta" style="opacity:.7">${esc(src.name)}</div>` : '') +
+    link;
+}
+
 /* ---------- IEM local storm reports (ground truth) ---------- */
 
 async function fetchLsrs() {

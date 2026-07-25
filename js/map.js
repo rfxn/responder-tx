@@ -335,6 +335,7 @@ function mapLegendHtml() {
       return `<div><span class="sw sw-line" style="background:${rc.color}"></span>${esc(roadLabel(rc))}</div>`;
     }).join('') +
     `<div><span class="reopen-icon">✓</span>${esc(t('legend.reopen'))}</div>` +
+    `<div><span class="rsentry-icon">📢</span>${esc(t('legend.rsentry'))}</div>` +
     `<div class="lg-title" style="margin-top:6px">${esc(t('legend.cams'))}</div>` +
     `<div><span class="cam-icon cam-live">▶</span>${esc(t('cam.kind.live.long'))}</div>` +
     `<div><span class="cam-icon cam-still">📷</span>${esc(t('cam.kind.still.long'))}</div>` +
@@ -412,6 +413,7 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
+    if (e.layer === state.layers.riverSentry) fetchRiverSentry();
     if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { opNotice(t('note.tropfail')); }); }
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
     if ((state.camLayerList || []).includes(e.layer)) loadCameras().catch(() => { opNotice(t('note.camfail')); });
@@ -472,6 +474,9 @@ function initMap() {
   state.layers.tropical = L.layerGroup();
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
   state.layers.lwc = L.layerGroup();
+  // River Sentry siren tower sites — OFF by default, lazy-loaded; REPORTED LOCATIONS from a public
+  // My Maps export, never a claim that a tower is powered, working, or still standing
+  state.layers.riverSentry = L.layerGroup();
   // cameras: one group per AO region (every source pooled into the region it sits in), all OFF by
   // default, lazy-loaded, clustered; plain group if the markercluster plugin failed to load
   const camGroup = () => (L.markerClusterGroup
@@ -510,6 +515,7 @@ function initMap() {
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
     'Road reopenings (recovering)': state.layers.roadReopen,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
+    'River Sentry siren sites (reported locations · not live status)': state.layers.riverSentry,
     ...camOverlays,
   }, { collapsed: true }).addTo(state.map);
 
@@ -871,6 +877,7 @@ const PILL_LAYERS = (CONFIG.wxUnified
   ['lsrsAged', 'layers.lsrhist'],
   ['lwc', 'layers.lwc'],
   ['roadReopen', 'layers.reopen'],
+  ['riverSentry', 'layers.rsentry'],
 ]); // region camera pills are appended by initCamRegionRows()
 
 // a static row carries an i18n key; a region camera row takes its name from the event config
@@ -951,6 +958,7 @@ const SHEET_GROUPS = [
     ['inundation', '🌊', 'layers.inun', 'sheet.s.inun', null, false],
     ['crossings', '⛔', 'layers.crossings', 'sheet.s.crossings', 'curated', true],
     ['lwc', '📍', 'layers.crossall', 'sheet.s.crossall', 'official', false],
+    ['riverSentry', '<span class="rsentry-icon">📢</span>', 'layers.rsentry', 'sheet.s.rsentry', null, false],
   ]],
   ['sheet.g.rain', WX_RAIN_ROWS.concat([
     ['mrms', '🌧', 'layers.rain', 'sheet.s.rain', null, false],

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.10",
+      "date": "2026-07-25",
+      "line": "A new map layer shows River Sentry flood siren sites, 105 towers across 26 Hill Country sites, off by default under Water. River Sentry is a privately funded local siren that sounds where it stands; it reports nothing to this board. The layer carries reported locations taken from a public map export that names no author and carries no date, and it says so: no feed tells the board whether a tower is powered, working or still standing, and towers were damaged in the July 2026 flood. Tapping a site shows how many towers the map places there and links to the source. The layer hides during playback."
+    },
+    {
       "v": "v0.99.9",
       "date": "2026-07-25",
       "line": "What's new is shorter. Entries from v0.97.81 forward now say what changed and stop there, instead of explaining how a problem was found or how bad it was. Nothing is dropped: every correction to something the board tells you is still recorded."

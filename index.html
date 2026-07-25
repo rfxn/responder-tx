@@ -11,31 +11,31 @@
   <meta property="og:title" content="ResponderTX: Live Hazard Awareness">
   <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://respondertx.org/">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.19">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.20">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness">
   <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.19">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.20">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.99.19" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.99.19" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.99.19" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.99.19">
-  <link rel="manifest" href="manifest.webmanifest?v=0.99.19">
-  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.99.19">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.99.19">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.99.19">
-  <link rel="stylesheet" href="css/app.css?v=0.99.19">
-  <link rel="stylesheet" href="css/team.css?v=0.99.19">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.99.20" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.99.20" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.99.20" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.99.20">
+  <link rel="manifest" href="manifest.webmanifest?v=0.99.20">
+  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.99.20">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.99.20">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.99.20">
+  <link rel="stylesheet" href="css/app.css?v=0.99.20">
+  <link rel="stylesheet" href="css/team.css?v=0.99.20">
 </head>
 <body>
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.99.19" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.99.19" alt="ResponderTX" width="677" height="162">
-      <img class="brand-mark" src="assets/brand/icon.svg?v=0.99.19" alt="ResponderTX" width="32" height="32">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.99.20" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.99.20" alt="ResponderTX" width="677" height="162">
+      <img class="brand-mark" src="assets/brand/icon.svg?v=0.99.20" alt="ResponderTX" width="32" height="32">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="controls">
@@ -47,6 +47,7 @@
       </div>
       <button id="drive-btn" title="Drive Mode: big-type nearest-hazards glance list for the road" aria-label="Drive Mode" data-i18n-title="ctl.drive.title" data-i18n-aria="ctl.drive.aria">🚗 <span class="ctl-lbl" data-i18n="ctl.drive">Drive</span></button>
       <button id="refresh-now" title="Refresh live layers" aria-label="Refresh live layers" data-i18n-title="ctl.refresh.title" data-i18n-aria="ctl.refresh.title">⟳ <span class="ctl-lbl" data-i18n="ctl.refresh">Refresh</span></button>
+      <button id="shelter-chip" hidden>🏠 <span class="ctl-lbl"></span></button>
       <button id="risk-btn" hidden title="Type an address to see the nearest gauges, alerts, and closed crossings at that point" aria-label="Am I at risk? Address flood check" data-i18n-title="ctl.risk.title" data-i18n-aria="ctl.risk.aria">🏠 <span class="ctl-lbl" data-i18n="ctl.risk">Am I at risk?</span></button>
       <div class="hmore" id="hmore">
         <button id="hmore-btn" title="Settings: display, alerts, share, help" aria-label="Settings" aria-haspopup="true" aria-expanded="false" data-i18n-title="ctl.settings.title" data-i18n-aria="ctl.settings.aria">⚙ <span class="ctl-lbl" data-i18n="ctl.settings">Settings</span></button>
@@ -529,20 +530,20 @@
     </div>
   </div>
 
-  <script src="js/vendor/leaflet.js?v=0.99.19"></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.99.19"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.99.19"></script>
-  <script src="js/usng.js?v=0.99.19"></script>
-  <script src="js/i18n.js?v=0.99.19"></script>
-  <script src="js/core.js?v=0.99.19"></script>
-  <script src="js/map.js?v=0.99.19"></script>
-  <script src="js/playback.js?v=0.99.19"></script>
-  <script src="js/sources.js?v=0.99.19"></script>
-  <script src="js/cameras.js?v=0.99.19"></script>
-  <script src="js/panels.js?v=0.99.19"></script>
-  <script src="js/board.js?v=0.99.19"></script>
-  <script src="js/boot.js?v=0.99.19"></script>
-  <script src="js/vendor/qrcode.min.js?v=0.99.19"></script>
-  <script src="js/team.js?v=0.99.19"></script>
+  <script src="js/vendor/leaflet.js?v=0.99.20"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.99.20"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.99.20"></script>
+  <script src="js/usng.js?v=0.99.20"></script>
+  <script src="js/i18n.js?v=0.99.20"></script>
+  <script src="js/core.js?v=0.99.20"></script>
+  <script src="js/map.js?v=0.99.20"></script>
+  <script src="js/playback.js?v=0.99.20"></script>
+  <script src="js/sources.js?v=0.99.20"></script>
+  <script src="js/cameras.js?v=0.99.20"></script>
+  <script src="js/panels.js?v=0.99.20"></script>
+  <script src="js/board.js?v=0.99.20"></script>
+  <script src="js/boot.js?v=0.99.20"></script>
+  <script src="js/vendor/qrcode.min.js?v=0.99.20"></script>
+  <script src="js/team.js?v=0.99.20"></script>
 </body>
 </html>

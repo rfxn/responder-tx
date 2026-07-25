@@ -1078,181 +1078,40 @@ function quietState() {
   return !openInAO.length && !inFlood.length && !(state.roadClosures.lines || []).length;
 }
 
-/* plain-language headline — one sentence derived from the same computed signals the
-   chips/tiles use; never editorializes beyond the data. Quiet state keeps its own line. */
-function headlineParts() {
-  const parts = [];
-  const now = new Date();
-  const openInAO = (sev) => state.alerts.filter((f) => f._sev === sev && alertInAO(f)
-    && !(f.properties.expires && new Date(f.properties.expires) < now)).length;
-  const emergN = openInAO('emergency');
-  if (emergN) parts.push(t('headline.ffe').replace('{n}', emergN));
-  const inFlood = state.gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
-  if (inFlood.length) {
-    const rcRank = (g) => { const rc = recordContext(g); return rc && (rc.atOrAbove || rc.near) ? 1 : 0; };
-    const worst = inFlood.slice().sort((a, b) => (CAT_RANK[gaugeCat(b)] - CAT_RANK[gaugeCat(a)])
-      || (rcRank(b) - rcRank(a)) || (b.status.observed.primary - a.status.observed.primary))[0];
-    const rc = recordContext(worst);
-    const tr = gaugeTrend(worst.lid);
-    const st = tr && tr.dir === 'down' ? t('headline.st.falling')
-      : rc && rc.atOrAbove ? t('headline.st.overrecord')
-        : rc && rc.near ? t('headline.st.record')
-          : tr && tr.dir === 'up' ? t('headline.st.rising') : t('headline.st.steady');
-    parts.push(t('headline.gauge').replace('{site}', pbShortName(worst.name) || riverOf(worst.name))
-      .replace('{cat}', catLabel(gaugeCat(worst))).replace('{st}', st));
-  }
-  const wave = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major')
-    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
-  if (wave) {
-    // direction from observed trend, not the forecast delta — a forecast-to-major gauge can be receding right now
-    const wtr = gaugeTrend(wave.lid);
-    const waveKey = !wtr ? 'headline.wave.nodir' : wtr.dir === 'up' ? 'headline.wave' : wtr.dir === 'down' ? 'headline.wave.down' : null;
-    if (waveKey) parts.push(t(waveKey).replace('{river}', riverOf(wave.name)).replace('{site}', pbShortName(wave.name)));
-  }
-  const warnN = openInAO('warning');
-  if (warnN) parts.push(t('headline.warnN').replace('{n}', warnN));
-  else if (!emergN && state.alertsLoadedOnce) parts.push(t('headline.warn0'));
-  const roadN = ((state.roadClosures && state.roadClosures.lines) || []).length;
-  if (roadN) parts.push(t('headline.roads').replace('{n}', roadN));
-  const dirs = inFlood.map((g) => (gaugeTrend(g.lid) || {}).dir).filter(Boolean);
-  if (dirs.length) { // no trend baseline yet (fresh browser) — say nothing rather than guess
-    const down = dirs.filter((d) => d === 'down').length;
-    const up = dirs.filter((d) => d === 'up').length;
-    parts.push(t(down > up ? 'headline.trend.down' : up > down ? 'headline.trend.up' : 'headline.trend.steady'));
-  }
-  return parts;
+/* Shelters are help, not a hazard, so the count cannot ride in the hazard line without breaking
+   that line's aging invariant. It sits in the header instead, where a resident reaches it in one
+   tap and does not have to scroll a chip row sideways to find it. */
+function renderShelterChip() {
+  const btn = $('#shelter-chip');
+  if (!btn) return;
+  const open = openShelterCount();
+  const unconfirmed = unconfirmedShelterCount();
+  const n = open || unconfirmed;
+  if (!n) { btn.hidden = true; return; }
+  const label = open > 0 ? t(unconfirmed ? 'threat.shelters.live' : 'threat.shelters') : t('threat.shelters.unconf');
+  const text = `${fmtNum(n)} ${label}`;
+  btn.hidden = false;
+  btn.querySelector('.ctl-lbl').textContent = text;
+  btn.title = text;
+  btn.setAttribute('aria-label', text);
 }
 
-function headlineHtml() {
-  const parts = headlineParts();
-  if (!parts.length) return '';
-  return `<button id="threat-headline" class="threat-headline${state.headlineOpen ? ' open' : ''}" ` +
-    `title="${esc(t('headline.title'))}">${esc(parts.join(' · '))}</button>`;
-}
-
-function bindHeadline(el) {
-  const hb = el.querySelector('#threat-headline');
-  if (hb) hb.addEventListener('click', () => {
-    state.headlineOpen = !state.headlineOpen;
-    hb.classList.toggle('open', state.headlineOpen);
-  });
-}
-
-// build the chip grid, append it, and hand it back so callers can add a trailing row
-function appendChipGrid(el, chips) {
-  if (!chips.length) return null;
-  const grid = document.createElement('div');
-  grid.className = 'threat-grid';
-  for (const c of chips) {
-    const b = document.createElement('button');
-    b.className = `stat-row ${c.cls}`;
-    b.innerHTML = `<span class="glyph">${c.glyph}</span><span class="num">${c.n}</span><span class="lbl">${esc(c.label)}</span>` +
-      (c.src ? srcBadge(c.src, 'src-mini') : '');
-    if (c.src) b.title = t(`src.${c.src}.title`);
-    b.addEventListener('click', c.act);
-    grid.appendChild(b);
-  }
-  el.appendChild(grid);
-  return grid;
-}
-
+/* The hazard line carries the ranked live items now, so the strip no longer repeats them as
+   counts. What is left is the reassurance that line cannot give: it renders only when the line
+   has nothing to carry, so the two are never stacked. */
 function renderThreatStrip() {
   const el = $('#threat-strip');
-  // playback engaged: the dimmed strip stays LIVE data — say so, never let it read as the frame
+  // playback engaged: the dimmed strip stays LIVE data, say so, never let it read as the frame
   const pbNote = pbBlocksLive(state) ? `<div class="strip-live-note">${esc(t('playback.striplive'))}</div>` : '';
-  const reqs = activeRequests().filter((r) => r.status !== 'resolved');
-  const emergencies = state.alerts.filter((a) => a._sev === 'emergency').length;
-  const lifeReqs = reqs.filter((r) => r.priority === 'critical' && LIFE_SAFETY_TYPES.includes(r.type) && r.type !== 'cutoff');
-  const cutoffs = reqs.filter((r) => r.type === 'cutoff');
-  const roads = reqs.filter((r) => r.type === 'road');
-  const majors = state.gauges.filter((g) => gaugeCat(g) === 'major');
-  const toMajor = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major');
-  const warnings = state.alerts.filter((a) => a._sev === 'warning').length;
-  const chips = [
-    { n: emergencies, cls: 'emergency', label: t('threat.ffemerg'), glyph: '⚠', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
-    { n: warnings, cls: 'warn', label: t('threat.warnings'), glyph: '🌊', act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click() },
-    { n: lifeReqs.length, cls: 'emergency', label: t('threat.life'), glyph: '🆘', src: 'curated', act: () => fitTo(lifeReqs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
-    { n: cutoffs.length, cls: 'emergency', label: t('threat.cutoff'), glyph: '⛔', src: 'curated', act: () => fitTo(cutoffs.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
-    { n: majors.length, cls: 'major', label: t('threat.major'), glyph: '●', act: () => focusGauges(majors) },
-    { n: toMajor.length, cls: 'major', label: t('threat.tomajor'), glyph: '▲', act: () => focusGauges(toMajor) },
-    (() => { const rw = recordWatchGauges(); return { n: rw.length, cls: rw.some((g) => recordContext(g).atOrAbove) ? 'emergency' : 'major', label: t('threat.record'), glyph: '⚑', act: () => { fitTo(rw.map((g) => [g.latitude, g.longitude])); document.querySelector('.tabs button[data-tab="tab-gauges"]').click(); } }; })(),
-    // roads chip counts operator road-notice cards (requests.json), not the DriveTexas feed — curated
-    { n: roads.length, cls: 'warn', label: t('threat.roads'), glyph: '🚧', src: 'curated', act: () => fitTo(roads.filter((r) => Number.isFinite(r.lat)).map((r) => [r.lat, r.lon])) },
-    { n: reqs.length, cls: 'warn', label: t('threat.notices'), glyph: '📄', src: 'curated', act: () => document.querySelector('.tabs button[data-tab="tab-requests"]').click() },
-    {
-      n: state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').length,
-      cls: 'good', label: t('threat.falling'), glyph: '▼',
-      act: () => fitTo(state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').map((g) => [g.latitude, g.longitude])),
-    },
-  ].filter((c) => c.n > 0);
-  // shelters are help, not a threat: the chip rides along but never counts toward "is anything wrong"
-  const shelters = openShelterCount();
-  const unconfirmed = unconfirmedShelterCount();
-  const shelterAct = () => { if (typeof openHelpSheet === 'function') openHelpSheet(); };
-  const shelterChip = shelters > 0
-    ? { n: shelters, cls: 'good', label: t(unconfirmed ? 'threat.shelters.live' : 'threat.shelters'), glyph: '🏠', act: shelterAct }
-    : unconfirmed > 0
-      ? { n: unconfirmed, cls: 'good', label: t('threat.shelters.unconf'), glyph: '🏠', act: shelterAct }
-      : null;
-  if (!chips.length) {
-    if (!state.alertsLoadedOnce) { el.innerHTML = ''; return; }
-    if (quietState()) {
-      const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !gaugeObsStale(g)).length;
-      const sub = t('quiet.sub').replace('{n}', state.gauges.length).replace('{m}', normal);
-      el.innerHTML = `${pbNote}<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
-      appendChipGrid(el, shelterChip ? [shelterChip] : []);
-      return;
-    }
-    el.innerHTML = pbNote + headlineHtml()
-      + `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
-    bindHeadline(el);
-    appendChipGrid(el, shelterChip ? [shelterChip] : []);
+  if (!state.alertsLoadedOnce || tickerItems().length) { el.innerHTML = pbNote; return; }
+  if (quietState()) {
+    const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !gaugeObsStale(g)).length;
+    const sub = t('quiet.sub').replace('{n}', state.gauges.length).replace('{m}', normal);
+    el.innerHTML = `${pbNote}<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
     return;
   }
-  if (shelterChip) chips.push(shelterChip);
-  el.innerHTML = pbNote + headlineHtml();
-  bindHeadline(el);
-  if (chips.some((c) => c.cls === 'emergency')) {
-    const h = document.createElement('div');
-    h.className = 'threat-head';
-    h.textContent = t('threat.headline');
-    el.appendChild(h);
-  }
-  const grid = appendChipGrid(el, chips);
-  // the board knows crest timing and emergency clocks — surface them at glance level
-  const soonest = state.gauges
-    .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor
-      && new Date(g.status.forecast.validTime) > new Date()) // a crest already past is not "next"
-    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
-  if (soonest) {
-    const b = document.createElement('button');
-    b.className = 'stat-row major crest';
-    const river = riverOf(soonest.name);
-    b.innerHTML = `<span class="glyph">⏱</span><span class="num">${esc(fmtWhen(soonest.status.forecast.validTime).split(' · ')[0])}</span><span class="lbl">${esc(t('threat.nextcrest'))}</span><span class="riv">· ${esc(river.slice(0, 22))}</span>`;
-    b.addEventListener('click', () => state.map.setView([soonest.latitude, soonest.longitude], 11));
-    grid.appendChild(b);
-  }
-  const emergAlerts = state.alerts.filter((a) => a._sev === 'emergency');
-  if (emergAlerts.length) {
-    const row = document.createElement('div');
-    row.className = 'ffe-row';
-    const tag = document.createElement('span');
-    tag.className = 'ffe-tag';
-    tag.textContent = t('threat.ffemergtag');
-    row.appendChild(tag);
-    const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
-    for (const a of emergAlerts) {
-      const where = (a.properties.areaDesc || '?').split(';')[0].replace(/, TX$/, '');
-      const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
-      const b = document.createElement('button');
-      b.className = 'ffe-chip';
-      b.title = t('ffe.opentab');
-      b.innerHTML = `${esc(where)} <span class="until">→ ${esc(until)}</span>`;
-      b.addEventListener('click', goAlerts);
-      row.appendChild(b);
-    }
-    el.appendChild(row);
-  }
+  el.innerHTML = `${pbNote}<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span>` +
+    `<span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
 }
 
 /* ---------- actionable ticker — recency-biased glance line ---------- */
@@ -1380,6 +1239,7 @@ function applyTickerOpen() {
 // v0.97.93 (they duplicated the richer, tappable threat strip and were hidden on every phone)
 function renderTiles() {
   renderThreatStrip();
+  renderShelterChip();
   renderTicker();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical').length;

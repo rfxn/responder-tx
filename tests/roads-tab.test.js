@@ -94,8 +94,8 @@ test('shelters and hotlines are promoted out of position 6 of 8', () => {
     'the shelters row must lead the settings sheet, not trail the preferences');
 
   const panels = read('js/panels.js');
-  // count-gated chip in the strip the resident already reads
-  assert.match(panels, /const shelterChip = shelters > 0/, 'the chip must be count-gated');
+  // count-gated header control, reachable in one tap without opening a menu
+  assert.match(panels, /function renderShelterChip\(\)/, 'the shelter count lost its renderer');
   const count = panels.match(/function openShelterCount\(\)[\s\S]*?\n\}/);
   assert.ok(count, 'openShelterCount() not found');
   // v0.98.0 asserted `=== 'open'` appears here, which the `!sh.live ||` short-circuit satisfied
@@ -106,10 +106,10 @@ test('shelters and hotlines are promoted out of position 6 of 8', () => {
   assert.match(count[0], /curatedSheltersStale/, 'the curated list must be aged against its own stamp');
   assert.match(count[0], /mergeShelters/, 'the chip must count the same merged list the sheet renders');
   assert.ok(!/fetch\(/.test(count[0]), 'the chip must not introduce a new fetch');
-  // shelters are help, not a hazard: they must never suppress the all-clear line
+  // shelters are help, not a hazard: the count must never sit in the hazard surfaces at all
   const strip = panels.match(/function renderThreatStrip\(\)[\s\S]*?\n\}/);
-  assert.ok(strip[0].indexOf('const shelterChip') > strip[0].indexOf(".filter((c) => c.n > 0)"),
-    'the shelter chip must be built after the hazard emptiness test, never inside it');
+  assert.ok(!/[Ss]helter/.test(strip[0]),
+    'the shelter count must stay out of the threat strip, which now carries only the all-clear');
 });
 
 test('the monitor link farm left the client entirely', () => {

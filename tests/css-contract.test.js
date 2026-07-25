@@ -285,20 +285,48 @@ test('the header stays one row at every width and the tiles are gone', () => {
   // renderTiles stays: it is the composite entry every refresh calls
   const fn = panels.match(/function renderTiles\(\)[\s\S]*?\n\}/);
   assert.ok(fn, 'renderTiles() was removed; it is the per-refresh composite entry');
-  for (const call of ['renderThreatStrip()', 'renderTicker()', 'renderDriveMode()']) {
+  for (const call of ['renderThreatStrip()', 'renderShelterChip()', 'renderTicker()', 'renderDriveMode()']) {
     assert.ok(fn[0].includes(call), `renderTiles() no longer calls ${call}`);
   }
   assert.ok(/document\.title\s*=/.test(fn[0]), 'renderTiles() no longer updates document.title');
 });
 
-test('the counts the tiles carried alone became threat-strip chips', () => {
+/* The scrolling hazard line cycles every ranked item, so the count chips above it said the same
+   thing twice. The strip now stands down while the line has anything to carry, and keeps only the
+   all-clear the line cannot express, because an empty line and a calm board look identical. */
+test('the strip stands down while the hazard line is carrying, and never repeats it as counts', () => {
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
   const fn = panels.match(/function renderThreatStrip\(\)[\s\S]*?\n\}/);
   assert.ok(fn, 'renderThreatStrip() not found');
-  assert.ok(/t\('threat\.warnings'\)/.test(fn[0]), 'the flood-warning count did not become a chip');
-  assert.ok(/t\('threat\.notices'\)/.test(fn[0]), 'the active-notice count did not become a chip');
-  assert.ok(/threat\.warnings[\s\S]*?tab-alerts/.test(fn[0]), 'the warnings chip should route to Alerts');
-  assert.ok(/threat\.notices[\s\S]*?tab-requests/.test(fn[0]), 'the notices chip should route to Feed');
+  assert.ok(/tickerItems\(\)\.length/.test(fn[0]),
+    'the strip must stand down while the hazard line has items, or the two are stacked again');
+  for (const gone of ['threat-grid', 'stat-row', 'ffe-row', 'threat-headline', 'appendChipGrid', 'headlineParts']) {
+    assert.ok(!panels.includes(gone), `js/panels.js still builds the retired ${gone}`);
+  }
+  // the all-clear states are the strip's whole remaining job: losing them leaves a calm board blank
+  assert.ok(/quiet\.line/.test(fn[0]), 'the strip lost the quiet all-clear line');
+  assert.ok(/threat\.okline/.test(fn[0]), 'the strip lost the no-active-threats line');
+  assert.ok(/playback\.striplive/.test(fn[0]), 'the strip lost the playback live-data note');
+});
+
+/* The open-shelter count was the one public-facing number in the retired chip row, and it was the
+   last chip in a row that scrolled sideways. It moves to the header, where it is reachable in one
+   tap, and it stays out of the hazard line: shelters are help, not a hazard. */
+test('the open-shelter count kept a home the resident reaches, outside the hazard line', () => {
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
+  assert.ok(/id="shelter-chip"/.test(html), 'index.html no longer declares the header shelter control');
+  const header = html.slice(html.indexOf('<div class="controls">'), html.indexOf('</header>'));
+  assert.ok(header.includes('id="shelter-chip"'), 'the shelter control must sit in the header controls');
+  assert.ok(/#shelter-chip'\)\.addEventListener\('click', openHelpSheet\)/.test(boot),
+    'the header shelter control must open the same shelters sheet');
+  const fn = panels.match(/function renderShelterChip\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderShelterChip() not found');
+  assert.ok(/btn\.hidden = true/.test(fn[0]), 'the control must hide itself when no shelter is open');
+  // the hazard line's aging invariant admits only hazards; a shelter count must never enter it
+  const ticker = panels.match(/function tickerItems\(\)[\s\S]*?\n\}/);
+  assert.ok(!/[Ss]helter/.test(ticker[0]), 'a shelter count leaked into the hazard line');
 });
 
 /* The camera band parent sits beside a 34px disclosure header. It is a real toggle, so it carries

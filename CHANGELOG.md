@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.20 · 2026-07-25 (one hazard line at the top, not two)
+
+-- Changes --
+- [Change] The status row above the tabs is gone. The scrolling hazard line
+           already names each ranked item with its place, level and rate, so the
+           counts stacked above it said the same thing twice
+- [Change] The open-shelter count moved into the header, one tap from the
+           shelters and hotlines sheet, instead of sitting last in a chip row
+           that scrolled sideways
+- [Change] The all-clear line stays and now shows only when the hazard line has
+           nothing to carry, so a calm board still says it is calm
+- [Change] The Legend section that described the retired chips now describes
+           what each symbol means wherever it appears on the board
+
 ## v0.99.19 · 2026-07-25 (two deploys can no longer stage into one directory)
 
 -- Bug Fixes --

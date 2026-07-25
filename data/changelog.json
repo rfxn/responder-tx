@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.20",
+      "date": "2026-07-25",
+      "line": "The top of the board carries one hazard line now, not two. The row of status counts above the tabs is gone: the scrolling hazard line already names each ranked item with its place, level and rate, so the counts repeated it. The open-shelter count moved into the header, one tap from the shelters and hotlines sheet. The all-clear line stays and shows whenever the hazard line has nothing to carry, so a calm board still says it is calm."
+    },
+    {
       "v": "v0.99.19",
       "date": "2026-07-25",
       "line": "Two deploys can no longer stage into one directory. A deploy run by hand while the 15 minute cycle was deploying could die partway through building its upload, because both were assembling it in the same place. Each deploy now builds in a directory of its own and removes it on the way out, including when the deploy fails, and the directory can still be pinned when the built files need to be kept. Ops facing, nothing on the board changes."

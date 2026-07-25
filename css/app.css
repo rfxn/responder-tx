@@ -90,7 +90,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-.drive-title, .modal-head strong, .threat-head { font-family: var(--font-display); }
+.drive-title, .modal-head strong { font-family: var(--font-display); }
 
 header {
   display: flex;
@@ -151,6 +151,13 @@ button.primary { background: var(--accent); color: #fff; border-color: transpare
   font-weight: 700; animation: pulse 2.4s infinite;
 }
 #update-chip[hidden] { display: none; }
+/* open-shelter count: the public-facing help control, so it reads as help and not as a hazard */
+#shelter-chip {
+  border-color: color-mix(in srgb, var(--good) 55%, transparent);
+  background: color-mix(in srgb, var(--good) 12%, var(--surface-1));
+  color: var(--ink-1); font-weight: 700;
+}
+#shelter-chip[hidden] { display: none; }
 
 /* actionable hazard line, ranked. The worst item is pinned and never moves; the remainder loops
    beside it as a marquee (two identical runs, -50% for a seamless seam). Motion pauses on hover
@@ -281,75 +288,6 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 
 #threat-strip { background: var(--surface-2); }
 #threat-strip:not(:empty) { padding: 7px 10px 8px; border-bottom: 1px solid var(--hairline); }
-/* plain-language headline — a slim one-line strip at every width; tap expands the full sentence */
-.threat-headline {
-  display: block; width: 100%; text-align: left; margin-bottom: 5px; padding: 3px 8px; min-height: 0;
-  background: var(--surface-1); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-  border-radius: 6px; font-size: 11.5px; font-weight: 600; color: var(--ink-1); line-height: 1.3;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
-}
-.threat-headline.open { white-space: normal; }
-.threat-headline:hover { border-color: var(--accent); }
-.threat-head {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
-  color: var(--sev-emergency);
-  margin-bottom: 6px;
-}
-.threat-head::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
-.threat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 6px; }
-.stat-row {
-  display: flex; align-items: center; gap: 7px;
-  padding: 4px 8px 4px 7px; min-height: 0;
-  border: none; border-left: 3px solid var(--ink-muted); border-radius: 6px;
-  background: var(--surface-1);
-  font-size: 12px; text-align: left; color: var(--ink-1); line-height: 1.25;
-}
-.stat-row .glyph { flex: 0 0 auto; font-size: 11px; width: 15px; text-align: center; }
-.stat-row .num {
-  flex: 0 0 auto; font-size: 15px; font-weight: 700;
-  font-variant-numeric: tabular-nums; min-width: 14px;
-}
-.stat-row .lbl { color: var(--ink-2); font-weight: 500; min-width: 0; } /* wraps — clipping loses meaning-bearing words (ES 'nivel MAYOR', 'récord histórico') */
-.stat-row:hover { filter: brightness(1.12); }
-.stat-row.emergency {
-  border-left-color: var(--sev-emergency);
-  background: color-mix(in srgb, var(--sev-emergency) 12%, var(--surface-1));
-}
-.stat-row.emergency .glyph, .stat-row.emergency .num { color: var(--sev-emergency); }
-.stat-row.emergency .lbl { color: var(--ink-1); font-weight: 600; }
-.stat-row.major {
-  border-left-color: var(--cat-major);
-  background: color-mix(in srgb, var(--cat-major) 8%, var(--surface-1));
-}
-.stat-row.major .glyph, .stat-row.major .num { color: var(--cat-major); }
-.stat-row.warn {
-  border-left-color: var(--sev-warning);
-  background: color-mix(in srgb, var(--sev-warning) 8%, var(--surface-1));
-}
-.stat-row.warn .glyph, .stat-row.warn .num { color: var(--sev-warning); }
-.stat-row.good {
-  border-left-color: var(--good);
-  background: color-mix(in srgb, var(--good) 8%, var(--surface-1));
-}
-.stat-row.good .glyph, .stat-row.good .num { color: var(--good); }
-.stat-row.crest { grid-column: 1 / -1; }
-.stat-row.crest .num { font-size: 13px; letter-spacing: 0.01em; }
-.stat-row.crest .riv { color: var(--ink-2); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ffe-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.ffe-tag {
-  flex: 0 0 auto; font-size: 9px; font-weight: 800; letter-spacing: 0.07em;
-  color: #fff; background: var(--sev-emergency); border-radius: 4px; padding: 2.5px 6px;
-}
-.ffe-chip {
-  display: inline-flex; align-items: center; gap: 5px; min-height: 0;
-  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px;
-  color: var(--ink-1); border: 1px solid color-mix(in srgb, var(--sev-emergency) 55%, transparent);
-  background: color-mix(in srgb, var(--sev-emergency) 10%, var(--surface-1));
-  white-space: nowrap;
-}
-.ffe-chip .until { color: var(--sev-emergency); font-weight: 700; font-variant-numeric: tabular-nums; }
-.ffe-chip:hover { filter: brightness(1.12); }
 .strip-ok { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .strip-ok .ok-line { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--good); }
 .strip-ok .ok-sub { font-size: 11px; color: var(--ink-2); }
@@ -1505,18 +1443,6 @@ button.inspect-gauge:hover { color: var(--accent); }
   main.sheet-full .lens-pane { height: calc(100vh - 120px); height: calc(100dvh - 120px); }
   /* threat module collapses to 1-2 scrollable rows — sidebar space belongs to the feed */
   #threat-strip:not(:empty) { padding: 5px 8px 6px; }
-  .threat-head { display: none; }
-  .threat-headline { min-height: 24px; }
-  .threat-grid {
-    display: flex; flex-wrap: nowrap; gap: 5px;
-    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  }
-  .threat-grid::-webkit-scrollbar { display: none; }
-  .stat-row { flex: 0 0 auto; padding: 3px 8px 3px 6px; font-size: 11px; }
-  .stat-row .num { font-size: 13px; }
-  .stat-row .lbl, .stat-row.crest .riv { overflow: visible; white-space: nowrap; } /* one-line chips — the strip scrolls sideways, full text stays reachable */
-  .ffe-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 5px; }
-  .ffe-row::-webkit-scrollbar { display: none; }
   .strip-ok .ok-sub { display: none; }
   .tabs button { padding: 11px 5px; font-size: 13.5px; }
   .tab-body { padding-bottom: 76px; } /* keep the chat FAB off card actions */
@@ -1647,17 +1573,6 @@ button.inspect-gauge:hover { color: var(--accent); }
   }
 
   #threat-strip:not(:empty) { padding: 4px 8px 5px; }
-  .threat-head { display: none; }
-  .threat-grid {
-    display: flex; flex-wrap: nowrap; gap: 5px;
-    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  }
-  .threat-grid::-webkit-scrollbar { display: none; }
-  .stat-row { flex: 0 0 auto; padding: 3px 8px 3px 6px; font-size: 11px; }
-  .stat-row .num { font-size: 13px; }
-  .stat-row .lbl, .stat-row.crest .riv { overflow: visible; white-space: nowrap; }
-  .ffe-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .ffe-row::-webkit-scrollbar { display: none; }
 
   .tabs button { padding: 8px 8px; font-size: 13px; }
   .tab-body { padding: 8px 10px; }

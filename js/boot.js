@@ -494,8 +494,8 @@ function renderGlossary() {
   html += glRow('⛔⚠✓', t('glossary.cross.label'), t('glossary.cross'));
   html += glRow('🆘', t('glossary.notice.label'), t('glossary.notice'));
   html += glRow('<span class="rsentry-icon" style="width:16px;height:16px;font-size:10px">📢</span>', t('glossary.rsentry.label'), t('glossary.rsentry'));
-  html += sec('glossary.sec.strip');
-  html += `<div class="gl-note">${esc(t('glossary.strip'))}</div>`;
+  html += sec('glossary.sec.cues');
+  html += `<div class="gl-note">${esc(t('glossary.cues'))}</div>`;
   for (const [glyph, key] of [['⚠', 'threat.ffemerg'], ['🆘', 'threat.life'], ['⛔', 'threat.cutoff'], ['●', 'threat.major'],
     ['▲', 'threat.tomajor'], ['⚑', 'threat.record'], ['🚧', 'threat.roads'], ['▼', 'threat.falling']]) {
     html += `<div class="gl-row gl-chip"><span class="gl-sw">${glyph}</span><span class="gl-txt">${esc(t(key))}</span></div>`;
@@ -781,6 +781,7 @@ async function boot() {
   $('#health-close').addEventListener('click', () => { $('#health-modal').hidden = true; });
   $('#health-modal').addEventListener('click', (e) => { if (e.target.id === 'health-modal') $('#health-modal').hidden = true; });
   $('#shelters-btn').addEventListener('click', openHelpSheet);
+  $('#shelter-chip').addEventListener('click', openHelpSheet);
   $('#help-sheet-close').addEventListener('click', closeHelpSheet);
   $('#help-sheet .ls-backdrop').addEventListener('click', closeHelpSheet);
   $('#help-btn').addEventListener('click', openGlossary);

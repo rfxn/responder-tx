@@ -165,8 +165,6 @@ button.primary { background: var(--accent); color: #fff; border-color: transpare
 .ticker-item:hover { text-decoration: underline; }
 /* capped so the moving lane has room, and never shrunk below its own text by it: flex-shrink 0,
    because the lane's content is max-content wide and would otherwise squeeze this to nothing */
-.ticker-lead { flex: 0 0 auto; min-width: 0; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ticker-lead.ticker-solo { flex: 1 1 auto; max-width: none; }
 .ticker-marquee { flex: 1 1 auto; min-width: 0; overflow: hidden; }
 .ticker-reel { display: flex; width: max-content; animation: tickerScroll linear infinite; will-change: transform; }
 .ticker-run { display: flex; align-items: center; flex: 0 0 auto; }
@@ -175,42 +173,28 @@ button.primary { background: var(--accent); color: #fff; border-color: transpare
 @keyframes tickerScroll { to { transform: translateX(-50%); } }
 /* WCAG 2.2.2: moving content that starts on its own needs a way to stop it */
 #ticker:hover .ticker-reel, #ticker:active .ticker-reel, #ticker:focus-within .ticker-reel { animation-play-state: paused; }
-.ticker-more {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer;
-  background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px;
-  font: 600 11.5px var(--font-body); font-family: inherit;
-}
-.ticker-more .tm-n { font-weight: 800; color: var(--ink-1); font-variant-numeric: tabular-nums; }
-.ticker-more[aria-expanded="true"] { background: var(--accent); color: #fff; border-color: transparent; }
-.ticker-more[aria-expanded="true"] .tm-n { color: #fff; }
-/* floats over the map instead of pushing it: expanding a list must not resize the map underneath,
-   which at 40vh left a 390x844 phone with 96px of map and a re-tile on every open */
+/* The same ranked set as a static list. It is shown only where the reel cannot be, so the two are
+   never both on screen. It caps its own height and scrolls: a long hazard list must never take the
+   map, which at 40vh once left a 390x844 phone with 96px of it. */
 #ticker-rest {
-  position: absolute; top: 100%; left: 0; right: 0; z-index: 850;
-  display: flex; flex-direction: column; align-items: stretch;
+  display: none; flex-direction: column; align-items: stretch;
   max-height: 45vh; overflow-y: auto; overscroll-behavior: contain;
-  background: var(--surface-2); border-bottom: 1px solid var(--hairline);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35); padding: 0 10px 2px;
+  background: var(--surface-2); padding: 0 10px 2px;
 }
-#ticker-rest[hidden] { display: none; }
 #ticker-rest .ticker-item { white-space: normal; padding: 6px 0; border-bottom: 1px solid var(--hairline); }
 #ticker-rest .ticker-item:last-child { border-bottom: 0; }
-/* a device that asks for no animation gets the list, not a frozen loop with items past the fold:
-   the lane goes, the pinned item takes the width back, and the count button still opens all of it */
+/* a device that asks for no animation gets the whole ranked list, not a frozen loop with items
+   past the fold. With no pinned item left, this list is the entire hazard line there. */
 @media (prefers-reduced-motion: reduce) {
   .ticker-marquee { display: none; }
-  .ticker-lead { flex: 1 1 auto; max-width: none; }
+  #ticker-rest { display: flex; }
 }
-/* a 390px phone cannot carry a full hazard line and a readable moving lane on one row: 46% of it
-   is ~80px of scroll. The lane takes its own row instead, and the pinned item keeps its width. */
+/* The reel is the whole line on a phone now, and with the pinned item gone it is also the only
+   thing there to aim at, so it carries the 44px floor that item used to. The reel pauses on
+   :active, so a thumb stops the lane on touch-down and releases onto a stationary target. */
 @media (max-width: 768px) {
-  .ticker-track { flex-wrap: wrap; }
-  .ticker-lead { flex: 1 1 auto; max-width: none; order: 0; }
-  .ticker-more { order: 1; }
-  .ticker-marquee { order: 2; flex: 1 0 100%; padding-bottom: 3px; }
-  /* the lane is a reading surface, not a tap target: nothing should be aimed at while it moves.
-     The 44px targets are the pinned item and the rows behind the count, which keep theirs. */
-  .ticker-marquee .ticker-item { min-height: 0; padding: 2px 0; }
+  .ticker-marquee .ticker-item { min-height: 44px; display: flex; align-items: center; }
+  #ticker-rest .ticker-item { min-height: 44px; }
 }
 
 /* top follows the hazard line's real bottom edge (published by renderTicker as --hazline-bottom),
@@ -1487,6 +1471,9 @@ button.inspect-gauge:hover { color: var(--accent); }
    phones, dumping them into the too-tall desktop layout. Force a map-favoring side-by-side
    split. Placed AFTER the ≤768 block so equal-specificity rules win the 667×375 overlap. */
 @media (max-height: 500px) and (orientation: landscape) {
+  /* a dash-mounted phone has 430px of screen: the reduced-motion list scrolls rather than taking
+     a third of it, and the map keeps the rest */
+  #ticker-rest { max-height: 30vh; }
   header { padding: 3px 8px; gap: 8px; }
   .brand { min-width: 0; flex: 0 1 auto; }
   .brand h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -1120,9 +1120,6 @@
       'you.title': 'Your location',
       'attr.title': 'Map & data sources',
       'ticker.ffe': '⚠ FF EMERGENCY {where} · until {t}',
-      'ticker.more': 'more',
-      'ticker.more.title': 'Show the rest of the live hazard list',
-      'ticker.more.hide': 'Hide the rest of the live hazard list',
     },
 
     es: {
@@ -2235,9 +2232,6 @@
       'you.title': 'Su ubicación',
       'attr.title': 'Fuentes del mapa y de datos',
       'ticker.ffe': '⚠ EMERGENCIA REPENTINA {where} · hasta {t}',
-      'ticker.more': 'más',
-      'ticker.more.title': 'Mostrar el resto de la lista de peligros en vivo',
-      'ticker.more.hide': 'Ocultar el resto de la lista de peligros en vivo',
     },
   };
 

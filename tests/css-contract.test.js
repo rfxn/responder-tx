@@ -96,32 +96,38 @@ test('no ID-specificity rule undercuts the 44px floor on a header control', () =
     'rules in every responsive block, so the control silently opts out of the tap-target floor');
 });
 
-/* The hazard line scrolls (owner requirement, v0.99.13, reversing the v0.98.4 removal). What this
-   guards is the part that is not negotiable while it does: the worst item is pinned outside the
-   moving lane, the motion can be stopped, a reduced-motion device gets a readable static list
-   instead of a frozen loop, and the whole remainder stays reachable without waiting for the loop.
-   The v0.98.4 assertion that no animation may exist is deliberately gone: it encoded Android for
-   Cars ST-1, and the owner has asked for the scroll with that stated. */
-test('the hazard line scrolls, and the worst item is pinned outside the moving lane', () => {
+/* The hazard line scrolls (owner requirement, v0.99.13) and now scrolls ALONE: the pinned lead
+   item and the count button beside it were removed on owner request after four reports of a
+   "static alert" next to the moving feed. What this guards is what survives that removal: the reel
+   still opens on the ranked worst item, it still carries every item, the motion can still be
+   stopped, and a reduced-motion device still gets a readable list rather than a blank line. */
+test('the hazard line is one scrolling reel, ranked worst first, with nothing pinned beside it', () => {
   assert.ok(CSS.includes('@keyframes tickerScroll'), 'the marquee keyframes are missing');
   assert.match(decl(CSS, '.ticker-reel', 'animation'), /tickerScroll/, '.ticker-reel must run the loop');
   assert.match(decl(CSS, '.ticker-reel', 'animation'), /infinite/);
-  // the pinned item must not live inside the lane, or it moves with everything else
-  assert.equal(decl(CSS, '.ticker-lead', 'animation'), '', 'the pinned lead must never animate');
   assert.equal(decl(CSS, '.ticker-marquee', 'animation'), '', 'the lane clips, the reel inside it moves');
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
   assert.match(panels, /function renderTicker\(\)/);
-  assert.match(panels, /ticker-lead/, 'renderTicker must pin a lead item');
-  assert.match(panels, /ticker-more/, 'renderTicker must offer the remainder on demand');
-  // item 0 is the ranked worst; it is emitted on its own and the lane starts at item 1
-  assert.match(panels, /tickerItemHtml\(items\[0\], 0, `ticker-lead/, 'the lead must be items[0], the ranked worst');
-  assert.match(panels, /const rest = items\.slice\(1\)/, 'the lane must carry the remainder, not the lead again');
+  // the two surfaces the owner asked to remove must not come back in markup or in CSS
+  for (const gone of ['ticker-lead', 'ticker-solo', 'ticker-more', 'tm-n', 'tm-lbl']) {
+    assert.ok(!panels.includes(gone), `renderTicker still builds ${gone}`);
+    assert.ok(!CSS.includes(`.${gone}`), `css/app.css still styles .${gone}`);
+  }
+  const fn = panels.match(/function renderTicker\(\)[\s\S]*?\n\}/)[0];
+  // losing the pin must not lose the ranking: the reel takes the whole list, unsliced, in order
+  assert.ok(!/items\.slice\(/.test(fn), 'the reel must carry every item, not a remainder');
+  assert.match(fn, /tickerRunHtml\(items, false\)/, 'the visible run must be built from the ranked set');
+  assert.match(fn, /tickerRunHtml\(items, true\)/, 'the duplicate run must carry the same set');
+  // data-ti indexes state.tickerActs directly, so a tap acts on the item it was aimed at
+  assert.match(panels, /state\.tickerActs = items\.map\(\(i\) => i\.act\)/);
+  assert.match(panels, /\.map\(\(it, n\) => `\$\{tickerItemHtml\(it, n, '', dup\)\}/,
+    'run items must be numbered from 0, or every tap acts on the wrong hazard');
   // two identical runs are what make -50% seamless; the duplicate must not be announced or focusable
   assert.match(panels, /ticker-run" aria-hidden="true"/, 'the duplicate run must be hidden from assistive tech');
   assert.match(panels, /dup \? ' tabindex="-1"' : ''/, 'the duplicate run must not be keyboard reachable');
 });
 
-test('the scroll can be stopped, and a reduced-motion device gets a static list', () => {
+test('the scroll can be stopped, and a reduced-motion device gets the whole list, not a blank line', () => {
   // WCAG 2.2.2: content that moves by itself for more than five seconds needs a pause
   assert.match(CSS, /#ticker:hover \.ticker-reel[^{]*\{[^}]*animation-play-state:\s*paused/,
     'the loop must pause on hover');
@@ -130,12 +136,18 @@ test('the scroll can be stopped, and a reduced-motion device gets a static list'
   const rm = mediaBlock('(prefers-reduced-motion: reduce)');
   assert.equal(decl(rm, '.ticker-marquee', 'display'), 'none',
     'reduced motion must drop the lane, not freeze it: a frozen loop hides every item past the fold');
-  assert.equal(decl(rm, '.ticker-lead', 'max-width'), 'none',
-    'with the lane gone the pinned item must take the width back');
-  // and nothing is lost: the count button still opens every remainder item as a static list
+  /* This is the regression the lead's removal could have caused. The lane was the only thing the
+     reduced-motion block turned off, and the pinned item was what stayed behind. With no pinned
+     item, dropping the lane and showing nothing else leaves that user no hazard line at all. */
+  assert.equal(decl(rm, '#ticker-rest', 'display'), 'flex',
+    'reduced motion drops the lane, so the static list must be shown or the line renders empty');
+  assert.equal(decl(CSS, '#ticker-rest', 'display'), 'none',
+    'the static list must be off while the reel runs, or the same hazards render twice');
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
-  assert.match(panels, /\$\('#ticker-rest'\)\.innerHTML = restHtml/,
-    '#ticker-rest must carry the full remainder independently of the lane');
+  const fn = panels.match(/function renderTicker\(\)[\s\S]*?\n\}/)[0];
+  assert.match(fn, /const restHtml = items\.map\(\(it, n\) => tickerItemHtml\(it, n\)\)/,
+    'the static list must carry the full ranked set, not a remainder of a lead that no longer exists');
+  assert.match(fn, /\$\('#ticker-rest'\)\.innerHTML = restHtml/);
 });
 
 /* The hazard line was display:none in the landscape block, so the one posture it matters most in,
@@ -169,22 +181,30 @@ test('the emergency banner clears the hazard line instead of covering it', () =>
   assert.match(boot, /syncHazlineAnchor\(\);/, 'rotation changes the line height; resize must republish it');
 });
 
-test('the phone gives the moving lane its own row rather than 46% of a 390px one', () => {
+/* The reel used to be a reading surface with the tap targets elsewhere: the pinned item and the
+   rows behind the count button. Both are gone, so the reel is the only thing in the line to aim
+   at and it has to carry the floor itself. */
+test('the reel carries the 44px tap floor now that it is the only target in the line', () => {
   const block = mediaBlock('(max-width: 768px)');
-  assert.equal(decl(block, '.ticker-track', 'flex-wrap'), 'wrap');
-  assert.match(decl(block, '.ticker-marquee', 'flex'), /100%/, 'the lane must take a full row on a phone');
-  assert.equal(decl(block, '.ticker-lead', 'max-width'), 'none', 'the pinned item keeps its full width there');
-  // order matters: without it the count button wraps to a third row below the lane
-  assert.equal(decl(block, '.ticker-more', 'order'), '1');
-  assert.equal(decl(block, '.ticker-marquee', 'order'), '2');
+  assert.match(decl(block, '.ticker-marquee .ticker-item', 'min-height'), /^44px$/,
+    'the moving items are the only tap target left and must meet the 44px floor');
+  assert.match(decl(block, '#ticker-rest .ticker-item', 'min-height'), /^44px$/,
+    'the reduced-motion rows must meet the floor too');
+  // the two-row track existed only to give the lead and the count button their own line
+  assert.equal(decl(block, '.ticker-track', 'flex-wrap'), '',
+    'the track no longer needs to wrap: the reel is its only child');
+  assert.match(CSS, /#ticker:active \.ticker-reel/,
+    'a touch must stop the lane on touch-down, or the target moves out from under the thumb');
 });
 
-test('the hazard remainder floats over the map instead of resizing it', () => {
-  // at max-height the list once pushed main down and left a 390x844 phone 96px of map
-  assert.equal(decl(CSS, '#ticker-rest', 'position'), 'absolute');
-  assert.equal(decl(CSS, '#ticker', 'position'), 'relative', '#ticker must anchor the floating list');
-  assert.match(decl(CSS, '#ticker-rest', 'max-height'), /^\d+vh$/);
-  assert.equal(decl(CSS, '#ticker-rest', 'overscroll-behavior'), 'contain');
+/* The list is no longer an overlay an expander opens; it is what a reduced-motion device reads
+   instead of the reel. The invariant that survives the change is the one that mattered: a long
+   hazard list must never take the map, which at 40vh once left a 390x844 phone with 96px of it. */
+test('the reduced-motion hazard list caps its own height instead of taking the map', () => {
+  assert.match(decl(CSS, '#ticker-rest', 'max-height'), /^\d+vh$/, 'the list must cap its height');
+  assert.equal(decl(CSS, '#ticker-rest', 'overflow-y'), 'auto', 'a capped list must scroll its overflow');
+  assert.equal(decl(CSS, '#ticker-rest', 'overscroll-behavior'), 'contain',
+    'scrolling the list must not chain into the map behind it');
 });
 
 /* A dash-mounted phone in landscape could not give the map the screen at all: the sheet handle was

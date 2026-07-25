@@ -1159,9 +1159,9 @@ function tickerItemHtml(item, n, cls, dup) {
     `${item.color ? ` style="color:${item.color}"` : ''}>${esc(item.text)}</button>`;
 }
 
-// one pass of the remainder; the reel holds two of these, so -50% lands exactly on the seam
-const tickerRunHtml = (rest, dup) => rest
-  .map((it, n) => `${tickerItemHtml(it, n + 1, '', dup)}<span class="ticker-sep" aria-hidden="true">·</span>`)
+// one pass of the ranked set; the reel holds two of these, so -50% lands exactly on the seam
+const tickerRunHtml = (items, dup) => items
+  .map((it, n) => `${tickerItemHtml(it, n, '', dup)}<span class="ticker-sep" aria-hidden="true">·</span>`)
   .join('');
 
 /* The emergency banner is fixed and has to clear the hazard line, whose height depends on its
@@ -1179,40 +1179,21 @@ function renderTicker() {
   if (!el) return;
   const items = tickerItems();
   state.tickerActs = items.map((i) => i.act);
-  if (!items.length) { el.hidden = true; state.tickerHash = ''; state.tickerOpen = false; syncHazlineAnchor(); return; }
+  if (!items.length) { el.hidden = true; state.tickerHash = ''; syncHazlineAnchor(); return; }
   el.hidden = false;
-  const rest = items.slice(1);
-  const marquee = rest.length
-    ? `<div class="ticker-marquee"><div class="ticker-reel" style="animation-duration:${tickerSecs(rest.length)}s">` +
-      `<div class="ticker-run">${tickerRunHtml(rest, false)}</div>` +
-      `<div class="ticker-run" aria-hidden="true">${tickerRunHtml(rest, true)}</div></div></div>`
-    : '';
-  const lead = tickerItemHtml(items[0], 0, `ticker-lead${rest.length ? '' : ' ticker-solo'}`) + marquee +
-    (rest.length ? `<button type="button" class="ticker-more" aria-controls="ticker-rest">` +
-      `<span class="tm-n">${esc(String(rest.length))}</span><span class="tm-lbl">${esc(t('ticker.more'))}</span></button>` : '');
-  const restHtml = rest.map((it, n) => tickerItemHtml(it, n + 1)).join('');
-  const hash = lead + restHtml;
+  // the reel carries the whole ranked set, worst first, so the loop opens on the worst item
+  const reel = `<div class="ticker-marquee"><div class="ticker-reel" style="animation-duration:${tickerSecs(items.length)}s">` +
+    `<div class="ticker-run">${tickerRunHtml(items, false)}</div>` +
+    `<div class="ticker-run" aria-hidden="true">${tickerRunHtml(items, true)}</div></div></div>`;
+  // the same ranked set as a static list: the only hazard line a reduced-motion device is shown
+  const restHtml = items.map((it, n) => tickerItemHtml(it, n)).join('');
+  const hash = reel + restHtml;
   if (hash !== state.tickerHash) { // unchanged content must not restart the loop mid-pass
     state.tickerHash = hash;
-    $('#ticker-track').innerHTML = lead;
+    $('#ticker-track').innerHTML = reel;
     $('#ticker-rest').innerHTML = restHtml;
   }
-  if (!rest.length) state.tickerOpen = false; // nothing left to expand into
-  applyTickerOpen();
   syncHazlineAnchor();
-}
-
-function applyTickerOpen() {
-  const restEl = $('#ticker-rest');
-  const more = $('#ticker .ticker-more');
-  if (!restEl) return;
-  const open = !!state.tickerOpen;
-  restEl.hidden = !open;
-  if (more) {
-    more.setAttribute('aria-expanded', open ? 'true' : 'false');
-    more.title = t(open ? 'ticker.more.hide' : 'ticker.more.title');
-    more.setAttribute('aria-label', more.title);
-  }
 }
 
 /* ---------- header ---------- */

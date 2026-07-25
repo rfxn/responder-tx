@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.23 · 2026-07-25 (the hazard line scrolls, and nothing sits still beside it)
+
+-- Changes --
+- [Change] The static hazard item and the count button beside the scrolling feed
+           are gone. The feed is the whole line now
+- [Change] The loop carries every hazard, worst first, so the first thing that
+           scrolls past is still the most serious one and nothing waits behind a
+           button
+- [Change] On a phone the moving items are the only thing in the line to tap, so
+           they now meet the same touch size as the rest of the board. The line
+           is shorter than it was
+- [Change] A device set to reduce motion gets the full hazard list as a still,
+           readable list rather than the single item it used to show
+
 ## v0.99.22 · 2026-07-25 (one route to shelters and hotlines)
 
 -- Changes --

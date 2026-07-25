@@ -1,5 +1,47 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.0 · 2026-07-25 (the AO resets to standing Texas regions)
+
+-- Changes --
+- [Change] The board stops being framed on a finished storm. data/event.json
+           drops the TS Bertha name and event label, the coverage line becomes
+           Texas, and the Full AO widens from the upper-coast box (-98.0, 27.5,
+           -93.4, 31.0) to Texas-wide (-106.65, 25.83, -93.4, 36.5), which is
+           captureBbox exactly. Nothing narrows: since v0.97.97 publication
+           scope is the union of every gaugeBbox ever committed, so a display
+           change can only add. Measured against the same record, the published
+           snapshot goes from 290 to 1018 gauges and roads from 271 to 287,
+           playback holds at 826 frames with its gauge index rising from 283 to
+           608, and the crest record is unchanged at 47 gauges and 18 majors,
+           with zero gauges, frames or closures held out of scope.
+- [Change] Twelve standing Texas regions replace the four Bertha sub-AOs in the
+           quick-jump list, each one an operational area drawn around the water
+           it drains rather than a rectangle on a grid: Houston · Gulf Coast,
+           Beaumont · Golden Triangle, Coastal Bend · Victoria, Rio Grande
+           Valley · Laredo, Austin · Hill Country, San Antonio · South Central,
+           Waco · Brazos Valley, Dallas · Fort Worth, East Texas · Piney Woods,
+           West Texas · Permian Basin, El Paso · Far West, and Panhandle ·
+           South Plains. The set is derived from where the gauges actually are:
+           1018 capture gauges grouped by riverOf() over the Guadalupe, Brazos,
+           Colorado, Trinity, Neches, Sabine, Nueces, Pecos, Red and Rio Grande
+           basins, cross-checked against gauge density at each population
+           centre, and every region carries a Spanish label.
+- [Change] The tide card grows from ten upper-coast stations to fourteen.
+           Freeport, Bob Hall Pier, Port Mansfield and Port Isabel cover the
+           middle and lower coast, which a statewide board left blank, and
+           Aransas Pass is now read at the Port Aransas gauge. Every station id
+           was verified against the NOAA CO-OPS station metadata service before
+           shipping.
+- [Change] With no named event configured, the crest summary now labels its
+           window by month instead of carrying a storm name that has expired.
+
+-- New Features --
+- [New] Regions are event config, never code. Each lives in data/event.json
+      aoPresets with an id, label, labelEs, bounds, band and an anchor list of
+      the towns and gauge clusters it exists to cover, so a future re-target
+      stays a config flip and the client keeps reading config rather than
+      literals.
+
 ## v0.98.11 · 2026-07-25 (the public mirror stops shipping the intake form)
 
 -- Changes --

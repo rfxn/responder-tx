@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.0",
+      "date": "2026-07-25",
+      "line": "Tropical Storm Bertha is over, and the board was still framed on it: the title carried the storm's name and the map opened on a box around the upper coast, so most of Texas simply was not on the board. The area of operations is now the whole state, and the quick-jump list carries twelve standing Texas regions instead of four storm areas: Houston and the Gulf Coast, Beaumont and the Golden Triangle, the Coastal Bend and Victoria, the Rio Grande Valley and Laredo, Austin and the Hill Country, San Antonio and South Central, Waco and the Brazos Valley, Dallas and Fort Worth, East Texas and the Piney Woods, West Texas and the Permian Basin, El Paso and the Far West, and the Panhandle and South Plains. Each region was drawn around the rivers it drains and the towns it has to cover, not off a grid, and each reads in English and Spanish. Widening the view could not cost us any history: the record has kept every gauge we have ever watched since a change in July, so the published board went from 290 river gauges to 1018 and from 271 road closures to 287 while every past flood peak we had stayed exactly where it was. The tide card also picks up Freeport, Bob Hall Pier, Port Mansfield and Port Isabel, so the middle and lower coast are no longer blank."
+    },
+    {
       "v": "v0.98.11",
       "date": "2026-07-25",
       "line": "The public site was still sending every visitor the form that operators use to file a field report, even though that form has been switched off there since last week and could not have submitted anything: there is no operations server behind the public site to receive it. It was about forty-five lines of hidden form arriving with every page load, on every phone, for nobody. The public copy of the page is now built without it. The operator build on the local network keeps the form exactly as it was and still files notices. Getting there meant teaching every part of the board that reads that form to cope with it simply not being there, instead of assuming it always is, and the release check now refuses to publish if that form ever reaches the public copy by accident."

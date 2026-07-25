@@ -1,18 +1,86 @@
 {
-  "name": "ResponderTX · TS Bertha",
-  "event": "TS Bertha",
-  "region": "the upper Texas coast",
-  "start": "2026-07-22T00:00:00Z",
+  "name": "ResponderTX",
+  "event": "",
+  "region": "Texas",
+  "start": "2026-07-25T00:00:00Z",
   "archiveStart": "2026-07-05T00:00:00Z",
-  "center": [29.5, -95.1],
-  "zoom": 8,
-  "gaugeBbox": { "xmin": -98.0, "ymin": 27.5, "xmax": -93.4, "ymax": 31.0 },
+  "center": [31.2, -99.4],
+  "zoom": 6,
+  "gaugeBbox": { "xmin": -106.65, "ymin": 25.83, "xmax": -93.4, "ymax": 36.5 },
   "captureBbox": { "xmin": -106.65, "ymin": 25.83, "xmax": -93.4, "ymax": 36.5 },
   "aoPresets": [
-    { "id": "houston", "label": "Houston metro", "labelEs": "Houston metro", "bounds": [[29.4, -95.9], [30.2, -94.9]] },
-    { "id": "beaumont", "label": "Beaumont · Port Arthur", "labelEs": "Beaumont · Port Arthur", "bounds": [[29.6, -94.5], [30.6, -93.4]] },
-    { "id": "galvestonbay", "label": "Galveston Bay", "labelEs": "Bahía de Galveston", "bounds": [[28.9, -95.5], [29.75, -94.35]] },
-    { "id": "matagorda", "label": "Matagorda · Victoria", "labelEs": "Matagorda · Victoria", "bounds": [[28.0, -97.6], [29.2, -95.9]] }
+    {
+      "id": "houston", "band": "coast",
+      "label": "Houston · Gulf Coast", "labelEs": "Houston · Costa del Golfo",
+      "bounds": [[28.55, -96.60], [30.60, -94.35]],
+      "anchors": [[29.76, -95.37], [29.30, -94.80], [30.31, -95.46], [29.17, -95.43], [29.79, -95.82]]
+    },
+    {
+      "id": "beaumont", "band": "coast",
+      "label": "Beaumont · Golden Triangle", "labelEs": "Beaumont · Triángulo Dorado",
+      "bounds": [[29.55, -94.45], [31.10, -93.40]],
+      "anchors": [[30.08, -94.13], [29.90, -93.93], [30.09, -93.74], [30.92, -94.00]]
+    },
+    {
+      "id": "coastalbend", "band": "coast",
+      "label": "Coastal Bend · Victoria", "labelEs": "Costa Central · Victoria",
+      "bounds": [[27.20, -98.60], [29.20, -96.00]],
+      "anchors": [[27.80, -97.40], [28.81, -97.00], [28.02, -97.05], [28.40, -97.75], [28.98, -95.97], [28.61, -96.63]]
+    },
+    {
+      "id": "rgv", "band": "coast",
+      "label": "Rio Grande Valley · Laredo", "labelEs": "Valle del Río Grande · Laredo",
+      "bounds": [[25.80, -100.10], [27.90, -97.10]],
+      "anchors": [[26.20, -98.23], [25.90, -97.50], [26.19, -97.70], [27.51, -99.51], [26.38, -98.82]]
+    },
+    {
+      "id": "austin", "band": "central",
+      "label": "Austin · Hill Country", "labelEs": "Austin · Hill Country",
+      "bounds": [[29.55, -99.60], [31.10, -96.90]],
+      "anchors": [[30.27, -97.74], [29.88, -97.94], [30.05, -99.14], [30.58, -98.27], [30.63, -97.68], [29.99, -98.10]]
+    },
+    {
+      "id": "sanantonio", "band": "central",
+      "label": "San Antonio · South Central", "labelEs": "San Antonio · Centro Sur",
+      "bounds": [[28.60, -99.60], [29.95, -97.30]],
+      "anchors": [[29.42, -98.49], [29.70, -98.12], [29.57, -97.96], [29.21, -99.35], [28.97, -98.48]]
+    },
+    {
+      "id": "centraltx", "band": "central",
+      "label": "Waco · Brazos Valley", "labelEs": "Waco · Valle del Brazos",
+      "bounds": [[30.10, -98.30], [32.10, -95.80]],
+      "anchors": [[31.55, -97.15], [30.67, -96.37], [31.10, -97.34], [31.12, -97.73], [30.17, -96.40], [32.10, -96.47]]
+    },
+    {
+      "id": "dfw", "band": "north",
+      "label": "Dallas · Fort Worth", "labelEs": "Dallas · Fort Worth",
+      "bounds": [[32.00, -97.90], [33.60, -95.90]],
+      "anchors": [[32.78, -96.80], [32.75, -97.33], [33.21, -97.13], [33.64, -96.61], [32.74, -97.11]]
+    },
+    {
+      "id": "easttx", "band": "north",
+      "label": "East Texas · Piney Woods", "labelEs": "Este de Texas · Piney Woods",
+      "bounds": [[30.40, -96.10], [33.60, -93.50]],
+      "anchors": [[32.35, -95.30], [31.34, -94.73], [32.50, -94.74], [33.43, -94.05], [31.60, -94.65], [31.76, -95.63], [30.72, -95.55]]
+    },
+    {
+      "id": "westtx", "band": "west",
+      "label": "West Texas · Permian Basin", "labelEs": "Oeste de Texas · Cuenca Pérmica",
+      "bounds": [[28.60, -104.00], [33.50, -99.30]],
+      "anchors": [[31.99, -102.08], [31.85, -102.37], [31.46, -100.44], [32.45, -99.73], [32.25, -101.48], [30.89, -102.88], [30.36, -103.66], [29.36, -100.90], [28.71, -100.50]]
+    },
+    {
+      "id": "elpaso", "band": "west",
+      "label": "El Paso · Far West", "labelEs": "El Paso · Extremo Oeste",
+      "bounds": [[29.20, -106.70], [32.20, -103.90]],
+      "anchors": [[31.76, -106.49], [31.04, -104.83], [29.56, -104.37], [31.42, -103.49]]
+    },
+    {
+      "id": "panhandle", "band": "west",
+      "label": "Panhandle · South Plains", "labelEs": "Panhandle · Llanos del Sur",
+      "bounds": [[33.00, -103.20], [36.60, -98.50]],
+      "anchors": [[35.22, -101.83], [33.58, -101.85], [33.91, -98.49], [34.43, -100.20], [34.18, -101.71], [34.15, -99.27]]
+    }
   ],
   "tideStations": [
     { "id": "8770822", "name": "Texas Point, Sabine Pass" },
@@ -21,9 +89,13 @@
     { "id": "8771013", "name": "Eagle Point, Galveston Bay" },
     { "id": "8771341", "name": "Galveston Bay Entrance, North Jetty" },
     { "id": "8771450", "name": "Galveston Pier 21" },
+    { "id": "8772447", "name": "Freeport" },
     { "id": "8773037", "name": "Seadrift" },
     { "id": "8773701", "name": "Port O'Connor" },
     { "id": "8774770", "name": "Rockport" },
-    { "id": "8775241", "name": "Aransas, Aransas Pass" }
+    { "id": "8775237", "name": "Port Aransas" },
+    { "id": "8775870", "name": "Bob Hall Pier, Corpus Christi" },
+    { "id": "8778490", "name": "Port Mansfield" },
+    { "id": "8779770", "name": "Port Isabel" }
   ]
 }

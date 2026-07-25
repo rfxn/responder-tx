@@ -10,6 +10,17 @@
 # real repo data untouched. Run: bash tests/chat-poll.test.sh
 set -uo pipefail
 
+# reap the background writers and drop the scratch dir even on failure or interrupt: a test
+# process that outlives its script can hold a lock a production cron then skips on
+cleanup() {
+    trap - EXIT INT TERM
+    local kids
+    kids=$(jobs -p 2>/dev/null)
+    if [ -n "$kids" ]; then kill $kids 2>/dev/null; fi  # best-effort reap; already-dead jobs are fine
+    if [ -n "${WORK:-}" ]; then rm -rf "$WORK"; fi
+}
+trap cleanup EXIT INT TERM
+
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 POLL="$REPO_ROOT/scripts/chat-poll.sh"
 FAILS=0

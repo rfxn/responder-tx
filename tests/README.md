@@ -30,6 +30,26 @@ python3 tests/gen-caltopo.test.py     # CalTopo GeoJSON export
 CI runs the same commands (`.github/workflows/ci.yml`) plus `node --check` on
 every `js/*.js` and the release-cycle sanity bundle (`scripts/cycle-check.sh`).
 
+## Never touch a path production owns
+
+The cron scripts single-flight on fixed `/tmp` locks and log to `/var/log`. Every
+test that runs one must redirect **all** of them into its own `mktemp -d`:
+`RESPONDER_CYCLE_LOCK`, `RESPONDER_CYCLE_LOG`, `RESPONDER_MONITOR_LOCK`,
+`RESPONDER_MONITOR_STATE`, `RESPONDER_MONITOR_LOG`, `RESPONDER_CHAT_LOCK`,
+`RESPONDER_CHAT_LOG`, `RESPONDER_CHAT_WATCHDOG_LOCK`,
+`RESPONDER_CHAT_WATCHDOG_STATE`, `RESPONDER_CHAT_WATCHDOG_LOG`.
+
+Taking `/tmp/responder-cycle.lock` makes the live 15-minute data cycle log
+`SKIP: another cycle holds ...` and miss a publish. That happened on
+2026-07-25T01:23Z, from a hand-held lock rather than a test, and it cost a real
+refresh on a live flood board.
+
+To prove skip-on-contention, hold the **scratch** lock on one of the test
+shell's own file descriptors (`exec 8>"$WORK/cycle.lock"; flock -n 8`) and assert
+on the log line. Never hold the lock from a detached background process: a
+`nohup`/`setsid` child survives its parent and keeps the lock after the test is
+gone. Every suite here traps `EXIT INT TERM` to reap its jobs and its temp dir.
+
 ## Browser verification: point it at a local server, never the public mirror
 
 Release verification that drives a headless browser across a viewport matrix must

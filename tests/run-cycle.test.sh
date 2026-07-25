@@ -13,9 +13,24 @@
 #   7 validation stays fatal: unpublishable data is never pushed
 #   8 the degraded commit subject does not claim a full regen
 #   9 freshness-monitor.sh reads the degraded verdict and blames the right thing
+#  10 a busy lock skips cleanly, proved against a SCRATCH lock path
 # A scratch repo with stub generators and a bare origin keeps the real repo, the real Pages
-# project and the network untouched. Run: bash tests/run-cycle.test.sh
+# project and the network untouched. Every lock, log and state path this suite touches is
+# redirected into $WORK: on 2026-07-25T01:23Z a hand-held flock on the production
+# /tmp/responder-cycle.lock made a live cycle skip and cost a publish, so nothing here may
+# ever name a path production owns.
 set -uo pipefail
+
+# kill any child still running and drop the scratch dir even on failure or interrupt, so a
+# test process can never outlive this script holding a lock
+cleanup() {
+    trap - EXIT INT TERM
+    local kids
+    kids=$(jobs -p 2>/dev/null)
+    if [ -n "$kids" ]; then kill $kids 2>/dev/null; fi  # best-effort reap; already-dead jobs are fine
+    if [ -n "${WORK:-}" ]; then rm -rf "$WORK"; fi
+}
+trap cleanup EXIT INT TERM
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 CYCLE_SRC="$REPO_ROOT/scripts/run-cycle.sh"
@@ -184,6 +199,7 @@ MON_OUT=$(
     RESPONDER_MONITOR_OUTBOX="$REPO/data/chat-outbox.json" \
     RESPONDER_MONITOR_SNAPSHOT="$REPO/data/gauges-snapshot.json" \
     RESPONDER_MONITOR_STATE="$WORK/monitor-state" \
+    RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
     RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
     RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
     bash "$MON_SRC" --dry-run 2>&1
@@ -220,6 +236,34 @@ if [ "$RC" -ne 0 ] && [ "$RC" -ne 3 ] \
     pass "7 a cycle-check failure still aborts before commit/push/deploy"
 else
     fail "7 validation must stay fatal (rc=$RC commits=$COMMITS)"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Test 10: a busy lock skips cleanly, and the scratch override is what gets locked ---------
+# The holder is this shell's own fd, not a background sleep: there is no child process to leak
+# and nothing survives an interrupt. Never hold the production lock to prove this.
+setup
+exec 8>"$WORK/cycle.lock"
+if flock -n 8; then
+    FAILING="" run_cycle
+    exec 8>&-
+    COMMITS=$(cd "$REPO" && git rev-list --count HEAD)
+    if [ "$RC" -eq 0 ] \
+       && grep -q "SKIP: another cycle holds $WORK/cycle.lock" "$WORK/cycle.log" \
+       && [ "$COMMITS" -eq 1 ] \
+       && ! grep -q 'stub deploy' "$WORK/run.out"; then
+        pass "10 a busy lock skips cleanly, on the RESPONDER_CYCLE_LOCK path not the default"
+    else
+        fail "10 a busy lock must skip and publish nothing (rc=$RC commits=$COMMITS)"; cat "$WORK/run.out"
+    fi
+else
+    exec 8>&-
+    fail "10 could not take the scratch lock to set up the contention case"
+fi
+if [ -e /tmp/responder-cycle.lock ] && ! flock -n /tmp/responder-cycle.lock true; then
+    fail "10 the production lock is held after this suite ran"
+else
+    pass "10 the production cycle lock was never taken by this suite"
 fi
 rm -rf "$WORK"
 

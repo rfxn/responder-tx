@@ -1,0 +1,5965 @@
+{
+ "generated": "2026-07-25T01:02:37Z",
+ "started": "2026-07-25T00:55:11Z",
+ "tool": "scripts/rescue-nwps.py",
+ "source": "https://api.water.noaa.gov/nwps/v1/gauges/<lid>/stageflow/observed",
+ "why": "NWPS observed serves a 30-day rolling buffer with no date parameters; this is a one-shot rescue of the South/Central Texas capture gap that opened 2026-07-23T14:39Z when the AO pivot narrowed the capture bbox",
+ "repo_head": "3a936c57b9ccb3f7563efe0487fcb9c3f02cac1b",
+ "lids_attempted": 425,
+ "lids_ok": 425,
+ "lids_failed": 0,
+ "gz_bytes": 9909080,
+ "encoding": "gzip verbatim NWPS response body",
+ "lids": {
+  "AAIT2": {
+   "status": "ok",
+   "file": "AAIT2.json.gz",
+   "gz_bytes": 28517,
+   "raw_bytes": 1291775,
+   "name": "Williamson Creek at Manchaca Road at Austin",
+   "lat": 30.2211,
+   "lon": -97.7933,
+   "coverage": {
+    "points": 8590,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "ABTT2": {
+   "status": "ok",
+   "file": "ABTT2.json.gz",
+   "gz_bytes": 27668,
+   "raw_bytes": 1290927,
+   "name": "Barton Creek at Loop 360",
+   "lat": 30.2444,
+   "lon": -97.8019,
+   "coverage": {
+    "points": 8602,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "ABUT2": {
+   "status": "ok",
+   "file": "ABUT2.json.gz",
+   "gz_bytes": 28672,
+   "raw_bytes": 1306369,
+   "name": "Bull Creek above Loop 360",
+   "lat": 30.3719,
+   "lon": -97.7844,
+   "coverage": {
+    "points": 8602,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "ACRT2": {
+   "status": "ok",
+   "file": "ACRT2.json.gz",
+   "gz_bytes": 7969,
+   "raw_bytes": 108448,
+   "name": "Colorado River (TX) at Austin",
+   "lat": 30.2461,
+   "lon": -97.68,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "ADDT2": {
+   "status": "ok",
+   "file": "ADDT2.json.gz",
+   "gz_bytes": 28381,
+   "raw_bytes": 423275,
+   "name": "Langham Creek at Addicks Reservoir",
+   "lat": 29.7911,
+   "lon": -95.6233,
+   "coverage": {
+    "points": 2803,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "ADMT2": {
+   "status": "ok",
+   "file": "ADMT2.json.gz",
+   "gz_bytes": 23262,
+   "raw_bytes": 428827,
+   "name": "Adams Bayou at SH 87",
+   "lat": 30.0934,
+   "lon": -93.7497,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "AHOT2": {
+   "status": "ok",
+   "file": "AHOT2.json.gz",
+   "gz_bytes": 32991,
+   "raw_bytes": 1255958,
+   "name": "Shoal Creek at West 12th Street",
+   "lat": 30.2764,
+   "lon": -97.75,
+   "coverage": {
+    "points": 8314,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "ALKT2": {
+   "status": "ok",
+   "file": "ALKT2.json.gz",
+   "gz_bytes": 6071,
+   "raw_bytes": 108823,
+   "name": "Colorado River (TX) at Lake Austin",
+   "lat": 30.3149,
+   "lon": -97.7864,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "AMIT2": {
+   "status": "ok",
+   "file": "AMIT2.json.gz",
+   "gz_bytes": 15506,
+   "raw_bytes": 434379,
+   "name": "Rio Grande at Lake Amistad",
+   "lat": 29.4502,
+   "lon": -101.0587,
+   "coverage": {
+    "points": 2840,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "ANPT2": {
+   "status": "ok",
+   "file": "ANPT2.json.gz",
+   "gz_bytes": 46904,
+   "raw_bytes": 1059166,
+   "name": "Tide Gauge above Aransas Pass",
+   "lat": 27.837,
+   "lon": -97.039,
+   "coverage": {
+    "points": 7062,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "ASHT2": {
+   "status": "ok",
+   "file": "ASHT2.json.gz",
+   "gz_bytes": 25791,
+   "raw_bytes": 1184418,
+   "name": "Shoal Creek above Silverway Drive",
+   "lat": 30.3542,
+   "lon": -97.7389,
+   "coverage": {
+    "points": 7896,
+    "first": "2026-06-25T01:20:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "ASRT2": {
+   "status": "ok",
+   "file": "ASRT2.json.gz",
+   "gz_bytes": 17265,
+   "raw_bytes": 433540,
+   "name": "Nueces River near Asherton",
+   "lat": 28.5,
+   "lon": -99.6817,
+   "coverage": {
+    "points": 2872,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "ATCT2": {
+   "status": "ok",
+   "file": "ATCT2.json.gz",
+   "gz_bytes": 12311,
+   "raw_bytes": 429539,
+   "name": "Atascosa River at FM 476 near Pleasanton",
+   "lat": 29,
+   "lon": -98.5116,
+   "coverage": {
+    "points": 2828,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "ATIT2": {
+   "status": "ok",
+   "file": "ATIT2.json.gz",
+   "gz_bytes": 40785,
+   "raw_bytes": 1310348,
+   "name": "Onion Creek at US 183",
+   "lat": 30.1778,
+   "lon": -97.6883,
+   "coverage": {
+    "points": 8637,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "AUST2": {
+   "status": "ok",
+   "file": "AUST2.json.gz",
+   "gz_bytes": 44057,
+   "raw_bytes": 1262995,
+   "name": "Austin Bayou at SH 35 near Liverpool",
+   "lat": 29.2809,
+   "lon": -95.3318,
+   "coverage": {
+    "points": 8392,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "BACT2": {
+   "status": "ok",
+   "file": "BACT2.json.gz",
+   "gz_bytes": 43624,
+   "raw_bytes": 1187435,
+   "name": "Colorado River (TX) near Bay City",
+   "lat": 28.9739,
+   "lon": -96.0122,
+   "coverage": {
+    "points": 7893,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BAKT2": {
+   "status": "ok",
+   "file": "BAKT2.json.gz",
+   "gz_bytes": 25727,
+   "raw_bytes": 421718,
+   "name": "Buffalo Bayou at Barker Reservoir",
+   "lat": 29.7697,
+   "lon": -95.6469,
+   "coverage": {
+    "points": 2794,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BAPT2": {
+   "status": "ok",
+   "file": "BAPT2.json.gz",
+   "gz_bytes": 40602,
+   "raw_bytes": 1286608,
+   "name": "Blanco River at Crabapple Road",
+   "lat": 30.1025,
+   "lon": -98.5106,
+   "coverage": {
+    "points": 8560,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BAWT2": {
+   "status": "ok",
+   "file": "BAWT2.json.gz",
+   "gz_bytes": 19531,
+   "raw_bytes": 432815,
+   "name": "Brazos River above San Felipe",
+   "lat": 29.8083,
+   "lon": -96.0956,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "BBAT2": {
+   "status": "ok",
+   "file": "BBAT2.json.gz",
+   "gz_bytes": 18452,
+   "raw_bytes": 433338,
+   "name": "Bear Creek at Barker",
+   "lat": 29.8306,
+   "lon": -95.6867,
+   "coverage": {
+    "points": 2836,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BBST2": {
+   "status": "ok",
+   "file": "BBST2.json.gz",
+   "gz_bytes": 21150,
+   "raw_bytes": 429094,
+   "name": "Buffalo Bayou at Shepherd Drive",
+   "lat": 29.76,
+   "lon": -95.4083,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BBZT2": {
+   "status": "ok",
+   "file": "BBZT2.json.gz",
+   "gz_bytes": 19467,
+   "raw_bytes": 428694,
+   "name": "Brazos River near Bryan",
+   "lat": 30.6267,
+   "lon": -96.5439,
+   "coverage": {
+    "points": 2850,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BCCT2": {
+   "status": "ok",
+   "file": "BCCT2.json.gz",
+   "gz_bytes": 28459,
+   "raw_bytes": 1308710,
+   "name": "Barton Creek above Barton Springs",
+   "lat": 30.2633,
+   "lon": -97.7719,
+   "coverage": {
+    "points": 8612,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "BCDT2": {
+   "status": "ok",
+   "file": "BCDT2.json.gz",
+   "gz_bytes": 37341,
+   "raw_bytes": 1243471,
+   "name": "Bear Creek below Route 1826 at Driftwood",
+   "lat": 30.1553,
+   "lon": -97.9397,
+   "coverage": {
+    "points": 8193,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BCIT2": {
+   "status": "ok",
+   "file": "BCIT2.json.gz",
+   "gz_bytes": 44718,
+   "raw_bytes": 1279544,
+   "name": "Brushy Creek at I-35 Round Rock",
+   "lat": 30.5128,
+   "lon": -97.6864,
+   "coverage": {
+    "points": 8447,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "BCMT2": {
+   "status": "ok",
+   "file": "BCMT2.json.gz",
+   "gz_bytes": 27996,
+   "raw_bytes": 1278105,
+   "name": "Bear Creek at Spillar Ranch Road",
+   "lat": 30.1636,
+   "lon": -97.9069,
+   "coverage": {
+    "points": 8420,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:10:00Z"
+   }
+  },
+  "BCNT2": {
+   "status": "ok",
+   "file": "BCNT2.json.gz",
+   "gz_bytes": 16071,
+   "raw_bytes": 422692,
+   "name": "Big Creek near Needville",
+   "lat": 29.4719,
+   "lon": -95.803,
+   "coverage": {
+    "points": 2783,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BCWT2": {
+   "status": "ok",
+   "file": "BCWT2.json.gz",
+   "gz_bytes": 37262,
+   "raw_bytes": 1282043,
+   "name": "Boggy Creek at Webberville Road",
+   "lat": 30.2631,
+   "lon": -97.7125,
+   "coverage": {
+    "points": 8446,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "BCYT2": {
+   "status": "ok",
+   "file": "BCYT2.json.gz",
+   "gz_bytes": 943,
+   "raw_bytes": 11913,
+   "name": "Cypress Creek (E TX) at CR 725",
+   "lat": 30.4753,
+   "lon": -93.9392,
+   "coverage": {
+    "points": 78,
+    "first": "2026-06-24T19:10:00Z",
+    "last": "2026-07-24T18:10:00Z"
+   }
+  },
+  "BDAT2": {
+   "status": "ok",
+   "file": "BDAT2.json.gz",
+   "gz_bytes": 17165,
+   "raw_bytes": 435692,
+   "name": "Medina River at Bandera",
+   "lat": 29.7236,
+   "lon": -99.0697,
+   "coverage": {
+    "points": 2875,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "BDUT2": {
+   "status": "ok",
+   "file": "BDUT2.json.gz",
+   "gz_bytes": 5920,
+   "raw_bytes": 107260,
+   "name": "Onion Creek at Buda",
+   "lat": 30.0867,
+   "lon": -97.8486,
+   "coverage": {
+    "points": 714,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BEAT2": {
+   "status": "ok",
+   "file": "BEAT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Neches River at Beaumont",
+   "lat": 30.1331,
+   "lon": -94.0964,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "BEHT2": {
+   "status": "ok",
+   "file": "BEHT2.json.gz",
+   "gz_bytes": 24891,
+   "raw_bytes": 619598,
+   "name": "Big Creek at TX 150 near Shepherd",
+   "lat": 30.5022,
+   "lon": -95.0313,
+   "coverage": {
+    "points": 4079,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "BEMT2": {
+   "status": "ok",
+   "file": "BEMT2.json.gz",
+   "gz_bytes": 15930,
+   "raw_bytes": 435709,
+   "name": "Mill Creek near Bellville",
+   "lat": 29.8808,
+   "lon": -96.205,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "BEST2": {
+   "status": "ok",
+   "file": "BEST2.json.gz",
+   "gz_bytes": 39447,
+   "raw_bytes": 1280684,
+   "name": "Bear Creek at FM 2722 nr Sattler",
+   "lat": 29.8083,
+   "lon": -98.2303,
+   "coverage": {
+    "points": 8542,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BFST2": {
+   "status": "ok",
+   "file": "BFST2.json.gz",
+   "gz_bytes": 41104,
+   "raw_bytes": 1297896,
+   "name": "Blanco River at Fischer Store Rd near Fischer",
+   "lat": 30.0006,
+   "lon": -98.2004,
+   "coverage": {
+    "points": 8560,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BGMT2": {
+   "status": "ok",
+   "file": "BGMT2.json.gz",
+   "gz_bytes": 20632,
+   "raw_bytes": 421017,
+   "name": "Boggy Creek at Manor Road",
+   "lat": 30.2861,
+   "lon": -97.7086,
+   "coverage": {
+    "points": 2785,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BIPT2": {
+   "status": "ok",
+   "file": "BIPT2.json.gz",
+   "gz_bytes": 19643,
+   "raw_bytes": 430753,
+   "name": "Pine Island Bayou at B.I. Pump Plant",
+   "lat": 30.1792,
+   "lon": -94.1889,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BKCT2": {
+   "status": "ok",
+   "file": "BKCT2.json.gz",
+   "gz_bytes": 13846,
+   "raw_bytes": 427160,
+   "name": "Devils River at Bakers Crossing near Juno",
+   "lat": 29.95,
+   "lon": -101.1303,
+   "coverage": {
+    "points": 2848,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BKFT2": {
+   "status": "ok",
+   "file": "BKFT2.json.gz",
+   "gz_bytes": 33438,
+   "raw_bytes": 1309360,
+   "name": "Brushy Creek at Kenney Fort Blvd nr Round Rock",
+   "lat": 30.5122,
+   "lon": -97.6367,
+   "coverage": {
+    "points": 8650,
+    "first": "2026-06-25T00:05:00Z",
+    "last": "2026-07-24T23:35:00Z"
+   }
+  },
+  "BKTT2": {
+   "status": "ok",
+   "file": "BKTT2.json.gz",
+   "gz_bytes": 38079,
+   "raw_bytes": 1254603,
+   "name": "Brushy Creek at FM 619 near Taylor",
+   "lat": 30.5194,
+   "lon": -97.3383,
+   "coverage": {
+    "points": 8313,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BLET2": {
+   "status": "ok",
+   "file": "BLET2.json.gz",
+   "gz_bytes": 14157,
+   "raw_bytes": 394333,
+   "name": "Leon River near Belton",
+   "lat": 31.07,
+   "lon": -97.4411,
+   "coverage": {
+    "points": 2603,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BOLT2": {
+   "status": "ok",
+   "file": "BOLT2.json.gz",
+   "gz_bytes": 21649,
+   "raw_bytes": 432397,
+   "name": "San Bernard River near Boling",
+   "lat": 29.3133,
+   "lon": -95.8939,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BOPT2": {
+   "status": "ok",
+   "file": "BOPT2.json.gz",
+   "gz_bytes": 27737,
+   "raw_bytes": 615016,
+   "name": "Boggy Creek (E TX) at Park Road",
+   "lat": 30.2248,
+   "lon": -94.2065,
+   "coverage": {
+    "points": 4100,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "BRBT2": {
+   "status": "ok",
+   "file": "BRBT2.json.gz",
+   "gz_bytes": 15700,
+   "raw_bytes": 422032,
+   "name": "Blanco River at Blanco",
+   "lat": 30.0928,
+   "lon": -98.4232,
+   "coverage": {
+    "points": 2766,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BRLT2": {
+   "status": "ok",
+   "file": "BRLT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Lavaca River at Breslau",
+   "lat": 29.5203,
+   "lon": -97.0017,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "BRTT2": {
+   "status": "ok",
+   "file": "BRTT2.json.gz",
+   "gz_bytes": 7129,
+   "raw_bytes": 107914,
+   "name": "Colorado River (TX) at Bastrop",
+   "lat": 30.1044,
+   "lon": -97.3192,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BSJT2": {
+   "status": "ok",
+   "file": "BSJT2.json.gz",
+   "gz_bytes": 27883,
+   "raw_bytes": 1287302,
+   "name": "South Fork Rocky Creek near Briggs, TX",
+   "lat": 30.9114,
+   "lon": -98.0367,
+   "coverage": {
+    "points": 8482,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BSMT2": {
+   "status": "ok",
+   "file": "BSMT2.json.gz",
+   "gz_bytes": 37963,
+   "raw_bytes": 1280217,
+   "name": "Blanco River at San Marcos",
+   "lat": 29.8794,
+   "lon": -97.9106,
+   "coverage": {
+    "points": 8484,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "BSST2": {
+   "status": "ok",
+   "file": "BSST2.json.gz",
+   "gz_bytes": 5971,
+   "raw_bytes": 108375,
+   "name": "San Saba River near Brady",
+   "lat": 31.0039,
+   "lon": -99.2686,
+   "coverage": {
+    "points": 714,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BSWT2": {
+   "status": "ok",
+   "file": "BSWT2.json.gz",
+   "gz_bytes": 14716,
+   "raw_bytes": 430080,
+   "name": "Salado Creek at Wilderness Road near San Antonio",
+   "lat": 29.6306,
+   "lon": -98.5653,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BSYT2": {
+   "status": "ok",
+   "file": "BSYT2.json.gz",
+   "gz_bytes": 39848,
+   "raw_bytes": 1305131,
+   "name": "Brushy Creek at FM 973 nr Coupland",
+   "lat": 30.4692,
+   "lon": -97.4633,
+   "coverage": {
+    "points": 8612,
+    "first": "2026-06-25T00:05:00Z",
+    "last": "2026-07-24T23:40:00Z"
+   }
+  },
+  "BTNT2": {
+   "status": "ok",
+   "file": "BTNT2.json.gz",
+   "gz_bytes": 14772,
+   "raw_bytes": 429241,
+   "name": "Pecos River 14 miles NW of Pandale",
+   "lat": 30.314,
+   "lon": -101.7416,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BTVT2": {
+   "status": "ok",
+   "file": "BTVT2.json.gz",
+   "gz_bytes": 13345,
+   "raw_bytes": 432168,
+   "name": "West Nueces River at Brackettville",
+   "lat": 29.4811,
+   "lon": -100.2392,
+   "coverage": {
+    "points": 2875,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "BUDT2": {
+   "status": "ok",
+   "file": "BUDT2.json.gz",
+   "gz_bytes": 5674,
+   "raw_bytes": 109563,
+   "name": "Colorado River (TX) at Lake Buchanan",
+   "lat": 30.7514,
+   "lon": -98.4181,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BUKT2": {
+   "status": "ok",
+   "file": "BUKT2.json.gz",
+   "gz_bytes": 12149,
+   "raw_bytes": 433141,
+   "name": "Sabine River at CR 2082",
+   "lat": 30.9694,
+   "lon": -93.5719,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BUXL1": {
+   "status": "ok",
+   "file": "BUXL1.json.gz",
+   "gz_bytes": 16068,
+   "raw_bytes": 429416,
+   "name": "Buxton Creek at HWY 27 near DeQuincy",
+   "lat": 30.4231,
+   "lon": -93.4246,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BVST2": {
+   "status": "ok",
+   "file": "BVST2.json.gz",
+   "gz_bytes": 13830,
+   "raw_bytes": 408267,
+   "name": "Cibolo Creek at Specht Road near Bulverde",
+   "lat": 29.7368,
+   "lon": -98.4934,
+   "coverage": {
+    "points": 2720,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "BWRT2": {
+   "status": "ok",
+   "file": "BWRT2.json.gz",
+   "gz_bytes": 24165,
+   "raw_bytes": 432644,
+   "name": "Sabine River near Bon Wier",
+   "lat": 30.7469,
+   "lon": -93.6083,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "BYBT2": {
+   "status": "ok",
+   "file": "BYBT2.json.gz",
+   "gz_bytes": 42173,
+   "raw_bytes": 1298659,
+   "name": "Brushy Creek at Cedar Park",
+   "lat": 30.525,
+   "lon": -97.7497,
+   "coverage": {
+    "points": 8560,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "CAAT2": {
+   "status": "ok",
+   "file": "CAAT2.json.gz",
+   "gz_bytes": 16154,
+   "raw_bytes": 431251,
+   "name": "Nueces River at Calallen",
+   "lat": 27.883,
+   "lon": -97.625,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "CAKT2": {
+   "status": "ok",
+   "file": "CAKT2.json.gz",
+   "gz_bytes": 41947,
+   "raw_bytes": 1249156,
+   "name": "Carters Creek at FM 60 near College Station",
+   "lat": 30.6417,
+   "lon": -96.3081,
+   "coverage": {
+    "points": 8224,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CBQL1": {
+   "status": "ok",
+   "file": "CBQL1.json.gz",
+   "gz_bytes": 8544,
+   "raw_bytes": 137237,
+   "name": "Choupique Bayou at Highway 108",
+   "lat": 30.1394,
+   "lon": -93.4222,
+   "coverage": {
+    "points": 914,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CBST2": {
+   "status": "ok",
+   "file": "CBST2.json.gz",
+   "gz_bytes": 35895,
+   "raw_bytes": 1207830,
+   "name": "Colorado River (TX) at Columbus",
+   "lat": 29.7061,
+   "lon": -96.5367,
+   "coverage": {
+    "points": 8001,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CBVT2": {
+   "status": "ok",
+   "file": "CBVT2.json.gz",
+   "gz_bytes": 15010,
+   "raw_bytes": 434205,
+   "name": "Nueces River near Bluntzer",
+   "lat": 27.9375,
+   "lon": -97.7755,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "CCDL1": {
+   "status": "ok",
+   "file": "CCDL1.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Choupique Bayou at Dave Dugas Road",
+   "lat": 30.1686,
+   "lon": -93.4269,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "CCGT2": {
+   "status": "ok",
+   "file": "CCGT2.json.gz",
+   "gz_bytes": 20313,
+   "raw_bytes": 434908,
+   "name": "Cypress Creek near Cypress",
+   "lat": 29.9733,
+   "lon": -95.5983,
+   "coverage": {
+    "points": 2836,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "CCVT2": {
+   "status": "ok",
+   "file": "CCVT2.json.gz",
+   "gz_bytes": 13444,
+   "raw_bytes": 435880,
+   "name": "Coleto Creek at Highway 59",
+   "lat": 28.731,
+   "lon": -97.138,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "CFKT2": {
+   "status": "ok",
+   "file": "CFKT2.json.gz",
+   "gz_bytes": 19787,
+   "raw_bytes": 434848,
+   "name": "West Fork San Jacinto River near Conroe",
+   "lat": 30.2444,
+   "lon": -95.4569,
+   "coverage": {
+    "points": 2855,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CHOT2": {
+   "status": "ok",
+   "file": "CHOT2.json.gz",
+   "gz_bytes": 568,
+   "raw_bytes": 4627,
+   "name": "Frio River at Choke Canyon Dam",
+   "lat": 28.4836,
+   "lon": -98.2456,
+   "coverage": {
+    "points": 29,
+    "first": "2026-06-25T10:00:00Z",
+    "last": "2026-07-24T10:00:00Z"
+   }
+  },
+  "CICT2": {
+   "status": "ok",
+   "file": "CICT2.json.gz",
+   "gz_bytes": 18262,
+   "raw_bytes": 431428,
+   "name": "Cibolo Creek near Boerne",
+   "lat": 29.775,
+   "lon": -98.7094,
+   "coverage": {
+    "points": 2852,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "CKDT2": {
+   "status": "ok",
+   "file": "CKDT2.json.gz",
+   "gz_bytes": 14394,
+   "raw_bytes": 423141,
+   "name": "Coleto Creek at Coleto Creek Reservoir",
+   "lat": 28.7308,
+   "lon": -97.1647,
+   "coverage": {
+    "points": 2803,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "CKET2": {
+   "status": "ok",
+   "file": "CKET2.json.gz",
+   "gz_bytes": 21002,
+   "raw_bytes": 428413,
+   "name": "Cole Creek at I-10",
+   "lat": 30.1321,
+   "lon": -93.8638,
+   "coverage": {
+    "points": 2857,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CLDT2": {
+   "status": "ok",
+   "file": "CLDT2.json.gz",
+   "gz_bytes": 14810,
+   "raw_bytes": 322674,
+   "name": "East Fork San Jacinto River at Cleveland",
+   "lat": 30.3364,
+   "lon": -95.1039,
+   "coverage": {
+    "points": 2127,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "CMKT2": {
+   "status": "ok",
+   "file": "CMKT2.json.gz",
+   "gz_bytes": 16399,
+   "raw_bytes": 431094,
+   "name": "Devils River at Pafford Crossing near Comstock",
+   "lat": 29.6764,
+   "lon": -101,
+   "coverage": {
+    "points": 2848,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CMNT2": {
+   "status": "ok",
+   "file": "CMNT2.json.gz",
+   "gz_bytes": 17652,
+   "raw_bytes": 418779,
+   "name": "Little River at Cameron",
+   "lat": 30.835,
+   "lon": -96.9464,
+   "coverage": {
+    "points": 2783,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CMVT2": {
+   "status": "ok",
+   "file": "CMVT2.json.gz",
+   "gz_bytes": 46143,
+   "raw_bytes": 1292670,
+   "name": "Caney Creek at Hwy 21 near Madisonville",
+   "lat": 30.9371,
+   "lon": -95.9356,
+   "coverage": {
+    "points": 8513,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "CNCT2": {
+   "status": "ok",
+   "file": "CNCT2.json.gz",
+   "gz_bytes": 46340,
+   "raw_bytes": 1255367,
+   "name": "Frio River at Concan",
+   "lat": 29.4883,
+   "lon": -99.7044,
+   "coverage": {
+    "points": 8308,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "CNXT2": {
+   "status": "ok",
+   "file": "CNXT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Cibolo Creek at Cibolo Nature Center",
+   "lat": 29.7811,
+   "lon": -98.7128,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "CODT2": {
+   "status": "ok",
+   "file": "CODT2.json.gz",
+   "gz_bytes": 18422,
+   "raw_bytes": 422146,
+   "name": "Sandy Creek near Cordele",
+   "lat": 29.16,
+   "lon": -96.5461,
+   "coverage": {
+    "points": 2786,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "COMT2": {
+   "status": "ok",
+   "file": "COMT2.json.gz",
+   "gz_bytes": 55608,
+   "raw_bytes": 1298604,
+   "name": "Guadalupe River at Comfort",
+   "lat": 29.9652,
+   "lon": -98.8972,
+   "coverage": {
+    "points": 8591,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "COTT2": {
+   "status": "ok",
+   "file": "COTT2.json.gz",
+   "gz_bytes": 17269,
+   "raw_bytes": 411460,
+   "name": "Nueces River at Cotulla",
+   "lat": 28.4261,
+   "lon": -99.2397,
+   "coverage": {
+    "points": 2738,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "COWT2": {
+   "status": "ok",
+   "file": "COWT2.json.gz",
+   "gz_bytes": 24151,
+   "raw_bytes": 429612,
+   "name": "Cow Bayou at SH 87",
+   "lat": 30.0445,
+   "lon": -93.8214,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CPNT2": {
+   "status": "ok",
+   "file": "CPNT2.json.gz",
+   "gz_bytes": 40018,
+   "raw_bytes": 1041566,
+   "name": "Tide Gauge at Copano Bay",
+   "lat": 28.1169,
+   "lon": -97.0175,
+   "coverage": {
+    "points": 6932,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "CRMT2": {
+   "status": "ok",
+   "file": "CRMT2.json.gz",
+   "gz_bytes": 22260,
+   "raw_bytes": 432706,
+   "name": "Rio Grande below Amistad Dam",
+   "lat": 29.425,
+   "lon": -101.0403,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CSRT2": {
+   "status": "ok",
+   "file": "CSRT2.json.gz",
+   "gz_bytes": 14764,
+   "raw_bytes": 436284,
+   "name": "San Bernard River near Chesterville",
+   "lat": 29.6605,
+   "lon": -96.2436,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "CSSL1": {
+   "status": "ok",
+   "file": "CSSL1.json.gz",
+   "gz_bytes": 13780,
+   "raw_bytes": 240881,
+   "name": "Bess Branch at Alligator Park",
+   "lat": 30.3621,
+   "lon": -93.7221,
+   "coverage": {
+    "points": 1595,
+    "first": "2026-06-25T01:05:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "CSVT2": {
+   "status": "ok",
+   "file": "CSVT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Cibolo Creek at Smithson Valley Rd nr Bulverde",
+   "lat": 29.7483,
+   "lon": -98.4078,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "CTKT2": {
+   "status": "ok",
+   "file": "CTKT2.json.gz",
+   "gz_bytes": 13103,
+   "raw_bytes": 427481,
+   "name": "Dry Devils River near Comstock",
+   "lat": 29.8767,
+   "lon": -100.8967,
+   "coverage": {
+    "points": 2848,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "CUET2": {
+   "status": "ok",
+   "file": "CUET2.json.gz",
+   "gz_bytes": 16860,
+   "raw_bytes": 426294,
+   "name": "Guadalupe River near Cuero",
+   "lat": 29.0903,
+   "lon": -97.3294,
+   "coverage": {
+    "points": 2828,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "CYST2": {
+   "status": "ok",
+   "file": "CYST2.json.gz",
+   "gz_bytes": 39499,
+   "raw_bytes": 1240526,
+   "name": "Crystal Creek at FM 1314 near Conroe",
+   "lat": 30.2414,
+   "lon": -95.383,
+   "coverage": {
+    "points": 8218,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "DBYT2": {
+   "status": "ok",
+   "file": "DBYT2.json.gz",
+   "gz_bytes": 17457,
+   "raw_bytes": 432580,
+   "name": "Frio River near Derby",
+   "lat": 28.7364,
+   "lon": -99.1444,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "DEYT2": {
+   "status": "ok",
+   "file": "DEYT2.json.gz",
+   "gz_bytes": 16845,
+   "raw_bytes": 429036,
+   "name": "East Yegua Creek near Dime Box",
+   "lat": 30.4072,
+   "lon": -96.8172,
+   "coverage": {
+    "points": 2828,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "DLRT2": {
+   "status": "ok",
+   "file": "DLRT2.json.gz",
+   "gz_bytes": 21006,
+   "raw_bytes": 426381,
+   "name": "Rio Grande at Del Rio",
+   "lat": 29.3308,
+   "lon": -100.9289,
+   "coverage": {
+    "points": 2836,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "DLWT2": {
+   "status": "ok",
+   "file": "DLWT2.json.gz",
+   "gz_bytes": 15520,
+   "raw_bytes": 422098,
+   "name": "Peach Creek below Dilworth",
+   "lat": 29.4739,
+   "lon": -97.3164,
+   "coverage": {
+    "points": 2778,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "DMYT2": {
+   "status": "ok",
+   "file": "DMYT2.json.gz",
+   "gz_bytes": 13936,
+   "raw_bytes": 404855,
+   "name": "Middle Yegua Creek near Dime Box",
+   "lat": 30.3392,
+   "lon": -96.9044,
+   "coverage": {
+    "points": 2666,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "DNBT2": {
+   "status": "ok",
+   "file": "DNBT2.json.gz",
+   "gz_bytes": 38862,
+   "raw_bytes": 1240510,
+   "name": "Dickinson Bayou at SH 517 near Alvin",
+   "lat": 29.4361,
+   "lon": -95.1701,
+   "coverage": {
+    "points": 8221,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "DOLT2": {
+   "status": "ok",
+   "file": "DOLT2.json.gz",
+   "gz_bytes": 14676,
+   "raw_bytes": 430954,
+   "name": "Dolan Creek above Devils River near Comstock",
+   "lat": 29.8883,
+   "lon": -100.9897,
+   "coverage": {
+    "points": 2851,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "DRAT2": {
+   "status": "ok",
+   "file": "DRAT2.json.gz",
+   "gz_bytes": 37843,
+   "raw_bytes": 1242255,
+   "name": "Spring Branch at SH 242 near Splendora",
+   "lat": 30.2198,
+   "lon": -95.2492,
+   "coverage": {
+    "points": 8227,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "DRWT2": {
+   "status": "ok",
+   "file": "DRWT2.json.gz",
+   "gz_bytes": 45672,
+   "raw_bytes": 1268292,
+   "name": "Onion Creek near Driftwood",
+   "lat": 30.0828,
+   "lon": -98.0075,
+   "coverage": {
+    "points": 8355,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "DUPT2": {
+   "status": "ok",
+   "file": "DUPT2.json.gz",
+   "gz_bytes": 19283,
+   "raw_bytes": 420284,
+   "name": "Guadalupe River near Bloomington",
+   "lat": 28.6619,
+   "lon": -96.9653,
+   "coverage": {
+    "points": 2778,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "DWYT2": {
+   "status": "ok",
+   "file": "DWYT2.json.gz",
+   "gz_bytes": 21990,
+   "raw_bytes": 429433,
+   "name": "Sabine River at Deweyville",
+   "lat": 30.3036,
+   "lon": -93.7436,
+   "coverage": {
+    "points": 2847,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "EBBT2": {
+   "status": "ok",
+   "file": "EBBT2.json.gz",
+   "gz_bytes": 8122,
+   "raw_bytes": 108630,
+   "name": "San Bernard River at East Bernard",
+   "lat": 29.5331,
+   "lon": -96.0561,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "ECYT2": {
+   "status": "ok",
+   "file": "ECYT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "East Fork Crystal Creek at FM 1485 near Conroe",
+   "lat": 30.2949,
+   "lon": -95.3521,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "EDNT2": {
+   "status": "ok",
+   "file": "EDNT2.json.gz",
+   "gz_bytes": 16769,
+   "raw_bytes": 415027,
+   "name": "Lavaca River near Edna",
+   "lat": 28.9597,
+   "lon": -96.6861,
+   "coverage": {
+    "points": 2735,
+    "first": "2026-06-24T12:45:00Z",
+    "last": "2026-07-24T12:15:00Z"
+   }
+  },
+  "EGYT2": {
+   "status": "ok",
+   "file": "EGYT2.json.gz",
+   "gz_bytes": 6607,
+   "raw_bytes": 108709,
+   "name": "Wilbarger Creek at Elgin",
+   "lat": 30.2319,
+   "lon": -97.4328,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "EGZT2": {
+   "status": "ok",
+   "file": "EGZT2.json.gz",
+   "gz_bytes": 5765,
+   "raw_bytes": 108816,
+   "name": "Big Sandy Creek (TX) near Elgin",
+   "lat": 30.2656,
+   "lon": -97.3281,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "ELMT2": {
+   "status": "ok",
+   "file": "ELMT2.json.gz",
+   "gz_bytes": 23290,
+   "raw_bytes": 434967,
+   "name": "San Antonio River at Elmendorf",
+   "lat": 29.2219,
+   "lon": -98.3556,
+   "coverage": {
+    "points": 2872,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "ELNT2": {
+   "status": "ok",
+   "file": "ELNT2.json.gz",
+   "gz_bytes": 17883,
+   "raw_bytes": 427165,
+   "name": "Rio Grande at El Indio",
+   "lat": 28.35,
+   "lon": -100.32,
+   "coverage": {
+    "points": 2842,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "EMAT2": {
+   "status": "ok",
+   "file": "EMAT2.json.gz",
+   "gz_bytes": 46707,
+   "raw_bytes": 1056852,
+   "name": "Tide Station (HGX) at East Matagorda",
+   "lat": 28.71,
+   "lon": -95.9138,
+   "coverage": {
+    "points": 7049,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "EPPT2": {
+   "status": "ok",
+   "file": "EPPT2.json.gz",
+   "gz_bytes": 21435,
+   "raw_bytes": 429448,
+   "name": "Rio Grande at Eagle Pass",
+   "lat": 28.7139,
+   "lon": -100.5069,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "EPTT2": {
+   "status": "ok",
+   "file": "EPTT2.json.gz",
+   "gz_bytes": 47915,
+   "raw_bytes": 1046503,
+   "name": "Tide Station (HGX) at San Leon",
+   "lat": 29.48,
+   "lon": -94.9183,
+   "coverage": {
+    "points": 6981,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "EVDT2": {
+   "status": "ok",
+   "file": "EVDT2.json.gz",
+   "gz_bytes": 21310,
+   "raw_bytes": 429445,
+   "name": "Neches River at Evadale",
+   "lat": 30.3556,
+   "lon": -94.0931,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "FACT2": {
+   "status": "ok",
+   "file": "FACT2.json.gz",
+   "gz_bytes": 19673,
+   "raw_bytes": 432912,
+   "name": "San Antonio River near Falls City",
+   "lat": 28.9514,
+   "lon": -98.0639,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "FBCT2": {
+   "status": "ok",
+   "file": "FBCT2.json.gz",
+   "gz_bytes": 7051,
+   "raw_bytes": 108577,
+   "name": "Cummins Creek at Frelsburg",
+   "lat": 29.8258,
+   "lon": -96.5806,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "FCTT2": {
+   "status": "ok",
+   "file": "FCTT2.json.gz",
+   "gz_bytes": 17905,
+   "raw_bytes": 398095,
+   "name": "Cibolo Creek near Falls City",
+   "lat": 29.0139,
+   "lon": -97.93,
+   "coverage": {
+    "points": 2627,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "FCWT2": {
+   "status": "ok",
+   "file": "FCWT2.json.gz",
+   "gz_bytes": 18728,
+   "raw_bytes": 438814,
+   "name": "Lake Creek above The Woodlands",
+   "lat": 30.2583,
+   "lon": -95.5636,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "FILT2": {
+   "status": "ok",
+   "file": "FILT2.json.gz",
+   "gz_bytes": 39808,
+   "raw_bytes": 1243532,
+   "name": "Frio River at at Leakey",
+   "lat": 29.7228,
+   "lon": -99.7533,
+   "coverage": {
+    "points": 8293,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "FLVT2": {
+   "status": "ok",
+   "file": "FLVT2.json.gz",
+   "gz_bytes": 22442,
+   "raw_bytes": 432670,
+   "name": "San Antonio River near Floresville",
+   "lat": 29.11,
+   "lon": -98.1744,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "FMFT2": {
+   "status": "ok",
+   "file": "FMFT2.json.gz",
+   "gz_bytes": 37802,
+   "raw_bytes": 1286551,
+   "name": "Berry Creek near Florence, TX",
+   "lat": 30.8106,
+   "lon": -97.826,
+   "coverage": {
+    "points": 8591,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "FPST2": {
+   "status": "ok",
+   "file": "FPST2.json.gz",
+   "gz_bytes": 49096,
+   "raw_bytes": 1058193,
+   "name": "Tide Station (HGX) at Freeport",
+   "lat": 28.935,
+   "lon": -95.295,
+   "coverage": {
+    "points": 7057,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "FRBT2": {
+   "status": "ok",
+   "file": "FRBT2.json.gz",
+   "gz_bytes": 6467,
+   "raw_bytes": 108415,
+   "name": "Pedernales River at Fredericksburg",
+   "lat": 30.2203,
+   "lon": -98.8694,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "FRLT2": {
+   "status": "ok",
+   "file": "FRLT2.json.gz",
+   "gz_bytes": 37775,
+   "raw_bytes": 1285322,
+   "name": "Redgate Creek at Frelsburg",
+   "lat": 29.7989,
+   "lon": -96.5319,
+   "coverage": {
+    "points": 8406,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "GBCT2": {
+   "status": "ok",
+   "file": "GBCT2.json.gz",
+   "gz_bytes": 14509,
+   "raw_bytes": 422101,
+   "name": "Guadalupe River below Comal",
+   "lat": 29.6978,
+   "lon": -98.1064,
+   "coverage": {
+    "points": 2798,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GBHT2": {
+   "status": "ok",
+   "file": "GBHT2.json.gz",
+   "gz_bytes": 18626,
+   "raw_bytes": 437861,
+   "name": "Greens Bayou at Houston",
+   "lat": 29.9181,
+   "lon": -95.3067,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "GBLT2": {
+   "status": "ok",
+   "file": "GBLT2.json.gz",
+   "gz_bytes": 23618,
+   "raw_bytes": 424678,
+   "name": "Greens Bayou near Houston",
+   "lat": 29.8369,
+   "lon": -95.2331,
+   "coverage": {
+    "points": 2828,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "GCCT2": {
+   "status": "ok",
+   "file": "GCCT2.json.gz",
+   "gz_bytes": 12241,
+   "raw_bytes": 420674,
+   "name": "Culebra Creek at GCSNA near Helotes",
+   "lat": 29.5392,
+   "lon": -98.7514,
+   "coverage": {
+    "points": 2803,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "GCST2": {
+   "status": "ok",
+   "file": "GCST2.json.gz",
+   "gz_bytes": 14430,
+   "raw_bytes": 426405,
+   "name": "Geronimo Creek near Seguin 2NE",
+   "lat": 29.5905,
+   "lon": -97.9347,
+   "coverage": {
+    "points": 2842,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GCTT2": {
+   "status": "ok",
+   "file": "GCTT2.json.gz",
+   "gz_bytes": 47577,
+   "raw_bytes": 1301921,
+   "name": "Guadalupe River near Centerpoint",
+   "lat": 29.9878,
+   "lon": -99.11,
+   "coverage": {
+    "points": 8601,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "GDHT2": {
+   "status": "ok",
+   "file": "GDHT2.json.gz",
+   "gz_bytes": 17753,
+   "raw_bytes": 422495,
+   "name": "Guadalupe River at Hwy 183 near Hochheim",
+   "lat": 29.3144,
+   "lon": -97.3033,
+   "coverage": {
+    "points": 2802,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GERT2": {
+   "status": "ok",
+   "file": "GERT2.json.gz",
+   "gz_bytes": 15774,
+   "raw_bytes": 388124,
+   "name": "North Fork of the San Gabriel River near Georgetown",
+   "lat": 30.6617,
+   "lon": -97.7111,
+   "coverage": {
+    "points": 2559,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "GETT2": {
+   "status": "ok",
+   "file": "GETT2.json.gz",
+   "gz_bytes": 50053,
+   "raw_bytes": 1298469,
+   "name": "San Gabriel River at Georgetown South Fork",
+   "lat": 30.6256,
+   "lon": -97.6908,
+   "coverage": {
+    "points": 8560,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "GGLT2": {
+   "status": "ok",
+   "file": "GGLT2.json.gz",
+   "gz_bytes": 13799,
+   "raw_bytes": 431919,
+   "name": "San Gabriel River at Lake Georgetown",
+   "lat": 30.6675,
+   "lon": -97.7272,
+   "coverage": {
+    "points": 2842,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GLIT2": {
+   "status": "ok",
+   "file": "GLIT2.json.gz",
+   "gz_bytes": 20917,
+   "raw_bytes": 430712,
+   "name": "San Antonio River at Goliad",
+   "lat": 28.6492,
+   "lon": -97.3847,
+   "coverage": {
+    "points": 2858,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GMKT2": {
+   "status": "ok",
+   "file": "GMKT2.json.gz",
+   "gz_bytes": 40007,
+   "raw_bytes": 1238699,
+   "name": "Goose Creek near McNair",
+   "lat": 29.8014,
+   "lon": -95.0047,
+   "coverage": {
+    "points": 8209,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "GNDT2": {
+   "status": "ok",
+   "file": "GNDT2.json.gz",
+   "gz_bytes": 19932,
+   "raw_bytes": 434362,
+   "name": "West Mustang Creek near Ganado",
+   "lat": 29.0714,
+   "lon": -96.4669,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "GNGT2": {
+   "status": "ok",
+   "file": "GNGT2.json.gz",
+   "gz_bytes": 14128,
+   "raw_bytes": 444406,
+   "name": "San Gabriel River at Granger Lake",
+   "lat": 30.6928,
+   "lon": -97.3261,
+   "coverage": {
+    "points": 2924,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GNJT2": {
+   "status": "ok",
+   "file": "GNJT2.json.gz",
+   "gz_bytes": 49039,
+   "raw_bytes": 1057287,
+   "name": "Tide Station (HGX) at Galveston Bay Entrance North Jetty",
+   "lat": 29.3583,
+   "lon": -94.725,
+   "coverage": {
+    "points": 7052,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "GNLT2": {
+   "status": "ok",
+   "file": "GNLT2.json.gz",
+   "gz_bytes": 17295,
+   "raw_bytes": 435539,
+   "name": "Guadalupe River at Gonzales",
+   "lat": 29.4843,
+   "lon": -97.4475,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "GNRT2": {
+   "status": "ok",
+   "file": "GNRT2.json.gz",
+   "gz_bytes": 16400,
+   "raw_bytes": 433833,
+   "name": "North Fork San Gabriel River at Ronald Reagan Blvd near Leander 8N",
+   "lat": 30.6978,
+   "lon": -97.8492,
+   "coverage": {
+    "points": 2863,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "GOBT2": {
+   "status": "ok",
+   "file": "GOBT2.json.gz",
+   "gz_bytes": 23240,
+   "raw_bytes": 560246,
+   "name": "Goode Branch at CR 773",
+   "lat": 30.43,
+   "lon": -93.9732,
+   "coverage": {
+    "points": 3735,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "GPLT2": {
+   "status": "ok",
+   "file": "GPLT2.json.gz",
+   "gz_bytes": 6179,
+   "raw_bytes": 108844,
+   "name": "Colorado River (TX) at Lake LBJ",
+   "lat": 30.5558,
+   "lon": -98.3381,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GRHT2": {
+   "status": "ok",
+   "file": "GRHT2.json.gz",
+   "gz_bytes": 39166,
+   "raw_bytes": 1271739,
+   "name": "Guadalupe River above Bear Creek at Kerrville",
+   "lat": 30.0694,
+   "lon": -99.195,
+   "coverage": {
+    "points": 8401,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "GRIT2": {
+   "status": "ok",
+   "file": "GRIT2.json.gz",
+   "gz_bytes": 19418,
+   "raw_bytes": 430418,
+   "name": "Trinity River near Goodrich",
+   "lat": 30.5719,
+   "lon": -94.9486,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "GRRT2": {
+   "status": "ok",
+   "file": "GRRT2.json.gz",
+   "gz_bytes": 47864,
+   "raw_bytes": 1057233,
+   "name": "Tide Station (HGX) at Galveston Railroad Bridge",
+   "lat": 29.3016,
+   "lon": -94.8966,
+   "coverage": {
+    "points": 7052,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "GRTT2": {
+   "status": "ok",
+   "file": "GRTT2.json.gz",
+   "gz_bytes": 48238,
+   "raw_bytes": 1281839,
+   "name": "Guadalupe River at 3rd Crossing nr Sattler",
+   "lat": 29.8036,
+   "lon": -98.1631,
+   "coverage": {
+    "points": 8551,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "GSST2": {
+   "status": "ok",
+   "file": "GSST2.json.gz",
+   "gz_bytes": 20693,
+   "raw_bytes": 422963,
+   "name": "Brays Bayou at Gessner Drive",
+   "lat": 29.6725,
+   "lon": -95.5281,
+   "coverage": {
+    "points": 2775,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "GTOT2": {
+   "status": "ok",
+   "file": "GTOT2.json.gz",
+   "gz_bytes": 48658,
+   "raw_bytes": 1057353,
+   "name": "Tide Station (HGX) at NOS Station at Pier 21 Galveston",
+   "lat": 29.31,
+   "lon": -94.7933,
+   "coverage": {
+    "points": 7052,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "GTWT2": {
+   "status": "ok",
+   "file": "GTWT2.json.gz",
+   "gz_bytes": 33509,
+   "raw_bytes": 1311427,
+   "name": "Berry Creek near Georgetown",
+   "lat": 30.7031,
+   "lon": -97.6661,
+   "coverage": {
+    "points": 8590,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "GUBT2": {
+   "status": "ok",
+   "file": "GUBT2.json.gz",
+   "gz_bytes": 24374,
+   "raw_bytes": 431812,
+   "name": "Guadalupe River at FM474 near Bergheim",
+   "lat": 29.8933,
+   "lon": -98.6697,
+   "coverage": {
+    "points": 2854,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "GWGT2": {
+   "status": "ok",
+   "file": "GWGT2.json.gz",
+   "gz_bytes": 18598,
+   "raw_bytes": 432819,
+   "name": "Guadalupe River at CR 143 near Gonzales",
+   "lat": 29.4875,
+   "lon": -97.5875,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "GWLT2": {
+   "status": "ok",
+   "file": "GWLT2.json.gz",
+   "gz_bytes": 13385,
+   "raw_bytes": 430424,
+   "name": "Lagarto Creek below George West",
+   "lat": 28.0594,
+   "lon": -98.0967,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "GWNT2": {
+   "status": "ok",
+   "file": "GWNT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Nueces River at George West",
+   "lat": 28.3328,
+   "lon": -98.0856,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "GYST2": {
+   "status": "ok",
+   "file": "GYST2.json.gz",
+   "gz_bytes": 37714,
+   "raw_bytes": 1234036,
+   "name": "Grassy Creek at TX 105 near Navasota",
+   "lat": 30.3533,
+   "lon": -95.9963,
+   "coverage": {
+    "points": 8122,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HAJT2": {
+   "status": "ok",
+   "file": "HAJT2.json.gz",
+   "gz_bytes": 26945,
+   "raw_bytes": 640797,
+   "name": "Sandy Creek (E TX) at Jasper",
+   "lat": 30.9184,
+   "lon": -94.004,
+   "coverage": {
+    "points": 4273,
+    "first": "2026-06-25T00:55:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "HBMT2": {
+   "status": "ok",
+   "file": "HBMT2.json.gz",
+   "gz_bytes": 20041,
+   "raw_bytes": 425312,
+   "name": "Brays Bayou at Houston",
+   "lat": 29.6969,
+   "lon": -95.4119,
+   "coverage": {
+    "points": 2802,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "HBRT2": {
+   "status": "ok",
+   "file": "HBRT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Brazos River at FM 485 Near Hearne",
+   "lat": 30.865,
+   "lon": -96.695,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "HCCT2": {
+   "status": "ok",
+   "file": "HCCT2.json.gz",
+   "gz_bytes": 19935,
+   "raw_bytes": 428863,
+   "name": "Clear Creek at Friendswood",
+   "lat": 29.5172,
+   "lon": -95.1783,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HCDT2": {
+   "status": "ok",
+   "file": "HCDT2.json.gz",
+   "gz_bytes": 18165,
+   "raw_bytes": 438333,
+   "name": "Cedar Bayou near Crosby",
+   "lat": 29.9725,
+   "lon": -94.9856,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "HDWT2": {
+   "status": "ok",
+   "file": "HDWT2.json.gz",
+   "gz_bytes": 18741,
+   "raw_bytes": 435154,
+   "name": "Cibolo Creek near St. Hedwig",
+   "lat": 29.5014,
+   "lon": -98.1861,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HEIT2": {
+   "status": "ok",
+   "file": "HEIT2.json.gz",
+   "gz_bytes": 18553,
+   "raw_bytes": 435990,
+   "name": "Martinez Creek near Saint Hedwig",
+   "lat": 29.4439,
+   "lon": -98.1689,
+   "coverage": {
+    "points": 2875,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "HFFT2": {
+   "status": "ok",
+   "file": "HFFT2.json.gz",
+   "gz_bytes": 21137,
+   "raw_bytes": 435458,
+   "name": "Luce Bayou near Huffman",
+   "lat": 30.1094,
+   "lon": -95.0597,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HFXT2": {
+   "status": "ok",
+   "file": "HFXT2.json.gz",
+   "gz_bytes": 13936,
+   "raw_bytes": 422351,
+   "name": "Blanco River above at Halifax Ranch near Kyle",
+   "lat": 30.0056,
+   "lon": -97.9525,
+   "coverage": {
+    "points": 2786,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "HGBT2": {
+   "status": "ok",
+   "file": "HGBT2.json.gz",
+   "gz_bytes": 18362,
+   "raw_bytes": 438454,
+   "name": "Greens Bayou near Houston",
+   "lat": 29.9567,
+   "lon": -95.4178,
+   "coverage": {
+    "points": 2872,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "HGLT2": {
+   "status": "ok",
+   "file": "HGLT2.json.gz",
+   "gz_bytes": 38792,
+   "raw_bytes": 1241410,
+   "name": "Highland Bayou at FM 646 near Santa Fe",
+   "lat": 29.3806,
+   "lon": -95.0901,
+   "coverage": {
+    "points": 8227,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HGTT2": {
+   "status": "ok",
+   "file": "HGTT2.json.gz",
+   "gz_bytes": 22456,
+   "raw_bytes": 435158,
+   "name": "White Oak Bayou at Houston",
+   "lat": 29.775,
+   "lon": -95.3969,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "HIST2": {
+   "status": "ok",
+   "file": "HIST2.json.gz",
+   "gz_bytes": 49483,
+   "raw_bytes": 1056902,
+   "name": "Tide Station (HGX) at High Island",
+   "lat": 29.5947,
+   "lon": -94.3902,
+   "coverage": {
+    "points": 7050,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "HJMT2": {
+   "status": "ok",
+   "file": "HJMT2.json.gz",
+   "gz_bytes": 24903,
+   "raw_bytes": 623214,
+   "name": "Mayhaw Bayou at McCall Road",
+   "lat": 29.8508,
+   "lon": -94.3252,
+   "coverage": {
+    "points": 4222,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "HLTT2": {
+   "status": "ok",
+   "file": "HLTT2.json.gz",
+   "gz_bytes": 12963,
+   "raw_bytes": 394997,
+   "name": "Helotes Creek at Helotes",
+   "lat": 29.5783,
+   "lon": -98.6914,
+   "coverage": {
+    "points": 2628,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HMMT2": {
+   "status": "ok",
+   "file": "HMMT2.json.gz",
+   "gz_bytes": 18961,
+   "raw_bytes": 430786,
+   "name": "West Fork San Jacinto River near Humble",
+   "lat": 30.0264,
+   "lon": -95.2583,
+   "coverage": {
+    "points": 2855,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HNFT2": {
+   "status": "ok",
+   "file": "HNFT2.json.gz",
+   "gz_bytes": 19854,
+   "raw_bytes": 427695,
+   "name": "North Fork Guadalupe River near Hunt",
+   "lat": 30.0639,
+   "lon": -99.3867,
+   "coverage": {
+    "points": 2818,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HNLT2": {
+   "status": "ok",
+   "file": "HNLT2.json.gz",
+   "gz_bytes": 5517,
+   "raw_bytes": 116501,
+   "name": "Little Cypress Creek (SE TX) at County Road 3114",
+   "lat": 30.3661,
+   "lon": -93.8349,
+   "coverage": {
+    "points": 787,
+    "first": "2026-06-24T22:35:00Z",
+    "last": "2026-07-24T22:15:00Z"
+   }
+  },
+  "HNTT2": {
+   "status": "ok",
+   "file": "HNTT2.json.gz",
+   "gz_bytes": 44413,
+   "raw_bytes": 1303628,
+   "name": "Guadalupe River at Hunt",
+   "lat": 30.0697,
+   "lon": -99.3214,
+   "coverage": {
+    "points": 8591,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "HNYT2": {
+   "status": "ok",
+   "file": "HNYT2.json.gz",
+   "gz_bytes": 3040,
+   "raw_bytes": 58273,
+   "name": "Yellow Bayou at St. John Road",
+   "lat": 30.9537,
+   "lon": -93.6499,
+   "coverage": {
+    "points": 394,
+    "first": "2026-06-25T03:15:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HPDT2": {
+   "status": "ok",
+   "file": "HPDT2.json.gz",
+   "gz_bytes": 22162,
+   "raw_bytes": 431256,
+   "name": "Brazos River near Hempstead",
+   "lat": 30.1289,
+   "lon": -96.1875,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HSIT2": {
+   "status": "ok",
+   "file": "HSIT2.json.gz",
+   "gz_bytes": 19630,
+   "raw_bytes": 430423,
+   "name": "Sims Bayou at Houston",
+   "lat": 29.6742,
+   "lon": -95.2892,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "HSJT2": {
+   "status": "ok",
+   "file": "HSJT2.json.gz",
+   "gz_bytes": 15970,
+   "raw_bytes": 433257,
+   "name": "San Jacinto River at Lake Houston",
+   "lat": 29.9161,
+   "lon": -95.1411,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "HTST2": {
+   "status": "ok",
+   "file": "HTST2.json.gz",
+   "gz_bytes": 17060,
+   "raw_bytes": 432113,
+   "name": "Lavaca River at Hallettsville",
+   "lat": 29.4431,
+   "lon": -96.9447,
+   "coverage": {
+    "points": 2845,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "HYST2": {
+   "status": "ok",
+   "file": "HYST2.json.gz",
+   "gz_bytes": 39541,
+   "raw_bytes": 1240618,
+   "name": "Hickory Slough at FM 865 near Pearland",
+   "lat": 29.5664,
+   "lon": -95.3507,
+   "coverage": {
+    "points": 8221,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "IKLT2": {
+   "status": "ok",
+   "file": "IKLT2.json.gz",
+   "gz_bytes": 5903,
+   "raw_bytes": 108828,
+   "name": "Colorado River (TX) at Inks Lake",
+   "lat": 30.7311,
+   "lon": -98.3847,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "JAIT2": {
+   "status": "ok",
+   "file": "JAIT2.json.gz",
+   "gz_bytes": 18123,
+   "raw_bytes": 352642,
+   "name": "Taylor Bayou at Craigen Road",
+   "lat": 29.8806,
+   "lon": -94.2571,
+   "coverage": {
+    "points": 2351,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "JCIT2": {
+   "status": "ok",
+   "file": "JCIT2.json.gz",
+   "gz_bytes": 42873,
+   "raw_bytes": 1288389,
+   "name": "Johnson Creek above Ingram",
+   "lat": 30.1,
+   "lon": -99.2828,
+   "coverage": {
+    "points": 8534,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "JCTT2": {
+   "status": "ok",
+   "file": "JCTT2.json.gz",
+   "gz_bytes": 46018,
+   "raw_bytes": 1300092,
+   "name": "North Llano River near Junction",
+   "lat": 30.5172,
+   "lon": -99.8058,
+   "coverage": {
+    "points": 8594,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "JNCT2": {
+   "status": "ok",
+   "file": "JNCT2.json.gz",
+   "gz_bytes": 42345,
+   "raw_bytes": 1262630,
+   "name": "Llano River near Junction",
+   "lat": 30.5042,
+   "lon": -99.7342,
+   "coverage": {
+    "points": 8359,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "JNXT2": {
+   "status": "ok",
+   "file": "JNXT2.json.gz",
+   "gz_bytes": 15287,
+   "raw_bytes": 427975,
+   "name": "Devils River at Cauthorn Ranch near Juno",
+   "lat": 30.0792,
+   "lon": -101.1097,
+   "coverage": {
+    "points": 2848,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "JOCT2": {
+   "status": "ok",
+   "file": "JOCT2.json.gz",
+   "gz_bytes": 31248,
+   "raw_bytes": 1138403,
+   "name": "Pedernales River at Johnson City",
+   "lat": 30.2917,
+   "lon": -98.3992,
+   "coverage": {
+    "points": 7476,
+    "first": "2026-06-25T01:05:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "JUAT2": {
+   "status": "ok",
+   "file": "JUAT2.json.gz",
+   "gz_bytes": 41684,
+   "raw_bytes": 1230149,
+   "name": "Juanita Creek at SH 71 near Midfield",
+   "lat": 28.9736,
+   "lon": -96.2085,
+   "coverage": {
+    "points": 8152,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "JYBT2": {
+   "status": "ok",
+   "file": "JYBT2.json.gz",
+   "gz_bytes": 34282,
+   "raw_bytes": 716601,
+   "name": "Neches River at Downtown Beaumont",
+   "lat": 30.0868,
+   "lon": -94.0957,
+   "coverage": {
+    "points": 4779,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "JYIT2": {
+   "status": "ok",
+   "file": "JYIT2.json.gz",
+   "gz_bytes": 17498,
+   "raw_bytes": 344732,
+   "name": "Hillebrandt Bayou at Hillebrandt Road",
+   "lat": 29.9283,
+   "lon": -94.1106,
+   "coverage": {
+    "points": 2298,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "JYKT2": {
+   "status": "ok",
+   "file": "JYKT2.json.gz",
+   "gz_bytes": 14170,
+   "raw_bytes": 248702,
+   "name": "Pine Island Bayou near Batson",
+   "lat": 30.2569,
+   "lon": -94.5683,
+   "coverage": {
+    "points": 1630,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "JYLT2": {
+   "status": "ok",
+   "file": "JYLT2.json.gz",
+   "gz_bytes": 4636,
+   "raw_bytes": 96411,
+   "name": "Little Pine Island Bayou near Thicket",
+   "lat": 30.3586,
+   "lon": -94.5911,
+   "coverage": {
+    "points": 637,
+    "first": "2026-06-06T15:55:00Z",
+    "last": "2026-07-06T14:40:00Z"
+   }
+  },
+  "JYMT2": {
+   "status": "ok",
+   "file": "JYMT2.json.gz",
+   "gz_bytes": 8579,
+   "raw_bytes": 161680,
+   "name": "Black Creek at Highway 326",
+   "lat": 30.2556,
+   "lon": -94.3647,
+   "coverage": {
+    "points": 1070,
+    "first": "2026-06-24T07:55:00Z",
+    "last": "2026-07-24T06:55:00Z"
+   }
+  },
+  "JYNT2": {
+   "status": "ok",
+   "file": "JYNT2.json.gz",
+   "gz_bytes": 22088,
+   "raw_bytes": 428649,
+   "name": "Pine Island Bayou near Bevil Oaks",
+   "lat": 30.1353,
+   "lon": -94.2789,
+   "coverage": {
+    "points": 2849,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "JZBT2": {
+   "status": "ok",
+   "file": "JZBT2.json.gz",
+   "gz_bytes": 12524,
+   "raw_bytes": 182024,
+   "name": "Pine Island Bayou at Highway 326",
+   "lat": 30.0986,
+   "lon": -94.4047,
+   "coverage": {
+    "points": 1200,
+    "first": "2026-06-25T00:55:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "JZHT2": {
+   "status": "ok",
+   "file": "JZHT2.json.gz",
+   "gz_bytes": 13468,
+   "raw_bytes": 248482,
+   "name": "Hillebrandt Bayou at Highway 124",
+   "lat": 30.0358,
+   "lon": -94.1489,
+   "coverage": {
+    "points": 1656,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:55:00Z"
+   }
+  },
+  "JZWT2": {
+   "status": "ok",
+   "file": "JZWT2.json.gz",
+   "gz_bytes": 10130,
+   "raw_bytes": 186097,
+   "name": "North Fork Taylor Bayou at F.M. 1406",
+   "lat": 29.9475,
+   "lon": -94.4,
+   "coverage": {
+    "points": 1232,
+    "first": "2026-06-25T01:25:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "JZYT2": {
+   "status": "ok",
+   "file": "JZYT2.json.gz",
+   "gz_bytes": 16138,
+   "raw_bytes": 314283,
+   "name": "Taylor Bayou at Labelle Road",
+   "lat": 29.8744,
+   "lon": -94.1589,
+   "coverage": {
+    "points": 2095,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "KEMT2": {
+   "status": "ok",
+   "file": "KEMT2.json.gz",
+   "gz_bytes": 50721,
+   "raw_bytes": 1298054,
+   "name": "Lampasas River near Kempner",
+   "lat": 31.0792,
+   "lon": -98.0164,
+   "coverage": {
+    "points": 8551,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "KHOT2": {
+   "status": "ok",
+   "file": "KHOT2.json.gz",
+   "gz_bytes": 18841,
+   "raw_bytes": 439469,
+   "name": "Cypress Creek near Hockley",
+   "lat": 29.95,
+   "lon": -95.8081,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "KIVT2": {
+   "status": "ok",
+   "file": "KIVT2.json.gz",
+   "gz_bytes": 14020,
+   "raw_bytes": 430753,
+   "name": "Tranquitas Creek at Kingsville",
+   "lat": 27.5258,
+   "lon": -97.8672,
+   "coverage": {
+    "points": 2872,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "KMST2": {
+   "status": "ok",
+   "file": "KMST2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Lavaca River at Komensky",
+   "lat": 29.5408,
+   "lon": -97.0378,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "KNLT2": {
+   "status": "ok",
+   "file": "KNLT2.json.gz",
+   "gz_bytes": 37020,
+   "raw_bytes": 1279134,
+   "name": "Sandy Creek near Kingsland",
+   "lat": 30.5575,
+   "lon": -98.4719,
+   "coverage": {
+    "points": 8484,
+    "first": "2026-06-25T01:05:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "KOUT2": {
+   "status": "ok",
+   "file": "KOUT2.json.gz",
+   "gz_bytes": 20648,
+   "raw_bytes": 428363,
+   "name": "Village Creek near Kountze",
+   "lat": 30.3978,
+   "lon": -94.2633,
+   "coverage": {
+    "points": 2840,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "KRRT2": {
+   "status": "ok",
+   "file": "KRRT2.json.gz",
+   "gz_bytes": 47634,
+   "raw_bytes": 1300658,
+   "name": "Guadalupe River at Kerrville",
+   "lat": 30.0531,
+   "lon": -99.1631,
+   "coverage": {
+    "points": 8600,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "KWHT2": {
+   "status": "ok",
+   "file": "KWHT2.json.gz",
+   "gz_bytes": 16631,
+   "raw_bytes": 430269,
+   "name": "Hondo Creek at SH 173 near Hondo",
+   "lat": 29.3761,
+   "lon": -99.1167,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "KYET2": {
+   "status": "ok",
+   "file": "KYET2.json.gz",
+   "gz_bytes": 40185,
+   "raw_bytes": 1258465,
+   "name": "Blanco River near Kyle",
+   "lat": 29.9792,
+   "lon": -97.9097,
+   "coverage": {
+    "points": 8364,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LACT2": {
+   "status": "ok",
+   "file": "LACT2.json.gz",
+   "gz_bytes": 16909,
+   "raw_bytes": 434805,
+   "name": "Medina River near La Coste",
+   "lat": 29.3239,
+   "lon": -98.8128,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "LBFT2": {
+   "status": "ok",
+   "file": "LBFT2.json.gz",
+   "gz_bytes": 21826,
+   "raw_bytes": 429723,
+   "name": "Little Blanco River at FM32 near Fischer",
+   "lat": 30.0208,
+   "lon": -98.3306,
+   "coverage": {
+    "points": 2854,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LBUT2": {
+   "status": "ok",
+   "file": "LBUT2.json.gz",
+   "gz_bytes": 44684,
+   "raw_bytes": 1233558,
+   "name": "Linnville Bayou at FM 521 near Cedar Lane",
+   "lat": 28.9515,
+   "lon": -95.7112,
+   "coverage": {
+    "points": 8227,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LBYT2": {
+   "status": "ok",
+   "file": "LBYT2.json.gz",
+   "gz_bytes": 21018,
+   "raw_bytes": 408151,
+   "name": "Trinity River at Liberty",
+   "lat": 30.0575,
+   "lon": -94.8181,
+   "coverage": {
+    "points": 2710,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LCFT2": {
+   "status": "ok",
+   "file": "LCFT2.json.gz",
+   "gz_bytes": 39720,
+   "raw_bytes": 1223535,
+   "name": "Leon Creek at I-10 and Loop 1604",
+   "lat": 29.5931,
+   "lon": -98.5992,
+   "coverage": {
+    "points": 8054,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LCKT2": {
+   "status": "ok",
+   "file": "LCKT2.json.gz",
+   "gz_bytes": 42344,
+   "raw_bytes": 1260478,
+   "name": "Lost Creek at Lost Creek Blvd",
+   "lat": 30.2739,
+   "lon": -97.8444,
+   "coverage": {
+    "points": 8308,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LCPT2": {
+   "status": "ok",
+   "file": "LCPT2.json.gz",
+   "gz_bytes": 17348,
+   "raw_bytes": 435009,
+   "name": "Plum Creek at Lockhart",
+   "lat": 29.9228,
+   "lon": -97.6789,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "LCTT2": {
+   "status": "ok",
+   "file": "LCTT2.json.gz",
+   "gz_bytes": 21032,
+   "raw_bytes": 422029,
+   "name": "West Fork San Jacinto River at Lake Conroe",
+   "lat": 30.3583,
+   "lon": -95.5608,
+   "coverage": {
+    "points": 2778,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LEAT2": {
+   "status": "ok",
+   "file": "LEAT2.json.gz",
+   "gz_bytes": 22450,
+   "raw_bytes": 528509,
+   "name": "Mill Creek (E TX) at Brownlea Road",
+   "lat": 30.4072,
+   "lon": -94.1883,
+   "coverage": {
+    "points": 3566,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "LEBT2": {
+   "status": "ok",
+   "file": "LEBT2.json.gz",
+   "gz_bytes": 37436,
+   "raw_bytes": 1249318,
+   "name": "Little Bernard Creek at I-10 near Sealy",
+   "lat": 29.7617,
+   "lon": -96.2053,
+   "coverage": {
+    "points": 8224,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LECT2": {
+   "status": "ok",
+   "file": "LECT2.json.gz",
+   "gz_bytes": 17054,
+   "raw_bytes": 396908,
+   "name": "Leon Creek at Loop 410 near Leon Valley",
+   "lat": 29.4478,
+   "lon": -98.6336,
+   "coverage": {
+    "points": 2615,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LGRT2": {
+   "status": "ok",
+   "file": "LGRT2.json.gz",
+   "gz_bytes": 39386,
+   "raw_bytes": 1297647,
+   "name": "Colorado River (TX) above La Grange",
+   "lat": 29.9124,
+   "lon": -96.897,
+   "coverage": {
+    "points": 8613,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "LHGT2": {
+   "status": "ok",
+   "file": "LHGT2.json.gz",
+   "gz_bytes": 39205,
+   "raw_bytes": 1277137,
+   "name": "South Fork San Gabriel River at SH 1869 near Liberty Hill",
+   "lat": 30.66,
+   "lon": -97.9378,
+   "coverage": {
+    "points": 8519,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "LIVT2": {
+   "status": "ok",
+   "file": "LIVT2.json.gz",
+   "gz_bytes": 17027,
+   "raw_bytes": 426994,
+   "name": "Long King Creek at Livingston",
+   "lat": 30.7161,
+   "lon": -94.9586,
+   "coverage": {
+    "points": 2815,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "LKPT2": {
+   "status": "ok",
+   "file": "LKPT2.json.gz",
+   "gz_bytes": 36334,
+   "raw_bytes": 1277822,
+   "name": "Lake Creek at Lake Creek Parkway near Cedar Park 5SE",
+   "lat": 30.4656,
+   "lon": -97.7878,
+   "coverage": {
+    "points": 8415,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "LKST2": {
+   "status": "ok",
+   "file": "LKST2.json.gz",
+   "gz_bytes": 17702,
+   "raw_bytes": 396404,
+   "name": "Leon Creek at I-35S near San Antonio",
+   "lat": 29.3297,
+   "lon": -98.5839,
+   "coverage": {
+    "points": 2615,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LLAT2": {
+   "status": "ok",
+   "file": "LLAT2.json.gz",
+   "gz_bytes": 7460,
+   "raw_bytes": 108349,
+   "name": "Llano River at Llano",
+   "lat": 30.7511,
+   "lon": -98.6694,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "LLGT2": {
+   "status": "ok",
+   "file": "LLGT2.json.gz",
+   "gz_bytes": 19588,
+   "raw_bytes": 427568,
+   "name": "San Marcos River at Luling",
+   "lat": 29.6661,
+   "lon": -97.6506,
+   "coverage": {
+    "points": 2828,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "LLYT2": {
+   "status": "ok",
+   "file": "LLYT2.json.gz",
+   "gz_bytes": 18253,
+   "raw_bytes": 433114,
+   "name": "Langham Creek near Addicks",
+   "lat": 29.8669,
+   "lon": -95.6464,
+   "coverage": {
+    "points": 2836,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LMCT2": {
+   "status": "ok",
+   "file": "LMCT2.json.gz",
+   "gz_bytes": 18744,
+   "raw_bytes": 435857,
+   "name": "East Mustang Creek near Louise",
+   "lat": 29.0706,
+   "lon": -96.4169,
+   "coverage": {
+    "points": 2873,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "LNXT2": {
+   "status": "ok",
+   "file": "LNXT2.json.gz",
+   "gz_bytes": 40032,
+   "raw_bytes": 1278805,
+   "name": "South Fork Guadalupe River at Lynx Haven Crossing near Hunt, TX",
+   "lat": 29.9802,
+   "lon": -99.4423,
+   "coverage": {
+    "points": 8525,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "LNYT2": {
+   "status": "ok",
+   "file": "LNYT2.json.gz",
+   "gz_bytes": 18518,
+   "raw_bytes": 400786,
+   "name": "Rio Grande at Foster Ranch",
+   "lat": 29.7808,
+   "lon": -101.756,
+   "coverage": {
+    "points": 2663,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LQAT2": {
+   "status": "ok",
+   "file": "LQAT2.json.gz",
+   "gz_bytes": 44451,
+   "raw_bytes": 1051417,
+   "name": "Tide Gauge above La Quinta Channel",
+   "lat": 27.88,
+   "lon": -97.2867,
+   "coverage": {
+    "points": 7012,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "LRIT2": {
+   "status": "ok",
+   "file": "LRIT2.json.gz",
+   "gz_bytes": 17198,
+   "raw_bytes": 419031,
+   "name": "Little River near Little River",
+   "lat": 30.9664,
+   "lon": -97.3458,
+   "coverage": {
+    "points": 2783,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LRST2": {
+   "status": "ok",
+   "file": "LRST2.json.gz",
+   "gz_bytes": 39204,
+   "raw_bytes": 1150656,
+   "name": "Larrison Creek at FM 1428 near Midway",
+   "lat": 30.9496,
+   "lon": -95.7164,
+   "coverage": {
+    "points": 7572,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LRTT2": {
+   "status": "ok",
+   "file": "LRTT2.json.gz",
+   "gz_bytes": 48014,
+   "raw_bytes": 1278024,
+   "name": "Llano River at County Road 102",
+   "lat": 30.7272,
+   "lon": -98.8144,
+   "coverage": {
+    "points": 8358,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LRUT2": {
+   "status": "ok",
+   "file": "LRUT2.json.gz",
+   "gz_bytes": 13715,
+   "raw_bytes": 392863,
+   "name": "Leona River at CR 429A near Uvalde",
+   "lat": 29.3453,
+   "lon": -99.7489,
+   "coverage": {
+    "points": 2615,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LSNT2": {
+   "status": "ok",
+   "file": "LSNT2.json.gz",
+   "gz_bytes": 18014,
+   "raw_bytes": 434761,
+   "name": "Navidad River at Strane Park",
+   "lat": 29.0656,
+   "lon": -96.6744,
+   "coverage": {
+    "points": 2863,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LSPT2": {
+   "status": "ok",
+   "file": "LSPT2.json.gz",
+   "gz_bytes": 15961,
+   "raw_bytes": 433066,
+   "name": "Las Moras Creek at Brackettville",
+   "lat": 29.3079,
+   "lon": -100.4192,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LTRT2": {
+   "status": "ok",
+   "file": "LTRT2.json.gz",
+   "gz_bytes": 13990,
+   "raw_bytes": 399516,
+   "name": "Pecos River near Langtry",
+   "lat": 29.8028,
+   "lon": -101.4458,
+   "coverage": {
+    "points": 2663,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "LTXT2": {
+   "status": "ok",
+   "file": "LTXT2.json.gz",
+   "gz_bytes": 14685,
+   "raw_bytes": 453077,
+   "name": "Navidad River at Lake Texana",
+   "lat": 28.8919,
+   "lon": -96.5778,
+   "coverage": {
+    "points": 3001,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "LUIT2": {
+   "status": "ok",
+   "file": "LUIT2.json.gz",
+   "gz_bytes": 49008,
+   "raw_bytes": 1056818,
+   "name": "Tide Station (HGX) at San Luis Pass",
+   "lat": 29.095,
+   "lon": -95.1133,
+   "coverage": {
+    "points": 7047,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "LULT2": {
+   "status": "ok",
+   "file": "LULT2.json.gz",
+   "gz_bytes": 14186,
+   "raw_bytes": 377827,
+   "name": "Plum Creek near Luling",
+   "lat": 29.6996,
+   "lon": -97.6036,
+   "coverage": {
+    "points": 2492,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "LVDT2": {
+   "status": "ok",
+   "file": "LVDT2.json.gz",
+   "gz_bytes": 22770,
+   "raw_bytes": 433860,
+   "name": "Trinity River at Lake Livingston",
+   "lat": 30.6333,
+   "lon": -95.01,
+   "coverage": {
+    "points": 2857,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LWCT2": {
+   "status": "ok",
+   "file": "LWCT2.json.gz",
+   "gz_bytes": 18914,
+   "raw_bytes": 438772,
+   "name": "Willow Creek near Tomball",
+   "lat": 30.1053,
+   "lon": -95.5464,
+   "coverage": {
+    "points": 2855,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "LWGT2": {
+   "status": "ok",
+   "file": "LWGT2.json.gz",
+   "gz_bytes": 41456,
+   "raw_bytes": 1268553,
+   "name": "Little Walnut Creek (TX) at Georgian Drive near Austin 7N",
+   "lat": 30.3542,
+   "lon": -97.6978,
+   "coverage": {
+    "points": 8355,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "LYNT2": {
+   "status": "ok",
+   "file": "LYNT2.json.gz",
+   "gz_bytes": 17272,
+   "raw_bytes": 433066,
+   "name": "Davidson Creek near Lyons",
+   "lat": 30.4197,
+   "lon": -96.5402,
+   "coverage": {
+    "points": 2854,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MBCT2": {
+   "status": "ok",
+   "file": "MBCT2.json.gz",
+   "gz_bytes": 38012,
+   "raw_bytes": 1268362,
+   "name": "Beaver Creek (Llano River Basin) near Mason",
+   "lat": 30.6433,
+   "lon": -99.0956,
+   "coverage": {
+    "points": 8359,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "MBET2": {
+   "status": "ok",
+   "file": "MBET2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Tide Station (HGX) at Matagorda Bay Entrance Channel",
+   "lat": 28.4217,
+   "lon": -96.3267,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "MBFT2": {
+   "status": "ok",
+   "file": "MBFT2.json.gz",
+   "gz_bytes": 21753,
+   "raw_bytes": 430878,
+   "name": "Trinity River near Moss Bluff",
+   "lat": 29.9419,
+   "lon": -94.7744,
+   "coverage": {
+    "points": 2872,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "MBVT2": {
+   "status": "ok",
+   "file": "MBVT2.json.gz",
+   "gz_bytes": 41639,
+   "raw_bytes": 1225171,
+   "name": "Cedar Bayou at I-10 near Mont Belvieu",
+   "lat": 29.8215,
+   "lon": -94.9097,
+   "coverage": {
+    "points": 8173,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MCVT2": {
+   "status": "ok",
+   "file": "MCVT2.json.gz",
+   "gz_bytes": 20658,
+   "raw_bytes": 433552,
+   "name": "Cow Bayou near Mauriceville",
+   "lat": 30.1864,
+   "lon": -93.9083,
+   "coverage": {
+    "points": 2858,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MDLT2": {
+   "status": "ok",
+   "file": "MDLT2.json.gz",
+   "gz_bytes": 15640,
+   "raw_bytes": 422404,
+   "name": "Medina River at Medina Lake",
+   "lat": 29.54,
+   "lon": -98.9336,
+   "coverage": {
+    "points": 2775,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MDST2": {
+   "status": "ok",
+   "file": "MDST2.json.gz",
+   "gz_bytes": 16004,
+   "raw_bytes": 435019,
+   "name": "Bedias Creek near Madisonville",
+   "lat": 30.8842,
+   "lon": -95.7775,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "MEPT2": {
+   "status": "ok",
+   "file": "MEPT2.json.gz",
+   "gz_bytes": 18189,
+   "raw_bytes": 430144,
+   "name": "Medina River above Engligh Crossing near Pipe Creek",
+   "lat": 29.6944,
+   "lon": -98.9794,
+   "coverage": {
+    "points": 2842,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MERT2": {
+   "status": "ok",
+   "file": "MERT2.json.gz",
+   "gz_bytes": 46273,
+   "raw_bytes": 1301512,
+   "name": "Medina River at Patterson Road at Medina",
+   "lat": 29.7939,
+   "lon": -99.2486,
+   "coverage": {
+    "points": 8598,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "MFDT2": {
+   "status": "ok",
+   "file": "MFDT2.json.gz",
+   "gz_bytes": 6311,
+   "raw_bytes": 108823,
+   "name": "Colorado River (TX) at Lake Marble Falls",
+   "lat": 30.5558,
+   "lon": -98.2572,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MFNT2": {
+   "status": "ok",
+   "file": "MFNT2.json.gz",
+   "gz_bytes": 21054,
+   "raw_bytes": 434835,
+   "name": "San Antonio River near McFaddin",
+   "lat": 28.5311,
+   "lon": -97.0428,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "MGPT2": {
+   "status": "ok",
+   "file": "MGPT2.json.gz",
+   "gz_bytes": 49777,
+   "raw_bytes": 1057894,
+   "name": "Tide Station (HGX) at Morgan's Point",
+   "lat": 29.6817,
+   "lon": -94.985,
+   "coverage": {
+    "points": 7055,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "MHBT2": {
+   "status": "ok",
+   "file": "MHBT2.json.gz",
+   "gz_bytes": 43926,
+   "raw_bytes": 1040977,
+   "name": "Tide Gauge at Enbridge Ingleside",
+   "lat": 27.8186,
+   "lon": -97.2089,
+   "coverage": {
+    "points": 6939,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "MIOT2": {
+   "status": "ok",
+   "file": "MIOT2.json.gz",
+   "gz_bytes": 13332,
+   "raw_bytes": 420523,
+   "name": "Medio Creek near Beeville",
+   "lat": 28.4828,
+   "lon": -97.6564,
+   "coverage": {
+    "points": 2803,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "MKTT2": {
+   "status": "ok",
+   "file": "MKTT2.json.gz",
+   "gz_bytes": 37933,
+   "raw_bytes": 1247051,
+   "name": "Mathis Creek at US 190 near Kurten",
+   "lat": 30.7576,
+   "lon": -96.2975,
+   "coverage": {
+    "points": 8215,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "MLRT2": {
+   "status": "ok",
+   "file": "MLRT2.json.gz",
+   "gz_bytes": 48472,
+   "raw_bytes": 1276980,
+   "name": "Llano River near Mason",
+   "lat": 30.6606,
+   "lon": -99.1089,
+   "coverage": {
+    "points": 8460,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "MMDT2": {
+   "status": "ok",
+   "file": "MMDT2.json.gz",
+   "gz_bytes": 18322,
+   "raw_bytes": 429897,
+   "name": "Medina River near Macdona",
+   "lat": 29.3347,
+   "lon": -98.6894,
+   "coverage": {
+    "points": 2836,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "MNRT2": {
+   "status": "ok",
+   "file": "MNRT2.json.gz",
+   "gz_bytes": 43173,
+   "raw_bytes": 1301350,
+   "name": "San Saba River at Menard",
+   "lat": 30.9191,
+   "lon": -99.7856,
+   "coverage": {
+    "points": 8594,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "MQTT2": {
+   "status": "ok",
+   "file": "MQTT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Tide Gauge at Bob Hall Pier",
+   "lat": 27.5811,
+   "lon": -97.2167,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "MRAT2": {
+   "status": "ok",
+   "file": "MRAT2.json.gz",
+   "gz_bytes": 16284,
+   "raw_bytes": 422249,
+   "name": "Navidad River near Morales",
+   "lat": 29.1353,
+   "lon": -96.7442,
+   "coverage": {
+    "points": 2816,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MRCT2": {
+   "status": "ok",
+   "file": "MRCT2.json.gz",
+   "gz_bytes": 7009,
+   "raw_bytes": 107368,
+   "name": "Colorado River (TX) at Matagorda",
+   "lat": 28.6992,
+   "lon": -95.975,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MSDT2": {
+   "status": "ok",
+   "file": "MSDT2.json.gz",
+   "gz_bytes": 6559,
+   "raw_bytes": 108830,
+   "name": "Colorado River (TX) at Lake Travis",
+   "lat": 30.3916,
+   "lon": -97.907,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MTBT2": {
+   "status": "ok",
+   "file": "MTBT2.json.gz",
+   "gz_bytes": 14226,
+   "raw_bytes": 372209,
+   "name": "Nueces River at Mathis",
+   "lat": 28.0381,
+   "lon": -97.86,
+   "coverage": {
+    "points": 2460,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MTHT2": {
+   "status": "ok",
+   "file": "MTHT2.json.gz",
+   "gz_bytes": 15721,
+   "raw_bytes": 431467,
+   "name": "Nueces River at Lake Corpus Christi",
+   "lat": 28.0381,
+   "lon": -97.8708,
+   "coverage": {
+    "points": 2858,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "MTPT2": {
+   "status": "ok",
+   "file": "MTPT2.json.gz",
+   "gz_bytes": 19197,
+   "raw_bytes": 434824,
+   "name": "Tres Palacios River near Midfield",
+   "lat": 28.9278,
+   "lon": -96.1708,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "MTST2": {
+   "status": "ok",
+   "file": "MTST2.json.gz",
+   "gz_bytes": 47127,
+   "raw_bytes": 1294496,
+   "name": "San Antonio River at Mitchell Street",
+   "lat": 29.3928,
+   "lon": -98.4944,
+   "coverage": {
+    "points": 8560,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "MUGT2": {
+   "status": "ok",
+   "file": "MUGT2.json.gz",
+   "gz_bytes": 38481,
+   "raw_bytes": 1240659,
+   "name": "Mustang Bayou at SH 6 near Alvin",
+   "lat": 29.4365,
+   "lon": -95.2663,
+   "coverage": {
+    "points": 8221,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "MYAT2": {
+   "status": "ok",
+   "file": "MYAT2.json.gz",
+   "gz_bytes": 18829,
+   "raw_bytes": 432754,
+   "name": "Atascosa River near McCoy",
+   "lat": 28.8647,
+   "lon": -98.3381,
+   "coverage": {
+    "points": 2848,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "NAVT2": {
+   "status": "ok",
+   "file": "NAVT2.json.gz",
+   "gz_bytes": 46049,
+   "raw_bytes": 1248300,
+   "name": "Navasota River at SH 6 near Navasota",
+   "lat": 30.4184,
+   "lon": -96.1066,
+   "coverage": {
+    "points": 8217,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "NBCT2": {
+   "status": "ok",
+   "file": "NBCT2.json.gz",
+   "gz_bytes": 19703,
+   "raw_bytes": 433095,
+   "name": "Comal River at New Braunfels",
+   "lat": 29.7058,
+   "lon": -98.1222,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "NBDT2": {
+   "status": "ok",
+   "file": "NBDT2.json.gz",
+   "gz_bytes": 18086,
+   "raw_bytes": 435021,
+   "name": "Dry Comal at Loop 337",
+   "lat": 29.6881,
+   "lon": -98.1547,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "NBRT2": {
+   "status": "ok",
+   "file": "NBRT2.json.gz",
+   "gz_bytes": 22441,
+   "raw_bytes": 431020,
+   "name": "Guadalupe River above Comal River at New Braunfels",
+   "lat": 29.7147,
+   "lon": -98.1097,
+   "coverage": {
+    "points": 2855,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "NCCT2": {
+   "status": "ok",
+   "file": "NCCT2.json.gz",
+   "gz_bytes": 17697,
+   "raw_bytes": 434870,
+   "name": "Big Cow Creek near Newton",
+   "lat": 30.8189,
+   "lon": -93.7856,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "NCET2": {
+   "status": "ok",
+   "file": "NCET2.json.gz",
+   "gz_bytes": 18635,
+   "raw_bytes": 436723,
+   "name": "East Fork San Jacinto River near New Caney",
+   "lat": 30.1453,
+   "lon": -95.1242,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "NCHT2": {
+   "status": "ok",
+   "file": "NCHT2.json.gz",
+   "gz_bytes": 48985,
+   "raw_bytes": 1056693,
+   "name": "Tide Station (HGX) at Manchester",
+   "lat": 29.7262,
+   "lon": -95.2658,
+   "coverage": {
+    "points": 7046,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "NEST2": {
+   "status": "ok",
+   "file": "NEST2.json.gz",
+   "gz_bytes": 36699,
+   "raw_bytes": 1247551,
+   "name": "Nelson Creek at FM 247 near Huntsville",
+   "lat": 30.8223,
+   "lon": -95.5946,
+   "coverage": {
+    "points": 8215,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "NFBT2": {
+   "status": "ok",
+   "file": "NFBT2.json.gz",
+   "gz_bytes": 36791,
+   "raw_bytes": 1237483,
+   "name": "North Fork San Gabriel River at 243 near Briggs, TX",
+   "lat": 30.8139,
+   "lon": -97.9658,
+   "coverage": {
+    "points": 8257,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "NGCT2": {
+   "status": "ok",
+   "file": "NGCT2.json.gz",
+   "gz_bytes": 13915,
+   "raw_bytes": 402841,
+   "name": "Garcitas Creek near Inez",
+   "lat": 28.8911,
+   "lon": -96.8189,
+   "coverage": {
+    "points": 2651,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "NGET2": {
+   "status": "ok",
+   "file": "NGET2.json.gz",
+   "gz_bytes": 17180,
+   "raw_bytes": 384061,
+   "name": "Navasota River near Normangee",
+   "lat": 30.9736,
+   "lon": -96.2414,
+   "coverage": {
+    "points": 2536,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "NMOT2": {
+   "status": "ok",
+   "file": "NMOT2.json.gz",
+   "gz_bytes": 15345,
+   "raw_bytes": 433262,
+   "name": "Nueces River at CR 414 near Montell",
+   "lat": 29.5264,
+   "lon": -100.0183,
+   "coverage": {
+    "points": 2854,
+    "first": "2026-06-16T14:45:00Z",
+    "last": "2026-07-16T14:00:00Z"
+   }
+  },
+  "NPBT2": {
+   "status": "ok",
+   "file": "NPBT2.json.gz",
+   "gz_bytes": 41787,
+   "raw_bytes": 1277354,
+   "name": "North Prong Medina River at Brewington Creek",
+   "lat": 29.8753,
+   "lon": -99.3486,
+   "coverage": {
+    "points": 8518,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "NSBT2": {
+   "status": "ok",
+   "file": "NSBT2.json.gz",
+   "gz_bytes": 18739,
+   "raw_bytes": 429967,
+   "name": "Neches River at Saltwater Barrier",
+   "lat": 30.1567,
+   "lon": -94.1142,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "NTCT2": {
+   "status": "ok",
+   "file": "NTCT2.json.gz",
+   "gz_bytes": 18657,
+   "raw_bytes": 422212,
+   "name": "Big Cow Creek at FM1416",
+   "lat": 30.605,
+   "lon": -93.7944,
+   "coverage": {
+    "points": 2775,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "NUBT2": {
+   "status": "ok",
+   "file": "NUBT2.json.gz",
+   "gz_bytes": 46696,
+   "raw_bytes": 1264159,
+   "name": "Nueces River near Barksdale",
+   "lat": 29.7188,
+   "lon": -100.0396,
+   "coverage": {
+    "points": 8311,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "NUCT2": {
+   "status": "ok",
+   "file": "NUCT2.json.gz",
+   "gz_bytes": 15903,
+   "raw_bytes": 431833,
+   "name": "Nueces River at FM 1025 Near Crystal City",
+   "lat": 28.7756,
+   "lon": -99.8359,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "NUET2": {
+   "status": "ok",
+   "file": "NUET2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Tide Gauge at Nueces Bay",
+   "lat": 27.833,
+   "lon": -97.486,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "NYBT2": {
+   "status": "ok",
+   "file": "NYBT2.json.gz",
+   "gz_bytes": 40289,
+   "raw_bytes": 1288178,
+   "name": "New Year Creek at TX 105 near Brenham",
+   "lat": 30.1958,
+   "lon": -96.3654,
+   "coverage": {
+    "points": 8481,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "OABT2": {
+   "status": "ok",
+   "file": "OABT2.json.gz",
+   "gz_bytes": 25079,
+   "raw_bytes": 429972,
+   "name": "Adams Bayou at FM 3247",
+   "lat": 30.1319,
+   "lon": -93.7866,
+   "coverage": {
+    "points": 2865,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "OCNT2": {
+   "status": "ok",
+   "file": "OCNT2.json.gz",
+   "gz_bytes": 23729,
+   "raw_bytes": 429035,
+   "name": "San Bernard River near Old Ocean",
+   "lat": 29.1119,
+   "lon": -95.6766,
+   "coverage": {
+    "points": 2855,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "OCOT2": {
+   "status": "ok",
+   "file": "OCOT2.json.gz",
+   "gz_bytes": 162,
+   "raw_bytes": 222,
+   "name": "Coon Bayou at Lane of the Oaks",
+   "lat": 30.0728,
+   "lon": -93.8174,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "ODCT2": {
+   "status": "ok",
+   "file": "ODCT2.json.gz",
+   "gz_bytes": 31031,
+   "raw_bytes": 624711,
+   "name": "Terry Gully at FM 1442",
+   "lat": 30.1025,
+   "lon": -93.9035,
+   "coverage": {
+    "points": 4166,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "OHBT2": {
+   "status": "ok",
+   "file": "OHBT2.json.gz",
+   "gz_bytes": 32784,
+   "raw_bytes": 1262614,
+   "name": "Barton Creek above Hwy 71 near Oak Hill",
+   "lat": 30.2961,
+   "lon": -97.9253,
+   "coverage": {
+    "points": 8314,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "ONIT2": {
+   "status": "ok",
+   "file": "ONIT2.json.gz",
+   "gz_bytes": 35768,
+   "raw_bytes": 1303633,
+   "name": "Onion Creek at Twin Creeks near Manchaca",
+   "lat": 30.1261,
+   "lon": -97.8208,
+   "coverage": {
+    "points": 8588,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "OOST2": {
+   "status": "ok",
+   "file": "OOST2.json.gz",
+   "gz_bytes": 19630,
+   "raw_bytes": 432519,
+   "name": "Oso Creek near Corpus Christi",
+   "lat": 27.7114,
+   "lon": -97.5019,
+   "coverage": {
+    "points": 2848,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "ORBT2": {
+   "status": "ok",
+   "file": "ORBT2.json.gz",
+   "gz_bytes": 36496,
+   "raw_bytes": 1266124,
+   "name": "West Bouldin Creek above Oltorf Road at Austin",
+   "lat": 30.2467,
+   "lon": -97.7692,
+   "coverage": {
+    "points": 8446,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "ORFT2": {
+   "status": "ok",
+   "file": "ORFT2.json.gz",
+   "gz_bytes": 24515,
+   "raw_bytes": 418264,
+   "name": "Cow Bayou at FM 1442",
+   "lat": 30.1079,
+   "lon": -93.8963,
+   "coverage": {
+    "points": 2787,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "ORNT2": {
+   "status": "ok",
+   "file": "ORNT2.json.gz",
+   "gz_bytes": 18454,
+   "raw_bytes": 415884,
+   "name": "Sabine River at Orange",
+   "lat": 30.0972,
+   "lon": -93.7211,
+   "coverage": {
+    "points": 2771,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "OXDT2": {
+   "status": "ok",
+   "file": "OXDT2.json.gz",
+   "gz_bytes": 6387,
+   "raw_bytes": 107011,
+   "name": "Sandy Creek near Willow City",
+   "lat": 30.5528,
+   "lon": -98.7013,
+   "coverage": {
+    "points": 715,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "PACT2": {
+   "status": "ok",
+   "file": "PACT2.json.gz",
+   "gz_bytes": 41213,
+   "raw_bytes": 1062268,
+   "name": "Tide Gauge at Packery Channel",
+   "lat": 27.6189,
+   "lon": -97.2339,
+   "coverage": {
+    "points": 7061,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "PCNT2": {
+   "status": "ok",
+   "file": "PCNT2.json.gz",
+   "gz_bytes": 44206,
+   "raw_bytes": 1063570,
+   "name": "Tide Gauge at Port O'Connor",
+   "lat": 28.4503,
+   "lon": -96.3842,
+   "coverage": {
+    "points": 7061,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "PDAT2": {
+   "status": "ok",
+   "file": "PDAT2.json.gz",
+   "gz_bytes": 17623,
+   "raw_bytes": 402145,
+   "name": "Pecos River at Pandale Crossing",
+   "lat": 30.125,
+   "lon": -101.5722,
+   "coverage": {
+    "points": 2663,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "PEDT2": {
+   "status": "ok",
+   "file": "PEDT2.json.gz",
+   "gz_bytes": 13963,
+   "raw_bytes": 431777,
+   "name": "Perdido Creek near Fannin",
+   "lat": 28.7514,
+   "lon": -97.3169,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "PETT2": {
+   "status": "ok",
+   "file": "PETT2.json.gz",
+   "gz_bytes": 15221,
+   "raw_bytes": 427164,
+   "name": "Petronila Creek at FM665 Nr Driscoll",
+   "lat": 27.6652,
+   "lon": -97.7022,
+   "coverage": {
+    "points": 2848,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "PEWT2": {
+   "status": "ok",
+   "file": "PEWT2.json.gz",
+   "gz_bytes": 13212,
+   "raw_bytes": 424073,
+   "name": "Peach Creek at Hwy 90 near Waelder",
+   "lat": 29.6856,
+   "lon": -97.2306,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "PIKT2": {
+   "status": "ok",
+   "file": "PIKT2.json.gz",
+   "gz_bytes": 14564,
+   "raw_bytes": 304235,
+   "name": "Pin Oak Creek at S. Elizabeth Ave. Kirbyville",
+   "lat": 30.6566,
+   "lon": -93.8934,
+   "coverage": {
+    "points": 2028,
+    "first": "2026-06-25T01:10:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "PLPT2": {
+   "status": "ok",
+   "file": "PLPT2.json.gz",
+   "gz_bytes": 17982,
+   "raw_bytes": 436109,
+   "name": "Placedo Creek near Placedo",
+   "lat": 28.725,
+   "lon": -96.7686,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "PNPT2": {
+   "status": "ok",
+   "file": "PNPT2.json.gz",
+   "gz_bytes": 31669,
+   "raw_bytes": 671763,
+   "name": "Neches River at Lee Avenue",
+   "lat": 29.9978,
+   "lon": -93.9529,
+   "coverage": {
+    "points": 4507,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "POET2": {
+   "status": "ok",
+   "file": "POET2.json.gz",
+   "gz_bytes": 20092,
+   "raw_bytes": 436585,
+   "name": "West Fork San Jacinto River near Porter",
+   "lat": 30.1412,
+   "lon": -95.3381,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "PPDT2": {
+   "status": "ok",
+   "file": "PPDT2.json.gz",
+   "gz_bytes": 16342,
+   "raw_bytes": 417823,
+   "name": "Pinto Creek near Del Rio 17SE",
+   "lat": 29.1458,
+   "lon": -100.7181,
+   "coverage": {
+    "points": 2771,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "PPTT2": {
+   "status": "ok",
+   "file": "PPTT2.json.gz",
+   "gz_bytes": 27833,
+   "raw_bytes": 425011,
+   "name": "Buffalo Bayou at Piney Point Village",
+   "lat": 29.7467,
+   "lon": -95.5233,
+   "coverage": {
+    "points": 2804,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "PRLT2": {
+   "status": "ok",
+   "file": "PRLT2.json.gz",
+   "gz_bytes": 18380,
+   "raw_bytes": 435825,
+   "name": "Clear Creek above Telephone Road",
+   "lat": 29.5968,
+   "lon": -95.2972,
+   "coverage": {
+    "points": 2854,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "PWCT2": {
+   "status": "ok",
+   "file": "PWCT2.json.gz",
+   "gz_bytes": 5930,
+   "raw_bytes": 106013,
+   "name": "Pedernales River at LBJ Ranch Near Stonewall",
+   "lat": 30.2411,
+   "lon": -98.6253,
+   "coverage": {
+    "points": 701,
+    "first": "2026-06-25T01:00:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "PWET2": {
+   "status": "ok",
+   "file": "PWET2.json.gz",
+   "gz_bytes": 28455,
+   "raw_bytes": 633789,
+   "name": "Little Pine Island Bayou at Pine Wood Estates",
+   "lat": 30.1623,
+   "lon": -94.3171,
+   "coverage": {
+    "points": 4276,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:35:00Z"
+   }
+  },
+  "RBBT2": {
+   "status": "ok",
+   "file": "RBBT2.json.gz",
+   "gz_bytes": 47748,
+   "raw_bytes": 1057724,
+   "name": "Tide Station (LCH) at Rainbow Bridge",
+   "lat": 29.98,
+   "lon": -93.8817,
+   "coverage": {
+    "points": 7055,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "RBFT2": {
+   "status": "ok",
+   "file": "RBFT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Red Bluff Creek at FM 1283 near Pipe Creek",
+   "lat": 29.673,
+   "lon": -98.96,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "RBUT2": {
+   "status": "ok",
+   "file": "RBUT2.json.gz",
+   "gz_bytes": 19079,
+   "raw_bytes": 422532,
+   "name": "Ricon Bayou Channel near Calallen",
+   "lat": 27.8967,
+   "lon": -97.6253,
+   "coverage": {
+    "points": 2818,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "RCCT2": {
+   "status": "ok",
+   "file": "RCCT2.json.gz",
+   "gz_bytes": 16476,
+   "raw_bytes": 435916,
+   "name": "Copano Creek near Refugio",
+   "lat": 28.3033,
+   "lon": -97.1122,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "RCPT2": {
+   "status": "ok",
+   "file": "RCPT2.json.gz",
+   "gz_bytes": 43485,
+   "raw_bytes": 1062050,
+   "name": "Tide Gauge at Rockport",
+   "lat": 28.0242,
+   "lon": -97.0481,
+   "coverage": {
+    "points": 7064,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "REFT2": {
+   "status": "ok",
+   "file": "REFT2.json.gz",
+   "gz_bytes": 16831,
+   "raw_bytes": 435070,
+   "name": "Mission River at Refugio",
+   "lat": 28.2917,
+   "lon": -97.2789,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "RGBT2": {
+   "status": "ok",
+   "file": "RGBT2.json.gz",
+   "gz_bytes": 24983,
+   "raw_bytes": 630283,
+   "name": "Rhodair Gully at Wellspring Dr.",
+   "lat": 29.9843,
+   "lon": -94.0277,
+   "coverage": {
+    "points": 4285,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "RGIT2": {
+   "status": "ok",
+   "file": "RGIT2.json.gz",
+   "gz_bytes": 13456,
+   "raw_bytes": 266718,
+   "name": "Rhodair Gully at 5th Street",
+   "lat": 29.9595,
+   "lon": -94.0432,
+   "coverage": {
+    "points": 1780,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:10:00Z"
+   }
+  },
+  "RLOT2": {
+   "status": "ok",
+   "file": "RLOT2.json.gz",
+   "gz_bytes": 49817,
+   "raw_bytes": 1057163,
+   "name": "Tide Station (HGX) at Rollover Pass",
+   "lat": 29.515,
+   "lon": -94.5133,
+   "coverage": {
+    "points": 7052,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "RLRT2": {
+   "status": "ok",
+   "file": "RLRT2.json.gz",
+   "gz_bytes": 18297,
+   "raw_bytes": 430339,
+   "name": "Little River near Rockdale",
+   "lat": 30.7606,
+   "lon": -97.0136,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "RMOT2": {
+   "status": "ok",
+   "file": "RMOT2.json.gz",
+   "gz_bytes": 22202,
+   "raw_bytes": 431248,
+   "name": "Brazos River at Richmond",
+   "lat": 29.5822,
+   "lon": -95.7575,
+   "coverage": {
+    "points": 2859,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "RMYT2": {
+   "status": "ok",
+   "file": "RMYT2.json.gz",
+   "gz_bytes": 19460,
+   "raw_bytes": 428895,
+   "name": "Trinity River near Romayor",
+   "lat": 30.425,
+   "lon": -94.8506,
+   "coverage": {
+    "points": 2844,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "ROST2": {
+   "status": "ok",
+   "file": "ROST2.json.gz",
+   "gz_bytes": 22594,
+   "raw_bytes": 429321,
+   "name": "Brazos River near Rosharon",
+   "lat": 29.3494,
+   "lon": -95.5822,
+   "coverage": {
+    "points": 2852,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "RTAT2": {
+   "status": "ok",
+   "file": "RTAT2.json.gz",
+   "gz_bytes": 47431,
+   "raw_bytes": 1062102,
+   "name": "Tide Gauge at Port Aransas",
+   "lat": 27.8397,
+   "lon": -97.0725,
+   "coverage": {
+    "points": 7057,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "RVRT2": {
+   "status": "ok",
+   "file": "RVRT2.json.gz",
+   "gz_bytes": 14912,
+   "raw_bytes": 436713,
+   "name": "Trinity River at Riverside",
+   "lat": 30.8592,
+   "lon": -95.3986,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "RWDT2": {
+   "status": "ok",
+   "file": "RWDT2.json.gz",
+   "gz_bytes": 11234,
+   "raw_bytes": 358418,
+   "name": "Dry Frio River near Reagan Wells near Uvalde 23N",
+   "lat": 29.5044,
+   "lon": -99.7811,
+   "coverage": {
+    "points": 2366,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "RYET2": {
+   "status": "ok",
+   "file": "RYET2.json.gz",
+   "gz_bytes": 16931,
+   "raw_bytes": 398783,
+   "name": "Menard Creek near Rye",
+   "lat": 30.4811,
+   "lon": -94.7794,
+   "coverage": {
+    "points": 2627,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SAAT2": {
+   "status": "ok",
+   "file": "SAAT2.json.gz",
+   "gz_bytes": 20850,
+   "raw_bytes": 419087,
+   "name": "Medina River at San Antonio US 281S",
+   "lat": 29.2639,
+   "lon": -98.4906,
+   "coverage": {
+    "points": 2771,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SABT2": {
+   "status": "ok",
+   "file": "SABT2.json.gz",
+   "gz_bytes": 16670,
+   "raw_bytes": 434999,
+   "name": "Sabinal River at Sabinal",
+   "lat": 29.3142,
+   "lon": -99.4806,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "SACT2": {
+   "status": "ok",
+   "file": "SACT2.json.gz",
+   "gz_bytes": 15719,
+   "raw_bytes": 396807,
+   "name": "Salado Creek at Loop 13",
+   "lat": 29.3569,
+   "lon": -98.4125,
+   "coverage": {
+    "points": 2615,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SAFT2": {
+   "status": "ok",
+   "file": "SAFT2.json.gz",
+   "gz_bytes": 17174,
+   "raw_bytes": 425462,
+   "name": "San Pedro Creek at Furnish Street",
+   "lat": 29.4061,
+   "lon": -98.5106,
+   "coverage": {
+    "points": 2802,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SALT2": {
+   "status": "ok",
+   "file": "SALT2.json.gz",
+   "gz_bytes": 44006,
+   "raw_bytes": 1257689,
+   "name": "Sabinal River near Sabinal",
+   "lat": 29.4908,
+   "lon": -99.4925,
+   "coverage": {
+    "points": 8311,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "SBMT2": {
+   "status": "ok",
+   "file": "SBMT2.json.gz",
+   "gz_bytes": 17715,
+   "raw_bytes": 383140,
+   "name": "Navidad River at Sublime",
+   "lat": 29.4667,
+   "lon": -96.8125,
+   "coverage": {
+    "points": 2524,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SBPT2": {
+   "status": "ok",
+   "file": "SBPT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "near Sabine Pass",
+   "lat": 29.7283,
+   "lon": -93.87,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "SBUT2": {
+   "status": "ok",
+   "file": "SBUT2.json.gz",
+   "gz_bytes": 37146,
+   "raw_bytes": 1266827,
+   "name": "Sabinal River at Utopia",
+   "lat": 29.6122,
+   "lon": -99.5294,
+   "coverage": {
+    "points": 8446,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "SCAT2": {
+   "status": "ok",
+   "file": "SCAT2.json.gz",
+   "gz_bytes": 38031,
+   "raw_bytes": 1253340,
+   "name": "Slaughter Creek at FM 1826 near Austin ",
+   "lat": 30.2089,
+   "lon": -97.9031,
+   "coverage": {
+    "points": 8355,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "SCDT2": {
+   "status": "ok",
+   "file": "SCDT2.json.gz",
+   "gz_bytes": 13536,
+   "raw_bytes": 433484,
+   "name": "Coleto Creek at Arnold Road Crossing",
+   "lat": 28.8614,
+   "lon": -97.2261,
+   "coverage": {
+    "points": 2879,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SCGT2": {
+   "status": "ok",
+   "file": "SCGT2.json.gz",
+   "gz_bytes": 15157,
+   "raw_bytes": 426096,
+   "name": "Sandies Creek at FM 108 near Smiley",
+   "lat": 29.2918,
+   "lon": -97.6208,
+   "coverage": {
+    "points": 2842,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SCRT2": {
+   "status": "ok",
+   "file": "SCRT2.json.gz",
+   "gz_bytes": 18993,
+   "raw_bytes": 427045,
+   "name": "Seco Creek at Rowe Ranch near D'Hanis",
+   "lat": 29.3706,
+   "lon": -99.2875,
+   "coverage": {
+    "points": 2832,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SDAT2": {
+   "status": "ok",
+   "file": "SDAT2.json.gz",
+   "gz_bytes": 16561,
+   "raw_bytes": 436147,
+   "name": "Caney Creek near Splendora",
+   "lat": 30.2594,
+   "lon": -95.3022,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "SDRT2": {
+   "status": "ok",
+   "file": "SDRT2.json.gz",
+   "gz_bytes": 41169,
+   "raw_bytes": 1009673,
+   "name": "Tide Gauge at Seadrift",
+   "lat": 28.4072,
+   "lon": -96.7119,
+   "coverage": {
+    "points": 6715,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "SEGT2": {
+   "status": "ok",
+   "file": "SEGT2.json.gz",
+   "gz_bytes": 20034,
+   "raw_bytes": 433213,
+   "name": "Guadalupe River at Seguin",
+   "lat": 29.5519,
+   "lon": -97.9697,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SELT2": {
+   "status": "ok",
+   "file": "SELT2.json.gz",
+   "gz_bytes": 13791,
+   "raw_bytes": 369193,
+   "name": "Cibolo Creek at Selma",
+   "lat": 29.5939,
+   "lon": -98.3108,
+   "coverage": {
+    "points": 2456,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SFCT2": {
+   "status": "ok",
+   "file": "SFCT2.json.gz",
+   "gz_bytes": 18477,
+   "raw_bytes": 430434,
+   "name": "San Felipe Creek near Del Rio 1SE",
+   "lat": 29.3306,
+   "lon": -100.8889,
+   "coverage": {
+    "points": 2836,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SFIT2": {
+   "status": "ok",
+   "file": "SFIT2.json.gz",
+   "gz_bytes": 41637,
+   "raw_bytes": 1304289,
+   "name": "Independence Creek 18 miles SSE of Sheffield",
+   "lat": 30.4507,
+   "lon": -101.7319,
+   "coverage": {
+    "points": 8598,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "SGGT2": {
+   "status": "ok",
+   "file": "SGGT2.json.gz",
+   "gz_bytes": 24083,
+   "raw_bytes": 445136,
+   "name": "Guadalupe River at FM 1117 near Seguin",
+   "lat": 29.5361,
+   "lon": -97.8808,
+   "coverage": {
+    "points": 2933,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SGHT2": {
+   "status": "ok",
+   "file": "SGHT2.json.gz",
+   "gz_bytes": 14638,
+   "raw_bytes": 427566,
+   "name": "San Geronimo Creek near Helotes, TX",
+   "lat": 29.6197,
+   "lon": -98.795,
+   "coverage": {
+    "points": 2820,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "SGNT2": {
+   "status": "ok",
+   "file": "SGNT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Tide Station (HGX) at Sargent",
+   "lat": 28.7716,
+   "lon": -95.6168,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "SHLT2": {
+   "status": "ok",
+   "file": "SHLT2.json.gz",
+   "gz_bytes": 17468,
+   "raw_bytes": 230824,
+   "name": "San Jacinto River near Sheldon",
+   "lat": 29.8761,
+   "lon": -95.0936,
+   "coverage": {
+    "points": 1534,
+    "first": "2026-06-25T01:20:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "SIOT2": {
+   "status": "ok",
+   "file": "SIOT2.json.gz",
+   "gz_bytes": 15519,
+   "raw_bytes": 436609,
+   "name": "Olmos Creek at Dresden Drive",
+   "lat": 29.4989,
+   "lon": -98.51,
+   "coverage": {
+    "points": 2875,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SIPT2": {
+   "status": "ok",
+   "file": "SIPT2.json.gz",
+   "gz_bytes": 20978,
+   "raw_bytes": 424406,
+   "name": "Sabine River at International Paper",
+   "lat": 30.1998,
+   "lon": -93.7184,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SKMT2": {
+   "status": "ok",
+   "file": "SKMT2.json.gz",
+   "gz_bytes": 13753,
+   "raw_bytes": 398318,
+   "name": "Aransas River near Skidmore",
+   "lat": 28.2822,
+   "lon": -97.6206,
+   "coverage": {
+    "points": 2651,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SLHT2": {
+   "status": "ok",
+   "file": "SLHT2.json.gz",
+   "gz_bytes": 26953,
+   "raw_bytes": 1220398,
+   "name": "Slaughter Creek at FM 2304 near Manchaca 2NNE",
+   "lat": 30.1619,
+   "lon": -97.8319,
+   "coverage": {
+    "points": 8128,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:05:00Z"
+   }
+  },
+  "SLNT2": {
+   "status": "ok",
+   "file": "SLNT2.json.gz",
+   "gz_bytes": 22489,
+   "raw_bytes": 430505,
+   "name": "Brazos River at US 59",
+   "lat": 29.5676,
+   "lon": -95.6682,
+   "coverage": {
+    "points": 2854,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SMCT2": {
+   "status": "ok",
+   "file": "SMCT2.json.gz",
+   "gz_bytes": 14504,
+   "raw_bytes": 435942,
+   "name": "Guadalupe River at Canyon Lake",
+   "lat": 29.8686,
+   "lon": -98.1986,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SMIT2": {
+   "status": "ok",
+   "file": "SMIT2.json.gz",
+   "gz_bytes": 41329,
+   "raw_bytes": 1294432,
+   "name": "Colorado River (TX) near Smithville",
+   "lat": 30.0125,
+   "lon": -97.1617,
+   "coverage": {
+    "points": 8600,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:10:00Z"
+   }
+  },
+  "SMMT2": {
+   "status": "ok",
+   "file": "SMMT2.json.gz",
+   "gz_bytes": 17300,
+   "raw_bytes": 434716,
+   "name": "Medina River near Somerset",
+   "lat": 29.2619,
+   "lon": -98.5811,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SMRT2": {
+   "status": "ok",
+   "file": "SMRT2.json.gz",
+   "gz_bytes": 15988,
+   "raw_bytes": 433637,
+   "name": "San Marcos River near Martindale",
+   "lat": 29.8322,
+   "lon": -97.8422,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SMVT2": {
+   "status": "ok",
+   "file": "SMVT2.json.gz",
+   "gz_bytes": 17832,
+   "raw_bytes": 432486,
+   "name": "Yegua Creek near Somerville, TX",
+   "lat": 30.3218,
+   "lon": -96.5072,
+   "coverage": {
+    "points": 2855,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SNPT2": {
+   "status": "ok",
+   "file": "SNPT2.json.gz",
+   "gz_bytes": 17080,
+   "raw_bytes": 435518,
+   "name": "San Antonio River at Loop 410",
+   "lat": 29.3219,
+   "lon": -98.45,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SOLT2": {
+   "status": "ok",
+   "file": "SOLT2.json.gz",
+   "gz_bytes": 21542,
+   "raw_bytes": 436700,
+   "name": "Pine Island Bayou near Sour Lake",
+   "lat": 30.1058,
+   "lon": -94.3344,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SOMT2": {
+   "status": "ok",
+   "file": "SOMT2.json.gz",
+   "gz_bytes": 15572,
+   "raw_bytes": 432430,
+   "name": "Yegua Creek at Lake Somerville",
+   "lat": 30.3222,
+   "lon": -96.5256,
+   "coverage": {
+    "points": 2846,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SPAT2": {
+   "status": "ok",
+   "file": "SPAT2.json.gz",
+   "gz_bytes": 17910,
+   "raw_bytes": 426619,
+   "name": "Navidad River near Speaks",
+   "lat": 29.3217,
+   "lon": -96.7089,
+   "coverage": {
+    "points": 2856,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SPCT2": {
+   "status": "ok",
+   "file": "SPCT2.json.gz",
+   "gz_bytes": 15161,
+   "raw_bytes": 434168,
+   "name": "Pecos River 3 miles ESE of Sheffield",
+   "lat": 30.6596,
+   "lon": -101.7701,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SPDT2": {
+   "status": "ok",
+   "file": "SPDT2.json.gz",
+   "gz_bytes": 16693,
+   "raw_bytes": 427977,
+   "name": "Peach Creek near Splendora",
+   "lat": 30.2325,
+   "lon": -95.1681,
+   "coverage": {
+    "points": 2851,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SPNT2": {
+   "status": "ok",
+   "file": "SPNT2.json.gz",
+   "gz_bytes": 20189,
+   "raw_bytes": 436523,
+   "name": "Spring Creek near Spring",
+   "lat": 30.1103,
+   "lon": -95.4361,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SRGT2": {
+   "status": "ok",
+   "file": "SRGT2.json.gz",
+   "gz_bytes": 18707,
+   "raw_bytes": 433450,
+   "name": "Guadalupe River near Spring Branch",
+   "lat": 29.8603,
+   "lon": -98.3833,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "SRMT2": {
+   "status": "ok",
+   "file": "SRMT2.json.gz",
+   "gz_bytes": 23174,
+   "raw_bytes": 420019,
+   "name": "Sabinal River below Mill Creek near Vanderpool",
+   "lat": 29.7189,
+   "lon": -99.5486,
+   "coverage": {
+    "points": 2771,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "SRRT2": {
+   "status": "ok",
+   "file": "SRRT2.json.gz",
+   "gz_bytes": 20191,
+   "raw_bytes": 396332,
+   "name": "San Antonio River at SH 72 near Runge",
+   "lat": 28.8486,
+   "lon": -97.7369,
+   "coverage": {
+    "points": 2615,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SRUT2": {
+   "status": "ok",
+   "file": "SRUT2.json.gz",
+   "gz_bytes": 16422,
+   "raw_bytes": 433370,
+   "name": "San Marcos River at San Marcos",
+   "lat": 29.8889,
+   "lon": -97.9339,
+   "coverage": {
+    "points": 2867,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "SSCT2": {
+   "status": "ok",
+   "file": "SSCT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Salado Creek at NE Loop 410",
+   "lat": 29.5158,
+   "lon": -98.4308,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "SSMT2": {
+   "status": "ok",
+   "file": "SSMT2.json.gz",
+   "gz_bytes": 17533,
+   "raw_bytes": 425060,
+   "name": "Seco Creek at Miller Ranch near Utopia",
+   "lat": 29.5731,
+   "lon": -99.4028,
+   "coverage": {
+    "points": 2802,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "STIT2": {
+   "status": "ok",
+   "file": "STIT2.json.gz",
+   "gz_bytes": 14116,
+   "raw_bytes": 431845,
+   "name": "North Texas Lakes at Stillhouse Hollow Lake",
+   "lat": 31.0222,
+   "lon": -97.5325,
+   "coverage": {
+    "points": 2842,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "STLT2": {
+   "status": "ok",
+   "file": "STLT2.json.gz",
+   "gz_bytes": 42126,
+   "raw_bytes": 1292210,
+   "name": "Guadalupe River at Sattler",
+   "lat": 29.8589,
+   "lon": -98.1797,
+   "coverage": {
+    "points": 8555,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:20:00Z"
+   }
+  },
+  "SUPT2": {
+   "status": "ok",
+   "file": "SUPT2.json.gz",
+   "gz_bytes": 18740,
+   "raw_bytes": 420381,
+   "name": "Cibolo Creek at Sutherland Springs",
+   "lat": 29.2797,
+   "lon": -98.0533,
+   "coverage": {
+    "points": 2773,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "SYCT2": {
+   "status": "ok",
+   "file": "SYCT2.json.gz",
+   "gz_bytes": 16404,
+   "raw_bytes": 432159,
+   "name": "Sycamore Creek near Del Rio 12SE",
+   "lat": 29.24,
+   "lon": -100.7658,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "TAQT2": {
+   "status": "ok",
+   "file": "TAQT2.json.gz",
+   "gz_bytes": 44841,
+   "raw_bytes": 1063960,
+   "name": "Tide Gauge at Texas State Aquarium",
+   "lat": 27.815,
+   "lon": -97.3892,
+   "coverage": {
+    "points": 7063,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "TBFT2": {
+   "status": "ok",
+   "file": "TBFT2.json.gz",
+   "gz_bytes": 20202,
+   "raw_bytes": 431839,
+   "name": "Neches River near Town Bluff",
+   "lat": 30.7908,
+   "lon": -94.1508,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "TBLT2": {
+   "status": "ok",
+   "file": "TBLT2.json.gz",
+   "gz_bytes": 16549,
+   "raw_bytes": 431424,
+   "name": "Neches River at Steinhagen Lake",
+   "lat": 30.7953,
+   "lon": -94.18,
+   "coverage": {
+    "points": 2858,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "THET2": {
+   "status": "ok",
+   "file": "THET2.json.gz",
+   "gz_bytes": 15668,
+   "raw_bytes": 421076,
+   "name": "Nueces River near Three Rivers",
+   "lat": 28.4272,
+   "lon": -98.1778,
+   "coverage": {
+    "points": 2775,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "TIDT2": {
+   "status": "ok",
+   "file": "TIDT2.json.gz",
+   "gz_bytes": 16142,
+   "raw_bytes": 428963,
+   "name": "Frio River at Tilden",
+   "lat": 28.4672,
+   "lon": -98.5472,
+   "coverage": {
+    "points": 2836,
+    "first": "2026-06-25T01:30:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "TILT2": {
+   "status": "ok",
+   "file": "TILT2.json.gz",
+   "gz_bytes": 15750,
+   "raw_bytes": 435817,
+   "name": "Nueces River near Tilden",
+   "lat": 28.3086,
+   "lon": -98.5569,
+   "coverage": {
+    "points": 2872,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "TIVT2": {
+   "status": "ok",
+   "file": "TIVT2.json.gz",
+   "gz_bytes": 18472,
+   "raw_bytes": 430673,
+   "name": "Guadalupe River near Tivoli",
+   "lat": 28.5056,
+   "lon": -96.8844,
+   "coverage": {
+    "points": 2874,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "TMBT2": {
+   "status": "ok",
+   "file": "TMBT2.json.gz",
+   "gz_bytes": 18321,
+   "raw_bytes": 439434,
+   "name": "Spring Creek at Tomball",
+   "lat": 30.1197,
+   "lon": -95.6458,
+   "coverage": {
+    "points": 2862,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "TMYT2": {
+   "status": "ok",
+   "file": "TMYT2.json.gz",
+   "gz_bytes": 24878,
+   "raw_bytes": 428750,
+   "name": "Sabine River at I-10",
+   "lat": 30.1277,
+   "lon": -93.7017,
+   "coverage": {
+    "points": 2858,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "TNLT2": {
+   "status": "ok",
+   "file": "TNLT2.json.gz",
+   "gz_bytes": 17781,
+   "raw_bytes": 430759,
+   "name": "San Miguel Creek near Tilden",
+   "lat": 28.5872,
+   "lon": -98.5456,
+   "coverage": {
+    "points": 2871,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "TPHT2": {
+   "status": "ok",
+   "file": "TPHT2.json.gz",
+   "gz_bytes": 16742,
+   "raw_bytes": 433812,
+   "name": "Hondo Creek near Tarpley",
+   "lat": 29.57,
+   "lon": -99.2478,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "TVLT2": {
+   "status": "ok",
+   "file": "TVLT2.json.gz",
+   "gz_bytes": 17921,
+   "raw_bytes": 423135,
+   "name": "Guadalupe River above Tivoli",
+   "lat": 28.4781,
+   "lon": -96.8625,
+   "coverage": {
+    "points": 2803,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "TXPT2": {
+   "status": "ok",
+   "file": "TXPT2.json.gz",
+   "gz_bytes": 50278,
+   "raw_bytes": 1055753,
+   "name": "Tide Station (LCH) at Texas Point",
+   "lat": 29.6892,
+   "lon": -93.8418,
+   "coverage": {
+    "points": 7042,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "UDET2": {
+   "status": "ok",
+   "file": "UDET2.json.gz",
+   "gz_bytes": 16031,
+   "raw_bytes": 431235,
+   "name": "Frio River below Dry Frio near Uvalde",
+   "lat": 29.2456,
+   "lon": -99.6742,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "ULRT2": {
+   "status": "ok",
+   "file": "ULRT2.json.gz",
+   "gz_bytes": 11874,
+   "raw_bytes": 357167,
+   "name": "Leona River near Uvalde",
+   "lat": 29.1542,
+   "lon": -99.7431,
+   "coverage": {
+    "points": 2376,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "UVAT2": {
+   "status": "ok",
+   "file": "UVAT2.json.gz",
+   "gz_bytes": 50355,
+   "raw_bytes": 1254137,
+   "name": "Nueces River at Laguna",
+   "lat": 29.4283,
+   "lon": -99.9969,
+   "coverage": {
+    "points": 8305,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "UVLT2": {
+   "status": "ok",
+   "file": "UVLT2.json.gz",
+   "gz_bytes": 17242,
+   "raw_bytes": 435478,
+   "name": "Nueces River below Uvalde",
+   "lat": 29.1236,
+   "lon": -99.8944,
+   "coverage": {
+    "points": 2876,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "VCAT2": {
+   "status": "ok",
+   "file": "VCAT2.json.gz",
+   "gz_bytes": 45029,
+   "raw_bytes": 1063714,
+   "name": "Tide Gauge at Port Lavaca",
+   "lat": 28.6403,
+   "lon": -96.6094,
+   "coverage": {
+    "points": 7064,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "VCKT2": {
+   "status": "ok",
+   "file": "VCKT2.json.gz",
+   "gz_bytes": 15210,
+   "raw_bytes": 432198,
+   "name": "Middle Verde Creek at Hwy 173N near Hondo",
+   "lat": 29.5678,
+   "lon": -99.0969,
+   "coverage": {
+    "points": 2868,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "VICT2": {
+   "status": "ok",
+   "file": "VICT2.json.gz",
+   "gz_bytes": 18193,
+   "raw_bytes": 403777,
+   "name": "Guadalupe River at Victoria",
+   "lat": 28.7928,
+   "lon": -97.0128,
+   "coverage": {
+    "points": 2678,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "VIMT2": {
+   "status": "ok",
+   "file": "VIMT2.json.gz",
+   "gz_bytes": 21321,
+   "raw_bytes": 431706,
+   "name": "Village Creek near Village Mills",
+   "lat": 30.4814,
+   "lon": -94.3946,
+   "coverage": {
+    "points": 2838,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "VTBT2": {
+   "status": "ok",
+   "file": "VTBT2.json.gz",
+   "gz_bytes": 45692,
+   "raw_bytes": 1048330,
+   "name": "Tide Gauge above Viola Turning Basin",
+   "lat": 27.8461,
+   "lon": -97.5207,
+   "coverage": {
+    "points": 6991,
+    "first": "2026-06-25T00:48:00Z",
+    "last": "2026-07-25T00:24:00Z"
+   }
+  },
+  "WADT2": {
+   "status": "ok",
+   "file": "WADT2.json.gz",
+   "gz_bytes": 41394,
+   "raw_bytes": 1274607,
+   "name": "Walnut Creek at Dessau Rd near Austin",
+   "lat": 30.375,
+   "lon": -97.6603,
+   "coverage": {
+    "points": 8397,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "WART2": {
+   "status": "ok",
+   "file": "WART2.json.gz",
+   "gz_bytes": 34191,
+   "raw_bytes": 1299575,
+   "name": "Waller Creek at Red River Street",
+   "lat": 30.2714,
+   "lon": -97.7356,
+   "coverage": {
+    "points": 8667,
+    "first": "2026-06-25T00:05:00Z",
+    "last": "2026-07-24T23:35:00Z"
+   }
+  },
+  "WBZT2": {
+   "status": "ok",
+   "file": "WBZT2.json.gz",
+   "gz_bytes": 19545,
+   "raw_bytes": 382586,
+   "name": "Brazos River at Washington",
+   "lat": 30.3592,
+   "lon": -96.1549,
+   "coverage": {
+    "points": 2536,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "WCAT2": {
+   "status": "ok",
+   "file": "WCAT2.json.gz",
+   "gz_bytes": 162,
+   "raw_bytes": 222,
+   "name": "Waller Creek at East 1st Street at Austin",
+   "lat": 30.2619,
+   "lon": -97.7397,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "WCBT2": {
+   "status": "ok",
+   "file": "WCBT2.json.gz",
+   "gz_bytes": 23885,
+   "raw_bytes": 429983,
+   "name": "Brazos River near West Columbia",
+   "lat": 29.144,
+   "lon": -95.6058,
+   "coverage": {
+    "points": 2870,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:30:00Z"
+   }
+  },
+  "WEET2": {
+   "status": "ok",
+   "file": "WEET2.json.gz",
+   "gz_bytes": 14046,
+   "raw_bytes": 437230,
+   "name": "West Elm Creek at Encino Rio at San Antonio",
+   "lat": 29.6292,
+   "lon": -98.4486,
+   "coverage": {
+    "points": 2896,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "WEOT2": {
+   "status": "ok",
+   "file": "WEOT2.json.gz",
+   "gz_bytes": 117,
+   "raw_bytes": 192,
+   "name": "Oso Creek at Merrett Road",
+   "lat": 27.7306,
+   "lon": -97.5769,
+   "coverage": {
+    "points": 0,
+    "first": null,
+    "last": null
+   }
+  },
+  "WFDT2": {
+   "status": "ok",
+   "file": "WFDT2.json.gz",
+   "gz_bytes": 19737,
+   "raw_bytes": 385485,
+   "name": "Cypress Creek near Westfield",
+   "lat": 30.0356,
+   "lon": -95.4286,
+   "coverage": {
+    "points": 2536,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "WGRT2": {
+   "status": "ok",
+   "file": "WGRT2.json.gz",
+   "gz_bytes": 16794,
+   "raw_bytes": 434499,
+   "name": "Willis Creek near Granger",
+   "lat": 30.7022,
+   "lon": -97.4342,
+   "coverage": {
+    "points": 2863,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-24T23:45:00Z"
+   }
+  },
+  "WHAT2": {
+   "status": "ok",
+   "file": "WHAT2.json.gz",
+   "gz_bytes": 38852,
+   "raw_bytes": 1189571,
+   "name": "Colorado River (TX) at Wharton",
+   "lat": 29.3089,
+   "lon": -96.1036,
+   "coverage": {
+    "points": 7893,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "WHOT2": {
+   "status": "ok",
+   "file": "WHOT2.json.gz",
+   "gz_bytes": 15184,
+   "raw_bytes": 435476,
+   "name": "Sandies Creek near Westhoff",
+   "lat": 29.2152,
+   "lon": -97.4494,
+   "coverage": {
+    "points": 2866,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "WJCT2": {
+   "status": "ok",
+   "file": "WJCT2.json.gz",
+   "gz_bytes": 51342,
+   "raw_bytes": 1260928,
+   "name": "Williamson Creek at Jimmy Clay Road near Austin 6SE",
+   "lat": 30.1892,
+   "lon": -97.7322,
+   "coverage": {
+    "points": 8352,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "WKLT2": {
+   "status": "ok",
+   "file": "WKLT2.json.gz",
+   "gz_bytes": 28065,
+   "raw_bytes": 1290461,
+   "name": "Williamson Creek at Oak Hill",
+   "lat": 30.235,
+   "lon": -97.86,
+   "coverage": {
+    "points": 8602,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "WLCT2": {
+   "status": "ok",
+   "file": "WLCT2.json.gz",
+   "gz_bytes": 29885,
+   "raw_bytes": 1291227,
+   "name": "Waller Creek at Koenig Lane",
+   "lat": 30.3228,
+   "lon": -97.7228,
+   "coverage": {
+    "points": 8613,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "WMBT2": {
+   "status": "ok",
+   "file": "WMBT2.json.gz",
+   "gz_bytes": 40618,
+   "raw_bytes": 1266789,
+   "name": "Blanco River at Wimberley",
+   "lat": 29.9942,
+   "lon": -98.0886,
+   "coverage": {
+    "points": 8364,
+    "first": "2026-06-25T00:50:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "WPMT2": {
+   "status": "ok",
+   "file": "WPMT2.json.gz",
+   "gz_bytes": 42931,
+   "raw_bytes": 1289489,
+   "name": "West Prong Medina River at Carpenter Creek Road",
+   "lat": 29.78,
+   "lon": -99.3792,
+   "coverage": {
+    "points": 8598,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:25:00Z"
+   }
+  },
+  "WRST2": {
+   "status": "ok",
+   "file": "WRST2.json.gz",
+   "gz_bytes": 11405,
+   "raw_bytes": 377606,
+   "name": "Fifteenmile Creek near Weser",
+   "lat": 28.8975,
+   "lon": -97.3547,
+   "coverage": {
+    "points": 2516,
+    "first": "2026-06-25T01:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  },
+  "WSBT2": {
+   "status": "ok",
+   "file": "WSBT2.json.gz",
+   "gz_bytes": 21984,
+   "raw_bytes": 431175,
+   "name": "Buffalo Bayou at West Belt Drive",
+   "lat": 29.7619,
+   "lon": -95.5575,
+   "coverage": {
+    "points": 2844,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:30:00Z"
+   }
+  },
+  "WSGT2": {
+   "status": "ok",
+   "file": "WSGT2.json.gz",
+   "gz_bytes": 39789,
+   "raw_bytes": 1265799,
+   "name": "San Gabriel River near Weir, TX",
+   "lat": 30.646,
+   "lon": -97.5852,
+   "coverage": {
+    "points": 8445,
+    "first": "2026-06-25T00:35:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "WTTT2": {
+   "status": "ok",
+   "file": "WTTT2.json.gz",
+   "gz_bytes": 13804,
+   "raw_bytes": 421722,
+   "name": "Atascosa River at Whitsett",
+   "lat": 28.6219,
+   "lon": -98.2811,
+   "coverage": {
+    "points": 2776,
+    "first": "2026-06-25T00:45:00Z",
+    "last": "2026-07-25T00:15:00Z"
+   }
+  },
+  "WWVT2": {
+   "status": "ok",
+   "file": "WWVT2.json.gz",
+   "gz_bytes": 30921,
+   "raw_bytes": 1303649,
+   "name": "Walnut Creek at Webberville Road",
+   "lat": 30.2831,
+   "lon": -97.6547,
+   "coverage": {
+    "points": 8602,
+    "first": "2026-06-25T00:15:00Z",
+    "last": "2026-07-25T00:00:00Z"
+   }
+  }
+ }
+}

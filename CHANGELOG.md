@@ -1,5 +1,30 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.7 · 2026-07-25 (the road closures playback stopped recording)
+
+-- Bug Fixes --
+- [Fix] Road playback stopped recording new closures when the area of
+      operations moved to the coast. The archive walk read the display-scoped
+      roads-snapshot.json, which the pivot left empty, while the statewide
+      roads-capture.json it should have read was being committed every cycle.
+      Nothing was lost, because the capture is in git, but no out-of-view
+      closure had entered the record since 2026-07-23 and the roads playback
+      still showed were reconstructions from posted start and end times that
+      drain as those windows expire. Retention now reads the capture and falls
+      back to the snapshot for commits older than the split, recovering the
+      pre-pivot depth: 285 closures retained where 257 were, and the newest
+      frame replays 49 instead of 35.
+
+-- Changes --
+- [Change] Roads now get the same two layers the gauges got. Retention walks
+           the statewide capture with no geographic filter anywhere in the
+           path; publication projects that through the union of every area this
+           board has declared, plus everything already published, so an area
+           change can narrow the view and can never delete a stored closure.
+           roadIndex and roadsFrom keep their contract and stay display-scoped,
+           and history.json now carries retained.roads so the record can say it
+           is wider than the view (285 retained, 271 published, 14 held).
+
 ## v0.98.6 · 2026-07-25 (two things the public board offered that it could not honour)
 
 -- Changes --

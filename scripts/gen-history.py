@@ -35,11 +35,16 @@ Frame contract (hazard-agnostic, additive — future hazard sources add a
 parallel per-frame array + a top-level index, existing keys never rename):
   {frames:[{t, gauges:{lid:[stage,code]}, roads:[rid,...], src?, ref?}],
    gaugeIndex:{lid:{name,lat,lon}}, roadIndex:{rid:{cond,route,v,start,end}},
-   roadsFrom:ISO, retained:{frames,gauges}, thinned?:{...}}
-Road state per frame is the union of two signals: presence in the archived
-roads-snapshot git history (frames at/after roadsFrom) and the record's own
-posted start/end window (the only signal before roadsFrom — the client must
-label those frames as reconstructed, not archived).
+   roadsFrom:ISO, retained:{frames,gauges,roads?}, thinned?:{...}}
+Roads run the same two layers. RETENTION walks the committed history of
+data/roads-capture.json (falling back to data/roads-snapshot.json for commits
+older than the capture split), so an AO pivot that empties the display snapshot
+cannot stop new closures entering the record. PUBLICATION then projects that
+retained set through the same bbox ratchet the gauges use, so roadIndex stays
+display-scoped while the archive behind it stays statewide. Road state per frame
+is the union of two signals: presence in that archive (frames at/after roadsFrom)
+and the record's own posted start/end window (the only signal before roadsFrom,
+which the client labels reconstructed rather than archived).
 
 The same published record also ships chunked under history/: history/index.json
 carries the gauge/road indexes plus one descriptor per UTC day, and
@@ -66,6 +71,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAPTURE_PATH = "data/gauges-capture.json"
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
 EVENT_PATH = "data/event.json"
+ROADS_CAPTURE_PATH = "data/roads-capture.json"
 ROADS_PATH = "data/roads-snapshot.json"
 OUT_PATH = "data/history.json"
 CHUNK_INDEX_PATH = "history/index.json"
@@ -382,13 +388,22 @@ def road_key(rec):
     return f"{rec.get('route')}|{rec.get('start')}|{lat},{lon}"
 
 
+def load_road_snapshot(commit_hash):
+    """Widest road set available at this commit: statewide capture if it exists, else display."""
+    try:
+        return json.loads(git_blob(commit_hash, ROADS_CAPTURE_PATH))
+    except (subprocess.CalledProcessError, ValueError):
+        return json.loads(git_blob(commit_hash, ROADS_PATH))
+
+
 def road_snapshots():
-    out = git("log", "--format=%H", "--", ROADS_PATH).split()
+    """Retention layer for roads. No display filter exists here by design."""
+    out = git("log", "--format=%H", "--", ROADS_CAPTURE_PATH, ROADS_PATH).split()
     snaps = []
     index, rid_by_key = {}, {}
     for chash in reversed(out):
         try:
-            snap = json.loads(git_blob(chash, ROADS_PATH))
+            snap = load_road_snapshot(chash)
             snap_dt = parse_iso(snap["generated"])
             if not snap_dt:
                 raise ValueError(f"bad generated stamp {snap['generated']!r}")
@@ -408,12 +423,24 @@ def road_snapshots():
     return snaps, index
 
 
-def apply_road_history(frames):
+def scope_rids(index, boxes, sticky_keys):
+    """Publication scope for roads: any closure inside a bbox this board has ever declared,
+    plus any closure already published. Both terms only grow, so scope is a ratchet."""
+    keep = set()
+    for rid, e in index.items():
+        v = e.get("v") or [None, None]
+        if road_key(e) in sticky_keys or in_any_bbox(v[0], v[1], boxes):
+            keep.add(rid)
+    return keep
+
+
+def apply_road_history(frames, boxes, sticky_keys):
     snaps, index = road_snapshots()
     if not snaps:
         for f in frames:
             f.pop("roads", None)  # salvaged backfill frames may carry stale road lists
-        return None, None, 0, 0
+        return None, None, 0, 0, 0, 0
+    keep = scope_rids(index, boxes, sticky_keys)
     windows = []
     for rid, e in index.items():
         s, en = parse_iso(e["start"]), parse_iso(e["end"])
@@ -429,14 +456,15 @@ def apply_road_history(frames):
         i = bisect.bisect_right(snap_times, t) - 1
         if i >= 0:
             active |= snaps[i]["present"]
+        active &= keep  # the ONLY place display scope touches roads
         f["roads"] = sorted(active)  # assign even when empty — overwrites stale salvaged road lists
         if active:
             if t >= roads_from:
                 arch += 1
             else:
                 recon += 1
-    road_index = {str(rid): e for rid, e in index.items()}
-    return road_index, snaps[0]["iso"], recon, arch
+    road_index = {str(rid): e for rid, e in index.items() if rid in keep}
+    return road_index, snaps[0]["iso"], recon, arch, len(index) - len(keep), len(index)
 
 
 def emit_frame(f):
@@ -749,7 +777,11 @@ def main():
         pub, cutoff = thin_old_frames(pub)
         thinned = {"fullFrom": cutoff.strftime("%Y-%m-%dT%H:%M:%SZ"),
                    "olderGapMinutes": THIN_OLD_GAP_S // 60, "peaksKept": True}
-    road_index, roads_from, road_recon, road_arch = apply_road_history(pub)
+    sticky_roads = {road_key(e) for e in (prev.get("roadIndex") or {}).values()}
+    (road_index, roads_from, road_recon, road_arch,
+     road_held, road_retained) = apply_road_history(pub, boxes, sticky_roads)
+    if road_retained:
+        retained["roads"] = road_retained
     payload = serialize(pub, pub_index, road_index, roads_from, retained, thinned)
     if len(payload) > TOTAL_SIZE_BUDGET and any(f.get("src") for f in pub):
         pub = thin_backfill(pub)
@@ -785,10 +817,12 @@ def main():
     if thinned:
         print(f"  THINNED for size: {thinned}")
     if road_index:
-        print(f"roads: {len(road_index)} closures indexed, {road_recon + road_arch} frames with road state "
-              f"({road_recon} reconstructed from posted times, {road_arch} archived), archive from {roads_from}")
+        print(f"roads: {road_retained} closures retained, {len(road_index)} published "
+              f"({road_held} out of display scope, held not deleted), {road_recon + road_arch} frames with "
+              f"road state ({road_recon} reconstructed from posted times, {road_arch} archived), "
+              f"archive from {roads_from}")
     else:
-        print("roads: no roads-snapshot archive found — road replay omitted")
+        print("roads: no road archive found, road replay omitted")
     if backfill:
         report_backfill(backfill, src_by_lid, len(keep))
 

@@ -205,6 +205,87 @@ try:
     check('an orphan day file is removed, never left to be served',
           not os.path.exists(chunk_path('1999-01-01')))
 
+    # --- roads: the same two layers the gauges get ---------------------------
+    # WEST sits inside WIDE only, EAST inside both, FAR outside every declared bbox. EAST and
+    # FAR carry an expired posted window, so the only signal that can surface them in a frame
+    # is presence in the archive, which is exactly what reading roads-capture.json restores.
+    def road(rid, route, lat, lon, expired):
+        return {'id': rid, 'cond': 'Flooding', 'route': route, 'desc': 'water over roadway',
+                'start': iso(BASE - timedelta(hours=5 if expired else 1)),
+                'end': iso(BASE - timedelta(hours=4)) if expired else iso(BASE + timedelta(hours=10)),
+                'v': [lat, lon]}
+
+    WEST_R = road(1, 'RM0187', 30.0, -99.5, False)
+    EAST_R = road(2, 'FM1960', 29.8, -95.2, True)
+    FAR_R = road(3, 'RM2400', 31.9, -103.5, True)
+
+    def commit_roads(repo2, bbox, n, msg, snapshot_roads, capture_roads=None):
+        stamp = iso(BASE + timedelta(minutes=20 * n))
+        with open(os.path.join(repo2, 'data', 'event.json'), 'w', encoding='utf-8') as f:
+            json.dump({'name': 'fixture', 'gaugeBbox': bbox}, f)
+        with open(os.path.join(repo2, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+            json.dump(capture(n), f)
+        with open(os.path.join(repo2, 'data', 'roads-snapshot.json'), 'w', encoding='utf-8') as f:
+            json.dump({'generated': stamp, 'roads': snapshot_roads}, f)
+        paths = ['data/event.json', 'data/gauges-capture.json', 'data/roads-snapshot.json']
+        if capture_roads is not None:
+            with open(os.path.join(repo2, 'data', 'roads-capture.json'), 'w', encoding='utf-8') as f:
+                json.dump({'generated': stamp, 'roads': capture_roads}, f)
+            paths.append('data/roads-capture.json')
+        git(repo2, 'add', *paths)
+        git(repo2, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', msg)
+
+    rrepo = os.path.join(tmp, 'roads')
+    os.makedirs(os.path.join(rrepo, 'data'))
+    os.makedirs(os.path.join(rrepo, 'scripts'))
+    shutil.copy(GEN, os.path.join(rrepo, 'scripts', 'gen-history.py'))
+    subprocess.run(('git', 'init', '-q', rrepo), check=True, capture_output=True)
+
+    # pre-split: only the display snapshot exists, and it is the widest road set we had
+    commit_roads(rrepo, WIDE, 0, 'roads pre-split 1', [WEST_R])
+    commit_roads(rrepo, WIDE, 1, 'roads pre-split 2', [WEST_R])
+    rr1 = run_gen(rrepo)
+    check('roads: pre-split run exits 0', rr1.returncode == 0, rr1.stderr[-400:])
+    hr1 = history(rrepo)
+    check('roads: the pre-split display snapshot is still read when no capture exists',
+          len(hr1.get('roadIndex') or {}) == 1, str(hr1.get('roadIndex')))
+
+    # the pivot: display snapshot goes empty, the statewide capture carries the real set
+    commit_roads(rrepo, NARROW, 2, 'roads pivot', [], [WEST_R, EAST_R, FAR_R])
+    rr2 = run_gen(rrepo)
+    check('roads: post-pivot run exits 0', rr2.returncode == 0, rr2.stderr[-400:])
+    hr2 = history(rrepo)
+    ridx = hr2.get('roadIndex') or {}
+    routes = {e['route'] for e in ridx.values()}
+    check('ROAD RETENTION · a closure that only the statewide capture saw still enters the record',
+          'FM1960' in routes, str(sorted(routes)))
+    check('ROAD RETENTION · an empty display snapshot un-publishes no earlier closure',
+          'RM0187' in routes, str(sorted(routes)))
+    check('ROAD PUBLICATION · a closure outside every declared bbox is held, not published',
+          'RM2400' not in routes, str(sorted(routes)))
+    check('ROAD PUBLICATION · retained road count exceeds the published one, and says so',
+          hr2['retained'].get('roads') == 3 and len(ridx) == 2, str(hr2['retained']))
+    east_rid = [rid for rid, e in ridx.items() if e['route'] == 'FM1960'][0]
+    check('ROAD REPLAY · playback frames actually carry the capture-only closure',
+          int(east_rid) in (hr2['frames'][-1].get('roads') or []),
+          'rid %s not in %s' % (east_rid, hr2['frames'][-1].get('roads')))
+    check('ROAD REPLAY · the held closure never reaches a published frame',
+          all(str(r) in ridx for f in hr2['frames'] for r in (f.get('roads') or [])))
+
+    # cold rebuild: no prior history.json, so only the bbox ratchet can keep WEST published
+    os.unlink(os.path.join(rrepo, 'data', 'history.json'))
+    rr3 = run_gen(rrepo)
+    check('roads: cold rebuild exits 0', rr3.returncode == 0, rr3.stderr[-400:])
+    routes3 = {e['route'] for e in (history(rrepo).get('roadIndex') or {}).values()}
+    check('ROAD RETENTION · a cold rebuild under the narrow bbox still publishes the retired-bbox '
+          'closure', routes3 == {'RM0187', 'FM1960'}, str(sorted(routes3)))
+
+    # structural pin: the road retention walk must not be able to see a display bbox
+    road_src = src[src.index('\ndef load_road_snapshot('):src.index('\ndef scope_rids(')]
+    check('STRUCTURAL · the road retention path references no bbox at all',
+          'bbox' not in road_src and 'ROADS_CAPTURE_PATH' in road_src,
+          'road retention reads a bbox, or stopped reading the capture')
+
 finally:
     shutil.rmtree(tmp)
 

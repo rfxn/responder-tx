@@ -1920,8 +1920,32 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .leaflet-bar.views-trigger a { min-width: 44px; }
   .views-tag { font-size: 12.5px; }
 }
-#layer-sheet, #views-sheet { position: fixed; inset: 0; z-index: 1460; }
-#layer-sheet[hidden], #views-sheet[hidden] { display: none; }
+#layer-sheet, #views-sheet, #share-sheet { position: fixed; inset: 0; z-index: 1460; }
+#layer-sheet[hidden], #views-sheet[hidden], #share-sheet[hidden] { display: none; }
+/* the share surface is the same sheet family, so 48px rows and the phone bottom-sheet come for free */
+@media (min-width: 769px) { #share-sheet .ls-panel { width: 380px; } } /* phone keeps the full-width bottom sheet */
+#share-sheet .ls-body .hint { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; margin: 4px 2px 6px; }
+#share-url {
+  display: block; margin: 2px 0 8px; padding: 6px 8px; overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--ink-2);
+  background: var(--surface-2); border: 1px solid var(--hairline); border-radius: 6px;
+}
+#share-qr { width: 148px; margin: 8px 0 4px; background: #fff; border-radius: 6px; padding: 4px; }
+#share-qr svg { display: block; width: 100%; height: auto; }
+#share-sheet #follow-body .resource-item { border-bottom: none; padding: 4px 2px; font-size: 12.5px; }
+
+/* migration cue: an informational pointer where a moved control used to live. Neutral accent, never
+   the amber/red of a data warning, and never in the bottom toast lane the update channel owns. */
+.moved-note {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin: 8px 0 4px; padding: 8px 10px; font-size: 12.5px; line-height: 1.35; color: var(--ink-1);
+  background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px;
+}
+.moved-glyph { color: var(--accent); font-weight: 700; }
+.moved-txt { flex: 1 1 160px; min-width: 0; }
+.moved-note button { min-height: 34px; padding: 3px 10px; font-size: 12px; }
+.moved-go { color: var(--accent); font-weight: 650; }
+.moved-x { flex: 0 0 auto; color: var(--ink-muted); background: none; border: 0; font-size: 14px; }
 /* views sheet is a radio group, not a set of toggles: the active lens reads as selected.
    the .on knob rule from the layer sheet would paint the go chevron as a filled toggle pill */
 #views-sheet .ls-row.on { border-color: var(--accent); background: var(--surface-1); }

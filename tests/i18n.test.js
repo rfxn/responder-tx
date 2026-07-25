@@ -200,26 +200,94 @@ test('i18n: every control in the feed action rows carries a data-i18n attribute'
   assert.deepEqual(missing, [], 'untranslated control in a .feed-actions row (add data-i18n / data-i18n-title)');
 });
 
-/* Placement guard (v0.97.91). The export/import controls and the CalTopo box moved out of the
-   Feed > More drawer into Resources > Data & interchange, and the drawer itself is gone. The
-   listeners in js/boot.js keep the same element ids, so nothing would fail loudly if the markup
-   drifted back; assert the containment instead. */
-test('the interchange controls live in Resources, and Feed > More is gone', () => {
+/* Placement guard (v0.97.99). Export/import, the CalTopo live URL and the RSS/ICS subscribe rows
+   are all one surface now: Share and Export are the same verb at different fidelity, and no
+   comparable product puts export in a content tab or a settings page. The listeners in js/boot.js
+   keep the same element ids, so nothing would fail loudly if the markup drifted; assert containment. */
+test('interchange and subscribe live in the Share surface, not in a content tab', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
     .replace(/<!--[\s\S]*?-->/g, '');
   for (const gone of ['id="more-toggle"', 'id="more-menu"']) {
     assert.ok(!html.includes(gone), `index.html still declares ${gone}`);
   }
-  const resources = html.slice(html.indexOf('id="tab-resources"'), html.indexOf('id="tab-team"'));
-  assert.ok(resources.includes('id="interchange-body"'), '#interchange-body is not inside #tab-resources');
-  for (const id of ['export-btn', 'export-geo-btn', 'caltopo-btn', 'aar-btn', 'import-file', 'caltopo-box']) {
+  const sheet = html.slice(html.indexOf('<div id="share-sheet"'), html.indexOf('<div id="notes-flyout"'));
+  assert.ok(sheet.length > 500, '#share-sheet was not found in index.html');
+  for (const id of ['interchange-body', 'export-btn', 'export-geo-btn', 'caltopo-btn', 'aar-btn',
+    'import-file', 'caltopo-box', 'caltopo-url', 'caltopo-copy', 'caltopo-qr', 'follow-body',
+    'share-url', 'share-copy', 'share-native', 'share-qr']) {
     assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `#${id} is not declared exactly once`);
-    assert.ok(resources.includes(`id="${id}"`), `#${id} did not move into Resources`);
+    assert.ok(sheet.includes(`id="${id}"`), `#${id} is not inside the Share surface`);
   }
+  // nothing interchange-shaped may remain in a tab body
+  const tabs = html.slice(html.indexOf('id="tab-requests"'), html.indexOf('<div id="share-sheet"'));
+  for (const id of ['interchange-body', 'export-btn', 'caltopo-box', 'follow-body']) {
+    assert.ok(!tabs.includes(`id="${id}"`), `#${id} is still inside a tab body`);
+  }
+  // subscribe left the Resources renderer with it
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  assert.ok(!/res\.follow/.test(panels), 'renderResources() still emits the Follow / subscribe section');
+  assert.ok(!/crests\.ics|feed\.xml/.test(panels), 'renderResources() still emits the RSS/ICS links');
+
   const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
   assert.ok(!/#more-toggle|#more-menu/.test(boot), 'js/boot.js still wires the retired Feed > More drawer');
   const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'app.css'), 'utf8');
   assert.ok(!/#more-menu|#more-toggle/.test(css), 'css/app.css still styles the retired Feed > More drawer');
+});
+
+test('both Share entry points open the one Share surface, and the export ids kept their handlers', () => {
+  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
+  const map = fs.readFileSync(path.join(__dirname, '..', 'js', 'map.js'), 'utf8');
+  assert.ok(/\$\('#share-btn'\)\.addEventListener\('click', openShareSheet\)/.test(boot),
+    'the settings sheet Share entry must open the Share surface');
+  assert.ok(/openShareSheet\(\);/.test(map), 'the map Share control must open the Share surface');
+  assert.ok(!/\bshareView\b/.test(boot + map), 'the old copy-on-tap shareView() must be gone');
+  // relocating the markup must not have touched the interchange wiring
+  for (const [sel, fn] of [['#export-btn', 'exportRequests'], ['#export-geo-btn', 'exportGeoJSON'],
+    ['#caltopo-btn', 'toggleCaltopoBox'], ['#caltopo-copy', 'copyCaltopoUrl'], ['#aar-btn', 'exportAAR']]) {
+    assert.ok(boot.includes(`$('${sel}').addEventListener('click', ${fn})`), `${sel} lost its ${fn} handler`);
+  }
+});
+
+/* Migration cue (v0.97.99). Moving a surface with no in-product pointer is the documented cause of
+   "what happened to X" support threads. The cue must be dismissible, must not return after that, and
+   must not join or impersonate the bottom toast lane the update/data channel owns. */
+test('the migration cue is a dismissible in-place pointer, not a fifth toast', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.equal((html.match(/id="moved-cue"/g) || []).length, 1, '#moved-cue must be declared exactly once');
+  const tabs = html.slice(html.indexOf('id="tab-requests"'), html.indexOf('id="tab-team"'));
+  assert.ok(tabs.includes('id="moved-cue"'), 'the cue must sit where the moved control used to live');
+
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  const fn = panels.match(/function renderMovedCues\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderMovedCues() not found in js/panels.js');
+  assert.match(fn[0], /MOVED_CUES\.filter\(\(\[key\]\) => !movedCueSeen\(key\)\)/,
+    'the cue list must be filtered to the ones NOT yet dismissed');
+  assert.ok(/moved-x/.test(fn[0]), 'the cue must carry its own dismiss control');
+  assert.ok(/localStorage\.setItem\(`respondertx\.moved\./.test(panels), 'dismissal must persist');
+
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'app.css'), 'utf8');
+  const toastRule = css.match(/#update-toast, #sw-toast, #intake-toast, #op-toast \{[^}]*\}/);
+  assert.ok(toastRule, 'the toast group rule was not found in css/app.css');
+  assert.ok(!/moved-note/.test(toastRule[0]), 'the cue must not join the bottom toast lane');
+  const movedRule = css.match(/\.moved-note \{[^}]*\}/);
+  assert.ok(movedRule, '.moved-note styling not found');
+  assert.ok(!/position: fixed/.test(movedRule[0]), 'the cue is in-place, never a floating toast');
+  assert.ok(!/sev-warning|sev-emergency/.test(movedRule[0]), 'the cue must not wear data-warning colors');
+  // the freshness slot is off limits: a layout note is not a statement about data currency
+  assert.ok(!/refresh-note|setFeedNote/.test(panels.slice(panels.indexOf('const MOVED_CUES'), panels.indexOf('function renderResources'))),
+    'the cue must never write the header freshness slot');
+});
+
+test('i18n: the Share surface and migration cue keys exist in both languages', () => {
+  const keys = ['share.sheet.title', 'share.sheet.sub', 'share.g.view', 'share.copy', 'share.native',
+    'share.native.title', 'share.qr', 'res.follow', 'res.follow.sub', 'moved.exports', 'moved.go'];
+  for (const k of keys) {
+    for (const lang of ['en', 'es']) {
+      assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
+      assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+    }
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+  }
 });
 
 /* Settings sheet (v0.97.92). The header ⋮ became a labelled gear holding Display, Alerts,

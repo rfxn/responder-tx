@@ -1,5 +1,33 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.99 · 2026-07-25 (share and export become one surface)
+
+-- Changes --
+- [Change] Export JSON, Export GeoJSON, the CalTopo live URL, Export AAR and
+           Import moved out of the Resources tab into a Share surface reached
+           from the map link control and from Settings > Share. Share and Export
+           are the same verb at different fidelity: a link, a file, or a live URL
+           another tool can read. No comparable product puts export in a content
+           tab or a settings page, and every element id is unchanged, so the
+           interchange wiring in js/boot.js needed no edit.
+- [Change] The Share control now presents that surface instead of silently
+           copying, per the platform guidance that a Share button should show an
+           activity view rather than a second way to do the same thing. Copy
+           link, the native share sheet, and a QR of the current view link are
+           the first group; the CalTopo live URL sits inside the export group.
+- [Change] RSS and the crest calendar moved to the same surface under Follow and
+           subscribe: subscribe is the public's export, and it no longer sits
+           twenty lines from the coordinator's interchange block in one tab.
+- [Change] renderCaltopoQr() is now renderQr(): the same helper draws the share
+           link QR and the CalTopo export QR.
+
+-- New Features --
+- [New] One-time migration cue. A dismissible pointer renders where a moved
+      control used to live, naming its new home. Dismissal persists, it never
+      returns, and it is deliberately not a fifth bottom toast: that lane is the
+      update and data channel, and a layout note must never impersonate one or
+      touch the header freshness slot.
+
 ## v0.97.98 · 2026-07-25 (the views control names its own state)
 
 -- Changes --

@@ -117,7 +117,7 @@ const EXPORTS = [
   'cardAged',
   'buildShareUrl', 'applyShareParams',
   'smartScore', 'shortId', 'allRequests',
-  'CALTOPO_EXPORT_URL', 'renderCaltopoQr',
+  'CALTOPO_EXPORT_URL', 'renderQr',
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
   'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges',

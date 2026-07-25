@@ -201,7 +201,7 @@ function rolloverBusy() {
   if (state.refreshBusy) return 'refresh';
   if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
   if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
-  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet']) {
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet', '#share-sheet']) {
     const el = $(id);
     if (el && !el.hidden) return id;
   }
@@ -591,6 +591,7 @@ function relocalizeDynamic() {
   renderCrossings();
   renderTides();
   renderSourceHealth();
+  renderMovedCues();
   renderLayerPills();
   renderDriveMode();
   if (state.legendEl) state.legendEl.innerHTML = mapLegendHtml();
@@ -627,6 +628,7 @@ async function boot() {
   registerModal($('#changelog-modal'));
   registerModal($('#risk-modal'), { initialFocus: '#risk-addr' });
   registerModal($('#sitrep-modal'), { initialFocus: '#sitrep-copy' });
+  registerModal($('#share-sheet'), { focusEl: '.ls-panel' }); // same sheet family as the layer/views pickers
   registerModal($('#drive-mode')); // eyes-off-road by design: it SHOULD cover the map and trap focus
   // the three docked lenses are deliberately NOT modals. registerModal marks the rest of the page
   // inert, which would make the map they exist to describe unclickable. They keep their exit
@@ -693,7 +695,13 @@ async function boot() {
   document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
   // only the menu's own rows dismiss it; the alerts card's toggle and tier chips live inside it
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('#hmore-menu > button')) hmoreSetOpen(false); });
-  $('#share-btn').addEventListener('click', (e) => shareView(e.currentTarget));
+  $('#share-btn').addEventListener('click', openShareSheet);
+  $('#share-copy').addEventListener('click', copyShareUrl);
+  $('#share-native').addEventListener('click', () => {
+    if (navigator.share) navigator.share({ url: state.shareUrl || buildShareUrl() }).catch(() => copyShareUrl());
+  });
+  $('#share-sheet-close').addEventListener('click', closeShareSheet);
+  $('#share-sheet .ls-backdrop').addEventListener('click', closeShareSheet);
   const enterDrive = () => { $('#drive-mode').hidden = false; keepAwake(true, 'drive'); if (!state.myPos) { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } else { startLocTrack(); } renderDriveMode(); };
   window.enterDriveMode = enterDrive; // openView('drive') reaches drive mode without depending on #drive-btn
   // every entrance and exit goes through the one router, so one lens owns the board and the map
@@ -748,6 +756,7 @@ async function boot() {
   initOnboarding(); // after safety wiring — the ack click chains into first-run onboarding
   if (window.initTeamTab) initTeamTab(); // paint the first-class Team tab (create/join or roster)
   if (window.initTeam) initTeam(); // ?team= deep-link auto-opens the Team tab; chains behind the 911 ack
+  renderMovedCues(); // one-time pointer from where a moved control used to live
   initHeaderSearch();
   // the header chip names the STATE; Resources > Live feeds names which source, so the chip goes there
   const openFeedHealth = () => {
@@ -881,6 +890,7 @@ async function boot() {
     if (!$('#sitrep-modal').hidden) { closeSitrepModal(); return; } // routes through close() so focus is restored
     if (window.closeNotesFlyout && !$('#notes-flyout').hidden) { window.closeNotesFlyout(); return; } // keeps N.open in sync
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
+    if (!$('#share-sheet').hidden) { closeShareSheet(); return; }
     if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
     // #safety-modal is intentionally absent: the 911 self-deploy gate closes only via #safety-ack (which

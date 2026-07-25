@@ -274,23 +274,23 @@ test('pushNearbyGauges: nearest-first, excludes followed and coordinate-less gau
 
 /* ---------- CalTopo stable import URL + QR affordance ---------- */
 
-const { CALTOPO_EXPORT_URL, renderCaltopoQr } = loadApp();
+const { CALTOPO_EXPORT_URL, renderQr } = loadApp();
 
 test('CALTOPO_EXPORT_URL — https public-mirror data path (the URL CalTopo users import from)', () => {
   assert.equal(CALTOPO_EXPORT_URL, 'https://respondertx.org/data/caltopo-export.json');
   assert.ok(CALTOPO_EXPORT_URL.startsWith('https://'), 'must be fetchable by caltopo.com');
 });
 
-test('renderCaltopoQr — hides the host when the QR lib is absent, never throws', () => {
+test('renderQr — hides the host when the QR lib is absent, never throws', () => {
   const host = { hidden: false, dataset: {}, innerHTML: '' };
-  renderCaltopoQr(host, CALTOPO_EXPORT_URL); // sandbox has no global qrcode
+  renderQr(host, CALTOPO_EXPORT_URL); // sandbox has no global qrcode
   assert.equal(host.hidden, true, 'graceful degrade without the vendor lib');
-  assert.doesNotThrow(() => renderCaltopoQr(null, CALTOPO_EXPORT_URL), 'null host is a no-op');
+  assert.doesNotThrow(() => renderQr(null, CALTOPO_EXPORT_URL), 'null host is a no-op');
 });
 
-test('renderCaltopoQr — dataset.done guard makes re-render a no-op', () => {
+test('renderQr — dataset.done guard makes re-render a no-op', () => {
   const host = { hidden: false, dataset: { done: '1' }, innerHTML: 'existing' };
-  renderCaltopoQr(host, CALTOPO_EXPORT_URL);
+  renderQr(host, CALTOPO_EXPORT_URL);
   assert.equal(host.innerHTML, 'existing', 'already-rendered QR untouched');
   assert.equal(host.hidden, false);
 });

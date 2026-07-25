@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.99",
+      "date": "2026-07-25",
+      "line": "Everything that takes this board somewhere else now lives in one place. Tap Share, on the map or in Settings, and you get the link to this exact view, a QR code so the next truck can scan it off your screen, the file exports for JSON, GeoJSON and after-action reports, the live CalTopo address, loading a saved board file back in, and the RSS and calendar subscriptions. Sharing and exporting are the same thing at different levels of detail, so they belong together instead of being scattered between a menu, a tab and a settings page. Because things moved, the board now tells you so: the first time you open the tab where the exports used to be, a small note points you to their new home, and it goes away for good once you have seen it."
+    },
+    {
       "v": "v0.97.98",
       "date": "2026-07-25",
       "line": "The map control that switches how you look at the event now tells you which view you are in. It reads Live when you are on the normal board, and says Basin, Replay, Recovery or Crests when one of those is open, so the view you are looking at is named on screen instead of being something you have to remember. While a view is open the control also carries an exit, which is the first plain way back to the live map any of them has had. The map edge is quieter too: the stack of boxes in the top right is down from five to three. Nothing was removed to get there. The compass moved onto the zoom and locate bar it belongs with, and saving map tiles for use with no signal moved into the layers panel, which is already where you choose what the map shows. On a phone held sideways that gives the map back most of a column of buttons."

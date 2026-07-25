@@ -738,6 +738,38 @@ function renderGaugesTab() {
   }
 }
 
+/* Migration cue. A reorganization with no in-product pointer produces "what happened to X" support
+   threads; this points at the new home from where the control used to live. Deliberately not a fifth
+   bottom toast: that stack is the data/update channel and a layout note must never impersonate it. */
+const MOVED_CUES = [
+  ['exports', 'moved.exports', () => { if (typeof openShareSheet === 'function') openShareSheet(); }],
+];
+
+function movedCueSeen(key) {
+  try { return localStorage.getItem(`respondertx.moved.${key}`) === '1'; } catch { return true; } // private mode: never nag
+}
+
+function dismissMovedCue(key) {
+  try { localStorage.setItem(`respondertx.moved.${key}`, '1'); } catch { /* private mode: the cue lasts this session only, never longer */ }
+  renderMovedCues();
+}
+
+function renderMovedCues() {
+  const el = $('#moved-cue');
+  if (!el) return;
+  el.innerHTML = MOVED_CUES.filter(([key]) => !movedCueSeen(key)).map(([key, textKey]) =>
+    `<div class="moved-note" data-cue="${esc(key)}"><span class="moved-glyph" aria-hidden="true">↗</span>` +
+    `<span class="moved-txt">${esc(t(textKey))}</span>` +
+    `<button class="moved-go" data-go="${esc(key)}">${esc(t('moved.go'))}</button>` +
+    `<button class="moved-x" data-x="${esc(key)}" title="${esc(t('hint.dismiss'))}" aria-label="${esc(t('hint.dismiss'))}">✕</button></div>`).join('');
+  el.querySelectorAll('.moved-go').forEach((b) => b.addEventListener('click', () => {
+    const cue = MOVED_CUES.find(([k]) => k === b.dataset.go);
+    dismissMovedCue(b.dataset.go);
+    if (cue) cue[2]();
+  }));
+  el.querySelectorAll('.moved-x').forEach((b) => b.addEventListener('click', () => dismissMovedCue(b.dataset.x)));
+}
+
 /* ---------- resources & monitors ---------- */
 
 const dataLinkHtml = (d) => `<div class="resource-item"><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${esc(d.label)}</a></div>`;
@@ -791,10 +823,7 @@ function renderResources() {
     (recovery.length
       ? `<button class="aged-toggle" id="recovery-toggle">${state.showRecovery ? '▾' : '▸'} ${esc(t('res.recovery'))}</button>` +
         `<div id="res-recovery-body"${state.showRecovery ? '' : ' hidden'}>${recovery.map(dataLinkHtml).join('')}</div>`
-      : '') +
-    `<div class="section-title">${esc(t('res.follow'))}</div>` +
-    `<div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener">${esc(t('res.rss'))}</a> · ${esc(t('res.rss.note'))}</div>` +
-    `<div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener">${esc(t('res.ics'))}</a> · ${esc(t('res.ics.note'))}</div>`;
+      : '');
   const rt = $('#recovery-toggle');
   if (rt) rt.addEventListener('click', () => { state.showRecovery = !state.showRecovery; renderResources(); });
   refreshRecoveryView(); // shelters lens tracks resources + shelters-live

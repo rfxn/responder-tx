@@ -703,7 +703,7 @@ function exportGeoJSON() {
 
 const CALTOPO_EXPORT_URL = 'https://respondertx.org/data/caltopo-export.json';
 
-function renderCaltopoQr(host, url) {
+function renderQr(host, url) {
   if (!host || host.dataset.done) return;
   try {
     if (typeof qrcode !== 'function') { host.hidden = true; return; }
@@ -720,7 +720,7 @@ function toggleCaltopoBox() {
   box.hidden = !box.hidden;
   if (box.hidden) return;
   $('#caltopo-url').textContent = CALTOPO_EXPORT_URL;
-  renderCaltopoQr($('#caltopo-qr'), CALTOPO_EXPORT_URL);
+  renderQr($('#caltopo-qr'), CALTOPO_EXPORT_URL);
 }
 
 function copyCaltopoUrl() {
@@ -873,17 +873,33 @@ function buildShareUrl() {
   return `${location.origin}${location.pathname}?${p}`;
 }
 
-function shareView(btn) {
+/* Share and Export are one surface. Apple's HIG is explicit that a Share control should present an
+   activity view rather than a second way to do the same thing, and every comparable product anchors
+   interchange to the object it operates on, not to a settings page or a content tab. */
+function openShareSheet() {
+  const el = $('#share-sheet');
+  if (!el) return;
   const url = buildShareUrl();
-  const copy = () => copyText(url).then(
-    () => {
-      const orig = btn.innerHTML; // shared by the ⋮ menu entry and the map 🔗 control — restore whatever was there
-      btn.innerHTML = btn.closest('.share-trigger') ? '✓' : t('share.copied');
-      setTimeout(() => { btn.innerHTML = orig; }, 2000);
-    },
+  state.shareUrl = url;
+  $('#share-url').textContent = url;
+  $('#share-native').hidden = !navigator.share;
+  const qr = $('#share-qr');
+  if (qr) { delete qr.dataset.done; qr.innerHTML = ''; qr.hidden = false; renderQr(qr, url); } // the link changes with the view
+  el.hidden = false;
+  $('#share-copy').focus();
+}
+
+function closeShareSheet() {
+  const el = $('#share-sheet');
+  if (el) el.hidden = true;
+}
+
+function copyShareUrl() {
+  const btn = $('#share-copy');
+  const url = state.shareUrl || buildShareUrl();
+  copyText(url).then(
+    () => { const orig = btn.textContent; btn.textContent = t('share.copied'); setTimeout(() => { btn.textContent = orig; }, 2000); },
     () => prompt(t('share.prompt'), url));
-  if (navigator.share) navigator.share({ url }).catch(copy);
-  else copy();
 }
 
 // set a filter control the way a user would (adding a missing SELECT option first, since the

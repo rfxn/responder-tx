@@ -588,7 +588,7 @@ function initMap() {
     return div;
   };
   viewsBtn.addTo(state.map);
-  // Share stays first-class — a map control right below the layers trigger (also still in ⋮)
+  // Share stays first-class: the map control opens the Share surface that also owns export and subscribe
   const shareCtl = L.control({ position: 'topright' });
   shareCtl.onAdd = () => {
     const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger share-trigger');
@@ -596,7 +596,7 @@ function initMap() {
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.on(div.firstChild, 'click', (e) => {
       L.DomEvent.stop(e);
-      shareView(div.firstChild);
+      openShareSheet();
     });
     return div;
   };

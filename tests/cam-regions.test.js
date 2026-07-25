@@ -12,7 +12,8 @@ const path = require('node:path');
 const { loadApp, loadMapApp } = require('./harness.js');
 
 const { CONFIG, camRegions, camRegionsAll, camRegionId, camRegionKey,
-  CAM_REGION_OTHER, CAM_REGION_MAX_MI, CAM_REGION_ALL, regionLabel } = loadApp();
+  CAM_REGION_OTHER, CAM_REGION_MAX_MI, CAM_REGION_ALL, regionLabel,
+  CAM_STATE_REGIONS, camOutsideId } = loadApp();
 const mapApp = loadMapApp();
 const { CAM_LEGACY_PARAMS, PB_LIVE_HIDE, pbLiveHideAll,
   CAM_ROWS, CAM_SUBGROUPS, initCamRegionRows, camTriState, camParentRows, camParentOn } = mapApp;
@@ -49,11 +50,11 @@ test('camRegionId: longitude is scaled by latitude, so nearest means real distan
   });
 });
 
-test('camRegionId: a camera beyond the guard is named outside the regions, never absorbed', () => {
+test('camRegionId: a camera beyond the guard is named by its own state, never absorbed', () => {
   withRegions(FIXTURE, () => {
     const r = camRegions();
     // the real case this exists for: USGS river cams around Ruidoso NM, ~120 mi from El Paso
-    assert.equal(camRegionId(33.34, -105.73, r), CAM_REGION_OTHER.id);
+    assert.equal(camRegionId(33.34, -105.73, r), 'nm');
     assert.notEqual(camRegionId(33.34, -105.73, r), 'elpaso');
   });
 });
@@ -99,9 +100,94 @@ test('camRegions: config entries without an id, label or usable anchor are dropp
 test('camRegionsAll: the residual bucket is always present and always last', () => {
   withRegions(FIXTURE, () => {
     const all = camRegionsAll();
-    assert.equal(all.length, camRegions().length + 1);
-    assert.equal(all[all.length - 1].id, CAM_REGION_OTHER.id);
+    assert.equal(all.length, camRegions().length + CAM_STATE_REGIONS.length + 1);
+    assert.equal(all[all.length - 1].id, CAM_REGION_OTHER.id,
+      'the residual must stay last, so a camera in no named state is the final row, never a hidden one');
   });
+});
+
+/* ---------- out-of-state buckets ---------- */
+
+test('camOutsideId: the state is read off the coordinates, never off a source list', () => {
+  // the four boxes are disjoint, so a point resolves to exactly one of them
+  assert.equal(camOutsideId(33.34, -105.73), 'nm', 'Ruidoso NM');
+  assert.equal(camOutsideId(36.03, -94.91), 'ok', 'Illinois River near Moodys OK');
+  assert.equal(camOutsideId(34.75, -92.29), 'ar', 'Little Rock AR');
+  assert.equal(camOutsideId(30.45, -91.19), 'la', 'Baton Rouge LA');
+  // nothing about a camera record but its position is consulted
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
+  const fn = src.match(/function camOutsideId\(lat, lon\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'camOutsideId() not found');
+  assert.ok(!/\bsrc\b|camId|httpsurl|nwisId/.test(fn[0]),
+    'the bucket must come from the coordinates, so a new source inherits it without a list');
+});
+
+test('camOutsideId: the state boxes are disjoint, so no point is claimed by two buckets', () => {
+  for (const a of CAM_STATE_REGIONS) {
+    for (const b of CAM_STATE_REGIONS) {
+      if (a.id === b.id) continue;
+      const overlapLat = a.bbox[0][0] < b.bbox[1][0] && b.bbox[0][0] < a.bbox[1][0];
+      const overlapLon = a.bbox[0][1] < b.bbox[1][1] && b.bbox[0][1] < a.bbox[1][1];
+      assert.ok(!(overlapLat && overlapLon), `${a.id} and ${b.id} overlap, so a camera has two homes`);
+    }
+  }
+});
+
+test('a point in no state box keeps the residual, which stays reachable and never disappears', () => {
+  // deep in Mexico: outside every Texas region and outside every state box
+  assert.equal(camOutsideId(24.0, -101.0), CAM_REGION_OTHER.id);
+  withRegions(FIXTURE, () => {
+    assert.equal(camRegionId(24.0, -101.0, camRegions()), CAM_REGION_OTHER.id,
+      'a camera no bucket names must still be counted, never filed under a state it is not in');
+  });
+  const ids = camRegionsAll().map((p) => p.id);
+  assert.ok(ids.includes(CAM_REGION_OTHER.id), 'the residual row must survive the state split');
+});
+
+test('the state boxes never claim a camera the Texas regions already placed', () => {
+  withRegions(EVENT.aoPresets, () => {
+    const r = camRegions();
+    // El Paso sits inside the New Mexico rectangle; the Texas guard runs first, so it stays Texas
+    assert.equal(camRegionId(31.76, -106.49, r), 'elpaso');
+    for (const [lat, lon, want] of [[29.76, -95.37, 'houston'], [32.78, -96.80, 'dfw'],
+      [35.22, -101.83, 'panhandle'], [30.27, -97.74, 'austin']]) {
+      assert.equal(camRegionId(lat, lon, r), want, `${want} camera was pulled out of state`);
+    }
+  });
+});
+
+test('every out-of-state camera the board ships lands in a named state bucket', () => {
+  const cams = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'cameras.json'), 'utf8'));
+  withRegions(EVENT.aoPresets, () => {
+    const r = camRegions();
+    const counts = {};
+    for (const p of camRegionsAll()) counts[p.id] = 0;
+    for (const arr of Object.values(cams)) {
+      if (!Array.isArray(arr)) continue;
+      for (const c of arr) {
+        const id = camRegionId(c.lat, c.lon, r);
+        if (id !== null) counts[id]++;
+      }
+    }
+    const outstate = CAM_STATE_REGIONS.reduce((a, sr) => a + counts[sr.id], 0);
+    assert.ok(outstate > 0, 'the split must actually be carrying the out-of-state cameras');
+    assert.equal(counts[CAM_REGION_OTHER.id], 0,
+      'every out-of-state camera in the inventory should now be named by its state');
+    // and the Texas rows are untouched by the split
+    assert.ok(counts.houston > 100 && counts.dfw > 100, 'a Texas region lost cameras to a state box');
+  });
+});
+
+test('the out-of-state buckets are addressable ids that cannot collide or shadow a region', () => {
+  const cfgIds = EVENT.aoPresets.map((p) => p.id);
+  for (const sr of CAM_STATE_REGIONS) {
+    assert.notEqual(sr.id, CAM_REGION_ALL, 'a bucket id must never be the statewide token');
+    assert.notEqual(sr.id, CAM_REGION_OTHER.id);
+    assert.ok(!cfgIds.includes(sr.id), `${sr.id} collides with a configured region id`);
+    assert.ok(/^[a-z]+$/.test(sr.id), 'ids travel in a URL, so keep them bare');
+    assert.ok(sr.i18nKey && sr.band, `${sr.id} needs a name and a band or it renders as a bare id`);
+    assert.ok(CAM_SUBGROUPS.some(([b]) => b === sr.band), `${sr.id} band is not a rendered group`);
+  }
 });
 
 test('regionLabel: config regions name themselves, the residual takes its name from i18n', () => {
@@ -222,7 +308,8 @@ test('camTriState: on only when every child is on, mixed for any partial, off fo
 // map.js lives in its own sandbox, so the row list and every array it returns come from that realm
 const parentIds = (band) => [...camParentRows(band)].map((r) => r[8].id);
 // the shipped set, read from the config file rather than a sandbox whose presets are not applied yet
-const SHIPPED_IDS = EVENT.aoPresets.map((p) => p.id).concat([CAM_REGION_OTHER.id]);
+const SHIPPED_IDS = EVENT.aoPresets.map((p) => p.id)
+  .concat(CAM_STATE_REGIONS.map((s) => s.id), [CAM_REGION_OTHER.id]);
 
 test('the statewide parent owns every camera region row, including the residual', () => {
   withCamRows([], null, () => {

@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.21 · 2026-07-25 (out-of-state cameras split by state)
+
+-- New Features --
+- [New] Cameras outside the Texas regions are grouped by the state they sit in:
+      New Mexico, Oklahoma, Arkansas and Louisiana, each with its own layer and
+      its own switch, under a new Outside Texas group
+- [New] The new group carries the same switches as the Texas bands, including
+      the partial state when only some of its regions are on
+
+-- Changes --
+- [Change] A camera's group comes from its own coordinates, so a camera added
+           upstream lands in the right one with no list to keep up to date
+- [Change] Anything that falls in no named state keeps the residual row, still
+           counted and still shareable in a link
+- [Change] Each new row states how many cameras it holds and how many of those
+           are live video, as the Texas rows do
+- [Change] Camera sub-category headings in the layers view now use the same type
+           as every other heading in that sheet, and set their own tap-target
+           height instead of borrowing it from the switch beside them
+
 ## v0.99.20 · 2026-07-25 (one hazard line at the top, not two)
 
 -- Changes --

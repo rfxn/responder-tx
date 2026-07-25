@@ -488,7 +488,7 @@ function initMap() {
     const lyr = camGroup();
     state.layers[camRegionKey(p.id)] = lyr;
     state.camLayerList.push(lyr);
-    camOverlays[`Cameras: ${p.label || p.id}`] = lyr;
+    camOverlays[`Cameras: ${regionLabel(p, getLang())}`] = lyr; // code-side buckets name themselves via i18n, never by bare id
   }
   initCamRegionRows(); // sheet rows + pills share the same region list as the layers just built
   L.control.layers({
@@ -1011,6 +1011,7 @@ const CAM_SUBGROUPS = [
   ['central', 'sheet.g.cams.central'],
   ['north', 'sheet.g.cams.north'],
   ['west', 'sheet.g.cams.west'],
+  ['outstate', 'sheet.g.cams.outstate'],
 ];
 
 // region camera rows + pills, built from data/event.json once the event config is applied

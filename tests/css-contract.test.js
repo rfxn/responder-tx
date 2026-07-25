@@ -329,9 +329,31 @@ test('the open-shelter count kept a home the resident reaches, outside the hazar
   assert.ok(!/[Ss]helter/.test(ticker[0]), 'a shelter count leaked into the hazard line');
 });
 
-/* The camera band parent sits beside a 34px disclosure header. It is a real toggle, so it carries
-   the same floor as every other control a gloved thumb has to hit, and it must express its third
-   state by the knob's position rather than by colour alone. */
+/* The camera band parent is a real toggle, so it carries the same floor as every other control a
+   gloved thumb has to hit, and it must express its third state by the knob's position rather than
+   by colour alone. The disclosure beside it declares its own floor (see the sub-header test). */
+/* The camera bands are the sheet's only sub-category headers. Everything about them that is not
+   genuinely new (the disclosure and the parent toggle) follows .ls-group, the one header idiom the
+   sheet already had, instead of inventing a type step of its own. */
+test('the camera sub-category header follows the sheet header convention and declares its own floor', () => {
+  const rule = (sel) => {
+    const i = CSS.indexOf(`${sel} {`);
+    return i === -1 ? '' : CSS.slice(i, CSS.indexOf('}', i));
+  };
+  const group = rule('.ls-group');
+  const head = rule('.ls-subhead');
+  assert.notEqual(head, '', '.ls-subhead rule not found');
+  for (const prop of ['font-size', 'font-weight', 'letter-spacing', 'text-transform']) {
+    const want = new RegExp(`${prop}:\\s*([^;]+)`).exec(group);
+    assert.ok(want, `.ls-group has no ${prop} to match`);
+    assert.ok(new RegExp(`${prop}:\\s*${want[1].trim()}\\s*[;\\n]`).test(head),
+      `.ls-subhead ${prop} diverges from .ls-group (${want[1].trim()})`);
+  }
+  // the floor must be its own, not inherited from whichever sibling happens to sit beside it
+  assert.ok(/min-height:\s*44px/.test(head),
+    'the sub-header must declare 44px itself; a 34px declaration only reached the floor via .ls-camband');
+});
+
 test('the camera parent toggles are 44px targets and state partial by position', () => {
   const band = CSS.slice(CSS.indexOf('.ls-camband {'), CSS.indexOf('}', CSS.indexOf('.ls-camband {')));
   assert.notEqual(band, '', '.ls-camband rule not found');

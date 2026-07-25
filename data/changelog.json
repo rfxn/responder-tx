@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.21",
+      "date": "2026-07-25",
+      "line": "Cameras outside the Texas regions are now split by state instead of sharing one row. New Mexico, Oklahoma, Arkansas and Louisiana each get their own layer and switch under a new Outside Texas group, so you can open just the side of the Sabine, the Red River or the Rio Grande you are working. A camera's group is read from its own coordinates, and anything that falls in no named state keeps a residual row that is still counted and still shareable. The camera headings in the layers view now match the other headings in that sheet."
+    },
+    {
       "v": "v0.99.20",
       "date": "2026-07-25",
       "line": "The top of the board carries one hazard line now, not two. The row of status counts above the tabs is gone: the scrolling hazard line already names each ranked item with its place, level and rate, so the counts repeated it. The open-shelter count moved into the header, one tap from the shelters and hotlines sheet. The all-clear line stays and shows whenever the hazard line has nothing to carry, so a calm board still says it is calm."

@@ -2079,16 +2079,19 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .ls-row:disabled, .ls-base-btn:disabled, .ls-reset:disabled { opacity: 0.45; cursor: default; }
 /* nested child row (reopenings under road closures) — indent + a subtle left connector to read as nested */
 .ls-child { margin-left: 22px; width: calc(100% - 22px); border-left: 2px solid var(--accent); }
+/* A camera band is a sub-category header, so it takes the sheet's one header idiom (.ls-group
+   above) rather than a type step of its own. The disclosure and the 44px floor are its own: the
+   floor is declared here, not inherited from whatever sibling happens to sit beside it. */
 .ls-subhead {
   display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
-  min-height: 34px; padding: 4px 8px; margin-top: 6px;
+  min-height: 44px; padding: 4px 8px; margin-top: 6px;
   background: transparent; border: 0; color: var(--ink-muted);
-  font-size: 12px; font-weight: 700; touch-action: manipulation;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  touch-action: manipulation;
 }
 .ls-sub-caret { display: inline-block; transition: transform 0.15s; }
 .ls-subhead[aria-expanded="true"] .ls-sub-caret { transform: rotate(90deg); }
-.ls-sub-name { letter-spacing: 0.03em; }
-.ls-sub-count { margin-left: auto; font-weight: 600; color: var(--accent); }
+.ls-sub-count { margin-left: auto; font-weight: 700; color: var(--accent); }
 .ls-subrows[hidden] { display: none; }
 /* band header row: the disclosure and its parent toggle are siblings, so each is its own target.
    align-items: stretch gives the disclosure the full 44px height the toggle sets. */

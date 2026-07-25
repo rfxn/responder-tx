@@ -124,6 +124,7 @@ const EXPORTS = [
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
   'camRegions', 'camRegionsAll', 'camRegionId', 'camRegionKey', 'CAM_REGION_OTHER', 'CAM_REGION_MAX_MI', 'CAM_REGION_ALL', 'regionLabel',
+  'CAM_STATE_REGIONS', 'camOutsideId', 'inCamBbox',
   'camIsLive', 'CAM_NETS', 'CAM_STALE_MINS',
   'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges', 'pushFixKey',
 ];

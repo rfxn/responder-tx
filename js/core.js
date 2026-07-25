@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.20';
+const APP_VERSION = 'v0.99.21';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -123,9 +123,29 @@ function camRegions() {
 /* The residual bucket. Nearest-anchor alone would fold a camera 145 mi into New Mexico onto the
    Panhandle row and call it Texas, which is a silent drop wearing a region's name. Anything beyond
    CAM_REGION_MAX_MI of every anchor is named as outside the regions instead, and counted. */
-const CAM_REGION_OTHER = { id: 'other', i18nKey: 'cams.region.other', band: 'west' };
+const CAM_REGION_OTHER = { id: 'other', i18nKey: 'cams.region.other', band: 'outstate' };
 const CAM_REGION_MAX_MI = 100;
 const MI_PER_DEG_LAT = 69;
+
+/* One bucket per neighbouring state, so an operator working the Sabine, the Red River or the Rio
+   Grande can open just the side they care about. The state is read off the camera's own
+   coordinates, never off a source list, so a source added upstream inherits its bucket. These
+   boxes are consulted only after the Texas guard above has already rejected the point, which is
+   why they may overlap Texas at the El Paso notch without ever claiming a Texas camera. */
+const CAM_STATE_REGIONS = [
+  { id: 'nm', i18nKey: 'cams.region.nm', band: 'outstate', bbox: [[31.33, -109.05], [37.00, -103.00]] },
+  { id: 'ok', i18nKey: 'cams.region.ok', band: 'outstate', bbox: [[33.62, -103.00], [37.00, -94.43]] },
+  { id: 'ar', i18nKey: 'cams.region.ar', band: 'outstate', bbox: [[33.00, -94.43], [36.50, -89.64]] },
+  { id: 'la', i18nKey: 'cams.region.la', band: 'outstate', bbox: [[28.92, -94.05], [33.00, -88.75]] },
+];
+
+const inCamBbox = (lat, lon, b) => lat >= b[0][0] && lat <= b[1][0] && lon >= b[0][1] && lon <= b[1][1];
+
+// a point no Texas region claims: name the state it sits in, or keep it in the honest residual
+function camOutsideId(lat, lon) {
+  for (const s of CAM_STATE_REGIONS) if (inCamBbox(lat, lon, s.bbox)) return s.id;
+  return CAM_REGION_OTHER.id;
+}
 
 // nearest anchor wins; the anchor set tiles Texas, so every in-state camera lands in exactly one
 // region. Longitude is scaled by cos(lat) so the comparison is real distance, not degrees.
@@ -141,12 +161,12 @@ function camRegionId(lat, lon, regions) {
       if (d < bestD) { bestD = d; best = p.id; }
     }
   }
-  if (best === null) return CAM_REGION_OTHER.id; // no usable anchors: still reachable, never dropped
-  return Math.sqrt(bestD) * MI_PER_DEG_LAT > CAM_REGION_MAX_MI ? CAM_REGION_OTHER.id : best;
+  if (best === null) return camOutsideId(lat, lon); // no usable anchors: still reachable, never dropped
+  return Math.sqrt(bestD) * MI_PER_DEG_LAT > CAM_REGION_MAX_MI ? camOutsideId(lat, lon) : best;
 }
 
-// the rows/layers cameras can land in: the configured regions plus the residual bucket
-const camRegionsAll = () => camRegions().concat([CAM_REGION_OTHER]);
+// the rows/layers cameras can land in: configured regions, the state buckets, then the residual
+const camRegionsAll = () => camRegions().concat(CAM_STATE_REGIONS, [CAM_REGION_OTHER]);
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
 const LSR_FLOOD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE/i;

@@ -64,10 +64,21 @@ CAM_BYTES_SOURCES = {
     # NMDOT publishes its snapshots over plain HTTP only. That never reaches the browser: this is a
     # server-side fetch and the response is re-served same-origin, so no mixed content is possible.
     'nmdot': (re.compile(r'^[A-Za-z0-9_-]{4,32}$'), 'http://ss.nmroads.com/snapshots/{id}.jpg'),
+    # NPS: {park}-{cam}. Two fixed paths on one pinned host — the park webcam tree, and the
+    # air-resources tree that Big Bend alone publishes through. Resolved by a callable, not a format.
+    'nps': (re.compile(r'^[a-z]{3,4}-[A-Za-z0-9]{1,32}$'), lambda cid: _cam_nps_url(cid)),
 }
 # NMDOT rewrites each snapshot file in place, so a fetch landing mid-write answers 404 or 500 on a
 # camera that is up. Retry only where the upstream is known to do it; must match the edge Function.
 CAM_BYTES_ATTEMPTS = {'nmdot': 3}
+CAM_NPS_IMG = 'https://www.nps.gov/webcams-{park}/{cam}.jpg'
+CAM_NPS_ARD_IMG = 'https://www.nps.gov/featurecontent/ard/webcams/images/{cam}.jpg'
+CAM_NPS_ARD_PARK = 'ard'  # id prefix routing to the air-resources path; no park code collides with it
+
+
+def _cam_nps_url(cid):
+    park, _, cam = cid.partition('-')
+    return (CAM_NPS_ARD_IMG if park == CAM_NPS_ARD_PARK else CAM_NPS_IMG).format(park=park, cam=cam)
 # WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped filename
 # back from now. The stamp is station-local (America/Chicago) wall time. Resolving against the
 # site's own camera index is deliberately avoided: that list is ranked by the requester's
@@ -292,7 +303,7 @@ class Handler(SimpleHTTPRequestHandler):
         entry = hit if hit and now - hit[0] < CAM_TTL else None
         if entry is None:
             pid, _, sid = cid.partition('-')  # composite id: {pid}-{sid} for hays; single-id sources ignore pid/sid
-            url = tmpl.format(id=urllib.parse.quote(cid, safe=''), pid=pid, sid=sid)
+            url = tmpl(cid) if callable(tmpl) else tmpl.format(id=urllib.parse.quote(cid, safe=''), pid=pid, sid=sid)
             jpeg = stamp = None
             for _ in range(CAM_BYTES_ATTEMPTS.get(source, 1)):
                 try:

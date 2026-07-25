@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.33",
+      "date": "2026-07-25",
+      "line": "Six National Park Service cameras join the camera layer, in places the board had no camera at all. Lake Meredith from Sanford Dam, the Sanford-Yake area and the Alibates visitor center cover the Canadian River in the Panhandle. Diablo East looks over Amistad Reservoir on the Rio Grande above Del Rio, Malaquite Beach covers Padre Island, and Panther Junction covers Big Bend. The Park Service does not publish where its cameras stand, so each one is placed on the named park facility it looks from and the viewer says that plainly rather than implying a measured position."
+    },
+    {
       "v": "v0.99.32",
       "date": "2026-07-25",
       "line": "Twenty five New Mexico DOT cameras join the camera layer. They cover the road and river corridor that runs into Texas: I-10 from the Arizona line, I-25 and I-10 through the Mesilla Valley at Las Cruces where the Rio Grande passes on its way to El Paso, and US 70 at Apache Summit and Organ Mountain Pass. Cameras far up the Rio Grande above Elephant Butte Reservoir are not carried, because the reservoir separates them from the river that reaches Texas. Each one reports a real capture time and ages on the map like every other snapshot."

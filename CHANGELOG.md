@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.33 · 2026-07-25 (National Park Service cameras)
+
+-- New Features --
+- [New] Six National Park Service cameras join the camera layer: Lake Meredith
+      from Sanford Dam, the Sanford-Yake area and the Alibates visitor center in
+      the Panhandle, Diablo East on Amistad Reservoir, Malaquite Beach on Padre
+      Island, and Panther Junction in Big Bend
+- [Change] These cameras are placed on the park facility they look from. The
+           Park Service publishes no camera position, and the viewer says so
+
 ## v0.99.32 · 2026-07-25 (southern New Mexico cameras)
 
 -- New Features --

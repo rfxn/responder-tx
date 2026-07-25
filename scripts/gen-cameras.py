@@ -7,10 +7,10 @@ Channel wharf and air-draft cams, ATX Floods low-water-crossing flood cams,
 plus Hays County OES flood cams (CameraFTP/DriveHQ stills, San Marcos
 corridor), Saltwater Recon Gulf Coast cams and City of Corpus Christi cams
 (both Ozolio posters, which publish no capture time), City of Lubbock signal
-cameras, WeatherBug weather-camera stills, and NMDOT cameras on the southern
-New Mexico reach that drains into Texas. Hand-maintained sources are
-liveness-checked at gen time. Run at build time; the inventory is near-static,
-so the output is committed. Stdlib only."""
+cameras, WeatherBug weather-camera stills, NMDOT cameras on the southern New
+Mexico reach that drains into Texas, and National Park Service park cams.
+Hand-maintained sources are liveness-checked at gen time. Run at build time;
+the inventory is near-static, so the output is committed. Stdlib only."""
 
 import email.utils
 import http.client
@@ -120,6 +120,22 @@ WB_REC_RE = re.compile(
 LUBBOCK = 'https://pubgis.ci.lubbock.tx.us/server/rest/services/Traffic_Cameras/MapServer/0/query?where=1%3D1&outFields=ASSETNO,STREET,AVENUE,TxDOTNAME&returnGeometry=true&outSR=4326&f=json'
 LUBBOCK_IMG = 'https://ewebmap.ci.lubbock.tx.us/TrafficCam/Images/{id}.jpg'
 LUBBOCK_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/lubbock proxy validator
+NPS_IMG = 'https://www.nps.gov/webcams-{park}/{cam}.jpg'
+NPS_ARD_IMG = 'https://www.nps.gov/featurecontent/ard/webcams/images/{cam}.jpg'
+NPS_ARD_PARK = 'ard'  # id prefix routing to the air-resources path; no park code collides with it
+NPS_ID_RE = re.compile(r'^[a-z]{3,4}-[A-Za-z0-9]{1,32}$')  # mirrors the /api/cam/nps proxy validator
+# National Park Service cameras, public domain. NPS publishes no coordinate for any of them, so each
+# is hand-placed on the named facility it looks from, sourced from a gazetteer or OSM record; the
+# citations are in CAMERA-SOURCES-RESEARCH.md and the layer note says the position is the facility.
+# The API is deliberately not used: it needs a key, and its images[] field is a promo crop.
+NPS_CAMS = (
+    {'name': 'Lake Meredith from Sanford Dam', 'lat': 35.714105, 'lon': -101.552242, 'id': 'lamr-LAMR2'},
+    {'name': 'Sanford-Yake area, Lake Meredith', 'lat': 35.706121, 'lon': -101.561763, 'id': 'lamr-LAMR1'},
+    {'name': 'Alibates Flint Quarries visitor center', 'lat': 35.579319, 'lon': -101.703340, 'id': 'lamr-LAMR3'},
+    {'name': 'Diablo East boat ramp, Amistad Reservoir', 'lat': 29.477891, 'lon': -101.016670, 'id': 'amis-camera0'},
+    {'name': 'Malaquite Beach, Padre Island', 'lat': 27.424250, 'lon': -97.299080, 'id': 'pais-camera'},
+    {'name': 'Panther Junction, Big Bend', 'lat': 29.328533, 'lon': -103.205173, 'id': 'ard-bibe'},
+)
 NMDOT = 'https://servicev5.nmroads.com/RealMapWAR/GetCameraInfo'
 # HTTP-only snapshot host. That is fine behind the server-side proxy and never reaches the browser;
 # the HTTPS alternative on servicev5 publishes no Last-Modified, so it could not be aged honestly.
@@ -667,6 +683,36 @@ def lubbock_cams():
     return sorted(cams, key=lambda c: int(c['id']))
 
 
+def jpeg_frame_age_twice(url):
+    # one transient miss is not a dead camera; mirrors live_twice for the sources that carry an age
+    age = jpeg_frame_age(url)
+    return jpeg_frame_age(url) if age is None else age
+
+
+def nps_url(cid):
+    park, _, cam = cid.partition('-')
+    return (NPS_ARD_IMG if park == NPS_ARD_PARK else NPS_IMG).format(park=park, cam=cam)
+
+
+def nps_cams():
+    cams, noimg, dead = [], 0, 0
+    for c in NPS_CAMS:
+        if not NPS_ID_RE.match(c['id']):  # an id the strict proxy would reject is never emitted
+            continue
+        age = jpeg_frame_age_twice(nps_url(c['id']))
+        if age is None:
+            noimg += 1
+            print(f"NPS: {c['name']} serves no dated image, dropped")
+            continue
+        if age > CAM_MAX_AGE_D:
+            dead += 1
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id']})
+    print(f'NPS: {len(cams)}/{len(NPS_CAMS)} park cameras kept '
+          f'({noimg} serve no dated image, {dead} last posted over {CAM_MAX_AGE_D}d ago)')
+    return sorted(cams, key=lambda c: c['name'])
+
+
 def nmdot_cams():
     xmin, ymin, xmax, ymax = NMDOT_BBOX
     rows, seen = [], set()
@@ -692,12 +738,9 @@ def nmdot_cams():
         rows.append({'name': f'{title} · New Mexico', 'lat': lat, 'lon': lon, 'id': cid})
     cams, noimg, dead = [], 0, 0
     for c in rows:
-        url = NMDOT_IMG.format(id=c['id'])
         # snapshots are rewritten in place, so a fetch landing mid-write answers 404 or 500 on a
         # live camera; the same retry the proxies use decides liveness here
-        age = jpeg_frame_age(url)
-        if age is None:
-            age = jpeg_frame_age(url)
+        age = jpeg_frame_age_twice(NMDOT_IMG.format(id=c['id']))
         if age is None:
             noimg += 1
             continue
@@ -839,8 +882,9 @@ def main():
     lu = lubbock_cams()  # inventory is every signal, so the camera set is settled by image + frame age
     wb = weatherbug_cams()  # no 'latest' URL: liveness is a walk back through the minute-stamped filenames
     nm = nmdot_cams()  # clipped to the southern reach; liveness is the frame age on the snapshot host
+    np = nps_cams()  # hand-placed 6-cam list; liveness is the frame age on the park still
     # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays/corpus floors are 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5), ('nmdot', nm, 10)):
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5), ('nmdot', nm, 10), ('nps', np, 3)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -862,6 +906,7 @@ def main():
             'lubbock': 'Traffic cameras: City of Lubbock, Texas',
             'weatherbug': 'Weather cameras: WeatherBug (Earth Networks) and the hosting sites',
             'nmdot': 'Traffic cameras: New Mexico DOT (NM Roads), southern New Mexico',
+            'nps': 'Park cameras: National Park Service (public domain); position is the park facility, not a surveyed camera point',
         },
         'txdot': tx + its,
         'river': rv,
@@ -877,6 +922,7 @@ def main():
         'lubbock': lu,
         'weatherbug': wb,
         'nmdot': nm,
+        'nps': np,
     }
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:
@@ -891,7 +937,7 @@ def main():
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
           f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, '
           f'{len(ph)} Port Houston cams, {len(sw)} Saltwater Recon coastal cams, {len(co)} Corpus Christi cams, '
-          f'{len(lu)} Lubbock city cams, {len(wb)} WeatherBug cams, {len(nm)} NMDOT cams, {os.path.getsize(OUT)} bytes')
+          f'{len(lu)} Lubbock city cams, {len(wb)} WeatherBug cams, {len(nm)} NMDOT cams, {len(np)} NPS park cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

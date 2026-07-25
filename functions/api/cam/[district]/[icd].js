@@ -28,6 +28,18 @@ const BYTES_SOURCES = {
   // server-side subrequest and the bytes are re-served same-origin, so no mixed content is possible.
   // The file is rewritten in place, so a fetch landing mid-write answers 404 or 500 on a live camera.
   nmdot: { idRe: /^[A-Za-z0-9_-]{4,32}$/, attempts: 3, url: (id) => `http://ss.nmroads.com/snapshots/${id}.jpg` },
+  // NPS: {park}-{cam}. Two fixed paths on one pinned host — the park webcam tree, and the
+  // air-resources tree that Big Bend alone publishes through.
+  nps: {
+    idRe: /^[a-z]{3,4}-[A-Za-z0-9]{1,32}$/,
+    url: (id) => {
+      const cut = id.indexOf('-');
+      const park = id.slice(0, cut), cam = id.slice(cut + 1);
+      return park === 'ard'
+        ? `https://www.nps.gov/featurecontent/ard/webcams/images/${cam}.jpg`
+        : `https://www.nps.gov/webcams-${park}/${cam}.jpg`;
+    },
+  },
 };
 
 // WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped

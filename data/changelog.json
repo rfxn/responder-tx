@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.98.11",
+      "date": "2026-07-25",
+      "line": "The public site was still sending every visitor the form that operators use to file a field report, even though that form has been switched off there since last week and could not have submitted anything: there is no operations server behind the public site to receive it. It was about forty-five lines of hidden form arriving with every page load, on every phone, for nobody. The public copy of the page is now built without it. The operator build on the local network keeps the form exactly as it was and still files notices. Getting there meant teaching every part of the board that reads that form to cope with it simply not being there, instead of assuming it always is, and the release check now refuses to publish if that form ever reaches the public copy by accident."
+    },
+    {
       "v": "v0.98.10",
       "date": "2026-07-25",
       "line": "The board refreshes its own data every fifteen minutes: it pulls the gauges, rebuilds the playback record and the crest summary, checks the result and publishes it, all without anyone watching. Until now that job ran whatever version of those tools happened to be sitting on the ops machine, including a change someone was still in the middle of writing. Three times in one night that is exactly what happened, and once it stopped a refresh from publishing at all, so the public board sat thirty minutes behind a live river. The refresh now runs only the version of those tools that has been committed and tested, and the data it works on is still the current data, so re-pointing the board at a new river or a new event takes effect on the very next refresh with no release involved. Separately, the check that confirms the private operations files never reach the public site was asking in a way that skipped the cache, which answered for the server rather than for a real visitor. It now asks both ways and says plainly when the network cache is still handing out a file the site itself no longer has."

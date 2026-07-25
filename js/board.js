@@ -366,7 +366,8 @@ function submitRequest(ev) {
   shareNoticeToLan(r);
   ev.target.reset();
   state.pendingLatLng = null;
-  $('#new-request-form').classList.remove('open');
+  const form = $('#new-request-form'); // absent on the public mirror: deploy.sh strips the markup
+  if (form) form.classList.remove('open');
   renderRequests();
 }
 

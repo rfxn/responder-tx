@@ -210,7 +210,8 @@ function rolloverBusy() {
     if (el && !el.hidden) return id;
   }
   if (!$('#playback-bar').hidden) return 'playback';
-  if ($('#new-request-form').classList.contains('open')) return 'intake';
+  const intakeForm = $('#new-request-form'); // absent on the public mirror: deploy.sh strips the markup
+  if (intakeForm && intakeForm.classList.contains('open')) return 'intake';
   if ($('#hsearch').classList.contains('open')) return 'search';
   const chatPanel = document.getElementById('chat-panel');
   if (chatPanel && !chatPanel.hidden) return 'chat';
@@ -784,31 +785,36 @@ async function boot() {
 
   $('#glossary-close').addEventListener('click', () => { $('#glossary-modal').hidden = true; });
   $('#glossary-modal').addEventListener('click', (e) => { if (e.target.id === 'glossary-modal') $('#glossary-modal').hidden = true; });
-  $('#toggle-form').addEventListener('click', () => {
-    const open = $('#new-request-form').classList.toggle('open');
-    if (open && window.teamDisarmDrop) window.teamDisarmDrop(); // intake pin-drop and F4 tap-to-locate are mutually exclusive
-    // pin-drop needs the map on screen — phones scroll it into view when intake opens
-    if (open && window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
-  });
-  // owner: "New notice" intake suppressed by default; ?intake=1 reveals it (code + form kept intact)
-  if (new URLSearchParams(location.search).has('intake')) $('#toggle-form').hidden = false;
-  // radio-relayed coords arrive as text — typed "lat, lon" is a first-class pin source
-  $('#f-latlon').addEventListener('change', () => {
-    const raw = $('#f-latlon').value.trim();
-    if (!raw) { state.pendingLatLng = null; return; }
-    const m = raw.match(/(-?\d{1,2}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)/);
-    const lat = m ? +m[1] : NaN, lng = m ? +m[2] : NaN;
-    if (!m || !(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) {
-      $('#f-latlon').value = 'unparsed; type decimal "lat, lon"';
-      state.pendingLatLng = null;
-      return;
-    }
-    state.pendingLatLng = L.latLng(lat, lng);
-    $('#f-latlon').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    state.map.setView(state.pendingLatLng, Math.max(state.map.getZoom(), 11));
-  });
-  $('#f-geocode').addEventListener('click', geocodePlace);
-  $('#new-request-form').addEventListener('submit', submitRequest);
+  // field intake is operator-only markup: deploy.sh strips it from the public artifact, where the
+  // form is unreachable anyway, so every binding below is conditional on it being in the document
+  const intakeBtn = $('#toggle-form'), intakeForm = $('#new-request-form');
+  if (intakeBtn && intakeForm) {
+    intakeBtn.addEventListener('click', () => {
+      const open = intakeForm.classList.toggle('open');
+      if (open && window.teamDisarmDrop) window.teamDisarmDrop(); // intake pin-drop and F4 tap-to-locate are mutually exclusive
+      // pin-drop needs the map on screen: phones scroll it into view when intake opens
+      if (open && window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+    });
+    // owner: "New notice" intake suppressed by default; ?intake=1 reveals it (code + form kept intact)
+    if (new URLSearchParams(location.search).has('intake')) intakeBtn.hidden = false;
+    // radio-relayed coords arrive as text, so typed "lat, lon" is a first-class pin source
+    $('#f-latlon').addEventListener('change', () => {
+      const raw = $('#f-latlon').value.trim();
+      if (!raw) { state.pendingLatLng = null; return; }
+      const m = raw.match(/(-?\d{1,2}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)/);
+      const lat = m ? +m[1] : NaN, lng = m ? +m[2] : NaN;
+      if (!m || !(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) {
+        $('#f-latlon').value = 'unparsed; type decimal "lat, lon"';
+        state.pendingLatLng = null;
+        return;
+      }
+      state.pendingLatLng = L.latLng(lat, lng);
+      $('#f-latlon').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      state.map.setView(state.pendingLatLng, Math.max(state.map.getZoom(), 11));
+    });
+    $('#f-geocode').addEventListener('click', geocodePlace);
+    intakeForm.addEventListener('submit', submitRequest);
+  }
   $('#export-btn').addEventListener('click', exportRequests);
   $('#export-geo-btn').addEventListener('click', exportGeoJSON);
   $('#caltopo-btn').addEventListener('click', toggleCaltopoBox);
@@ -941,8 +947,9 @@ async function boot() {
   // with no LAN write endpoint a filed notice saves to this device and reaches nobody, so the
   // board withdraws the form rather than accepting a report it cannot deliver
   const withdrawIntake = () => {
-    $('#toggle-form').hidden = true;
-    $('#new-request-form').classList.remove('open');
+    const btn = $('#toggle-form'), form = $('#new-request-form'); // both absent on the public mirror
+    if (btn) btn.hidden = true;
+    if (form) form.classList.remove('open');
   };
   const loadScript = (src) => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s); };
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {

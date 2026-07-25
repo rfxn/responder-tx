@@ -1,5 +1,39 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.11 · 2026-07-25 (the public mirror stops shipping the intake form)
+
+-- Changes --
+- [Change] The field-report intake form is operator-only markup and now leaves
+           the public artifact entirely. Since v0.98.6 the mirror has withdrawn
+           its entry point and refused submit, because no ops backend answers
+           there, but 45 lines of form still shipped in every public page load.
+           index.html wraps the entry-point button and the form in
+           lan-only:intake markers and deploy.sh removes both regions from the
+           upload directory, alongside the js/chat.js, js/master.js,
+           js/notes.js, css/notes.css, scripts/ and server.py strips it already
+           performs. HEAD keeps the markup whole, so the LAN operator build
+           files notices exactly as before.
+- [Change] Every reader of #new-request-form and #toggle-form now tolerates the
+           element being absent instead of throwing. That is what makes the
+           strip possible: boot.js bound a submit listener at boot and read the
+           form's open state for the update-rollover gate, and map.js, board.js
+           and team.js each read it too, so removing the markup by text alone
+           killed boot on the first null dereference. The intake wiring in
+           boot.js is now one conditional block, and ?intake on the mirror is a
+           no-op rather than a page error.
+
+-- New Features --
+- [New] The strip is asserted on its result, in both directions: HEAD's
+      index.html must still carry #new-request-form, and the artifact must
+      carry neither the form, the button, nor a marker. Markup left unmarked
+      therefore fails the deploy instead of shipping, which a region count
+      alone would have missed. tests/deploy.test.sh adds three cases against a
+      fixture that now carries realistic marked intake markup, one of them a
+      mutation with the markers deleted; tests/team-tab-gate.test.js adds three
+      more, pinning the markers in the real index.html, a repo-wide sweep for
+      unguarded intake dereferences, and rolloverBusy reading idle rather than
+      throwing when the form was stripped.
+
 ## v0.98.10 · 2026-07-25 (the data cycle runs committed code)
 
 -- Bug Fixes --

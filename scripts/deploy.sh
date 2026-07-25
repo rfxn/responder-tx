@@ -123,6 +123,22 @@ command rm -f "$deploy_dir/server.py"
 command rm -f "$deploy_dir/.gitignore"
 printf '{"messages":[]}\n' > "$deploy_dir/data/chat-outbox.json"
 
+# the field-report intake is operator-only: the mirror has no write endpoint, so boot.js withdraws
+# the form there and submit is refused. Ship no markup a public visitor can never reach.
+python3 - "$deploy_dir/index.html" <<'PY' || fail "intake markup strip failed on the deploy index.html"
+import re, sys
+
+path = sys.argv[1]
+with open(path, encoding='utf-8') as fh:
+    src = fh.read()
+out, n = re.subn(r'[ \t]*<!-- lan-only:intake -->.*?<!-- /lan-only:intake -->[ \t]*\n', '', src, flags=re.S)
+if 'lan-only:intake' in out:
+    sys.exit('unbalanced lan-only:intake marker left in index.html after removing %d region(s)' % n)
+print('intake strip: removed %d lan-only:intake region(s) from the deploy index.html' % n)
+with open(path, 'w', encoding='utf-8') as fh:
+    fh.write(out)
+PY
+
 # --- Strip-verify before upload ---
 [ ! -e "$deploy_dir/js/chat.js" ] || fail "js/chat.js still present in deploy dir"
 [ ! -e "$deploy_dir/js/master.js" ] || fail "js/master.js still present in deploy dir"
@@ -146,13 +162,20 @@ fi
 if grep -q 'js/master\.js\|js/chat\.js\|js/notes\.js\|css/notes\.css' "$deploy_dir/index.html"; then
     fail "stripped client (chat/master/notes) statically referenced in deploy index.html"
 fi
+# the intake strip is asserted on its result, both ways: HEAD must still carry the form (the LAN
+# operator build depends on it) and the artifact must not (a no-op strip cannot pass unnoticed)
+grep -q 'id="new-request-form"' "$SRC/index.html" \
+    || fail "HEAD index.html has no #new-request-form; the LAN operator build lost its intake form"
+if grep -q 'id="new-request-form"\|id="toggle-form"\|lan-only:intake' "$deploy_dir/index.html"; then
+    fail "field-intake markup still present in the deploy index.html"
+fi
 [ -f "$deploy_dir/sw.js" ] || fail "sw.js missing from deploy dir"
 if grep -q 'js/chat\.js\|js/master\.js\|js/notes\.js\|css/notes\.css' "$deploy_dir/sw.js"; then
     fail "stripped client (chat/master/notes) precached in deploy sw.js"
 fi
 archive_version=$(grep -oP "APP_VERSION = '\K[^']+" "$deploy_dir/js/core.js") || fail "cannot extract APP_VERSION from the deploy dir"
 [ "$archive_version" = "$version" ] || fail "deploy dir APP_VERSION is '${archive_version}', expected the gated HEAD value '${version}'"
-echo "strip-verify OK: ${version} archive, chat + master + notes + ops-scripts absent from ${deploy_dir}"
+echo "strip-verify OK: ${version} archive, chat + master + notes + ops-scripts + field-intake markup absent from ${deploy_dir}"
 
 if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
     echo "OK: pre-flight only, stopping before push/deploy"

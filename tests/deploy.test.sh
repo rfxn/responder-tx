@@ -12,6 +12,8 @@
 #   9 the strip gate reports the CDN edge, not just the origin (v0.98.10): every stripped path
 #     is asked for twice, and an edge still serving one warns by name without failing the deploy
 #  10 a stripped path still live at the ORIGIN is a release defect and still fails
+#  12 the field-intake markup is stripped from the artifact and kept whole at HEAD (v0.98.11),
+#     and markup left unmarked fails the deploy rather than shipping
 # A scratch git repo, a stub wrangler, and a local bare remote keep the real repo
 # and the real Pages project untouched. Run: bash tests/deploy.test.sh
 set -uo pipefail
@@ -32,11 +34,23 @@ setup() {  # fresh scratch repo at v1.0.0 with a bare origin, a stub wrangler, a
     mkdir -p "$REPO"/{js,data,scripts,tests,functions/api} "$WORK/bin"
 
     printf "%s\n" "const APP_VERSION = 'v1.0.0';" > "$REPO/js/core.js"
+    # the intake markup and its markers are part of the fixture: the strip gate is asserted on the
+    # artifact, so a fixture without them would let a no-op strip pass every test below
     printf '%s\n' \
         '<!doctype html><html><head>' \
         '<link rel="stylesheet" href="css/app.css?v=1.0.0">' \
         '<script src="js/core.js?v=1.0.0"></script>' \
-        '</head><body>board</body></html>' > "$REPO/index.html"
+        '</head><body>board' \
+        '<div class="feed-actions">' \
+        '  <!-- lan-only:intake -->' \
+        '  <button id="toggle-form" hidden>New notice</button>' \
+        '  <!-- /lan-only:intake -->' \
+        '  <button id="sitrep-btn">SITREP</button>' \
+        '</div>' \
+        '<!-- lan-only:intake -->' \
+        '<form id="new-request-form"><input id="f-place"><button type="submit">Add</button></form>' \
+        '<!-- /lan-only:intake -->' \
+        '</body></html>' > "$REPO/index.html"
     printf "%s\n" "const SW_VERSION = '1.0.0';" > "$REPO/sw.js"
     printf '%s\n' '{"versions":[{"v":"v1.0.0","d":"2026-07-24","items":[]}]}' > "$REPO/data/changelog.json"
     printf '%s\n' '## v1.0.0 (2026-07-24)' '' '- [New] fixture release' > "$REPO/CHANGELOG.md"
@@ -292,6 +306,46 @@ if [ "$RC" -eq 0 ] \
     pass "11 a clean edge and origin report one line and no warning"
 else
     fail "11 clean strip gate reports both halves (rc=${RC})"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 12-14: the field-intake markup is operator-only and must not reach the mirror --------
+# ~45 lines of intake form shipped to every public page load while being unreachable there since
+# v0.98.6 (entry point withdrawn, submit refused with no ops backend). The markup is now stripped
+# from the artifact only; HEAD keeps it whole, because the LAN operator build files real notices.
+setup
+run_deploy --skip-live --skip-tests
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && ! grep -q 'new-request-form' "$WORK/deploy/index.html" \
+   && ! grep -q 'toggle-form' "$WORK/deploy/index.html" \
+   && ! grep -q 'f-place' "$WORK/deploy/index.html" \
+   && ! grep -q 'lan-only:intake' "$WORK/deploy/index.html" \
+   && grep -q 'intake strip: removed 2 lan-only:intake region(s)' "$WORK/run.out"; then
+    pass "12 the deploy index.html carries no field-intake markup, markers included"
+else
+    fail "12 intake markup is stripped from the artifact (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+# the strip is surgical: its siblings inside the same container survive, and HEAD keeps the form
+if grep -q 'id="sitrep-btn"' "$WORK/deploy/index.html" \
+   && grep -q 'class="feed-actions"' "$WORK/deploy/index.html" \
+   && grep -q 'id="new-request-form"' "$REPO/index.html"; then
+    pass "13 the strip removes only the marked regions; siblings and the HEAD copy are untouched"
+else
+    fail "13 strip is surgical and HEAD keeps the intake form"; cat "$WORK/deploy/index.html"
+fi
+
+# MUTATION: markup present but markers gone. The strip finds nothing to do and the artifact would
+# ship the form; asserting on the RESULT rather than a region count is what catches it.
+sed -i '/lan-only:intake/d' "$REPO/index.html"
+( cd "$REPO" && git commit --quiet -am 'drop the intake strip markers' )
+run_deploy --skip-live --skip-tests
+RC=$?
+if [ "$RC" -ne 0 ] && grep -q 'field-intake markup still present in the deploy index.html' "$WORK/run.out"; then
+    pass "14 MUTATION · intake markup with no markers fails the deploy instead of shipping"
+else
+    fail "14 an unmarked intake form must not reach the artifact (rc=${RC})"; cat "$WORK/run.out"
 fi
 rm -rf "$WORK"
 

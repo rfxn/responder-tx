@@ -554,7 +554,8 @@ function initMap() {
   });
 
   state.map.on('click', (e) => {
-    if (!$('#new-request-form').classList.contains('open')) return;
+    const form = $('#new-request-form'); // absent on the public mirror: deploy.sh strips the markup
+    if (!form || !form.classList.contains('open')) return;
     state.pendingLatLng = e.latlng;
     $('#f-latlon').value = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
   });

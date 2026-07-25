@@ -504,3 +504,160 @@ test('renderer guard: the filters badge label is not a hardcoded literal', () =>
   assert.ok(/t\('feed\.filters'\)/.test(board) && /t\('feed\.filters\.n'\)/.test(board),
     'updateFiltersBadge() should read both feed.filters and feed.filters.n');
 });
+
+/* Structural literal guard (v0.99.3). The denylist above could not see a NEW hardcoded string, and
+ * that is how the life-safety cues shipped English-only: the flash-flood-emergency banner and all
+ * four data-age-bar states. This guard is the opposite shape. It reads every string literal in the
+ * derived renderer set and FAILS BY DEFAULT on the two forms those cues took, so a brand-new literal
+ * of the same class is caught without anyone remembering to list it:
+ *   A. a warning-glyph literal: an alarm the reader is meant to act on
+ *   B. a run of two or more all-caps words: the board shouting in one language
+ * It is a class detector, not an English detector: sentence-case prose still needs review.
+ * Exemptions are token-shaped, never phrase-shaped. ACRONYMS clears organization, protocol and
+ * product names (a caps run made only of those is a proper noun). EXEMPT_RUNS carries the few
+ * machine and interop strings no reader is meant to translate, each named individually. */
+const ACRONYMS = new Set(['NOAA', 'NHC', 'NWS', 'NWPS', 'NWM', 'MRMS', 'HRRR', 'NEXRAD', 'SLOSH', 'MOM',
+  'USGS', 'HIVIS', 'IEM', 'FEMA', 'NSS', 'TXDOT', 'TXGIO', 'USNG', 'MGRS', 'GPS', 'HLS', 'S3',
+  'HTTP', 'HTTPS', 'API', 'URL', 'JSON', 'CSV', 'IV', 'LSR', 'LID', 'ARC', 'QR', 'ICS', 'RSS']);
+const EXEMPT_RUNS = new Map([
+  ['RESPONDER TX SITREP', 'SITREP is a fixed-format interop text product, English by design'],
+  ['CUT-OFF AREAS', 'SITREP section label'],
+  ['ACTIVE CRITICAL', 'SITREP section label'],
+  ['ACTIVE NOTICES TOTAL', 'SITREP section label'],
+  ['NOT IN', 'ArcGIS/NWPS where= predicate sent upstream, never rendered'],
+  ['NOT LIKE', 'ArcGIS/NWPS where= predicate sent upstream, never rendered'],
+  ['IS NULL OR UPPER', 'ArcGIS/NWPS where= predicate sent upstream, never rendered'],
+]);
+const WARN_LITERAL = new RegExp('⚠[ \t]*[A-Za-zÀ-ɏ]');
+const CAPS_RUN = /\b[A-Z][A-Z0-9]+(?:['’-][A-Z]+)?(?:[ ,:;.]+[A-Z][A-Z0-9]+(?:['’-][A-Z]+)?)+\b/g;
+
+/* Reads the string literals out of JS source. Template interpolations collapse to a space, so
+ * `${label} DATA ${n} MIN OLD` still reads as one caps run. Regex literals are skipped: an
+ * unskipped /['"]/ would open a phantom string and silently swallow the rest of the file. */
+const REGEX_LEAD = /[(,=:[!&|?{};+\-*%~^<>]$|\breturn$|\btypeof$|\bcase$/;
+function stringLiterals(src) {
+  const out = []; let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    if (c === "'" || c === '"' || c === '`') {
+      let j = i + 1, buf = '';
+      while (j < src.length) {
+        if (src[j] === '\\') { buf += src[j + 1]; j += 2; continue; }
+        if (src[j] === c) break;
+        if (c === '`' && src[j] === '$' && src[j + 1] === '{') {
+          let d = 1; j += 2;
+          while (j < src.length && d > 0) { if (src[j] === '{') d++; else if (src[j] === '}') d--; j++; }
+          buf += ' '; continue;
+        }
+        if (c !== '`' && src[j] === '\n') break;
+        buf += src[j]; j++;
+      }
+      out.push(buf); i = j + 1; continue;
+    }
+    if (c === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
+    if (c === '/') {
+      const before = src.slice(0, i).replace(/\s+$/, '');
+      if (before === '' || REGEX_LEAD.test(before)) {
+        let j = i + 1, inClass = false;
+        while (j < src.length) {
+          if (src[j] === '\\') { j += 2; continue; }
+          if (src[j] === '[') inClass = true;
+          else if (src[j] === ']') inClass = false;
+          else if (src[j] === '/' && !inClass) break;
+          else if (src[j] === '\n') break;
+          j++;
+        }
+        i = j + 1; continue;
+      }
+    }
+    i++;
+  }
+  return out;
+}
+
+function shoutingLiterals(readSource, files) {
+  const hits = [];
+  for (const f of files) {
+    for (const s of stringLiterals(readSource(f))) {
+      if (WARN_LITERAL.test(s)) hits.push(`${f}: warning-glyph literal ${JSON.stringify(s).slice(0, 90)}`);
+      for (const run of s.match(CAPS_RUN) || []) {
+        if (EXEMPT_RUNS.has(run)) continue;
+        if (run.split(/[ ,:;.]+/).every((w) => ACRONYMS.has(w))) continue;
+        hits.push(`${f}: all-caps literal "${run}" in ${JSON.stringify(s).slice(0, 90)}`);
+      }
+    }
+  }
+  return hits;
+}
+
+test('renderer guard: no warning-glyph or all-caps literal is hardcoded in a renderer', () => {
+  assert.deepEqual(shoutingLiterals(strippedSource, RENDER_FILES), [],
+    'a life-safety literal is hardcoded in a renderer (route it through t() with en + es)');
+});
+
+test('renderer guard: the structural detector actually fires on the v0.99.3 regressions', () => {
+  const fixture = {
+    'banner.js': "$('#banner-text').textContent = `⚠ NEW FLASH FLOOD EMERGENCY: ${areas}`;",
+    'age.js': 'text = `⚠ ${label} DATA ${n} MIN OLD: refresh failing`;',
+    'clean.js': "const a = 'Storm surge risk (NHC SLOSH)'; const b = t('age.old'); const c = /['\"]/;",
+  };
+  const hits = shoutingLiterals((f) => fixture[f], Object.keys(fixture));
+  assert.equal(hits.filter((h) => h.startsWith('banner.js')).length, 2, 'the banner regression must fire on both rules');
+  assert.equal(hits.filter((h) => h.startsWith('age.js')).length, 2, 'the data-age regression must fire on both rules');
+  assert.deepEqual(hits.filter((h) => h.startsWith('clean.js')), [],
+    'an acronym run, a t() call and a quote-bearing regex are not shouting');
+});
+
+/* Attribute guard. A title= or aria-label= with no data-i18n-* is a tooltip that only ever renders
+ * in English; applyI18n cannot reach it. The banner dismiss control shipped that way. */
+test('index.html: every title and aria-label is routed through i18n', () => {
+  const html = indexHtml();
+  const bad = [];
+  for (const tag of html.matchAll(/<([a-z]+)\b([^>]*)>/g)) {
+    if (tag[1] === 'link' || tag[1] === 'meta') continue; // document-head metadata, not UI chrome
+    const attrs = tag[2];
+    if (/\btitle="/.test(attrs) && !/\bdata-i18n-title=/.test(attrs)) bad.push(`title: <${tag[1]}${attrs}>`.slice(0, 100));
+    if (/\baria-label="/.test(attrs) && !/\bdata-i18n-aria=/.test(attrs)) bad.push(`aria-label: <${tag[1]}${attrs}>`.slice(0, 100));
+  }
+  assert.deepEqual(bad, [], 'untranslated title/aria-label in index.html (add data-i18n-title / data-i18n-aria)');
+});
+
+/* The data-age bar has two behaviours a translation pass can silently break: the per-second tick
+ * must keep short-circuiting on an unchanged signature, and the dismissal key must not carry a
+ * localized token or switching language would un-dismiss the bar. */
+test('the data-age bar localizes before the tick short-circuit, and its dismissal key stays language-free', () => {
+  const boot = strippedSource('boot.js');
+  const fn = boot.match(/function renderDataAgeBar\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderDataAgeBar() not found in js/boot.js');
+  const body = fn[0];
+  for (const k of ['age.lbl.gauges', 'age.lbl.alerts', 'age.snapshot', 'age.never', 'age.old', 'age.usgs']) {
+    assert.ok(body.includes(`'${k}'`), `renderDataAgeBar() no longer reads ${k}`);
+  }
+  assert.match(body, /const key = `\$\{worst\.k\}\|\$\{cls\}`/,
+    'the dismissal key must stay ${worst.k}|${cls}: a localized token in it un-dismisses the bar on a language switch');
+  assert.match(body, /const sig = `\$\{key\}\|\$\{text\}`/, 'the tick signature must include the rendered text');
+  const lastTextAssign = [...body.matchAll(/\btext = /g)].pop();
+  assert.ok(lastTextAssign && body.indexOf('const sig =') > lastTextAssign.index,
+    'text must be localized BEFORE the signature is compared, or the tick renders a stale language');
+  assert.match(body, /if \(el\.dataset\.sig === sig\) return;/, 'the per-second tick lost its DOM short-circuit');
+});
+
+test('i18n: the life-safety cue keys exist in both languages with placeholders intact', () => {
+  const keys = ['banner.ffe', 'banner.dismiss', 'banner.dismiss.aria', 'alert.flag.emerg',
+    'age.lbl.gauges', 'age.lbl.alerts', 'age.snapshot', 'age.never', 'age.old', 'age.usgs',
+    'age.dismiss', 'map.mylocation', 'changelog.err', 'ctl.version.title', 'intake.geocode.title',
+    'flt.sort.title', 'flt.window.title', 'flt.dist.title', 'flt.aged.title'];
+  for (const k of keys) {
+    for (const lang of ['en', 'es']) {
+      assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
+      assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+    }
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+    for (const ph of I18N.en[k].match(/\{[a-z]+\}/g) || []) {
+      assert.ok(I18N.es[k].includes(ph), `es ${k} missing placeholder ${ph}`);
+    }
+  }
+  // the alarm itself must survive translation: both languages say emergency, in caps
+  assert.match(I18N.en['banner.ffe'], /FLASH FLOOD EMERGENCY/);
+  assert.match(I18N.es['banner.ffe'], /EMERGENCIA DE INUNDACIÓN REPENTINA/);
+});

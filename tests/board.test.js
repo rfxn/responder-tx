@@ -21,18 +21,20 @@ test('smartScore — fresh cards rank strictly by priority weight', () => {
   assert.ok(crit > high && high > med && med > low, `${crit},${high},${med},${low}`);
 });
 
-test('smartScore — one half-life of age halves the score', () => {
-  // freeze the clock so req() and smartScore() read the same instant; otherwise sub-ms
-  // jitter between stamping ts and scoring makes the ages inexact and the equality flaky
+// freeze the clock so req() and smartScore() read the same instant; otherwise sub-ms jitter
+// between stamping ts and scoring makes the ages inexact and any exact equality flaky
+function atFixedClock(fn) {
   const realNow = Date.now;
   Date.now = () => 1700000000000;
-  try {
+  try { return fn(); } finally { Date.now = realNow; }
+}
+
+test('smartScore — one half-life of age halves the score', () => {
+  atFixedClock(() => {
     const fresh = smartScore(req('critical', 0));
     const aged = smartScore(req('critical', CONFIG.smartHalfLifeMins));
     assert.ok(Math.abs(aged - fresh / 2) < 1e-9, `fresh=${fresh} aged=${aged}`);
-  } finally {
-    Date.now = realNow;
-  }
+  });
 });
 
 test('smartScore — age decay can let a fresh card overtake a stale higher-priority one', () => {
@@ -43,7 +45,7 @@ test('smartScore — age decay can let a fresh card overtake a stale higher-prio
 });
 
 test('smartScore — unknown priority falls back to weight 1', () => {
-  assert.equal(smartScore(req('bogus', 0)), 1);
+  assert.equal(atFixedClock(() => smartScore(req('bogus', 0))), 1);
 });
 
 /* ---------- shortId: stable radio-speakable R-### reference ---------- */

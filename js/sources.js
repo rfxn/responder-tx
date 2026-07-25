@@ -102,7 +102,7 @@ async function renderAlertPolys() {
 
 function showEmergencyBanner(freshAlerts) {
   const areas = freshAlerts.map((f) => f.properties.areaDesc).join(' | ');
-  $('#banner-text').textContent = `⚠ NEW FLASH FLOOD EMERGENCY: ${areas}`;
+  $('#banner-text').textContent = t('banner.ffe').replace('{areas}', areas);
   $('#emergency-banner').hidden = false;
   if (!document.title.startsWith('🔴')) document.title = `🔴 ${document.title}`;
 }
@@ -139,7 +139,7 @@ function alertCardDiv(f) {
   const reach = alertReach(p);
   const div = document.createElement('div');
   div.className = `card alert-card sev-${f._sev}`;
-  div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? '<span class="emergency-flag">EMERGENCY</span>' : ''}` +
+  div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? `<span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : ''}` +
     `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>` +
     `<div class="areas">${esc(p.areaDesc || '')}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}</div>` +
     `<div class="alert-meta">` +
@@ -190,7 +190,7 @@ function flashAlert(f) {
 // description/instruction we already fetched, cited, instead of the raw API JSON.
 function openAlertText(f) {
   const p = f.properties, reach = alertReach(p);
-  $('#alert-title').textContent = p.event + (f._sev === 'emergency' ? ' · FLASH FLOOD EMERGENCY' : '');
+  $('#alert-title').textContent = p.event + (f._sev === 'emergency' ? ` · ${t('drive.emerg')}` : '');
   const parts = [`<div class="alert-doc-area">${esc(p.areaDesc || '')}${reach ? ` · ${esc(reach)}` : ''}</div>`];
   if (p.headline) parts.push(`<div class="alert-doc-headline">${esc(p.headline)}</div>`);
   parts.push(`<div class="alert-doc-when">${esc(t('alert.until'))} ${esc(fmtWhen(p.expires))}</div>`);

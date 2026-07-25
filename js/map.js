@@ -565,7 +565,10 @@ function initMap() {
     onAdd(map) {
       const bar = L.Control.Zoom.prototype.onAdd.call(this, map);
       const a = L.DomUtil.create('a', 'locate-btn', bar);
-      a.href = '#'; a.title = 'My location'; a.textContent = '⌖';
+      a.href = '#'; a.title = t('map.mylocation'); a.textContent = '⌖';
+      a.setAttribute('data-i18n-title', 'map.mylocation'); // built once; applyI18n retitles it on a language switch
+      a.setAttribute('data-i18n-aria', 'map.mylocation');
+      a.setAttribute('aria-label', t('map.mylocation'));
       // transient re-center hint drawer, anchored to the right of ⌖; tapping it re-centers like ⌖ itself
       const drawer = L.DomUtil.create('span', 'recenter-drawer', a);
       drawer.setAttribute('role', 'button');

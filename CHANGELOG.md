@@ -1,5 +1,45 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.3 · 2026-07-25 (the life-safety cues speak Spanish)
+
+-- Bug Fixes --
+- [Fix] The flash flood emergency banner is localized. It was a hardcoded
+      English template literal, so a Spanish session read the loudest warning
+      this board can raise in a language it had already been told the reader
+      does not use. The EMERGENCY flag on emergency alert cards and the alert
+      reader's own title carried the same defect and are localized with it
+- [Fix] All four data-age bar states are localized: gauges from snapshot,
+      data never loaded, data n minutes old, and the USGS raw-stage fallback
+      note, plus the bar's dismiss control. Every stale-data warning on the
+      board was English-only, which is the aging discipline the board asserts
+      loudest failing in the one place a Spanish reader needs it
+- [Fix] Six more untranslated controls: the map's My location button, the
+      emergency banner dismiss (which also had no accessible name), the
+      changelog load-failure line, the sort, time window and distance filters,
+      the aged-cards toggle, and the version chip
+- [Fix] The data-age bar's dismiss control and the map's My location button
+      gained accessible names; both were glyph-only with no label
+
+-- Changes --
+- [Change] The i18n renderer guard is structural instead of a denylist. The
+           old guard asserted that a fixed list of previously fixed English
+           strings never returns, which by construction cannot see a new one,
+           and that is how these cues shipped. The new guard reads every
+           string literal in the renderer set and fails on the two forms these
+           cues took: a warning-glyph literal, and a run of two or more
+           all-caps words. It fails by default, so a new literal of the same
+           class is caught with nobody remembering to list it
+- [Change] Exemptions to that guard are token-shaped, not phrase-shaped: a
+           caps run built only of organization, protocol and product acronyms
+           is a proper noun, and the handful of machine and interop strings
+           (the SITREP section labels, the upstream where= predicates) are
+           named one at a time with a reason. It is a class detector, not an
+           English detector, and says so
+- [Change] Every title and aria-label in index.html must now carry a
+           data-i18n-title or data-i18n-aria, asserted by a test; applyI18n
+           cannot reach a bare attribute, so one is a tooltip that renders in
+           English forever
+
 ## v0.99.2 · 2026-07-25 (cameras group by Texas region, not by who owns the lens)
 
 -- Changes --

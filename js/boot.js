@@ -342,19 +342,19 @@ function renderDataAgeBar() {
   const gaugesAge = state.sourceHealth.gauges ? (Date.now() - state.sourceHealth.gauges) / 60000 : Infinity;
   const usgsOn = autoUsgsFallback(gaugesAge > 15);
   if (worst.age < 7.5) { el.hidden = true; return; }
-  const label = worst.k === 'gauges' ? 'GAUGE' : 'ALERT';
-  const usgsNote = usgsOn ? ' · USGS raw-stage fallback ON (no flood categories)' : '';
-  let cls, text;
+  const label = t(worst.k === 'gauges' ? 'age.lbl.gauges' : 'age.lbl.alerts');
+  const usgsNote = usgsOn ? t('age.usgs') : '';
+  let cls, text; // text is localized here, ahead of the sig compare, so a language switch repaints the bar
   if (worst.k === 'gauges' && state.snapshotAt) {
     const snapAge = Math.round((Date.now() - state.snapshotAt) / 60000);
     if (snapAge < 30) { el.hidden = true; return; } // owner: a fresh snapshot is a working state, not a warning
     cls = snapAge >= 60 ? 'red' : 'amber';
-    text = `⚠ GAUGES FROM SNAPSHOT ${snapAge} MIN OLD: live NWPS feed failing${usgsNote}`;
+    text = t('age.snapshot').replace('{n}', snapAge) + usgsNote;
   } else {
     cls = worst.age > 15 ? 'red' : 'amber';
     text = (worst.age === Infinity
-      ? `⚠ ${label} DATA NEVER LOADED: numbers on this board exclude it`
-      : `⚠ ${label} DATA ${Math.round(worst.age)} MIN OLD: refresh failing; treat as stale`) + (worst.k === 'gauges' ? usgsNote : '');
+      ? t('age.never').replace('{label}', label)
+      : t('age.old').replace('{label}', label).replace('{n}', Math.round(worst.age))) + (worst.k === 'gauges' ? usgsNote : '');
   }
   const key = `${worst.k}|${cls}`; // dismissal holds until the failing source or severity changes
   if (sessionStorage.getItem('respondertx.ageBarDismiss') === key) { el.hidden = true; return; }
@@ -364,7 +364,7 @@ function renderDataAgeBar() {
   el.dataset.sig = sig;
   el.className = cls;
   el.dataset.key = key;
-  el.innerHTML = `<span>${esc(text)}</span><button class="age-bar-x" title="Dismiss until this changes">✕</button>`;
+  el.innerHTML = `<span>${esc(text)}</span><button class="age-bar-x" title="${esc(t('age.dismiss'))}" aria-label="${esc(t('age.dismiss'))}">✕</button>`;
 }
 
 /* ---------- in-app changelog ---------- */
@@ -380,7 +380,7 @@ async function openChangelog() {
     body.innerHTML = (data.versions || []).map((v) =>
       `<div class="chg-row"><span class="chg-v">${esc(v.v)}</span><span class="chg-line">${esc(v.line)}</span></div>`).join('');
     body.dataset.loaded = '1';
-  } catch { body.textContent = 'Changelog unavailable.'; }
+  } catch { body.textContent = t('changelog.err'); }
 }
 
 /* ---------- header search — one box: place/address, "lat, lon", gauge LID/name, R-### card ID ---------- */

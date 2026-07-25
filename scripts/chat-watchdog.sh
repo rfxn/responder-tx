@@ -7,7 +7,9 @@
 # fires ONE build-capable headless `claude -p` to drain the inbox and ship, then
 # verifies the cursor moved. Single-flight lock, cooldown, per-cursor attempt budget,
 # and a kill-switch file bound the blast radius; it fires only AFTER the normal
-# in-session path has demonstrably missed the window. See scripts/README.md
+# in-session path has demonstrably missed the window. It refuses to start on a dirty
+# tree and quarantines whatever its own run leaves uncommitted, so a killed session
+# cannot leave half-written files for the data cycle to publish. See scripts/README.md
 # "Stall watchdog (chat-watchdog.sh)".
 set -euo pipefail
 
@@ -43,7 +45,9 @@ DRAIN_STALE="${RESPONDER_CHAT_DRAIN_STALE:-1800}"           # a drain marker old
 MAX_ATTEMPTS="${RESPONDER_CHAT_WATCHDOG_MAX_ATTEMPTS:-3}"   # recovery fires per cursor before giving up loudly (no infinite build loop)
 WATCHDOG_TIMEOUT="${RESPONDER_CHAT_WATCHDOG_TIMEOUT:-600}"  # bound the headless build run
 WATCHDOG_KILL_AFTER="${RESPONDER_CHAT_WATCHDOG_KILL_AFTER:-30}"  # SIGKILL grace after SIGTERM so a hung claude cannot outlive the timeout
-STATE_FILE="${RESPONDER_CHAT_WATCHDOG_STATE:-/tmp/responder-chat-watchdog-state}"  # "cursor attempts last_fired_epoch"; /tmp reset on reboot is harmless
+STATE_FILE="${RESPONDER_CHAT_WATCHDOG_STATE:-/tmp/responder-chat-watchdog-state}"  # "cursor attempts last_fired_epoch dirty_note_epoch"; /tmp reset on reboot is harmless
+QUARANTINE_DIR="${RESPONDER_CHAT_WATCHDOG_QUARANTINE:-/tmp/responder-watchdog-quarantine}"  # killed-run leftovers land here as a re-appliable patch, never deleted
+DIRTY_NOTE_COOLDOWN="${RESPONDER_CHAT_DIRTY_NOTE_COOLDOWN:-21600}"  # min gap (s) between outbox notes about a tree this watchdog cannot clean
 
 LOGFILE="${RESPONDER_CHAT_WATCHDOG_LOG:-/var/log/responder-chat-watchdog.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron
@@ -162,20 +166,76 @@ sys.exit(4)
 PY
 }
 
-# read_state — load STATE into ST_CURSOR/ST_ATTEMPTS/ST_LASTFIRED (all default 0).
+# read_state — load STATE into ST_CURSOR/ST_ATTEMPTS/ST_LASTFIRED/ST_DIRTYNOTE (all default 0).
 read_state() {
-    ST_CURSOR=0; ST_ATTEMPTS=0; ST_LASTFIRED=0
+    ST_CURSOR=0; ST_ATTEMPTS=0; ST_LASTFIRED=0; ST_DIRTYNOTE=0
     if [ -f "$STATE_FILE" ]; then
-        read -r ST_CURSOR ST_ATTEMPTS ST_LASTFIRED < "$STATE_FILE" || true  # short/absent line → keep zero defaults
+        read -r ST_CURSOR ST_ATTEMPTS ST_LASTFIRED ST_DIRTYNOTE < "$STATE_FILE" || true  # short/absent line → keep zero defaults
         ST_CURSOR=$(printf '%s' "${ST_CURSOR:-0}" | command tr -cd '0-9'); ST_CURSOR="${ST_CURSOR:-0}"
         ST_ATTEMPTS=$(printf '%s' "${ST_ATTEMPTS:-0}" | command tr -cd '0-9'); ST_ATTEMPTS="${ST_ATTEMPTS:-0}"
         ST_LASTFIRED=$(printf '%s' "${ST_LASTFIRED:-0}" | command tr -cd '0-9'); ST_LASTFIRED="${ST_LASTFIRED:-0}"
+        ST_DIRTYNOTE=$(printf '%s' "${ST_DIRTYNOTE:-0}" | command tr -cd '0-9'); ST_DIRTYNOTE="${ST_DIRTYNOTE:-0}"
     fi
 }
 
-# write_state CURSOR ATTEMPTS LASTFIRED — persist recovery state atomically.
+# write_state CURSOR ATTEMPTS LASTFIRED [DIRTYNOTE] — persist recovery state atomically.
 write_state() {
-    printf '%s %s %s\n' "$1" "$2" "$3" > "${STATE_FILE}.tmp" && command mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    printf '%s %s %s %s\n' "$1" "$2" "$3" "${4:-0}" > "${STATE_FILE}.tmp" && command mv "${STATE_FILE}.tmp" "$STATE_FILE"
+}
+
+# Paths run-cycle.sh regenerates from upstream and stages itself. Reverting one would race a live
+# publish, and the next cycle rewrites it anyway, so the watchdog never touches this lane.
+# data/event.json is deliberately absent: the cycle READS it as config and never writes it, which
+# is how a half-written copy widened the AO on 2026-07-25.
+CYCLE_LANE='^(data/(gauges-snapshot|gauges-capture|roads-snapshot|roads-capture|crest-summary|gauge-meta|history|requests|shelters-live|caltopo-export)\.json|history/|feed\.xml|crests\.ics)'
+
+# tree_dirt — tracked paths differing from HEAD outside the data cycle's lane, one per line.
+# Untracked files are excluded on purpose: git archive ships HEAD, the cycle stages only named
+# paths, and nothing loads a file index.html does not reference, so an untracked stray is inert.
+tree_dirt() {
+    local changed
+    changed=$(git -C "$REPO_ROOT" diff --name-only HEAD) || return 1
+    [ -n "$changed" ] || return 0
+    printf '%s\n' "$changed" | command grep -Ev "$CYCLE_LANE" || :  # grep exits 1 when nothing is dirty outside the lane
+}
+
+# log_paths PREFIX — log one indented line per path on stdin (never word-splits a path).
+log_paths() {
+    local p
+    while IFS= read -r p; do
+        [ -n "$p" ] && log "  $1 $p"
+    done
+}
+
+# quarantine_dirt REASON PATHS... — save the uncommitted diff, then restore those paths to HEAD.
+# The patch is written FIRST and a write failure aborts the restore: a dirty tree is recoverable,
+# silently discarded work is not.
+quarantine_dirt() {
+    local reason="$1"; shift
+    local patch
+    command mkdir -p "$QUARANTINE_DIR" || { log "ERROR: cannot create ${QUARANTINE_DIR}; leaving the tree dirty rather than discarding work"; return 1; }
+    patch="${QUARANTINE_DIR}/watchdog-$(command date -u '+%Y%m%dT%H%M%SZ')-$$.patch"
+    if ! git -C "$REPO_ROOT" diff HEAD -- "$@" > "$patch"; then
+        log "ERROR: could not write ${patch}; NOT restoring (a dirty tree beats losing the work)"
+        return 1
+    fi
+    if ! git -C "$REPO_ROOT" checkout HEAD -- "$@"; then
+        log "ERROR: git checkout HEAD failed; the tree is STILL dirty and needs a human: $*"
+        return 1
+    fi
+    log "quarantined to ${patch} and restored to HEAD (${reason}): $*"
+}
+
+# note_dirty_tree — one rate-limited honest outbox note when dirt this watchdog did not create
+# blocks recovery, so a refusal is visible to the owner instead of a silent hole.
+note_dirty_tree() {
+    local now="$1"
+    read_state
+    if [ "$ST_DIRTYNOTE" -gt 0 ] && [ $((now - ST_DIRTYNOTE)) -lt "$DIRTY_NOTE_COOLDOWN" ]; then
+        return 0
+    fi
+    write_state "$ST_CURSOR" "$ST_ATTEMPTS" "$ST_LASTFIRED" "$now"
+    outbox_append "$OUTBOX" "action" "Heads up: your message is waiting and the automatic recovery is holding off because the board's working copy has uncommitted changes it did not make. It will not start a build on top of half-finished work. A live ops session needs to commit or clear those changes." || log "WARN: could not post the dirty-tree note to the outbox"
 }
 
 # build_prompt COUNT CURSOR — the fixed, trusted recovery mandate. Unlike the
@@ -209,6 +269,11 @@ stage ONLY source files by name (never the data-refresh cron's dirty snapshots),
 push with a rebase fallback, and keep every release invariant (911 disclaimer,
 source citations, no public-chat vestige). This is a one-shot recovery run: do the
 work, verify live, and stop. Do not re-arm crons or spawn long-lived agents.
+
+TREE: commit anything you edit. This run is bounded by a hard timeout, and when it
+returns, any tracked file still differing from HEAD is saved as a patch under
+${QUARANTINE_DIR} and reverted, because the data cycle reads working-tree config
+and would otherwise publish half-finished edits. Uncommitted work does not survive.
 EOF
 }
 
@@ -248,8 +313,23 @@ if [ -f "$DRAIN_MARKER" ]; then
     fi
 fi
 
-read_state
 NOW=$(command date -u '+%s')
+
+# A build-capable session must not start on top of somebody else's half-finished edits: it would
+# commit them, and the data cycle reads working-tree config, so they reach production without any
+# release carrying them. Refusing costs one */3 tick and burns neither an attempt nor the cooldown.
+if ! DIRT=$(tree_dirt); then
+    log "WARN: could not read git status in ${REPO_ROOT}; deferring rather than firing blind"
+    exit 0
+fi
+if [ -n "$DIRT" ]; then
+    log "REFUSING: the working tree carries uncommitted changes this watchdog did not make; not starting a build on top of them:"
+    printf '%s\n' "$DIRT" | log_paths "dirty:"
+    note_dirty_tree "$NOW"
+    exit 0
+fi
+
+read_state
 if [ "$ST_CURSOR" -ne "$CURSOR_VAL" ]; then
     ST_CURSOR="$CURSOR_VAL"; ST_ATTEMPTS=0; ST_LASTFIRED=0  # cursor moved since last time → fresh budget for this position
 fi
@@ -273,7 +353,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     log "DRY-RUN: invocation:"
     printf 'timeout -k %s %s %s -p <PROMPT> --permission-mode bypassPermissions --output-format text < /dev/null\n' \
         "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD"
-    log "DRY-RUN: after the run the wrapper verifies ${CURSOR} advanced past ${CURSOR_VAL}"
+    log "DRY-RUN: after the run the wrapper verifies ${CURSOR} advanced past ${CURSOR_VAL}, then quarantines any leftover tracked changes to ${QUARANTINE_DIR} and restores them to HEAD"
     exit 0
 fi
 
@@ -288,7 +368,7 @@ fi
 
 # Record the fire BEFORE launching so a crash mid-run still counts against the
 # budget and honors the cooldown (no runaway build loop).
-write_state "$CURSOR_VAL" "$((ST_ATTEMPTS + 1))" "$NOW"
+write_state "$CURSOR_VAL" "$((ST_ATTEMPTS + 1))" "$NOW" "$ST_DIRTYNOTE"
 
 PROMPT=$(build_prompt "$INBOX_COUNT" "$CURSOR_VAL")
 log "firing build-capable recovery (timeout ${WATCHDOG_TIMEOUT}s +${WATCHDOG_KILL_AFTER}s kill; bypassPermissions; claude owns outbox+cursor)"
@@ -297,10 +377,29 @@ command timeout -k "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD" -p "
     --permission-mode bypassPermissions \
     --output-format text < /dev/null 9>&- || rc=$?  # 9>&- keeps a surviving grandchild from holding the flock forever
 
+# The tree was clean when this run started, so anything uncommitted now is this run's own scratch.
+# A killed session (rc=124) leaves half-written files behind, and the data cycle publishes from the
+# working tree it reads config from, so the leftovers are banked and the tree put back to HEAD.
+# This runs on every path, not just the timeout one: a run that finished but did not commit what it
+# edited is just as publishable.
+if ! DIRT_AFTER=$(tree_dirt); then
+    log "WARN: could not read git status after the recovery run; the tree may be dirty"
+    DIRT_AFTER=''
+fi
+if [ -n "$DIRT_AFTER" ]; then
+    log "the recovery run (claude rc=${rc}) left uncommitted changes:"
+    printf '%s\n' "$DIRT_AFTER" | log_paths "left:"
+    DIRT_PATHS=()
+    while IFS= read -r p; do
+        [ -n "$p" ] && DIRT_PATHS+=("$p")
+    done <<< "$DIRT_AFTER"
+    quarantine_dirt "recovery run rc=${rc} did not commit its work" "${DIRT_PATHS[@]}" || :  # already logged; a failed restore must not abort the cursor check
+fi
+
 CURSOR_AFTER=$(read_int "$CURSOR")
 if [ "$CURSOR_AFTER" -gt "$CURSOR_VAL" ]; then
     log "RECOVERED: cursor advanced ${CURSOR_VAL} -> ${CURSOR_AFTER} (claude rc=${rc}); clearing budget"
-    write_state "$CURSOR_AFTER" 0 "$NOW"
+    write_state "$CURSOR_AFTER" 0 "$NOW" "$ST_DIRTYNOTE"
     exit 0
 fi
 

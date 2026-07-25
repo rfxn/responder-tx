@@ -50,7 +50,7 @@ if [ "$SUITE" = node ] || [ "$SUITE" = all ]; then
 fi
 
 if [ "$SUITE" = shell ] || [ "$SUITE" = all ]; then
-    for f in chat-poll deploy cycle-check run-cycle freshness-monitor; do
+    for f in chat-poll chat-watchdog deploy cycle-check run-cycle freshness-monitor; do
         run_one "tests/${f}.test.sh" bash "tests/${f}.test.sh"
     done
 fi

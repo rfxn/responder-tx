@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.18",
+      "date": "2026-07-25",
+      "line": "The automatic ops-chat recovery now leaves the board's working copy as it found it. An interrupted run could leave half-finished edits behind, and the data cycle could publish from them. The recovery no longer starts while the working copy carries uncommitted changes, and anything one of its own runs leaves uncommitted is set aside as a patch and the working copy restored, with the files the data cycle regenerates itself left alone. Ops facing, nothing on the board changes."
+    },
+    {
       "v": "v0.99.17",
       "date": "2026-07-25",
       "line": "Hotline numbers in Shelters & hotlines now dial when you tap them, with 911 listed first, and the hotline list sits above the shelter list so the number to call is the first thing in the sheet. Shelters with a known location carry the same Navigate button the notice cards use. A hotline entry that is not a dialable number is shown as plain text rather than a link that goes nowhere."

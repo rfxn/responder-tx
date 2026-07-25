@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.18 · 2026-07-25 (the automatic recovery leaves the working copy as it found it)
+
+-- Bug Fixes --
+- [Fix] An interrupted automatic ops-chat recovery could leave half-finished
+      edits in the board's working copy, and the data cycle could publish from
+      them
+
+-- Changes --
+- [Change] The automatic recovery does not start while the working copy carries
+           uncommitted changes. It logs what it found, says so in the ops chat,
+           and waits
+- [Change] Anything a recovery run leaves uncommitted is set aside as a patch
+           and the working copy is restored. Files the data cycle regenerates
+           itself are never touched
+
 ## v0.99.17 · 2026-07-25 (call the number, navigate to the shelter)
 
 -- New Features --

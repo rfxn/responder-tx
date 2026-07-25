@@ -23,6 +23,7 @@ touches neither the network nor the real repo data):
 
 ```bash
 bash tests/chat-poll.test.sh          # ops-chat durability
+bash tests/chat-watchdog.test.sh      # stall watchdog: a killed recovery leaves no dirty tree
 bash tests/deploy.test.sh             # release gate: deploy.sh reads and ships HEAD
 bash tests/cycle-check.test.sh        # data cycle: cycle-check is immune to a mid-bump tree
 bash tests/run-cycle.test.sh          # data cycle: one failing source still publishes the rest

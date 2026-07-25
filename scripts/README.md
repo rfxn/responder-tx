@@ -438,6 +438,34 @@ Guardrails bound the blast radius:
   within `DRAIN_STALE` (default 1800s) is presumed mid-build, so the watchdog
   defers rather than race a second build.
 - **Kill switch**: `touch data/.chat-watchdog-off` disables recovery entirely.
+- **Refuses a dirty tree**: if any tracked file differs from HEAD outside the
+  data cycle's own lane, the run does not start. It logs each path, posts one
+  rate-limited outbox note (`DIRTY_NOTE_COOLDOWN`, default 6h), and burns
+  neither an attempt nor the cooldown. A build session started on top of
+  somebody else's half-finished edits commits them.
+- **Quarantines its own leftovers**: after the run, any tracked file still
+  differing from HEAD is written to a patch under
+  `/tmp/responder-watchdog-quarantine/` (`QUARANTINE_DIR`) and restored with
+  `git checkout HEAD --`. The patch is written first; if it cannot be written,
+  the restore is skipped, because a dirty tree beats losing the work. This runs
+  on every path, not only on a timeout: a run that finished without committing
+  what it edited is equally publishable.
+
+Why the tree checks exist: on 2026-07-25 a recovery was killed on timeout
+(`rc=124`) with uncommitted edits across `data/event.json` and four `js/` files.
+The `js/` edits could not ship, because the cycle runs committed code, but the
+generators read `data/event.json` **from the working tree**, so the half-written
+copy widened the AO before any release carried it. The cycle's own regenerated
+outputs (`data/gauges-snapshot.json`, `history/`, `feed.xml`, `crests.ics` and
+the rest of `DATA_FILES`) are excluded from both checks: reverting one would
+race a live publish, and the next cycle rewrites it from upstream anyway.
+Untracked files are excluded too, since `git archive` ships HEAD and the cycle
+stages only named paths, so a stray untracked file is inert.
+
+An isolated worktree was considered instead and rejected: the recovery's whole
+deliverable (`data/chat-outbox.json`, `data/.chat-cursor`) lives in the shared
+tree, so a worktree would land the reply in a directory that is then deleted,
+converting a visible dirty tree into a silently dropped owner message.
 
 Security: this **softens the read-only-cron boundary by design** (owner
 decision). It is delay-gated (never fires on a fresh POST, only after the

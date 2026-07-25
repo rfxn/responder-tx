@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.29",
+      "date": "2026-07-25",
+      "line": "Fifty-nine City of Lubbock traffic cameras join the camera layer, the board's first camera coverage on the South Plains beyond the TxDOT freeway set. Each is named for the intersection it watches. The city's inventory lists every signalised intersection rather than every camera, so only the asset numbers that actually serve a recent image are carried: heads that serve nothing, and heads whose newest frame is over a month old, are left out."
+    },
+    {
       "v": "v0.99.28",
       "date": "2026-07-25",
       "line": "Thirty-three Saltwater Recon coastal cameras and four City of Corpus Christi cameras join the camera layer. They bring the board its first camera coverage at Port O'Connor, Surfside, Freeport, Quintana, San Luis Pass and Trinity Bay, along with Galveston, Bolivar, Clear Lake and Kemah, plus the Calallen Reservoir saltwater barrier on the Nueces River and Park Road 22, the only road off North Padre Island. Neither operator publishes a capture time, so the viewer says so on those cameras rather than showing an empty capture row, and it drops the ordinary snapshot badge: the age of the frame cannot be checked, so the board states that and asks for a refresh before the image is acted on."

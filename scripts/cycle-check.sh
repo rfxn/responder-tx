@@ -412,13 +412,13 @@ if d is not None:
 d = optional("data/cameras.json")
 if d is not None:
     nets = ("txdot", "river", "austin", "atxfloods", "houston", "arlington", "elpbridge", "hays",
-            "porthou", "swrecon", "corpus")
+            "porthou", "swrecon", "corpus", "lubbock")
     miss = [n for n in nets if not isinstance(d.get(n), list)]
     if miss:
         die("cameras.json: network arrays missing: %s" % ",".join(miss))
     need = {"river": "camId", "austin": "id", "atxfloods": "id", "houston": "id",
             "arlington": "id", "hays": "id", "porthou": "id", "elpbridge": "httpsurl",
-            "swrecon": "id", "corpus": "id"}
+            "swrecon": "id", "corpus": "id", "lubbock": "id"}
     for n in nets:
         for i, c in enumerate(d[n]):
             if not isinstance(c.get("lat"), (int, float)) or not isinstance(c.get("lon"), (int, float)):

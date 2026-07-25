@@ -54,6 +54,7 @@ CAM_BYTES_SOURCES = {
     'arlington': (re.compile(r'^[A-Za-z0-9 _-]{1,64}$'), 'https://webapps.arlingtontx.gov/webcams/{id}.jpg'),
     'porthou': (re.compile(r'^[A-Za-z0-9_]{1,32}$'), 'https://info.porthouston.com/vtraffic/gateimages/{id}.jpg'),
     'hays': (re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$'), 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'),
+    'lubbock': (re.compile(r'^[0-9]{1,8}$'), 'https://ewebmap.ci.lubbock.tx.us/TrafficCam/Images/{id}.jpg'),
     # Ozolio relay: the poster carries no Last-Modified, so the stamp stays empty and the viewer
     # renders these through its no-capture-time path rather than the aging badge
     'swrecon': (re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$'), 'https://relay.ozolio.com/pub.api?cmd=poster&oid={id}'),

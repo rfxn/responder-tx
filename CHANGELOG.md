@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.29 · 2026-07-25 (Lubbock city cameras)
+
+-- New Features --
+- [New] 59 City of Lubbock traffic cameras join the camera layer, the board's
+      first camera coverage on the South Plains beyond the TxDOT freeway set.
+      Each is named for its intersection
+
 ## v0.99.28 · 2026-07-25 (Gulf Coast cameras)
 
 -- New Features --

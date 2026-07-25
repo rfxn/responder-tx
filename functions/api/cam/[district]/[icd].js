@@ -19,6 +19,7 @@ const BYTES_SOURCES = {
   arlington: { idRe: /^[A-Za-z0-9 _-]{1,64}$/, url: (id) => `https://webapps.arlingtontx.gov/webcams/${encodeURIComponent(id)}.jpg` },
   porthou: { idRe: /^[A-Za-z0-9_]{1,32}$/, url: (id) => `https://info.porthouston.com/vtraffic/gateimages/${id}.jpg` },
   hays: { idRe: /^[0-9]{1,12}-[0-9]{1,12}$/, url: (id) => { const [pid, sid] = id.split('-'); return `https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID=${pid}&shareID=${sid}`; } },
+  lubbock: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://ewebmap.ci.lubbock.tx.us/TrafficCam/Images/${id}.jpg` },
   // Ozolio relay: the poster carries no Last-Modified, so the stamp stays empty and the viewer
   // renders these through its no-capture-time path rather than the aging badge
   swrecon: { idRe: /^[A-Z]{3}_[A-Za-z0-9]{4,24}$/, url: (id) => `https://relay.ozolio.com/pub.api?cmd=poster&oid=${id}` },

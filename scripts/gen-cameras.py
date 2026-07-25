@@ -6,11 +6,12 @@ bbox, City of El Paso international-bridge live HLS cams, Port Houston Ship
 Channel wharf and air-draft cams, ATX Floods low-water-crossing flood cams,
 plus Hays County OES flood cams (CameraFTP/DriveHQ stills, San Marcos
 corridor), Saltwater Recon Gulf Coast cams and City of Corpus Christi cams
-(both Ozolio posters, which publish no capture time). Hand-maintained sources
-are liveness-checked at gen time. Run at
-build time; the inventory is near-static, so the output is committed.
+(both Ozolio posters, which publish no capture time), and City of Lubbock
+signal cameras. Hand-maintained sources are liveness-checked at gen time. Run
+at build time; the inventory is near-static, so the output is committed.
 Stdlib only."""
 
+import email.utils
 import http.client
 import json
 import math
@@ -93,6 +94,12 @@ PORTHOU_CAMS = (
     for n in range(2, 7)
 )
 PORTHOU_ID_RE = re.compile(r'^[A-Za-z0-9_]{1,32}$')  # mirrors the /api/cam/porthou proxy validator
+# City of Lubbock signal cameras. The inventory lists every signalised asset, not every camera:
+# most asset numbers have no image at all, and a fair share of the rest are heads that stopped
+# posting months ago. Both are settled here at gen time, by HTTP status and by frame age.
+LUBBOCK = 'https://pubgis.ci.lubbock.tx.us/server/rest/services/Traffic_Cameras/MapServer/0/query?where=1%3D1&outFields=ASSETNO,STREET,AVENUE,TxDOTNAME&returnGeometry=true&outSR=4326&f=json'
+LUBBOCK_IMG = 'https://ewebmap.ci.lubbock.tx.us/TrafficCam/Images/{id}.jpg'
+LUBBOCK_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/lubbock proxy validator
 OZOLIO_POSTER = 'https://relay.ozolio.com/pub.api?cmd=poster&oid={oid}'
 OZOLIO_OID_RE = re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$')  # mirrors the /api/cam/{swrecon,corpus} proxy validator
 OZOLIO_MIN_BYTES = 8000  # a live poster runs 130-550 KB; a down head answers far smaller or not at all
@@ -570,6 +577,66 @@ def porthou_cams():
     return sorted(cams, key=lambda c: c['name'])
 
 
+def http_date_age_days(stamp):
+    """Age in days of an HTTP-date header, or None when it is absent or unparseable."""
+    try:
+        t = email.utils.parsedate_to_datetime(stamp)
+    except (TypeError, ValueError):
+        return None
+    if t is None:
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - t).total_seconds() / 86400
+
+
+def lubbock_frame_age(cid):
+    """Age in days of a Lubbock camera's newest frame; None when it serves no image at all."""
+    try:
+        req = urllib.request.Request(LUBBOCK_IMG.format(id=cid), headers={'User-Agent': BROWSER_UA})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            if r.getcode() != 200 or 'image/jpeg' not in (r.headers.get('Content-Type') or '').lower():
+                return None
+            return http_date_age_days(r.headers.get('Last-Modified'))
+    except (OSError, ValueError, http.client.HTTPException):
+        return None
+
+
+def lubbock_cams():
+    seen, rows = set(), []
+    for f in (fetch_json(LUBBOCK).get('features') or []):
+        a, g = f.get('attributes') or {}, f.get('geometry') or {}
+        cid = str(a.get('ASSETNO') or '')
+        if not LUBBOCK_ID_RE.match(cid) or cid in seen:
+            continue
+        try:
+            lat, lon = float(g['y']), float(g['x'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not in_texas(lat, lon):
+            continue
+        seen.add(cid)
+        street, avenue = (a.get('STREET') or '').strip(), (a.get('AVENUE') or '').strip()
+        name = f'{street} at {avenue}' if street and avenue else (street or avenue or f'Camera {cid}')
+        route = (a.get('TxDOTNAME') or '').strip()
+        rows.append({'name': f'{name} · {route}' if route else name, 'lat': lat, 'lon': lon, 'id': cid})
+    cams, noimg, dead = [], 0, 0
+    for c in rows:
+        age = lubbock_frame_age(c['id'])
+        if age is None:
+            noimg += 1
+            continue
+        # the same gate the river cams use: a head whose newest frame is a month old has nothing
+        # to show, and the inventory lists far more signals than it does working cameras
+        if age > CAM_MAX_AGE_D:
+            dead += 1
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id']})
+    print(f'Lubbock: {len(cams)} of {len(rows)} signals carry a live camera '
+          f'({noimg} serve no image, {dead} last posted over {CAM_MAX_AGE_D}d ago)')
+    return sorted(cams, key=lambda c: int(c['id']))
+
+
 def ozolio_poster_live(url):
     # a head that is down answers with a placeholder far under a real frame, or not at all
     try:
@@ -646,8 +713,9 @@ def main():
     ha = hays_cams()  # liveness-checked hand-list; idle cams serve a placeholder, so this legitimately shrinks toward 0
     sw = swrecon_cams()  # liveness-checked; the operator rotates heads, so a dropped one is normal
     co = corpus_cams()  # hand-placed 4-cam list, liveness-checked
+    lu = lubbock_cams()  # inventory is every signal, so the camera set is settled by image + frame age
     # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays/corpus floors are 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0)):
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -666,6 +734,7 @@ def main():
             'porthou': 'Ship Channel cameras: Port Houston',
             'swrecon': 'Coastal cameras: Saltwater Recon (Gulf Coast webcam network); no capture time published',
             'corpus': 'City cameras: City of Corpus Christi; no capture time published',
+            'lubbock': 'Traffic cameras: City of Lubbock, Texas',
         },
         'txdot': tx + its,
         'river': rv,
@@ -678,6 +747,7 @@ def main():
         'porthou': ph,
         'swrecon': sw,
         'corpus': co,
+        'lubbock': lu,
     }
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:

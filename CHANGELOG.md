@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.34 · 2026-07-25 (border bridge and Port of Galveston cameras)
+
+-- New Features --
+- [New] 16 international bridge cameras on the Rio Grande: eight at Laredo
+      covering Gateway to the Americas, Juarez-Lincoln, Colombia Solidarity and
+      World Trade, six at Eagle Pass covering Bridge I and Camino Real, and two
+      at the Del Rio bridge
+- [New] The Port of Galveston cruise Terminal 16 view on the ship channel
+
+-- Changes --
+- [Change] Bridge cameras are placed on the bridge they watch, not on a camera
+           position, which no operator publishes. The viewer says so
+- [Change] The international bridge label no longer says "live". The live or
+           snapshot chip beside it already states which one a camera is
+
 ## v0.99.33 · 2026-07-25 (National Park Service cameras)
 
 -- New Features --

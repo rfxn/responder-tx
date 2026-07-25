@@ -8,9 +8,10 @@ plus Hays County OES flood cams (CameraFTP/DriveHQ stills, San Marcos
 corridor), Saltwater Recon Gulf Coast cams and City of Corpus Christi cams
 (both Ozolio posters, which publish no capture time), City of Lubbock signal
 cameras, WeatherBug weather-camera stills, NMDOT cameras on the southern New
-Mexico reach that drains into Texas, and National Park Service park cams.
-Hand-maintained sources are liveness-checked at gen time. Run at build time;
-the inventory is near-static, so the output is committed. Stdlib only."""
+Mexico reach that drains into Texas, National Park Service park cams, Laredo /
+Eagle Pass / Del Rio international-bridge cams and the Port of Galveston cruise
+terminal cam. Hand-maintained sources are liveness-checked at gen time. Run at
+build time; the inventory is near-static, so the output is committed. Stdlib only."""
 
 import email.utils
 import http.client
@@ -120,6 +121,55 @@ WB_REC_RE = re.compile(
 LUBBOCK = 'https://pubgis.ci.lubbock.tx.us/server/rest/services/Traffic_Cameras/MapServer/0/query?where=1%3D1&outFields=ASSETNO,STREET,AVENUE,TxDOTNAME&returnGeometry=true&outSR=4326&f=json'
 LUBBOCK_IMG = 'https://ewebmap.ci.lubbock.tx.us/TrafficCam/Images/{id}.jpg'
 LUBBOCK_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/lubbock proxy validator
+# International port-of-entry cameras. No operator publishes a camera coordinate, so each is placed
+# on the bridge structure it watches: the OSM man_made=bridge way for that named crossing, each of
+# which also carries a Wikidata QID whose own coordinate agrees within ~150 m. Citations are in
+# CAMERA-SOURCES-RESEARCH.md. Cameras on one bridge therefore share a pin, as the Port Houston wharf
+# cams share a terminal, and the layer note says the position is the bridge and not the camera.
+LAREDO_IMG = 'https://www.openlaredo.com/bridge/BridgeWebCamStills/{id}.jpg'
+LAREDO_ID_RE = re.compile(r'^bridge[1-4](US|MEX)$')  # mirrors the /api/cam/laredo proxy validator
+# Each Laredo frame burns its own bridge name into the picture, which is what identifies these:
+# bridge3 is Colombia Solidarity and bridge4 is World Trade, not the other way round.
+LAREDO_BRIDGES = (
+    ('bridge1', 'Gateway to the Americas Bridge', 27.499956, -99.507498),
+    ('bridge2', 'Juarez-Lincoln Bridge', 27.500190, -99.502705),
+    ('bridge3', 'Colombia Solidarity Bridge', 27.699916, -99.745415),
+    ('bridge4', 'World Trade Bridge', 27.597223, -99.537060),
+)
+LAREDO_SIDES = (('US', 'US side'), ('MEX', 'Mexico side'))
+LAREDO_CAMS = tuple(
+    {'name': f'{label} · {side_label}', 'lat': lat, 'lon': lon, 'id': f'{stem}{side}'}
+    for stem, label, lat, lon in LAREDO_BRIDGES for side, side_label in LAREDO_SIDES
+)
+# ipcamlive: the stable key is the alias, never the s{N} host, which the operator migrates. The
+# alias-direct snapshot URL redirects to whichever host currently holds the stream, so the proxy
+# pins one host and follows the redirect rather than resolving the player page at view time.
+IPCAMLIVE_IMG = 'https://ipcamlive.com/player/snapshot.php?alias={id}'
+IPCAMLIVE_ID_RE = re.compile(r'^[a-z0-9]{8,24}$')  # mirrors the /api/cam/{eaglepass,delrio} validator
+# Names are the operator's own where ipcamlive publishes one; the rest are numbered views rather
+# than a guessed direction, because neither city page says which camera faces which way.
+EAGLEPASS_CAMS = (
+    {'name': 'Eagle Pass Bridge I · Plaza traffic', 'lat': 28.705617, 'lon': -100.509883, 'id': 'bridge1trafficplaza'},
+    {'name': 'Eagle Pass Bridge I · platform', 'lat': 28.705617, 'lon': -100.509883, 'id': 'bridge1platform'},
+    {'name': 'Camino Real Bridge · platform 2', 'lat': 28.697870, 'lon': -100.509637, 'id': '67231a475ead1'},
+    {'name': 'Camino Real Bridge (view 2)', 'lat': 28.697870, 'lon': -100.509637, 'id': '639ba5d96b3f6'},
+    {'name': 'Camino Real Bridge (view 3)', 'lat': 28.697870, 'lon': -100.509637, 'id': '639ba81bb4b49'},
+    {'name': 'Camino Real Bridge (view 4)', 'lat': 28.697870, 'lon': -100.509637, 'id': '68f3f8b846277'},
+)
+DELRIO_CAMS = (
+    {'name': 'Del Rio International Bridge (view 1)', 'lat': 29.327669, 'lon': -100.926688, 'id': '5da4899f1d893'},
+    {'name': 'Del Rio International Bridge (view 2)', 'lat': 29.327669, 'lon': -100.926688, 'id': '5dd41e07c9949'},
+)
+# Port of Galveston cruise Terminal 16, EarthCam-hosted. The object is served from EarthCam's own
+# edge with a ~24 h cache TTL, so a request without a unique query value can answer 200 with a frame
+# hours old: measured 1927 s stale on the bare URL against 127 s with a cache buster. Both proxies
+# therefore append one. Coordinates are the operator's, from the EarthCam camera record.
+GALVESTON_IMG = ('https://resource6.earthcam.net/v0/object/'
+                 'GtVJZlL4VnwZ3X0VJw8Bsdu5YUgJriK-Y8BAT-OpapoNxQAqapAVVnNTRqduHk_J')
+GALVESTON_CAMS = (
+    {'name': 'Port of Galveston cruise Terminal 16', 'lat': 29.311300, 'lon': -94.788630, 'id': 't16'},
+)
+GALVESTON_ID_RE = re.compile(r'^t16$')  # mirrors the /api/cam/galveston proxy validator
 NPS_IMG = 'https://www.nps.gov/webcams-{park}/{cam}.jpg'
 NPS_ARD_IMG = 'https://www.nps.gov/featurecontent/ard/webcams/images/{cam}.jpg'
 NPS_ARD_PARK = 'ard'  # id prefix routing to the air-resources path; no park code collides with it
@@ -176,6 +226,9 @@ HAYS_CAMS = (
     {'name': 'NRCS Dam 5 Upper San Marcos', 'lat': 29.870300, 'lon': -97.968622, 'pid': 313579755, 'sid': 14844919},
 )
 BROWSER_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some hosts block the default urllib UA
+# EarthCam spells it image/jpg. Accepting both keeps this gate from being stricter than the proxies,
+# which admit any image/*, and so dropping a camera that would in fact have served.
+JPEG_CTYPES = ('image/jpeg', 'image/jpg')
 # must mirror the /api/cam proxy validators (edge + server.py). The icd is a path segment, so a
 # literal '/' cannot survive the round trip; ITS_ICD_SLASH stands in for it and both proxies
 # reverse the substitution before calling upstream. No icd upstream contains it (0 of 3745).
@@ -641,7 +694,8 @@ def jpeg_frame_age(url):
     try:
         req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
         with urllib.request.urlopen(req, timeout=20) as r:
-            if r.getcode() != 200 or 'image/jpeg' not in (r.headers.get('Content-Type') or '').lower():
+            ctype = (r.headers.get('Content-Type') or '').lower()
+            if r.getcode() != 200 or not any(c in ctype for c in JPEG_CTYPES):
                 return None
             return http_date_age_days(r.headers.get('Last-Modified'))
     except (OSError, ValueError, http.client.HTTPException):
@@ -689,28 +743,41 @@ def jpeg_frame_age_twice(url):
     return jpeg_frame_age(url) if age is None else age
 
 
+def dated_still_cams(rows, id_re, url_of, label):
+    """Keep the hand-kept cameras that answer with a JPEG carrying a recent Last-Modified."""
+    cams, noimg, dead = [], 0, 0
+    for c in rows:
+        if not id_re.match(c['id']):  # an id the strict proxy would reject is never emitted
+            continue
+        if not in_texas(c['lat'], c['lon']):
+            continue
+        age = jpeg_frame_age_twice(url_of(c['id']))
+        if age is None:
+            noimg += 1
+            print(f"{label}: {c['name']} serves no dated image, dropped")
+            continue
+        if age > CAM_MAX_AGE_D:
+            dead += 1
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id']})
+    print(f'{label}: {len(cams)}/{len(rows)} cameras kept '
+          f'({noimg} serve no dated image, {dead} last posted over {CAM_MAX_AGE_D}d ago)')
+    return sorted(cams, key=lambda c: c['name'])
+
+
+def galveston_url(_cid):
+    # The id is validated to the single fixed camera and never steers the URL. The cache buster is
+    # unique per call: without it the operator's edge answers 200 with a frame up to a day old.
+    return f'{GALVESTON_IMG}?cb={int(datetime.now(timezone.utc).timestamp() * 1000)}'
+
+
 def nps_url(cid):
     park, _, cam = cid.partition('-')
     return (NPS_ARD_IMG if park == NPS_ARD_PARK else NPS_IMG).format(park=park, cam=cam)
 
 
 def nps_cams():
-    cams, noimg, dead = [], 0, 0
-    for c in NPS_CAMS:
-        if not NPS_ID_RE.match(c['id']):  # an id the strict proxy would reject is never emitted
-            continue
-        age = jpeg_frame_age_twice(nps_url(c['id']))
-        if age is None:
-            noimg += 1
-            print(f"NPS: {c['name']} serves no dated image, dropped")
-            continue
-        if age > CAM_MAX_AGE_D:
-            dead += 1
-            continue
-        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id']})
-    print(f'NPS: {len(cams)}/{len(NPS_CAMS)} park cameras kept '
-          f'({noimg} serve no dated image, {dead} last posted over {CAM_MAX_AGE_D}d ago)')
-    return sorted(cams, key=lambda c: c['name'])
+    return dated_still_cams(NPS_CAMS, NPS_ID_RE, nps_url, 'NPS')
 
 
 def nmdot_cams():
@@ -883,8 +950,12 @@ def main():
     wb = weatherbug_cams()  # no 'latest' URL: liveness is a walk back through the minute-stamped filenames
     nm = nmdot_cams()  # clipped to the southern reach; liveness is the frame age on the snapshot host
     np = nps_cams()  # hand-placed 6-cam list; liveness is the frame age on the park still
+    la = dated_still_cams(LAREDO_CAMS, LAREDO_ID_RE, lambda i: LAREDO_IMG.format(id=i), 'Laredo bridges')
+    ep = dated_still_cams(EAGLEPASS_CAMS, IPCAMLIVE_ID_RE, lambda i: IPCAMLIVE_IMG.format(id=i), 'Eagle Pass bridges')
+    dr = dated_still_cams(DELRIO_CAMS, IPCAMLIVE_ID_RE, lambda i: IPCAMLIVE_IMG.format(id=i), 'Del Rio bridge')
+    gv = dated_still_cams(GALVESTON_CAMS, GALVESTON_ID_RE, galveston_url, 'Port of Galveston')
     # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays/corpus floors are 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5), ('nmdot', nm, 10), ('nps', np, 3)):
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5), ('nmdot', nm, 10), ('nps', np, 3), ('laredo', la, 4), ('eaglepass', ep, 2), ('delrio', dr, 1), ('galveston', gv, 0)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -907,6 +978,10 @@ def main():
             'weatherbug': 'Weather cameras: WeatherBug (Earth Networks) and the hosting sites',
             'nmdot': 'Traffic cameras: New Mexico DOT (NM Roads), southern New Mexico',
             'nps': 'Park cameras: National Park Service (public domain); position is the park facility, not a surveyed camera point',
+            'laredo': 'Bridge cameras: City of Laredo (international bridges); position is the bridge, not the camera',
+            'eaglepass': 'Bridge cameras: City of Eagle Pass, Port of Eagle Pass; position is the bridge, not the camera',
+            'delrio': 'Bridge cameras: City of Del Rio, International Bridge; position is the bridge, not the camera',
+            'galveston': 'Port cameras: Port of Galveston (hosted by EarthCam)',
         },
         'txdot': tx + its,
         'river': rv,
@@ -923,6 +998,10 @@ def main():
         'weatherbug': wb,
         'nmdot': nm,
         'nps': np,
+        'laredo': la,
+        'eaglepass': ep,
+        'delrio': dr,
+        'galveston': gv,
     }
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:
@@ -937,7 +1016,8 @@ def main():
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
           f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, '
           f'{len(ph)} Port Houston cams, {len(sw)} Saltwater Recon coastal cams, {len(co)} Corpus Christi cams, '
-          f'{len(lu)} Lubbock city cams, {len(wb)} WeatherBug cams, {len(nm)} NMDOT cams, {len(np)} NPS park cams, {os.path.getsize(OUT)} bytes')
+          f'{len(lu)} Lubbock city cams, {len(wb)} WeatherBug cams, {len(nm)} NMDOT cams, {len(np)} NPS park cams, {len(la)} Laredo bridge cams, {len(ep)} Eagle Pass bridge cams, '
+          f'{len(dr)} Del Rio bridge cams, {len(gv)} Port of Galveston cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

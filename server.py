@@ -67,6 +67,12 @@ CAM_BYTES_SOURCES = {
     # NPS: {park}-{cam}. Two fixed paths on one pinned host — the park webcam tree, and the
     # air-resources tree that Big Bend alone publishes through. Resolved by a callable, not a format.
     'nps': (re.compile(r'^[a-z]{3,4}-[A-Za-z0-9]{1,32}$'), lambda cid: _cam_nps_url(cid)),
+    'laredo': (re.compile(r'^bridge[1-4](US|MEX)$'), 'https://www.openlaredo.com/bridge/BridgeWebCamStills/{id}.jpg'),
+    # ipcamlive migrates a stream between its s{N} hosts, so the alias is the only stable key. The
+    # alias-direct snapshot redirects to whichever host currently holds it; urlopen follows it.
+    'eaglepass': (re.compile(r'^[a-z0-9]{8,24}$'), 'https://ipcamlive.com/player/snapshot.php?alias={id}'),
+    'delrio': (re.compile(r'^[a-z0-9]{8,24}$'), 'https://ipcamlive.com/player/snapshot.php?alias={id}'),
+    'galveston': (re.compile(r'^t16$'), lambda cid: _cam_galveston_url(cid)),
 }
 # NMDOT rewrites each snapshot file in place, so a fetch landing mid-write answers 404 or 500 on a
 # camera that is up. Retry only where the upstream is known to do it; must match the edge Function.
@@ -79,6 +85,17 @@ CAM_NPS_ARD_PARK = 'ard'  # id prefix routing to the air-resources path; no park
 def _cam_nps_url(cid):
     park, _, cam = cid.partition('-')
     return (CAM_NPS_ARD_IMG if park == CAM_NPS_ARD_PARK else CAM_NPS_IMG).format(park=park, cam=cam)
+
+
+# Port of Galveston Terminal 16, EarthCam-hosted. The object sits behind EarthCam's own edge with a
+# ~24h TTL, so a request without a unique query value can answer 200 with a frame hours old.
+CAM_GALVESTON_IMG = ('https://resource6.earthcam.net/v0/object/'
+                     'GtVJZlL4VnwZ3X0VJw8Bsdu5YUgJriK-Y8BAT-OpapoNxQAqapAVVnNTRqduHk_J')
+
+
+def _cam_galveston_url(_cid):
+    # the id is validated to the single fixed camera and never steers the URL
+    return '%s?cb=%d' % (CAM_GALVESTON_IMG, time.time() * 1000)
 # WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped filename
 # back from now. The stamp is station-local (America/Chicago) wall time. Resolving against the
 # site's own camera index is deliberately avoided: that list is ranked by the requester's

@@ -40,6 +40,19 @@ const BYTES_SOURCES = {
         : `https://www.nps.gov/webcams-${park}/${cam}.jpg`;
     },
   },
+  laredo: { idRe: /^bridge[1-4](US|MEX)$/, url: (id) => `https://www.openlaredo.com/bridge/BridgeWebCamStills/${id}.jpg` },
+  // ipcamlive migrates a stream between its s{N} hosts, so the alias is the only stable key. The
+  // alias-direct snapshot redirects to whichever host currently holds it; fetch follows it.
+  eaglepass: { idRe: /^[a-z0-9]{8,24}$/, url: (id) => `https://ipcamlive.com/player/snapshot.php?alias=${id}` },
+  delrio: { idRe: /^[a-z0-9]{8,24}$/, url: (id) => `https://ipcamlive.com/player/snapshot.php?alias=${id}` },
+  // Port of Galveston Terminal 16, EarthCam-hosted. The object sits behind EarthCam's own edge with
+  // a ~24h TTL, so without a unique query value it answers 200 with a frame hours old. The id is
+  // validated to the single fixed camera and never steers the URL.
+  galveston: {
+    idRe: /^t16$/,
+    url: () => 'https://resource6.earthcam.net/v0/object/GtVJZlL4VnwZ3X0VJw8Bsdu5YUgJriK-Y8BAT-OpapoNxQAqapAVVnNTRqduHk_J'
+      + `?cb=${Date.now()}`,
+  },
 };
 
 // WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped

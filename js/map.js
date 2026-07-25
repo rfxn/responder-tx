@@ -291,12 +291,41 @@ function progSetView(latlng, zoom, smooth) {
   }
 }
 
+/* One list, severity and degraded together: chromatic where the board can read the river, greyscale
+   where it cannot. Every row carries its own live count and its own checkbox, so the legend is also
+   the filter and no state is describable but unfindable. */
+function gaugeLegendRows() {
+  const n = (typeof gaugeStateCounts === 'function') ? gaugeStateCounts() : {};
+  return GAUGE_STATES.map((s) => {
+    const deg = GAUGE_DEGRADED.includes(s);
+    const px = deg ? 9 : Math.max(9, CAT_SIZE[s] - 3);
+    const on = gaugeStateShown(s);
+    return `<label class="lg-row${deg ? ' lg-deg' : ''}" title="${esc(t('gstate.' + s + '.note'))}">` +
+      `<input type="checkbox" class="lg-ck" data-gs="${esc(s)}"${on ? ' checked' : ''}>` +
+      `<span class="sw gauge-icon ${deg ? `deg-${s}` : `cat-${s}`}" style="width:${px}px;height:${px}px"></span>` +
+      `<span class="lg-lbl">${esc(gaugeStateLabel(s))}</span>` +
+      `<span class="lg-n">${esc(String(n[s] || 0))}</span></label>`;
+  }).join('');
+}
+
+/* Counts refresh in place rather than through innerHTML: renderGauges() runs from the row's own
+   change handler, and replacing the markup there would tear out the checkbox under the pointer. */
+function renderMapLegend() {
+  const el = state.legendEl;
+  if (!el) return;
+  const n = gaugeStateCounts();
+  el.querySelectorAll('.lg-row').forEach((row) => {
+    const ck = row.querySelector('.lg-ck');
+    const num = row.querySelector('.lg-n');
+    if (!ck || !num) return;
+    num.textContent = String(n[ck.dataset.gs] || 0);
+    ck.checked = gaugeStateShown(ck.dataset.gs);
+  });
+}
+
 function mapLegendHtml() {
   return `<div class="lg-title">${esc(t('legend.gauges'))}</div>` +
-    ['major', 'moderate', 'minor', 'action', 'none'].map((c) => {
-      const s = Math.max(9, CAT_SIZE[c] - 3);
-      return `<div><span class="sw gauge-icon cat-${c}" style="width:${s}px;height:${s}px"></span>${esc(catLabel(c))}</div>`;
-    }).join('') +
+    gaugeLegendRows() +
     `<div><span class="sw" style="width:10px">▲</span>${esc(t('legend.rise'))}</div>` +
     `<div><span class="sw" style="width:10px;color:var(--good)">▼</span>${esc(t('legend.fall'))}</div>` +
     `<div><span class="sw fcst-ring cat-moderate" style="width:10px;height:10px"></span>${esc(t('legend.fcrest'))}</div>` +
@@ -494,7 +523,17 @@ function initMap() {
     div.innerHTML = mapLegendHtml();
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div); // scrolling the (now scrollable) expanded legend must not zoom the map
-    L.DomEvent.on(div, 'click', () => div.classList.toggle('open')); // mobile: collapsed to title pill by default
+    L.DomEvent.on(div, 'click', (e) => {
+      if (e.target.closest('.lg-row')) return; // a filter row is a control, not the expand/collapse target
+      div.classList.toggle('open'); // mobile: collapsed to title pill by default
+    });
+    L.DomEvent.on(div, 'change', (e) => {
+      const ck = e.target.closest('.lg-ck');
+      if (!ck) return;
+      state.gaugeFilter[ck.dataset.gs] = ck.checked;
+      saveGaugeFilter();
+      renderGauges();
+    });
     return div;
   };
   legend.addTo(state.map);

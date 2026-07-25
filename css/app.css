@@ -39,6 +39,11 @@
   --cat-moderate: #d03b3b;
   --cat-major: #a855f7;
   --cat-none: #898781;
+  /* NWPS degraded palette, taken from their shipping map. #666666 out-of-service is near-invisible
+     on this dark surface, so only that one is lifted. */
+  --deg-nothresh: #72afe9;
+  --deg-stale: #bdc2bb;
+  --deg-oos: #8a8a8a;
   --sev-emergency: #d03b3b;
   --sev-warning: #ec835a;
   --sev-watch: #fab219;
@@ -63,6 +68,9 @@
   --cat-minor: #c9531f;
   --cat-moderate: #bf2e2e;
   --cat-none: #6d6b64;
+  --deg-nothresh: #3f7fb8;
+  --deg-stale: #8d938a;
+  --deg-oos: #666666;
   --sev-emergency: #bf2e2e;
   --sev-warning: #c9531f;
   --sev-watch: #a97800;
@@ -304,7 +312,12 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
   animation: cutoffPulse 2.4s infinite;
 }
 @keyframes cutoffPulse { 50% { stroke-opacity: 0.35; } }
-.z-low .leaflet-marker-pane .gauge-icon.cat-none { display: none; }
+/* zoomed out, the no-severity dots declutter. Degraded joins them: they carry no severity either,
+   and 84 of ~290 grey dots would bury the flood ramp at state scale. The legend keeps their count. */
+.z-low .leaflet-marker-pane .gauge-icon.cat-none,
+.z-low .leaflet-marker-pane .gauge-icon.deg-nothresh,
+.z-low .leaflet-marker-pane .gauge-icon.deg-stale,
+.z-low .leaflet-marker-pane .gauge-icon.deg-oos { display: none; }
 .gauge-hit {
   position: relative; width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
@@ -505,6 +518,11 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .gauge-icon.cat-none { background: var(--cat-none); opacity: 0.7; }
 /* dead/stale sensor — greyed + dashed, no pulse; suppressed from flood signals but kept on the map */
 .gauge-icon.stale { background: var(--cat-none); opacity: 0.5; border-style: dashed; box-shadow: none; animation: none; }
+/* degraded states are desaturated against the chromatic flood ramp and share none of its hues, so
+   none of them can be misread as a severity. Palette and border weights follow NWPS. */
+.gauge-icon.deg-nothresh { background: var(--deg-nothresh); opacity: 0.75; box-shadow: none; animation: none; }
+.gauge-icon.deg-stale { background: var(--deg-stale); opacity: 0.6; border-style: dashed; box-shadow: none; animation: none; }
+.gauge-icon.deg-oos { background: var(--deg-oos); opacity: 0.7; border-style: dotted; box-shadow: none; animation: none; }
 
 .req-icon {
   display: flex; align-items: center; justify-content: center;
@@ -564,6 +582,12 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 }
 /* legend swatches are chrome, never subject to marker declutter/pulse */
 .map-legend .gauge-icon { display: inline-block !important; animation: none; opacity: 1; }
+/* a legend row is a filter control: swatch, label, live count, its own checkbox */
+.map-legend .lg-row { display: flex; align-items: center; gap: 0; cursor: pointer; }
+.map-legend .lg-ck { margin: 0 5px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
+.map-legend .lg-lbl { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-legend .lg-n { flex: 0 0 auto; margin-left: 6px; font-variant-numeric: tabular-nums; color: var(--ink-muted); font-weight: 650; }
+.map-legend .lg-deg .lg-lbl { color: var(--ink-muted); }
 /* attribution collapsed to a tap-to-open ⓘ pill (owner: the bar crowded the legend on short screens); credits preserved on tap */
 .leaflet-control-attribution { max-width: 22px; overflow: hidden; white-space: nowrap; cursor: pointer; }
 .leaflet-control-attribution.attr-open { max-width: min(92vw, 560px); white-space: normal; }
@@ -913,6 +937,7 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
   --surface-2: #1b365d; --ink-1: #ffffff; --ink-2: #d9dee3; --ink-muted: #9ba3b8;
   --hairline: #274264; --border: rgba(255, 255, 255, 0.12); --good: #0ca30c;
   --cat-action: #fab219; --cat-minor: #ec835a; --cat-moderate: #d03b3b; --cat-major: #a855f7; --cat-none: #898781;
+  --deg-nothresh: #72afe9; --deg-stale: #bdc2bb; --deg-oos: #8a8a8a;
 }
 #recovery-body { padding: 6px 14px 14px; flex: 1 1 auto; }
 #basin-body { padding: 6px 14px 14px; flex: 1 1 auto; }

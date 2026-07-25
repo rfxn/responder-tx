@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.98.2';
+const APP_VERSION = 'v0.98.3';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -108,7 +108,13 @@ const FLOOD_ROAD_RE = /flood|high\s*water|water\s*over|low\s*water|washed?\s*out
 const ROAD_RE = /\b(?:FM|RM|RR|CR|SH|US|IH?|LOOP|HWY)[-\s]?\d+\b/gi;
 
 const FLOOD_CATS = ['action', 'minor', 'moderate', 'major'];
+/* NWPS taxonomy: five chromatic severities, then three greyscale degraded states. One list, because
+   a gauge the board cannot read is a fact about the river, not a footnote. */
+const GAUGE_DEGRADED = ['nothresh', 'stale', 'oos'];
+const GAUGE_STATES = ['major', 'moderate', 'minor', 'action', 'none'].concat(GAUGE_DEGRADED);
+const NWPS_DEGRADED_CAT = { not_defined: 'nothresh', obs_not_current: 'stale', out_of_service: 'oos' };
 const catLabel = (cat) => t('cat.' + cat);
+const gaugeStateLabel = (s) => (GAUGE_DEGRADED.includes(s) ? t('gstate.' + s) : catLabel(s));
 // data-enum → localized label; unknown values fall back to the raw enum so nothing renders as a bare key
 const enumLabel = (prefix, v) => { const k = prefix + v, s = t(k); return s === k ? String(v) : s; };
 const ntypeLabel = (v) => enumLabel('ntype.', v);
@@ -136,6 +142,10 @@ const state = {
   basinRiver: null, // selected river slug in the basin view (share round-trip carries it)
   alerts: [],
   gauges: [],
+  // degraded gauges NWPS reports without a usable severity. Kept out of state.gauges on purpose:
+  // every count, threat chip and tile reads state.gauges, so a dead sensor can never reach one.
+  gaugesDegraded: [],
+  gaugeFilter: null, // legend filter set; null until loadGaugeFilter() runs
   fcstMax: [],
   usgsSites: [],
   lsrs: [],
@@ -301,6 +311,28 @@ function fmtWhen(iso) {
   const abs = d.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   return `${rel} · ${abs} CT`;
 }
+
+/* Legend filter. Degraded rows default ON, the deliberate inverse of the NWPS default: they hide
+   theirs because 9.8% of 12,222 national gauges is map noise, ours is ~29% of ~290 in one AO and
+   hiding a dead sensor is the failure the aging rules exist to prevent. */
+const GAUGE_FILTER_KEY = 'respondertx.gaugeFilter.v1';
+function defaultGaugeFilter() {
+  const f = {};
+  for (const s of GAUGE_STATES) f[s] = true;
+  return f;
+}
+function loadGaugeFilter() {
+  const f = defaultGaugeFilter();
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(GAUGE_FILTER_KEY) || 'null'); } catch { saved = null; }
+  if (saved) for (const s of GAUGE_STATES) if (typeof saved[s] === 'boolean') f[s] = saved[s];
+  state.gaugeFilter = f;
+  return f;
+}
+function saveGaugeFilter() {
+  try { localStorage.setItem(GAUGE_FILTER_KEY, JSON.stringify(state.gaugeFilter)); } catch { /* quota — the filter is best-effort */ }
+}
+const gaugeStateShown = (s) => !state.gaugeFilter || state.gaugeFilter[s] !== false;
 
 /* ---------- aging & history — timed-out items suppress to toggleable layers, never delete ---------- */
 

@@ -7,6 +7,7 @@ const { loadApp } = require('./harness.js');
 const {
   alertReach, alertSeverity, gaugeObsStale, gaugeObsCat, gaugeCat, CONFIG,
   gaugeForecastCat, gaugeRising, gaugeRecoveryState, riverOf, recordContext, recordWatchGauges, RECORD_NEAR_FT, state,
+  splitGauges, gaugeState, gaugeStateCounts, gaugeHasReading, GAUGE_STATES, GAUGE_DEGRADED, CAT_RANK,
 } = loadApp();
 
 /* ---------- alertReach: pull the specific river reach out of NWS prose ---------- */
@@ -107,6 +108,92 @@ test('gaugeCat — a STALE gauge is dropped to "none" even at MAJOR reading', ()
 test('gaugeObsCat — non-flood category coerces to "none"', () => {
   assert.equal(gaugeObsCat(gauge('no_flooding', 30)), 'none');
   assert.equal(gaugeObsCat(gauge('action', 30)), 'action');
+});
+
+/* ---------- degraded taxonomy: visible as degraded, never counted as severity ---------- */
+
+// NWPS ships a disabled site exactly this way: no reading, and a year-0001 timestamp.
+const DEAD_TIME = '0001-01-01T00:00:00Z';
+const nwpsGauge = (floodCategory, minAgo) => ({
+  lid: 'TEST1', name: 'Test River at Nowhere', latitude: 30, longitude: -98,
+  status: { observed: { floodCategory, primary: minAgo == null ? -999 : 12.3, primaryUnit: 'ft', validTime: minAgo == null ? DEAD_TIME : isoMinAgo(minAgo) } },
+});
+
+test('splitGauges — the three NWPS degraded states leave state.gauges, everything else stays', () => {
+  const { live, degraded } = splitGauges([
+    nwpsGauge('major', 30), nwpsGauge('no_flooding', 30), nwpsGauge('action', 30),
+    nwpsGauge('not_defined', 30), nwpsGauge('obs_not_current', null), nwpsGauge('out_of_service', null),
+    { status: { observed: {} } }, // no category at all — not a gauge we can place anywhere
+  ]);
+  assert.deepEqual(Array.from(live, (g) => g.status.observed.floodCategory), ['major', 'no_flooding', 'action']);
+  assert.deepEqual(Array.from(degraded, (g) => g.status.observed.floodCategory), ['not_defined', 'obs_not_current', 'out_of_service']);
+});
+
+test('gaugeState — precedence is out of service, then not current, then no thresholds', () => {
+  assert.equal(gaugeState(nwpsGauge('out_of_service', null)), 'oos');
+  assert.equal(gaugeState(nwpsGauge('obs_not_current', null)), 'stale');
+  assert.equal(gaugeState(nwpsGauge('not_defined', 30)), 'nothresh');
+  // a no-thresholds site whose reading also went stale reports the more urgent fact
+  assert.equal(gaugeState(nwpsGauge('not_defined', CONFIG.gaugeStaleHours * 60 + 60)), 'stale');
+});
+
+test('gaugeState — our own 12h rule lands a frozen gauge in the same row as the NWPS flag', () => {
+  assert.equal(gaugeState(gauge('no_flooding', CONFIG.gaugeStaleHours * 60 + 60)), 'stale');
+  assert.equal(gaugeState(gauge('major', CONFIG.gaugeStaleHours * 60 + 60)), 'stale');
+  assert.equal(gaugeState(gauge('none', 30)), 'none'); // fresh and quiet is not degraded
+});
+
+test('gaugeState — a healthy gauge still reports its chromatic severity', () => {
+  for (const c of ['major', 'moderate', 'minor', 'action']) assert.equal(gaugeState(gauge(c, 30)), c);
+  assert.equal(gaugeState(gauge('no_flooding', 30)), 'none');
+});
+
+/* This is the honesty invariant the release must not weaken: making a degraded gauge VISIBLE must
+   never make it COUNTABLE. Every count, tile and threat chip keys off gaugeCat. */
+test('REGRESSION — no degraded gauge can produce a flood-bearing gaugeCat', () => {
+  for (const c of ['not_defined', 'obs_not_current', 'out_of_service']) {
+    for (const minAgo of [5, 30, null, CONFIG.gaugeStaleHours * 60 + 60]) {
+      const g = nwpsGauge(c, minAgo);
+      assert.equal(CAT_RANK[gaugeCat(g)], 0, `${c} @ ${minAgo} produced ${gaugeCat(g)}`);
+      assert.equal(gaugeRising(g), false, `${c} @ ${minAgo} claimed to be rising`);
+    }
+  }
+});
+
+test('REGRESSION — splitGauges keeps degraded gauges out of the severity-bearing set entirely', () => {
+  const { live } = splitGauges([nwpsGauge('not_defined', 5), nwpsGauge('obs_not_current', 5), nwpsGauge('out_of_service', 5)]);
+  assert.equal(live.length, 0);
+});
+
+test('gaugeStateCounts — every gauge lands in exactly one row and the rows total the board', () => {
+  const prevLive = state.gauges, prevDeg = state.gaugesDegraded;
+  const { live, degraded } = splitGauges([
+    nwpsGauge('major', 30), nwpsGauge('no_flooding', 30),
+    nwpsGauge('no_flooding', CONFIG.gaugeStaleHours * 60 + 60), // locally stale, counts as degraded
+    nwpsGauge('not_defined', 30), nwpsGauge('obs_not_current', null), nwpsGauge('out_of_service', null),
+  ]);
+  state.gauges = live; state.gaugesDegraded = degraded;
+  const n = gaugeStateCounts();
+  assert.deepEqual(Object.keys(n).sort(), Array.from(GAUGE_STATES).sort());
+  assert.equal(Object.values(n).reduce((a, b) => a + b, 0), 6);
+  assert.equal(n.major, 1);
+  assert.equal(n.none, 1); // the frozen no_flooding gauge is NOT counted here
+  assert.equal(n.stale, 2); // it is counted here, alongside the NWPS obs_not_current one
+  assert.equal(n.nothresh, 1);
+  assert.equal(n.oos, 1);
+  state.gauges = prevLive; state.gaugesDegraded = prevDeg;
+});
+
+test('gaugeHasReading — the -999 at year 0001 shape is never printed as a level', () => {
+  assert.equal(gaugeHasReading(nwpsGauge('out_of_service', null)), false);
+  assert.equal(gaugeHasReading(nwpsGauge('obs_not_current', null)), false);
+  assert.equal(gaugeHasReading(nwpsGauge('not_defined', 30)), true); // no thresholds, but a real level
+  assert.equal(gaugeHasReading({ status: { observed: { primary: 4, validTime: 'not-a-date' } } }), false);
+});
+
+test('GAUGE_STATES — the legend list is the five severities plus the three degraded, in that order', () => {
+  assert.deepEqual(Array.from(GAUGE_STATES), ['major', 'moderate', 'minor', 'action', 'none', 'nothresh', 'stale', 'oos']);
+  assert.deepEqual(Array.from(GAUGE_DEGRADED), ['nothresh', 'stale', 'oos']);
 });
 
 /* ---------- forecast category, rising, river grouping ---------- */

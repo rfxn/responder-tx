@@ -6,6 +6,7 @@ function saveCache() {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       ts: Date.now(),
       gauges: state.gauges,
+      gaugesDegraded: state.gaugesDegraded,
       alertsSlim: state.alerts.map((f) => ({ id: f.id, _sev: f._sev, properties: { event: f.properties.event, areaDesc: f.properties.areaDesc, expires: f.properties.expires }, geometry: null })),
     }));
   } catch { /* quota exceeded — cache is best-effort */ }
@@ -14,7 +15,11 @@ function hydrateFromCache() {
   let c;
   try { c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { c = null; }
   if (!c) return false;
-  if (!state.gauges.length && c.gauges) { state.gauges = c.gauges; renderGauges(); renderGaugesTab(); }
+  if (!state.gauges.length && c.gauges) {
+    state.gauges = c.gauges;
+    state.gaugesDegraded = c.gaugesDegraded || []; // pre-v0.98.3 caches carry no degraded set
+    renderGauges(); renderGaugesTab();
+  }
   if (!state.alerts.length && c.alertsSlim) { state.alerts = c.alertsSlim; renderAlertList(); }
   renderTiles();
   setFeedNote(t('note.offline'), `${t('note.offline.detail')} ${fmtWhen(new Date(c.ts).toISOString())}`);
@@ -28,10 +33,9 @@ async function hydrateGaugesSnapshot() {
     const d = await fetch(`data/gauges-snapshot.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
     if (state.gauges.length) return false; // a live NWPS refresh resolved during the fetch — never revert fresh gauges to snapshot
     if (!d || !d.gauges || !d.gauges.length) return false;
-    state.gauges = d.gauges.filter((g) => {
-      const c = g.status && g.status.observed && g.status.observed.floodCategory;
-      return c && !['out_of_service', 'obs_not_current', 'not_defined'].includes(c);
-    });
+    const split = splitGauges(d.gauges);
+    state.gauges = split.live;
+    state.gaugesDegraded = split.degraded;
     state.snapshotAt = new Date(d.generated).getTime();
     recordTrends();
     renderGauges();
@@ -472,7 +476,8 @@ function renderGlossary() {
   for (const cat of ['major', 'moderate', 'minor', 'action']) {
     html += glRow(dot(`cat-${cat}`), catLabel(cat), t(`glossary.cat.${cat}`));
   }
-  html += glRow(dot('stale'), t('glossary.stale.label'), t('glossary.stale'));
+  // the glossary and the map legend must name the same states, or one of them is lying by omission
+  for (const s of GAUGE_DEGRADED) html += glRow(dot(`deg-${s}`), gaugeStateLabel(s), t(`gstate.${s}.note`));
   html += sec('glossary.sec.markers');
   html += glRow('<span style="color:var(--cat-major)">▲</span>', t('glossary.rising.label'), t('glossary.rising'));
   html += glRow('<span style="color:var(--good)">▼</span>', t('glossary.falling.label'), t('glossary.falling'));
@@ -644,6 +649,7 @@ async function boot() {
   applyTheme(document.documentElement.getAttribute('data-theme'));
   loadStore();
   loadHist();
+  loadGaugeFilter();
   try { state.trendHist = JSON.parse(localStorage.getItem(TREND_KEY)) || {}; } catch { state.trendHist = {}; }
 
   document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {

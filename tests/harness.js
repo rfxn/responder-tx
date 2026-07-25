@@ -112,6 +112,8 @@ const EXPORTS = [
   'toUSNG',
   'alertReach', 'alertSeverity',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'gaugeRecoveryState', 'riverOf',
+  'splitGauges', 'gaugeState', 'gaugeStateCounts', 'gaugeHasReading', 'gaugeAll', 'GAUGE_STATES', 'GAUGE_DEGRADED',
+  'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
   'riverSlug', 'basinCrestTime', 'basinCorridor', 'basinRivers', 'basinWaveState',
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT',
   'cardAged',

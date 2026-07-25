@@ -1,5 +1,59 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.3 · 2026-07-25 (degraded gauges become peer values in the legend)
+
+-- New Features --
+- [New] The map legend is now one list of eight gauge states: the five flood
+      severities in colour, then three degraded states in desaturated greys.
+      "Flood category not defined", "Data not current" and "Out of service"
+      sit as peers of MAJOR and No flooding rather than as a footnote or a
+      shape the glossary explains once.
+- [New] Every legend row carries a live count and its own checkbox, so the
+      legend is also the filter. The counts are derived, not stored: they move
+      with each refresh and always total the gauges the board holds.
+- [New] Degraded rows ship ON by default, the deliberate inverse of the NWPS
+      default. They hide theirs because 9.8% degraded across 12,222 national
+      gauges is map noise; roughly 29% of our ~290 gauge display area is
+      degraded, and a stale gauge that is silently absent is the exact failure
+      the aging rules exist to prevent.
+- [New] Degraded gauges reach the map at all for the first time. 84 of 290 were
+      being discarded at load, including 67 carrying live current readings that
+      simply have no flood thresholds defined.
+
+-- Bug Fixes --
+- [Fix] The sparkline drew a chart over dead data. A gauge frozen between 12 and
+      48 hours still rendered a trace and labelled its last point with a bare
+      value, which read as a current level. That label is now hedged the moment
+      the record stops short of now, naming the time it stops.
+- [Fix] An out-of-service gauge gets a sentence where the chart goes, in both
+      the popup and the hydrograph modal, instead of a chart of nothing.
+- [Fix] Both charts asserted flood-stage bands they had not drawn. A gauge with
+      no thresholds got no dashed lines and no shading, under a caption that
+      promised both; the caption now states that no stages are defined.
+- [Fix] A disabled sensor arrives as a -999 reading stamped year 0001. Nothing
+      renders that as a level any more.
+- [Fix] The hydrograph left a gap between the end of the trace and now for the
+      reader to interpret. It now says where the observed record stops.
+- [Fix] The playback layer subtitle still advertised 3 / 7 / 14 days after
+      v0.98.2 added 30 and 90.
+
+-- Changes --
+- [Change] The degraded filter is stored locally rather than in the URL, so no
+           new share-link contract is created and no shared link can arrive with
+           dead gauges silently hidden from the recipient.
+- [Change] Layer subtitles now state the limitation in the layer picker instead
+           of only in a popup: gauges name the three degraded states, alerts say
+           a polygon is the area a warning covers rather than observed flooding
+           inside it, storm reports say each is a moment already past, and
+           shelters say to call ahead.
+- [Change] Degraded gauges declutter at low zoom exactly as no-flood gauges
+           already did. They carry no severity either, and 84 grey dots at state
+           scale would bury the flood ramp; the legend keeps their count.
+- [Change] The duplicated degraded-category filter in the live and cold-start
+           paths is now one shared splitGauges helper.
+- [Change] The glossary lists the same three degraded states as the legend, so
+           neither surface can name a state the other omits.
+
 ## v0.98.2 · 2026-07-25 (30 and 90 day playback, and what the board does not have)
 
 -- New Features --

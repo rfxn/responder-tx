@@ -255,16 +255,29 @@ function renderAlertHistory(el) {
 
 /* ---------- NOAA NWPS gauges ---------- */
 
+/* NWPS puts three degraded states in the same field as severity. Split, never dropped: state.gauges
+   stays exactly the severity-bearing set every count, tile and threat chip reads, so a gauge without
+   thresholds or without current data can still never inflate a flood claim; state.gaugesDegraded
+   carries the rest so the map and the legend can show them as what they are. */
+function splitGauges(list) {
+  const live = [], degraded = [];
+  for (const g of (list || [])) {
+    const c = g.status && g.status.observed && g.status.observed.floodCategory;
+    if (!c) continue;
+    (NWPS_DEGRADED_CAT[c] ? degraded : live).push(g);
+  }
+  return { live, degraded };
+}
+
 async function fetchGauges() {
   const b = CONFIG.gaugeBbox;
   const url = `${CONFIG.nwpsBase}/gauges?bbox.xmin=${b.xmin}&bbox.ymin=${b.ymin}&bbox.xmax=${b.xmax}&bbox.ymax=${b.ymax}&srid=EPSG_4326`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`NWPS HTTP ${res.status}`);
   const data = await res.json();
-  state.gauges = (data.gauges || []).filter((g) => {
-    const c = g.status && g.status.observed && g.status.observed.floodCategory;
-    return c && !['out_of_service', 'obs_not_current', 'not_defined'].includes(c);
-  });
+  const split = splitGauges(data.gauges);
+  state.gauges = split.live;
+  state.gaugesDegraded = split.degraded;
   markHealthy('gauges');
   state.snapshotAt = null; // live feed recovered — snapshot semantics no longer apply
   recordTrends();
@@ -293,6 +306,25 @@ function gaugeObsCat(g) {
 // off gaugeCat (KPI tile, threat strip, sitrep, ticker, drive mode) drops dead gauges automatically
 function gaugeCat(g) {
   return gaugeObsStale(g) ? 'none' : gaugeObsCat(g);
+}
+
+/* Legend taxonomy: one severity or one degraded state, never both. Precedence is deliberate: a
+   disabled sensor outranks a late one, and "the number you see is old" outranks "this site has no
+   thresholds", because only the first misleads someone reading a level off the screen. Our own 12h
+   rule folds into the same row as the NWPS obs_not_current flag; both mean data not current. */
+function gaugeState(g) {
+  const c = g.status && g.status.observed && g.status.observed.floodCategory;
+  if (c === 'out_of_service') return 'oos';
+  if (c === 'obs_not_current' || gaugeObsStale(g)) return 'stale';
+  if (c === 'not_defined') return 'nothresh';
+  return gaugeObsCat(g);
+}
+const gaugeAll = () => state.gauges.concat(state.gaugesDegraded || []);
+function gaugeStateCounts() {
+  const n = {};
+  for (const s of GAUGE_STATES) n[s] = 0;
+  for (const g of gaugeAll()) n[gaugeState(g)]++;
+  return n;
 }
 
 const riverOf = (name) => String(name || '').split(/ (?:at|near|below|above) /)[0];
@@ -487,18 +519,20 @@ function renderGauges() {
     const g = state.gauges.find((x) => x.lid === state.pendingHydro);
     if (g) { state.pendingHydro = null; openHydro(g); }
   }
-  for (const g of state.gauges) {
-    const stale = gaugeObsStale(g);
+  for (const g of gaugeAll()) {
+    const gs = gaugeState(g);
+    if (!gaugeStateShown(gs)) continue; // hidden by its legend row
+    const degraded = GAUGE_DEGRADED.includes(gs);
     const cat = gaugeCat(g);
-    const rising = gaugeRising(g);
-    const size = stale ? 11 : CAT_SIZE[cat];
-    const trend = gaugeTrend(g.lid);
+    const rising = !degraded && gaugeRising(g);
+    const size = degraded ? 11 : CAT_SIZE[cat];
+    const trend = degraded ? null : gaugeTrend(g.lid);
     const falling = cat !== 'none' && trend && trend.dir === 'down';
     // 32px hit area around the visual dot — 8-18px dots are untappable one-thumbed (UX audit #5)
     const icon = L.divIcon({
       className: '',
-      html: `<div class="gauge-hit${cat === 'none' && !stale ? ' hit-none' : ''}">` +
-        `<div class="gauge-icon ${stale ? 'stale' : `cat-${cat}`}" style="width:${size}px;height:${size}px"></div>` +
+      html: `<div class="gauge-hit${(cat === 'none' && !degraded) || gs === 'nothresh' ? ' hit-none' : ''}">` +
+        `<div class="gauge-icon ${degraded ? `deg-${gs}` : `cat-${cat}`}" style="width:${size}px;height:${size}px"></div>` +
         (rising ? `<span class="rise-arrow cat-${gaugeForecastCat(g)}">▲</span>` : '') +
         (falling ? '<span class="fall-arrow">▼</span>' : '') + '</div>',
       iconSize: [32, 32],
@@ -509,12 +543,24 @@ function renderGauges() {
     state.layers.gauges.addLayer(m);
     state.gaugeMarkers[g.lid] = m;
   }
+  if (typeof renderMapLegend === 'function') renderMapLegend(); // counts move with the data
   if (typeof basinApplyHighlight === 'function') basinApplyHighlight(); // re-render dropped the corridor rings
+}
+
+/* NWPS ships a disabled or never-reporting site as primary -999 at validTime year 0001. Printing
+   that is worse than printing nothing, so every reading surface gates on this. */
+function gaugeHasReading(g) {
+  const o = (g.status && g.status.observed) || {};
+  if (!(o.primary > -999) || !o.validTime) return false;
+  const ts = Date.parse(o.validTime);
+  return Number.isFinite(ts) && ts > Date.parse('1900-01-01T00:00:00Z');
 }
 
 function gaugePopup(g) {
   const o = g.status.observed;
+  const gs = gaugeState(g);
   const stale = gaugeObsStale(g);
+  const hasRead = gaugeHasReading(g);
   const cat = gaugeObsCat(g);
   const el = document.createElement('div');
   const f = g.status.forecast;
@@ -526,19 +572,29 @@ function gaugePopup(g) {
   const trendLine = tr
     ? `<div class="popup-meta">${esc(t('gauge.trendlbl'))}: ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : `→ ${esc(t('trend.steady'))}`} ${esc(t('gauge.lasthour'))}</div>`
     : '';
+  const degraded = GAUGE_DEGRADED.includes(gs);
+  // an out-of-service sensor gets a sentence where the chart goes, never a chart over dead data
+  const noChart = gs === 'oos';
+  const headLine = degraded
+    ? `<div class="popup-meta"><span class="cat-word deg-word">${esc(gaugeStateLabel(gs))}</span>` +
+      (hasRead ? ` · ${fmtNum(o.primary)} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}` : '') + '</div>' +
+      `<div class="popup-meta stale-note">${esc(t('gstate.' + gs + '.note'))}</div>`
+    : `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span> · ${fmtNum(o.primary)} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
+      (stale ? `<div class="popup-meta stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '');
   el.innerHTML = `<div class="popup-title">${esc(g.name)}</div>` +
-    `<div class="popup-meta"><span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catLabel(cat))}</span> · ${fmtNum(o.primary)} ${esc(o.primaryUnit)} @ ${esc(fmtWhen(o.validTime))}</div>` +
-    (stale ? `<div class="popup-meta stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '') +
+    headLine +
     trendLine +
     forecastLine +
-    `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">${esc(t('spark.loading').replace('{h}', CONFIG.sparkHours))}</div></div>` +
+    (noChart
+      ? `<div class="popup-spark spark-off"><div class="spark-note">${esc(t('spark.oos'))}</div></div>`
+      : `<div class="popup-spark"><canvas width="270" height="80"></canvas><div class="spark-note">${esc(t('spark.loading').replace('{h}', CONFIG.sparkHours))}</div></div>`) +
     `<button class="popup-expand" data-lid="${esc(g.lid)}">${esc(t('hydro.open'))}</button>` +
     `<button class="popup-expand open-in-gauges">${esc(t('sync.opengauges'))}</button>` +
     `<button class="popup-expand basin-link">🏞 ${esc(t('basin.popup').replace('{river}', riverOf(g.name)))}</button>` +
     (typeof pushManageAvailable === 'function' && pushManageAvailable()
       ? `<button class="popup-expand push-notify-btn" data-lid="${esc(g.lid)}">🔔 ${esc(t('push.notify'))}</button>` : '') +
     `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage'))}</a></div>`;
-  drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
+  if (!noChart) drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
   el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
   el.querySelector('.open-in-gauges').addEventListener('click', () => openInGaugesList(g.lid));
   el.querySelector('.basin-link').addEventListener('click', () => openBasinView(riverSlug(riverOf(g.name))));
@@ -562,6 +618,17 @@ async function openHydro(g) {
   $('#hydro-modal').hidden = false;
   $('#hydro-title').textContent = g.name;
   const note = $('#hydro-note');
+  const cv = $('#hydro-canvas');
+  const legend = $('#hydro-legend');
+  cv.hidden = false;
+  // out of service: no chart at all. A hydrograph of a disabled sensor is a picture of nothing.
+  if (gaugeState(g) === 'oos') {
+    cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+    cv.hidden = true;
+    legend.innerHTML = '';
+    note.textContent = t('hydro.oos');
+    return;
+  }
   note.textContent = t('hydro.loading');
   try {
     const [detail, obs, fcst] = await Promise.all([
@@ -637,8 +704,13 @@ function drawHydro(g, detail, obsData, fcstData) {
     `<span class="hl"><i style="background:var(--accent)"></i>${esc(t('hydro.obs'))}</span>` +
     `<span class="hl"><i style="background:var(--cat-major)"></i>${esc(t('word.forecast').toLowerCase())}</span>` +
     (rec ? `<span class="hl"><i class="dashed"></i>${esc(t('hydro.recline'))}</span>` : '') +
-    `<span class="hl">${esc(t('hydro.shaded'))}</span>`;
-  $('#hydro-note').innerHTML = `${esc(t('hydro.note'))} · <a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage2'))}</a>` +
+    // only claim bands when bands were actually drawn
+    (stages.length ? `<span class="hl">${esc(t('hydro.shaded'))}</span>` : `<span class="hl">${esc(t('hydro.nobands'))}</span>`);
+  // a trace that stops hours short of NOW must say so on the chart, not leave the gap to be read as flat water
+  const lastObs = obs.length ? obs[obs.length - 1].t : null;
+  const endsEarly = lastObs && (now - lastObs) > CONFIG.gaugeStaleHours * 3600000;
+  $('#hydro-note').innerHTML = (endsEarly ? `<span class="stale-note">${esc(t('hydro.ends').replace('{t}', fmtWhen(new Date(lastObs).toISOString())))}</span> · ` : '') +
+    `${esc(t('hydro.note'))} · <a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage2'))}</a>` +
     (typeof pushManageAvailable === 'function' && pushManageAvailable()
       ? ` · <a href="#" id="hydro-notify">🔔 ${esc(t('push.notify'))}</a>` : '');
   const hn = $('#hydro-notify');
@@ -712,7 +784,14 @@ async function drawSparkline(g, canvas, note) {
     ctx.fillStyle = cssVar('--ink-1');
     ctx.font = '11px system-ui';
     ctx.fillText(`${last.primary} ft`, W - mR + 4, y(last.primary) + 4);
-    note.textContent = t('spark.legend').replace('{h}', CONFIG.sparkHours);
+    // the terminal value label is the strongest current-level claim in the app; hedge it the moment
+    // the trace stops short of now, and never promise stage lines that were not drawn
+    const lastT = new Date(last.validTime).getTime();
+    const endsEarly = Number.isFinite(lastT) && (Date.now() - lastT) > CONFIG.gaugeStaleHours * 3600000;
+    note.textContent = endsEarly
+      ? t('spark.ends').replace('{t}', fmtWhen(last.validTime))
+      : (stages.length ? t('spark.legend') : t('spark.legend.nobands')).replace('{h}', CONFIG.sparkHours);
+    note.classList.toggle('stale-note', !!endsEarly);
   } catch { note.textContent = t('spark.unavail'); }
 }
 

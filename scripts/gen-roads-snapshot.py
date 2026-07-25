@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Archive the current DriveTexas AO road-closure set to data/roads-snapshot.json.
+"""Archive the DriveTexas road-closure set to data/roads-capture.json and data/roads-snapshot.json.
 
-Run each release cycle (like gen-feeds.py) and commit the output — the git
-history of this file is the playback archive for road closures, the same
-pattern gauges-snapshot.json serves for gauges. Failures are non-fatal to the
-cycle: exit 0 with the previous file left intact.
+Run each release cycle (like gen-feeds.py) and commit the output. The git history of these
+files is the playback archive for road closures, the same pattern gauges-snapshot.json
+serves for gauges, and it is the ONLY archive that exists: the upstream ArcGIS service
+reports hasVersionedData false, syncEnabled false, no archivingInfo, and layer 0 has
+neither supportsHistoricMoment nor timeInfo, so a closure that clears is gone from
+upstream for good. One request at data/event.json captureBbox (Texas-wide fallback)
+produces roads-capture.json, the durable statewide archive; roads-snapshot.json is that
+capture filtered to gaugeBbox, the display-scoped file gen-history.py and gen-caltopo.py
+consume. Capture is deliberately wider than display so retargeting the AO can never again
+reduce what we collect. Failures are non-fatal to the cycle: exit 0 with the previous
+files left intact.
 """
 import datetime
 import json
@@ -16,6 +23,7 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "roads-snapshot.json")
+CAPTURE_OUT = os.path.join(ROOT, "data", "roads-capture.json")
 URL = "https://services5.arcgis.com/Rvw11bGpzJNE7apK/arcgis/rest/services/DriveTexas_API/FeatureServer/0/query"
 # event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
 DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)
@@ -24,20 +32,41 @@ WHERE = ("condition IN ('Flooding','Closure','Damage') AND "
          "(description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')")
 
 
-def ao_bbox():
+def event_bbox(key):
     try:
         with open(os.path.join(ROOT, "data", "event.json"), encoding="utf-8") as f:
-            b = json.load(f).get("gaugeBbox") or {}
+            b = json.load(f).get(key) or {}
         if all(isinstance(b.get(k), (int, float)) for k in ("xmin", "ymin", "xmax", "ymax")):
             return (b["xmin"], b["ymin"], b["xmax"], b["ymax"])
     except Exception as e:  # noqa: BLE001 — a broken event.json must not kill the cycle; fallback matches core.js
-        print(f"warn: event.json bbox unreadable, using default: {e}", file=sys.stderr)
+        print(f"warn: event.json {key} unreadable, using default: {e}", file=sys.stderr)
     return DEFAULT_BBOX
 
 
+def in_bbox(rec, bbox):
+    v = rec.get("v")
+    if not isinstance(v, list) or len(v) != 2:
+        return False
+    lat, lon = v
+    return bbox[0] <= lon <= bbox[2] and bbox[1] <= lat <= bbox[3]
+
+
+def write_roads(path, roads, now):
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path),
+                               prefix="." + os.path.basename(path) + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump({"generated": now, "roads": roads}, fh, separators=(",", ":"))
+        os.replace(tmp, path)
+    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+        os.unlink(tmp)
+        raise
+
+
 def main():
-    bbox = ao_bbox()
-    print(f"gen-roads-snapshot: AO bbox {bbox}")
+    bbox = event_bbox("captureBbox")
+    display = event_bbox("gaugeBbox")
+    print(f"gen-roads-snapshot: capture bbox {bbox} | display bbox {display}")
     params = urllib.parse.urlencode({
         "where": WHERE,
         "geometry": f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}",
@@ -82,16 +111,12 @@ def main():
         except Exception as e:  # noqa: BLE001 — one malformed feature must not kill the archive cycle
             print(f"warn: skipped malformed road feature: {e!r}", file=sys.stderr)
             continue
+    shown = [r for r in roads if in_bbox(r, display)]
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".roads-snapshot.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump({"generated": now, "roads": roads}, fh, separators=(",", ":"))
-        os.replace(tmp, OUT)
-    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
-        os.unlink(tmp)
-        raise
-    print(f"roads-snapshot.json: {len(roads)} closures @ {now}")
+    write_roads(CAPTURE_OUT, roads, now)
+    write_roads(OUT, shown, now)
+    print(f"roads-capture.json: {len(roads)} closures @ {now}")
+    print(f"roads-snapshot.json: {len(shown)} closures @ {now}")
 
 
 if __name__ == "__main__":

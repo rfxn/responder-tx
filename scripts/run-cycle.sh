@@ -137,7 +137,9 @@ fi
 
 DATA_FILES=(
     data/gauges-snapshot.json
+    data/gauges-capture.json
     data/roads-snapshot.json
+    data/roads-capture.json
     data/crest-summary.json
     data/gauge-meta.json
     data/history.json
@@ -147,11 +149,26 @@ DATA_FILES=(
     crests.ics
 )
 
-if git diff --quiet HEAD -- "${DATA_FILES[@]}"; then
+# git add aborts the cycle on a pathspec that matches nothing, so a generator that has
+# never yet produced its file (new artifact, first run after an upgrade) must not be staged
+PRESENT_FILES=()
+for f in "${DATA_FILES[@]}"; do
+    if [ -e "$f" ] || git cat-file -e "HEAD:$f" 2>/dev/null; then  # tracked-but-deleted still needs staging
+        PRESENT_FILES+=("$f")
+    else
+        log "note: ${f} absent and untracked; not staged this cycle"
+    fi
+done
+
+if [ "${#PRESENT_FILES[@]}" -eq 0 ]; then
+    cycle_end "no data files present to commit; skipping push/deploy"
+fi
+
+if git diff --quiet HEAD -- "${PRESENT_FILES[@]}"; then
     cycle_end "no data changes vs HEAD; nothing to commit, skipping push/deploy"
 fi
 
-git add "${DATA_FILES[@]}"
+git add "${PRESENT_FILES[@]}"
 
 GAUGE_COUNT=$(python3 -c "import json;print(len(json.load(open('data/gauges-snapshot.json'))['gauges']))")
 STAMP=$(date -u '+%Y-%m-%dT%H:%MZ')

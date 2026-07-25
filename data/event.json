@@ -6,6 +6,7 @@
   "center": [29.5, -95.1],
   "zoom": 8,
   "gaugeBbox": { "xmin": -98.0, "ymin": 27.5, "xmax": -93.4, "ymax": 31.0 },
+  "captureBbox": { "xmin": -106.65, "ymin": 25.83, "xmax": -93.4, "ymax": 36.5 },
   "aoPresets": [
     { "id": "houston", "label": "Houston metro", "labelEs": "Houston metro", "bounds": [[29.4, -95.9], [30.2, -94.9]] },
     { "id": "beaumont", "label": "Beaumont · Port Arthur", "labelEs": "Beaumont · Port Arthur", "bounds": [[29.6, -94.5], [30.6, -93.4]] },

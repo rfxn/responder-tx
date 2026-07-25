@@ -1,5 +1,35 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.27 · 2026-07-25 (crossings reported closed, and a wider tide picture)
+
+-- New Features --
+- [New] A new layer shows low-water crossings that a Central Texas jurisdiction
+      reports as closed or caution, across 39 reporting jurisdictions. Each one
+      names the jurisdiction and shows when its report last changed. Off by
+      default, in the water group of the layers sheet
+- [New] The board now covers 32 NOAA tide stations, up from 14, adding Port
+      Arthur, Rainbow Bridge, High Island, Rollover Pass, the Galveston Railroad
+      Bridge, San Luis Pass, Sargent, Matagorda City, Port Lavaca, Copano Bay,
+      the Corpus Christi bay stations, Realitos Peninsula and South Padre Island
+
+-- Bug Fixes --
+- [Fix] Three configured tide stations returned no data and are replaced by
+      working neighbours: Freeport by Freeport Harbor, Bob Hall Pier by Packery
+      Channel, and Port Mansfield, which does not publish on the datum the board
+      reads
+
+-- Changes --
+- [Change] The reported-closure layer states what its timestamps mean: the feed
+           records when a report last changed, not that anyone rechecked it, so
+           a crossing carries the age of its own report and none of them are
+           counted as confirmed hazards. Anything unchanged for more than two
+           days is marked to confirm before routing
+- [Change] The all-locations crossings layer now points at the reported-status
+           layer instead of only noting that it has no status of its own
+- [Change] Tide stations are fetched a few at a time rather than all at once, so
+           a long station list degrades slowly instead of the whole card failing
+           together
+
 ## v0.99.26 · 2026-07-25 (TxDOT district camera snapshots open on the public board)
 
 -- Bug Fixes --

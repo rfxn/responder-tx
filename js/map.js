@@ -474,6 +474,9 @@ function initMap() {
   state.layers.tropical = L.layerGroup();
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
   state.layers.lwc = L.layerGroup();
+  // crossing status reported by Central Texas jurisdictions (ATX Floods) — OFF by default; the feed
+  // times a record's last change, never a confirmation, so these are never counted as live hazards
+  state.layers.crossStatus = L.layerGroup();
   // River Sentry siren tower sites — OFF by default, lazy-loaded; REPORTED LOCATIONS from a public
   // My Maps export, never a claim that a tower is powered, working, or still standing
   state.layers.riverSentry = L.layerGroup();
@@ -515,6 +518,7 @@ function initMap() {
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
     'Road reopenings (recovering)': state.layers.roadReopen,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
+    'Crossings reported closed (Central Texas jurisdictions)': state.layers.crossStatus,
     'River Sentry siren sites (reported locations · not live status)': state.layers.riverSentry,
     ...camOverlays,
   }, { collapsed: true }).addTo(state.map);
@@ -981,6 +985,7 @@ const SHEET_GROUPS = [
     ['fcstMax', '<span class="fcst-ring cat-moderate"></span>', 'layers.fcst', 'sheet.s.fcst', null, true],
     ['inundation', '🌊', 'layers.inun', 'sheet.s.inun', null, false],
     ['crossings', '⛔', 'layers.crossings', 'sheet.s.crossings', 'curated', true],
+    ['crossStatus', '🚨', 'layers.xstatus', 'sheet.s.xstatus', 'official', false],
     ['lwc', '📍', 'layers.crossall', 'sheet.s.crossall', 'official', false],
     ['riverSentry', '<span class="rsentry-icon">📢</span>', 'layers.rsentry', 'sheet.s.rsentry', null, false],
   ]],

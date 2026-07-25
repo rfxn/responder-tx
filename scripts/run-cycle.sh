@@ -144,6 +144,7 @@ gen roads gen-roads-snapshot.py data/roads-snapshot.json || :  # independent sou
 gen history gen-history.py data/history.json || :  # reads COMMITTED snapshot history, so this cycle's fetch does not gate it
 gen notices gen-notices.py data/requests.json || :  # LAN intake merge, never committed by the cycle
 gen shelters gen-shelters.py data/shelters-live.json || :  # independent optional feed
+gen crossstatus gen-crossings-status.py data/crossing-status.json || :  # independent optional feed; live jurisdiction-reported closures
 
 # crest-summary is purely derived from the gauge snapshot; feeds is not (it also carries live NWS
 # flash-flood alerts, and its lastBuildDate is a document build stamp, not a data-currency claim),
@@ -206,6 +207,7 @@ DATA_FILES=(
     history/index.json
     history/day
     data/shelters-live.json
+    data/crossing-status.json
     data/caltopo-export.json
     feed.xml
     crests.ics

@@ -1436,6 +1436,14 @@ const coopStations = () => (Array.isArray(CONFIG.tideStations) ? CONFIG.tideStat
 // CO-OPS returns "YYYY-MM-DD HH:MM" naive station-local (lst_ldt); parse to epoch only for prediction-match delta math
 const tideEpoch = (s) => new Date(String(s).replace(' ', 'T')).getTime();
 
+async function mapPool(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => { while (next < items.length) { const i = next++; out[i] = await fn(items[i]); } };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
 async function fetchTideStation(s) {
   const url = (extra) => `${CONFIG.coopBase}?${extra}&station=${s.id}&datum=MLLW&time_zone=lst_ldt&units=english&format=json&application=respondertx.org`;
   try {
@@ -1473,7 +1481,9 @@ async function fetchTideStation(s) {
 }
 
 async function fetchTides() {
-  const rows = await Promise.all(coopStations().map(fetchTideStation));
+  // each station costs two requests and CO-OPS answers 429 to a burst; a capped pool makes a long
+  // station list take longer rather than fail together and blank the whole card
+  const rows = await mapPool(coopStations(), 4, fetchTideStation);
   if (rows.some((r) => r.ok)) { state.tides = rows; state.tidesAt = Date.now(); } // keep last-good if the whole feed is down
 }
 

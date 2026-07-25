@@ -34,6 +34,7 @@ python3 tests/gen-shelters.test.py    # shelter-status honesty + the schema gate
 python3 tests/gen-caltopo.test.py     # CalTopo GeoJSON export
 python3 tests/gen-history.test.py     # playback archive: the retention invariant
 python3 tests/gen-cameras.test.py     # camera inventory: the per-district collapse guard
+python3 tests/gen-crossings-status.test.py  # crossing status: only non-open rows publish
 ```
 
 CI runs the same commands (`.github/workflows/ci.yml`) plus `node --check` on

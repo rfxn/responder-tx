@@ -1225,6 +1225,9 @@ async function loadSeeds() {
     const xing = await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (xing && Array.isArray(xing.crossings)) state.crossings = xing.crossings;
     else state.crossings = state.crossings || [];
+    // jurisdiction-reported crossing closures — absence-tolerant; transient failure keeps last-good
+    const xst = await fetch(`data/crossing-status.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (xst && Array.isArray(xst.crossings)) state.crossStatus = xst;
     // live NSS shelters — absence-tolerant (poller may never have run); transient failure keeps last-good
     const shl = await fetch(`data/shelters-live.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (shl && Array.isArray(shl.shelters)) state.sheltersLive = shl;
@@ -1235,12 +1238,13 @@ async function loadSeeds() {
     // but aged/stale/fresh-bucket transitions on idle clients still repaint list, tiles, and crossings
     const agingFp = allRequests().map((r) => [r.id, cardAged(r) ? 1 : 0, r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins ? 1 : 0, freshClass(r.ts)]);
     const crossingFp = state.crossings.map((c) => (crossingStale(c) ? 1 : 0));
-    const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp, state.sheltersLive]);
+    const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp, state.sheltersLive, state.crossStatus]);
     if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
     state.seedHash = hash;
     renderRequests();
     renderResources();
     renderCrossings();
+    renderCrossStatus();
     pbRefreshCurated(); // playback may have engaged before this data arrived
     return true;
   } catch { return false; }
@@ -1299,6 +1303,40 @@ function renderCrossings() {
     layer.addLayer(m);
   }
   renderReopenedRoads();
+}
+
+/* ---------- jurisdiction-reported crossing status (ATX Floods closures) ----------
+   Separate from the curated tracker above and from the TxGIO inventory: this is what 39 Central
+   Texas jurisdictions report, and the feed timestamps a record's last CHANGE, never a
+   confirmation. Every marker therefore carries its own age and nothing here is counted as a
+   live hazard, because no row can be vouched for the way a curated one can. */
+const XSTATUS_UNCONFIRMED_D = 2;
+
+function xstatusAgeD(c) {
+  const ms = c.changed ? Date.now() - new Date(c.changed).getTime() : NaN;
+  return Number.isFinite(ms) ? ms / 86400000 : Infinity;
+}
+
+function renderCrossStatus() {
+  const layer = state.layers.crossStatus;
+  if (!layer) return;
+  layer.clearLayers();
+  for (const c of ((state.crossStatus && state.crossStatus.crossings) || [])) {
+    if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) continue;
+    const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
+    const ageD = xstatusAgeD(c);
+    const old = ageD > XSTATUS_UNCONFIRMED_D;
+    const icon = L.divIcon({ className: '', html: `<div class="crossing-icon${old ? ' unconfirmed' : ''}" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    const where = [c.address, c.jurisdiction].filter(Boolean).join(' · ');
+    const m = L.marker([c.lat, c.lon], { icon });
+    m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))} · ${esc(t('xstatus.title'))}</div>` +
+      `<div>${esc(c.name)} ${srcBadge('official')}</div>` +
+      (where ? `<div class="popup-meta">${esc(where)}</div>` : '') +
+      (c.comment ? `<div class="popup-meta">${esc(c.comment)}</div>` : '') +
+      `<div class="popup-meta">${esc(t('xstatus.changed').replace('{t}', fmtWhen(c.changed)))}</div>` +
+      `<div class="popup-meta"><span class="xg-stale">${esc(old ? t('xstatus.old').replace('{d}', Math.round(ageD)) : t('xstatus.nocheck'))}</span></div>`);
+    layer.addLayer(m);
+  }
 }
 
 /* ---------- recently reopened roads — recovery view of the DriveTexas feed ---------- */

@@ -93,6 +93,7 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
     mk_gen gen-feeds.py           feed.xml
     mk_gen gen-shelters.py        data/shelters-live.json
     mk_gen gen-caltopo.py         data/caltopo-export.json
+    mk_gen gen-crossings-status.py data/crossing-status.json
 
     # validation + publish stubs; RESPONDER_TEST_CHECK_RC lets one test make validation fail
     # shellcheck disable=SC2016  # deliberate: the stub must expand this when IT runs, not now
@@ -221,7 +222,7 @@ rm -rf "$WORK"
 
 # --- Test 6: every generator failing is still a hard failure that publishes nothing ------------
 setup
-FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo" run_cycle
+FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo,gen-crossings-status" run_cycle
 COMMITS=$(cd "$REPO" && git rev-list --count HEAD)
 if [ "$RC" -eq 1 ] \
    && grep -q 'ERROR: cycle failed (no source refreshed' "$WORK/cycle.log" \

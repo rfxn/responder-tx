@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.98.3';
+const APP_VERSION = 'v0.98.4';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -181,6 +181,7 @@ const state = {
   showRecovery: false,
   roadMemory: null,
   showAlertHist: false,
+  tickerOpen: false, // the hazard line's remainder list; never auto-opens, never auto-scrolls
   showNormalGauges: false,
   gaugeGroup: 'priority',
   inView: false,

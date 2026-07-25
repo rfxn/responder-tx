@@ -1159,18 +1159,48 @@ function tickerItems() {
   return emerg.concat(rise.slice(0, riseSlots), majors, tail);
 }
 
+/* No motion, by rule: Android for Cars ST-1 forbids automatically scrolling text, and this board is
+   read one-handed in moving vehicles. The old marquee also made the highest-priority item readable
+   only when the loop happened to bring it round. tickerItems() is already ranked, so the lead item
+   is pinned and always legible at a glance, and the remainder opens as a static list on one tap. */
+function tickerItemHtml(item, n, cls) {
+  return `<button type="button" class="ticker-item${cls ? ` ${cls}` : ''}" data-ti="${n}"` +
+    `${item.color ? ` style="color:${item.color}"` : ''}>${esc(item.text)}</button>`;
+}
+
 function renderTicker() {
   const el = $('#ticker');
   if (!el) return;
   const items = tickerItems();
   state.tickerActs = items.map((i) => i.act);
-  if (!items.length) { el.hidden = true; state.tickerHash = ''; return; }
+  if (!items.length) { el.hidden = true; state.tickerHash = ''; state.tickerOpen = false; return; }
   el.hidden = false;
-  const half = items.map((i, n) =>
-    `<span class="ticker-item" data-ti="${n}"${i.color ? ` style="color:${i.color}"` : ''}>${esc(i.text)}</span><span class="ticker-sep">·</span>`).join('');
-  if (half === state.tickerHash) return; // unchanged — don't restart the scroll animation
-  state.tickerHash = half;
-  $('#ticker-track').innerHTML = `<span class="ticker-half">${half}</span><span class="ticker-half">${half}</span>`;
+  const rest = items.slice(1);
+  const lead = tickerItemHtml(items[0], 0, 'ticker-lead') +
+    (rest.length ? `<button type="button" class="ticker-more" aria-controls="ticker-rest">` +
+      `<span class="tm-n">${esc(String(rest.length))}</span><span class="tm-lbl">${esc(t('ticker.more'))}</span></button>` : '');
+  const restHtml = rest.map((it, n) => tickerItemHtml(it, n + 1)).join('');
+  const hash = lead + restHtml;
+  if (hash !== state.tickerHash) {
+    state.tickerHash = hash;
+    $('#ticker-track').innerHTML = lead;
+    $('#ticker-rest').innerHTML = restHtml;
+  }
+  if (!rest.length) state.tickerOpen = false; // nothing left to expand into
+  applyTickerOpen();
+}
+
+function applyTickerOpen() {
+  const restEl = $('#ticker-rest');
+  const more = $('#ticker .ticker-more');
+  if (!restEl) return;
+  const open = !!state.tickerOpen;
+  restEl.hidden = !open;
+  if (more) {
+    more.setAttribute('aria-expanded', open ? 'true' : 'false');
+    more.title = t(open ? 'ticker.more.hide' : 'ticker.more.title');
+    more.setAttribute('aria-label', more.title);
+  }
 }
 
 /* ---------- header ---------- */

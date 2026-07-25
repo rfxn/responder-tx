@@ -1,5 +1,48 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.4 · 2026-07-25 (two defects that only show up in a moving vehicle)
+
+-- Bug Fixes --
+- [Fix] The hazard line no longer scrolls itself. Android for Cars app quality
+      requirement ST-1 is "The app must not display automatically scrolling
+      text", and it is the only published in-vehicle standard that addresses
+      it. The line is already ranked worst-first, so the top item is now pinned
+      and always legible at a glance instead of being readable only when the
+      loop brought it round.
+- [Fix] Nothing was dropped to get there. The remaining items sit behind a
+      count button and open as a static list, one tap, no motion. Acting on any
+      item closes it again.
+- [Fix] A dash-mounted phone in landscape could not give the map the screen at
+      all. The resize handle was hidden in that layout while the panel stayed
+      pinned at 40% of the width, so in the exact posture where the map matters
+      most there was no way to expand it. Minimize now collapses the panel in
+      landscape as it already did in portrait: the map goes from 506 to 844 px
+      wide on a 844x390 screen, and 592 to 932 on a 932x430.
+
+-- Changes --
+- [Change] The landscape handle is the portrait pill turned on its side. It
+           rides the panel's inner edge while the panel is open and moves to the
+           right edge once the panel is gone, because a right thumb on a mount
+           cannot reach the far left of an 844 px screen. It sits in the lower
+           third, clear of the zoom bar above it and the legend below it, and
+           never in the top-right corner, which is the furthest point of all.
+- [Change] Landscape reuses the existing minimize state rather than inventing
+           one, so ?sheet=peek and the stored panel preference now work in
+           landscape too. The full-screen-panel button is hidden there, since in
+           a fixed-width column it does the same thing as half.
+- [Change] Hazard-line items are real buttons, so they are keyboard reachable
+           and pick up the 44 px phone target floor. They were 23 px spans.
+- [Change] The expanded list floats over the map instead of pushing it down. At
+           its old height a 390x844 phone was left with 96 px of map and a
+           re-tile on every open.
+- [Change] Reduced-motion users previously got the marquee frozen in place,
+           which left every item past the fold unreachable. With no motion
+           anywhere, that whole class of failure is gone.
+- [Change] tests/css-contract.test.js gains three guards: no animation may
+           return to the hazard line in any form, the remainder must float
+           rather than resize, and the landscape block must keep a visible 44 px
+           handle with a collapsing sidebar.
+
 ## v0.98.3 · 2026-07-25 (degraded gauges become peer values in the legend)
 
 -- New Features --

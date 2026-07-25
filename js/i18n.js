@@ -517,6 +517,7 @@
       'radar.scrub': 'Scrub the radar timeline: observed past → NOW → HRRR model future',
       'fcst.badge': 'FORECAST MODEL',
       'fcst.run': 'NOAA HRRR model run of {t} · via Iowa Environmental Mesonet',
+      'sheet.group.aria': 'Resize panel',
       'sheet.full': 'Full screen: panel covers the map',
       'sheet.full.aria': 'Full screen',
       'sheet.half': 'Half screen',
@@ -1069,6 +1070,9 @@
       'attr.title': 'Map & data sources',
       'ffe.opentab': 'Open Alerts tab',
       'ticker.ffe': '⚠ FF EMERGENCY {where} · until {t}',
+      'ticker.more': 'more',
+      'ticker.more.title': 'Show the rest of the live hazard list',
+      'ticker.more.hide': 'Hide the rest of the live hazard list',
     },
 
     es: {
@@ -1578,6 +1582,7 @@
       'radar.scrub': 'Recorra la línea de tiempo del radar: pasado observado → AHORA → futuro del modelo HRRR',
       'fcst.badge': 'MODELO DE PRONÓSTICO',
       'fcst.run': 'Corrida del modelo HRRR de NOAA de {t} · vía Iowa Environmental Mesonet',
+      'sheet.group.aria': 'Cambiar el tamaño del panel',
       'sheet.full': 'Pantalla completa: el panel cubre el mapa',
       'sheet.full.aria': 'Pantalla completa',
       'sheet.half': 'Media pantalla',
@@ -2130,6 +2135,9 @@
       'attr.title': 'Fuentes del mapa y de datos',
       'ffe.opentab': 'Abrir la pestaña de alertas',
       'ticker.ffe': '⚠ EMERGENCIA REPENTINA {where} · hasta {t}',
+      'ticker.more': 'más',
+      'ticker.more.title': 'Mostrar el resto de la lista de peligros en vivo',
+      'ticker.more.hide': 'Ocultar el resto de la lista de peligros en vivo',
     },
   };
 

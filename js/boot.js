@@ -815,10 +815,13 @@ async function boot() {
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
   for (const id of ['#summary-exit', '#recovery-exit', '#basin-exit']) $(id).addEventListener('click', () => openView('live'));
-  // ticker halves are duplicated markup — delegate clicks by item index instead of per-node listeners
+  // one delegated listener across the pinned lead item and the expandable remainder
   $('#ticker').addEventListener('click', (e) => {
+    if (e.target.closest('.ticker-more')) { state.tickerOpen = !state.tickerOpen; applyTickerOpen(); return; }
     const it = e.target.closest('.ticker-item');
     if (!it || !state.tickerActs) return;
+    state.tickerOpen = false; // acting on an item closes the list; the map is what matters next
+    applyTickerOpen();
     const act = state.tickerActs[+it.dataset.ti];
     if (act) act();
   });

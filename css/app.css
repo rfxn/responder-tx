@@ -152,17 +152,38 @@ button.primary { background: var(--accent); color: #fff; border-color: transpare
 }
 #update-chip[hidden] { display: none; }
 
-/* actionable ticker — recency-biased glance line; duplicated halves loop seamlessly */
-#ticker { overflow: hidden; background: var(--surface-2); border-bottom: 1px solid var(--hairline); }
+/* actionable hazard line, ranked. Static by rule: no marquee, no auto-advance, no transform loop.
+   Motion here made the top item readable only when the loop reached it, and Android for Cars ST-1
+   forbids automatically scrolling text outright. The lead item is pinned; the rest open on tap. */
+#ticker { position: relative; background: var(--surface-2); border-bottom: 1px solid var(--hairline); }
 #ticker[hidden] { display: none; }
-.ticker-track { display: inline-flex; white-space: nowrap; animation: tickerScroll 58s linear infinite; will-change: transform; }
-#ticker:hover .ticker-track, #ticker:active .ticker-track { animation-play-state: paused; }
-.ticker-half { display: inline-flex; align-items: center; min-width: 100%; }
-.ticker-item { font-size: 12.5px; font-weight: 600; padding: 5px 0; cursor: pointer; flex: 0 0 auto; color: var(--ink-2); }
+.ticker-track { display: flex; align-items: stretch; gap: 8px; padding: 0 10px; }
+.ticker-item {
+  font-size: 12.5px; font-weight: 600; padding: 5px 0; cursor: pointer; color: var(--ink-2);
+  background: none; border: 0; text-align: left; font-family: inherit;
+}
 .ticker-item:hover { text-decoration: underline; }
-.ticker-sep { color: var(--ink-muted); padding: 0 14px; flex: 0 0 auto; }
-@keyframes tickerScroll { to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } }
+.ticker-lead { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ticker-more {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer;
+  background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px;
+  font: 600 11.5px var(--font-body); font-family: inherit;
+}
+.ticker-more .tm-n { font-weight: 800; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+.ticker-more[aria-expanded="true"] { background: var(--accent); color: #fff; border-color: transparent; }
+.ticker-more[aria-expanded="true"] .tm-n { color: #fff; }
+/* floats over the map instead of pushing it: expanding a list must not resize the map underneath,
+   which at 40vh left a 390x844 phone with 96px of map and a re-tile on every open */
+#ticker-rest {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 850;
+  display: flex; flex-direction: column; align-items: stretch;
+  max-height: 45vh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface-2); border-bottom: 1px solid var(--hairline);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35); padding: 0 10px 2px;
+}
+#ticker-rest[hidden] { display: none; }
+#ticker-rest .ticker-item { white-space: normal; padding: 6px 0; border-bottom: 1px solid var(--hairline); }
+#ticker-rest .ticker-item:last-child { border-bottom: 0; }
 
 #emergency-banner {
   position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
@@ -1512,7 +1533,6 @@ button.inspect-gauge:hover { color: var(--accent); }
 
   main { flex-direction: row; }
   #map { order: 0; flex: 1 1 auto; min-height: 0; }
-  #sheet-handle { display: none; }
 
   /* narrow scrollable sidebar (map-favoring). MUST override all three sheet-state rules —
      main.sheet-half #sidebar is specificity (1,1,1); a bare #sidebar (1,0,0) loses. */
@@ -1524,6 +1544,36 @@ button.inspect-gauge:hover { color: var(--accent); }
     height: auto; overflow: hidden;
     border-top: none; border-right: 1px solid var(--hairline);
   }
+  /* A dash-mounted phone in landscape had NO way to give the map the screen: the handle was
+     display:none here while the sidebar stayed pinned to 40vw. Peek now collapses the column the
+     same way it collapses the portrait sheet, so ?sheet=peek and the stored preference both work
+     in landscape and no new state was invented. Declared after the list above to beat it at equal
+     specificity. */
+  main.sheet-peek #sidebar { width: 0; min-width: 0; border-right: none; }
+
+  /* The handle is the portrait pill turned on its side: fixed, zero layout cost, always visible.
+     It rides the sidebar's inner edge while the panel is open, and moves to the right edge when
+     the panel is gone, because a right thumb on a mount cannot reach the far left of an 844px
+     screen and the top-right corner is the furthest point of all. */
+  /* bottom: 58px is load-bearing, not taste. The zoom bar owns the map's left edge down to y≈231
+     and the legend owns it from y≈340; this is the gap between them, and it is also the low third
+     of the screen, which is where a mounted thumb actually lands. */
+  #sheet-handle {
+    display: flex; flex-direction: column; position: fixed; z-index: 900;
+    left: clamp(260px, 40vw, 340px); bottom: 58px; top: auto; right: auto; transform: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 0 8px 8px 0;
+    overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  #sheet-handle button {
+    min-width: 44px; min-height: 44px; padding: 0; font-size: 15px; font-weight: 700;
+    border-radius: 0; background: var(--surface-1); color: var(--ink-2);
+    border: none; border-bottom: 1px solid var(--hairline);
+  }
+  #sheet-handle button:last-child { border-bottom: none; }
+  #sheet-handle button.on { background: var(--accent); color: #fff; }
+  /* full == half in a fixed 40vw column; showing both would be two buttons for one outcome */
+  #sheet-handle button[data-sheet="sheet-full"] { display: none; }
+  main.sheet-peek #sheet-handle { left: auto; right: 8px; border-radius: 8px 0 0 8px; }
   /* the lens takes the same column, leaving the map the other 60%; the sheet-state rules above
      are (1,1,1), so this list has to carry the same weight to win the height back */
   main.sheet-peek .lens-pane,

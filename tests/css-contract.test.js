@@ -63,6 +63,49 @@ test('landscape grows the header controls to 44px, never shrinks them', () => {
   }
 });
 
+/* Android for Cars app-quality requirement ST-1: "The app must not display automatically scrolling
+   text." This board is read one-handed in moving vehicles, and #ticker carries live hazard content,
+   so the marquee had to go without the content going with it. */
+test('the hazard line never scrolls itself, in any form', () => {
+  assert.equal(CSS.includes('tickerScroll'), false, 'the marquee keyframes are back in css/app.css');
+  assert.equal(decl(CSS, '.ticker-track', 'animation'), '', '.ticker-track must declare no animation');
+  assert.equal(decl(CSS, '.ticker-item', 'animation'), '');
+  assert.equal(decl(CSS, '#ticker', 'animation'), '');
+  // the duplicated-halves structure only existed to make a transform loop seamless
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  assert.equal(panels.includes('ticker-half'), false, 'renderTicker still emits the marquee halves');
+  assert.match(panels, /function renderTicker\(\)/);
+  assert.match(panels, /ticker-lead/, 'renderTicker must pin a lead item');
+  assert.match(panels, /ticker-more/, 'renderTicker must offer the remainder on demand');
+});
+
+test('the hazard remainder floats over the map instead of resizing it', () => {
+  // at max-height the list once pushed main down and left a 390x844 phone 96px of map
+  assert.equal(decl(CSS, '#ticker-rest', 'position'), 'absolute');
+  assert.equal(decl(CSS, '#ticker', 'position'), 'relative', '#ticker must anchor the floating list');
+  assert.match(decl(CSS, '#ticker-rest', 'max-height'), /^\d+vh$/);
+  assert.equal(decl(CSS, '#ticker-rest', 'overscroll-behavior'), 'contain');
+});
+
+/* A dash-mounted phone in landscape could not give the map the screen at all: the sheet handle was
+   display:none here while #sidebar stayed pinned to 40vw. That is the posture where the map matters
+   most, so the affordance has to exist and has to be reachable. */
+test('landscape can collapse the sidebar and the handle is a real 44px target', () => {
+  const block = mediaBlock(LANDSCAPE);
+  assert.equal(decl(block, '#sheet-handle', 'display'), 'flex',
+    'the landscape block must show #sheet-handle, not hide it');
+  assert.equal(decl(block, '#sheet-handle', 'position'), 'fixed', 'the handle must cost no layout space');
+  assert.equal(decl(block, '#sheet-handle button', 'min-height'), '44px');
+  assert.equal(decl(block, '#sheet-handle button', 'min-width'), '44px');
+  assert.equal(decl(block, 'main.sheet-peek #sidebar', 'width'), '0',
+    'landscape peek must collapse the sidebar so the map takes the screen');
+  // the handle must never sit in the top-right corner, the furthest point from a mounted right thumb
+  assert.equal(decl(block, '#sheet-handle', 'top'), 'auto');
+  assert.match(decl(block, '#sheet-handle', 'bottom'), /^\d+px$/);
+  // and it must stay reachable once the sidebar it was anchored to is gone
+  assert.equal(decl(block, 'main.sheet-peek #sheet-handle', 'right'), '8px');
+});
+
 test('landscape restores the sidebar targets that escape the 768px width query', () => {
   // 932x430 is wider than 768px, so no phone rule applies and these fell back to ~25px
   const block = mediaBlock(LANDSCAPE);

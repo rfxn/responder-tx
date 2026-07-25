@@ -15,8 +15,8 @@ suspended or mid-task).
 | `fetch-snapshot.py` | One NWPS request at `captureBbox` → `data/gauges-capture.json` (full statewide capture, the durable archive) **and** `data/gauges-snapshot.json` (that capture filtered to `gaugeBbox`, the display-scoped public cold-start file). Both compact `{generated, bbox, gauges:[{lid,name,latitude,longitude,status}]}`. Aborts non-zero on HTTP error or a partial response so a bad fetch never overwrites good files: a same-bbox refresh must return at least half that file's previous count, a bbox re-target only has to clear the absolute floor of 25. Both files are validated before either is written. Writes atomically (temp file + rename). |
 | `gen-roads-snapshot.py` | Archive the DriveTexas road-closure set → `data/roads-capture.json` (statewide) **and** `data/roads-snapshot.json` (filtered to `gaugeBbox`), same capture-vs-display split as the gauge fetch (best-effort; keeps prior files on fetch failure). |
 | `rescue-nwps.py` | One-shot recovery: pull the NWPS 30-day observed buffer for every lid ever seen in this repo → `archive/recovered/nwps-30d/<LID>.json.gz` + `_manifest.json`. Not part of the cycle. |
-| `gen-history.py` | Walk the committed `gauges-snapshot.json` history + USGS/NWPS backfill → `data/history.json` (playback timeline). |
-| `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. |
+| `gen-history.py` | Walk the committed `gauges-capture.json` history (falling back to `gauges-snapshot.json` before the capture split), merge the `archive/recovered/` blobs, reconstruct the pre-archive window → `data/history.json` (playback timeline). Retains every gauge; applies display scope once, at publish time. |
+| `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `cycle-check.sh` | Pre-commit validation bundle (JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard). |
 | `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. |
@@ -123,7 +123,8 @@ script already persists the durable copy — tail the logfile to watch cycles.
   result to `data/gauges-capture.json` / `data/roads-capture.json`.
 - **`gaugeBbox`** governs what we *display*. The capture is filtered to it to
   produce `data/gauges-snapshot.json` / `data/roads-snapshot.json`, which are
-  what the client, CalTopo export, history, and crest summary consume.
+  what the client and the CalTopo export consume. `gen-history.py` and
+  `gen-crest-summary.py` read the capture instead, and scope their own output.
 
 The split exists because of a real loss. On 2026-07-23 the TS Bertha coastal
 pivot narrowed `gaugeBbox` from `(-102.0, 28.0, -97.0, 31.1)` to
@@ -142,10 +143,21 @@ reduce what we collect. **An AO pivot changes `gaugeBbox` only.** Widen
 `captureBbox`, never narrow it, and never point a generator at a capture file
 without keeping the display filter on whatever it publishes.
 
-Still open: `gen-history.py` and `gen-crest-summary.py` still walk
-`gauges-snapshot.json` and still filter against the display box, so history
-depth outside the current AO is not yet restored. Rewiring them onto the capture
-files and merging `archive/recovered/` is a later phase.
+Resolved in v0.97.97. `gen-history.py` and `gen-crest-summary.py` are now two
+layers. Retention walks the capture history with no geographic filter anywhere in
+the path; publication applies scope exactly once, at the end. Publication scope
+is the union of **every** `gaugeBbox` this repo has ever committed, plus every
+lid already published, so both terms only grow and narrowing the live display can
+never un-publish a past frame, gauge or peak. `tests/gen-history.test.py` pins
+that invariant, including a structural check that the retention path cannot
+reference a bbox at all.
+
+Reconstruction depth is `archiveStart` in `data/event.json`, not `start`. `start`
+is a display field that moves with an AO pivot; it once moved past the first git
+frame and silently killed the whole backfill stage. Reconstruction reads
+`archive/recovered/nwps-30d/` before any network call and only for lids in
+publication scope, so a routine 15-minute cycle never re-pulls a window it
+already has.
 
 ## Recovery archive (`archive/`)
 
@@ -169,8 +181,10 @@ data only; no code edits. All geography flows from `data/event.json`.
 1. **Edit `data/event.json`:** `name`, `event`, `region`, `start` (new event
    start; drives history backfill and crest windows), `center`/`zoom`,
    `gaugeBbox` (drives display scoping: which gauges publish, roads/shelters/cameras
-   scoping, and the LSR/alert in-AO filters; it no longer governs what we collect,
-   see "Capture bbox vs display bbox"), `aoPresets` (sub-AO pills; omit for Full AO only),
+   scoping, and the LSR/alert in-AO filters; it no longer governs what we collect
+   or what history and crest retain, see "Capture bbox vs display bbox"),
+   `archiveStart` (how far back reconstruction may reach; independent of `start`,
+   which is display only), `aoPresets` (sub-AO pills; omit for Full AO only),
    `tideStations` (coastal events only; omit or empty inland and the coastal
    water-level card does not render), and optionally
    `tropicalAutoEnable: false` to pin the NHC tracker auto-default off (it is

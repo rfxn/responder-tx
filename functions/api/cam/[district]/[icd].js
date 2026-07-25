@@ -24,6 +24,10 @@ const BYTES_SOURCES = {
   // renders these through its no-capture-time path rather than the aging badge
   swrecon: { idRe: /^[A-Z]{3}_[A-Za-z0-9]{4,24}$/, url: (id) => `https://relay.ozolio.com/pub.api?cmd=poster&oid=${id}` },
   corpus: { idRe: /^[A-Z]{3}_[A-Za-z0-9]{4,24}$/, url: (id) => `https://relay.ozolio.com/pub.api?cmd=poster&oid=${id}` },
+  // NMDOT publishes its snapshots over plain HTTP only. That never reaches the browser: this is a
+  // server-side subrequest and the bytes are re-served same-origin, so no mixed content is possible.
+  // The file is rewritten in place, so a fetch landing mid-write answers 404 or 500 on a live camera.
+  nmdot: { idRe: /^[A-Za-z0-9_-]{4,32}$/, attempts: 3, url: (id) => `http://ss.nmroads.com/snapshots/${id}.jpg` },
 };
 
 // WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped
@@ -60,7 +64,7 @@ export async function onRequestGet(context) {
   if (source === 'atxfloods') return ATX_ID_RE.test(id) ? atxSnapshot(context, id) : new Response('bad request', { status: 400 });
   if (source === 'weatherbug') return WB_ID_RE.test(id) ? wbSnapshot(context, id) : new Response('bad request', { status: 400 });
   const src = Object.prototype.hasOwnProperty.call(BYTES_SOURCES, source) ? BYTES_SOURCES[source] : null;
-  if (src && src.idRe.test(id)) return bytesSnapshot(context, source, id, src.url(id));
+  if (src && src.idRe.test(id)) return bytesSnapshot(context, source, id, src.url(id), src.attempts || 1);
   return new Response('bad request', { status: 400 });
 }
 
@@ -103,21 +107,24 @@ async function itsSnapshot(context, district, icd) {
 }
 
 // Named direct-JPEG source (Austin ATD, …): stream upstream bytes, lift Last-Modified into the stamp
-async function bytesSnapshot(context, source, id, upstream) {
+async function bytesSnapshot(context, source, id, upstream, attempts) {
   const cache = caches.default;
   const cacheKey = new Request(new URL(context.request.url).origin + `/api/cam/${source}/${encodeURIComponent(id)}`);
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
   let body, captured;
-  try {
-    const up = await fetch(upstream, { headers: { Accept: 'image/jpeg', 'User-Agent': UA } });
-    if (!up.ok) return new Response(`upstream ${up.status}`, { status: 502 });
-    if (!/image/i.test(up.headers.get('content-type') || '')) return new Response('not an image', { status: 502 });
-    body = await up.arrayBuffer();
-    captured = String(up.headers.get('last-modified') || '').replace(/[^\x20-\x7e]+/g, ' ').trim().slice(0, 64);
-  } catch {
-    return new Response('upstream error', { status: 502 });
+  for (let n = 0; n < attempts; n++) {
+    try {
+      const up = await fetch(upstream, { headers: { Accept: 'image/jpeg', 'User-Agent': UA } });
+      if (!up.ok || !/image/i.test(up.headers.get('content-type') || '')) continue;
+      body = await up.arrayBuffer();
+      captured = String(up.headers.get('last-modified') || '').replace(/[^\x20-\x7e]+/g, ' ').trim().slice(0, 64);
+      break;
+    } catch {
+      // a single failed attempt is not the camera being down; retry where the source needs it
+    }
   }
+  if (body === undefined) return new Response('upstream error', { status: 502 });
   const res = jpegResponse(body, captured);
   context.waitUntil(cache.put(cacheKey, res.clone()));
   return res;

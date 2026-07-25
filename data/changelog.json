@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.32",
+      "date": "2026-07-25",
+      "line": "Twenty five New Mexico DOT cameras join the camera layer. They cover the road and river corridor that runs into Texas: I-10 from the Arizona line, I-25 and I-10 through the Mesilla Valley at Las Cruces where the Rio Grande passes on its way to El Paso, and US 70 at Apache Summit and Organ Mountain Pass. Cameras far up the Rio Grande above Elephant Butte Reservoir are not carried, because the reservoir separates them from the river that reaches Texas. Each one reports a real capture time and ages on the map like every other snapshot."
+    },
+    {
       "v": "v0.99.31",
       "date": "2026-07-25",
       "line": "An eighth City of El Paso international-bridge camera, a second Santa Fe St. Bridge view, joins the live bridge set. A weather camera whose publishing gap ran longer than the board's search window returned no picture at all; the window the viewer searches is now wider than the one used to decide a camera is working, so a slow camera still opens."

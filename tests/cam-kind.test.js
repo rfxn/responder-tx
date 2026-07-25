@@ -166,7 +166,13 @@ test('every camera network the client ships is served by BOTH proxies', () => {
   assert.equal(win(edge, 'WB_PROBE_MINUTES'), win(lan, 'CAM_WB_PROBE_MINUTES'), 'the two proxies disagree on the probe window');
   // gen may look back less far than the proxies, never further: a camera it ships has to resolve
   assert.ok(win(gen, 'WB_PROBE_MINUTES') <= win(edge, 'WB_PROBE_MINUTES'),
-    'gen ships cameras the proxies would not find'); 
+    'gen ships cameras the proxies would not find');
+  // NMDOT rewrites each snapshot in place, so a fetch landing mid-write answers 404 or 500 on a
+  // camera that is up. Both proxies retry, and a disagreement means one board calls it dead.
+  const edgeTries = Number((edge.match(/nmdot:[^\n]*attempts:\s*(\d+)/) || [])[1]);
+  const lanTries = Number((lan.match(/CAM_BYTES_ATTEMPTS\s*=\s*\{'nmdot':\s*(\d+)\}/) || [])[1]);
+  assert.ok(edgeTries > 1, 'the edge proxy does not retry NMDOT');
+  assert.equal(edgeTries, lanTries, 'the two proxies disagree on the NMDOT retry count');
 });
 
 test('the marker states its kind in text, not in colour and glyph alone', () => {

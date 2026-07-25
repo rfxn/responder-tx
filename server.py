@@ -61,7 +61,13 @@ CAM_BYTES_SOURCES = {
     # renders these through its no-capture-time path rather than the aging badge
     'swrecon': (re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$'), 'https://relay.ozolio.com/pub.api?cmd=poster&oid={id}'),
     'corpus': (re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$'), 'https://relay.ozolio.com/pub.api?cmd=poster&oid={id}'),
+    # NMDOT publishes its snapshots over plain HTTP only. That never reaches the browser: this is a
+    # server-side fetch and the response is re-served same-origin, so no mixed content is possible.
+    'nmdot': (re.compile(r'^[A-Za-z0-9_-]{4,32}$'), 'http://ss.nmroads.com/snapshots/{id}.jpg'),
 }
+# NMDOT rewrites each snapshot file in place, so a fetch landing mid-write answers 404 or 500 on a
+# camera that is up. Retry only where the upstream is known to do it; must match the edge Function.
+CAM_BYTES_ATTEMPTS = {'nmdot': 3}
 # WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped filename
 # back from now. The stamp is station-local (America/Chicago) wall time. Resolving against the
 # site's own camera index is deliberately avoided: that list is ranked by the requester's
@@ -287,15 +293,21 @@ class Handler(SimpleHTTPRequestHandler):
         if entry is None:
             pid, _, sid = cid.partition('-')  # composite id: {pid}-{sid} for hays; single-id sources ignore pid/sid
             url = tmpl.format(id=urllib.parse.quote(cid, safe=''), pid=pid, sid=sid)
-            try:
-                req = urllib.request.Request(url, headers={'Accept': 'image/jpeg', 'User-Agent': CAM_UA})
-                with urllib.request.urlopen(req, timeout=15) as r:
-                    jpeg = r.read()
-                    ctype = r.headers.get('Content-Type', '')
-                    stamp = re.sub(r'[^\x20-\x7e]+', ' ', str(r.headers.get('Last-Modified', ''))).strip()[:64]
-                if not jpeg or 'image' not in ctype.lower():
-                    raise ValueError('not an image')
-            except (OSError, ValueError, http.client.HTTPException):
+            jpeg = stamp = None
+            for _ in range(CAM_BYTES_ATTEMPTS.get(source, 1)):
+                try:
+                    req = urllib.request.Request(url, headers={'Accept': 'image/jpeg', 'User-Agent': CAM_UA})
+                    with urllib.request.urlopen(req, timeout=15) as r:
+                        body = r.read()
+                        ctype = r.headers.get('Content-Type', '')
+                        stamp = re.sub(r'[^\x20-\x7e]+', ' ', str(r.headers.get('Last-Modified', ''))).strip()[:64]
+                    if not body or 'image' not in ctype.lower():
+                        raise ValueError('not an image')
+                    jpeg = body
+                    break
+                except (OSError, ValueError, http.client.HTTPException):
+                    continue
+            if jpeg is None:
                 self.send_error(502)
                 return
             entry = (now, jpeg, stamp)

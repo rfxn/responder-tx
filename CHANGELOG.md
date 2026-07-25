@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.32 · 2026-07-25 (southern New Mexico cameras)
+
+-- New Features --
+- [New] 25 New Mexico DOT cameras covering the reach above Texas: the I-10
+      corridor from the Arizona line into El Paso, I-25 and I-10 through the
+      Mesilla Valley at Las Cruces where the Rio Grande runs, and US 70 at
+      Apache Summit and Organ Mountain Pass
+- [New] A camera whose operator rewrites its snapshot file in place is retried
+      before the board calls it unavailable
+
 ## v0.99.31 · 2026-07-25 (one more El Paso bridge view)
 
 -- New Features --

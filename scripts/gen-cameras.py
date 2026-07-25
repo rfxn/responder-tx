@@ -7,7 +7,8 @@ Channel wharf and air-draft cams, ATX Floods low-water-crossing flood cams,
 plus Hays County OES flood cams (CameraFTP/DriveHQ stills, San Marcos
 corridor), Saltwater Recon Gulf Coast cams and City of Corpus Christi cams
 (both Ozolio posters, which publish no capture time), City of Lubbock signal
-cameras, and WeatherBug weather-camera stills. Hand-maintained sources are
+cameras, WeatherBug weather-camera stills, and NMDOT cameras on the southern
+New Mexico reach that drains into Texas. Hand-maintained sources are
 liveness-checked at gen time. Run at build time; the inventory is near-static,
 so the output is committed. Stdlib only."""
 
@@ -119,6 +120,16 @@ WB_REC_RE = re.compile(
 LUBBOCK = 'https://pubgis.ci.lubbock.tx.us/server/rest/services/Traffic_Cameras/MapServer/0/query?where=1%3D1&outFields=ASSETNO,STREET,AVENUE,TxDOTNAME&returnGeometry=true&outSR=4326&f=json'
 LUBBOCK_IMG = 'https://ewebmap.ci.lubbock.tx.us/TrafficCam/Images/{id}.jpg'
 LUBBOCK_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/lubbock proxy validator
+NMDOT = 'https://servicev5.nmroads.com/RealMapWAR/GetCameraInfo'
+# HTTP-only snapshot host. That is fine behind the server-side proxy and never reaches the browser;
+# the HTTPS alternative on servicev5 publishes no Last-Modified, so it could not be aged honestly.
+NMDOT_IMG = 'http://ss.nmroads.com/snapshots/{id}.jpg'
+NMDOT_SNAP_RE = re.compile(r'^https?://ss\.nmroads\.com/snapshots/([A-Za-z0-9_-]{4,32})\.jpg$', re.I)
+NMDOT_ID_RE = re.compile(r'^[A-Za-z0-9_-]{4,32}$')  # mirrors the /api/cam/nmdot proxy validator
+# Southern New Mexico only. This is the Rio Grande below Elephant Butte, which becomes the Texas
+# river at El Paso, plus the I-10 approach and the Sacramento Mountains head of the Pecos. Above the
+# reservoir the upper Rio Grande is decoupled from Texas, so those cameras are not carried.
+NMDOT_BBOX = (-109.1, 31.0, -105.5, 33.5)  # xmin, ymin, xmax, ymax
 OZOLIO_POSTER = 'https://relay.ozolio.com/pub.api?cmd=poster&oid={oid}'
 OZOLIO_OID_RE = re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$')  # mirrors the /api/cam/{swrecon,corpus} proxy validator
 OZOLIO_MIN_BYTES = 8000  # a live poster runs 130-550 KB; a down head answers far smaller or not at all
@@ -609,10 +620,10 @@ def http_date_age_days(stamp):
     return (datetime.now(timezone.utc) - t).total_seconds() / 86400
 
 
-def lubbock_frame_age(cid):
-    """Age in days of a Lubbock camera's newest frame; None when it serves no image at all."""
+def jpeg_frame_age(url):
+    """Age in days of a direct-JPEG camera's newest frame; None when it serves no dated image."""
     try:
-        req = urllib.request.Request(LUBBOCK_IMG.format(id=cid), headers={'User-Agent': BROWSER_UA})
+        req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
         with urllib.request.urlopen(req, timeout=20) as r:
             if r.getcode() != 200 or 'image/jpeg' not in (r.headers.get('Content-Type') or '').lower():
                 return None
@@ -641,7 +652,7 @@ def lubbock_cams():
         rows.append({'name': f'{name} · {route}' if route else name, 'lat': lat, 'lon': lon, 'id': cid})
     cams, noimg, dead = [], 0, 0
     for c in rows:
-        age = lubbock_frame_age(c['id'])
+        age = jpeg_frame_age(LUBBOCK_IMG.format(id=c['id']))
         if age is None:
             noimg += 1
             continue
@@ -654,6 +665,49 @@ def lubbock_cams():
     print(f'Lubbock: {len(cams)} of {len(rows)} signals carry a live camera '
           f'({noimg} serve no image, {dead} last posted over {CAM_MAX_AGE_D}d ago)')
     return sorted(cams, key=lambda c: int(c['id']))
+
+
+def nmdot_cams():
+    xmin, ymin, xmax, ymax = NMDOT_BBOX
+    rows, seen = [], set()
+    for c in (fetch_json(NMDOT).get('cameraInfo') or []):
+        if not c.get('enabled'):
+            continue
+        m = NMDOT_SNAP_RE.match(str(c.get('snapshotFile') or '').strip())
+        if not m:
+            continue
+        cid = m.group(1)
+        if not NMDOT_ID_RE.match(cid) or cid in seen:
+            continue
+        try:
+            lat, lon = float(c['lat']), float(c['lon'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not (ymin <= lat <= ymax and xmin <= lon <= xmax):
+            continue
+        seen.add(cid)
+        title = (c.get('title') or c.get('name') or cid).strip()
+        # the state is part of the name: 18 of these sit inside 100 mi of the El Paso anchor and so
+        # share its region row, where a bare "I-10 @ Mesquite" would read as the Texas town
+        rows.append({'name': f'{title} · New Mexico', 'lat': lat, 'lon': lon, 'id': cid})
+    cams, noimg, dead = [], 0, 0
+    for c in rows:
+        url = NMDOT_IMG.format(id=c['id'])
+        # snapshots are rewritten in place, so a fetch landing mid-write answers 404 or 500 on a
+        # live camera; the same retry the proxies use decides liveness here
+        age = jpeg_frame_age(url)
+        if age is None:
+            age = jpeg_frame_age(url)
+        if age is None:
+            noimg += 1
+            continue
+        if age > CAM_MAX_AGE_D:
+            dead += 1
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id']})
+    print(f'NMDOT: {len(cams)} of {len(rows)} southern New Mexico cameras carry a live frame '
+          f'({noimg} serve no dated image, {dead} last posted over {CAM_MAX_AGE_D}d ago)')
+    return sorted(cams, key=lambda c: c['name'])
 
 
 def weatherbug_newest(cid, minutes=WB_PROBE_MINUTES):
@@ -784,8 +838,9 @@ def main():
     co = corpus_cams()  # hand-placed 4-cam list, liveness-checked
     lu = lubbock_cams()  # inventory is every signal, so the camera set is settled by image + frame age
     wb = weatherbug_cams()  # no 'latest' URL: liveness is a walk back through the minute-stamped filenames
+    nm = nmdot_cams()  # clipped to the southern reach; liveness is the frame age on the snapshot host
     # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays/corpus floors are 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5)):
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5), ('nmdot', nm, 10)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -806,6 +861,7 @@ def main():
             'corpus': 'City cameras: City of Corpus Christi; no capture time published',
             'lubbock': 'Traffic cameras: City of Lubbock, Texas',
             'weatherbug': 'Weather cameras: WeatherBug (Earth Networks) and the hosting sites',
+            'nmdot': 'Traffic cameras: New Mexico DOT (NM Roads), southern New Mexico',
         },
         'txdot': tx + its,
         'river': rv,
@@ -820,6 +876,7 @@ def main():
         'corpus': co,
         'lubbock': lu,
         'weatherbug': wb,
+        'nmdot': nm,
     }
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:
@@ -834,7 +891,7 @@ def main():
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
           f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, '
           f'{len(ph)} Port Houston cams, {len(sw)} Saltwater Recon coastal cams, {len(co)} Corpus Christi cams, '
-          f'{len(lu)} Lubbock city cams, {len(wb)} WeatherBug cams, {os.path.getsize(OUT)} bytes')
+          f'{len(lu)} Lubbock city cams, {len(wb)} WeatherBug cams, {len(nm)} NMDOT cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

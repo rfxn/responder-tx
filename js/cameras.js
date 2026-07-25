@@ -17,7 +17,8 @@ const CAM_ATTRIB_LUBBOCK = 'Traffic cameras: City of Lubbock, Texas';
 const CAM_ATTRIB_WBUG = 'Weather cameras: WeatherBug (Earth Networks) and the hosting sites';
 const CAM_ATTRIB_SWRECON = 'Coastal cameras: Saltwater Recon (Gulf Coast webcam network)';
 const CAM_ATTRIB_CORPUS = 'City cameras: City of Corpus Christi';
-const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, arlington: CAM_ATTRIB_ARLINGTON, elpbridge: CAM_ATTRIB_ELP, hays: CAM_ATTRIB_HAYS, porthou: CAM_ATTRIB_PORTHOU, swrecon: CAM_ATTRIB_SWRECON, corpus: CAM_ATTRIB_CORPUS, lubbock: CAM_ATTRIB_LUBBOCK, weatherbug: CAM_ATTRIB_WBUG };
+const CAM_ATTRIB_NMDOT = 'Traffic cameras: New Mexico DOT (NM Roads)';
+const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, arlington: CAM_ATTRIB_ARLINGTON, elpbridge: CAM_ATTRIB_ELP, hays: CAM_ATTRIB_HAYS, porthou: CAM_ATTRIB_PORTHOU, swrecon: CAM_ATTRIB_SWRECON, corpus: CAM_ATTRIB_CORPUS, lubbock: CAM_ATTRIB_LUBBOCK, weatherbug: CAM_ATTRIB_WBUG, nmdot: CAM_ATTRIB_NMDOT };
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
 const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
@@ -28,7 +29,7 @@ function loadCameras() {
   state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
     .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
     .then((d) => {
-      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [], swrecon: d.swrecon || [], corpus: d.corpus || [], lubbock: d.lubbock || [], weatherbug: d.weatherbug || [] };
+      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [], swrecon: d.swrecon || [], corpus: d.corpus || [], lubbock: d.lubbock || [], weatherbug: d.weatherbug || [], nmdot: d.nmdot || [] };
       renderCameras();
       return state.cameras;
     });
@@ -65,6 +66,7 @@ const CAM_NETS = [
   ['corpus', 'corpus'],
   ['lubbock', 'lubbock'],
   ['weatherbug', 'weatherbug'],
+  ['nmdot', 'nmdot'],
 ];
 
 // every source is pooled into the AO region it sits in, so one toggle covers an area rather than an operator
@@ -146,7 +148,7 @@ function camPopup(c, kind) {
   else if (kind === 'swrecon' || kind === 'corpus') sub = esc(t('cam.coastal'));
   else if (kind === 'weatherbug') sub = esc(t('cam.weather'));
   else if (kind === 'elpbridge') sub = esc(t('cam.bridge'));
-  else if (kind === 'austin' || kind === 'houston' || kind === 'arlington' || kind === 'lubbock') sub = esc(t('cam.traffic'));
+  else if (kind === 'austin' || kind === 'houston' || kind === 'arlington' || kind === 'lubbock' || kind === 'nmdot') sub = esc(t('cam.traffic'));
   else sub = `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
   const live = camIsLive(c);
   // same chip vocabulary the viewer uses, so the popup's claim and the player's badge match
@@ -173,6 +175,7 @@ function camNetLabel(kind) {
   if (kind === 'corpus') return `Corpus Christi · ${t('cam.coastal')}`;
   if (kind === 'lubbock') return `Lubbock · ${t('cam.traffic')}`;
   if (kind === 'weatherbug') return `WeatherBug · ${t('cam.weather')}`;
+  if (kind === 'nmdot') return `NMDOT · ${t('cam.traffic')}`;
   return `TxDOT · ${t('cam.traffic')}`;
 }
 
@@ -199,6 +202,7 @@ const CAM_STILL_NOTES = {
   corpus: 'cam.corpus.note',
   lubbock: 'cam.lubbock.note',
   weatherbug: 'cam.wbug.note',
+  nmdot: 'cam.nmdot.note',
 };
 const camStillNote = (kind) => (Object.prototype.hasOwnProperty.call(CAM_STILL_NOTES, kind) ? CAM_STILL_NOTES[kind] : null);
 

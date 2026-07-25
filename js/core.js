@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.11';
+const APP_VERSION = 'v0.99.12';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -109,7 +109,9 @@ function resolveAoPresets(lang) {
 
 const CAM_REGION_PREFIX = 'camsR_';
 const camRegionKey = (id) => CAM_REGION_PREFIX + id;
-const anchorOk =(a) => Array.isArray(a) && a.length === 2 && a.every(Number.isFinite);
+// ?camreg=all is the statewide form: it keeps meaning every region if the region set later grows
+const CAM_REGION_ALL = 'all';
+const anchorOk = (a) => Array.isArray(a) && a.length === 2 && a.every(Number.isFinite);
 
 // regions that can carry cameras: an id, a label, and at least one anchor to assign against
 function camRegions() {
@@ -238,6 +240,7 @@ const state = {
   tidesLoading: false,
 
   lsCamOpen: new Set(), // camera sub-groups expanded this session (ephemeral, not persisted)
+  lsBulk: false, // a parent toggle is mid-flight: repaint once at the end, not once per child layer
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };

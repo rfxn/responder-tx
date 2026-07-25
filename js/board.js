@@ -896,10 +896,13 @@ function buildShareUrl() {
   }
   // cameras travel as one ?camreg= list of region ids; the retired per-source params stay readable
   // on the way in (js/boot.js CAM_LEGACY_PARAMS) so links shared before the split keep working
-  const camOn = camRegionsAll()
+  const camRows = camRegionsAll();
+  const camOn = camRows
     .filter((r) => state.layers[camRegionKey(r.id)] && state.map.hasLayer(state.layers[camRegionKey(r.id)]))
     .map((r) => r.id);
-  if (camOn.length) p.set('camreg', camOn.join(','));
+  // every region on travels as the statewide token, so the link still means statewide if the region set grows
+  if (camOn.length && camOn.length === camRows.length) p.set('camreg', CAM_REGION_ALL);
+  else if (camOn.length) p.set('camreg', camOn.join(','));
   const rv = $('#recovery-view');
   if (rv && !rv.hidden) p.set('view', 'recovery');
   const bv = $('#basin-view');

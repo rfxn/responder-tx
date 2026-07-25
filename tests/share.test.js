@@ -2,6 +2,8 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { loadApp } = require('./harness.js');
 
 const app = loadApp();
@@ -277,7 +279,7 @@ test('share round-trip — applyShareParams reopens drive mode from view=drive',
 
 /* ---------- cameras travel by region (v0.99.2), and old per-source links keep working ---------- */
 
-const { CONFIG, camRegionKey, camRegionsAll } = app;
+const { CONFIG, camRegionKey, camRegionsAll, CAM_REGION_ALL } = app;
 
 const CAM_REGION_FIXTURE = [
   { id: 'houston', label: 'Houston', anchors: [[29.76, -95.37]] },
@@ -327,4 +329,26 @@ test('buildShareUrl: the residual region is addressable too, so it can be shared
     state.map = fakeMap([31, -99], 6, new Set([layers[camRegionKey('other')]]));
     assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('camreg'), 'other');
   });
+});
+
+test('buildShareUrl: every region on travels as the statewide token, not as a list of ids', () => {
+  withCamRegions(() => {
+    seedState();
+    const layers = {};
+    for (const r of camRegionsAll()) layers[camRegionKey(r.id)] = { id: r.id };
+    state.layers = layers;
+    state.map = fakeMap([31, -99], 6, new Set(Object.values(layers)));
+    // 'all' keeps meaning statewide if a region is added later; a frozen list would not
+    assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('camreg'), CAM_REGION_ALL);
+  });
+});
+
+test('the statewide token and an explicit list are both read on the way in', () => {
+  // js/boot.js owns the read (it needs the live map), so the contract is asserted at its source
+  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
+  const blk = boot.match(/const wanted = new Set\(\(shareQs\.get\('camreg'\)[\s\S]{0,400}?\n  \}/);
+  assert.ok(blk, 'the camreg read block moved; the statewide/list contract is unverified');
+  assert.match(blk[0], /wanted\.has\(CAM_REGION_ALL\)/, 'camreg=all no longer opens every region');
+  assert.match(blk[0], /wanted\.has\(p\.id\)/, 'an explicit id list must still resolve, so old links keep working');
+  assert.match(blk[0], /camAll \|\| wanted\.has\(p\.id\)/, 'the two forms must both be honoured, not one or the other');
 });

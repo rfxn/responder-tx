@@ -1003,10 +1003,12 @@ async function boot() {
     ['rs', 'riverSentry']]) {
     if (shareQs.get(qk) === '1') camOn(lk);
   }
-  // ?camreg=<id,id> names the camera regions to open; unknown ids are ignored, never fatal
+  // ?camreg=<id,id> names the camera regions to open, ?camreg=all opens every one of them; unknown
+  // ids are ignored, never fatal, and a list shared before the statewide form still resolves
   const wanted = new Set((shareQs.get('camreg') || '').split(',').map((x) => x.trim()).filter(Boolean));
+  const camAll = wanted.has(CAM_REGION_ALL);
   for (const p of camRegionsAll()) {
-    if (wanted.has(p.id)) camOn(camRegionKey(p.id));
+    if (camAll || wanted.has(p.id)) camOn(camRegionKey(p.id));
   }
   // links shared before the by-region split carry per-source params; map each onto the regions that
   // source actually covered, so an old link opens the same cameras it always did

@@ -903,22 +903,46 @@ function wxToggle() {
   state.layers.fcstRadar.addTo(state.map);
 }
 
+// beyond this the camera regions are named as a count, not one pill each: thirteen pills wrap
+// into three rows over the map, which is what a statewide toggle would produce in one tap
+const CAM_PILL_MAX = 2;
+
 function renderLayerPills() {
   const el = document.getElementById('layer-pills');
-  if (!el) return;
+  if (state.lsBulk || !el) return; // mid parent toggle: the caller repaints once the layers settle
   const on = PILL_LAYERS.filter(([k]) => layerRowOn(k) === true);
   if (!on.length) { el.hidden = true; el.innerHTML = ''; return; }
   el.hidden = false;
-  el.innerHTML = on.map(([k, key]) =>
-    `<button class="layer-pill" data-layer="${k}" title="${esc(t('layers.off'))}">${esc(pillLabel(k, key))} <span class="lp-x">✕</span></button>`).join('') +
+  const cams = on.filter(([k]) => k.startsWith(CAM_REGION_PREFIX));
+  const rows = cams.length > CAM_PILL_MAX ? on.filter(([k]) => !k.startsWith(CAM_REGION_PREFIX)) : on;
+  const pill = (k, label, attr) =>
+    `<button class="layer-pill" ${attr}="${k}" title="${esc(t('layers.off'))}">${esc(label)} <span class="lp-x">✕</span></button>`;
+  el.innerHTML = rows.map(([k, key]) => pill(k, pillLabel(k, key), 'data-layer')).join('') +
+    (cams.length > CAM_PILL_MAX
+      ? pill('1', `📷 ${t('pill.cams.n').replace('{n}', fmtNum(cams.length))}`, 'data-camoff')
+      : '') +
     `<button class="layer-pill lp-add" title="${esc(t('layers.more'))}">＋</button>`;
-  el.querySelectorAll('.layer-pill[data-layer]').forEach((b) =>
+  el.querySelectorAll('.layer-pill[data-layer], .layer-pill[data-camoff]').forEach((b) =>
     b.addEventListener('click', () => {
       if (pbBlocksLive(state)) { pbLayersLockedNote(); return; } // playback owns layer state — same lock as the sheet
+      if (b.dataset.camoff) { camRegionsOff(); return; } // the collapsed pill drops every camera region
       if (b.dataset.layer === 'wx') { wxRemove(); return; } // merged pill drops both underlying layers
       state.map.removeLayer(state.layers[b.dataset.layer]);
     }));
   el.querySelector('.lp-add').addEventListener('click', openLayerSheet);
+}
+
+// every camera region off in one action, repainting once (the collapsed pill's ✕)
+function camRegionsOff() {
+  state.lsBulk = true;
+  try {
+    for (const p of camRegionsAll()) {
+      const lyr = state.layers[camRegionKey(p.id)];
+      if (lyr && state.map.hasLayer(lyr)) state.map.removeLayer(lyr);
+    }
+  } finally { state.lsBulk = false; }
+  renderLayerPills();
+  layerSheetSync();
 }
 
 function initLayerPills() {
@@ -1020,6 +1044,66 @@ function camRegionHasCams(p) {
   return !Number.isFinite(n) || n > 0;
 }
 
+/* ---------- camera parent toggles: one statewide, one per band ----------
+   A parent holds no state of its own. It reports what its children are doing, so turning three
+   regions on individually leaves the statewide parent reading partial rather than off. */
+
+const camTriState = (on, total) => (total > 0 && on === total ? 'on' : on > 0 ? 'mixed' : 'off');
+
+// the rows a parent owns: every camera region, or one band. A region with no cameras is not
+// offered as a row, so the parent that would claim to cover it does not count it either.
+function camParentRows(band) {
+  return CAM_ROWS.filter((r) => (band ? r[7] === band : true) && camRegionHasCams(r[8]));
+}
+
+const camParentOn = (rows) => rows.filter((r) => layerRowOn(r[0]) === true).length;
+
+// off or partial turns every child on; only a fully-on parent turns them back off
+function camParentToggle(band) {
+  const rows = camParentRows(band);
+  const turnOff = camTriState(camParentOn(rows), rows.length) === 'on';
+  state.lsBulk = true; // 13 layers, one repaint: the sheet and the pill row redraw after the loop
+  try {
+    for (const [k] of rows) {
+      const lyr = state.layers[k];
+      if (!lyr) continue;
+      if (turnOff) { if (state.map.hasLayer(lyr)) state.map.removeLayer(lyr); }
+      else if (!state.map.hasLayer(lyr)) lyr.addTo(state.map); // registered overlay — fires overlayadd (lazy inventory load)
+    }
+  } finally { state.lsBulk = false; }
+  renderLayerPills();
+  layerSheetSync();
+}
+
+// role=checkbox, not switch: aria-checked="mixed" is the state a partial parent has to announce,
+// and the switch role does not support it
+function camParentAttrs(st, label, dis) {
+  const checked = st === 'on' ? 'true' : st === 'mixed' ? 'mixed' : 'false';
+  return ` role="checkbox" aria-checked="${checked}" title="${esc(label)}" aria-label="${esc(label)}"${dis}`;
+}
+
+const camParentCls = (st) => (st === 'on' ? ' on' : st === 'mixed' ? ' part' : '');
+
+// statewide parent. The subtitle states the count in words, so the three states never rest on the
+// knob's colour alone; before the inventory lands there is no count to state.
+function camAllRowHtml(dis) {
+  const rows = camParentRows(null);
+  if (!rows.length) return '';
+  const on = camParentOn(rows);
+  const st = camTriState(on, rows.length);
+  const counted = !!state.camCounts;
+  const tally = (m) => rows.reduce((a, r) => a + ((m && m[r[8].id]) || 0), 0);
+  const sub = counted
+    ? t('sheet.cams.all.sub').replace('{k}', fmtNum(on)).replace('{m}', fmtNum(rows.length))
+      .replace('{n}', fmtNum(tally(state.camCounts))).replace('{l}', fmtNum(tally(state.camLive)))
+    : t('sheet.cams.all.pre');
+  return `<button class="ls-row ls-camall${camParentCls(st)}" data-camall="1"${camParentAttrs(st, t('sheet.cams.all.title'), dis)}>` +
+    '<span class="ls-icon">\u{1F4F7}</span>' +
+    `<span class="ls-txt"><span class="ls-name">${esc(t('sheet.cams.all'))}</span>` +
+    `<span class="ls-sub">${esc(sub)}</span></span>` +
+    '<span class="ls-knob" aria-hidden="true"></span></button>';
+}
+
 // region row subtitle: how many cameras and how many of them stream, a generic line before the
 // inventory is in. The split is what decides whether the region is worth opening for a moving picture.
 function camRegionSub(p) {
@@ -1049,19 +1133,28 @@ function lsRowHtml(row, dis) {
     '<span class="ls-knob" aria-hidden="true"></span></button>';
 }
 
-// cameras region: disclosure sub-headers per CAM_SUBGROUPS; a group renders open if opened OR any child is ON
+/* cameras region: disclosure sub-headers per CAM_SUBGROUPS; a group renders open if opened OR any
+   child is ON. Each header carries its own parent toggle beside the disclosure, as a sibling
+   button rather than a nested one, so the two controls stay separately reachable. */
 function camSubgroupsHtml(rows, dis) {
   let out = '';
   for (const [sub, nameKey] of CAM_SUBGROUPS) {
     const kids = rows.filter((r) => r[7] === sub && camRegionHasCams(r[8]));
     if (!kids.length) continue;
-    const onCount = kids.filter((r) => state.layers[r[0]] && state.map.hasLayer(state.layers[r[0]])).length;
+    const onCount = camParentOn(kids);
+    const st = camTriState(onCount, kids.length);
     const open = state.lsCamOpen.has(sub) || onCount > 0;
-    out += `<button class="ls-subhead" data-sub="${sub}" aria-expanded="${open}">` +
+    const name = t(nameKey);
+    out += '<div class="ls-subrow">' +
+      `<button class="ls-subhead" data-sub="${sub}" aria-expanded="${open}">` +
       '<span class="ls-sub-caret" aria-hidden="true">▸</span>' +
-      `<span class="ls-sub-name">${esc(t(nameKey))}</span>` +
-      (onCount ? `<span class="ls-sub-count">${esc(t('sheet.cams.non').replace('{n}', onCount))}</span>` : '') +
+      `<span class="ls-sub-name">${esc(name)}</span>` +
+      (onCount ? `<span class="ls-sub-count">${esc(t('sheet.cams.nofm').replace('{n}', onCount).replace('{m}', kids.length))}</span>` : '') +
       '</button>' +
+      `<button class="ls-camband${camParentCls(st)}" data-camband="${sub}"` +
+      camParentAttrs(st, t('sheet.cams.band.title').replace('{g}', name), dis) +
+      '><span class="ls-knob" aria-hidden="true"></span></button>' +
+      '</div>' +
       `<div class="ls-subrows" data-sub="${sub}"${open ? '' : ' hidden'}>` +
       kids.map((r) => lsRowHtml(r, dis)).join('') +
       '</div>';
@@ -1085,7 +1178,7 @@ function renderLayerSheet() {
   for (const [gKey, rows] of SHEET_GROUPS) {
     html += `<div class="ls-group">${esc(t(gKey))}</div>`;
     if (gKey === 'sheet.g.base') html += seg;
-    if (gKey === 'sheet.g.cameras') { html += camSubgroupsHtml(rows, dis); continue; }
+    if (gKey === 'sheet.g.cameras') { html += camAllRowHtml(dis) + camSubgroupsHtml(rows, dis); continue; }
     for (const row of rows) html += lsRowHtml(row, dis);
   }
   html += `<div class="ls-group">${esc(t('sheet.g.history'))}</div>` +
@@ -1094,11 +1187,14 @@ function renderLayerSheet() {
     '<span class="ls-knob ls-go" aria-hidden="true">›</span></button>' +
     offlineSheetHtml() +
     `<button class="ls-reset"${dis} title="${esc(t('sheet.reset.title'))}">↺ ${esc(t('sheet.reset'))}</button>`;
-  el.querySelector('.ls-body').innerHTML = html;
+  const body = el.querySelector('.ls-body');
+  const keepScroll = body.scrollTop; // an innerHTML swap resets it, and the camera group sits far down
+  body.innerHTML = html;
+  body.scrollTop = keepScroll;
   refreshOfflineStatus(); // the tile count is async and the body was just rewritten
 }
 
-function layerSheetSync() { if (layerSheetIsOpen()) renderLayerSheet(); }
+function layerSheetSync() { if (!state.lsBulk && layerSheetIsOpen()) renderLayerSheet(); }
 
 function openLayerSheet() {
   const el = document.getElementById('layer-sheet');
@@ -1133,6 +1229,10 @@ function onLayerSheetClick(e) {
   if (e.target.closest('.ls-reset')) { layerSheetReset(); return; }
   if (e.target.closest('[data-act="off-save"]')) { saveViewportOffline(); return; }
   if (e.target.closest('[data-act="off-clear"]')) { clearOfflineCache(); return; }
+  // parents first: the statewide row is also an .ls-row, and it carries no data-layer of its own
+  if (e.target.closest('[data-camall]')) { camParentToggle(null); return; }
+  const band = e.target.closest('[data-camband]');
+  if (band) { camParentToggle(band.dataset.camband); return; }
   const sub = e.target.closest('.ls-subhead');
   if (sub) {
     const key = sub.dataset.sub;

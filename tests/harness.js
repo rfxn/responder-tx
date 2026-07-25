@@ -122,7 +122,7 @@ const EXPORTS = [
   'CALTOPO_EXPORT_URL', 'renderQr', 'caltopoStatusText',
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
-  'camRegions', 'camRegionsAll', 'camRegionId', 'camRegionKey', 'CAM_REGION_OTHER', 'CAM_REGION_MAX_MI', 'regionLabel',
+  'camRegions', 'camRegionsAll', 'camRegionId', 'camRegionKey', 'CAM_REGION_OTHER', 'CAM_REGION_MAX_MI', 'CAM_REGION_ALL', 'regionLabel',
   'camIsLive', 'CAM_NETS', 'CAM_STALE_MINS',
   'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges', 'pushFixKey',
 ];
@@ -134,7 +134,9 @@ const PANEL_EXPORTS = ['openShelterCount', 'unconfirmedShelterCount', 'curatedSh
   'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H'];
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
-const MAP_EXPORTS = EXPORTS.concat(['CAM_LEGACY_PARAMS', 'pbLiveHideAll', 'pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'pbGaugeNoteKey', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded',
+const MAP_EXPORTS = EXPORTS.concat(['CAM_LEGACY_PARAMS', 'CAM_ROWS', 'CAM_SUBGROUPS', 'CAM_PILL_MAX',
+  'initCamRegionRows', 'camTriState', 'camParentRows', 'camParentOn', 'camRegionHasCams',
+  'pbLiveHideAll', 'pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'pbGaugeNoteKey', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
   'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey']);
 

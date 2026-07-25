@@ -12,9 +12,10 @@ const path = require('node:path');
 const { loadApp, loadMapApp } = require('./harness.js');
 
 const { CONFIG, camRegions, camRegionsAll, camRegionId, camRegionKey,
-  CAM_REGION_OTHER, CAM_REGION_MAX_MI, regionLabel } = loadApp();
+  CAM_REGION_OTHER, CAM_REGION_MAX_MI, CAM_REGION_ALL, regionLabel } = loadApp();
 const mapApp = loadMapApp();
-const { CAM_LEGACY_PARAMS, PB_LIVE_HIDE, pbLiveHideAll } = mapApp;
+const { CAM_LEGACY_PARAMS, PB_LIVE_HIDE, pbLiveHideAll,
+  CAM_ROWS, CAM_SUBGROUPS, initCamRegionRows, camTriState, camParentRows, camParentOn } = mapApp;
 
 const EVENT = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'event.json'), 'utf8'));
 
@@ -122,6 +123,7 @@ test('data/event.json: every region carries an id, both labels, bounds and ancho
   const ids = EVENT.aoPresets.map((p) => p.id);
   assert.equal(new Set(ids).size, ids.length, 'duplicate region id');
   assert.ok(!ids.includes(CAM_REGION_OTHER.id), 'a config region may not shadow the residual bucket');
+  assert.ok(!ids.includes(CAM_REGION_ALL), `a config region may not claim '${CAM_REGION_ALL}', the statewide ?camreg= token`);
   for (const p of EVENT.aoPresets) {
     assert.ok(p.id && typeof p.label === 'string' && p.label, `${p.id}: label`);
     assert.ok(typeof p.labelEs === 'string' && p.labelEs, `${p.id}: es label is mandatory`);
@@ -183,6 +185,105 @@ test('js/boot.js reads camreg and still honours every legacy camera param', () =
   const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
   assert.match(boot, /shareQs\.get\('camreg'\)/, 'camreg is the new addressable form');
   assert.match(boot, /CAM_LEGACY_PARAMS/, 'legacy params must still be read on the way in');
+});
+
+/* ---------- parent toggles: one statewide, one per band ----------
+   A parent reports its children rather than holding its own state, so three regions switched on
+   individually must leave the statewide parent reading partial and not off. */
+
+// CAM_ROWS is built from the event config at map init; membership is read through state.map, so a
+// set of "on" layer keys stands in for the Leaflet map here
+function withCamRows(onKeys, counts, fn) {
+  const s = mapApp.state;
+  const saved = { presets: mapApp.CONFIG.aoPresets, map: s.map, layers: s.layers, counts: s.camCounts };
+  mapApp.CONFIG.aoPresets = EVENT.aoPresets;
+  initCamRegionRows();
+  const on = new Set(onKeys);
+  s.layers = {};
+  for (const r of CAM_ROWS) s.layers[r[0]] = r[0]; // truthy sentinel; hasLayer below matches on it
+  s.map = { hasLayer: (l) => on.has(l) };
+  s.camCounts = counts;
+  try { return fn(); } finally {
+    mapApp.CONFIG.aoPresets = saved.presets;
+    s.map = saved.map;
+    s.layers = saved.layers;
+    s.camCounts = saved.counts;
+  }
+}
+
+test('camTriState: on only when every child is on, mixed for any partial, off for none', () => {
+  assert.equal(camTriState(0, 12), 'off');
+  assert.equal(camTriState(1, 12), 'mixed');
+  assert.equal(camTriState(11, 12), 'mixed');
+  assert.equal(camTriState(12, 12), 'on');
+  assert.equal(camTriState(0, 0), 'off', 'no children is off, never a vacuously-on parent');
+});
+
+// map.js lives in its own sandbox, so the row list and every array it returns come from that realm
+const parentIds = (band) => [...camParentRows(band)].map((r) => r[8].id);
+// the shipped set, read from the config file rather than a sandbox whose presets are not applied yet
+const SHIPPED_IDS = EVENT.aoPresets.map((p) => p.id).concat([CAM_REGION_OTHER.id]);
+
+test('the statewide parent owns every camera region row, including the residual', () => {
+  withCamRows([], null, () => {
+    const ids = parentIds(null);
+    assert.deepEqual(ids, SHIPPED_IDS);
+    assert.ok(ids.includes(CAM_REGION_OTHER.id), 'the residual row must be covered by statewide too');
+  });
+});
+
+test('a band parent owns exactly its own band, and the bands partition the regions', () => {
+  withCamRows([], null, () => {
+    const seen = [];
+    for (const [band] of CAM_SUBGROUPS) {
+      for (const r of camParentRows(band)) assert.equal(r[7], band, `${r[8].id} is in the wrong band`);
+      seen.push(...parentIds(band));
+    }
+    assert.deepEqual(seen.slice().sort(), parentIds(null).sort(),
+      'every region belongs to exactly one band parent');
+    assert.equal(new Set(seen).size, seen.length, 'a region counted by two band parents');
+  });
+});
+
+test('the statewide parent reads partial when only some regions were switched on by hand', () => {
+  const three = ['houston', 'austin', 'dfw'].map(camRegionKey);
+  withCamRows(three, null, () => {
+    const rows = camParentRows(null);
+    assert.equal(camParentOn(rows), 3);
+    assert.equal(camTriState(camParentOn(rows), rows.length), 'mixed',
+      'three regions on individually must not leave the statewide parent reading off');
+  });
+  withCamRows([], null, () => {
+    const rows = camParentRows(null);
+    assert.equal(camTriState(camParentOn(rows), rows.length), 'off');
+  });
+  withCamRows(SHIPPED_IDS.map(camRegionKey), null, () => {
+    const rows = camParentRows(null);
+    assert.equal(camTriState(camParentOn(rows), rows.length), 'on');
+  });
+});
+
+test('a band parent reads on once its own regions are on, whatever the rest of the state is', () => {
+  const coast = EVENT.aoPresets.filter((p) => p.band === 'coast').map((p) => camRegionKey(p.id));
+  withCamRows(coast, null, () => {
+    const kids = camParentRows('coast');
+    assert.equal(camTriState(camParentOn(kids), kids.length), 'on');
+    const all = camParentRows(null);
+    assert.equal(camTriState(camParentOn(all), all.length), 'mixed', 'statewide is still only partial');
+  });
+});
+
+test('a region with no cameras is not counted by the parent that would claim to cover it', () => {
+  // camRegionHasCams drops the row from the sheet; a parent that still counted it could never
+  // reach "on", and would toggle a layer the user was never shown
+  const counts = {};
+  for (const id of SHIPPED_IDS) counts[id] = id === 'houston' ? 0 : 5;
+  withCamRows([], counts, () => {
+    const ids = camParentRows(null).map((r) => r[8].id);
+    assert.ok(!ids.includes('houston'), 'an empty region is still offered to the parent');
+    assert.equal(ids.length, SHIPPED_IDS.length - 1);
+    assert.ok(!camParentRows('coast').map((r) => r[8].id).includes('houston'));
+  });
 });
 
 /* ---------- time integrity ---------- */

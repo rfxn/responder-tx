@@ -215,6 +215,22 @@ test('the counts the tiles carried alone became threat-strip chips', () => {
   assert.ok(/threat\.notices[\s\S]*?tab-requests/.test(fn[0]), 'the notices chip should route to Feed');
 });
 
+/* The camera band parent sits beside a 34px disclosure header. It is a real toggle, so it carries
+   the same floor as every other control a gloved thumb has to hit, and it must express its third
+   state by the knob's position rather than by colour alone. */
+test('the camera parent toggles are 44px targets and state partial by position', () => {
+  const band = CSS.slice(CSS.indexOf('.ls-camband {'), CSS.indexOf('}', CSS.indexOf('.ls-camband {')));
+  assert.notEqual(band, '', '.ls-camband rule not found');
+  assert.ok(/min-height:\s*44px/.test(band), 'the band parent must declare a 44px min-height');
+  assert.ok(/min-width:\s*44px/.test(band), 'the band parent must declare a 44px min-width');
+  assert.ok(/\.ls-subrow \{[^}]*align-items:\s*stretch/.test(CSS),
+    'the disclosure must stretch to the parent toggle height, or half the header row is dead space');
+  // off/mixed/on are three knob positions: 2px, 9px, 16px
+  assert.ok(/\.ls-row\.part \.ls-knob::after[^}]*left:\s*9px/.test(CSS),
+    'partial must move the knob to its own position, not merely recolour it');
+  assert.ok(/\.ls-camband\.part \.ls-knob::after/.test(CSS));
+});
+
 test('the import control is a 44px target, not the 30px badge it was', () => {
   assert.ok(/#interchange-body label\[for="import-file"\] \.badge \{[^}]*min-height:\s*44px/.test(CSS),
     'the Import JSON badge must declare a 44px min-height');

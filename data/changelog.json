@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.12",
+      "date": "2026-07-25",
+      "line": "Cameras have parent switches. One at the top of the Cameras group turns every region on or off at once, and each region group (Gulf Coast, Central Texas, North and East Texas, West Texas) has its own. When only some regions are on, the switch shows that: the count reads \"12 of 13 on\" and the switch sits between off and on, and tapping it turns the rest on rather than clearing what you had. A link shared with every region on now carries them all as one statewide value; links you shared before keep working. Turning on more than two regions collapses the layer chips over the map into a single chip with the count."
+    },
+    {
       "v": "v0.99.11",
       "date": "2026-07-25",
       "line": "Sharing a link with the River Sentry siren layer switched on used to drop it, so whoever opened the link saw a different map than the one you sent. The layer now travels in the link, the same way the other layers that start switched off already did."

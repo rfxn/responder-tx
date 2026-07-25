@@ -1,5 +1,28 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.12 · 2026-07-25 (one switch for every camera, one per region group)
+
+-- New Features --
+- [New] An All cameras statewide switch at the top of the Cameras group turns
+      every camera region on or off in one action, and reports how many
+      regions are on, how many cameras that is, and how many stream video
+- [New] Each camera region group (Gulf Coast, Central Texas, North and East
+      Texas, West Texas) has its own switch covering the regions inside it
+
+-- Changes --
+- [Change] The two new switches show a third state when only some of their
+           regions are on: the count reads "12 of 13 on" and the switch sits
+           between off and on. Turning regions on one at a time leaves the
+           statewide switch showing partial, and tapping it completes the set
+           rather than clearing it
+- [Change] A group header now reads "3 of 4 on" instead of "3 on"
+- [Change] With every camera region on, a shared link carries `camreg=all`
+           instead of a list of region names, so the link still means statewide
+           if regions are added later. Links already shared keep working
+- [Change] Above two camera regions, the map's layer chips collapse to one
+           chip naming the count, whose ✕ clears them all. Thirteen chips
+           covered three rows of the map
+
 ## v0.99.11 · 2026-07-25 (a shared link keeps the siren layer on)
 
 -- Bug Fixes --

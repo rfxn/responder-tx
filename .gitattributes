@@ -5,6 +5,7 @@ tests/          export-ignore
 docs/           export-ignore
 pkg/            export-ignore
 audit-output/   export-ignore
+archive/        export-ignore
 .gitattributes  export-ignore
 assets/architecture.svg export-ignore
 workers/        export-ignore

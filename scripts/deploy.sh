@@ -119,6 +119,8 @@ printf '{"messages":[]}\n' > "$deploy_dir/data/chat-outbox.json"
 [ ! -e "$deploy_dir/js/master.js" ] || fail "js/master.js still present in deploy dir"
 [ ! -e "$deploy_dir/HANDOFF.md" ] || fail "HANDOFF.md present in deploy dir"
 [ ! -e "$deploy_dir/data/chat-inbox.jsonl" ] || fail "data/chat-inbox.jsonl present in deploy dir"
+# recovery archive is git-tracked but must never be published: hundreds of MB and non-public provenance
+[ ! -e "$deploy_dir/archive" ] || fail "archive/ present in deploy dir (.gitattributes export-ignore not applied)"
 if grep -rq 'api/chat' "$deploy_dir/js" "$deploy_dir/index.html"; then
     fail "api/chat reference found in deploy dir js/ or index.html"
 fi

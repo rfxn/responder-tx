@@ -205,6 +205,58 @@ test('renderPushCard emits the pending note unconditionally, not behind a dead g
     'the card must concatenate the note directly, with nothing short-circuiting it');
 });
 
+/* Owner report: "the Alerts construct within the settings menu is a wall of text". Measured at
+   390x844 before the restructure: 67 words of prose stood between opening Settings and the on/off
+   switch, which rendered last in the card and below the fold of the height-capped menu. The order
+   is now state, switch, per-type rows, and the honesty text is compact-plus-disclosure. These
+   assertions are on emission ORDER, which is the property that regressed. */
+const PUSH_CARD_SRC = (() => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
+  const fn = src.match(/function renderPushCard\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderPushCard not found in js/board.js');
+  return fn[0];
+})();
+
+const emitOrder = (...needles) => needles.map((n) => {
+  const at = PUSH_CARD_SRC.indexOf(n);
+  assert.notEqual(at, -1, `renderPushCard no longer emits ${n}`);
+  return at;
+});
+
+test('the alerts card leads with the state and the switch, not with prose', () => {
+  const [head, status, toggle, types, note, about, sub, disclaimer] = emitOrder(
+    'push-head', 'push.state.', 'push-toggle', 'push-types', 'push.note', 'push.about', 'push.sub', 'push.disclaimer');
+  assert.ok(head < status && status < toggle, 'the state must open the card, with the switch beside it');
+  assert.ok(toggle < types, 'the on/off switch must precede the per-type rows');
+  assert.ok(toggle < note && note < about, 'the compact honesty line sits after the controls, before the disclosure');
+  assert.ok(about < sub && about < disclaimer, 'the paragraphs must be inside the disclosure, never above the switch');
+});
+
+test('the honesty text survives: compact line always plain, full paragraphs one visible tap away', () => {
+  // v0.97.69/v0.97.79 shipped the honest on/off/blocked state and the not-a-911-replacement framing
+  assert.match(PUSH_CARD_SRC, /class="push-note">\$\{esc\(t\('push\.note'\)\)\}/,
+    'the compact honesty line must render unconditionally, outside the <details>');
+  assert.ok(!/push-note[\s\S]{0,80}\?/.test(PUSH_CARD_SRC), 'the honesty line must not sit behind a ternary');
+  const det = PUSH_CARD_SRC.slice(PUSH_CARD_SRC.indexOf('<details'), PUSH_CARD_SRC.indexOf("'</details>'"));
+  assert.ok(det.includes("t('push.sub')") && det.includes("t('push.disclaimer')"),
+    'the full paragraphs must still be emitted, inside the disclosure');
+  assert.ok(det.includes('<summary>'), 'the disclosure must carry a visible summary');
+  // the state line is emitted for every card state, never gated
+  assert.match(PUSH_CARD_SRC, /class="push-status push-\$\{st\}">\$\{esc\(t\(`push\.state\.\$\{st\}`\)\)\}/,
+    'the state must always render plainly, one key per state');
+});
+
+const { pushFixKey } = loadApp();
+
+test('pushFixKey — every unfixable state keeps its own instruction, and stays distinguishable', () => {
+  assert.equal(pushFixKey('blocked'), 'push.fix.blocked');
+  assert.equal(pushFixKey('unsupported'), 'push.fix.unsupported');
+  assert.equal(pushFixKey('ios'), 'push.fix.ios');
+  // on/off are fixed by the switch that is already on screen, so they get no second instruction
+  assert.equal(pushFixKey('on'), '');
+  assert.equal(pushFixKey('off'), '');
+});
+
 /* ---------- pushFreshState: evaluator freshness chip (web push P2) ---------- */
 
 test('pushFreshState — hidden without data, ok within 20 min, stale past it', () => {

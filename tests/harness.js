@@ -123,7 +123,7 @@ const EXPORTS = [
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
   'camRegions', 'camRegionsAll', 'camRegionId', 'camRegionKey', 'CAM_REGION_OTHER', 'CAM_REGION_MAX_MI', 'regionLabel',
-  'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges',
+  'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges', 'pushFixKey',
 ];
 
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay

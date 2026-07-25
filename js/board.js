@@ -1239,6 +1239,13 @@ function pushNearbyGauges(gauges, followed, lat, lon, n) {
 
 let pushManageOpen = false;      // in-card manage view (followed gauges) expanded
 let pushManagePreselect = null;  // lid pinned atop the picker by a "Notify me" entry point
+let pushAboutOpen = false;       // the full honesty paragraphs, expanded; survives a re-render
+
+// the one-sentence fix for a state the user cannot toggle out of ('' when the toggle is the fix)
+function pushFixKey(cardState) {
+  return cardState === 'blocked' || cardState === 'unsupported' || cardState === 'ios'
+    ? `push.fix.${cardState}` : '';
+}
 
 function pushGaugeName(lid) {
   const g = (state.gauges || []).find((x) => String(x.lid).toUpperCase() === lid);
@@ -1310,18 +1317,28 @@ function renderPushCard() {
   const freshTxt = fresh === 'ok'
     ? t('push.fresh.ok').replace('{m}', String(Math.max(0, Math.round((Date.now() - state.pushLastEval) / 60000))))
     : t('push.fresh.stale');
-  const chip = (key, active) =>
-    `<button type="button" class="push-chip${active ? ' active' : ''}" data-pref="${key}" aria-pressed="${active}">${esc(t(`push.chip.${key}`))}</button>`;
+  const fixKey = pushFixKey(st);
+  const opt = (group, val, active, label) =>
+    `<button type="button" class="push-chip push-opt${active ? ' active' : ''}" data-pref="${group}:${val}" aria-pressed="${active}">${esc(label)}</button>`;
+  const typeRow = (key, opts) =>
+    `<div class="push-type-row"><span class="push-type-lbl" id="push-t-${key}">${esc(t(`push.type.${key}`))}</span>` +
+      `<span class="push-type-opts" role="group" aria-labelledby="push-t-${key}">${opts}</span></div>`;
   host.innerHTML =
     `<div class="section-title">${esc(t('push.title'))}</div>` +
     '<div class="resource-item push-card">' +
-      `<div class="push-sub">${esc(t('push.sub'))}</div>` +
-      `<div class="push-disclaimer">${esc(t('push.disclaimer'))}</div>` +
-      `<div class="push-status push-${st}">${esc(t(`push.state.${st}`))}</div>` +
+      // state and switch first: the glanceable truth and the one control, before any prose
+      '<div class="push-head">' +
+        `<div class="push-status push-${st}">${esc(t(`push.state.${st}`))}</div>` +
+        (toggleable ? `<button type="button" class="act-btn push-toggle" id="push-toggle">${esc(t(on ? 'push.toggle.off' : 'push.toggle.on'))}</button>` : '') +
+      '</div>' +
+      (fixKey ? `<div class="push-fix">${esc(t(fixKey))}</div>` : '') +
       pushPendingHtml(st, pushManagePreselect) +
       (on
-        ? `<div class="push-chips" role="group" aria-label="${esc(t('push.chips.label'))}">` +
-            chip('ffe', prefs.ffe) + chip('major', prefs.tier === 'major') + chip('moderate', prefs.tier === 'moderate') +
+        ? `<div class="push-types" role="group" aria-label="${esc(t('push.types.label'))}">` +
+            typeRow('ffe', opt('ffe', 'off', !prefs.ffe, t('push.opt.off')) + opt('ffe', 'on', prefs.ffe, t('push.opt.on'))) +
+            typeRow('gauges', opt('tier', 'off', !prefs.tier, t('push.opt.off')) +
+              opt('tier', 'moderate', prefs.tier === 'moderate', t('push.tier.moderate')) +
+              opt('tier', 'major', prefs.tier === 'major', t('push.tier.major'))) +
           '</div>'
         : '') +
       (on
@@ -1329,12 +1346,28 @@ function renderPushCard() {
         : '') +
       (on && pushManageOpen ? pushManageHtml(prefs) : '') +
       (fresh ? `<div class="push-fresh push-fresh-${fresh}">${esc(freshTxt)}</div>` : '') +
-      (toggleable ? `<div class="card-actions"><button type="button" class="act-btn push-toggle" id="push-toggle">${esc(t(on ? 'push.toggle.off' : 'push.toggle.on'))}</button></div>` : '') +
+      `<div class="push-note">${esc(t('push.note'))}</div>` +
+      `<details class="push-about" id="push-about"${pushAboutOpen ? ' open' : ''}>` +
+        `<summary>${esc(t('push.about'))}</summary>` +
+        `<div class="push-sub">${esc(t('push.sub'))}</div>` +
+        `<div class="push-disclaimer">${esc(t('push.disclaimer'))}</div>` +
+      '</details>' +
     '</div>';
   const btn = $('#push-toggle');
   if (btn) btn.addEventListener('click', on ? pushDisable : pushEnable);
-  host.querySelectorAll('.push-chip[data-pref]').forEach((el) => {
-    el.addEventListener('click', () => pushChipTap(el.getAttribute('data-pref')));
+  const about = $('#push-about');
+  if (about) {
+    // inserting an already-open <details> fires toggle too, which would latch the flag on
+    let shown = pushAboutOpen;
+    about.addEventListener('toggle', () => {
+      if (about.open === shown) return;
+      shown = about.open;
+      pushAboutOpen = about.open;
+    });
+  }
+  host.querySelectorAll('.push-opt[data-pref]').forEach((el) => {
+    const [group, val] = String(el.getAttribute('data-pref')).split(':');
+    el.addEventListener('click', () => pushOptTap(group, val));
   });
   const mbtn = $('#push-manage-btn');
   if (mbtn) {
@@ -1393,12 +1426,13 @@ function pushOpenManageFor(lid) {
   if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center' });
 }
 
-// tier chips are one choice (moderate implies major — a lower rung, not a second stream)
-function pushChipTap(key) {
+// segmented per-type rows: each option SETS its value rather than toggling, so the gauge row's
+// three rungs stay one exclusive choice (moderate is a lower rung of major, not a second stream)
+function pushOptTap(group, val) {
   const p = pushPrefs();
-  if (key === 'ffe') p.ffe = !p.ffe;
-  else if (key === 'major') p.tier = p.tier === 'major' ? null : 'major';
-  else if (key === 'moderate') p.tier = p.tier === 'moderate' ? null : 'moderate';
+  if (group === 'ffe') p.ffe = val === 'on';
+  else if (group === 'tier') p.tier = val === 'off' ? null : val;
+  else return;
   pushSetPrefs(p);
 }
 

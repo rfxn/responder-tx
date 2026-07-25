@@ -1,5 +1,38 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.6 · 2026-07-25 (a gear that never met the tap floor, and an Alerts panel that led with prose)
+
+-- Bug Fixes --
+- [Fix] The settings gear was the one header control that never reached the
+      44px tap floor on a phone. `#hmore-btn` declared `min-width: 40px` at ID
+      specificity, which outranks the `.controls button` floors in the phone,
+      landscape and tablet blocks no matter where they sit in the file, so the
+      gear measured 40x44 beside four 44x44 siblings at 390x844, 844x390 and
+      932x430. The declaration is gone; the gear now takes the same floor as
+      every other control, and desktop is unchanged at its natural 89px
+
+-- Changes --
+- [Change] The Alerts panel leads with the control instead of the explanation.
+           The state line and the on/off switch now sit together on the first
+           row; before this, 67 words of prose stood between opening Settings
+           and reaching the switch, which rendered last in the card and below
+           the fold of the height-capped menu. Visible text drops from 76 to
+           32 words when alerts are on and from 71 to 28 when they are off
+- [Change] Alert types are two compact rows rather than three wrapped chips:
+           Flash Flood Emergencies takes Off/On, river gauges take
+           Off/Moderate/Major. Each option sets its value instead of toggling
+           it, so the gauge tiers read as the single exclusive choice they
+           always were
+- [Change] The honesty text is compact rather than absent. A one-line note
+           (best effort, not a 911 replacement, not a Wireless Emergency Alert)
+           is always on screen in every card state, and the full paragraphs are
+           unchanged behind a visible "How these alerts work" disclosure that
+           remembers whether it was opened
+- [Change] The blocked, unsupported and iOS states each carry a short state
+           line plus their own one-sentence fix, so a revoked OS permission
+           still reads differently from a plain off; blocked now has its own
+           colour
+
 ## v0.99.5 · 2026-07-25 (a source we were not licensed to copy, and cameras that never worked)
 
 -- Bug Fixes --

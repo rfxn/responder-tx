@@ -63,6 +63,29 @@ test('landscape grows the header controls to 44px, never shrinks them', () => {
   }
 });
 
+/* Owner report: "the horizontal width of the settings gear icon on mobile is all bonkers". The
+   floors above are class rules (0,1,1), so any ID rule (1,0,0) on a header control outranks them
+   at every breakpoint no matter where it sits in the file. `#hmore-btn { min-width: 40px }` did
+   exactly that, and measured at 390x844 / 844x390 / 932x430 the gear was a 40x44 box in a row of
+   44x44 squares, four pixels under the tap-target floor its siblings all met. */
+const HEADER_CONTROL_IDS = ['#update-chip', '#search-btn', '#drive-btn', '#refresh-now', '#risk-btn', '#hmore-btn'];
+
+test('no ID-specificity rule undercuts the 44px floor on a header control', () => {
+  const flat = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+  const offenders = [];
+  for (const m of flat.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = m[1].trim();
+    if (sel.startsWith('@') || sel.includes('#hmore-menu')) continue; // menu rows are full-width, not header controls
+    if (!HEADER_CONTROL_IDS.some((id) => sel.includes(id))) continue;
+    for (const d of m[2].matchAll(/min-(?:width|height)\s*:\s*(\d+)px/g)) {
+      if (Number(d[1]) < 44) offenders.push(`${sel} { ${d[0].trim()} }`);
+    }
+  }
+  assert.deepEqual(offenders, [],
+    'a header-control ID rule declares a sub-44px floor; ID specificity beats the .controls button ' +
+    'rules in every responsive block, so the control silently opts out of the tap-target floor');
+});
+
 /* Android for Cars app-quality requirement ST-1: "The app must not display automatically scrolling
    text." This board is read one-handed in moving vehicles, and #ticker carries live hazard content,
    so the marquee had to go without the content going with it. */
@@ -130,6 +153,24 @@ test('the 768px breakpoint was not moved (roughly 40 rules key off it)', () => {
   const near = [...CSS.matchAll(/max-width: (\d+)px/g)].map((m) => Number(m[1]))
     .filter((px) => px >= 750 && px <= 800 && px !== 768);
   assert.deepEqual(near, [], `near-768 breakpoint(s) ${near.join(', ')}; the phone breakpoint must stay at exactly 768px`);
+});
+
+/* Owner report: "the Alerts construct within the settings menu is a wall of text". The card now
+   leads with the state and the switch, and the two honesty paragraphs sit behind a <details> that
+   has to keep looking like a disclosure: display:flex on a summary drops the native marker. */
+test('the alerts disclosure keeps a visible affordance and a real tap target', () => {
+  const at = CSS.indexOf('#push-body .push-about > summary {');
+  assert.notEqual(at, -1, 'the .push-about summary rule is gone');
+  const rule = CSS.slice(at, CSS.indexOf('}', at));
+  assert.ok(/min-height:\s*44px/.test(rule), 'the disclosure summary must be a 44px tap target');
+  assert.ok(/cursor:\s*pointer/.test(rule));
+  assert.ok(/summary::before \{[^}]*content:/.test(CSS), 'display:flex drops the native marker; the summary needs its own');
+  assert.ok(/\[open\] > summary::before \{[^}]*content:/.test(CSS), 'the affordance must show the open state too');
+  // the state line is never inside the disclosure: it is the one thing that must always be plain
+  const head = CSS.slice(CSS.indexOf('#push-body .push-head {'), CSS.indexOf('}', CSS.indexOf('#push-body .push-head {')));
+  assert.ok(/display:\s*flex/.test(head), 'the state and the switch share one row');
+  assert.ok(/flex-wrap:\s*wrap/.test(head), 'a long translated state string must wrap, not overflow');
+  assert.ok(/#push-body \.push-blocked \{[^}]*color:/.test(CSS), 'blocked needs its own colour, distinct from off');
 });
 
 test('the settings sheet is scrollable rather than unbounded', () => {

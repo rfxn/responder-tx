@@ -179,18 +179,41 @@ test('renderer guard: enum label maps carry i18n keys, not English labels', () =
 test('i18n: device-alerts (push) keys exist in both languages, 911 framing intact', () => {
   const keys = ['push.title', 'push.sub', 'push.disclaimer', 'push.state.off', 'push.state.on',
     'push.state.blocked', 'push.state.unsupported', 'push.state.ios',
+    'push.fix.blocked', 'push.fix.unsupported', 'push.fix.ios',
+    'push.note', 'push.about', 'push.types.label', 'push.type.ffe', 'push.type.gauges',
+    'push.opt.off', 'push.opt.on',
     'push.toggle.on', 'push.toggle.off', 'push.err'];
   for (const k of keys) {
     assert.ok(typeof I18N.en[k] === 'string' && I18N.en[k].length, `en missing ${k}`);
     assert.ok(typeof I18N.es[k] === 'string' && I18N.es[k].length, `es missing ${k}`);
     assert.ok(!I18N.en[k].includes('—'), `em-dash in en ${k}`);
     assert.ok(!I18N.es[k].includes('—'), `em-dash in es ${k}`);
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
   // the not-a-WEA/911 invariant must be present on the disclaimer in both languages
   assert.ok(/call 911/i.test(I18N.en['push.disclaimer']));
   assert.ok(/Wireless Emergency Alerts/.test(I18N.en['push.disclaimer']));
   assert.ok(/llame al 911/i.test(I18N.es['push.disclaimer']));
   assert.ok(/WEA/.test(I18N.es['push.disclaimer']));
+  // the disclaimer moved behind a disclosure in v0.99.6, so the always-visible line has to carry
+  // the same three claims: best effort, not 911, not a WEA
+  assert.ok(/911/.test(I18N.en['push.note']) && /911/.test(I18N.es['push.note']));
+  assert.ok(/Wireless Emergency Alert/.test(I18N.en['push.note']));
+  assert.ok(/WEA/.test(I18N.es['push.note']));
+  assert.ok(/best effort/i.test(I18N.en['push.note']));
+  assert.ok(/esfuerzo/i.test(I18N.es['push.note']));
+  // blocked / unsupported / ios must stay tellable apart from each other and from a plain off
+  const distinct = ['off', 'on', 'blocked', 'unsupported', 'ios'].map((s) => I18N.en[`push.state.${s}`]);
+  assert.equal(new Set(distinct).size, distinct.length, 'two card states share a state string');
+  for (const lang of ['en', 'es']) {
+    const set = ['off', 'on', 'blocked', 'unsupported', 'ios'].map((s) => I18N[lang][`push.state.${s}`]);
+    assert.equal(new Set(set).size, set.length, `${lang}: two card states share a state string`);
+  }
+  // the retired chip keys must be gone from BOTH languages, not just one
+  for (const dead of ['push.chip.ffe', 'push.chip.major', 'push.chip.moderate', 'push.chips.label']) {
+    assert.equal(I18N.en[dead], undefined, `en still carries the retired ${dead}`);
+    assert.equal(I18N.es[dead], undefined, `es still carries the retired ${dead}`);
+  }
 });
 
 test('i18n: offline keys exist in both languages with placeholders intact', () => {

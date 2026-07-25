@@ -1943,7 +1943,9 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 
 /* ---- v0.88.1: header ⋮ overflow menu (owner: "top row is getting very crowded") ---- */
 .hmore { position: relative; }
-#hmore-btn { font-weight: 800; min-width: 40px; }
+/* no min-width here: an ID rule outranks the .controls button 44px floors at every breakpoint,
+   which left the gear a 40px box in a row of 44px squares on every phone width */
+#hmore-btn { font-weight: 800; }
 #hmore-btn.on { border-color: var(--accent); }
 /* the panel must scroll: it carries the device-alerts card as well as the menu rows, and an
    unbounded absolute box overran a 430px-tall landscape viewport with no way to reach the rest */
@@ -2133,10 +2135,18 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   font-size: 11.5px; color: var(--ink-2); line-height: 1.4;
   border-left: 3px solid var(--sev-emergency); padding: 4px 0 4px 8px; margin: 7px 0;
 }
-#push-body .push-status { font-size: 12px; font-weight: 650; margin: 6px 0 2px; color: var(--ink-2); }
+/* state and switch on one row, first in the card: the state is always plain and always visible,
+   and the control is reachable without scrolling past the honesty paragraphs */
+#push-body .push-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 2px 0 4px; }
+#push-body .push-status { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 650; margin: 0; color: var(--ink-2); }
 #push-body .push-on { color: var(--good); }
-#push-body .push-toggle { flex: 0 1 auto; min-height: 44px; padding: 5px 18px; }
-#push-body .push-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+#push-body .push-blocked { color: var(--sev-emergency); }
+#push-body .push-fix { font-size: 11.5px; color: var(--ink-2); line-height: 1.4; margin: 2px 0 4px; }
+#push-body .push-toggle { flex: 0 0 auto; min-height: 44px; padding: 5px 18px; }
+#push-body .push-types { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; }
+#push-body .push-type-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#push-body .push-type-lbl { font-size: 12.5px; flex: 1 1 auto; min-width: 0; }
+#push-body .push-type-opts { display: flex; gap: 4px; flex: 0 0 auto; }
 #push-body .push-chip {
   min-height: 44px; padding: 4px 12px; font-size: 12px; font-weight: 600;
   color: var(--ink-2); background: var(--surface-1);
@@ -2147,6 +2157,23 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 }
 #push-body .push-fresh { font-size: 11.5px; color: var(--ink-2); margin: 4px 0 2px; }
 #push-body .push-fresh-stale { color: var(--sev-emergency); font-weight: 650; }
+/* the compact half of the honesty text, always on screen; the full paragraphs live one tap away
+   in .push-about, which opens by default on every state that has not opted in yet */
+#push-body .push-note {
+  font-size: 11.5px; color: var(--ink-2); line-height: 1.4;
+  border-left: 3px solid var(--sev-emergency); padding: 3px 0 3px 8px; margin: 8px 0 2px;
+}
+#push-body .push-about { margin: 4px 0 2px; }
+#push-body .push-about > summary {
+  display: flex; align-items: center; min-height: 44px; cursor: pointer; list-style: none;
+  font-size: 12.5px; font-weight: 650; color: var(--accent);
+}
+/* display:flex drops the native marker, so the disclosure carries its own visible affordance */
+#push-body .push-about > summary::-webkit-details-marker { display: none; }
+#push-body .push-about > summary::before { content: '▸'; margin-right: 6px; font-size: 11px; }
+#push-body .push-about[open] > summary::before { content: '▾'; }
+#push-body .push-about .push-sub { margin-top: 2px; }
+#push-body .push-about .push-disclaimer { margin-bottom: 2px; }
 #push-body .push-manage-btn {
   display: block; background: none; border: none; padding: 8px 0; min-height: 44px;
   color: var(--accent); font-size: 12.5px; font-weight: 650; cursor: pointer; text-align: left;

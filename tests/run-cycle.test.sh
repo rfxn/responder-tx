@@ -260,10 +260,17 @@ else
     exec 8>&-
     fail "10 could not take the scratch lock to set up the contention case"
 fi
-if [ -e /tmp/responder-cycle.lock ] && ! flock -n /tmp/responder-cycle.lock true; then
-    fail "10 the production lock is held after this suite ran"
+# Static, not a runtime probe. `flock -n /tmp/responder-cycle.lock true` would itself take the
+# production lock for an instant, and a live cycle asking in that instant skips a real publish;
+# it also failed spuriously whenever an unrelated cron cycle happened to be mid-run. Asserting
+# that no test file can even name the path is the stronger claim and costs production nothing.
+if grep -RIl --include='*.test.sh' --include='*.test.py' -e '/tmp/responder-cycle\.lock' \
+       -e '/tmp/responder-monitor\.' -e '/tmp/responder-chat\.' "$REPO_ROOT/tests" \
+     | grep -qv "$(basename "$0")\$"; then
+    fail "10 a test file names a production lock path directly"
+    grep -RIn --include='*.test.sh' --include='*.test.py' -e '/tmp/responder-cycle\.lock' "$REPO_ROOT/tests"
 else
-    pass "10 the production cycle lock was never taken by this suite"
+    pass "10 no test file names a production lock path; every suite locks its own scratch copy"
 fi
 rm -rf "$WORK"
 

@@ -143,12 +143,16 @@ DATA_FILES=(
     data/crest-summary.json
     data/gauge-meta.json
     data/history.json
+    history/index.json
+    history/day
     data/shelters-live.json
     data/caltopo-export.json
     feed.xml
     crests.ics
 )
 
+# history/day is a directory pathspec on purpose: the chunk set gains a file every UTC day, and
+# `git add <dir>` stages its adds, edits and deletions without an -A over the whole tree.
 # git add aborts the cycle on a pathspec that matches nothing, so a generator that has
 # never yet produced its file (new artifact, first run after an upgrade) must not be staged
 PRESENT_FILES=()

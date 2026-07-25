@@ -121,6 +121,11 @@ printf '{"messages":[]}\n' > "$deploy_dir/data/chat-outbox.json"
 [ ! -e "$deploy_dir/data/chat-inbox.jsonl" ] || fail "data/chat-inbox.jsonl present in deploy dir"
 # recovery archive is git-tracked but must never be published: hundreds of MB and non-public provenance
 [ ! -e "$deploy_dir/archive" ] || fail "archive/ present in deploy dir (.gitattributes export-ignore not applied)"
+# the chunked playback record must ship whole: the client asks for the index before any day file
+if [ -e "$SRC/history/index.json" ]; then
+    [ -f "$deploy_dir/history/index.json" ] || fail "history/index.json is at HEAD but missing from the deploy dir"
+    [ -d "$deploy_dir/history/day" ] || fail "history/day/ is at HEAD but missing from the deploy dir"
+fi
 if grep -rq 'api/chat' "$deploy_dir/js" "$deploy_dir/index.html"; then
     fail "api/chat reference found in deploy dir js/ or index.html"
 fi

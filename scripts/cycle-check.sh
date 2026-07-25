@@ -227,7 +227,7 @@ if check_cursors; then pass "chat cursors (integer, <= inbox line count, rotatio
 # so generator/consumer drift fails the cycle instead of degrading silently
 check_schemas() {
     python3 - <<'EOF'
-import json, os, sys
+import hashlib, json, os, sys
 
 
 def die(m):
@@ -261,6 +261,41 @@ if d is not None:
     for i, fr in enumerate(d["frames"]):
         if not fr.get("t") or not isinstance(fr.get("gauges"), dict):
             die("history.json: frames[%d] missing t/gauges" % i)
+
+# the chunked playback record. The published hash is what the client puts in the query string,
+# and an immutable cache header is only honest while that hash still describes the file on disk.
+idx = optional("history/index.json")
+if idx is not None:
+    if not isinstance(idx.get("days"), list) or not idx["days"]:
+        die("history/index.json: days[] missing or empty")
+    if not isinstance(idx.get("gaugeIndex"), dict):
+        die("history/index.json: gaugeIndex missing")
+    total = 0
+    for i, day in enumerate(idx["days"]):
+        miss = [k for k in ("d", "n", "t0", "t1", "h") if not day.get(k)]
+        if miss:
+            die("history/index.json: days[%d] missing %s" % (i, ",".join(miss)))
+        path = os.path.join("history", "day", day["d"] + ".json")
+        if not os.path.exists(path):
+            die("history/index.json lists %s but %s is absent" % (day["d"], path))
+        with open(path, "rb") as f:
+            raw = f.read()
+        got = hashlib.sha256(raw).hexdigest()[:len(day["h"])]
+        if got != day["h"]:
+            die("%s hashes %s, index publishes %s; the immutable URL would serve stale bytes"
+                % (path, got, day["h"]))
+        chunk = json.loads(raw.decode("utf-8"))
+        if len(chunk.get("frames") or []) != day["n"]:
+            die("%s holds %d frames, index claims %d" % (path, len(chunk.get("frames") or []), day["n"]))
+        total += day["n"]
+    if d is not None and total != len(d["frames"]):
+        die("chunked record holds %d frames, data/history.json holds %d" % (total, len(d["frames"])))
+    if d is not None and set(idx["gaugeIndex"]) != set(d["gaugeIndex"]):
+        die("history/index.json gaugeIndex disagrees with data/history.json gaugeIndex")
+    orphans = [n for n in os.listdir(os.path.join("history", "day"))
+               if n.endswith(".json") and n[:-5] not in {day["d"] for day in idx["days"]}]
+    if orphans:
+        die("history/day/ holds day files the index does not list: %s" % ",".join(sorted(orphans)))
 
 d = optional("data/crest-summary.json")
 if d is not None:

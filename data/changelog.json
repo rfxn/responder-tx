@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.98.1",
+      "date": "2026-07-25",
+      "line": "Playback used to download the whole archive before the scrubber would move, and the archive is now three weeks deep and growing. It now publishes in day-sized pieces with a small index, and the board fetches only the days your chosen window actually covers, newest first, adding each one to the timeline as it arrives. Picking 3 days pulls three days, not three weeks, and you can start scrubbing recent time before the older days have finished loading. Days that are frozen never change, so your browser can keep them and a second visit costs almost nothing. The timeline is also clearer about what it does not have: the hatched stretch still means the board never recorded that period, and a separate band now marks days that are still downloading or that failed to download, so a gap in the record never quietly reads as calm water. The whole-record file is still published unchanged, so nothing that already worked stops working."
+    },
+    {
       "v": "v0.98.0",
       "date": "2026-07-25",
       "line": "The Resources tab is gone, and everything in it went somewhere it actually belongs. It had become a drawer for leftovers: a resident looking for a shelter got feed diagnostics first and shelters six items down. In its place is Roads, holding the closed and cautioned low-water crossings and the roads that have reopened, with a count on the tab like every other one. Low-water crossings are the most life-critical list on this board and they are now the first thing in it. Coastal water levels moved to Gauges, because a tide is a water level. Shelters and hotlines are now a chip in the alert strip you already read at the top, and a permanent entry at the top of Settings; only shelters actually listed as open are counted. Live feed status opens straight from the data age bar and the status line in the header instead of being a section in a tab. The link list for coordinators has left the public board entirely. Old links still work: anything pointing at the Resources tab now lands on Roads."

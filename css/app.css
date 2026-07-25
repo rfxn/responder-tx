@@ -1627,6 +1627,19 @@ body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar timeline rides above t
   border-right: 2px solid var(--sev-warning);
 }
 #pb-prearch[hidden] { display: none; }
+/* archived days not yet on the client: distinct from the pre-archive hatch on purpose */
+#pb-loading { position: absolute; left: 0; right: 0; top: 25px; height: 8px; pointer-events: none; z-index: 1; }
+.pb-band {
+  position: absolute; top: 0; height: 8px; border-radius: 2px; pointer-events: auto;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--accent) 45%, transparent) 0 2px, transparent 2px 5px);
+  animation: pb-band-pulse 1.4s ease-in-out infinite;
+}
+.pb-band.failed {
+  animation: none;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--sev-warning) 55%, transparent) 0 2px, transparent 2px 5px);
+}
+@keyframes pb-band-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pb-band { animation: none; opacity: 0.8; } }
 #pb-ticks { position: absolute; top: -4px; left: 0; right: 0; height: 12px; pointer-events: none; }
 .pb-tick {
   position: absolute; transform: translateX(-50%); pointer-events: auto;
@@ -1750,7 +1763,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   #pb-slider { height: 44px; }
   #pb-slider::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -11px; }
   #pb-slider::-moz-range-thumb { width: 28px; height: 28px; }
-  #pb-prearch { top: 30px; }
+  #pb-prearch, #pb-loading { top: 30px; }
   /* #playback-bar prefix outranks the ≤768 `#playback-bar button { min-height: 36px }` rule */
   #playback-bar #pb-back, #playback-bar #pb-fwd { min-width: 44px; min-height: 44px; font-size: 15px; }
   #playback-bar #pb-play { min-width: 48px; min-height: 44px; font-size: 16px; }

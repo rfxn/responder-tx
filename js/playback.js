@@ -283,15 +283,148 @@ function pbDecode(code) {
   return { stale, cat: PB_CAT_NAMES[stale ? -code - 1 : code] || 'none' };
 }
 
-async function loadPlaybackData() {
-  if (state.pbData) return state.pbData;
+/* ---------- chunked archive transport (v0.98.1) ----------
+   The record publishes as history/index.json (gauge + road indexes, one descriptor per UTC day)
+   plus history/day/YYYY-MM-DD.json. Only the days the chosen window touches are fetched, newest
+   first, and each one splices in as it lands, so the bar is scrubbable long before the oldest
+   day arrives. A day's URL carries its content hash, so an immutable cache header is a fact
+   about the URL and not a promise about the file. data/history.json remains the whole-record
+   compatibility view for gen-crest-summary.py and for clients cached from an older deploy. */
+const PB_INDEX_URL = 'history/index.json';
+const PB_CHUNK_PARALLEL = 4;
+
+const pbChunkUrl = (d) => `history/day/${d.d}.json${d.h ? `?h=${d.h}` : ''}`;
+
+// day descriptors whose span touches [loT, hiT], newest first, plus the last day entirely before
+// loT: frames resolve at-or-before a scrub time, so without it the window's first minutes have
+// nothing to land on and read as a dead stretch of track
+function pbDaysInWindow(days, loT, hiT) {
+  const list = days || [];
+  const hit = list.filter((d) => Date.parse(d.t1) >= loT && Date.parse(d.t0) <= hiT);
+  const before = list.filter((d) => Date.parse(d.t1) < loT).pop();
+  if (before) hit.push(before);
+  return hit.sort((a, b) => Date.parse(b.t0) - Date.parse(a.t0));
+}
+
+// the archive's real first frame, from the index when chunked: the pre-archive hatch must mean
+// "never recorded", never "not downloaded yet"
+const pbArchiveStartIso = () => {
+  const d = state.pbData;
+  return (d.days && d.days.length) ? d.days[0].t0 : d.frames[0].t;
+};
+const pbArchiveStart = () => Date.parse(pbArchiveStartIso());
+
+// counted over the CHOSEN window, not the whole archive: a day outside the window is not a gap
+function pbWindowDays(pred) {
+  const pb = state.pb, data = state.pbData;
+  if (!pb || !data || !data.days || !data.days.length) return 0;
+  return pbDaysInWindow(data.days, pb.winLoT, Infinity).filter(pred).length;
+}
+const pbChunkPending = () => pbWindowDays((d) => !state.pbData.loaded[d.d] && !state.pbData.failed[d.d]);
+const pbChunkFailed = () => pbWindowDays((d) => state.pbData.failed[d.d]);
+
+async function pbFetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// splice a landed chunk into the sorted frame array without moving the frame the user is watching
+function pbMergeFrames(incoming) {
+  const data = state.pbData, pb = state.pb;
+  const curT = (pb && !pb.live && data.frames.length) ? data.frames[pb.idx]._t : null;
+  const have = new Set(data.frames.map((f) => f.t));
+  const add = [];
+  for (const f of incoming || []) {
+    if (!f || !f.t || have.has(f.t)) continue;
+    f._t = new Date(f.t).getTime();
+    if (!Number.isFinite(f._t)) continue;
+    have.add(f.t);
+    add.push(f);
+  }
+  if (!add.length) return false;
+  data.frames = data.frames.concat(add).sort((a, b) => a._t - b._t);
+  if (curT !== null) pb.idx = pbFrameAt(curT);
+  return true;
+}
+
+function pbLoadDay(d) {
+  const data = state.pbData;
+  if (data.loaded[d.d]) return Promise.resolve();
+  if (data.inflight[d.d]) return data.inflight[d.d];
+  const p = pbFetchJson(pbChunkUrl(d))
+    .then((doc) => { data.loaded[d.d] = true; pbMergeFrames(doc && doc.frames); })
+    .catch(() => { data.failed[d.d] = true; }) // an unreachable day is a labelled hole, never a silent one
+    .then(() => { delete data.inflight[d.d]; pbChunkLanded(); });
+  data.inflight[d.d] = p;
+  return p;
+}
+
+// newest-first with a small pool: recent time is scrubbable before the oldest day lands
+function pbLoadDays(days) {
+  const queue = days.filter((d) => !state.pbData.loaded[d.d] && !state.pbData.failed[d.d]);
+  const worker = async () => { while (queue.length) await pbLoadDay(queue.shift()); };
+  return Promise.all(Array.from({ length: Math.min(PB_CHUNK_PARALLEL, queue.length) }, worker));
+}
+
+function pbEnsureWindowChunks() {
+  const pb = state.pb, data = state.pbData;
+  if (!data.days || !data.days.length) return Promise.resolve();
+  return pbLoadDays(pbDaysInWindow(data.days, pb.winLoT, Infinity));
+}
+
+const pbDayAt = (tMs) => (state.pbData.days || []).find((d) => Date.parse(d.t0) <= tMs && tMs <= Date.parse(d.t1));
+
+// every chunk landing re-derives the window, the bands, the chapter ticks and the story track
+function pbChunkLanded() {
+  const pb = state.pb;
+  if (!pb || !state.pbData.frames.length) return;
+  pbRecomputeWindow();
+  renderPlaybackPreArchive();
+  renderPlaybackTicks();
+  pbBuildStory();
+  if (!pb.live) $('#pb-slider').value = state.pbData.frames[pb.idx]._t;
+  updatePlaybackReadout();
+  updatePlaybackNote();
+}
+
+async function pbInitChunked(idx) {
+  const data = {
+    generated: idx.generated, frames: [], gaugeIndex: idx.gaugeIndex, days: idx.days,
+    loaded: {}, failed: {}, inflight: {},
+  };
+  if (idx.roadIndex) { data.roadIndex = idx.roadIndex; data.roadsFrom = idx.roadsFrom; }
+  if (idx.retained) data.retained = idx.retained;
+  if (idx.thinned) data.thinned = idx.thinned;
+  state.pbData = data;
+  state.pbRoadsFromT = idx.roadsFrom ? new Date(idx.roadsFrom).getTime() : Infinity;
+  await pbLoadDay(idx.days[idx.days.length - 1]);
+  if (!data.frames.length) throw new Error('newest history chunk empty');
+}
+
+async function pbInitMonolith() {
   const res = await fetch(`data/history.json?_=${Math.floor(Date.now() / 300000)}`);
   if (!res.ok) throw new Error(`history HTTP ${res.status}`);
   const d = await res.json();
   if (!Array.isArray(d.frames) || !d.frames.length) throw new Error('empty history');
   d.frames.forEach((f) => { f._t = new Date(f.t).getTime(); });
+  d.days = [];
+  d.loaded = {}; d.failed = {}; d.inflight = {};
   state.pbData = d;
   state.pbRoadsFromT = d.roadsFrom ? new Date(d.roadsFrom).getTime() : Infinity;
+}
+
+async function loadPlaybackData() {
+  if (state.pbData) return state.pbData;
+  let idx = null;
+  // a deploy without the chunk index, or a service worker cached before it existed, still plays
+  try { idx = await pbFetchJson(`${PB_INDEX_URL}?_=${Math.floor(Date.now() / 300000)}`); } catch { idx = null; }
+  if (idx && Array.isArray(idx.days) && idx.days.length && idx.gaugeIndex) {
+    try { await pbInitChunked(idx); } catch { state.pbData = null; await pbInitMonolith(); }
+  } else {
+    await pbInitMonolith();
+  }
+  const d = state.pbData;
   // chapter marks: major-peak gauges from the crest summary, most significant first (best-effort)
   try {
     const cs = await fetch(`data/crest-summary.json?_=${Math.floor(Date.now() / 300000)}`).then((r) => (r.ok ? r.json() : null));
@@ -543,6 +676,8 @@ async function openPlayback() {
   const pbt = Date.parse(new URLSearchParams(location.search).get('pbt') || ''); // deep link: jump to a moment
   if (Number.isFinite(pbt) && !state.pbtApplied) {
     state.pbtApplied = true;
+    const day = pbDayAt(pbt); // the linked moment's own day loads first, whatever the window is fetching
+    if (day) await pbLoadDay(day);
     setPlaybackFrame(pbFrameAt(pbt));
     updatePlaybackNote();
   }
@@ -583,30 +718,60 @@ function pbSheetRestore() {
 // window = chosen 3/7/14d; the slider track spans the full request, frames clip to the archive —
 // the pre-archive gap renders hatched, never faked with empty frames
 function setPlaybackRange(days) {
-  const pb = state.pb, frames = state.pbData.frames;
+  const pb = state.pb;
   pb.days = days;
   pb.winLoT = Date.now() - days * 86400000;
-  pb.loT = Math.max(pb.winLoT, frames[0]._t);
-  pb.hiT = frames[frames.length - 1]._t;
+  pbRecomputeWindow();
   document.querySelectorAll('.pb-chip').forEach((b) => b.classList.toggle('on', +b.dataset.days === days));
-  const sl = $('#pb-slider');
-  sl.min = pb.winLoT;
-  sl.max = pb.hiT;
-  sl.step = 60000;
+  $('#pb-slider').step = 60000;
+  pbEnsureWindowChunks();
   renderPlaybackPreArchive();
   renderPlaybackTicks();
   pbBuildStory();
-  if (pb.live) { sl.value = pb.hiT; updatePlaybackReadout(); } else setPlaybackFrame(pb.idx);
+  if (pb.live) { $('#pb-slider').value = pb.hiT; updatePlaybackReadout(); } else setPlaybackFrame(pb.idx);
   updatePlaybackNote();
 }
 
-function renderPlaybackPreArchive() {
+// the low edge follows the earliest LOADED frame; the slider spans the full request either way
+function pbRecomputeWindow() {
   const pb = state.pb, frames = state.pbData.frames;
+  pb.loT = Math.max(pb.winLoT, frames[0]._t);
+  pb.hiT = frames[frames.length - 1]._t;
+  const sl = $('#pb-slider');
+  sl.min = pb.winLoT;
+  sl.max = pb.hiT;
+}
+
+function renderPlaybackPreArchive() {
+  const pb = state.pb;
   const el = $('#pb-prearch');
-  const frac = (frames[0]._t - pb.winLoT) / (pb.hiT - pb.winLoT || 1);
+  const frac = (pbArchiveStart() - pb.winLoT) / (pb.hiT - pb.winLoT || 1);
   el.hidden = frac <= 0.004;
   el.style.width = `${Math.min(Math.max(frac, 0), 1) * 100}%`;
   if (!el.hidden) pbFlashArchNote();
+  renderPlaybackChunkBands();
+}
+
+/* Two different claims, two different bands. #pb-prearch hatches the stretch the board never
+   recorded; #pb-loading marks archived days that are still in flight or failed to load. Drawing
+   an unloaded day as bare track would read as a quiet stretch of river, which it is not. */
+function renderPlaybackChunkBands() {
+  const pb = state.pb, data = state.pbData;
+  const host = $('#pb-loading');
+  if (!host) return;
+  host.innerHTML = '';
+  const span = pb.hiT - pb.winLoT || 1;
+  for (const d of pbDaysInWindow(data.days, pb.winLoT, pb.hiT)) {
+    if (data.loaded[d.d]) continue;
+    const a = Math.max(Date.parse(d.t0), pb.winLoT), b = Math.min(Date.parse(d.t1), pb.hiT);
+    if (!(b > a)) continue;
+    const el = document.createElement('div');
+    el.className = `pb-band${data.failed[d.d] ? ' failed' : ''}`;
+    el.style.left = `${((a - pb.winLoT) / span) * 100}%`;
+    el.style.width = `${((b - a) / span) * 100}%`;
+    el.title = t(data.failed[d.d] ? 'playback.chunk.failed' : 'playback.chunk.loading');
+    host.appendChild(el);
+  }
 }
 
 // transient flash of the sheet's locked message — layer pills share the playback read-only regime
@@ -624,7 +789,7 @@ function pbFlashArchNote() {
   if (state.pbArchNoted) return;
   state.pbArchNoted = true;
   const el = $('#pb-arch-note');
-  el.textContent = t('playback.archnote').replace('{t}', fmtCT(state.pbData.frames[0].t));
+  el.textContent = t('playback.archnote').replace('{t}', fmtCT(pbArchiveStartIso()));
   el.hidden = false;
   clearTimeout(state.pbArchNoteTimer);
   state.pbArchNoteTimer = setTimeout(() => { el.hidden = true; }, 3000);
@@ -1105,14 +1270,17 @@ function updatePlaybackNote() {
       return s <= ft && e >= ft;
     }).length;
     if (n) note += ` · ${t('playback.note.alerthist').replace('{n}', n)}`;
-    if (state.pbData.frames[pbFirstIdx()]._t > pb.winLoT + 60000) {
-      note += ` · ${t('playback.note.start').replace('{t}', fmtCT(state.pbData.frames[0].t))}`;
-    }
     const thin = state.pbData.thinned;
     if (thin && thin.olderGapMinutes && ft < new Date(thin.fullFrom).getTime()) {
       note += ` · ${t('playback.note.thinned').replace('{n}', thin.olderGapMinutes)}`;
     }
   }
+  if (pbArchiveStart() > pb.winLoT + 60000) {
+    note += ` · ${t('playback.note.start').replace('{t}', fmtCT(pbArchiveStartIso()))}`;
+  }
+  const pending = pbChunkPending(), failed = pbChunkFailed();
+  if (pending) note += ` · ${t('playback.note.loading').replace('{n}', pending)}`;
+  if (failed) note += ` · ${t('playback.note.chunkfail').replace('{n}', failed)}`;
   $('#pb-note').textContent = note;
 }
 

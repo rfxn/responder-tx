@@ -6,7 +6,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadMapApp } = require('./harness.js');
 
-const { pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, pbGaugeNoteKey, PB_LIVE_HIDE, state } = loadMapApp();
+const {
+  pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, pbGaugeNoteKey, PB_LIVE_HIDE, state,
+  pbChunkUrl, pbDaysInWindow, pbMergeFrames, pbArchiveStart, pbArchiveStartIso, pbDayAt, pbChunkPending, pbChunkFailed,
+} = loadMapApp();
 
 /* frame-selection math for historical playback: frames are as-of snapshots, so a scrub
    time must resolve to the latest frame at-or-before it, clamped inside the 3d/7d/14d
@@ -159,8 +162,152 @@ test('pbGaugeNoteKey — an unknown future src still degrades to reconstructed, 
 test('every gauge-provenance note key exists in both locales', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
   for (const key of ['playback.note.replay', 'playback.note.gauges.recon',
-    'playback.note.gauges.recov', 'playback.note.thinned']) {
+    'playback.note.gauges.recov', 'playback.note.thinned',
+    'playback.note.loading', 'playback.note.chunkfail',
+    'playback.chunk.loading', 'playback.chunk.failed']) {
     const hits = src.split(`'${key}':`).length - 1;
     assert.equal(hits, 2, `${key} must appear once in en and once in es, found ${hits}`);
   }
+});
+
+/* Chunked archive transport (v0.98.1). The record ships as an index plus one file per UTC day;
+   only the days a window touches are fetched, and each splices into the sorted frame array as it
+   lands. The honesty half is that an unloaded day must never render as bare track. */
+
+const DAY = (d, t0, t1, h) => ({ d, t0, t1, h, n: 1 });
+const DAYS = [
+  DAY('2026-07-20', '2026-07-20T00:00:00Z', '2026-07-20T23:45:00Z', 'aaaa1111'),
+  DAY('2026-07-21', '2026-07-21T00:00:00Z', '2026-07-21T23:45:00Z', 'bbbb2222'),
+  DAY('2026-07-22', '2026-07-22T00:00:00Z', '2026-07-22T23:45:00Z', 'cccc3333'),
+];
+
+function seedChunked(loadedDays = [], failedDays = []) {
+  state.pbData = {
+    days: DAYS, frames: [], gaugeIndex: {},
+    loaded: Object.fromEntries(loadedDays.map((d) => [d, true])),
+    failed: Object.fromEntries(failedDays.map((d) => [d, true])),
+    inflight: {},
+  };
+  state.pb = { live: true, idx: 0, days: 3, winLoT: Date.UTC(2026, 6, 20), hiT: Date.UTC(2026, 6, 22, 23, 45) };
+}
+
+test('pbChunkUrl carries the day content hash, so an immutable URL changes when the bytes do', () => {
+  assert.equal(pbChunkUrl(DAYS[0]), 'history/day/2026-07-20.json?h=aaaa1111');
+  assert.notEqual(pbChunkUrl(DAYS[0]), pbChunkUrl({ ...DAYS[0], h: 'zzzz9999' }));
+});
+
+test('pbChunkUrl omits the query when the index publishes no hash (never invents one)', () => {
+  assert.equal(pbChunkUrl({ d: '2026-07-20' }), 'history/day/2026-07-20.json');
+});
+
+test('pbDaysInWindow returns intersecting days newest first, and never a day beyond the window', () => {
+  const got = pbDaysInWindow(DAYS, Date.UTC(2026, 6, 21), Date.UTC(2026, 6, 21, 12));
+  assert.deepEqual(got.map((d) => d.d), ['2026-07-21', '2026-07-20'],
+    '2026-07-22 starts after the window ends and must not be fetched');
+});
+
+test('pbDaysInWindow keeps a day the window only clips into (partial overlap is still needed)', () => {
+  const got = pbDaysInWindow(DAYS, Date.UTC(2026, 6, 21, 23, 40), Date.UTC(2026, 6, 22, 1));
+  assert.deepEqual(got.map((d) => d.d), ['2026-07-22', '2026-07-21', '2026-07-20']);
+});
+
+test('pbDaysInWindow also pulls the day just before the window, so its low edge has a frame', () => {
+  // the window opens after 2026-07-21's last frame: without that day, scrubbing to the far left
+  // resolves to nothing and the first minutes of the requested window read as dead track
+  const got = pbDaysInWindow(DAYS, Date.UTC(2026, 6, 21, 23, 50), Date.UTC(2026, 6, 22, 1));
+  assert.deepEqual(got.map((d) => d.d), ['2026-07-22', '2026-07-21']);
+});
+
+test('pbDaysInWindow on a monolith load (no day list) asks for nothing', () => {
+  assert.equal(pbDaysInWindow([], 0, Date.now()).length, 0);
+  assert.equal(pbDaysInWindow(undefined, 0, Date.now()).length, 0);
+});
+
+test('pbMergeFrames splices an older chunk in and leaves the array time-sorted', () => {
+  seedChunked();
+  state.pbData.frames = [{ t: '2026-07-22T00:00:00Z', _t: Date.UTC(2026, 6, 22) }];
+  assert.equal(pbMergeFrames([{ t: '2026-07-20T00:00:00Z' }, { t: '2026-07-21T00:00:00Z' }]), true);
+  assert.deepEqual(state.pbData.frames.map((f) => f.t),
+    ['2026-07-20T00:00:00Z', '2026-07-21T00:00:00Z', '2026-07-22T00:00:00Z']);
+  assert.ok(state.pbData.frames.every((f) => Number.isFinite(f._t)), 'every spliced frame needs its _t');
+});
+
+test('pbMergeFrames never double-inserts a timestamp already held', () => {
+  seedChunked();
+  state.pbData.frames = [{ t: '2026-07-22T00:00:00Z', _t: Date.UTC(2026, 6, 22) }];
+  assert.equal(pbMergeFrames([{ t: '2026-07-22T00:00:00Z' }]), false);
+  assert.equal(state.pbData.frames.length, 1);
+});
+
+test('pbMergeFrames drops malformed frames rather than seeding NaN times into the scrubber', () => {
+  seedChunked();
+  state.pbData.frames = [{ t: '2026-07-22T00:00:00Z', _t: Date.UTC(2026, 6, 22) }];
+  assert.equal(pbMergeFrames([null, {}, { t: 'not-a-time' }]), false);
+  assert.equal(state.pbData.frames.length, 1);
+});
+
+test('pbMergeFrames keeps the viewer on the same frame when older days land underneath it', () => {
+  seedChunked();
+  state.pbData.frames = [
+    { t: '2026-07-22T00:00:00Z', _t: Date.UTC(2026, 6, 22) },
+    { t: '2026-07-22T01:00:00Z', _t: Date.UTC(2026, 6, 22, 1) },
+  ];
+  state.pb.live = false;
+  state.pb.idx = 1;
+  state.pb.loT = Date.UTC(2026, 6, 20);
+  pbMergeFrames([{ t: '2026-07-20T00:00:00Z' }, { t: '2026-07-21T00:00:00Z' }]);
+  assert.equal(state.pbData.frames[state.pb.idx].t, '2026-07-22T01:00:00Z',
+    'the index must follow the frame, not stay a stale offset into a longer array');
+});
+
+test('pbArchiveStart reads the index floor, not the earliest frame that happens to be loaded', () => {
+  seedChunked(['2026-07-22']);
+  state.pbData.frames = [{ t: '2026-07-22T00:00:00Z', _t: Date.UTC(2026, 6, 22) }];
+  assert.equal(pbArchiveStartIso(), '2026-07-20T00:00:00Z');
+  assert.equal(pbArchiveStart(), Date.UTC(2026, 6, 20));
+});
+
+test('pbArchiveStart falls back to the first frame when the load was the monolith', () => {
+  state.pbData = { days: [], frames: [{ t: '2026-07-21T06:00:00Z', _t: Date.UTC(2026, 6, 21, 6) }], loaded: {}, failed: {}, inflight: {} };
+  assert.equal(pbArchiveStartIso(), '2026-07-21T06:00:00Z');
+});
+
+test('pbDayAt resolves a deep-linked moment to the day chunk that holds it', () => {
+  seedChunked();
+  assert.equal(pbDayAt(Date.UTC(2026, 6, 21, 12)).d, '2026-07-21');
+  assert.equal(pbDayAt(Date.UTC(2026, 6, 19)), undefined);
+});
+
+test('the unloaded and failed day counts are scoped to the chosen window', () => {
+  seedChunked(['2026-07-22'], ['2026-07-20']);
+  assert.equal(pbChunkPending(), 1, 'only 2026-07-21 is still outstanding');
+  assert.equal(pbChunkFailed(), 1);
+  state.pb.winLoT = Date.UTC(2026, 6, 22); // narrow past the failed day
+  assert.equal(pbChunkFailed(), 0, 'a day outside the window is not a hole in it');
+  assert.equal(pbChunkPending(), 1, '2026-07-21 stays, it holds the frame at the window low edge');
+});
+
+test('the monolith fallback path reports no chunk gaps at all', () => {
+  state.pbData = { days: [], frames: [], loaded: {}, failed: {}, inflight: {} };
+  state.pb = { winLoT: 0, hiT: Date.now() };
+  assert.equal(pbChunkPending(), 0);
+  assert.equal(pbChunkFailed(), 0);
+});
+
+test('the chunk loader lives in js/playback.js, not a new script the shell would have to learn', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  assert.match(SRC('playback.js'), /history\/index\.json/, 'the index URL belongs to playback.js');
+  const tags = [...html.matchAll(/<script src="(js\/[^"?]+)\?v=/g)].map((m) => m[1]);
+  assert.equal(new Set(tags).size, tags.length, 'duplicate script tag');
+  for (const f of tags) {
+    if (f.startsWith('js/vendor/')) continue;
+    assert.ok(sw.includes(`'${f}'`), `${f} is in index.html but missing from the sw.js precache`);
+  }
+});
+
+test('the hard fallback to the whole-record view survives in the source', () => {
+  const src = SRC('playback.js');
+  assert.match(src, /data\/history\.json/, 'an index 404 must still reach data/history.json');
+  assert.match(src, /pbInitMonolith\(\)/);
 });

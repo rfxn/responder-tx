@@ -6,6 +6,7 @@ must never remove a frame or a gauge from what is retained, and must never
 un-publish something the board already published. Runs gen-history.py against a
 throwaway git repo (never the real data/), plus unit checks on the pure helpers.
 Run: python3 tests/gen-history.test.py"""
+import hashlib
 import importlib.util
 import json
 import os
@@ -142,6 +143,67 @@ try:
           'def frame_from(snap, snap_dt, gauge_index)' in walk_src and 'def walk(commits)' in walk_src)
     check('STRUCTURAL · the retention path references no bbox at all',
           'bbox' not in walk_src, 'bbox leaked back into frame_from/walk')
+
+    # --- chunked publication: index + one file per UTC day -------------------
+    # push the fixture across three UTC days so day boundaries are actually exercised
+    commit(repo, NARROW, 80, 'next day')
+    commit(repo, NARROW, 160, 'day after')
+    run_gen(repo)
+    h4 = history(repo)
+
+    def chunk_path(day):
+        return os.path.join(repo, 'history', 'day', day + '.json')
+
+    def read_index():
+        with open(os.path.join(repo, 'history', 'index.json'), encoding='utf-8') as f:
+            return json.load(f)
+
+    idx = read_index()
+    days = idx['days']
+    check('chunked publish spans one file per UTC day', len(days) == 3, str([d['d'] for d in days]))
+    check('index gaugeIndex matches the whole-record view',
+          set(idx['gaugeIndex']) == set(h4['gaugeIndex']))
+    check('index frame total matches the whole-record view',
+          sum(d['n'] for d in days) == len(h4['frames']),
+          '%d vs %d' % (sum(d['n'] for d in days), len(h4['frames'])))
+
+    rebuilt = []
+    for day in days:
+        with open(chunk_path(day['d']), 'rb') as f:
+            raw = f.read()
+        check('IMMUTABILITY · the published hash describes the bytes on disk (%s)' % day['d'],
+              hashlib.sha256(raw).hexdigest()[:len(day['h'])] == day['h'])
+        chunk = json.loads(raw.decode('utf-8'))
+        check('day file holds exactly the frame count the index claims (%s)' % day['d'],
+              len(chunk['frames']) == day['n'])
+        check('every frame in a day file belongs to that UTC day (%s)' % day['d'],
+              all(f['t'][:10] == day['d'] for f in chunk['frames']))
+        rebuilt += chunk['frames']
+    check('CONTRACT · the chunks reassemble into exactly the compatibility view',
+          rebuilt == h4['frames'], '%d rebuilt vs %d published' % (len(rebuilt), len(h4['frames'])))
+    check('a day payload carries no build stamp, or a frozen day would rehash every cycle',
+          'generated' not in json.loads(open(chunk_path(days[0]['d']), encoding='utf-8').read()))
+
+    frozen = {d['d']: d['h'] for d in days}
+    run_gen(repo)
+    check('IMMUTABILITY · a regeneration with no new data moves no day hash',
+          {d['d']: d['h'] for d in read_index()['days']} == frozen)
+
+    # mutation proof: a changed observation must move exactly its own day's hash, so the URL
+    # the client caches forever changes with it
+    commit(repo, NARROW, 161, 'one more observation')
+    run_gen(repo)
+    after = {d['d']: d['h'] for d in read_index()['days']}
+    moved = sorted(d for d in after if frozen.get(d) != after[d])
+    check('MUTATION · new data moves only the affected day hash',
+          moved == [sorted(frozen)[-1]], 'moved %s' % moved)
+
+    # a day file the index no longer lists must not survive to be served from an immutable cache
+    with open(chunk_path('1999-01-01'), 'w', encoding='utf-8') as f:
+        f.write('{"d":"1999-01-01","frames":[]}\n')
+    run_gen(repo)
+    check('an orphan day file is removed, never left to be served',
+          not os.path.exists(chunk_path('1999-01-01')))
 
 finally:
     shutil.rmtree(tmp)

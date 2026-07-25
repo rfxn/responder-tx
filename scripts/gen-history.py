@@ -40,11 +40,20 @@ Road state per frame is the union of two signals: presence in the archived
 roads-snapshot git history (frames at/after roadsFrom) and the record's own
 posted start/end window (the only signal before roadsFrom — the client must
 label those frames as reconstructed, not archived).
+
+The same published record also ships chunked under history/: history/index.json
+carries the gauge/road indexes plus one descriptor per UTC day, and
+history/day/YYYY-MM-DD.json carries that day's frames and nothing else. A day
+payload holds no build stamp, so a frozen day hashes identically every cycle;
+the index publishes that hash and the client puts it in the query string, which
+is what makes an immutable cache header on the day files a fact rather than a
+promise. data/history.json stays the whole-record compatibility view.
 """
 import bisect
 import datetime
 import glob
 import gzip
+import hashlib
 import json
 import os
 import subprocess
@@ -59,6 +68,10 @@ SNAPSHOT_PATH = "data/gauges-snapshot.json"
 EVENT_PATH = "data/event.json"
 ROADS_PATH = "data/roads-snapshot.json"
 OUT_PATH = "data/history.json"
+CHUNK_INDEX_PATH = "history/index.json"
+CHUNK_DAY_DIR = "history/day"
+CHUNK_FORMAT = 1
+CHUNK_HASH_LEN = 12
 GAUGE_META_PATH = "data/gauge-meta.json"
 RECOVERED_DIR = "archive/recovered"
 NWPS_RESCUE_DIR = "archive/recovered/nwps-30d"
@@ -426,19 +439,20 @@ def apply_road_history(frames):
     return road_index, snaps[0]["iso"], recon, arch
 
 
+def emit_frame(f):
+    frame = {"t": f["t"], "gauges": f["gauges"]}
+    if f.get("roads"):
+        frame["roads"] = f["roads"]
+    for key in ("src", "ref"):
+        if f.get(key):
+            frame[key] = f[key]
+    return frame
+
+
 def serialize(frames, gauge_index, road_index=None, roads_from=None, retained=None, thinned=None):
-    emitted = []
-    for f in frames:
-        frame = {"t": f["t"], "gauges": f["gauges"]}
-        if f.get("roads"):
-            frame["roads"] = f["roads"]
-        for key in ("src", "ref"):
-            if f.get(key):
-                frame[key] = f[key]
-        emitted.append(frame)
     out = {
         "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "frames": emitted,
+        "frames": [emit_frame(f) for f in frames],
         "gaugeIndex": gauge_index,
     }
     if road_index:
@@ -449,6 +463,63 @@ def serialize(frames, gauge_index, road_index=None, roads_from=None, retained=No
     if thinned:
         out["thinned"] = thinned
     return json.dumps(out, separators=(",", ":")) + "\n"
+
+
+def write_atomic(path, payload):
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".chunk.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(payload)
+        os.replace(tmp, path)
+    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+        os.unlink(tmp)
+        raise
+
+
+def write_if_changed(path, payload):
+    """A byte-identical rewrite is skipped so a frozen day stays out of the commit."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            if f.read() == payload:
+                return False
+    except OSError:
+        pass
+    write_atomic(path, payload)
+    return True
+
+
+def day_payload(day, frames):
+    return json.dumps({"d": day, "frames": [emit_frame(f) for f in frames]},
+                      separators=(",", ":")) + "\n"
+
+
+def write_chunks(frames, index_meta):
+    """Publish the record as one index plus one file per UTC day, and delete day files
+    no longer covered so a stale chunk can never outlive the record it came from."""
+    day_dir = os.path.join(ROOT, CHUNK_DAY_DIR)
+    os.makedirs(day_dir, exist_ok=True)
+    by_day = {}
+    for f in frames:
+        by_day.setdefault(f["_dt"].strftime("%Y-%m-%d"), []).append(f)
+    days, written = [], 0
+    for day in sorted(by_day):
+        group = by_day[day]
+        payload = day_payload(day, group)
+        if write_if_changed(os.path.join(day_dir, day + ".json"), payload):
+            written += 1
+        days.append({"d": day, "n": len(group), "t0": group[0]["t"], "t1": group[-1]["t"],
+                     "bytes": len(payload),
+                     "h": hashlib.sha256(payload.encode("utf-8")).hexdigest()[:CHUNK_HASH_LEN]})
+    keep = {day + ".json" for day in by_day}
+    stale = [n for n in os.listdir(day_dir) if n.endswith(".json") and n not in keep]
+    for name in stale:
+        os.unlink(os.path.join(day_dir, name))
+    index = {"generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "format": CHUNK_FORMAT, "frames": len(frames)}
+    index.update(index_meta)
+    index["days"] = days
+    write_atomic(os.path.join(ROOT, CHUNK_INDEX_PATH), json.dumps(index, separators=(",", ":")) + "\n")
+    return days, written, len(stale)
 
 
 def http_json(url, timeout=90):
@@ -686,15 +757,17 @@ def main():
         thinned["backfillGapHours"] = 2
         payload = serialize(pub, pub_index, road_index, roads_from, retained, thinned)
 
-    out_abs = os.path.join(ROOT, OUT_PATH)
-    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(out_abs), prefix=".history.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(payload)
-        os.replace(tmp, out_abs)
-    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
-        os.unlink(tmp)
-        raise
+    write_atomic(os.path.join(ROOT, OUT_PATH), payload)
+
+    index_meta = {"gaugeIndex": pub_index}
+    if road_index:
+        index_meta["roadIndex"] = road_index
+        index_meta["roadsFrom"] = roads_from
+    if retained:
+        index_meta["retained"] = retained
+    if thinned:
+        index_meta["thinned"] = thinned
+    days, chunks_written, chunks_removed = write_chunks(pub, index_meta)
 
     n_backfill = sum(1 for f in pub if f.get("src") in ("usgs", "nwps"))
     n_recovered = sum(1 for f in pub if f.get("src") == "git")
@@ -704,6 +777,9 @@ def main():
           f"{len(pub_index)} gauges ({n_backfill} reconstructed + {n_recovered} recovered), "
           f"{len(payload)} bytes ({len(payload) / 1024:.1f} KB)")
     print(f"  window {pub[0]['t']} → {pub[-1]['t']}")
+    print(f"chunks: {len(days)} UTC days under {CHUNK_DAY_DIR}/ ({chunks_written} rewritten, "
+          f"{len(days) - chunks_written} unchanged, {chunks_removed} removed), "
+          f"index {CHUNK_INDEX_PATH}, largest day {max(d['bytes'] for d in days) / 1024:.1f} KB")
     print(f"  display scope: {len(boxes)} bbox(es) ever declared; {held} retained gauges and "
           f"{out_of_scope} retained frames are out of scope, held not deleted")
     if thinned:

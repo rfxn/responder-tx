@@ -1,5 +1,58 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.1 · 2026-07-25 (the archive publishes in day-sized pieces)
+
+-- New Features --
+- [New] The playback archive now publishes as an index plus one file per UTC
+      day, and the client fetches only the days the chosen window touches,
+      newest first, splicing each one in as it lands. A 3-day window used to
+      pull the entire 2.4 MB record before the scrubber would move; it now
+      pulls about four day files, and the bar is scrubbable from the first one.
+- [New] history/index.json carries the gauge and road indexes plus a descriptor
+      per day: frame count, time bounds, and a content hash. A day file holds no
+      build stamp, so a frozen day is byte-identical every cycle and its hash
+      does not move; the client puts that hash in the query string, which is
+      what makes serving history/day/* immutable a fact rather than a promise.
+- [New] The scrubber now distinguishes two kinds of absence. The existing hatch
+      still means the board never recorded that stretch; a new band marks
+      archived days that are still downloading or that failed to download. An
+      unloaded day never renders as bare track, because bare track reads as a
+      quiet stretch of river.
+- [New] tests/run.sh runs any suite with the whole log written to a file and the
+      failing test names printed at the end, after redirecting every production
+      lock and log path into a scratch directory.
+
+-- Changes --
+- [Change] data/history.json is unchanged and stays published as the whole-record
+           compatibility view: gen-crest-summary.py reads it, and a client cached
+           from an older deploy still asks for it. When the chunk index is
+           missing or unreadable the client falls back to it and plays normally.
+- [Change] cycle-check re-hashes every published day file against the hash in the
+           index and fails the cycle on a mismatch, on a frame-count
+           disagreement with data/history.json, or on a day file the index does
+           not list. An immutable URL that can serve different bytes is a data
+           integrity fault, not a caching detail.
+- [Change] The archive-start note moved out of the engaged-only branch, so the
+           window's real depth is stated before you scrub rather than after.
+- [Change] tests/README.md corrects the browser-verification rule. Serving the
+           page from 127.0.0.1 does not stop the upstream requests: the board
+           calls NWPS, USGS, NWS and IEM from the browser, and CORS blocks
+           reading a response, never sending the request. A viewport matrix at
+           02:38Z contributed to an NWPS 429 that degraded a production cycle
+           while the page was correctly served locally. Verification now has to
+           block those hosts at the network layer inside the driver, with the
+           host list derived from source rather than guessed.
+- [Change] tests/README.md states the log rule outright: always tee a run to a
+           file, never pipe it away, and on any flake keep the full log and
+           report the failing test name from it.
+
+-- Bug Fixes --
+- [Fix] run-cycle.test.sh check 10 probed /tmp/responder-cycle.lock with
+      flock at the end of the suite, which failed spuriously whenever an
+      unrelated 15-minute cycle was legitimately mid-run, and which took the
+      production lock for an instant to do it. It now asserts statically that
+      no test file can name a production lock path at all.
+
 ## v0.98.0 · 2026-07-25 (Resources dissolves)
 
 -- Changes --

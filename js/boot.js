@@ -941,13 +941,24 @@ async function boot() {
     $('#new-request-form .hint').textContent =
       'Read-only mirror: notices added here save to THIS DEVICE ONLY; they do not reach the ops session. Click the map to set the pin.';
   };
-  const loadLanScript = (src) => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s); };
+  const loadScript = (src) => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s); };
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
-    if (d && d.chat) loadLanScript('js/chat.js');
+    if (d && d.chat) loadScript('js/chat.js');
     else markMirror();
     if (d && d.requests) state.lanIntake = true; // LAN write endpoint present — intakes also share board-wide
-    if (d && d.master) loadLanScript('js/master.js'); // command-side, all-teams oversight view
+    if (d && d.master) loadScript('js/master.js'); // command-side, all-teams oversight view
   }).catch(markMirror);
+
+  // Field Notes is off by default and stripped from the public artifact, so it loads on demand only
+  const notesParams = new URLSearchParams(location.search);
+  if (notesParams.has('notes') || notesParams.has('note')) {
+    const stamp = APP_VERSION.replace(/^v/, '');
+    const sheet = document.createElement('link');
+    sheet.rel = 'stylesheet';
+    sheet.href = `css/notes.css?v=${stamp}`;
+    document.head.appendChild(sheet);
+    loadScript(`js/notes.js?v=${stamp}`);
+  }
   restoreViewState(); // saved view first, so any URL param below overrides it for this load
 
   // migration: old separate-layer links (?rain=1h / ?rain=24h, both→24h) resolve to the unified Rainfall layer

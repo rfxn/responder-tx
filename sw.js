@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.98.4';
+const SW_VERSION = '0.98.5';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 // version-independent: /data/ is not versioned by app release, and the last-good copies here are
 // the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
@@ -12,10 +12,10 @@ const CACHE_DATA = 'respondertx-data';
 // localized; must survive SW updates (excluded from the activate cleanup)
 const CACHE_PUSH = 'respondertx-push';
 
-// the LAN-only chat and master clients are deliberately absent: the public mirror strips them
+// chat, master and Field Notes are deliberately absent: the public mirror strips all three, and
+// boot.js injects them at runtime only where they exist
 const PRECACHE_PATHS = [
   'css/app.css',
-  'css/notes.css',
   'css/team.css',
   'js/vendor/leaflet.css',
   'js/vendor/leaflet.js',
@@ -34,7 +34,6 @@ const PRECACHE_PATHS = [
   'js/panels.js',
   'js/board.js',
   'js/boot.js',
-  'js/notes.js',
   'js/team.js',
   'assets/brand/logo-lockup.png',
   'assets/brand/logo-lockup-dark.png',

@@ -112,11 +112,23 @@ mkdir -p "$deploy_dir"
 git archive HEAD | tar -x -C "$deploy_dir" || fail "git archive extraction failed"
 rm -f "$deploy_dir/js/chat.js"
 rm -f "$deploy_dir/js/master.js"
+# Field Notes is disabled and LAN-only; boot.js injects it on ?notes/?note, so the mirror needs neither file
+rm -f "$deploy_dir/js/notes.js"
+rm -f "$deploy_dir/css/notes.css"
+# ops-side code no browser can execute: the cycle/chat/deploy scripts and the LAN server, which
+# together carry the ops host's absolute paths, its cron lines and the whole /api/chat plumbing
+rm -rf "$deploy_dir/scripts"
+rm -f "$deploy_dir/server.py"
+rm -f "$deploy_dir/.gitignore"
 printf '{"messages":[]}\n' > "$deploy_dir/data/chat-outbox.json"
 
 # --- Strip-verify before upload ---
 [ ! -e "$deploy_dir/js/chat.js" ] || fail "js/chat.js still present in deploy dir"
 [ ! -e "$deploy_dir/js/master.js" ] || fail "js/master.js still present in deploy dir"
+[ ! -e "$deploy_dir/js/notes.js" ] || fail "js/notes.js still present in deploy dir"
+[ ! -e "$deploy_dir/css/notes.css" ] || fail "css/notes.css still present in deploy dir"
+[ ! -e "$deploy_dir/scripts" ] || fail "scripts/ present in deploy dir"
+[ ! -e "$deploy_dir/server.py" ] || fail "server.py present in deploy dir"
 [ ! -e "$deploy_dir/HANDOFF.md" ] || fail "HANDOFF.md present in deploy dir"
 [ ! -e "$deploy_dir/data/chat-inbox.jsonl" ] || fail "data/chat-inbox.jsonl present in deploy dir"
 # recovery archive is git-tracked but must never be published: hundreds of MB and non-public provenance
@@ -129,17 +141,17 @@ fi
 if grep -rq 'api/chat' "$deploy_dir/js" "$deploy_dir/index.html"; then
     fail "api/chat reference found in deploy dir js/ or index.html"
 fi
-# index.html must never statically reference the LAN-only clients (boot.js injects them at runtime)
-if grep -q 'js/master\.js\|js/chat\.js' "$deploy_dir/index.html"; then
-    fail "LAN-only client (chat.js/master.js) statically referenced in deploy index.html"
+# index.html must never statically reference a stripped client (boot.js injects them at runtime)
+if grep -q 'js/master\.js\|js/chat\.js\|js/notes\.js\|css/notes\.css' "$deploy_dir/index.html"; then
+    fail "stripped client (chat/master/notes) statically referenced in deploy index.html"
 fi
 [ -f "$deploy_dir/sw.js" ] || fail "sw.js missing from deploy dir"
-if grep -q 'js/chat\.js\|js/master\.js' "$deploy_dir/sw.js"; then
-    fail "LAN-only client (chat.js/master.js) referenced in deploy sw.js"
+if grep -q 'js/chat\.js\|js/master\.js\|js/notes\.js\|css/notes\.css' "$deploy_dir/sw.js"; then
+    fail "stripped client (chat/master/notes) precached in deploy sw.js"
 fi
 archive_version=$(grep -oP "APP_VERSION = '\K[^']+" "$deploy_dir/js/core.js") || fail "cannot extract APP_VERSION from the deploy dir"
 [ "$archive_version" = "$version" ] || fail "deploy dir APP_VERSION is '${archive_version}', expected the gated HEAD value '${version}'"
-echo "strip-verify OK: ${version} archive, chat + master surfaces absent from ${deploy_dir}"
+echo "strip-verify OK: ${version} archive, chat + master + notes + ops-scripts absent from ${deploy_dir}"
 
 if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
     echo "OK: pre-flight only, stopping before push/deploy"
@@ -187,9 +199,11 @@ else
     done
     [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version} after ~2min (CDN propagation lag or deploy failure)"
 
-    chat_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/js/chat.js?_cb=$(date +%s)") \
-        || fail "curl status check for live js/chat.js failed"
-    [ "$chat_status" = "404" ] || fail "live js/chat.js returned HTTP ${chat_status}, expected 404"
+    for stripped in js/chat.js js/master.js js/notes.js css/notes.css server.py scripts/deploy.sh; do
+        stripped_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/${stripped}?_cb=$(date +%s)") \
+            || fail "curl status check for live ${stripped} failed"
+        [ "$stripped_status" = "404" ] || fail "live ${stripped} returned HTTP ${stripped_status}, expected 404"
+    done
 fi
 
 echo "OK: ${version} live"

@@ -1,5 +1,33 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.5 · 2026-07-25 (the crests the CalTopo export was quietly leaving out)
+
+-- Bug Fixes --
+- [Fix] The CalTopo export dropped most of the event's crests without saying
+      so. It placed each crest by looking its gauge up in the display snapshot,
+      but the crest record deliberately spans every area this board has covered,
+      so a peak outside the current area had no coordinates and was skipped. 33
+      of 47 crests were missing, 17 of the 18 major ones among them, while the
+      file still reported dropped 0. Coordinates now resolve against the
+      wide-area capture as well and all 47 export.
+- [Fix] A crest that still cannot be placed is counted instead of swallowed.
+      The number is published as crests_unresolved in the export properties and
+      printed in the generator's log line, so a partial file says it is partial.
+
+-- Changes --
+- [Change] Field Notes stops loading for visitors who never asked for it. The
+           feature has been off since July, but js/notes.js and css/notes.css
+           sat in the service-worker precache and downloaded for everyone, 24 KB
+           that returns immediately without ?notes or ?note. Both are out of the
+           precache and out of the public artifact; boot.js injects them on
+           demand, so the operator build keeps the feature unchanged.
+- [Change] The public mirror stops publishing ops-side code no browser can run.
+           scripts/, server.py and .gitignore were served as static files, 320 KB
+           carrying the ops host's absolute paths, its cron lines and the whole
+           /api/chat plumbing the mirror is supposed to have none of. deploy.sh
+           strips them, asserts their absence before upload, and confirms each
+           one returns 404 after the deploy.
+
 ## v0.98.4 · 2026-07-25 (two defects that only show up in a moving vehicle)
 
 -- Bug Fixes --

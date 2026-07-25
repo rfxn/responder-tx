@@ -193,6 +193,8 @@ try:
           all('Updated:' in f['properties'].get('description', '') for f in members))
     check('collection carries the 911 disclaimer', 'call 911' in doc['properties']['note'])
     check('untruncated run reports truncated false', doc['properties']['truncated'] is False and doc['properties']['dropped'] == 0)
+    check('crest with no resolvable coords is counted, not swallowed', doc['properties']['crests_unresolved'] == 1)
+    check('unresolved crest count appears in the log line', 'crests unresolved 1' in r.stdout, r.stdout[-200:])
 
     # truncation: cap 8 forces 2 drops; the no_flooding gauge (rank 3) goes before any in-flood feature
     r2 = run_gen(tmp, RESPONDER_CALTOPO_MAX_FEATURES='8')
@@ -218,6 +220,36 @@ try:
           and 'NWS alerts (active)' not in doc3['properties']['counts'])
 finally:
     shutil.rmtree(tmp)
+
+# the wide capture backfills crests whose gauge sits outside the display AO. Own fixture root so the
+# baseline drop-and-report checks above keep testing the capture-absent path.
+tmp2 = tempfile.mkdtemp()
+try:
+    write_fixtures(tmp2)
+    # MAJT2 is deliberately wrong here: the display snapshot must win where both carry a lid
+    capture = {'generated': iso(NOW), 'bbox': [-106, 25, -93, 36], 'gauges': [
+        {'lid': 'GONE2', 'name': 'No Coords Gauge', 'latitude': 29.5, 'longitude': -99.7, 'status': {}},
+        {'lid': 'MAJT2', 'name': 'Major River at Testville', 'latitude': 25.0, 'longitude': -99.0, 'status': {}},
+    ]}
+    with open(os.path.join(tmp2, 'data', 'gauges-capture.json'), 'w') as f:
+        json.dump(capture, f)
+    r4 = run_gen(tmp2)
+    doc4 = load(tmp2)
+    m4 = [f for f in doc4['features'] if (f.get('properties') or {}).get('class') != 'Folder']
+    crests4 = [f for f in m4 if f['properties']['folder'] == 'Crests (event peaks)']
+    check('capture backfill run exits 0', r4.returncode == 0, r4.stderr[-300:])
+    check('out-of-AO crest is recovered from the wide capture', len(crests4) == 2,
+          'got %d' % len(crests4))
+    check('fully resolved run reports crests_unresolved 0', doc4['properties']['crests_unresolved'] == 0)
+    gone = [f for f in crests4 if f['properties'].get('lid') == 'GONE2']
+    check('recovered crest carries the capture coordinates', bool(gone)
+          and abs(gone[0]['geometry']['coordinates'][0][0][0] - (-99.7)) < 0.05
+          and abs(gone[0]['geometry']['coordinates'][0][0][1] - 29.5) < 0.05)
+    check('capture never overrides a display-snapshot coordinate',
+          any(f['properties'].get('lid') == 'MAJT2'
+              and abs(f['geometry']['coordinates'][0][0][1] - 30.0) < 0.05 for f in crests4))
+finally:
+    shutil.rmtree(tmp2)
 
 print('---')
 if FAILS:

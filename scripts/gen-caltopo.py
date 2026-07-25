@@ -158,12 +158,17 @@ def build_gauges(snapshot):
     return out
 
 
-def build_crests(crest, snapshot):
-    coords = {g.get("lid"): (g.get("latitude"), g.get("longitude")) for g in snapshot.get("gauges", [])}
+def build_crests(crest, snapshot, capture):
+    # crest-summary keeps peaks from every AO this repo has published, so the display-scoped
+    # snapshot alone cannot place the out-of-AO ones; the wide capture backfills their coords
+    coords = {g.get("lid"): (g.get("latitude"), g.get("longitude")) for g in capture.get("gauges", [])}
+    coords.update({g.get("lid"): (g.get("latitude"), g.get("longitude")) for g in snapshot.get("gauges", [])})
     out = []
+    unresolved = 0
     for c in crest.get("gauges", []):
         lat, lon = coords.get(c.get("lid"), (None, None))
         if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+            unresolved += 1
             continue
         cat = c.get("peak_category") if c.get("peak_category") in CAT_COLOR else "none"
         rec = c.get("record") or {}
@@ -181,7 +186,7 @@ def build_crests(crest, snapshot):
             {"stroke": CAT_COLOR.get(cat, CAT_NONE), "stroke-width": 2, "stroke-opacity": 0.9,
              "fill": CAT_COLOR.get(cat, CAT_NONE), "fill-opacity": 0.08},
             extra={"lid": c.get("lid")}, rank=8))
-    return out
+    return out, unresolved
 
 
 def alert_severity(p):
@@ -324,6 +329,7 @@ FOLDERS = [
 
 def main():
     snapshot = load_json("data/gauges-snapshot.json", {"gauges": []})
+    capture = load_json("data/gauges-capture.json", {"gauges": []})
     crest = load_json("data/crest-summary.json", {"gauges": []})
     roads = load_json("data/roads-snapshot.json", {"roads": []})
     crossings = load_json("data/crossings.json", {"crossings": []})
@@ -338,7 +344,8 @@ def main():
     if lsr_gj is None:
         unavailable.append("iem-lsr")
 
-    ranked = (build_alerts(alerts_gj) + build_crests(crest, snapshot) + build_gauges(snapshot)
+    crest_feats, crests_unresolved = build_crests(crest, snapshot, capture)
+    ranked = (build_alerts(alerts_gj) + crest_feats + build_gauges(snapshot)
               + build_roads(roads) + build_crossings(crossings) + build_notices(reqs) + build_lsrs(lsr_gj))
 
     dropped = 0
@@ -367,6 +374,7 @@ def main():
             "counts": counts,
             "truncated": dropped > 0,
             "dropped": dropped,
+            "crests_unresolved": crests_unresolved,
             "sources_unavailable": unavailable,
         },
         "features": folder_feats + members,
@@ -381,7 +389,8 @@ def main():
         os.unlink(tmp)
         raise
     print(f"caltopo-export.json: {len(members)} features in {len(folder_feats)} folders "
-          f"(dropped {dropped}, unavailable: {','.join(unavailable) or 'none'}) @ {now}")
+          f"(dropped {dropped}, crests unresolved {crests_unresolved}, "
+          f"unavailable: {','.join(unavailable) or 'none'}) @ {now}")
 
 
 if __name__ == "__main__":

@@ -61,12 +61,14 @@ const ENTRY_POINTS = [
 
 test('index.html lists the expected first-party classic scripts in a sane order', () => {
   const files = indexScriptOrder();
-  assert.ok(files.length >= 12, `expected >=12 first-party scripts, got ${files.length}`);
+  assert.ok(files.length >= 11, `expected >=11 first-party scripts, got ${files.length}`);
   for (const f of files) assert.ok(fs.existsSync(path.join(ROOT, f)), `${f} referenced by index.html but missing on disk`);
   assert.ok(files.indexOf('js/core.js') < files.indexOf('js/map.js'), 'core.js must load before map.js');
   assert.ok(files.indexOf('js/map.js') < files.indexOf('js/playback.js'), 'playback.js loads after map.js');
   assert.ok(files.indexOf('js/sources.js') < files.indexOf('js/cameras.js'), 'cameras.js loads after sources.js');
   assert.ok(!files.includes('js/chat.js') && !files.includes('js/master.js'), 'LAN-only clients must never be static tags');
+  // notes.js is stripped from the public artifact, so a static tag would 404 on every mirror load
+  assert.ok(!files.includes('js/notes.js'), 'js/notes.js must be injected on ?notes/?note, not a static tag');
 });
 
 test('all scripts evaluate in index.html order with no load-time ReferenceError', () => {

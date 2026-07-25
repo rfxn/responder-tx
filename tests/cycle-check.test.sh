@@ -210,6 +210,67 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 11-14: the cursor guard sees regression but tolerates rotation ----
+# A cursor that moves backwards re-delivers or re-hides owner messages, the exact failure the ops
+# chat pipeline exists to prevent, and the old check could not see it: it read format and an upper
+# bound only. Rotation looks identical from a single sample, so the guard is checked against both.
+set_chat() {  # $1 inbox lines, $2 .chat-cursor, $3 .chat-ack-cursor
+    python3 -c 'import sys; open(sys.argv[1], "w").write("{\"m\":1}\n" * int(sys.argv[2]))' \
+        "$REPO/data/chat-inbox.jsonl" "$1"
+    printf '%s\n' "$2" > "$REPO/data/.chat-cursor"
+    printf '%s\n' "$3" > "$REPO/data/.chat-ack-cursor"
+}
+
+setup
+set_chat 10 10 10
+run_check; A=$?
+if [ "$A" -eq 0 ] && [ ! -f "$REPO/data/.chat-cursor-guard" ]; then
+    fail "11 first run records prior cursor state"
+elif [ "$A" -eq 0 ] && [ "$(cat "$REPO/data/.chat-cursor-guard")" = "10 10 10" ]; then
+    pass "11 a first run with no prior state records it and passes (fresh checkout is not a failure)"
+else
+    fail "11 first run records and passes (rc=${A}, guard='$(cat "$REPO/data/.chat-cursor-guard" 2>/dev/null)')"; cat "$WORK/out"
+fi
+
+# MUTATION: feed it a cursor that moved backwards with the inbox unchanged
+set_chat 10 3 10
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'FAIL: chat cursors' "$WORK/out" && grep -q '\.chat-cursor regressed 10 -> 3' "$WORK/out"; then
+    pass "12 MUTATION · a cursor that moved backwards fails, naming both values"
+else
+    fail "12 backwards cursor fails (rc=${A})"; cat "$WORK/out"
+fi
+# and the very next run passes: one ops-chat fault must not strand the board on every later cycle
+run_check; A=$?
+if [ "$A" -eq 0 ]; then
+    pass "13 the regression is reported once, not latched into every following data cycle"
+else
+    fail "13 regression self-heals after one report (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+setup
+set_chat 10 10 10
+run_check
+# rotation, exactly as server.py _rotate_inbox_if_due() leaves it: inbox archived, both cursors 0
+mv "$REPO/data/chat-inbox.jsonl" "$REPO/data/chat-inbox-archive-20260725T000000Z.jsonl"
+set_chat 0 0 0
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   chat cursors' "$WORK/out"; then
+    pass "14 an inbox rotation resets both cursors to 0 and is not read as regression"
+else
+    fail "14 rotation tolerated (rc=${A})"; cat "$WORK/out"
+fi
+# a cursor beyond the rotated inbox is still caught: the reset must move both, never one
+printf '%s\n' '7' > "$REPO/data/.chat-cursor"
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'exceeds data/chat-inbox.jsonl line count 0' "$WORK/out"; then
+    pass "15 a half-applied rotation (one cursor left behind) still fails"
+else
+    fail "15 half-applied rotation fails (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CYCLE-CHECK IMMUNITY TESTS PASSED"

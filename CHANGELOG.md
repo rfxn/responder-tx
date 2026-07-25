@@ -1,5 +1,28 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.8 · 2026-07-25 (two guards that were not guarding)
+
+-- Bug Fixes --
+- [Fix] The bilingual renderer guard was a hand-kept list of six files.
+      js/playback.js and js/cameras.js fell out of coverage the moment the
+      v0.97.77 module split created them, and js/team.js had never been in it,
+      so an English string could reappear in any of the three and no test would
+      say so. The guarded set is now derived from the scripts index.html
+      actually loads, following the ones loaded at runtime as well, so an
+      extraction cannot drop a renderer out of coverage again. Thirteen files
+      are covered where six were.
+- [Fix] The release cycle's chat-cursor check read format and an upper bound
+      but never direction, so a cursor moving backwards, which is how an owner
+      message gets re-delivered or hidden a second time, passed it cleanly. The
+      check now compares against the previous cycle and fails on a regression,
+      while still reading an inbox rotation and a fresh checkout as the
+      legitimate resets they are.
+
+-- Changes --
+- [Change] A cursor regression is reported once and the new position recorded,
+           so an ops-chat fault costs a single data cycle rather than stranding
+           the public board on stale flood data on every cycle after it.
+
 ## v0.98.7 · 2026-07-25 (the road closures playback stopped recording)
 
 -- Bug Fixes --

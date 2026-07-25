@@ -56,13 +56,54 @@ test('index.html: no em-dash in user-visible markup (comments excluded)', () => 
  * two shape checks (CAT_LABEL const removed; CROSSING_STATUS/ROAD_COND maps hold i18n keys, not
  * label: strings). It is a precise denylist, NOT a general English detector: brand-new
  * untranslated strings outside this list are not caught. */
-const RENDER_FILES = ['core.js', 'map.js', 'sources.js', 'panels.js', 'board.js', 'boot.js'];
-
 function strippedSource(file) {
   return fs.readFileSync(path.join(__dirname, '..', 'js', file), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, ''); // full-line comments only; inline comments after code are kept
 }
+
+/* The guarded set is DERIVED from what index.html loads, never listed: the v0.97.77 module split
+ * created js/playback.js and js/cameras.js and both fell straight out of a hand-kept list, as
+ * js/team.js had before them. "What index.html loads" is its own <script src="js/*.js"> tags plus,
+ * transitively, the js/*.js those scripts inject at runtime (loadScript brings in notes.js on
+ * ?notes and chat.js/master.js behind the LAN capability beacon; all three render UI a person
+ * reads). js/vendor/* falls out of the tag pattern itself, since its paths carry a second slash,
+ * and js/i18n.js is skipped because it IS the dictionary the guard compares against. */
+const SCRIPT_TAG_RE = /<script\s+src="js\/([^"/?]+\.js)/g;
+const INJECT_RE = /loadScript\(\s*[`'"]js\/([^`'"?]+\.js)/g;
+
+function derivedRenderFiles(html, readSource) {
+  const queue = [...html.replace(/<!--[\s\S]*?-->/g, '').matchAll(SCRIPT_TAG_RE)].map((m) => m[1]);
+  const seen = new Set();
+  const out = [];
+  while (queue.length) {
+    const f = queue.shift();
+    if (seen.has(f)) continue;
+    seen.add(f);
+    if (f !== 'i18n.js') out.push(f);
+    for (const m of readSource(f).matchAll(INJECT_RE)) queue.push(m[1]);
+  }
+  return out;
+}
+
+const RENDER_FILES = derivedRenderFiles(
+  fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'), strippedSource);
+
+test('renderer guard: the guarded set is derived from what index.html loads, not a fixed list', () => {
+  const tags = [...indexHtml().matchAll(SCRIPT_TAG_RE)].map((m) => m[1]).filter((f) => f !== 'i18n.js');
+  assert.deepEqual(tags.filter((f) => !RENDER_FILES.includes(f)), [], 'index.html loads a script the guard does not cover');
+  for (const f of ['playback.js', 'cameras.js', 'team.js', 'notes.js', 'chat.js', 'master.js']) {
+    assert.ok(RENDER_FILES.includes(f), `${f} renders UI but is not in the guarded set`);
+  }
+  assert.ok(!RENDER_FILES.includes('i18n.js'), 'the dictionary must not be guarded against itself');
+  assert.deepEqual(RENDER_FILES.filter((f) => /leaflet|markercluster|hls|qrcode/.test(f)), [],
+    'vendor source is third party and is not ours to translate');
+  // derivation proof: a script tag and a runtime inject that exist nowhere in this file are picked up
+  assert.deepEqual(
+    derivedRenderFiles('<script src="js/core.js?v=1"></script><script src="js/brand-new-surface.js?v=1"></script>',
+      (f) => (f === 'core.js' ? "loadScript(`js/injected-surface.js?v=${stamp}`);" : '')),
+    ['core.js', 'brand-new-surface.js', 'injected-surface.js']);
+});
 
 test('renderer guard: formerly-hardcoded English literals stay routed through t()', () => {
   const denylist = [

@@ -139,7 +139,7 @@ if check_snapshot; then pass "snapshot (>=25 gauges, ISO-8601 generated stamp)";
 check_staged() {
     local staged banned rc=0
     staged=$(git diff --cached --name-only) || { echo "git diff --cached failed" >&2; return 1; }
-    for banned in HANDOFF.md data/chat-inbox.jsonl data/.chat-cursor data/chat-outbox.json data/notes-inbox.jsonl data/notices-inbox.jsonl; do
+    for banned in HANDOFF.md data/chat-inbox.jsonl data/.chat-cursor data/.chat-cursor-guard data/chat-outbox.json data/notes-inbox.jsonl data/notices-inbox.jsonl; do
         if printf '%s\n' "$staged" | grep -qxF "$banned"; then
             echo "working file staged: ${banned}" >&2
             rc=1
@@ -199,9 +199,19 @@ EOF
 }
 if check_event_brand; then pass "event-config brand hook (event.json name/subtitle targets exist in index.html)"; else failck "event-config brand hook"; fi
 
-# i. chat-cursor sanity — cursors are non-negative ints and never exceed the inbox line count
+# i. chat-cursor sanity. Format and the inbox upper bound are the cheap half; the half that matters
+# is that a cursor never moves BACKWARDS, which is how an owner message gets re-delivered or hidden
+# a second time. Prior values live in a gitignored guard file, so a fresh checkout records and
+# passes. Rotation is not regression: server.py _rotate_inbox_if_due() archives a fully drained
+# inbox and resets both cursors to 0, which shows up here as a line count that dropped.
+# No ordering between the two cursors is asserted because none holds: chat-poll.sh returns before
+# its ack step when the inbox is already drained, so .chat-ack-cursor legitimately sits behind
+# .chat-cursor indefinitely whenever a session drains inside the */3 ack window, while in the
+# ordinary case the ack runs ahead of it.
+CURSOR_GUARD="${RESPONDER_CURSOR_GUARD:-data/.chat-cursor-guard}"
 check_cursors() {
-    local lines=0 f val
+    local lines=0 f val rc=0 cur=0 ack=0
+    local p_cur='' p_ack='' p_lines=''
     local int_re='^[0-9]+$'
     if [ -f data/chat-inbox.jsonl ]; then
         lines=$(wc -l < data/chat-inbox.jsonl)
@@ -218,10 +228,28 @@ check_cursors() {
             echo "${f}: ${val} exceeds data/chat-inbox.jsonl line count ${lines}" >&2
             return 1
         fi
+        if [ "$f" = data/.chat-cursor ]; then cur="$val"; else ack="$val"; fi
     done
-    return 0
+    if [ -f "$CURSOR_GUARD" ]; then
+        read -r p_cur p_ack p_lines _ < "$CURSOR_GUARD" || true  # short or unterminated line falls through to the format gate below
+        if [[ "$p_cur" =~ $int_re ]] && [[ "$p_ack" =~ $int_re ]] && [[ "$p_lines" =~ $int_re ]] \
+           && [ "$lines" -ge "$p_lines" ]; then  # a shorter inbox is a rotation, the one legitimate reset
+            if [ "$cur" -lt "$p_cur" ]; then
+                echo "data/.chat-cursor regressed ${p_cur} -> ${cur} with no inbox rotation (inbox ${p_lines} -> ${lines})" >&2
+                rc=1
+            fi
+            if [ "$ack" -lt "$p_ack" ]; then
+                echo "data/.chat-ack-cursor regressed ${p_ack} -> ${ack} with no inbox rotation (inbox ${p_lines} -> ${lines})" >&2
+                rc=1
+            fi
+        fi
+    fi
+    # record even when failing: the regression is reported once, and an ops-chat fault does not go
+    # on to strand the public flood board on stale data every cycle after it
+    printf '%s %s %s\n' "$cur" "$ack" "$lines" > "${CURSOR_GUARD}.tmp" && mv "${CURSOR_GUARD}.tmp" "$CURSOR_GUARD"
+    return "$rc"
 }
-if check_cursors; then pass "chat cursors (integer, <= inbox line count, rotation-aware)"; else failck "chat cursors"; fi
+if check_cursors; then pass "chat cursors (integer, <= inbox lines, no regression, rotation-aware)"; else failck "chat cursors"; fi
 
 # j. data-contract schemas — required keys derived from the generator output + js consumer reads,
 # so generator/consumer drift fails the cycle instead of degrading silently

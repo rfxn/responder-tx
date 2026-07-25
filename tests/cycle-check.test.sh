@@ -44,11 +44,21 @@ async function loadEventConfig() {
   if (el) el.textContent = 'fixture';
 }
 JS
+    # the lens-911 gate (check k, v0.97.94) needs #disclaimer plus a .drive-911 footer inside every
+    # lens root, so the fixture carries them; without this the gate fails on the fixture, not the code
     printf '%s\n' \
         '<!doctype html><html><head>' \
         '<script src="js/core.js?v=1.0.0"></script>' \
         '<script src="js/boot.js?v=1.0.0"></script>' \
-        '</head><body><div class="brand">fixture board</div></body></html>' > "$REPO/index.html"
+        '</head><body><div class="brand">fixture board</div>' \
+        '<main>' \
+        '<div id="drive-mode"><span class="drive-911">call 911</span></div>' \
+        '<div id="summary-view"><span class="drive-911">call 911</span></div>' \
+        '<div id="recovery-view"><span class="drive-911">call 911</span></div>' \
+        '<div id="basin-view"><span class="drive-911">call 911</span></div>' \
+        '</main>' \
+        '<div id="disclaimer">call 911</div>' \
+        '</body></html>' > "$REPO/index.html"
     printf "%s\n" "const SW_VERSION = '1.0.0';" > "$REPO/sw.js"
     printf '%s\n' '## v1.0.0 (2026-07-24)' '' '- [New] fixture' > "$REPO/CHANGELOG.md"
     printf '%s\n' '{"versions":[{"v":"v1.0.0","date":"2026-07-24","line":"fixture"}]}' > "$REPO/data/changelog.json"

@@ -47,6 +47,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: bash tests/cycle-check.test.sh
 
+      - name: Run-cycle partial-publish tests
+        if: ${{ !cancelled() }}
+        run: bash tests/run-cycle.test.sh
+
       - name: Freshness-monitor tests
         if: ${{ !cancelled() }}
         run: bash tests/freshness-monitor.test.sh

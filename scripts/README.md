@@ -12,7 +12,7 @@ suspended or mid-task).
 
 | Script | Purpose |
 | --- | --- |
-| `fetch-snapshot.py` | Fetch the NWPS bbox gauge set → `data/gauges-snapshot.json` (compact `{generated, gauges:[{lid,name,latitude,longitude,status}]}`). Aborts non-zero on HTTP error or a `<200`-gauge response so a bad fetch never overwrites a good snapshot; writes atomically (temp file + rename). |
+| `fetch-snapshot.py` | Fetch the NWPS bbox gauge set → `data/gauges-snapshot.json` (compact `{generated, bbox, gauges:[{lid,name,latitude,longitude,status}]}`). Aborts non-zero on HTTP error or a partial response so a bad fetch never overwrites a good snapshot: a same-bbox refresh must return at least half the previous count, a bbox re-target only has to clear the absolute floor of 25. Writes atomically (temp file + rename). |
 | `gen-roads-snapshot.py` | Archive the DriveTexas road-closure set → `data/roads-snapshot.json` (best-effort; keeps prior file on fetch failure). |
 | `gen-history.py` | Walk the committed `gauges-snapshot.json` history + USGS/NWPS backfill → `data/history.json` (playback timeline). |
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. |
@@ -34,18 +34,67 @@ Order (matches the manual per-cycle protocol):
 
 1. `fetch-snapshot.py` → fresh `data/gauges-snapshot.json`
 2. `gen-roads-snapshot.py` → `data/roads-snapshot.json`
-3. `gen-history.py` → `data/history.json` (reads *committed* snapshot history; the newest frame lands next cycle — existing behavior)
-4. `gen-crest-summary.py` → `data/crest-summary.json`
-5. `gen-feeds.py` → `feed.xml` + `crests.ics`
-6. `cycle-check.sh` → validate
-7. If any of the six data files differ from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`, message `Data refresh <UTC> (auto-cron): snapshot N gauges + roads/history/crest/feeds regen`), `git push origin main`, then `deploy.sh`.
+3. `gen-history.py` → `data/history.json` + `data/gauge-meta.json` (reads *committed* snapshot history, so the newest frame lands next cycle and this cycle's fetch does not gate it)
+4. `gen-notices.py` → `data/requests.json` (LAN intake merge; never committed by the cycle)
+5. `gen-shelters.py` → `data/shelters-live.json`
+6. `gen-crest-summary.py` → `data/crest-summary.json` (derived from the gauge snapshot)
+7. `gen-feeds.py` → `feed.xml` + `crests.ics`
+8. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
+9. `cycle-check.sh --code-from-head` → validate
+10. If any of the nine data files differ from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), `git push origin main`, then `deploy.sh`, then a best-effort push nudge.
 
 Properties:
 
-- **`--dry-run`** runs steps 1-6 and stops before any git/deploy — used to verify the pipeline composes.
+- **`--dry-run`** runs the generators and validation and stops before any git/deploy — used to verify the pipeline composes.
 - **Idempotent / no empty commits** — if no data file changed vs `HEAD`, it skips commit/push/deploy.
-- **Fail-safe** — a failed fetch (or any generator/validation failure) aborts the cycle before commit, leaving the last-good published state intact. If `deploy.sh` fails *after* commit+push, the data is already durable in git/GitHub and the next cycle redeploys.
+- **Partial publish** — see below. One failing source no longer blocks the whole publish.
+- **Validation stays fatal** — a `cycle-check.sh` failure aborts before commit, leaving the last-good published state intact. If `deploy.sh` fails *after* commit+push, the data is already durable in git/GitHub and the next cycle redeploys.
 - `set -euo pipefail`; every `cd` is guarded.
+
+### Partial publish (one failing source does not block the rest)
+
+On 2026-07-24T23:53Z NWPS answered `429 Too Many Requests`, `fetch-snapshot.py`
+exited 1, and the cycle aborted: roads, history, crest, feeds, shelters and the
+CalTopo export never regenerated and **nothing published at all**, including the
+sources that were perfectly healthy. A flood board most needs to publish what it
+has in exactly that situation, so generators are non-fatal now and the cycle
+ships whatever refreshed.
+
+It stays honest about what did not:
+
+- **A failed generator's output file is never touched**, so it keeps its own
+  older `generated` stamp and the board's freshness, aging and stale-suppression
+  machinery marks that source stale on its own. Nothing is republished as fresh.
+- **A generator DERIVED from a source that did not refresh is skipped, not run.**
+  `gen-crest-summary.py` and `gen-caltopo.py` read `data/gauges-snapshot.json`;
+  running them over an unchanged stale snapshot would rewrite the same numbers
+  under a brand-new `generated` stamp, which is precisely publishing stale data
+  as fresh. `gen-feeds.py` deliberately still runs: it also carries live NWS
+  flash-flood alerts, and its `lastBuildDate` is a document build stamp rather
+  than a data-currency claim, so withholding it over a gauge-API outage would
+  hide fresh warnings.
+- **Nothing refreshed is still a hard failure** (`exit 1`, no commit, no deploy).
+- **A degraded cycle cannot sign off as a clean one.** It logs
+  `=== cycle complete (DEGRADED) === refreshed: ... | failed: ... | skipped: ...`
+  and exits `3`, and its commit subject reads `(auto-cron, partial)` naming the
+  stale sources instead of claiming a full regen.
+- The **partial-response guard in `fetch-snapshot.py` is unchanged**: a same-bbox
+  refresh must still return at least half the previous gauge count, and a bbox
+  re-target still only has to clear the absolute floor.
+
+Exit codes:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | clean cycle (published, nothing to publish, dry-run, or another cycle holds the lock) |
+| `1` | fatal: no source refreshed, or validation/commit/push failed |
+| `2` | unknown argument |
+| `3` | **published, but degraded**: some sources did not refresh |
+| other | `deploy.sh`'s own exit code, propagated after a successful commit+push |
+
+`freshness-monitor.sh` reads the degraded verdict out of the cycle log and, when
+the mirror is stale because a source is not answering, says so instead of
+blaming a dead cron. Coverage lives in `tests/run-cycle.test.sh`.
 
 ### Lock (flock)
 
@@ -321,6 +370,7 @@ the three local ages, then act on the cause line it prints:
 | Alert says | Do this |
 | --- | --- |
 | the data cycle is not producing fresh local output | `tail -50 /var/log/responder-cycle.log`, confirm the cron is still installed (`crontab -l`), clear a stale `/tmp/responder-cycle.lock` if a run died holding it, then `scripts/run-cycle.sh` by hand. |
+| the cycle is running and publishing what it can, but a source is not refreshing | The pipeline is healthy; one upstream is not. `grep 'WARN:\|SKIP:' /var/log/responder-cycle.log \| tail -20` names it. For an NWPS `429` this usually clears itself, so confirm nothing local is hammering the API (see "Browser verification" in `tests/README.md`) and let the next cycle retry. |
 | the commit and push path is not landing | Run `git status` and `git log --oneline -3` in the repo. Usually a push rejection (remote moved) or a dirty tree blocking the cycle: `git pull --rebase origin main`, then `scripts/run-cycle.sh`. |
 | the publish path (deploy or Cloudflare) is serving stale data | Run `scripts/deploy.sh` by hand and read the pre-flight output. Most often the Cloudflare token is unreadable (see "Deploy token / ansible-vault") or wrangler failed. The data is already safe in git; the deploy is the only missing step. |
 | UNREACHABLE | Check the site from another network before touching the pipeline. If respondertx.org is genuinely down, this is a Cloudflare or DNS problem, not a data problem, and the local pipeline needs no action. |

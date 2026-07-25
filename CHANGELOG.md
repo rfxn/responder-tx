@@ -1,5 +1,60 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.96 · 2026-07-24 (one failing upstream no longer blocks the whole publish)
+
+-- Bug Fixes --
+- [Fix] scripts/run-cycle.sh aborted the entire cycle when a single generator
+      failed. On 2026-07-24T23:53Z NWPS answered 429, fetch-snapshot.py exited 1,
+      and roads, history, crest, feeds, shelters and the CalTopo export never
+      regenerated, so nothing published at all including the sources that were
+      perfectly healthy. Generators are non-fatal now and the cycle publishes
+      whatever refreshed; same shape as the F3 deploy fix in v0.97.85.
+- [Fix] The cycle's ERR trap logged "near line 0" for every real failure:
+      ${BASH_LINENO[0]} is the caller frame, which is empty at top level. It
+      reports $LINENO now.
+- [Fix] tests/cycle-check.test.sh scratch fixture gains #disclaimer and the
+      per-lens .drive-911 footers that check k has required since v0.97.94,
+      so four tests stop failing on the fixture rather than on the code.
+
+-- Changes --
+- [Change] A partial cycle degrades honestly rather than silently. A failed
+           generator's output file is never touched, so it keeps its own older
+           generated stamp and the board's freshness, aging and stale
+           suppression machinery marks that source stale on its own. A
+           generator derived from a source that did not refresh is skipped
+           rather than run: gen-crest-summary.py and gen-caltopo.py would
+           otherwise rewrite unchanged stale numbers under a brand-new stamp.
+           gen-feeds.py still runs because it also carries live NWS flash-flood
+           alerts and its lastBuildDate is a document build stamp.
+- [Change] The cycle's exit status tells the truth: 0 clean, 1 nothing
+           refreshed or a fatal step, 2 bad argument, 3 published but degraded.
+           A degraded cycle logs "=== cycle complete (DEGRADED) ===" naming the
+           failed and skipped sources, and commits under an "(auto-cron,
+           partial)" subject instead of claiming a full regen. Validation stays
+           fatal and the fetch-snapshot partial-response guard is untouched.
+- [Change] scripts/freshness-monitor.sh reads the degraded verdict out of the
+           cycle log. A stale mirror caused by an upstream that is not
+           answering no longer gets blamed on a dead cron, which sent operators
+           to the wrong place; the runbook gains the matching row.
+- [Change] scripts/README.md documents the real nine-step cycle, the exit-code
+           table and the partial-publish rules. It had drifted to six steps and
+           "six data files", and misstated the snapshot guard as a 200-gauge
+           floor.
+
+-- Tests --
+- [New] tests/run-cycle.test.sh: nine tests over a scratch repo with stub
+      generators, covering the 2026-07-24T23:53Z incident shape directly. One
+      failing generator still publishes the rest; the failed source keeps its
+      older stamp; derived generators are skipped not restamped; degraded is
+      distinguishable from clean in exit status and log verdict; everything
+      failing is still a hard failure that publishes nothing; validation stays
+      fatal; and the freshness monitor reads the degraded verdict. Wired into
+      CI alongside the other shell suites.
+- [New] tests/README.md documents that viewport-matrix browser verification must
+      point at a local server. The client fetches NWPS, USGS and NWS directly,
+      so a matrix run against the public mirror is another full round of
+      upstream requests and can rate-limit the live board.
+
 ## v0.97.95 · 2026-07-24 (the freshness slot has one writer again, and tells the truth in Spanish)
 
 -- Bug Fixes --

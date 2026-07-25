@@ -19,6 +19,7 @@ touches neither the network nor the real repo data):
 bash tests/chat-poll.test.sh          # ops-chat durability
 bash tests/deploy.test.sh             # release gate: deploy.sh reads and ships HEAD
 bash tests/cycle-check.test.sh        # data cycle: cycle-check is immune to a mid-bump tree
+bash tests/run-cycle.test.sh          # data cycle: one failing source still publishes the rest
 bash tests/freshness-monitor.test.sh  # public-mirror freshness monitor
 python3 tests/server-gate.test.py     # LAN server write gate
 python3 tests/gen-notices.test.py     # LAN intake merge semantics
@@ -28,6 +29,24 @@ python3 tests/gen-caltopo.test.py     # CalTopo GeoJSON export
 
 CI runs the same commands (`.github/workflows/ci.yml`) plus `node --check` on
 every `js/*.js` and the release-cycle sanity bundle (`scripts/cycle-check.sh`).
+
+## Browser verification: point it at a local server, never the public mirror
+
+Release verification that drives a headless browser across a viewport matrix must
+load a **local** server, not respondertx.org:
+
+```bash
+python3 -m http.server 8791 --bind 127.0.0.1   # or: python3 server.py
+# then drive http://127.0.0.1:8791/ with the headless browser
+```
+
+The board fetches NWPS, USGS, NWS and the tile providers **directly from the
+client**, so every viewport in a matrix run is another full round of upstream
+requests against the same APIs the data cycle depends on. Repeated matrix runs
+against production are a plausible contributor to the NWPS `429` that took down
+the 2026-07-24T23:53Z cycle. Verification must never be able to rate-limit the
+live board. Verifying the deployed artifact is still fine over plain `curl` for
+version stamps and markup, which costs the upstream APIs nothing.
 
 ## How it works
 

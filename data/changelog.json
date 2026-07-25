@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.96",
+      "date": "2026-07-24",
+      "line": "The board now publishes what it has, even when one source is down. Last night one of the government gauge services briefly refused requests, and because of that single failure the whole update run stopped: the road closures, the history, the crest tracker, the feeds, the shelter list and the mapping export were all left unpublished even though every one of them had worked. That is exactly the moment a flood board is most needed. Each source now stands on its own, and anything that did not refresh keeps its real, older timestamp so the board still shows you plainly which information is out of date. Nothing is ever republished as though it were current: a summary built from stale gauge readings is held back rather than given a fresh time on it. If nothing at all refreshes, the run still fails outright, and a run that only partly succeeded is now recorded as such instead of being reported as a clean one."
+    },
+    {
       "v": "v0.97.95",
       "date": "2026-07-24",
       "line": "A message about one thing no longer wipes out a warning about something else. When the board could not reach some of its data sources it said so in the top right corner, but tapping the compass and denying it permission replaced that warning with \"compass unavailable\", kept the same amber warning styling, and quietly dropped the only notice that some feeds were not answering. Small notices like a denied compass, a failed locate, or an optional map layer that did not load now appear briefly above the map and clear themselves, and the top-right corner is reserved for one thing only: how current the data is. The list of feeds that did not answer is also translated now, so a Spanish reader no longer gets that list in English."

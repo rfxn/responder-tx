@@ -1,8 +1,14 @@
 #!/bin/bash
 # run-cycle.sh [--dry-run] — durable 15-min data-refresh cycle.
-# Fetch NWPS snapshot, regenerate roads/history/crest/feeds, validate, then
-# (unless --dry-run) commit the data files by name, push, and deploy via
-# deploy.sh. flock-serialized, idempotent, safe when nothing changed.
+# Fetch NWPS snapshot, regenerate roads/history/crest/notices/feeds/shelters/
+# caltopo, validate, then (unless --dry-run) commit the data files by name,
+# push, and deploy via deploy.sh. flock-serialized, idempotent, safe when
+# nothing changed.
+#
+# One failing source does not stop the publish: generators are non-fatal and
+# the cycle ships whatever refreshed. See scripts/README.md "Partial publish".
+# Exit: 0 clean or lock-skip, 1 nothing refreshed / fatal, 2 bad argument,
+#       3 published but degraded, or deploy.sh's own code if deploy failed.
 set -euo pipefail
 
 DRY_RUN=0
@@ -30,7 +36,37 @@ fi
 exec > >(tee -a "$LOGFILE") 2>&1
 
 log() { printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
-trap 'log "ERROR: cycle failed (exit $?) near line ${BASH_LINENO[0]}"' ERR
+# $LINENO, not ${BASH_LINENO[0]}: for a top-level command the latter is the caller frame, which is
+# empty at top level, so every real failure logged the useless "near line 0"
+trap 'log "ERROR: cycle failed (exit $?) near line ${LINENO}"' ERR
+
+# --- per-source bookkeeping: one failing upstream must not block publishing the rest ---
+STEPS_OK=()
+STEPS_FAILED=()
+STEPS_SKIPPED=()
+
+# gen LABEL SCRIPT KEEP — run one generator, record the outcome, return its real status.
+# A failed generator leaves its previous output untouched, so that file keeps its own older
+# "generated" stamp and the board's freshness/aging/suppression machinery marks it stale by itself.
+gen() {
+    local label=$1 script=$2 keep=$3
+    log "step: ${script}"
+    if python3 "scripts/${script}"; then
+        STEPS_OK+=("$label")
+        return 0
+    fi
+    STEPS_FAILED+=("$label")
+    log "WARN: ${script} failed (non-fatal); keeping previous ${keep} and its older stamp"
+    return 1
+}
+
+# skip LABEL SCRIPT REASON — a generator DERIVED from a source that did not refresh must not run:
+# it would rewrite unchanged, stale numbers under a brand-new "generated" stamp, which is exactly
+# publishing stale data as fresh. Leaving the previous file alone keeps its stamp truthful.
+skip() {
+    STEPS_SKIPPED+=("$1")
+    log "SKIP: $2 not run ($3); keeping previous output and its older stamp"
+}
 
 # --- lock: one cycle at a time (session refresh + system cron share this file) ---
 LOCKFILE="${RESPONDER_CYCLE_LOCK:-/tmp/responder-cycle.lock}"
@@ -42,42 +78,61 @@ fi
 
 log "=== cycle start (dry_run=${DRY_RUN}) repo=${REPO_ROOT} ==="
 
-log "step: fetch-snapshot.py"
-python3 scripts/fetch-snapshot.py
+if gen snapshot fetch-snapshot.py data/gauges-snapshot.json; then SNAPSHOT_FRESH=1; else SNAPSHOT_FRESH=0; fi
 
-log "step: gen-roads-snapshot.py"
-python3 scripts/gen-roads-snapshot.py
+gen roads gen-roads-snapshot.py data/roads-snapshot.json || :  # independent source; outcome already recorded in gen()
+gen history gen-history.py data/history.json || :  # reads COMMITTED snapshot history, so this cycle's fetch does not gate it
+gen notices gen-notices.py data/requests.json || :  # LAN intake merge, never committed by the cycle
+gen shelters gen-shelters.py data/shelters-live.json || :  # independent optional feed
 
-log "step: gen-history.py"
-python3 scripts/gen-history.py
-
-log "step: gen-crest-summary.py"
-python3 scripts/gen-crest-summary.py
-
-log "step: gen-notices.py (LAN intake merge)"
-if ! python3 scripts/gen-notices.py; then
-    log "WARN: gen-notices.py failed (non-fatal); keeping previous requests.json"
+# crest-summary is purely derived from the gauge snapshot; feeds is not (it also carries live NWS
+# flash-flood alerts, and its lastBuildDate is a document build stamp, not a data-currency claim),
+# so withholding it over a gauge-API outage would hide fresh warnings from a flood board.
+if [ "$SNAPSHOT_FRESH" -eq 1 ]; then
+    gen crest gen-crest-summary.py data/crest-summary.json || :  # outcome recorded in gen()
+else
+    skip crest gen-crest-summary.py "the gauge snapshot did not refresh"
 fi
 
-log "step: gen-feeds.py"
-python3 scripts/gen-feeds.py
+gen feeds gen-feeds.py "feed.xml + crests.ics" || :  # outcome recorded in gen()
 
-log "step: gen-shelters.py (optional feed)"
-if ! python3 scripts/gen-shelters.py; then
-    log "WARN: gen-shelters.py failed (non-fatal); keeping previous shelters-live.json"
+# the CalTopo export is a snapshot of published gauge/crest state; restamping it over stale gauges
+# would hand a field team a fresh-looking export of old numbers
+if [ "$SNAPSHOT_FRESH" -eq 1 ]; then
+    gen caltopo gen-caltopo.py data/caltopo-export.json || :  # outcome recorded in gen()
+else
+    skip caltopo gen-caltopo.py "the gauge snapshot did not refresh"
 fi
 
-log "step: gen-caltopo.py (optional export)"
-if ! python3 scripts/gen-caltopo.py; then
-    log "WARN: gen-caltopo.py failed (non-fatal); keeping previous caltopo-export.json"
+# a cycle where NOTHING refreshed is a hard failure: there is nothing to publish and the fault is
+# upstream-wide, not a single flaky source
+if [ "${#STEPS_OK[@]}" -eq 0 ]; then
+    log "ERROR: cycle failed (no source refreshed; failed: ${STEPS_FAILED[*]:-none}, skipped: ${STEPS_SKIPPED[*]:-none})"
+    exit 1
 fi
 
+DEGRADED=0
+if [ "${#STEPS_FAILED[@]}" -gt 0 ] || [ "${#STEPS_SKIPPED[@]}" -gt 0 ]; then
+    DEGRADED=1
+fi
+
+# cycle_end MSG — the ONE exit point for every publishing path, so a partially-degraded cycle can
+# never sign off as a clean success. Exit 3 = published what refreshed, some sources did not.
+cycle_end() {
+    if [ "$DEGRADED" -eq 1 ]; then
+        log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}"
+        exit 3
+    fi
+    log "=== $1 ==="
+    exit 0
+}
+
+# validation stays fatal: it gates whether the data on disk is publishable at all
 log "step: cycle-check.sh (validation)"
 bash scripts/cycle-check.sh --code-from-head
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    log "DRY-RUN OK: fetch + generators + validation composed; stopping before git/deploy"
-    exit 0
+    cycle_end "DRY-RUN OK: fetch + generators + validation composed; stopping before git/deploy"
 fi
 
 DATA_FILES=(
@@ -93,16 +148,20 @@ DATA_FILES=(
 )
 
 if git diff --quiet HEAD -- "${DATA_FILES[@]}"; then
-    log "no data changes vs HEAD — nothing to commit; skipping push/deploy"
-    exit 0
+    cycle_end "no data changes vs HEAD; nothing to commit, skipping push/deploy"
 fi
 
 git add "${DATA_FILES[@]}"
 
 GAUGE_COUNT=$(python3 -c "import json;print(len(json.load(open('data/gauges-snapshot.json'))['gauges']))")
 STAMP=$(date -u '+%Y-%m-%dT%H:%MZ')
-git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' \
-    commit -m "Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + roads/history/crest/feeds/shelters/caltopo regen"
+# the commit subject names what actually refreshed, so git history does not imply a full regen
+# on a cycle that only published some of its sources
+COMMIT_MSG="Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + roads/history/crest/feeds/shelters/caltopo regen"
+if [ "$DEGRADED" -eq 1 ]; then
+    COMMIT_MSG="Data refresh ${STAMP} (auto-cron, partial): refreshed ${STEPS_OK[*]}; stale: ${STEPS_FAILED[*]:-none} ${STEPS_SKIPPED[*]:-}"
+fi
+git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' commit -m "$COMMIT_MSG"
 log "committed: $(git log --oneline -1)"
 
 log "step: git push origin main"
@@ -135,4 +194,4 @@ if [ -s "$NUDGE_KEY_FILE" ]; then
     fi
 fi
 
-log "=== cycle complete ==="
+cycle_end "cycle complete"

@@ -112,6 +112,19 @@ deploy_age_min() {
     iso_age_min "${line%% *}"
 }
 
+# cycle_degraded_sources — the stale-source list from the cycle log's last verdict, empty when the
+# last verdict was clean. run-cycle.sh publishes what refreshed and signs a partial cycle off as
+# "=== cycle complete (DEGRADED) === refreshed: ... | failed: ... | skipped: ...".
+cycle_degraded_sources() {
+    local line
+    [ -f "$CYCLE_LOG" ] || return 0
+    line=$(grep -F '=== cycle complete' "$CYCLE_LOG" | command tail -1) || return 0  # no verdict yet
+    case "$line" in
+        *'(DEGRADED)'*) printf '%s' "${line#*=== refreshed: }" ;;
+        *) : ;;  # last cycle signed off clean, so a stale mirror is not a partial-publish story
+    esac
+}
+
 # fmt_min MINUTES — "N min" or "unknown" for an empty reading.
 fmt_min() {
     if [ -n "$1" ]; then printf '%s min' "$1"; else printf 'unknown'; fi
@@ -206,7 +219,11 @@ fi
 LOCAL_AGE=$(snapshot_age_min "$SNAPSHOT")
 COMMIT_AGE=$(commit_age_min "$SNAPSHOT")
 DEPLOY_AGE=$(deploy_age_min)
+DEGRADED_SRC=$(cycle_degraded_sources)
 PIPELINE="last cycle output $(fmt_min "$LOCAL_AGE"), last data commit $(fmt_min "$COMMIT_AGE"), last successful deploy $(fmt_min "$DEPLOY_AGE")"
+if [ -n "$DEGRADED_SRC" ]; then
+    PIPELINE="${PIPELINE}, last cycle DEGRADED (${DEGRADED_SRC})"
+fi
 
 STREAK="$ST_STREAK"
 if [ "$FETCH_OK" -eq 1 ] && [ -n "$REMOTE_AGE" ]; then
@@ -233,7 +250,11 @@ CAUSE=""
 if [ "$VERDICT" = UNREACHABLE ]; then
     CAUSE="the mirror or the network path to it is down, so its freshness cannot be confirmed"
 elif [ "$VERDICT" != FRESH ]; then
-    if [ -z "$LOCAL_AGE" ] || [ "$LOCAL_AGE" -ge "$WARN_MIN" ]; then
+    if [ -n "$DEGRADED_SRC" ]; then
+        # the cycle IS running and IS publishing; one upstream is not answering. Saying "the cron
+        # or its host is down" here would send an operator to the wrong place entirely.
+        CAUSE="the cycle is running and publishing what it can, but a source is not refreshing (${DEGRADED_SRC})"
+    elif [ -z "$LOCAL_AGE" ] || [ "$LOCAL_AGE" -ge "$WARN_MIN" ]; then
         CAUSE="the data cycle is not producing fresh local output, so the cron or its host is down"
     elif [ -n "$COMMIT_AGE" ] && [ "$COMMIT_AGE" -ge "$WARN_MIN" ]; then
         CAUSE="the cycle is fetching but the commit and push path is not landing"

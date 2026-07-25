@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.98.2",
+      "date": "2026-07-25",
+      "line": "Playback now reaches 30 and 90 days, not just 3, 7 and 14. That is only useful if the board is straight with you about how far back it actually goes, so it is. This archive begins July 4, about 20 days ago, and every range deeper than that says so in three places: the chip itself carries a dashed edge and a warning dot before you pick it, the timeline hatches the stretch that predates the board rather than drawing it as empty water, and the line under the bar reads the request against the record, for example 90 day window and 20 days recorded. The window is not quietly shortened to fit, because then 30 days and 90 days would look identical and both would imply more than exists. Nothing is greyed out either: the archive grows every day, so a range that is short today will fill in on its own. A shared link to a specific past moment now opens the shortest range that contains it instead of landing on a different time than the link named."
+    },
+    {
       "v": "v0.98.1",
       "date": "2026-07-25",
       "line": "Playback used to download the whole archive before the scrubber would move, and the archive is now three weeks deep and growing. It now publishes in day-sized pieces with a small index, and the board fetches only the days your chosen window actually covers, newest first, adding each one to the timeline as it arrives. Picking 3 days pulls three days, not three weeks, and you can start scrubbing recent time before the older days have finished loading. Days that are frozen never change, so your browser can keep them and a second visit costs almost nothing. The timeline is also clearer about what it does not have: the hatched stretch still means the board never recorded that period, and a separate band now marks days that are still downloading or that failed to download, so a gap in the record never quietly reads as calm water. The whole-record file is still published unchanged, so nothing that already worked stops working."

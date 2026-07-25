@@ -1,5 +1,40 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.2 · 2026-07-25 (30 and 90 day playback, and what the board does not have)
+
+-- New Features --
+- [New] Playback gains 30d and 90d ranges alongside 3d, 7d and 14d. The chunked
+      loader is what makes them affordable: a 90d window moves about the bytes
+      a 3d window used to cost, arrives progressively, and reuses every frozen
+      day from the browser cache between visits.
+- [New] A range deeper than the archive is marked before it is chosen. The chip
+      takes a dashed border and a warning dot, and its title and accessible name
+      read "Replay the last 90 days. The archive holds 20; the rest predates
+      this board and shows hatched, not as calm water."
+- [New] The playback note states the shortfall in place: "90d window · 20d
+      recorded, the rest is before this board existed". It appears before you
+      scrub rather than only once engaged, and it is text on the bar rather than
+      a hover title, so a touch device sees it too.
+
+-- Changes --
+- [Change] The window is deliberately not clamped to the archive. Keeping the
+           full 30 or 90 days on the track is what keeps the hatched pre-archive
+           span proportionally honest: at 90d it covers 78% of the bar, which is
+           the true shape of a 20 day record. Clamping would have made 30d and
+           90d look identical and quietly imply three months of data.
+- [Change] No range chip is ever disabled. The archive grows, so a chip disabled
+           today is a working range in ten days with nothing to announce it.
+           Marked and reachable beats dead and silent.
+- [Change] The archive-birth flash fires once per range that overreaches instead
+           of once per session, so choosing 90d after 30d does not inherit 30d's
+           acknowledgement.
+
+-- Bug Fixes --
+- [Fix] A shared ?pbt= link to a moment older than the open window clamped
+      silently to the window start, so the board showed a different time than
+      the link named. It now opens the narrowest range that contains the linked
+      moment and loads that day's chunk first.
+
 ## v0.98.1 · 2026-07-25 (the archive publishes in day-sized pieces)
 
 -- New Features --

@@ -678,6 +678,7 @@ async function openPlayback() {
     state.pbtApplied = true;
     const day = pbDayAt(pbt); // the linked moment's own day loads first, whatever the window is fetching
     if (day) await pbLoadDay(day);
+    pbWidenRangeFor(pbt);
     setPlaybackFrame(pbFrameAt(pbt));
     updatePlaybackNote();
   }
@@ -715,14 +716,49 @@ function pbSheetRestore() {
   if (document.querySelector('main').classList.contains('sheet-peek')) setSheet(prev);
 }
 
-// window = chosen 3/7/14d; the slider track spans the full request, frames clip to the archive —
-// the pre-archive gap renders hatched, never faked with empty frames
+// window = the chosen range; the slider track spans the full request, frames clip to the archive,
+// and the pre-archive gap renders hatched rather than faked with empty frames
+/* Long-range honesty (v0.98.2). A 30d or 90d chip on a 20-day archive must not imply 30 or 90
+   days of record. The window is NOT clamped: the track keeps the full request so the hatched
+   pre-archive span stays proportionally true, and the shortfall is named in three places the
+   user meets at different moments. Before the click: the chip carries a dashed border, a warning
+   dot and a title naming the real depth. On the click: the archive-birth flash fires once per
+   range that overreaches. While it sits: the note carries the requested-vs-recorded line.
+   Disabling the chip was the alternative and it lies by omission, because the archive grows and
+   a disabled 30d today is a working 30d in ten days with no way to discover it. */
+const PB_RANGES = [3, 7, 14, 30, 90]; // must match the .pb-chip data-days set in index.html
+const pbArchiveDepthDays = () => (Date.now() - pbArchiveStart()) / 86400000;
+
+// a shared moment older than the open window used to clamp to the window start in silence, so the
+// board showed a different time than the link named. Widen to the narrowest range that holds it.
+function pbWidenRangeFor(tMs) {
+  const pb = state.pb;
+  if (!(tMs < pb.winLoT)) return;
+  setPlaybackRange(PB_RANGES.find((d) => Date.now() - d * 86400000 <= tMs) || PB_RANGES[PB_RANGES.length - 1]);
+}
+const pbRangeOverreaches = (days) => days > pbArchiveDepthDays() + 0.02; // rounding slack, not a grace period
+const pbDepthLabel = () => Math.max(1, Math.floor(pbArchiveDepthDays()));
+
+function pbSyncChips() {
+  const pb = state.pb;
+  for (const b of document.querySelectorAll('.pb-chip')) {
+    const days = +b.dataset.days;
+    const part = pbRangeOverreaches(days);
+    b.classList.toggle('on', days === pb.days);
+    b.classList.toggle('part', part);
+    const label = t(part ? 'playback.chip.partial' : 'playback.chip.full')
+      .replace('{d}', days).replace('{n}', pbDepthLabel());
+    b.title = label;
+    b.setAttribute('aria-label', label);
+  }
+}
+
 function setPlaybackRange(days) {
   const pb = state.pb;
   pb.days = days;
   pb.winLoT = Date.now() - days * 86400000;
   pbRecomputeWindow();
-  document.querySelectorAll('.pb-chip').forEach((b) => b.classList.toggle('on', +b.dataset.days === days));
+  pbSyncChips();
   $('#pb-slider').step = 60000;
   pbEnsureWindowChunks();
   renderPlaybackPreArchive();
@@ -784,10 +820,12 @@ function pbLayersLockedNote() {
   state.pbArchNoteTimer = setTimeout(() => { el.hidden = true; }, 2500);
 }
 
-// one prominent flash per session the first time a chosen range reaches before the archive's birth
+// one prominent flash per range that reaches before the archive's birth: 3d and 90d overreach by
+// wildly different amounts, so a single per-session flash would let the deeper claim pass unmarked
 function pbFlashArchNote() {
-  if (state.pbArchNoted) return;
-  state.pbArchNoted = true;
+  const seen = state.pbArchNoted || (state.pbArchNoted = {});
+  if (seen[state.pb.days]) return;
+  seen[state.pb.days] = true;
   const el = $('#pb-arch-note');
   el.textContent = t('playback.archnote').replace('{t}', fmtCT(pbArchiveStartIso()));
   el.hidden = false;
@@ -1274,6 +1312,9 @@ function updatePlaybackNote() {
     if (thin && thin.olderGapMinutes && ft < new Date(thin.fullFrom).getTime()) {
       note += ` · ${t('playback.note.thinned').replace('{n}', thin.olderGapMinutes)}`;
     }
+  }
+  if (pbRangeOverreaches(pb.days)) {
+    note += ` · ${t('playback.note.depth').replace('{d}', pb.days).replace('{n}', pbDepthLabel())}`;
   }
   if (pbArchiveStart() > pb.winLoT + 60000) {
     note += ` · ${t('playback.note.start').replace('{t}', fmtCT(pbArchiveStartIso()))}`;

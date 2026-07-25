@@ -9,6 +9,7 @@ const { loadMapApp } = require('./harness.js');
 const {
   pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, pbGaugeNoteKey, PB_LIVE_HIDE, state,
   pbChunkUrl, pbDaysInWindow, pbMergeFrames, pbArchiveStart, pbArchiveStartIso, pbDayAt, pbChunkPending, pbChunkFailed,
+  PB_RANGES, pbArchiveDepthDays, pbRangeOverreaches, pbDepthLabel,
 } = loadMapApp();
 
 /* frame-selection math for historical playback: frames are as-of snapshots, so a scrub
@@ -310,4 +311,94 @@ test('the hard fallback to the whole-record view survives in the source', () => 
   const src = SRC('playback.js');
   assert.match(src, /data\/history\.json/, 'an index 404 must still reach data/history.json');
   assert.match(src, /pbInitMonolith\(\)/);
+});
+
+/* Long-range modes (v0.98.2). The archive is about 20 days deep and the chips now reach 90.
+   A range that exceeds the record must say so; showing an empty stretch of scrubber as though
+   it were a quiet stretch of river is the one thing the board may never do. */
+
+// archive floor N days back from now, so depth math is exercised against a real clock
+function seedDepth(depthDays) {
+  const t0 = Date.now() - depthDays * 86400000;
+  state.pbData = {
+    days: [{ d: '0000-00-00', t0: new Date(t0).toISOString(), t1: new Date().toISOString(), h: 'x', n: 1 }],
+    frames: [{ t: new Date(t0).toISOString(), _t: t0 }], loaded: {}, failed: {}, inflight: {},
+  };
+  state.pb = { days: 3, live: true, idx: 0, winLoT: Date.now() - 3 * 86400000, hiT: Date.now() };
+}
+
+test('the range chips in index.html are exactly the ranges the code knows about', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const chips = [...html.matchAll(/class="pb-chip" data-days="(\d+)"/g)].map((m) => +m[1]);
+  assert.deepEqual(chips, Array.from(PB_RANGES), 'a chip with no matching range, or a range with no chip, is unreachable UI');
+  assert.ok(PB_RANGES.includes(30) && PB_RANGES.includes(90), 'the long-range modes are the point of this release');
+});
+
+test('a range inside the archive depth is not marked partial', () => {
+  seedDepth(20);
+  assert.equal(pbRangeOverreaches(3), false);
+  assert.equal(pbRangeOverreaches(14), false);
+});
+
+test('a range deeper than the archive is marked partial, at every long range', () => {
+  seedDepth(20);
+  assert.equal(pbRangeOverreaches(30), true);
+  assert.equal(pbRangeOverreaches(90), true);
+});
+
+test('a range equal to the archive depth is not marked partial (no false shortfall on the boundary)', () => {
+  seedDepth(30);
+  assert.equal(pbRangeOverreaches(30), false, 'floating-point drift must not invent a missing day');
+  assert.equal(pbRangeOverreaches(90), true);
+});
+
+test('the depth label is a whole day count and never reads zero on a young archive', () => {
+  seedDepth(20.6);
+  assert.equal(pbDepthLabel(), 20, 'always floor: claiming 21 days from 20.6 overstates the record');
+  seedDepth(0.2);
+  assert.equal(pbDepthLabel(), 1, 'a few hours of archive must not print "0d recorded"');
+});
+
+test('archive depth is measured from the index floor, not from whichever chunk happens to be loaded', () => {
+  seedDepth(20);
+  state.pbData.frames = [{ t: new Date(Date.now() - 3600000).toISOString(), _t: Date.now() - 3600000 }];
+  assert.ok(pbArchiveDepthDays() > 19, 'one loaded hour must not shrink the advertised depth to one hour');
+  assert.equal(pbRangeOverreaches(14), false);
+});
+
+test('every long-range string exists in both locales', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+  for (const key of ['playback.note.depth', 'playback.chip.full', 'playback.chip.partial']) {
+    assert.equal(src.split(`'${key}':`).length - 1, 2, `${key} must appear once in en and once in es`);
+  }
+});
+
+test('the partial-range strings name both the request and the real depth', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+  for (const key of ['playback.note.depth', 'playback.chip.partial']) {
+    for (const line of src.split('\n').filter((l) => l.includes(`'${key}':`))) {
+      assert.ok(line.includes('{d}') && line.includes('{n}'),
+        `${key} must carry both the requested range and the recorded depth: ${line.trim()}`);
+    }
+  }
+});
+
+test('a range that overreaches is stated in the note, not only in a hover title', () => {
+  const fn = SRC('playback.js').match(/function updatePlaybackNote\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'updatePlaybackNote not found');
+  assert.match(fn[0], /pbRangeOverreaches\(pb\.days\)/,
+    'the shortfall must reach #pb-note; a title alone is invisible on a touch device');
+  assert.match(fn[0], /playback\.note\.depth/);
+});
+
+test('the archive-birth flash is keyed per range, so a deeper claim is never waved through', () => {
+  const fn = SRC('playback.js').match(/function pbFlashArchNote\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'pbFlashArchNote not found');
+  assert.match(fn[0], /state\.pb\.days/, 'a single per-session flag would let 90d inherit 30d\'s flash');
+});
+
+test('no range chip is ever disabled: the archive grows and a dead chip cannot announce that', () => {
+  const src = SRC('playback.js');
+  assert.ok(!/\.pb-chip[^\n]*disabled/.test(src), 'chips must stay reachable, marked rather than dead');
+  assert.match(src, /classList\.toggle\('part'/);
 });

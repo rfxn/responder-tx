@@ -1601,9 +1601,13 @@ body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar timeline rides above t
   padding: 8px 34px 6px 12px; box-shadow: 0 -3px 12px rgba(0,0,0,0.4);
 }
 #playback-bar[hidden] { display: none; }
-.pb-chips { display: flex; gap: 4px; }
+.pb-chips { display: flex; gap: 4px; flex-wrap: wrap; }
 .pb-chip { min-height: 0; padding: 4px 10px; font-size: 12px; font-weight: 700; border-radius: 999px; }
 .pb-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
+/* a range deeper than the archive: the chip says so before it is picked, and the dot repeats
+   in the note and on the hatched span so the shortfall is never only a hover-away fact */
+.pb-chip.part { border-style: dashed; }
+.pb-chip.part::after { content: '·'; color: var(--sev-warning); font-weight: 900; margin-left: 3px; }
 #pb-play { min-height: 0; padding: 4px 13px; font-size: 14px; }
 #pb-slider-wrap { position: relative; flex: 1; min-width: 130px; padding-top: 8px; }
 /* custom-drawn scrub: slim visual track, tall hit area (input height ≫ track), fat thumb */
@@ -1770,6 +1774,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   #playback-bar #pb-speed { min-width: 44px; min-height: 44px; font-size: 13px; }
   #playback-bar #pb-now { min-height: 44px; padding: 4px 14px; }
   #playback-bar .pb-chip { min-height: 40px; }
+  .pb-chips { flex-basis: 100%; } /* five ranges get their own row rather than crowding the transport */
   #playback-bar #pb-close { min-width: 40px; min-height: 40px; font-size: 16px; }
   .pb-tick { font-size: 12px; padding: 0 6px; }
   body.pb-bar-open #radar-scrub { bottom: 226px; } /* the taller wrapped bar needs more clearance */

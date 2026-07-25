@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.99.13';
+const SW_VERSION = '0.99.14';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 // version-independent: /data/ is not versioned by app release, and the last-good copies here are
 // the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
@@ -11,6 +11,9 @@ const CACHE_DATA = 'respondertx-data';
 // version-independent: holds the subscriber's language hint so a payload-free push can be
 // localized; must survive SW updates (excluded from the activate cleanup)
 const CACHE_PUSH = 'respondertx-push';
+// version-independent: the playback archive lives outside /data/, so CACHE_DATA never saw it and
+// offline playback had nothing to replay
+const CACHE_HISTORY = 'respondertx-history';
 
 // chat, master and Field Notes are deliberately absent: the public mirror strips all three, and
 // boot.js injects them at runtime only where they exist
@@ -80,9 +83,11 @@ self.addEventListener('activate', (event) => {
     const names = await caches.keys();
     await adoptLegacyDataCache(names);
     await Promise.all(names
-      .filter((n) => n.indexOf('respondertx-') === 0 && n !== CACHE_STATIC && n !== CACHE_DATA && n !== CACHE_PUSH)
+      .filter((n) => n.indexOf('respondertx-') === 0 && n !== CACHE_STATIC && n !== CACHE_DATA
+        && n !== CACHE_PUSH && n !== CACHE_HISTORY)
       .map((n) => caches.delete(n)));
     await self.clients.claim();
+    warmHistoryCache(); // detached: activation must not wait on the archive warm
   })());
 });
 
@@ -137,6 +142,122 @@ async function stampedCacheFirst(request) {
   return fresh;
 }
 
+/* ---------- playback archive (history/index.json + history/day/*.json) ----------
+   Two artifacts, two lifetimes. The index is rewritten every cycle, so it is network-first and
+   keyed by bare path: the newest one always wins and the last good one is the offline copy. A day
+   chunk carries its content hash in the URL, so it is cache-first keyed by the WHOLE URL: a
+   re-hashed day is a different URL and misses, and no hashed URL ever serves bytes that are not
+   its own. Nothing here touches /data/, so the CACHE_DATA fallback and its legacy adoption are
+   unaffected. */
+const HISTORY_INDEX_RE = /\/history\/index\.json$/;
+const HISTORY_DAY_RE = /\/history\/day\/(\d{4}-\d{2}-\d{2})\.json$/;
+const HISTORY_INDEX_PATH = 'history/index.json';
+const HISTORY_DAYS_KEPT = 30; // above the published retention, so pruning only ever trails the index
+
+function historyDayOf(rawUrl) {
+  const m = HISTORY_DAY_RE.exec(new URL(rawUrl, self.location.origin).pathname);
+  return m ? m[1] : '';
+}
+
+// today's chunk re-hashes every cycle, so without this the cache would grow one copy per visit;
+// the day cap trails the archive's own retention so a rolled-off day cannot linger forever
+async function pruneHistoryChunks(cache, keptUrl) {
+  const keptDay = historyDayOf(keptUrl);
+  const days = [];
+  for (const req of await cache.keys()) {
+    const url = req.url || String(req);
+    const day = historyDayOf(url);
+    if (!day) continue;
+    if (day === keptDay && url !== keptUrl) { await cache.delete(req); continue; }
+    if (days.indexOf(day) < 0) days.push(day);
+  }
+  const drop = days.sort().slice(0, Math.max(0, days.length - HISTORY_DAYS_KEPT));
+  if (!drop.length) return;
+  for (const req of await cache.keys()) {
+    if (drop.indexOf(historyDayOf(req.url || String(req))) >= 0) await cache.delete(req);
+  }
+}
+
+async function historyIndexNetworkFirst(request) {
+  const key = dataCacheKey(request.url); // clients bust it with ?_=; one copy, matchable offline
+  const cache = await caches.open(CACHE_HISTORY);
+  try {
+    const fresh = await fetch(request);
+    if (fresh && fresh.ok) cache.put(key, fresh.clone());
+    return fresh;
+  } catch (err) {
+    const hit = await cache.match(key);
+    if (hit) return hit;
+    throw err;
+  }
+}
+
+async function historyChunkCacheFirst(request) {
+  const cache = await caches.open(CACHE_HISTORY);
+  const hit = await cache.match(request.url);
+  if (hit) return hit;
+  const fresh = await fetch(request);
+  if (fresh && fresh.ok) {
+    await cache.put(request.url, fresh.clone());
+    await pruneHistoryChunks(cache, request.url);
+  }
+  return fresh;
+}
+
+const HISTORY_WARM_BYTES = 1200000; // newest-first budget, sized on the day sizes the index declares
+const HISTORY_WARM_MAX_DAYS = 8;
+const HISTORY_WARM_MAX_AGE_MS = 12 * 3600000; // a warm younger than this is left alone, so a busy
+                                              // release day does not re-download the archive per update
+
+const historyChunkUrl = (d) => new URL(`history/day/${d.d}.json${d.h ? `?h=${d.h}` : ''}`, self.location.href).href;
+
+// the cached index and the chunks it names must move together, so the skip test asks about both
+async function historyWarmCurrent(cache) {
+  const hit = await cache.match(dataCacheKey(new URL(HISTORY_INDEX_PATH, self.location.href).href));
+  if (!hit) return false;
+  const idx = await hit.json();
+  const days = (idx && idx.days) || [];
+  const newest = days[days.length - 1];
+  if (!newest || !newest.d) return false;
+  if (Date.now() - Date.parse(idx.generated) > HISTORY_WARM_MAX_AGE_MS) return false;
+  return !!(await cache.match(historyChunkUrl(newest)));
+}
+
+/* A fresh install has never opened Playback, so nothing archive-shaped is cached and the board has
+   nothing to replay the first time it loses signal. Warm the index and the newest days together,
+   newest-first inside a byte budget the index itself declares, so the cached index never names a
+   chunk the warm skipped. Best-effort by design: a failure just leaves the pre-warm state. */
+async function warmHistoryCache() {
+  try {
+    if (self.navigator && self.navigator.connection && self.navigator.connection.saveData) return;
+    const cache = await caches.open(CACHE_HISTORY);
+    if (await historyWarmCurrent(cache)) return;
+    const res = await fetch(HISTORY_INDEX_PATH, { cache: 'no-store' });
+    if (!res || !res.ok) return;
+    const idx = await res.clone().json();
+    const days = ((idx && idx.days) || []).slice().reverse();
+    if (!days.length || !days[0].d) return;
+    let budget = HISTORY_WARM_BYTES;
+    let newest = true;
+    for (const d of days.slice(0, HISTORY_WARM_MAX_DAYS)) {
+      if (!d.d) continue;
+      const url = historyChunkUrl(d);
+      if (!(await cache.match(url))) {
+        const chunk = await fetch(url);
+        // publishing an index whose newest day we could not fetch would leave the cache naming a
+        // chunk it does not hold, which reads offline as no archive at all
+        if (!chunk || !chunk.ok) { if (newest) return; break; }
+        await cache.put(url, chunk.clone());
+        await pruneHistoryChunks(cache, url);
+      }
+      newest = false;
+      budget -= d.bytes > 0 ? d.bytes : HISTORY_WARM_BYTES / 4; // an index without sizes still stops after a few days
+      if (budget <= 0) break; // the newest day is always taken; the rest fit the budget or wait
+    }
+    await cache.put(dataCacheKey(res.url), res);
+  } catch (err) { /* warm is best-effort: opening Playback online fills the same cache */ }
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -145,6 +266,14 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.indexOf('/api/') === 0) return; // never intercept first-party APIs
   if (req.mode === 'navigate') {
     event.respondWith(shellNetworkFirst(req));
+    return;
+  }
+  if (HISTORY_INDEX_RE.test(url.pathname)) {
+    event.respondWith(historyIndexNetworkFirst(req));
+    return;
+  }
+  if (HISTORY_DAY_RE.test(url.pathname)) {
+    event.respondWith(historyChunkCacheFirst(req));
     return;
   }
   if (url.pathname.indexOf('/data/') === 0 && url.pathname.slice(-5) === '.json') {

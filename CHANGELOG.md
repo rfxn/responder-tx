@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.14 · 2026-07-25 (Playback replays with no signal)
+
+-- Bug Fixes --
+- [Fix] Playback works offline again. Opening it with no signal reported the
+      history archive as unavailable, on installs added since the archive
+      moved to its current form
+- [Fix] An install that has never opened Playback now still has recent days to
+      replay the first time it loses signal
+
+-- Changes --
+- [Change] The archive is kept offline the way it is published: the day files
+           are held one copy per day and the index is refreshed whenever there
+           is a connection. A day that is not held is drawn as an unloaded
+           stretch on the timeline, the same as before, rather than filled in
+- [Change] The offline copy is topped up at most twice a day, is capped by
+           size, and is skipped entirely on a connection set to save data
+
 ## v0.99.13 · 2026-07-25 (the hazard line scrolls again, and shows up in landscape)
 
 -- Changes --

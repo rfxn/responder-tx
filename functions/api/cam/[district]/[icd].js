@@ -22,8 +22,15 @@ const BYTES_SOURCES = {
 };
 
 export async function onRequestGet(context) {
-  const source = String(context.params.district || '');
-  const id = String(context.params.icd || '');
+  // params arrive percent-encoded, unlike server.py's unquote; without this every id holding a
+  // space, '@' or '&' fails its own charset check. decodeURIComponent throws on a malformed escape.
+  let source, id;
+  try {
+    source = decodeURIComponent(String(context.params.district || ''));
+    id = decodeURIComponent(String(context.params.icd || ''));
+  } catch {
+    return new Response('bad request', { status: 400 });
+  }
   if (DIST_RE.test(source)) return itsSnapshot(context, source, id);
   if (source === 'atxfloods') return ATX_ID_RE.test(id) ? atxSnapshot(context, id) : new Response('bad request', { status: 400 });
   const src = Object.prototype.hasOwnProperty.call(BYTES_SOURCES, source) ? BYTES_SOURCES[source] : null;

@@ -260,6 +260,18 @@ try:
           'encodeURIComponent(id)}.jpg' in edge)
     check('the Arlington query asks for geometry, which is where the missing positions live',
           'returnGeometry=true' in g.ARLINGTON and 'outSR=4326' in g.ARLINGTON)
+
+    # The edge gets its path params percent-encoded while server.py unquotes its own. Without the
+    # decode, every id holding a space, '@' or '&' fails its charset check: 859 of 861 ITS icds.
+    check('the Pages Function decodes the district param', 'decodeURIComponent(String(context.params.district' in edge)
+    check('the Pages Function decodes the id param', 'decodeURIComponent(String(context.params.icd' in edge)
+    check('a malformed percent-escape is a 400, never an unhandled throw',
+          'catch {\n    return new Response(\'bad request\', { status: 400 });' in edge)
+    only_plain = [c for c in json.loads(open(os.path.join(HERE, '..', 'data', 'cameras.json'),
+                                             encoding='utf-8').read())['txdot']
+                  if c.get('src') == 'its' and not __import__('re').match(r'^[A-Za-z0-9_-]+$', c['icd'])]
+    check('the shipped inventory really does depend on that decode',
+          len(only_plain) > 500, '%d icds need percent-encoding' % len(only_plain))
 finally:
     shutil.rmtree(root)
 

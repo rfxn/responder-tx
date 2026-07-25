@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.26 · 2026-07-25 (TxDOT district camera snapshots open on the public board)
+
+-- Bug Fixes --
+- [Fix] TxDOT district camera snapshots now open on respondertx.org. All but two
+      of the 861 cameras in that layer returned an error instead of an image,
+      because any camera whose name carries a space, an ampersand or an at-sign
+      was rejected before the image was ever fetched. The same cameras have
+      always worked on the LAN board
+
 ## v0.99.25 · 2026-07-25 (cameras we could already reach, now reachable)
 
 -- New Features --

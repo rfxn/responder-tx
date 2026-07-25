@@ -739,6 +739,16 @@ function pbWidenRangeFor(tMs) {
 const pbRangeOverreaches = (days) => days > pbArchiveDepthDays() + 0.02; // rounding slack, not a grace period
 const pbDepthLabel = () => Math.max(1, Math.floor(pbArchiveDepthDays()));
 
+/* The bounded compatibility view (v0.98.9). data/history.json publishes only the newest days and
+   declares it in a top-level "view"; the chunked record is whole. On that fallback the floor of
+   the track is a download boundary, NOT the board's birth, so every string that names the
+   archive's start needs the fallback wording instead. */
+const pbBoundedView = () => {
+  const v = state.pbData && state.pbData.view;
+  return (v && v.kind === 'recent-window') ? v : null;
+};
+const pbKey = (base) => (pbBoundedView() ? `${base}.window` : base);
+
 function pbSyncChips() {
   const pb = state.pb;
   for (const b of document.querySelectorAll('.pb-chip')) {
@@ -746,7 +756,7 @@ function pbSyncChips() {
     const part = pbRangeOverreaches(days);
     b.classList.toggle('on', days === pb.days);
     b.classList.toggle('part', part);
-    const label = t(part ? 'playback.chip.partial' : 'playback.chip.full')
+    const label = t(part ? pbKey('playback.chip.partial') : 'playback.chip.full')
       .replace('{d}', days).replace('{n}', pbDepthLabel());
     b.title = label;
     b.setAttribute('aria-label', label);
@@ -784,6 +794,8 @@ function renderPlaybackPreArchive() {
   const frac = (pbArchiveStart() - pb.winLoT) / (pb.hiT - pb.winLoT || 1);
   el.hidden = frac <= 0.004;
   el.style.width = `${Math.min(Math.max(frac, 0), 1) * 100}%`;
+  el.setAttribute('data-i18n-title', pbKey('playback.prearch')); // re-read on a language switch
+  el.title = t(pbKey('playback.prearch'));
   if (!el.hidden) pbFlashArchNote();
   renderPlaybackChunkBands();
 }
@@ -827,7 +839,7 @@ function pbFlashArchNote() {
   if (seen[state.pb.days]) return;
   seen[state.pb.days] = true;
   const el = $('#pb-arch-note');
-  el.textContent = t('playback.archnote').replace('{t}', fmtCT(pbArchiveStartIso()));
+  el.textContent = t(pbKey('playback.archnote')).replace('{t}', fmtCT(pbArchiveStartIso()));
   el.hidden = false;
   clearTimeout(state.pbArchNoteTimer);
   state.pbArchNoteTimer = setTimeout(() => { el.hidden = true; }, 3000);
@@ -1314,10 +1326,10 @@ function updatePlaybackNote() {
     }
   }
   if (pbRangeOverreaches(pb.days)) {
-    note += ` · ${t('playback.note.depth').replace('{d}', pb.days).replace('{n}', pbDepthLabel())}`;
+    note += ` · ${t(pbKey('playback.note.depth')).replace('{d}', pb.days).replace('{n}', pbDepthLabel())}`;
   }
   if (pbArchiveStart() > pb.winLoT + 60000) {
-    note += ` · ${t('playback.note.start').replace('{t}', fmtCT(pbArchiveStartIso()))}`;
+    note += ` · ${t(pbKey('playback.note.start')).replace('{t}', fmtCT(pbArchiveStartIso()))}`;
   }
   const pending = pbChunkPending(), failed = pbChunkFailed();
   if (pending) note += ` · ${t('playback.note.loading').replace('{n}', pending)}`;

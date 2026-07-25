@@ -163,8 +163,8 @@ try:
     check('chunked publish spans one file per UTC day', len(days) == 3, str([d['d'] for d in days]))
     check('index gaugeIndex matches the whole-record view',
           set(idx['gaugeIndex']) == set(h4['gaugeIndex']))
-    check('index frame total matches the whole-record view',
-          sum(d['n'] for d in days) == len(h4['frames']),
+    check('the chunked record is never shorter than the compatibility view it backs',
+          sum(d['n'] for d in days) >= len(h4['frames']),
           '%d vs %d' % (sum(d['n'] for d in days), len(h4['frames'])))
 
     rebuilt = []
@@ -179,8 +179,11 @@ try:
         check('every frame in a day file belongs to that UTC day (%s)' % day['d'],
               all(f['t'][:10] == day['d'] for f in chunk['frames']))
         rebuilt += chunk['frames']
-    check('CONTRACT · the chunks reassemble into exactly the compatibility view',
-          rebuilt == h4['frames'], '%d rebuilt vs %d published' % (len(rebuilt), len(h4['frames'])))
+    check('CONTRACT · the compatibility view is the TAIL of the reassembled chunks, never a '
+          'different record', rebuilt[len(rebuilt) - len(h4['frames']):] == h4['frames'],
+          '%d rebuilt vs %d published' % (len(rebuilt), len(h4['frames'])))
+    check('CONTRACT · a record younger than the compat window publishes whole and claims no window',
+          len(rebuilt) == len(h4['frames']) and 'view' not in h4, str(h4.get('view')))
     check('a day payload carries no build stamp, or a frozen day would rehash every cycle',
           'generated' not in json.loads(open(chunk_path(days[0]['d']), encoding='utf-8').read()))
 
@@ -320,6 +323,41 @@ check('recovery fills a gap and keeps the source frame\'s own provenance',
       added == 1 and native[0]['src'] == 'usgs' and native[0]['ref'] == 'deadbee', str(native[0]))
 check('recovered frames are merged in time order',
       [f['t'] for f in native] == sorted(f['t'] for f in native))
+
+# --- the bounded compatibility view (v0.98.9) -------------------------------
+# data/history.json is rewritten in full every 15-minute cycle, so an unbounded one costs the
+# whole archive in git every cycle. It is bounded instead, and must SAY it is bounded: a partial
+# file that reads as a complete one is the failure this board keeps having.
+def frame_at(days_ago, base=datetime(2026, 7, 25, tzinfo=timezone.utc)):
+    dt = base - timedelta(days=days_ago)
+    return {'t': iso(dt), 'gauges': {'A': [1.0, 0]}, '_dt': dt}
+
+
+deep = [frame_at(d) for d in range(20, -1, -1)]
+kept, view = GH.compat_view(deep)
+check('compat view keeps exactly the declared window, anchored on the NEWEST frame (a stalled '
+      'cycle must not narrow it)', [f['t'] for f in kept] == [f['t'] for f in deep[-(GH.COMPAT_WINDOW_DAYS + 1):]],
+      '%d kept of %d' % (len(kept), len(deep)))
+check('compat view is a strict suffix of the record, never a resample of it',
+      deep[len(deep) - len(kept):] == kept)
+check('DECLARATION · a bounded view says it is bounded', view and view['kind'] == 'recent-window'
+      and view['days'] == GH.COMPAT_WINDOW_DAYS, str(view))
+check('DECLARATION · the declared depth and first frame match the bytes actually carried',
+      view['from'] == kept[0]['t'] and view['frames'] == len(kept), str(view))
+check('DECLARATION · the view names the whole record and where to find it',
+      view['full']['frames'] == len(deep) and view['full']['from'] == deep[0]['t']
+      and view['full']['index'] == GH.CHUNK_INDEX_PATH and 'YYYY-MM-DD' in view['full']['day'],
+      str(view['full']))
+shallow = [frame_at(d) for d in range(2, -1, -1)]
+kept2, view2 = GH.compat_view(shallow)
+check('a record younger than the window publishes whole and claims no window',
+      kept2 == shallow and view2 is None, str(view2))
+check('compat view of an empty record is empty and claims nothing', GH.compat_view([]) == ([], None))
+check('serialize puts the declaration ahead of the frames, so a one-line file still reads as partial',
+      json.loads(GH.serialize(kept, {}, view=view)).get('view') == view
+      and list(json.loads(GH.serialize(kept, {}, view=view)))[:2] == ['generated', 'view'])
+check('serialize emits no view key at all when the record is whole',
+      'view' not in json.loads(GH.serialize(shallow, {})))
 
 peaks = [{'t': 'a', 'gauges': {'A': [1.0, 0], 'B': [9.0, 4]}},
          {'t': 'b', 'gauges': {'A': [5.0, 2]}},

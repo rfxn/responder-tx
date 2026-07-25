@@ -5,9 +5,14 @@ Walks the committed history of data/gauges-capture.json (falling back to
 data/gauges-snapshot.json before the capture split) and records, for every gauge
 that reached an observed minor/moderate/major flood category, its peak stage,
 when the peak first occurred, and its in-flood window. The git archive starts
-mid-event, so the pre-archive window is folded in from data/history.json's
+mid-event, so the pre-archive window is folded in from the playback archive's
 src-tagged frames (reconstructed or recovered, built by gen-history.py); peaks
 sourced there carry that frame's own src. Run at release time like gen-feeds.py.
+
+That fold reads the chunked record under history/, not data/history.json: the
+latter is a bounded recent-window view and the reconstruction sits at the head of
+the record, outside it. data/history.json remains the fallback for a checkout
+that predates the chunk index.
 
 Scope works the same way as gen-history.py: the walk retains every gauge, and
 the display filter is applied once, at the end, against the union of every
@@ -29,6 +34,8 @@ CAPTURE_PATH = "data/gauges-capture.json"
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
 EVENT_PATH = "data/event.json"
 HISTORY_PATH = "data/history.json"
+CHUNK_INDEX_PATH = "history/index.json"
+CHUNK_DAY_DIR = "history/day"
 FLOOD_CATS = ("minor", "moderate", "major")
 CAT_RANK = {"minor": 2, "moderate": 3, "major": 4}
 CODE_CAT = {2: "minor", 3: "moderate", 4: "major"}
@@ -134,15 +141,39 @@ def obs_stale(observed, snap_dt):
     return (snap_dt - obs_dt).total_seconds() > STALE_HOURS * 3600
 
 
-def fold_backfill(gauges):
-    """Seed peaks from history.json's src-tagged pre-archive frames; returns first such
-    stamp. No scope filter here: scoping happens once, in project_display()."""
+def read_chunked_record():
+    """The whole playback archive, reassembled from history/index.json + history/day/. Raises
+    if the chunk set is unusable so the caller can fall back."""
+    with open(os.path.join(ROOT, CHUNK_INDEX_PATH), encoding="utf-8") as f:
+        idx = json.load(f)
+    frames = []
+    for day in (idx.get("days") or []):
+        with open(os.path.join(ROOT, CHUNK_DAY_DIR, "%s.json" % day["d"]), encoding="utf-8") as f:
+            frames.extend(json.load(f).get("frames") or [])
+    if not frames:
+        raise ValueError("chunk index lists no frames")
+    return {"frames": frames, "gaugeIndex": idx.get("gaugeIndex") or {}}
+
+
+def load_archive():
+    """The playback archive, whole. data/history.json is only the bounded fallback: a peak that
+    predates its window must still reach the AAR."""
+    try:
+        return read_chunked_record()
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"note: chunked record unreadable ({e}); falling back to {HISTORY_PATH}", file=sys.stderr)
     try:
         with open(os.path.join(ROOT, HISTORY_PATH), encoding="utf-8") as f:
-            hist = json.load(f)
+            return json.load(f)
     except (OSError, ValueError) as e:
         print(f"warn: {HISTORY_PATH} unavailable ({e}); pre-archive peaks omitted", file=sys.stderr)
-        return None
+        return {}
+
+
+def fold_backfill(gauges):
+    """Seed peaks from the archive's src-tagged pre-archive frames; returns first such
+    stamp. No scope filter here: scoping happens once, in project_display()."""
+    hist = load_archive()
     index = hist.get("gaugeIndex", {})
     first_t = None
     for fr in hist.get("frames", []):
@@ -309,7 +340,8 @@ def main():
         "event": event_name(ev, now),
         "window": {"first": backfill_from or first_snap, "last": last_snap},
         "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; "
-                  "pre-archive window reconstructed from USGS/NWPS observed via history.json",
+                  "pre-archive window reconstructed from USGS/NWPS observed via the chunked "
+                  "playback archive under history/",
         "gauges": rows,
         "retained_gauges": retained,
         "skipped_commits": skipped,

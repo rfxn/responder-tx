@@ -9,7 +9,7 @@ const { loadMapApp } = require('./harness.js');
 const {
   pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, pbGaugeNoteKey, PB_LIVE_HIDE, state,
   pbChunkUrl, pbDaysInWindow, pbMergeFrames, pbArchiveStart, pbArchiveStartIso, pbDayAt, pbChunkPending, pbChunkFailed,
-  PB_RANGES, pbArchiveDepthDays, pbRangeOverreaches, pbDepthLabel,
+  PB_RANGES, pbArchiveDepthDays, pbRangeOverreaches, pbDepthLabel, pbBoundedView, pbKey,
 } = loadMapApp();
 
 /* frame-selection math for historical playback: frames are as-of snapshots, so a scrub
@@ -311,6 +311,46 @@ test('the hard fallback to the whole-record view survives in the source', () => 
   const src = SRC('playback.js');
   assert.match(src, /data\/history\.json/, 'an index 404 must still reach data/history.json');
   assert.match(src, /pbInitMonolith\(\)/);
+});
+
+/* The bounded compatibility view (v0.98.9). data/history.json now carries only the newest days.
+   On that fallback the left edge of the track is a download boundary, not the board's birth, so
+   the strings that name the archive's start must switch to the fallback wording. Getting this
+   wrong tells a responder the river was never recorded when in fact it was. */
+test('pbBoundedView only fires on a file that declares itself a recent window', () => {
+  state.pbData = { days: [], frames: [], loaded: {}, failed: {}, inflight: {} };
+  assert.equal(pbBoundedView(), null, 'a whole-record load is not a bounded view');
+  state.pbData.view = { kind: 'something-else', days: 7 };
+  assert.equal(pbBoundedView(), null, 'an unrecognised view kind must not be trusted');
+  state.pbData.view = { kind: 'recent-window', days: 7, from: '2026-07-18T00:00:00Z' };
+  assert.equal(pbBoundedView().days, 7);
+});
+
+test('pbKey swaps every archive-start string to the fallback wording, and only then', () => {
+  const named = ['playback.note.start', 'playback.note.depth', 'playback.archnote',
+    'playback.prearch', 'playback.chip.partial'];
+  state.pbData = { days: [], frames: [], loaded: {}, failed: {}, inflight: {} };
+  for (const k of named) assert.equal(pbKey(k), k, `${k} must not be rewritten on a whole record`);
+  state.pbData.view = { kind: 'recent-window', days: 7, from: '2026-07-18T00:00:00Z' };
+  for (const k of named) assert.equal(pbKey(k), `${k}.window`, `${k} needs a fallback variant`);
+});
+
+test('every fallback variant pbKey can produce exists in BOTH languages', () => {
+  const I18N = require('./i18n-load.js');
+  for (const k of ['playback.note.start', 'playback.note.depth', 'playback.archnote',
+    'playback.prearch', 'playback.chip.partial']) {
+    assert.ok(I18N.en[`${k}.window`], `en is missing ${k}.window`);
+    assert.ok(I18N.es[`${k}.window`], `es is missing ${k}.window`);
+    assert.ok(!I18N.es[`${k}.window`].includes('—') && !I18N.en[`${k}.window`].includes('—'),
+      `em-dash in ${k}.window`);
+  }
+});
+
+test('the fallback wording never claims the missing stretch was simply never recorded', () => {
+  const I18N = require('./i18n-load.js');
+  assert.doesNotMatch(I18N.en['playback.prearch.window'], /never|no recorded frames/i);
+  assert.match(I18N.en['playback.note.depth.window'], /full archive/i,
+    'the note must point at the record that does hold the rest');
 });
 
 /* Long-range modes (v0.98.2). The archive is about 20 days deep and the chips now reach 90.

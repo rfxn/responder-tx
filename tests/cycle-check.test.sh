@@ -271,6 +271,86 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 16-20: the bounded compatibility view (v0.98.9) -------------------
+# data/history.json is now the newest COMPAT_WINDOW_DAYS of the record, not the record. The gate
+# has to allow that and still catch a fallback file that is stale, forked, or silently partial.
+setup
+seed_history() {  # $1 = how the fixture's data/history.json should be wrong (or "ok")
+    mkdir -p "$REPO/history/day"
+    python3 - "$REPO" "$1" <<'HISTPY'
+import hashlib, json, os, sys
+repo, mode = sys.argv[1], sys.argv[2]
+frames = [{"t": "2026-07-%02dT00:00:00Z" % d, "gauges": {"FX000": [1.0, 0]}} for d in range(11, 26)]
+days = []
+for f in frames:
+    day = f["t"][:10]
+    payload = json.dumps({"d": day, "frames": [f]}, separators=(",", ":")) + "\n"
+    open(os.path.join(repo, "history", "day", day + ".json"), "w").write(payload)
+    days.append({"d": day, "n": 1, "t0": f["t"], "t1": f["t"], "bytes": len(payload),
+                 "h": hashlib.sha256(payload.encode()).hexdigest()[:12]})
+gi = {"FX000": {"name": "Fixture", "lat": 30.0, "lon": -97.0}}
+json.dump({"generated": "2026-07-25T00:00:00Z", "format": 1, "frames": len(frames),
+           "gaugeIndex": gi, "days": days}, open(os.path.join(repo, "history", "index.json"), "w"))
+kept = frames[-8:]
+view = {"kind": "recent-window", "days": 7, "from": kept[0]["t"], "frames": len(kept),
+        "full": {"index": "history/index.json", "day": "history/day/YYYY-MM-DD.json",
+                 "frames": len(frames), "from": frames[0]["t"], "to": frames[-1]["t"]}}
+doc = {"generated": "2026-07-25T00:00:00Z", "view": view, "frames": kept, "gaugeIndex": gi}
+if mode == "undeclared":
+    doc.pop("view")
+elif mode == "stale":               # a window that is not recent: the prefix, not the tail
+    doc["frames"] = frames[:8]
+    doc["view"]["from"] = frames[0]["t"]
+elif mode == "forked":              # same length, one observation quietly different
+    doc["frames"] = [dict(f) for f in kept]
+    doc["frames"][3] = dict(doc["frames"][3], gauges={"FX000": [99.0, 4]})
+elif mode == "overclaims":          # declares a whole record no bigger than what it carries
+    doc["view"]["full"]["frames"] = len(kept)
+json.dump(doc, open(os.path.join(repo, "data", "history.json"), "w"))
+HISTPY
+}
+
+seed_history ok
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   data schemas' "$WORK/out"; then
+    pass "16 a bounded compatibility view that declares itself passes"
+else
+    fail "16 bounded view passes (rc=${A})"; cat "$WORK/out"
+fi
+
+seed_history undeclared
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'does not declare' "$WORK/out"; then
+    pass "17 a partial data/history.json that does NOT say so is rejected"
+else
+    fail "17 undeclared partial rejected (rc=${A})"; cat "$WORK/out"
+fi
+
+seed_history stale
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'not the tail' "$WORK/out"; then
+    pass "18 a recent-window claim over the OLDEST frames is rejected"
+else
+    fail "18 stale window rejected (rc=${A})"; cat "$WORK/out"
+fi
+
+seed_history forked
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'not the tail' "$WORK/out"; then
+    pass "19 a same-length view that disagrees with the record about an observation is rejected"
+else
+    fail "19 forked view rejected (rc=${A})"; cat "$WORK/out"
+fi
+
+seed_history overclaims
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'view.full says' "$WORK/out"; then
+    pass "20 a view whose pointer to the whole record understates it is rejected"
+else
+    fail "20 overclaiming view rejected (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CYCLE-CHECK IMMUNITY TESTS PASSED"

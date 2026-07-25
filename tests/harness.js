@@ -128,7 +128,7 @@ const EXPORTS = [
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
 const MAP_EXPORTS = EXPORTS.concat(['pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'pbGaugeNoteKey', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
-  'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel']);
+  'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey']);
 
 function buildBundle(files, exports) {
   const sources = files.map(read).join('\n;\n');

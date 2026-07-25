@@ -1,5 +1,53 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.9 · 2026-07-25 (the playback archive stops paying for itself twice)
+
+-- Changes --
+- [Change] data/history.json is now a bounded seven-day view of the playback
+           record instead of a copy of the whole thing. The chunked archive
+           under history/ has held the complete record since v0.98.1, but the
+           old whole-record file was still rewritten in full on every
+           15-minute cycle: 2.44 MB as a single line, 323 KB of git object per
+           cycle and about 29.6 MB a day, growing with the archive forever.
+           Bounded, it is 1.66 MB and 161 KB per cycle, and that number stays
+           put however deep the archive gets. Seven days was chosen to match a
+           range chip and the reconstruction floor, so the fallback file's
+           depth is not a third unrelated number
+- [Change] The bounded file says what it is. A new top-level "view" object,
+           emitted ahead of the frames so it is readable in a one-line file,
+           names the window, the frames it carries, the whole record's frame
+           count and start, and the path to the full archive. A partial file
+           that reads as a complete one is the failure this board keeps
+           having, so it is now impossible to publish one silently
+- [Change] Playback on the fallback file no longer claims the missing stretch
+           was never recorded. When the loaded file declares itself a window,
+           the archive-birth flash, the hatched pre-archive band, the range
+           chip titles and the timeline note all switch to fallback wording
+           that names the full archive instead of the board's birth, in
+           English and Spanish
+
+-- Bug Fixes --
+- [Fix] gen-crest-summary.py read the pre-archive reconstruction out of
+      data/history.json, which the bound would have emptied: 23 of 47 gauges
+      and every one of the 30 reconstruction-sourced peaks would have vanished
+      from the crest record, and seven surviving peaks would have moved to a
+      later, lower reading. It now reads the chunked archive, which is whole.
+      Verified byte-identical to the previous whole-record output before the
+      bound, and byte-identical again after it
+- [Fix] gen-history.py read its own previous output back as the record it
+      compares against, for the scope ratchet and to avoid re-fetching a fixed
+      reconstruction window from USGS and NWPS every cycle. Reading a bounded
+      file there would have put both on a file that no longer contains them,
+      so it now reads the chunked archive as well; data/history.json is a pure
+      output with no reader left in the pipeline
+- [Fix] cycle-check.sh asserted the compatibility view and the chunked record
+      hold the same frame count, which the bound breaks. It now asserts the
+      harder thing: the view must be an exact suffix of the reassembled
+      record, so a stale, forked or silently truncated fallback fails, and any
+      view shorter than the record must declare a window whose depth, first
+      frame, frame count and pointer to the full archive all agree with the
+      bytes actually carried
+
 ## v0.98.8 · 2026-07-25 (two guards that were not guarding)
 
 -- Bug Fixes --

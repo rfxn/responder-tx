@@ -46,13 +46,20 @@ is the union of two signals: presence in that archive (frames at/after roadsFrom
 and the record's own posted start/end window (the only signal before roadsFrom,
 which the client labels reconstructed rather than archived).
 
-The same published record also ships chunked under history/: history/index.json
-carries the gauge/road indexes plus one descriptor per UTC day, and
-history/day/YYYY-MM-DD.json carries that day's frames and nothing else. A day
-payload holds no build stamp, so a frozen day hashes identically every cycle;
-the index publishes that hash and the client puts it in the query string, which
-is what makes an immutable cache header on the day files a fact rather than a
-promise. data/history.json stays the whole-record compatibility view.
+The record publishes chunked under history/: history/index.json carries the
+gauge/road indexes plus one descriptor per UTC day, and history/day/YYYY-MM-DD.json
+carries that day's frames and nothing else. A day payload holds no build stamp, so
+a frozen day hashes identically every cycle; the index publishes that hash and the
+client puts it in the query string, which is what makes an immutable cache header
+on the day files a fact rather than a promise. That chunked record is the whole
+record and the only thing this script reads back.
+
+data/history.json is a bounded compatibility view for clients cached from before
+the chunk index existed: the newest COMPAT_WINDOW_DAYS of frames, the record's
+whole gauge/road index, and a top-level "view" object naming its depth and
+pointing at the full archive. Bounding it is what makes the per-cycle git cost
+constant instead of growing with archive depth; the "view" object is what keeps a
+partial file from reading as a complete one.
 """
 import bisect
 import datetime
@@ -78,6 +85,9 @@ CHUNK_INDEX_PATH = "history/index.json"
 CHUNK_DAY_DIR = "history/day"
 CHUNK_FORMAT = 1
 CHUNK_HASH_LEN = 12
+# data/history.json publishes this much of the tail. 7 matches a UI range chip and the
+# BACKFILL_FALLBACK_DAYS floor below, so the fallback file's depth is not a third number.
+COMPAT_WINDOW_DAYS = 7
 GAUGE_META_PATH = "data/gauge-meta.json"
 RECOVERED_DIR = "archive/recovered"
 NWPS_RESCUE_DIR = "archive/recovered/nwps-30d"
@@ -345,12 +355,57 @@ def project_display(frames, gauge_index, keep):
     return out, index, out_of_scope, len(gauge_index) - len(keep)
 
 
+def read_chunked_record():
+    """The whole published record, reassembled from history/index.json + history/day/. Raises
+    if the chunk set is unusable so the caller can fall back."""
+    with open(os.path.join(ROOT, CHUNK_INDEX_PATH), encoding="utf-8") as f:
+        idx = json.load(f)
+    frames = []
+    for day in (idx.get("days") or []):
+        with open(os.path.join(ROOT, CHUNK_DAY_DIR, "%s.json" % day["d"]), encoding="utf-8") as f:
+            frames.extend(json.load(f).get("frames") or [])
+    if not frames:
+        raise ValueError("chunk index lists no frames")
+    doc = {"frames": frames, "gaugeIndex": idx.get("gaugeIndex") or {}}
+    if idx.get("roadIndex"):
+        doc["roadIndex"] = idx["roadIndex"]
+    return doc
+
+
 def load_published():
+    """The previously published record. Read from the chunks, NOT from data/history.json: that
+    file is now a bounded tail, and the reconstruction this re-uses lives at the record's head,
+    so reading it here would re-pull the whole backfill window from upstream every cycle."""
+    try:
+        return read_chunked_record()
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"note: chunked record unreadable ({e}); reading {OUT_PATH} instead", file=sys.stderr)
     try:
         with open(os.path.join(ROOT, OUT_PATH), encoding="utf-8") as f:
             return json.load(f)
     except (OSError, ValueError):
         return {}
+
+
+def compat_view(frames):
+    """The bounded tail published as data/history.json, plus the object that declares it one.
+    Anchored on the newest frame rather than the clock, so a stalled cycle narrows nothing."""
+    if not frames:
+        return frames, None
+    cut = frames[-1]["_dt"] - datetime.timedelta(days=COMPAT_WINDOW_DAYS)
+    kept = [f for f in frames if f["_dt"] >= cut]
+    if len(kept) == len(frames):
+        return frames, None  # the record is younger than the window: the view IS the record
+    return kept, {
+        "kind": "recent-window",
+        "days": COMPAT_WINDOW_DAYS,
+        "from": kept[0]["t"],
+        "frames": len(kept),
+        "note": "Recent-window view, not the whole record. The full archive is %s plus %s/YYYY-MM-DD.json."
+                % (CHUNK_INDEX_PATH, CHUNK_DAY_DIR),
+        "full": {"index": CHUNK_INDEX_PATH, "day": "%s/YYYY-MM-DD.json" % CHUNK_DAY_DIR,
+                 "frames": len(frames), "from": frames[0]["t"], "to": frames[-1]["t"]},
+    }
 
 
 def peak_frame_indices(frames):
@@ -477,12 +532,15 @@ def emit_frame(f):
     return frame
 
 
-def serialize(frames, gauge_index, road_index=None, roads_from=None, retained=None, thinned=None):
-    out = {
-        "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+def serialize(frames, gauge_index, road_index=None, roads_from=None, retained=None, thinned=None,
+              view=None):
+    out = {"generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    if view:
+        out["view"] = view  # before frames on purpose: this file is one line, and the declaration must be readable
+    out.update({
         "frames": [emit_frame(f) for f in frames],
         "gaugeIndex": gauge_index,
-    }
+    })
     if road_index:
         out["roadIndex"] = road_index
         out["roadsFrom"] = roads_from
@@ -789,7 +847,9 @@ def main():
         thinned["backfillGapHours"] = 2
         payload = serialize(pub, pub_index, road_index, roads_from, retained, thinned)
 
-    write_atomic(os.path.join(ROOT, OUT_PATH), payload)
+    compat, view = compat_view(pub)
+    compat_payload = serialize(compat, pub_index, road_index, roads_from, retained, thinned, view)
+    write_atomic(os.path.join(ROOT, OUT_PATH), compat_payload)
 
     index_meta = {"gaugeIndex": pub_index}
     if road_index:
@@ -803,12 +863,15 @@ def main():
 
     n_backfill = sum(1 for f in pub if f.get("src") in ("usgs", "nwps"))
     n_recovered = sum(1 for f in pub if f.get("src") == "git")
-    print(f"history.json: {len(commits)} commits walked ({unreadable} unreadable, {empty} with no "
+    print(f"record: {len(commits)} commits walked ({unreadable} unreadable, {empty} with no "
           f"observation), retained {retained['frames']} frames / {retained['gauges']} gauges "
           f"({recovered} recovered from our own commits), published {len(pub)} frames / "
           f"{len(pub_index)} gauges ({n_backfill} reconstructed + {n_recovered} recovered), "
           f"{len(payload)} bytes ({len(payload) / 1024:.1f} KB)")
     print(f"  window {pub[0]['t']} → {pub[-1]['t']}")
+    print(f"compat view {OUT_PATH}: {len(compat)} frames / {len(compat_payload)} bytes "
+          f"({len(compat_payload) / 1024:.1f} KB)" +
+          (f", last {COMPAT_WINDOW_DAYS}d from {view['from']}" if view else ", whole record (younger than the window)"))
     print(f"chunks: {len(days)} UTC days under {CHUNK_DAY_DIR}/ ({chunks_written} rewritten, "
           f"{len(days) - chunks_written} unchanged, {chunks_removed} removed), "
           f"index {CHUNK_INDEX_PATH}, largest day {max(d['bytes'] for d in days) / 1024:.1f} KB")

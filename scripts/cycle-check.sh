@@ -255,11 +255,16 @@ if check_cursors; then pass "chat cursors (integer, <= inbox lines, no regressio
 # so generator/consumer drift fails the cycle instead of degrading silently
 check_schemas() {
     python3 - <<'EOF'
-import hashlib, json, os, sys
+import datetime, hashlib, json, os, sys
 
 
 def die(m):
     sys.exit(m)
+
+
+def parse_iso(s):
+    dt = datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    return dt if dt.tzinfo else dt.replace(tzinfo=datetime.timezone.utc)
 
 
 def optional(path):
@@ -298,7 +303,7 @@ if idx is not None:
         die("history/index.json: days[] missing or empty")
     if not isinstance(idx.get("gaugeIndex"), dict):
         die("history/index.json: gaugeIndex missing")
-    total = 0
+    record = []
     for i, day in enumerate(idx["days"]):
         miss = [k for k in ("d", "n", "t0", "t1", "h") if not day.get(k)]
         if miss:
@@ -315,11 +320,43 @@ if idx is not None:
         chunk = json.loads(raw.decode("utf-8"))
         if len(chunk.get("frames") or []) != day["n"]:
             die("%s holds %d frames, index claims %d" % (path, len(chunk.get("frames") or []), day["n"]))
-        total += day["n"]
-    if d is not None and total != len(d["frames"]):
-        die("chunked record holds %d frames, data/history.json holds %d" % (total, len(d["frames"])))
-    if d is not None and set(idx["gaugeIndex"]) != set(d["gaugeIndex"]):
-        die("history/index.json gaugeIndex disagrees with data/history.json gaugeIndex")
+        record += chunk["frames"]
+    total = len(record)
+
+    # data/history.json is the bounded compatibility view (v0.98.9). It is allowed to be shorter
+    # than the record, and NOT allowed to be a different record, to be stale, or to look whole.
+    if d is not None:
+        view = d.get("view") or {}
+        if set(idx["gaugeIndex"]) != set(d["gaugeIndex"]):
+            die("history/index.json gaugeIndex disagrees with data/history.json gaugeIndex")
+        if len(d["frames"]) > total:
+            die("data/history.json holds %d frames, the chunked record only %d" % (len(d["frames"]), total))
+        if record[-len(d["frames"]):] != d["frames"]:
+            die("data/history.json is not the tail of the chunked record; the two disagree about "
+                "what was observed, and the fallback would replay a different event")
+        if len(d["frames"]) < total:
+            if view.get("kind") != "recent-window":
+                die("data/history.json holds %d of the record's %d frames and does not declare "
+                    "itself a bounded view" % (len(d["frames"]), total))
+            days = view.get("days")
+            if not isinstance(days, int) or days <= 0:
+                die("data/history.json view.days is %r, not a positive day count" % (days,))
+            if view.get("from") != d["frames"][0]["t"] or view.get("frames") != len(d["frames"]):
+                die("data/history.json declares from=%s frames=%s but carries from=%s frames=%d"
+                    % (view.get("from"), view.get("frames"), d["frames"][0]["t"], len(d["frames"])))
+            full = view.get("full") or {}
+            if full.get("frames") != total or full.get("from") != record[0]["t"]:
+                die("data/history.json view.full says %s frames from %s, the record holds %d from %s"
+                    % (full.get("frames"), full.get("from"), total, record[0]["t"]))
+            if not full.get("index") or not os.path.exists(full["index"]):
+                die("data/history.json points at full archive %r, which is not on disk" % (full.get("index"),))
+            # the declared window must be the reason frames were dropped, not a coincidence
+            cut = parse_iso(record[-1]["t"]) - datetime.timedelta(days=days)
+            outside = [f["t"] for f in d["frames"] if parse_iso(f["t"]) < cut]
+            dropped = [f["t"] for f in record[:total - len(d["frames"])] if parse_iso(f["t"]) >= cut]
+            if outside or dropped:
+                die("data/history.json declares a %dd window but carries %d frames older than it "
+                    "and omits %d inside it" % (days, len(outside), len(dropped)))
     orphans = [n for n in os.listdir(os.path.join("history", "day"))
                if n.endswith(".json") and n[:-5] not in {day["d"] for day in idx["days"]}]
     if orphans:

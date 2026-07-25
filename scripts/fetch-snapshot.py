@@ -21,7 +21,7 @@ import time
 import urllib.error
 import urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "gauges-snapshot.json")
 CAPTURE_OUT = os.path.join(ROOT, "data", "gauges-capture.json")
 UA = "responder-tx-ops/fetch-snapshot (rfxnryan@gmail.com)"

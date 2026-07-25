@@ -9,6 +9,9 @@
 #   6 the test gate runs against HEAD (a red working tree cannot block a good deploy)
 #   7 a red suite at HEAD still blocks, and --skip-tests still bypasses
 #   8 no git worktree is leaked, on the success path or the failure path
+#   9 the strip gate reports the CDN edge, not just the origin (v0.98.10): every stripped path
+#     is asked for twice, and an edge still serving one warns by name without failing the deploy
+#  10 a stripped path still live at the ORIGIN is a release defect and still fails
 # A scratch git repo, a stub wrangler, and a local bare remote keep the real repo
 # and the real Pages project untouched. Run: bash tests/deploy.test.sh
 set -uo pipefail
@@ -212,6 +215,83 @@ if [ "$RC" -eq 0 ] && grep -q 'TEST GATE BYPASSED' "$WORK/run.out" && [ -s "$WOR
     pass "8 --skip-tests still bypasses a red HEAD suite (emergency flag intact)"
 else
     fail "8 --skip-tests emergency bypass (rc=${RC})"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 9-11: the post-deploy strip gate must measure what a browser gets -------------------
+# The gate asked for every stripped path with a cache-buster, which reaches the origin, and
+# reported the answer as if it were what a real client receives. Confirmed live on 2026-07-25:
+# https://respondertx.org/js/notes.js answered 404 with ?_cb= and 200 plain, because a zone-level
+# Cloudflare cache rule (max-age=14400) overrides this repo's _headers. The origin stays the
+# pass/fail condition (it is the only half a deploy controls); the edge is reported, never fatal.
+stub_network() {  # PATH stubs for the live-smoke step: curl answers per test, sleep never waits
+    cat > "$WORK/bin/curl" <<'SH'
+#!/bin/bash
+url="${!#}"  # last argument is the URL
+case "$url" in
+    *changelog.json*) printf '{"versions":[{"v":"%s"}]}\n' "${STUB_LIVE_VERSION:-v1.0.0}"; exit 0 ;;
+esac
+path="${url#https://respondertx.org/}"
+if [ "$path" = "${path%%\?*}" ]; then   # no cache-buster: this request reaches the CDN edge
+    for p in ${STUB_EDGE_200:-}; do
+        if [ "$p" = "$path" ]; then printf '200'; exit 0; fi
+    done
+    printf '404'; exit 0
+fi
+path="${path%%\?*}"                     # cache-busted: this request reaches the origin
+for p in ${STUB_ORIGIN_200:-}; do
+    if [ "$p" = "$path" ]; then printf '200'; exit 0; fi
+done
+printf '404'
+SH
+    printf '%s\n' '#!/bin/bash' 'exit 0' > "$WORK/bin/sleep"  # the gate's CDN-propagation backoff
+    chmod +x "$WORK/bin/curl" "$WORK/bin/sleep"
+}
+
+# $1 = paths the EDGE still serves, $2 = paths the ORIGIN still serves. Passed as arguments, not
+# as an env prefix: bash leaves a prefix assignment on a shell function set in the caller, and a
+# leaked STUB_EDGE_200 would silently make the clean-run test pass for the wrong reason.
+run_live_deploy() {
+    local old_path=$PATH rc
+    export STUB_EDGE_200="${1:-}" STUB_ORIGIN_200="${2:-}"
+    PATH="$WORK/bin:$PATH"
+    run_deploy --skip-tests
+    rc=$?
+    PATH="$old_path"
+    return "$rc"
+}
+
+setup
+stub_network
+run_live_deploy "js/notes.js" ""
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && grep -q 'STILL SERVING stripped paths' "$WORK/run.out" \
+   && grep -q 'js/notes.js (HTTP 200)' "$WORK/run.out" \
+   && grep -q 'zone-level Cloudflare cache' "$WORK/run.out" \
+   && grep -q 'OK: v1\.0\.0 live' "$WORK/run.out"; then
+    pass "9 an edge still serving a stripped path warns by name and does not fail the deploy"
+else
+    fail "9 edge-serving warning is surfaced, non-fatally (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+# MUTATION: the file is genuinely still in the deployment, not merely cached at the edge
+run_live_deploy "js/notes.js" "js/notes.js"
+RC=$?
+if [ "$RC" -ne 0 ] && grep -q 'live js/notes.js returned HTTP 200 from the origin' "$WORK/run.out"; then
+    pass "10 MUTATION · a stripped path still live at the ORIGIN still fails the deploy"
+else
+    fail "10 origin 200 must stay fatal (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+run_live_deploy "" ""
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && grep -q 'strip gate OK: origin and CDN edge both 404' "$WORK/run.out" \
+   && ! grep -q 'STILL SERVING' "$WORK/run.out"; then
+    pass "11 a clean edge and origin report one line and no warning"
+else
+    fail "11 clean strip gate reports both halves (rc=${RC})"; cat "$WORK/run.out"
 fi
 rm -rf "$WORK"
 

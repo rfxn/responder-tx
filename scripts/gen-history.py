@@ -74,7 +74,7 @@ import tempfile
 import time
 import urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAPTURE_PATH = "data/gauges-capture.json"
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
 EVENT_PATH = "data/event.json"

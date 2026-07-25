@@ -193,7 +193,7 @@ fi
 rm -rf "$WORK"
 
 # --- Test 9: the data cron actually asks for the immunity -------------------
-if grep -q 'cycle-check\.sh --code-from-head' "$REPO_ROOT/scripts/run-cycle.sh"; then
+if grep -qE 'cycle-check\.sh"? --code-from-head' "$REPO_ROOT/scripts/run-cycle.sh"; then
     pass "9 run-cycle.sh invokes cycle-check with --code-from-head"
 else
     fail "9 run-cycle.sh passes the flag"

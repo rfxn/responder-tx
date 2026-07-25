@@ -2,7 +2,8 @@
 # deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--allow-dirty-functions] — gate HEAD, build the stripped archive, deploy to Cloudflare Pages
 set -euo pipefail
 
-cd "$(dirname "$0")/.." || exit 1
+# RESPONDER_ROOT lets run-cycle.sh execute a committed copy of this script against the live repo
+cd "${RESPONDER_ROOT:-$(dirname "$0")/..}" || exit 1
 REPO_ROOT="$PWD"
 
 SKIP_LIVE=0
@@ -199,21 +200,47 @@ else
     done
     [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version} after ~2min (CDN propagation lag or deploy failure)"
 
+    # Two URLs per stripped path, because they answer two different questions. The cache-busted
+    # one reaches the origin and is the only one this deploy controls, so it stays the pass/fail
+    # condition. The plain one is what a browser actually gets, and a zone-level cache rule set in
+    # the Cloudflare dashboard (max-age=14400, overriding this repo's _headers) can keep serving a
+    # stripped asset from the edge for hours after the origin stopped having it. Asserting only on
+    # the cache-busted URL measured the origin while reporting on the browser.
+    edge_serving=()
     # an asset the previous deploy served keeps answering 200 for a few seconds after the new
     # manifest lands, so this retries like the changelog check above rather than failing on lag
     for stripped in js/chat.js js/master.js js/notes.js css/notes.css server.py scripts/deploy.sh; do
         stripped_ok=0
         for attempt in $(seq 1 6); do
             stripped_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/${stripped}?_cb=$(date +%s%N)") \
-                || fail "curl status check for live ${stripped} failed"
+                || fail "curl origin status check for live ${stripped} failed"
             if [ "$stripped_status" = "404" ]; then
                 stripped_ok=1
                 break
             fi
             if [ "$attempt" -lt 6 ]; then sleep 10; fi  # `[ ] &&` as the last body statement would trip set -e
         done
-        [ "$stripped_ok" -eq 1 ] || fail "live ${stripped} returned HTTP ${stripped_status}, expected 404"
+        [ "$stripped_ok" -eq 1 ] || fail "live ${stripped} returned HTTP ${stripped_status} from the origin, expected 404"
+
+        edge_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/${stripped}") \
+            || fail "curl edge status check for live ${stripped} failed"
+        [ "$edge_status" = "404" ] || edge_serving+=("${stripped} (HTTP ${edge_status})")
     done
+    if [ "${#edge_serving[@]}" -eq 0 ]; then
+        echo "strip gate OK: origin and CDN edge both 404 for every stripped path"
+    else
+        # never fatal: the zone cache rule is owner-gated dashboard config, not something a
+        # deploy can fix, and failing here would block shipping flood data over a stale asset
+        echo "##########################################################" >&2
+        echo "# WARNING: the CDN edge is STILL SERVING stripped paths: #" >&2
+        echo "##########################################################" >&2
+        for served in "${edge_serving[@]}"; do echo "#   ${served}" >&2; done
+        echo "# The origin returns 404 for each, so this deploy is correct and" >&2
+        echo "# the files are not in the artifact. A zone-level Cloudflare cache" >&2
+        echo "# rule (max-age=14400) overrides this repo's _headers, so a real" >&2
+        echo "# browser can keep receiving them for up to 4h. To clear it now," >&2
+        echo "# purge the zone cache in the Cloudflare dashboard." >&2
+    fi
 fi
 
 echo "OK: ${version} live"

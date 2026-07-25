@@ -1,9 +1,12 @@
 #!/bin/bash
-# run-cycle.sh [--dry-run] — durable 15-min data-refresh cycle.
+# run-cycle.sh [--dry-run] [--allow-dirty-code] — durable 15-min data-refresh cycle.
 # Fetch NWPS snapshot, regenerate roads/history/crest/notices/feeds/shelters/
 # caltopo, validate, then (unless --dry-run) commit the data files by name,
 # push, and deploy via deploy.sh. flock-serialized, idempotent, safe when
 # nothing changed.
+#
+# The pipeline CODE is read from HEAD, the DATA is the working tree's. See
+# scripts/README.md "The cycle runs committed code".
 #
 # One failing source does not stop the publish: generators are non-fatal and
 # the cycle ships whatever refreshed. See scripts/README.md "Partial publish".
@@ -12,10 +15,12 @@
 set -euo pipefail
 
 DRY_RUN=0
+ALLOW_DIRTY_CODE=0
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --dry-run)" >&2; exit 2 ;;
+        --allow-dirty-code) ALLOW_DIRTY_CODE=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --dry-run, --allow-dirty-code)" >&2; exit 2 ;;
     esac
 done
 
@@ -45,13 +50,17 @@ STEPS_OK=()
 STEPS_FAILED=()
 STEPS_SKIPPED=()
 
+# PIPE_ROOT is the tree the cycle's own code is read from; the data always lives in REPO_ROOT
+PIPE_ROOT="$REPO_ROOT"
+CODE_TMP=""
+
 # gen LABEL SCRIPT KEEP — run one generator, record the outcome, return its real status.
 # A failed generator leaves its previous output untouched, so that file keeps its own older
 # "generated" stamp and the board's freshness/aging/suppression machinery marks it stale by itself.
 gen() {
     local label=$1 script=$2 keep=$3
     log "step: ${script}"
-    if python3 "scripts/${script}"; then
+    if python3 "${PIPE_ROOT}/scripts/${script}"; then
         STEPS_OK+=("$label")
         return 0
     fi
@@ -68,6 +77,17 @@ skip() {
     log "SKIP: $2 not run ($3); keeping previous output and its older stamp"
 }
 
+# shellcheck disable=SC2317  # reached only via the EXIT trap set below
+drop_pipeline() {
+    rc=$?
+    if [ -n "$CODE_TMP" ]; then
+        cd "$REPO_ROOT" || exit "$rc"
+        git worktree remove --force "$CODE_TMP" >/dev/null 2>&1 || rm -rf "$CODE_TMP"  # remove is the clean path; rm covers a half-created worktree
+        git worktree prune >/dev/null 2>&1 || :  # a stale admin entry is cosmetic, never worth failing a cycle over
+    fi
+    exit "$rc"
+}
+
 # --- lock: one cycle at a time (session refresh + system cron share this file) ---
 LOCKFILE="${RESPONDER_CYCLE_LOCK:-/tmp/responder-cycle.lock}"
 exec 9>"$LOCKFILE"
@@ -77,6 +97,46 @@ if ! flock -n 9; then
 fi
 
 log "=== cycle start (dry_run=${DRY_RUN}) repo=${REPO_ROOT} ==="
+
+# --- Materialize HEAD's pipeline. This runs from cron every 15 minutes against a working tree an
+# agent may be mid-edit in, so executing the tree's generators publishes half-finished code as
+# production data; that happened three times in one night. Same fix as deploy.sh in v0.97.85: check
+# HEAD out to a throwaway worktree and run from there. Only scripts/ is materialized, because that
+# is the only code the cycle executes and a generator that ignored RESPONDER_ROOT would then fail
+# loudly on a missing data/ instead of quietly writing into a tree nobody publishes.
+if [ "$ALLOW_DIRTY_CODE" -eq 1 ]; then
+    log "##########################################################"
+    log "# WARNING: --allow-dirty-code set: THIS CYCLE RUNS THE"
+    log "# WORKING-TREE PIPELINE. Uncommitted scripts/ code will"
+    log "# generate, validate and COMMIT production data."
+    log "# This flag is for genuine field emergencies only."
+    log "##########################################################"
+else
+    dirty_scripts=$(git status --porcelain --untracked-files=all -- scripts/) || dirty_scripts=''
+    CODE_TMP=$(mktemp -d "${TMPDIR:-/tmp}/responder-pipeline.XXXXXX") || { log "ERROR: mktemp for the HEAD pipeline failed"; exit 1; }
+    trap drop_pipeline EXIT
+    # stdout only: git's progress chatter would repeat in the log every 15 minutes, stderr still speaks
+    if ! git worktree add --detach --no-checkout "$CODE_TMP" HEAD >/dev/null \
+       || ! git -C "$CODE_TMP" checkout HEAD -- scripts; then
+        log "ERROR: could not materialize HEAD scripts/ at ${CODE_TMP} (--allow-dirty-code runs the working tree instead)"
+        exit 1
+    fi
+    PIPE_ROOT="$CODE_TMP"
+    for entry in cycle-check.sh deploy.sh; do
+        [ -f "${PIPE_ROOT}/scripts/${entry}" ] || { log "ERROR: HEAD pipeline is missing scripts/${entry}"; exit 1; }
+    done
+    log "pipeline: HEAD $(git rev-parse --short HEAD) materialized at ${CODE_TMP}"
+    if [ -n "$dirty_scripts" ]; then
+        log "NOTE: scripts/ has uncommitted changes; this cycle runs HEAD instead. Commit the pipeline work, or pass --allow-dirty-code to run it:"
+        printf '%s\n' "$dirty_scripts"
+    fi
+fi
+
+# The code comes from HEAD; the DATA does not. Every generator resolves its paths through
+# RESPONDER_ROOT, so they read the live data/event.json and write data/, history/, feed.xml and
+# crests.ics into the real repo, which is what this cycle stages and commits. Re-targeting a live
+# event stays an edit to a data file, never a release.
+export RESPONDER_ROOT="$REPO_ROOT"
 
 if gen snapshot fetch-snapshot.py data/gauges-snapshot.json; then SNAPSHOT_FRESH=1; else SNAPSHOT_FRESH=0; fi
 
@@ -129,7 +189,7 @@ cycle_end() {
 
 # validation stays fatal: it gates whether the data on disk is publishable at all
 log "step: cycle-check.sh (validation)"
-bash scripts/cycle-check.sh --code-from-head
+bash "${PIPE_ROOT}/scripts/cycle-check.sh" --code-from-head
 
 if [ "$DRY_RUN" -eq 1 ]; then
     cycle_end "DRY-RUN OK: fetch + generators + validation composed; stopping before git/deploy"
@@ -189,7 +249,7 @@ log "step: git push origin main"
 git push origin main
 
 log "step: deploy.sh (push + CF Pages deploy + smoke)"
-if scripts/deploy.sh; then
+if bash "${PIPE_ROOT}/scripts/deploy.sh"; then
     log "deploy OK"
 else
     rc=$?

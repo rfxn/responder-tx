@@ -2,7 +2,9 @@
 # cycle-check.sh [--code-from-head] — pre-commit sanity bundle for the release cycle; runs all checks, reports each, exits non-zero if any fail
 set -euo pipefail
 
-cd "$(dirname "$0")/.." || exit 1
+# RESPONDER_ROOT lets run-cycle.sh execute a committed copy of this script against the live repo:
+# the script body comes from HEAD, the data it validates is still the working tree's
+cd "${RESPONDER_ROOT:-$(dirname "$0")/..}" || exit 1
 
 CODE_FROM_HEAD=0
 for arg in "$@"; do

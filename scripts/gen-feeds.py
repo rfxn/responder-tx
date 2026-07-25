@@ -13,7 +13,7 @@ import os
 import urllib.request
 import xml.sax.saxutils as sx
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = "https://respondertx.org"
 UA = "responder-tx-ops (rfxnryan@gmail.com)"
 

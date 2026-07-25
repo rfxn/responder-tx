@@ -1,5 +1,63 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.10 · 2026-07-25 (the data cycle runs committed code)
+
+-- Bug Fixes --
+- [Fix] scripts/run-cycle.sh ran the WORKING TREE's generators on a 15-minute
+      cron, so a half-finished pipeline edit became production data at the next
+      boundary. Three agents hit it in one night: an uncommitted gen-caltopo.py
+      published a crest export before its release commit landed, and an
+      uncommitted gen-history.py wrote a bounded data/history.json while the
+      committed validator still demanded the whole record, which failed the
+      05:53Z cycle and left the public mirror 30 minutes stale. The cycle now
+      checks HEAD out to a throwaway git worktree and runs the generators, the
+      validator and deploy.sh from there, the same fix deploy.sh got in
+      v0.97.85.
+- [Fix] The post-deploy strip gate asked for each stripped path with a cache
+      buster, which reaches the origin, then reported the answer as though it
+      were what a browser receives. It could not see that js/notes.js was
+      answering 404 cache-busted and 200 plain on respondertx.org, because a
+      zone-level Cloudflare cache rule (max-age=14400) overrides this repo's
+      _headers and keeps a stripped asset at the edge for up to four hours. The
+      gate now asks twice. An origin 404 stays the pass condition, since the
+      origin is the only half a deploy controls, and an edge still serving a
+      stripped path is named in a warning that does not fail the deploy: the
+      zone rule is dashboard configuration no deploy can fix, and blocking on
+      it would hold back flood data over a cached asset.
+
+-- Changes --
+- [Change] The cycle's CODE comes from HEAD, its DATA does not. Every generator
+           resolves its paths through RESPONDER_ROOT, the override gen-notices,
+           gen-shelters and gen-caltopo already carried and that
+           fetch-snapshot.py, gen-roads-snapshot.py, gen-history.py,
+           gen-crest-summary.py and gen-feeds.py now carry too, so a generator
+           executed out of the HEAD worktree still reads the live
+           data/event.json and still writes data/, history/, feed.xml and
+           crests.ics into the real repo. Re-targeting a live event stays an
+           edit to a data file, never a release. cycle-check.sh and deploy.sh
+           take the same variable for their working directory.
+- [Change] run-cycle.sh gains --allow-dirty-code for running an uncommitted
+           pipeline on purpose, the counterpart to deploy.sh's
+           --allow-dirty-functions and behind the same kind of loud banner.
+           Without it, a cycle that finds uncommitted work under scripts/ logs
+           the file list, says it is running HEAD instead, and carries on
+           publishing. run-cycle.sh itself is the one file still read from the
+           tree, because it is the bootstrap, and it names itself in that list
+           when it is the dirty one.
+
+-- New Features --
+- [New] Five regressions pin the new boundary in tests/run-cycle.test.sh, all
+      against a scratch repo with stub generators: a poisoned working-tree
+      generator cannot reach the data while HEAD's version still refreshes it,
+      --allow-dirty-code runs the poisoned one on purpose and says so, an
+      uncommitted data/event.json edit still takes effect on the next cycle, no
+      pipeline worktree is leaked, and every generator run-cycle.sh invokes is
+      statically asserted to honor RESPONDER_ROOT, because one that did not
+      would write its output into the throwaway tree and still report OK.
+      tests/deploy.test.sh adds a stub network and three strip-gate cases: an
+      edge still serving a stripped path, an origin still serving one, and a
+      clean run.
+
 ## v0.98.9 · 2026-07-25 (the playback archive stops paying for itself twice)
 
 -- Changes --

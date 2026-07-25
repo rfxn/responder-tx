@@ -19,7 +19,7 @@ suspended or mid-task).
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `cycle-check.sh` | Pre-commit validation bundle (JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard). |
-| `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. |
+| `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `chat-watchdog.sh` | **The stall watchdog** — build-capable auto-recovery when the in-session revival goes dark. See "Stall watchdog". |
@@ -46,11 +46,51 @@ Order (matches the manual per-cycle protocol):
 
 Properties:
 
+- **Committed code, working-tree data**: see below.
 - **`--dry-run`** runs the generators and validation and stops before any git/deploy — used to verify the pipeline composes.
 - **Idempotent / no empty commits** — if no data file changed vs `HEAD`, it skips commit/push/deploy.
 - **Partial publish** — see below. One failing source no longer blocks the whole publish.
 - **Validation stays fatal** — a `cycle-check.sh` failure aborts before commit, leaving the last-good published state intact. If `deploy.sh` fails *after* commit+push, the data is already durable in git/GitHub and the next cycle redeploys.
 - `set -euo pipefail`; every `cd` is guarded.
+
+### The cycle runs committed code (v0.98.10)
+
+The cron fires every 15 minutes against a working tree an agent may be mid-edit
+in. Running the tree's generators therefore published half-finished code as
+production data, and it caught three separate agents in one night: an
+uncommitted `gen-caltopo.py` published a crest export before its release commit
+landed, and an uncommitted `gen-history.py` wrote a bounded `data/history.json`
+while the committed validator still demanded the whole record, which failed the
+05:53Z cycle and left the public mirror 30 minutes stale.
+
+So the cycle materializes `HEAD` into a throwaway `git worktree` and runs the
+generators, `cycle-check.sh` and `deploy.sh` from there, the same fix
+`deploy.sh` itself got in v0.97.85. Only `scripts/` is checked out, because that
+is the only code the cycle executes.
+
+The split that makes this work is **code from HEAD, data from the working
+tree**. Every generator resolves its paths through `RESPONDER_ROOT`, which the
+cycle exports as the real repo root, so a generator running out of the
+throwaway tree still reads the live `data/event.json` and still writes `data/`,
+`history/`, `feed.xml` and `crests.ics` into the real repo. That is what keeps
+`data/event.json` a **data** file: re-targeting a live event takes effect on the
+very next cycle, with no commit and no release. `cycle-check.sh` takes the same
+variable, so its data lane still validates the working tree the cycle is about
+to commit and its staged-file guard still reads the real index.
+
+- A generator that ignored `RESPONDER_ROOT` would resolve its output into the
+  throwaway tree, publish nothing and still report OK. That failure is silent,
+  so `tests/run-cycle.test.sh` asserts statically that every generator the
+  cycle invokes honors the variable.
+- **`--allow-dirty-code`** runs the working-tree pipeline on purpose, the
+  counterpart to `deploy.sh --allow-dirty-functions`, behind a loud banner. Use
+  it when hand-testing an uncommitted generator against real data.
+- Without that flag, uncommitted work under `scripts/` is not silently ignored:
+  the cycle logs the file list, says it is running `HEAD` instead, and keeps
+  publishing.
+- `run-cycle.sh` itself is the one file still read from the working tree. It is
+  the bootstrap that materializes everything else, and it names itself in that
+  same dirty-file list when it is the one edited.
 
 ### Partial publish (one failing source does not block the rest)
 

@@ -289,3 +289,81 @@ test('the playback fast path and its deep link survive the control consolidation
   assert.ok(/\$\('#pb-pill'\)\.addEventListener\('click', togglePlayback\)/.test(pb), '#pb-pill must still toggle playback');
   assert.ok(/get\('playback'\) === '1'\) openPlayback\(\)/.test(read('js/boot.js')), '?playback=1 must still open playback');
 });
+
+/* ---------- crest provenance (v0.99.4) ---------- */
+/* gen-crest-summary rebuilds the pre-archive window from the upstream USGS/NWPS record and stamps
+   those rows with src. The lens printed one flat citation saying every stage was observed through
+   this board's own snapshot archive, which was true when the file held four rows and false for 30
+   of 47. v0.97.97 already drew this line for playback (playback.note.gauges.recon); the after-action
+   artifact and the CalTopo export people carry into the field now draw it too. */
+
+const { crestSourceCite, crestReconRows } = require('./harness.js').loadApp();
+const I18N_TBL = require('./i18n-load.js');
+
+const row = (lid, src) => (src ? { lid, peak_category: 'major', src } : { lid, peak_category: 'major' });
+
+test('crestSourceCite — a file with no reconstructed rows keeps the plain observed citation', () => {
+  assert.equal(crestSourceCite([row('A'), row('B')]), 'summary.source');
+  assert.equal(crestReconRows([row('A'), row('B')]), 0);
+});
+
+test('crestSourceCite — one reconstructed row is enough to change the claim', () => {
+  assert.equal(crestSourceCite([row('A'), row('B', 'usgs')]), 'summary.source.mixed');
+  assert.equal(crestReconRows([row('A'), row('B', 'usgs')]), 1);
+});
+
+test('crestSourceCite — absent or empty input never claims an observed source it does not have', () => {
+  assert.equal(crestSourceCite(null), 'summary.source');
+  assert.equal(crestSourceCite(undefined), 'summary.source');
+  assert.equal(crestReconRows(null), 0);
+});
+
+test('the mixed citation states both numbers, in both languages', () => {
+  for (const lang of ['en', 'es']) {
+    const s = I18N_TBL[lang]['summary.source.mixed'];
+    assert.ok(s, `${lang} missing summary.source.mixed`);
+    assert.ok(s.includes('{n}') && s.includes('{m}'), `${lang} summary.source.mixed lost a placeholder`);
+    assert.ok(!s.includes('—'), `em-dash in ${lang} summary.source.mixed`);
+  }
+  assert.notEqual(I18N_TBL.en['summary.source.mixed'], I18N_TBL.es['summary.source.mixed']);
+  for (const k of ['summary.recon', 'summary.recon.title']) {
+    for (const lang of ['en', 'es']) assert.ok(I18N_TBL[lang][k], `${lang} missing ${k}`);
+    assert.notEqual(I18N_TBL.en[k], I18N_TBL.es[k], `${k} was never actually translated`);
+  }
+});
+
+test('every crest surface reads the citation helper, none of them the flat observed string', () => {
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  assert.equal((panels.match(/crestSourceCite\(/g) || []).length, 4,
+    'the helper plus its three call sites: crest summary, recovery view, basin view');
+  const decl = panels.slice(panels.indexOf('function crestSourceCite'), panels.indexOf('function crestRowHtml'));
+  const elsewhere = panels.replace(decl, '');
+  assert.ok(!/t\('summary\.source'\)/.test(elsewhere),
+    "a crest surface still prints t('summary.source') directly instead of the helper");
+  const rowFn = panels.match(/function crestRowHtml\(g\)[\s\S]*?\n\}/);
+  assert.ok(rowFn, 'crestRowHtml() not found');
+  assert.match(rowFn[0], /g\.src \?/, 'crestRowHtml must read g.src, which it never did');
+  assert.match(rowFn[0], /t\('summary\.recon'\)/, 'a reconstructed row must carry its own badge');
+});
+
+test('the CalTopo export marks a reconstructed peak in its own title, notes and citation', () => {
+  const gen = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'gen-caltopo.py'), 'utf8');
+  const fn = gen.slice(gen.indexOf('def build_crests('), gen.indexOf('def alert_severity('));
+  assert.match(fn, /recon = c\.get\("src"\)/, 'build_crests must read the src stamp');
+  assert.match(fn, /RECONSTRUCTED peak/, 'the feature notes must say the peak was rebuilt');
+  assert.match(fn, /\(reconstructed\)/, 'the feature title must say so too, for a field import');
+  assert.match(fn, /reconstructed\)" /, 'the citation must not credit NOAA observation for a rebuilt peak');
+});
+
+test('data/crest-summary.json — the src stamp the UI now reads is really in the file', () => {
+  const p = path.join(__dirname, '..', 'data', 'crest-summary.json');
+  if (!fs.existsSync(p)) return; // absence-tolerant: older deploys shipped no crest summary
+  const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+  const rows = d.gauges || [];
+  for (const g of rows) {
+    if ('src' in g) assert.ok(typeof g.src === 'string' && g.src.length, `${g.lid} has an empty src stamp`);
+  }
+  // the generator's own source field already told the truth; the UI is what was not reading it
+  assert.match(String(d.source || ''), /reconstructed/i,
+    'crest-summary.json no longer declares its reconstructed window');
+});

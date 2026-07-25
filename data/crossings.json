@@ -1,6 +1,6 @@
 {
  "generated": "2026-07-17T22:32:41Z",
- "source": "Curator-maintained from official statements (county OEM / TxDOT / KUT). Verify current status before routing \u2014 conditions change fast.",
+ "source": "Curator-maintained from official statements (county OEM / TxDOT / KUT). Verify current status before routing; conditions change fast.",
  "crossings": [
   {
    "id": "x-us90-sabinal",
@@ -18,7 +18,7 @@
    "lat": 29.205,
    "lon": -99.901,
    "status": "caution",
-   "reason": "Reopened after earlier closure; intermittent high water \u2014 verify before crossing",
+   "reason": "Reopened after earlier closure; intermittent high water, verify before crossing",
    "updated_at": "2026-07-17T21:48:39Z",
    "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
   },
@@ -28,7 +28,7 @@
    "lat": 30.0805,
    "lon": -99.1735,
    "status": "closed",
-   "reason": "Guadalupe/Goat Creek evacuation area \u2014 crossing under water",
+   "reason": "Guadalupe/Goat Creek evacuation area; crossing under water",
    "updated_at": "2026-07-17T21:48:39Z",
    "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
   },
@@ -48,7 +48,7 @@
    "lat": 29.129,
    "lon": -100.018,
    "status": "longterm",
-   "reason": "Bridge section WASHED OUT \u2014 impassable, long-term closure; Uvalde\u2194Eagle Pass detour via US 90/US 57",
+   "reason": "Bridge section WASHED OUT: impassable, long-term closure; Uvalde to Eagle Pass detour via US 90/US 57",
    "updated_at": "2026-07-17T22:32:41Z",
    "source": "https://spectrumlocalnews.com/tx/south-texas-el-paso/news/2026/07/17/parts-of-texas-face-threats-of-dangerous-flooding"
   }

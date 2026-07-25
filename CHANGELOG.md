@@ -1,5 +1,50 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.4 · 2026-07-25 (three surfaces stop claiming more than they know)
+
+-- Bug Fixes --
+- [Fix] The crest summary said every peak was an observed stage read from this
+      board's own snapshot archive. 30 of its 47 rows were rebuilt from the
+      upstream USGS/NWPS record for the window before that archive begins.
+      gen-crest-summary already stamped those rows with src and the file's own
+      source field already said so; the lens printed a flat citation instead.
+      A reconstructed row now carries its own badge, and the citation states
+      how many of how many were rebuilt
+- [Fix] The same distinction reaches the CalTopo export, where it matters
+      most: a reconstructed crest names itself in its title, in its notes and
+      in its citation, so a crew that scans the code and imports the file in
+      the field learns it without visiting the site
+- [Fix] The open-shelter count never read a curated shelter's status. The
+      filter short-circuited on a shelter not being live, so a curated entry
+      counted as open whatever its status said. v0.98.0 fixed this for the
+      live NSS feed only; both paths now read status through one predicate,
+      and a curated entry with no status reads unknown rather than open
+- [Fix] The curated shelter list is aged against its own generated stamp, with
+      a 72h window. Past that the entries stay on the list and on the map with
+      their dates shown, and stop being counted as open; the strip chip says
+      the count is live-feed-only rather than letting the number quietly drop
+- [Fix] The live shelter feed's updated stamp headed the curated list as well
+      as its own, dating a hand-kept record with the feed's clock. Each block
+      now carries its own header, and a live feed that returns nothing says
+      that instead of appearing to vouch for the curated entries
+- [Fix] Curated shelters render their status and source badge on the card and
+      in the map popup; they previously rendered no status field at all
+- [Fix] The Roads badge counted every non-open crossing with no aging gate,
+      sitting beside Alerts and Gauges counts that both suppress a sensor they
+      cannot vouch for. It now counts only closures re-confirmed inside the
+      existing 12h window; the rest stay on the list and on the map, the panel
+      says how many were excluded, and their markers are dashed and dimmed
+      instead of reading as current
+
+-- Changes --
+- [Change] Curated low-water-crossing text drops its em-dashes, per the
+           punctuation rule that already governs the app's own strings
+- [Change] The v0.98.0 shelter-count test asserted that the string "=== 'open'"
+           appears in the counter, which the short-circuit satisfied while
+           counting curated entries regardless of status. It now asserts the
+           reading rather than its spelling, and that the short-circuit stays
+           gone
+
 ## v0.99.3 · 2026-07-25 (the life-safety cues speak Spanish)
 
 -- Bug Fixes --

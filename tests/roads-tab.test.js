@@ -98,7 +98,12 @@ test('shelters and hotlines are promoted out of position 6 of 8', () => {
   assert.match(panels, /const shelterChip = shelters > 0/, 'the chip must be count-gated');
   const count = panels.match(/function openShelterCount\(\)[\s\S]*?\n\}/);
   assert.ok(count, 'openShelterCount() not found');
-  assert.match(count[0], /=== 'open'/, 'standby, full, closed and unknown must not read as open');
+  // v0.98.0 asserted `=== 'open'` appears here, which the `!sh.live ||` short-circuit satisfied
+  // while counting every curated entry regardless of status. Assert the reading, not its spelling.
+  assert.match(count[0], /shelterOpen\(sh\)/, 'both paths must read status through shelterOpen()');
+  assert.ok(!/!sh\.live \|\|/.test(count[0]),
+    'the !sh.live short-circuit counted curated entries whatever their status');
+  assert.match(count[0], /curatedSheltersStale/, 'the curated list must be aged against its own stamp');
   assert.match(count[0], /mergeShelters/, 'the chip must count the same merged list the sheet renders');
   assert.ok(!/fetch\(/.test(count[0]), 'the chip must not introduce a new fetch');
   // shelters are help, not a hazard: they must never suppress the all-clear line
@@ -171,4 +176,58 @@ test('i18n: every string this release introduced exists in both languages', () =
     }
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
+});
+
+/* ---------- crossing staleness (v0.99.4) ---------- */
+/* #roads-count summed every non-open crossing with no aging gate, sitting beside Alerts and Gauges
+   counts that both suppress a sensor they cannot vouch for. data/crossings.json was eight days old
+   and the badge read 5. Per-row staleness already existed; the badge made the claim before the
+   qualification was reachable. */
+
+const { loadApp } = require('./harness.js');
+const { crossingStale, crossingAgeH, CROSSING_STALE_H } = loadApp();
+
+const xAgo = (h, status) => ({ status: status || 'closed', updated_at: new Date(Date.now() - h * 3600000).toISOString() });
+const roadsBadgeCount = (list) => list.filter((c) => c.status !== 'open').filter((c) => !crossingStale(c)).length;
+
+test('crossingStale — the window is the same CROSSING_STALE_H the row note already used', () => {
+  assert.equal(CROSSING_STALE_H, 12);
+  assert.equal(crossingStale(xAgo(CROSSING_STALE_H - 1)), false);
+  assert.equal(crossingStale(xAgo(CROSSING_STALE_H + 1)), true);
+});
+
+test('crossingAgeH — a crossing with no updated_at can never be vouched for', () => {
+  assert.equal(crossingAgeH({ status: 'closed' }), Infinity);
+  assert.equal(crossingStale({ status: 'closed' }), true);
+  assert.equal(crossingAgeH({ status: 'closed', updated_at: 'not-a-date' }), Infinity);
+});
+
+test('the Roads badge counts only closures the board can still vouch for', () => {
+  const list = [xAgo(1), xAgo(2, 'caution'), xAgo(200), xAgo(200, 'longterm'), xAgo(1, 'open')];
+  assert.equal(list.filter((c) => c.status !== 'open').length, 4, 'four non-open crossings in the fixture');
+  assert.equal(roadsBadgeCount(list), 2, 'the two unconfirmed ones must not inflate the badge');
+});
+
+test('an all-stale crossing file yields a badge of zero, and the rows still exist to explain it', () => {
+  const list = [xAgo(190), xAgo(200, 'caution')];
+  assert.equal(roadsBadgeCount(list), 0);
+  assert.equal(list.filter(crossingStale).length, 2, 'nothing is dropped from the list itself');
+});
+
+test('renderCrossings surfaces the suppressed count instead of letting it vanish', () => {
+  const panels = read('js/panels.js');
+  const fn = panels.match(/function renderCrossings\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderCrossings() not found');
+  assert.match(fn[0], /badge\.textContent = String\(hazards\.length - unconfirmed\)/,
+    'the badge must exclude unconfirmed closures');
+  assert.match(fn[0], /t\('cross\.unconfirmed'\)/, 'the panel must say how many were excluded');
+  assert.match(fn[0], /crossing-icon\$\{stale \? ' unconfirmed' : ''\}/,
+    'a stale crossing marker must be visually distinct from a current one');
+  for (const lang of ['en', 'es']) {
+    assert.ok(I18N[lang]['cross.unconfirmed'], `${lang} missing cross.unconfirmed`);
+    assert.ok(I18N[lang]['cross.unconfirmed'].includes('{n}') && I18N[lang]['cross.unconfirmed'].includes('{h}'),
+      `${lang} cross.unconfirmed lost a placeholder`);
+  }
+  const css = read('css/app.css');
+  assert.match(css, /\.crossing-icon\.unconfirmed \{/, 'the unconfirmed marker style is missing');
 });

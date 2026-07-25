@@ -177,12 +177,20 @@ def build_crests(crest, snapshot, capture):
         if isinstance(rec.get("record_ft"), (int, float)):
             lines.append(f"Record: {rec['record_ft']} ft ({rec.get('record_date')})"
                          + (" · EXCEEDED" if rec.get("exceeded") else ""))
+        # a peak the board rebuilt from the upstream record must not import as one it observed
+        recon = c.get("src")
+        if recon:
+            lines.append(f"RECONSTRUCTED peak: rebuilt from the {str(recon).upper()} record for the window "
+                         "before this board's own archive begins, not read from a snapshot it captured")
+        cite = (f"{str(recon).upper()} record via Responder TX crest summary (reconstructed) · "
+                f"{SITE}/data/crest-summary.json") if recon else \
+               f"NOAA NWS/NWPS via Responder TX crest summary · {SITE}/data/crest-summary.json"
         out.append(feature(
             "folder-crests", "Crests (event peaks)",
             ring(lat, lon),
-            f"Crest: {c.get('name') or c.get('lid')} · peak {c.get('peak')} {c.get('unit') or 'ft'}",
-            desc(lines, f"NOAA NWS/NWPS via Responder TX crest summary · {SITE}/data/crest-summary.json",
-                 c.get("peak_time")),
+            f"Crest: {c.get('name') or c.get('lid')} · peak {c.get('peak')} {c.get('unit') or 'ft'}"
+            + (" (reconstructed)" if recon else ""),
+            desc(lines, cite, c.get("peak_time")),
             {"stroke": CAT_COLOR.get(cat, CAT_NONE), "stroke-width": 2, "stroke-opacity": 0.9,
              "fill": CAT_COLOR.get(cat, CAT_NONE), "fill-opacity": 0.08},
             extra={"lid": c.get("lid")}, rank=8))

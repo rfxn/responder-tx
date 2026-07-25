@@ -90,3 +90,72 @@ test('shelters-live.json — schema holds when the poller output is present', ()
     assert.ok(Number.isFinite(s.lat) && Number.isFinite(s.lon));
   }
 });
+
+/* ---------- curated-shelter aging (v0.99.4) ---------- */
+/* The chip read `!sh.live || status === 'open'`, so the `!sh.live` short-circuit counted every
+   curated entry regardless of its status, and nothing aged the curated list against its own
+   generated stamp. data/resources.json was six days old and read as ten currently-open shelters. */
+
+const { openShelterCount, unconfirmedShelterCount, curatedSheltersStale, curatedShelterAgeH,
+  SHELTER_CURATED_STALE_H, shelterOpen, state } = loadApp();
+
+const hoursAgo = (h) => new Date(Date.now() - h * 3600000).toISOString();
+function setShelters(curatedList, generatedIso, liveList) {
+  state.resources = { generated: generatedIso, shelters: curatedList };
+  state.sheltersLive = liveList ? { generated: hoursAgo(0), shelters: liveList } : null;
+}
+
+test('openShelterCount — a curated shelter marked closed is not counted', () => {
+  setShelters([{ name: 'A', status: 'open' }, { name: 'B', status: 'closed' }], hoursAgo(1));
+  assert.equal(openShelterCount(), 1);
+});
+
+test('openShelterCount — curated standby, full and unknown never read as open', () => {
+  for (const st of ['standby', 'full', 'unknown', '', undefined]) {
+    setShelters([{ name: 'A', status: st }], hoursAgo(1));
+    assert.equal(openShelterCount(), 0, `status ${String(st)} counted as open`);
+  }
+});
+
+test('openShelterCount — a curated list past its confirmation window stops being counted', () => {
+  const open3 = [{ name: 'A', status: 'open' }, { name: 'B', status: 'open' }, { name: 'C', status: 'open' }];
+  setShelters(open3, hoursAgo(SHELTER_CURATED_STALE_H - 1));
+  assert.equal(openShelterCount(), 3, 'inside the window the curated list still counts');
+  setShelters(open3, hoursAgo(SHELTER_CURATED_STALE_H + 1));
+  assert.equal(openShelterCount(), 0, 'past the window a hand-kept list is a record, not a status');
+});
+
+test('openShelterCount — the live feed is never suppressed by the curated list going stale', () => {
+  setShelters([{ name: 'A', status: 'open' }], hoursAgo(SHELTER_CURATED_STALE_H + 48),
+    [{ name: 'Live One', status: 'OPEN', lat: 29, lon: -99 }]);
+  assert.equal(openShelterCount(), 1, 'the live OPEN entry must survive');
+  assert.equal(unconfirmedShelterCount(), 1, 'and the suppressed curated entry must still be reported');
+});
+
+test('unconfirmedShelterCount — nothing is reported unconfirmed while the list is inside its window', () => {
+  setShelters([{ name: 'A', status: 'open' }], hoursAgo(1));
+  assert.equal(unconfirmedShelterCount(), 0);
+  assert.equal(curatedSheltersStale(), false);
+});
+
+test('curatedShelterAgeH — a resources file with no generated stamp is treated as unconfirmable', () => {
+  setShelters([{ name: 'A', status: 'open' }], undefined);
+  assert.equal(curatedShelterAgeH(), Infinity);
+  assert.equal(curatedSheltersStale(), true);
+  assert.equal(openShelterCount(), 0, 'an undated curated list cannot support an open claim');
+});
+
+test('shelterOpen — status matching is case-insensitive and null-safe', () => {
+  assert.ok(shelterOpen({ status: 'OPEN' }));
+  assert.ok(shelterOpen({ status: 'Open' }));
+  assert.equal(shelterOpen({}), false);
+  assert.equal(shelterOpen({ status: null }), false);
+});
+
+test('data/resources.json — every curated shelter carries a status the renderer can read', () => {
+  const r = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'resources.json'), 'utf8'));
+  assert.ok(r.generated, 'resources.json must carry a generated stamp to age its own claim');
+  for (const s of r.shelters || []) {
+    assert.ok(typeof s.status === 'string' && s.status.length, `${s.name} has no status`);
+  }
+});

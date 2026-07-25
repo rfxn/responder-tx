@@ -126,6 +126,12 @@ const EXPORTS = [
   'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges',
 ];
 
+// panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay
+// out of MAP_EXPORTS or the map bundle fails to resolve them
+const PANEL_EXPORTS = ['openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',
+  'curatedShelterAgeH', 'SHELTER_CURATED_STALE_H', 'shelterOpen',
+  'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H'];
+
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
 const MAP_EXPORTS = EXPORTS.concat(['CAM_LEGACY_PARAMS', 'pbLiveHideAll', 'pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'pbGaugeNoteKey', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
@@ -147,7 +153,7 @@ let cached = null;
 // Load the app's pure logic once and return the exported symbols.
 // playback.js precedes sources.js/board.js as in index.html (their pb* calls are runtime-only).
 function loadApp() {
-  if (!cached) cached = buildBundle(['core.js', 'usng.js', 'playback.js', 'sources.js', 'cameras.js', 'panels.js', 'board.js'], EXPORTS);
+  if (!cached) cached = buildBundle(['core.js', 'usng.js', 'playback.js', 'sources.js', 'cameras.js', 'panels.js', 'board.js'], EXPORTS.concat(PANEL_EXPORTS));
   return cached;
 }
 

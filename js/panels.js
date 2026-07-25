@@ -284,10 +284,23 @@ function crestRecordHtml(g) {
   return `<div class="sum-rec${cls}">⚑ ${esc(t('summary.rec.record'))} ${fmtNum(r.record_ft)} ft (${esc(year)}) · ${esc(rel)}</div>`;
 }
 
+/* The crest file mixes peaks this board read from its own committed snapshots with peaks rebuilt
+   from the upstream USGS/NWPS record for the window before that archive begins. gen-crest-summary
+   marks the rebuilt ones with src; an after-action artifact has to carry the distinction. */
+const crestReconRows = (rows) => (Array.isArray(rows) ? rows : []).filter((g) => g.src).length;
+
+function crestSourceCite(rows) {
+  const n = crestReconRows(rows);
+  return n
+    ? t('summary.source.mixed').replace('{n}', n).replace('{m}', rows.length)
+    : t('summary.source');
+}
+
 function crestRowHtml(g) {
   const cat = g.peak_category;
   const badges =
     `<span class="badge" style="border-color:var(--cat-${esc(cat)});color:var(--cat-${esc(cat)});font-weight:700">${esc(cat.toUpperCase())}</span>` +
+    (g.src ? ` <span class="badge stale-note" title="${esc(t('summary.recon.title'))}">⟲ ${esc(t('summary.recon'))}</span>` : '') +
     (g.stale ? ` <span class="badge stale-note">⏱ ${esc(t('summary.stale'))}</span>` : '') +
     (g.ongoing ? ` <span class="badge" style="border-color:var(--good);color:var(--good)">${esc(t('summary.ongoing'))}</span>` : '');
   const windowEnd = g.last_in_flood === 'ongoing' ? esc(t('summary.ongoing')) : esc(fmtCT(g.last_in_flood));
@@ -346,7 +359,7 @@ async function openCrestSummary() {
     '<div class="sum-head">' +
     `<div class="sum-event">${esc(t('summary.event'))} ${esc(d.event || '')} · ${esc(t('summary.generated'))} ${esc(fmtCT(d.generated))}</div>` +
     `<div class="sum-sub">${esc(t('summary.sub'))}</div>` +
-    `<div class="sum-cite">${esc(t('summary.source'))}${w.first ? ` · ${esc(fmtCT(w.first))} → ${esc(fmtCT(w.last))}` : ''}</div>` +
+    `<div class="sum-cite">${esc(crestSourceCite(d.gauges))}${w.first ? ` · ${esc(fmtCT(w.first))} → ${esc(fmtCT(w.last))}` : ''}</div>` +
     '</div>' +
     `<table class="sum-table"><thead><tr><th>${esc(t('summary.col.gauge'))}</th><th>${esc(t('summary.col.peak'))}</th><th>${esc(t('summary.col.when'))}</th><th>${esc(t('summary.col.window'))}</th></tr></thead>` +
     `<tbody>${d.gauges.map(crestRowHtml).join('')}</tbody></table>`;
@@ -417,7 +430,7 @@ function renderRecoveryBody(crest) {
     '</div>';
 
   const gaugeItems = falling.concat(receded).map(recoveryGaugeRowHtml).join('');
-  const gaugeCite = `<div class="sum-cite">${esc(t('summary.source'))}</div>`;
+  const gaugeCite = `<div class="sum-cite">${esc(crestSourceCite(rows))}</div>`;
 
   const reo = reopenedRoads();
   const freshReo = reo.fresh.filter(reopenIsFlood);
@@ -429,8 +442,7 @@ function renderRecoveryBody(crest) {
   const res = state.resources || {};
   const shelters = mergeShelters(res.shelters || [], state.sheltersLive && state.sheltersLive.shelters);
   const shlSrcUrl = shlLiveSrcUrl();
-  const shelterItems = shlLiveUpdatedHtml() +
-    shelters.map((s) => (s.live ? liveShelterHtml(s, shlSrcUrl) : curatedShelterHtml(s))).join('');
+  const shelterItems = shelterListHtml(shelters, shlSrcUrl);
 
   const recMatch = allRequests().filter((r) => RECOVERY_NOTICE_RE.test(noticeText(r)));
   const recFresh = recMatch.filter((r) => !cardAged(r));
@@ -596,7 +608,7 @@ function renderBasinBody() {
     (sel.coastal ? '' : `<div class="basin-dir">${esc(t('basin.updown'))}</div>`) +
     infos.map((x, i) => basinGaugeRowHtml(x, i === frontIdx)).join('') +
     `<div class="rcv-note">${esc(caveat)}</div>` +
-    `<div class="sum-cite">${esc(t('summary.source'))}</div>`;
+    `<div class="sum-cite">${esc(crestSourceCite(state.basinCrest && state.basinCrest.gauges))}</div>`;
 
   if (state.basinFramedSlug !== sel.slug) {
     state.basinFramedSlug = sel.slug;
@@ -797,14 +809,55 @@ function liveShelterHtml(s, srcUrl) {
     `<div class="addr">${esc(s.address || '')}${meta.length ? ` · ${esc(meta.join(' · '))}` : ''} · ${esc(t('shl.livesrc'))} <a href="${esc(safeUrl(srcUrl))}" target="_blank" rel="noopener">src</a></div></div>`;
 }
 
-const curatedShelterHtml = (s) =>
-  `<div class="resource-item"><strong>${esc(s.name)}</strong><div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`;
+/* The curated list is hand-maintained from official statements and carries no live feed behind it,
+   so its own generated stamp is the only thing that can date the claim. Past this window the board
+   still shows every entry, it just stops counting them as currently open. */
+const SHELTER_CURATED_STALE_H = 72;
+const curatedShelterAgeH = () => {
+  const gen = state.resources && state.resources.generated;
+  const ms = gen ? Date.now() - new Date(gen).getTime() : NaN;
+  return Number.isFinite(ms) ? ms / 3600000 : Infinity;
+};
+const curatedSheltersStale = () => curatedShelterAgeH() > SHELTER_CURATED_STALE_H;
+
+function curatedShelterHtml(s) {
+  const st = shlStatus(s.status);
+  const unconf = curatedSheltersStale()
+    ? ` · <span class="xg-stale">${esc(t('shl.curated.unconf').replace('{h}', Math.round(curatedShelterAgeH())))}</span>` : '';
+  return `<div class="resource-item"><strong style="color:${st.color}">🏠 ${esc(st.label)}</strong>: <strong>${esc(s.name)}</strong> ${srcBadge('curated')}` +
+    `<div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)}${unconf} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`;
+}
 
 const shlLiveSrcUrl = () => (state.sheltersLive && state.sheltersLive.source && state.sheltersLive.source.url) || 'https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0';
 
-const shlLiveUpdatedHtml = () => (state.sheltersLive && state.sheltersLive.generated
-  ? `<div class="resource-item" style="border-bottom:none;font-size:12px;color:var(--ink-2)">${esc(t('shl.livefeed'))} · ${esc(t('word.updated').toLowerCase())} ${esc(fmtWhen(state.sheltersLive.generated))}</div>`
-  : '');
+const shlNoteHtml = (body) => `<div class="resource-item" style="border-bottom:none;font-size:12px;color:var(--ink-2)">${body}</div>`;
+
+// heads the LIVE block only; it used to sit above the curated list too, dating a hand-kept
+// record with the feed's clock
+const shlLiveUpdatedHtml = () => {
+  const live = state.sheltersLive;
+  if (!live || !live.generated) return '';
+  const when = fmtWhen(live.generated);
+  return (live.shelters || []).length
+    ? shlNoteHtml(`${esc(t('shl.livefeed'))} · ${esc(t('word.updated').toLowerCase())} ${esc(when)}`)
+    : shlNoteHtml(esc(t('shl.live.none').replace('{t}', when)));
+};
+
+const shlCuratedHeadHtml = () => {
+  const gen = state.resources && state.resources.generated;
+  if (!gen) return '';
+  const stale = curatedSheltersStale()
+    ? ` · <span class="xg-stale">${esc(t('shl.curated.stale').replace('{h}', Math.round(curatedShelterAgeH())))}</span>` : '';
+  return shlNoteHtml(`${esc(t('shl.curated'))} · ${esc(t('shl.curated.asof').replace('{t}', fmtWhen(gen)))}${stale}`);
+};
+
+// live entries first (mergeShelters already orders them), each block under its own dated header
+const shelterListHtml = (shelters, srcUrl) => {
+  const live = shelters.filter((s) => s.live);
+  const curated = shelters.filter((s) => !s.live);
+  return shlLiveUpdatedHtml() + live.map((s) => liveShelterHtml(s, srcUrl)).join('') +
+    (curated.length ? shlCuratedHeadHtml() + curated.map(curatedShelterHtml).join('') : '');
+};
 
 function renderResources() {
   const r = state.resources;
@@ -815,8 +868,7 @@ function renderResources() {
   const shelters = mergeShelters(r.shelters, liveShl && liveShl.shelters);
   const shlSrcUrl = shlLiveSrcUrl();
   el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
-    shlLiveUpdatedHtml() +
-    shelters.map((s) => (s.live ? liveShelterHtml(s, shlSrcUrl) : curatedShelterHtml(s))).join('') +
+    shelterListHtml(shelters, shlSrcUrl) +
     `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
     r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('');
   // outbound source and recovery links are pointers off the board, so they ride the share surface
@@ -845,19 +897,36 @@ function renderResources() {
         `<div class="popup-meta">${esc(t('shl.livefeed'))}</div>` +
         `<div class="popup-link"><a href="${esc(safeUrl(shlSrcUrl))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>`);
     } else {
-      m.bindPopup(`<div class="popup-title">🏠 ${esc(s.name)}</div><div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div><div class="popup-meta">${esc(t('shl.approx'))}</div>`);
+      const st = shlStatus(s.status);
+      m.bindPopup(`<div class="popup-title">🏠 <span style="color:${st.color}">${esc(st.label)}</span> · ${esc(s.name)} ${srcBadge('curated')}</div>` +
+        `<div class="popup-meta">${esc(s.address)}</div><div>${esc(s.note)}</div>` +
+        `<div class="popup-meta">${esc(t('shl.curated'))} · ${esc(t('shl.curated.asof').replace('{t}', fmtWhen((state.resources || {}).generated)))}</div>` +
+        (curatedSheltersStale() ? `<div class="popup-meta"><span class="xg-stale">${esc(t('shl.curated.stale').replace('{h}', Math.round(curatedShelterAgeH())))}</span></div>` : '') +
+        `<div class="popup-meta">${esc(t('shl.approx'))}</div>`);
     }
     state.layers.shelters.addLayer(m);
   }
 }
 
-// count only sites currently listed as open; standby, full, closed and unknown must never read as open
+// count only sites currently listed as open; standby, full, closed and unknown must never read as
+// open, on the curated path as well as the live one, and a curated list past its confirmation
+// window is a record of the past rather than a status the board can assert
+const shelterOpen = (sh) => String(sh.status || '').toLowerCase() === 'open';
 function openShelterCount() {
   const r = state.resources;
   if (!r) return 0;
   const live = state.sheltersLive;
+  const stale = curatedSheltersStale();
   return mergeShelters(r.shelters, live && live.shelters)
-    .filter((sh) => !sh.live || String(sh.status || '').toLowerCase() === 'open').length;
+    .filter((sh) => (sh.live || !stale) && shelterOpen(sh)).length;
+}
+
+// entries the board is still listing but can no longer call open; the chip says so rather than
+// letting a suppressed count read as "no shelters"
+function unconfirmedShelterCount() {
+  const r = state.resources;
+  if (!r || !curatedSheltersStale()) return 0;
+  return (r.shelters || []).filter(shelterOpen).length;
 }
 
 /* ---------- coastal water levels (NOAA CO-OPS): observed-vs-predicted surge residual ---------- */
@@ -1046,9 +1115,13 @@ function renderThreatStrip() {
   ].filter((c) => c.n > 0);
   // shelters are help, not a threat: the chip rides along but never counts toward "is anything wrong"
   const shelters = openShelterCount();
+  const unconfirmed = unconfirmedShelterCount();
+  const shelterAct = () => { if (typeof openHelpSheet === 'function') openHelpSheet(); };
   const shelterChip = shelters > 0
-    ? { n: shelters, cls: 'good', label: t('threat.shelters'), glyph: '🏠', act: () => { if (typeof openHelpSheet === 'function') openHelpSheet(); } }
-    : null;
+    ? { n: shelters, cls: 'good', label: t(unconfirmed ? 'threat.shelters.live' : 'threat.shelters'), glyph: '🏠', act: shelterAct }
+    : unconfirmed > 0
+      ? { n: unconfirmed, cls: 'good', label: t('threat.shelters.unconf'), glyph: '🏠', act: shelterAct }
+      : null;
   if (!chips.length) {
     if (!state.alertsLoadedOnce) { el.innerHTML = ''; return; }
     if (quietState()) {
@@ -1241,7 +1314,7 @@ async function loadSeeds() {
     // hash = content + per-card aging fingerprint: identical seeds skip the re-render (scroll guard),
     // but aged/stale/fresh-bucket transitions on idle clients still repaint list, tiles, and crossings
     const agingFp = allRequests().map((r) => [r.id, cardAged(r) ? 1 : 0, r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins ? 1 : 0, freshClass(r.ts)]);
-    const crossingFp = state.crossings.map((c) => (c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity) > CROSSING_STALE_H ? 1 : 0);
+    const crossingFp = state.crossings.map((c) => (crossingStale(c) ? 1 : 0));
     const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp, state.sheltersLive]);
     if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
     state.seedHash = hash;
@@ -1254,6 +1327,12 @@ async function loadSeeds() {
 }
 
 const CROSSING_STALE_H = 12;
+const crossingAgeH = (c) => {
+  const ms = c.updated_at ? Date.now() - new Date(c.updated_at).getTime() : NaN;
+  return Number.isFinite(ms) ? ms / 3600000 : Infinity;
+};
+// a closure nobody has re-confirmed inside the window is still shown, it just stops being counted
+const crossingStale = (c) => crossingAgeH(c) > CROSSING_STALE_H;
 const CROSSING_STATUS = {
   closed: { color: 'var(--sev-emergency)', glyph: '⛔', key: 'xword.closed' },
   caution: { color: 'var(--cat-action)', glyph: '⚠', key: 'xword.caution' },
@@ -1267,14 +1346,19 @@ function renderCrossings() {
   const list = state.crossings || [];
   const el = $('#crossings-body');
   const badge = $('#roads-count');
-  if (badge) badge.textContent = String(list.filter((c) => c.status !== 'open').length);
+  // the badge is a live-hazard count sitting beside Alerts and Gauges, both of which suppress a
+  // sensor they cannot vouch for; an unconfirmed closure gets the same treatment
+  const hazards = list.filter((c) => c.status !== 'open');
+  const unconfirmed = hazards.filter(crossingStale).length;
+  if (badge) badge.textContent = String(hazards.length - unconfirmed);
   if (el) {
     el.innerHTML = list.length
       ? `<div class="section-title">${esc(t('cross.title'))}</div>` +
+        (unconfirmed ? `<div class="rcv-note">${esc(t('cross.unconfirmed').replace('{n}', unconfirmed).replace('{h}', CROSSING_STALE_H))}</div>` : '') +
         list.map((c) => {
           const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
-          const staleH = c.updated_at ? (Date.now() - new Date(c.updated_at).getTime()) / 3600000 : Infinity;
-          const stale = staleH > CROSSING_STALE_H ? ` · <span class="xg-stale">${esc(t('cross.stale').replace('{h}', Math.round(staleH)))}</span>` : '';
+          const staleH = crossingAgeH(c);
+          const stale = crossingStale(c) ? ` · <span class="xg-stale">${esc(t('cross.stale').replace('{h}', Math.round(staleH)))}</span>` : '';
           return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</strong>: ${esc(c.name)} ${srcBadge('curated')}` +
             `<div class="addr">${esc(c.reason || '')} · ${esc(t('word.updated').toLowerCase())} ${esc(fmtWhen(c.updated_at))}${stale}${c.source && safeUrl(c.source) !== '#' ? ` <a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">src</a>` : ''}</div></div>`;
         }).join('') +
@@ -1284,11 +1368,13 @@ function renderCrossings() {
   for (const c of list) {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon) || !layer) continue;
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
-    const icon = L.divIcon({ className: '', html: `<div class="crossing-icon" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    const stale = crossingStale(c);
+    const icon = L.divIcon({ className: '', html: `<div class="crossing-icon${stale ? ' unconfirmed' : ''}" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([c.lat, c.lon], { icon });
     m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))} · ${esc(t('risk.read.crosspost'))}</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
       `<div class="popup-meta">${esc(c.reason || '')}</div>` +
       `<div class="popup-meta">${esc(t('cross.updated').replace('{t}', fmtWhen(c.updated_at)))}</div>` +
+      (stale ? `<div class="popup-meta"><span class="xg-stale">${esc(t('cross.stale').replace('{h}', Math.round(crossingAgeH(c))))}</span></div>` : '') +
       (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>` : ''));
     layer.addLayer(m);
   }

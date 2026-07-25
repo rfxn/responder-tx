@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """Generate data/crest-summary.json — per-gauge event peak stages for AAR/FEMA documentation.
 
-Walks the committed history of data/gauges-snapshot.json (one snapshot every
-~15 min for the life of the event) and records, for every gauge that reached
-an observed minor/moderate/major flood category, its peak stage, when the peak
-first occurred, and its in-flood window. The git archive starts mid-event, so
-the pre-archive window is folded in from data/history.json's src-tagged
-backfill frames (USGS/NWPS observed, built by gen-history.py); peaks sourced
-there carry "src":"usgs". Run at release time like gen-feeds.py.
+Walks the committed history of data/gauges-capture.json (falling back to
+data/gauges-snapshot.json before the capture split) and records, for every gauge
+that reached an observed minor/moderate/major flood category, its peak stage,
+when the peak first occurred, and its in-flood window. The git archive starts
+mid-event, so the pre-archive window is folded in from data/history.json's
+src-tagged frames (reconstructed or recovered, built by gen-history.py); peaks
+sourced there carry that frame's own src. Run at release time like gen-feeds.py.
+
+Scope works the same way as gen-history.py: the walk retains every gauge, and
+the display filter is applied once, at the end, against the union of every
+gaugeBbox this repo has ever committed. A display-scope change narrows the live
+board and never deletes a recorded peak.
+
 Honest by construction: peaks whose observation was stale at peak time are
 flagged, not dropped; nothing is interpolated or invented.
 """
@@ -19,7 +25,9 @@ import sys
 import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CAPTURE_PATH = "data/gauges-capture.json"
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
+EVENT_PATH = "data/event.json"
 HISTORY_PATH = "data/history.json"
 FLOOD_CATS = ("minor", "moderate", "major")
 CAT_RANK = {"minor": 2, "moderate": 3, "major": 4}
@@ -40,24 +48,49 @@ def event_name(ev, now):
     return ev.get("event") or ev.get("eventName") or now.strftime("%B %Y")
 
 
-def event_bbox(ev):
-    b = ev.get("gaugeBbox") or {}
+def bbox_of(b):
     try:
         return (float(b["xmin"]), float(b["ymin"]), float(b["xmax"]), float(b["ymax"]))
     except (KeyError, TypeError, ValueError):
         return None
 
 
-def in_bbox(lat, lon, bbox):
-    if bbox is None:
+def event_bboxes(ev):
+    """Every gaugeBbox this repo has ever declared, current first; their union is the
+    publication scope, so narrowing the live display never un-publishes a past peak."""
+    boxes = []
+    cur = bbox_of(ev.get("gaugeBbox") or {})
+    if cur:
+        boxes.append(cur)
+    try:
+        hashes = git("log", "--format=%H", "--follow", "--", EVENT_PATH).split()
+    except subprocess.CalledProcessError:
+        return boxes
+    for chash in hashes:
+        try:
+            b = bbox_of((json.loads(git_blob(chash, EVENT_PATH)).get("gaugeBbox") or {}))
+        except (subprocess.CalledProcessError, ValueError, AttributeError):
+            continue
+        if b and b not in boxes:
+            boxes.append(b)
+    return boxes
+
+
+def in_any_bbox(lat, lon, boxes):
+    if not boxes:
         return True
     if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
         return False
-    return bbox[0] <= lon <= bbox[2] and bbox[1] <= lat <= bbox[3]
+    return any(b[0] <= lon <= b[2] and b[1] <= lat <= b[3] for b in boxes)
 
 
 def git(*args):
     return subprocess.run(("git", "-C", ROOT) + args, capture_output=True, text=True, check=True).stdout
+
+
+def git_blob(commit_hash, path):
+    return subprocess.run(("git", "-C", ROOT, "show", f"{commit_hash}:{path}"),
+                          capture_output=True, text=True, check=True).stdout
 
 
 def parse_iso(s):
@@ -71,16 +104,27 @@ def parse_iso(s):
 
 
 def snapshot_commits():
-    out = git("log", "--format=%H %cI", "--follow", "--", SNAPSHOT_PATH)
-    commits = [line.split(" ", 1) for line in out.splitlines() if line.strip()]
-    commits.reverse()
-    return commits
+    """Commits touching either capture or display snapshot, oldest first."""
+    seen = {}
+    for path in (CAPTURE_PATH, SNAPSHOT_PATH):
+        for line in git("log", "--format=%H %cI", "--follow", "--", path).splitlines():
+            if not line.strip():
+                continue
+            chash, ciso = line.split(" ", 1)
+            seen.setdefault(chash, ciso)
+    # parse before sorting: %cI carries per-commit UTC offsets, so the raw strings do not
+    # sort chronologically once the committer's timezone changes
+    return sorted(seen.items(),
+                  key=lambda kv: parse_iso(kv[1]) or datetime.datetime.min.replace(
+                      tzinfo=datetime.timezone.utc))
 
 
 def load_snapshot(commit_hash):
-    raw = subprocess.run(("git", "-C", ROOT, "show", f"{commit_hash}:{SNAPSHOT_PATH}"),
-                         capture_output=True, text=True, check=True).stdout
-    return json.loads(raw)
+    """Widest gauge set available at this commit: capture if it exists, else display."""
+    try:
+        return json.loads(git_blob(commit_hash, CAPTURE_PATH))
+    except (subprocess.CalledProcessError, ValueError):
+        return json.loads(git_blob(commit_hash, SNAPSHOT_PATH))
 
 
 def obs_stale(observed, snap_dt):
@@ -90,8 +134,9 @@ def obs_stale(observed, snap_dt):
     return (snap_dt - obs_dt).total_seconds() > STALE_HOURS * 3600
 
 
-def fold_backfill(gauges, bbox):
-    """Seed peaks from history.json's src-tagged pre-archive frames; returns first backfill stamp."""
+def fold_backfill(gauges):
+    """Seed peaks from history.json's src-tagged pre-archive frames; returns first such
+    stamp. No scope filter here: scoping happens once, in project_display()."""
     try:
         with open(os.path.join(ROOT, HISTORY_PATH), encoding="utf-8") as f:
             hist = json.load(f)
@@ -107,10 +152,8 @@ def fold_backfill(gauges, bbox):
         if not t or not parse_iso(t):
             continue
         first_t = first_t or t
+        src = fr.get("src")
         for lid, pair in (fr.get("gauges") or {}).items():
-            gi = index.get(lid) or {}
-            if not in_bbox(gi.get("lat"), gi.get("lon"), bbox):
-                continue
             try:
                 stage, code = pair[0], pair[1]
             except (IndexError, TypeError):
@@ -118,8 +161,10 @@ def fold_backfill(gauges, bbox):
             cat = CODE_CAT.get(code)
             if cat is None or not isinstance(stage, (int, float)):
                 continue
+            gi = index.get(lid) or {}
             rec = gauges.setdefault(lid, {
-                "lid": lid, "name": (index.get(lid) or {}).get("name", lid),
+                "lid": lid, "name": gi.get("name", lid),
+                "lat": gi.get("lat"), "lon": gi.get("lon"),
                 "peak": None, "peak_time": None, "peak_category": None,
                 "peak_stale": False, "peak_src": None, "unit": "ft",
                 "first_in_flood": t, "last_in_flood": t,
@@ -130,11 +175,12 @@ def fold_backfill(gauges, bbox):
                 rec["peak_time"] = t
                 rec["peak_category"] = cat
                 rec["peak_stale"] = False
-                rec["peak_src"] = "usgs"
+                rec["peak_src"] = src
     return first_t
 
 
-def walk(commits, gauges, bbox):
+def walk(commits, gauges):
+    """Retention layer: every gauge that ever flooded, no geographic filter."""
     skipped = 0
     first_snap = last_snap = None
     for chash, _ciso in commits:
@@ -162,15 +208,17 @@ def walk(commits, gauges, bbox):
                 lid = g["lid"]
             except (KeyError, TypeError):
                 continue
-            if not in_bbox(g.get("latitude"), g.get("longitude"), bbox):
-                continue
             rec = gauges.setdefault(lid, {
-                "lid": lid, "name": g.get("name", lid), "peak": None, "peak_time": None,
+                "lid": lid, "name": g.get("name", lid),
+                "lat": g.get("latitude"), "lon": g.get("longitude"),
+                "peak": None, "peak_time": None,
                 "peak_category": None, "peak_stale": False, "peak_src": None,
                 "unit": observed.get("primaryUnit") or "ft",
                 "first_in_flood": snap_iso, "last_in_flood": snap_iso,
             })
             rec["last_in_flood"] = snap_iso
+            if rec.get("lat") is None:
+                rec["lat"], rec["lon"] = g.get("latitude"), g.get("longitude")
             if rec["peak"] is None or stage > rec["peak"]:
                 rec["peak"] = stage
                 rec["peak_time"] = snap_iso
@@ -178,6 +226,27 @@ def walk(commits, gauges, bbox):
                 rec["peak_stale"] = obs_stale(observed, snap_dt)
                 rec["peak_src"] = None
     return gauges, skipped, first_snap, last_snap
+
+
+def published_lids():
+    """Every gauge already in the published summary. Scope is a ratchet: a peak this
+    board has reported once is never un-reported by a later display-scope change."""
+    try:
+        with open(os.path.join(ROOT, "data", "crest-summary.json"), encoding="utf-8") as f:
+            return {g.get("lid") for g in (json.load(f).get("gauges") or [])}
+    except (OSError, ValueError):
+        return set()
+
+
+def project_display(gauges, boxes, sticky):
+    """Publication layer. The ONLY place display scope is applied."""
+    keep, held = {}, 0
+    for lid, rec in gauges.items():
+        if lid in sticky or in_any_bbox(rec.get("lat"), rec.get("lon"), boxes):
+            keep[lid] = rec
+        else:
+            held += 1
+    return keep, held
 
 
 def mark_ongoing(gauges, last_snap):
@@ -212,17 +281,23 @@ def main():
     if not commits:
         sys.exit("no committed snapshots found — nothing to summarize")
     ev = load_event()
-    bbox = event_bbox(ev)
+    boxes = event_bboxes(ev)
     gauges = {}
-    backfill_from = fold_backfill(gauges, bbox)
-    gauges, skipped, first_snap, last_snap = walk(commits, gauges, bbox)
+    backfill_from = fold_backfill(gauges)
+    gauges, skipped, first_snap, last_snap = walk(commits, gauges)
     if not gauges:
         sys.exit("no gauges reached minor+ flood in the snapshot history")
+    retained = len(gauges)
+    gauges, held = project_display(gauges, boxes, published_lids())
+    if not gauges:
+        sys.exit("no gauges left after display projection — check event.json gaugeBbox")
     mark_ongoing(gauges, last_snap)
     add_record_context(gauges)
     rows = sorted(gauges.values(), key=lambda r: (-CAT_RANK[r["peak_category"]], -r["peak"]))
     n_backfill = 0
     for r in rows:
+        r.pop("lat", None)
+        r.pop("lon", None)
         r["stale"] = r.pop("peak_stale")
         src = r.pop("peak_src", None)
         if src:
@@ -234,12 +309,14 @@ def main():
         "event": event_name(ev, now),
         "window": {"first": backfill_from or first_snap, "last": last_snap},
         "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; "
-                  "pre-archive window backfilled from USGS/NWPS observed via history.json",
+                  "pre-archive window reconstructed from USGS/NWPS observed via history.json",
         "gauges": rows,
+        "retained_gauges": retained,
         "skipped_commits": skipped,
     }
     if backfill_from:
-        out["backfill"] = {"from": backfill_from, "until": first_snap, "src": "usgs"}
+        out["backfill"] = {"from": backfill_from, "until": first_snap,
+                           "src": sorted({r["src"] for r in rows if r.get("src")}) or ["usgs"]}
     path = os.path.join(ROOT, "data", "crest-summary.json")
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".crest-summary.", suffix=".tmp")
     try:
@@ -251,7 +328,8 @@ def main():
         os.unlink(tmp)
         raise
     print(f"crest-summary.json: {len(commits)} commits walked ({skipped} skipped), "
-          f"{len(rows)} gauges ({n_backfill} peaks from backfill), "
+          f"retained {retained} gauges, published {len(rows)} ({n_backfill} peaks from "
+          f"reconstruction/recovery, {held} out of display scope, held not deleted), "
           f"window {out['window']['first']} → {last_snap}")
     for r in rows:
         bits = [f"{r['lid']} {r['peak']} {r['unit']} {r['peak_category']} @ {r['peak_time']}"]

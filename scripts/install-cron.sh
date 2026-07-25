@@ -80,8 +80,8 @@ if [ "$TARGET" = "watchdog" ] && [ "$REMOVE" -eq 0 ]; then
     echo "        review scripts/README.md 'Stall watchdog' first."
 fi
 
-tmp=$(mktemp) || { echo "FAIL: mktemp" >&2; exit 1; }
-trap 'rm -f "$tmp"' EXIT
+tmp=$(command mktemp) || { echo "FAIL: mktemp" >&2; exit 1; }
+trap 'command rm -f "$tmp"' EXIT
 
 # Drop any prior managed lines for THIS target (marker + entry, matched by command path), then re-add if installing.
 crontab -l 2>/dev/null | grep -vF "$CMD" | grep -vF "$MARKER" > "$tmp" || true  # absent crontab / no-match greps exit non-zero; both fine
@@ -93,7 +93,7 @@ fi
 if [ "$DRY_RUN" -eq 1 ]; then
     echo "DRY-RUN: resulting crontab would be:"
     echo "-----"
-    cat "$tmp"
+    command cat "$tmp"
     echo "-----"
     exit 0
 fi

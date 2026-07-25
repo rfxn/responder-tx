@@ -19,7 +19,7 @@ for arg in "$@"; do
     esac
 done
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
+SCRIPT_DIR=$(cd "$(command dirname "$0")" && pwd) || exit 1
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd) || exit 1
 cd "$REPO_ROOT" || exit 1
 
@@ -49,9 +49,9 @@ LOGFILE="${RESPONDER_CHAT_WATCHDOG_LOG:-/var/log/responder-chat-watchdog.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron
     LOGFILE=/tmp/responder-chat-watchdog.log
 fi
-exec > >(tee -a "$LOGFILE") 2>&1
+exec > >(command tee -a "$LOGFILE") 2>&1
 
-log() { printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
+log() { printf '%s %s\n' "$(command date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
 trap 'log "ERROR: chat-watchdog failed (exit $?) near line ${BASH_LINENO[0]}"' ERR
 
 # --- single-flight: a running recovery holds this for its whole (~10 min) run ---
@@ -65,7 +65,7 @@ fi
 # count_lines FILE — newline-terminated line count, 0 if missing.
 count_lines() {
     if [ -f "$1" ]; then
-        wc -l < "$1" | tr -d ' '
+        command wc -l < "$1" | command tr -d ' '
     else
         echo 0
     fi
@@ -74,8 +74,8 @@ count_lines() {
 # read_int FILE — integer content, 0 if missing/empty/non-numeric.
 read_int() {
     local v
-    v=$(cat "$1" 2>/dev/null || echo 0)  # missing/unreadable state file → default 0
-    v=$(printf '%s' "$v" | tr -cd '0-9')
+    v=$(command cat "$1" 2>/dev/null || echo 0)  # missing/unreadable state file → default 0
+    v=$(printf '%s' "$v" | command tr -cd '0-9')
     echo "${v:-0}"
 }
 
@@ -167,15 +167,15 @@ read_state() {
     ST_CURSOR=0; ST_ATTEMPTS=0; ST_LASTFIRED=0
     if [ -f "$STATE_FILE" ]; then
         read -r ST_CURSOR ST_ATTEMPTS ST_LASTFIRED < "$STATE_FILE" || true  # short/absent line → keep zero defaults
-        ST_CURSOR=$(printf '%s' "${ST_CURSOR:-0}" | tr -cd '0-9'); ST_CURSOR="${ST_CURSOR:-0}"
-        ST_ATTEMPTS=$(printf '%s' "${ST_ATTEMPTS:-0}" | tr -cd '0-9'); ST_ATTEMPTS="${ST_ATTEMPTS:-0}"
-        ST_LASTFIRED=$(printf '%s' "${ST_LASTFIRED:-0}" | tr -cd '0-9'); ST_LASTFIRED="${ST_LASTFIRED:-0}"
+        ST_CURSOR=$(printf '%s' "${ST_CURSOR:-0}" | command tr -cd '0-9'); ST_CURSOR="${ST_CURSOR:-0}"
+        ST_ATTEMPTS=$(printf '%s' "${ST_ATTEMPTS:-0}" | command tr -cd '0-9'); ST_ATTEMPTS="${ST_ATTEMPTS:-0}"
+        ST_LASTFIRED=$(printf '%s' "${ST_LASTFIRED:-0}" | command tr -cd '0-9'); ST_LASTFIRED="${ST_LASTFIRED:-0}"
     fi
 }
 
 # write_state CURSOR ATTEMPTS LASTFIRED — persist recovery state atomically.
 write_state() {
-    printf '%s %s %s\n' "$1" "$2" "$3" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    printf '%s %s %s\n' "$1" "$2" "$3" > "${STATE_FILE}.tmp" && command mv "${STATE_FILE}.tmp" "$STATE_FILE"
 }
 
 # build_prompt COUNT CURSOR — the fixed, trusted recovery mandate. Unlike the
@@ -184,7 +184,7 @@ write_state() {
 build_prompt() {
     local count="$1" cursor="$2" first
     first=$((cursor + 1))
-    cat <<EOF
+    command cat <<EOF
 [STALL-RECOVERY DRAIN · responder ops] You are the build-capable ResponderTX ops
 session, launched headless from the system stall-watchdog cron in ${REPO_ROOT}
 because the in-session revival tick stopped delivering and owner message(s) have
@@ -240,7 +240,7 @@ fi
 # it rather than race a second build (marker older than DRAIN_STALE = abandoned).
 if [ -f "$DRAIN_MARKER" ]; then
     marker_epoch=$(read_int "$DRAIN_MARKER")
-    now_epoch=$(date -u '+%s')
+    now_epoch=$(command date -u '+%s')
     marker_age=$((now_epoch - marker_epoch))
     if [ "$marker_epoch" -gt 0 ] && [ "$marker_age" -lt "$DRAIN_STALE" ]; then
         log "defer: a live session marked itself draining ${marker_age}s ago (< ${DRAIN_STALE}s); not racing it"
@@ -249,7 +249,7 @@ if [ -f "$DRAIN_MARKER" ]; then
 fi
 
 read_state
-NOW=$(date -u '+%s')
+NOW=$(command date -u '+%s')
 if [ "$ST_CURSOR" -ne "$CURSOR_VAL" ]; then
     ST_CURSOR="$CURSOR_VAL"; ST_ATTEMPTS=0; ST_LASTFIRED=0  # cursor moved since last time → fresh budget for this position
 fi
@@ -293,7 +293,7 @@ write_state "$CURSOR_VAL" "$((ST_ATTEMPTS + 1))" "$NOW"
 PROMPT=$(build_prompt "$INBOX_COUNT" "$CURSOR_VAL")
 log "firing build-capable recovery (timeout ${WATCHDOG_TIMEOUT}s +${WATCHDOG_KILL_AFTER}s kill; bypassPermissions; claude owns outbox+cursor)"
 rc=0
-timeout -k "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD" -p "$PROMPT" \
+command timeout -k "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD" -p "$PROMPT" \
     --permission-mode bypassPermissions \
     --output-format text < /dev/null 9>&- || rc=$?  # 9>&- keeps a surviving grandchild from holding the flock forever
 

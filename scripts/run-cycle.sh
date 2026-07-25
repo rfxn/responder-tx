@@ -24,7 +24,7 @@ for arg in "$@"; do
     esac
 done
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
+SCRIPT_DIR=$(cd "$(command dirname "$0")" && pwd) || exit 1
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd) || exit 1
 cd "$REPO_ROOT" || exit 1
 
@@ -38,9 +38,9 @@ LOGFILE="${RESPONDER_CYCLE_LOG:-/var/log/responder-cycle.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron
     LOGFILE=/tmp/responder-cycle.log
 fi
-exec > >(tee -a "$LOGFILE") 2>&1
+exec > >(command tee -a "$LOGFILE") 2>&1
 
-log() { printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
+log() { printf '%s %s\n' "$(command date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
 # $LINENO, not ${BASH_LINENO[0]}: for a top-level command the latter is the caller frame, which is
 # empty at top level, so every real failure logged the useless "near line 0"
 trap 'log "ERROR: cycle failed (exit $?) near line ${LINENO}"' ERR
@@ -82,7 +82,7 @@ drop_pipeline() {
     rc=$?
     if [ -n "$CODE_TMP" ]; then
         cd "$REPO_ROOT" || exit "$rc"
-        git worktree remove --force "$CODE_TMP" >/dev/null 2>&1 || rm -rf "$CODE_TMP"  # remove is the clean path; rm covers a half-created worktree
+        git worktree remove --force "$CODE_TMP" >/dev/null 2>&1 || command rm -rf "$CODE_TMP"  # remove is the clean path; rm covers a half-created worktree
         git worktree prune >/dev/null 2>&1 || :  # a stale admin entry is cosmetic, never worth failing a cycle over
     fi
     exit "$rc"
@@ -113,7 +113,7 @@ if [ "$ALLOW_DIRTY_CODE" -eq 1 ]; then
     log "##########################################################"
 else
     dirty_scripts=$(git status --porcelain --untracked-files=all -- scripts/) || dirty_scripts=''
-    CODE_TMP=$(mktemp -d "${TMPDIR:-/tmp}/responder-pipeline.XXXXXX") || { log "ERROR: mktemp for the HEAD pipeline failed"; exit 1; }
+    CODE_TMP=$(command mktemp -d "${TMPDIR:-/tmp}/responder-pipeline.XXXXXX") || { log "ERROR: mktemp for the HEAD pipeline failed"; exit 1; }
     trap drop_pipeline EXIT
     # stdout only: git's progress chatter would repeat in the log every 15 minutes, stderr still speaks
     if ! git worktree add --detach --no-checkout "$CODE_TMP" HEAD >/dev/null \
@@ -235,7 +235,7 @@ fi
 git add "${PRESENT_FILES[@]}"
 
 GAUGE_COUNT=$(python3 -c "import json;print(len(json.load(open('data/gauges-snapshot.json'))['gauges']))")
-STAMP=$(date -u '+%Y-%m-%dT%H:%MZ')
+STAMP=$(command date -u '+%Y-%m-%dT%H:%MZ')
 # the commit subject names what actually refreshed, so git history does not imply a full regen
 # on a cycle that only published some of its sources
 COMMIT_MSG="Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + roads/history/crest/feeds/shelters/caltopo regen"
@@ -263,8 +263,8 @@ NUDGE_KEY_FILE=/root/.config/responder/push-nudge-key
 if [ -s "$NUDGE_KEY_FILE" ]; then
     log "step: push nudge (best-effort)"
     if nudge_out=$(
-        key=$(cat "$NUDGE_KEY_FILE") &&
-        body="{\"ts\":$(date +%s)}" &&
+        key=$(command cat "$NUDGE_KEY_FILE") &&
+        body="{\"ts\":$(command date +%s)}" &&
         sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$key" | awk '{print $NF}') &&
         curl -sf -m 20 -X POST -H 'Content-Type: application/json' -H "X-Push-Sig: ${sig}" \
             -d "$body" https://respondertx.org/api/push/nudge

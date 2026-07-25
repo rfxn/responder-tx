@@ -29,6 +29,38 @@ suspended or mid-task).
 
 `gen-cameras.py` is a separate poller and is **not** part of the 15-min cycle.
 
+## Shell conventions
+
+Every external coreutil in `scripts/*.sh` carries a `command` prefix: `command rm`,
+`command mv`, `command cp`, `command cat`, `command mkdir`, `command mktemp`,
+`command date`, `command tr`, `command tee`, `command wc`, `command dirname`,
+`command seq`, `command sleep`, `command timeout`, `command chmod`. Bash builtins
+(`printf`, `echo`, `cd`, `[`) stay bare, and non-coreutils (`git`, `curl`, `jq`,
+`python3`, `node`, `flock`, `crontab`, `grep`, `awk`, `openssl`) are out of scope.
+
+This is the rfxn workspace rule, applied here as written rather than exempted. The
+rule's stated rationale is PATH portability on pre-usr-merge distros, which this
+repo does not ship to: `scripts/` is deleted from the public artifact by
+`deploy.sh` and runs only on the ops host. The rationale is therefore weaker here
+than in APF/BFD/LMD, but the prefix is a semantic no-op, so an exemption would buy
+nothing and cost a standing carve-out that every future agent has to rediscover and
+re-litigate. A repo-local exception also invites the same argument in a project
+that genuinely does ship to CentOS 6.
+
+Bare coreutils elsewhere in a file are not a precedent: the workspace rule says so
+explicitly, and this repo was mixed (13 bare call sites plus one `command mv`)
+before the sweep. `tests/*.test.sh` is deliberately excluded, matching the
+workspace carve-out for test files.
+
+Verify with the workspace sweep, anchored greps first and then word-boundary,
+since `^\s*cmd` misses occurrences inside `$()`, after `;`, or mid-line:
+
+```bash
+grep -rn '^\s*cp \|^\s*mv \|^\s*rm ' scripts/
+grep -rnE '\b(rm|mv|cp)\b' scripts/*.sh | grep -v 'command '
+grep -rn '\bcat\b' scripts/*.sh | grep -v 'command cat' | grep -v 'cat <<'
+```
+
 ## The cycle (`run-cycle.sh`)
 
 Order (matches the manual per-cycle protocol):

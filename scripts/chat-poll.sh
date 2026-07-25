@@ -20,7 +20,7 @@ for arg in "$@"; do
     esac
 done
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
+SCRIPT_DIR=$(cd "$(command dirname "$0")" && pwd) || exit 1
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd) || exit 1
 cd "$REPO_ROOT" || exit 1
 
@@ -46,9 +46,9 @@ LOGFILE="${RESPONDER_CHAT_LOG:-/var/log/responder-chat-poll.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron
     LOGFILE=/tmp/responder-chat-poll.log
 fi
-exec > >(tee -a "$LOGFILE") 2>&1
+exec > >(command tee -a "$LOGFILE") 2>&1
 
-log() { printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
+log() { printf '%s %s\n' "$(command date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
 trap 'log "ERROR: chat-poll failed (exit $?) near line ${BASH_LINENO[0]}"' ERR
 
 # --- lock: this poll's OWN lock (FD 9), separate from run-cycle's cycle lock ---
@@ -63,7 +63,7 @@ fi
 # are always newline-terminated by server.py, so this equals the message count).
 count_lines() {
     if [ -f "$1" ]; then
-        wc -l < "$1" | tr -d ' '
+        command wc -l < "$1" | command tr -d ' '
     else
         echo 0
     fi
@@ -72,8 +72,8 @@ count_lines() {
 # read_int FILE — integer content, 0 if missing/empty/non-numeric.
 read_int() {
     local v
-    v=$(cat "$1" 2>/dev/null || echo 0)  # missing/unreadable state file → default 0
-    v=$(printf '%s' "$v" | tr -cd '0-9')
+    v=$(command cat "$1" 2>/dev/null || echo 0)  # missing/unreadable state file → default 0
+    v=$(printf '%s' "$v" | command tr -cd '0-9')
     echo "${v:-0}"
 }
 
@@ -150,15 +150,15 @@ read_attempts() {
     ATT_BATCH=0; ATT_N=0; ATT_DEFER=0
     if [ -f "$ATTEMPTS_FILE" ]; then
         read -r ATT_BATCH ATT_N ATT_DEFER < "$ATTEMPTS_FILE" || true  # short/absent line → keep zero defaults
-        ATT_BATCH=$(printf '%s' "${ATT_BATCH:-0}" | tr -cd '0-9'); ATT_BATCH="${ATT_BATCH:-0}"
-        ATT_N=$(printf '%s' "${ATT_N:-0}" | tr -cd '0-9'); ATT_N="${ATT_N:-0}"
-        ATT_DEFER=$(printf '%s' "${ATT_DEFER:-0}" | tr -cd '0-9'); ATT_DEFER="${ATT_DEFER:-0}"
+        ATT_BATCH=$(printf '%s' "${ATT_BATCH:-0}" | command tr -cd '0-9'); ATT_BATCH="${ATT_BATCH:-0}"
+        ATT_N=$(printf '%s' "${ATT_N:-0}" | command tr -cd '0-9'); ATT_N="${ATT_N:-0}"
+        ATT_DEFER=$(printf '%s' "${ATT_DEFER:-0}" | command tr -cd '0-9'); ATT_DEFER="${ATT_DEFER:-0}"
     fi
 }
 
 # write_attempts BATCH N DEFER — persist the retry state atomically.
 write_attempts() {
-    printf '%s %s %s\n' "$1" "$2" "$3" > "${ATTEMPTS_FILE}.tmp" && mv "${ATTEMPTS_FILE}.tmp" "$ATTEMPTS_FILE"
+    printf '%s %s %s\n' "$1" "$2" "$3" > "${ATTEMPTS_FILE}.tmp" && command mv "${ATTEMPTS_FILE}.tmp" "$ATTEMPTS_FILE"
 }
 
 # build_prompt COUNT CURSOR — the fixed, trusted chat-poll protocol. claude is
@@ -166,7 +166,7 @@ write_attempts() {
 build_prompt() {
     local count="$1" cursor="$2" first
     first=$((cursor + 1))
-    cat <<EOF
+    command cat <<EOF
 You are the Responder TX ops-chat responder, running headless from a system cron
 in ${REPO_ROOT}. You reply to new owner messages in the LAN ops chat.
 
@@ -206,11 +206,11 @@ NEW_COUNT=$((INBOX_COUNT - CURSOR_VAL))
 log "new messages: ${NEW_COUNT} (inbox=${INBOX_COUNT} cursor=${CURSOR_VAL}) dry_run=${DRY_RUN} ack_only=${ACK_ONLY}"
 
 # --- step (a): instant non-LLM auto-ack (once per new batch, never advances cursor) ---
-ACK_HM=$(date -u '+%H:%MZ')
+ACK_HM=$(command date -u '+%H:%MZ')
 ACK_TEXT="message received ${ACK_HM} · queued for the ops session"
 if [ "$DRY_RUN" -eq 1 ]; then
-    ack_copy=$(mktemp) || { log "ERROR: mktemp failed"; exit 1; }
-    cp "$OUTBOX" "$ack_copy" 2>/dev/null || echo '{"messages":[]}' > "$ack_copy"  # real outbox may be absent on a clean checkout
+    ack_copy=$(command mktemp) || { log "ERROR: mktemp failed"; exit 1; }
+    command cp "$OUTBOX" "$ack_copy" 2>/dev/null || echo '{"messages":[]}' > "$ack_copy"  # real outbox may be absent on a clean checkout
     outbox_append "$ack_copy" "action" "$ACK_TEXT"
     log "DRY-RUN: auto-ack written to temp copy ${ack_copy} (real outbox untouched)"
     if python3 -m json.tool "$ack_copy" > /dev/null; then
@@ -218,12 +218,12 @@ if [ "$DRY_RUN" -eq 1 ]; then
     else
         log "DRY-RUN: ERROR temp outbox is invalid JSON"
     fi
-    rm -f "$ack_copy"
+    command rm -f "$ack_copy"
 else
     ACK_CURSOR_VAL=$(read_int "$ACK_CURSOR")
     if [ "$INBOX_COUNT" -gt "$ACK_CURSOR_VAL" ]; then
         if outbox_append "$OUTBOX" "action" "$ACK_TEXT"; then
-            echo "$INBOX_COUNT" > "${ACK_CURSOR}.tmp" && mv "${ACK_CURSOR}.tmp" "$ACK_CURSOR"
+            echo "$INBOX_COUNT" > "${ACK_CURSOR}.tmp" && command mv "${ACK_CURSOR}.tmp" "$ACK_CURSOR"
             log "auto-ack posted to outbox (acked through inbox line ${INBOX_COUNT})"
         else
             log "WARN: auto-ack append contended; ack-cursor left at ${ACK_CURSOR_VAL}, retries next run"
@@ -284,7 +284,7 @@ fi
 
 log "invoking headless claude (timeout ${CLAUDE_TIMEOUT}s +${CLAUDE_KILL_AFTER}s kill; read-only tools; outbox written only by this wrapper)"
 rc=0
-reply=$(timeout -k "$CLAUDE_KILL_AFTER" "$CLAUDE_TIMEOUT" "$CLAUDE_CMD" -p "$PROMPT" \
+reply=$(command timeout -k "$CLAUDE_KILL_AFTER" "$CLAUDE_TIMEOUT" "$CLAUDE_CMD" -p "$PROMPT" \
     --allowedTools "$ALLOWED_TOOLS" \
     --disallowedTools "$DISALLOWED_TOOLS" \
     --output-format text < /dev/null 9>&-) || rc=$?  # 9>&- keeps a surviving grandchild from holding the flock forever
@@ -317,6 +317,6 @@ if ! outbox_append "$OUTBOX" "claude" "$reply"; then
     exit 0
 fi
 
-echo "$INBOX_COUNT" > "${CURSOR}.tmp" && mv "${CURSOR}.tmp" "$CURSOR"
-rm -f "$ATTEMPTS_FILE"
+echo "$INBOX_COUNT" > "${CURSOR}.tmp" && command mv "${CURSOR}.tmp" "$CURSOR"
+command rm -f "$ATTEMPTS_FILE"
 log "processed OK; substantive reply appended; cursor advanced ${CURSOR_VAL} -> ${INBOX_COUNT}"

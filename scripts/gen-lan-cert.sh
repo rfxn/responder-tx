@@ -69,9 +69,9 @@ done
 
 SAN=$(IFS=,; echo "${SAN_LIST[*]}")
 
-CERT_DIR=$(dirname "$CERT")
-KEY_DIR=$(dirname "$KEY")
-mkdir -p "$CERT_DIR" "$KEY_DIR"
+CERT_DIR=$(command dirname "$CERT")
+KEY_DIR=$(command dirname "$KEY")
+command mkdir -p "$CERT_DIR" "$KEY_DIR"
 
 # umask 077 so the freshly written key is never briefly group/world-readable
 old_umask=$(umask)
@@ -84,8 +84,8 @@ openssl req -x509 -newkey rsa:2048 -sha256 -days "$DAYS" -nodes \
 
 umask "$old_umask"
 
-chmod 600 "$KEY"
-chmod 644 "$CERT"
+command chmod 600 "$KEY"
+command chmod 644 "$CERT"
 
 echo "generated self-signed LAN cert (valid ${DAYS} days):"
 echo "  cert: $CERT (644)"

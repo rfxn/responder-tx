@@ -15,7 +15,7 @@ for arg in "$@"; do
     esac
 done
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
+SCRIPT_DIR=$(cd "$(command dirname "$0")" && pwd) || exit 1
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd) || exit 1
 cd "$REPO_ROOT" || exit 1
 
@@ -37,7 +37,7 @@ LOGFILE="${RESPONDER_MONITOR_LOG:-/var/log/responder-freshness.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron
     LOGFILE=/tmp/responder-freshness.log
 fi
-exec > >(tee -a "$LOGFILE") 2>&1
+exec > >(command tee -a "$LOGFILE") 2>&1
 
 log() { printf '%s %s\n' "$(command date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
 trap 'log "ERROR: freshness-monitor failed (exit $?) near line ${BASH_LINENO[0]}"' ERR

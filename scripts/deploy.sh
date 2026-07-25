@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # RESPONDER_ROOT lets run-cycle.sh execute a committed copy of this script against the live repo
-cd "${RESPONDER_ROOT:-$(dirname "$0")/..}" || exit 1
+cd "${RESPONDER_ROOT:-$(command dirname "$0")/..}" || exit 1
 REPO_ROOT="$PWD"
 
 SKIP_LIVE=0
@@ -31,11 +31,11 @@ esac
 
 # --- Materialize HEAD. The version gate, the test gate, and the Functions tree wrangler compiles
 # all read from here, so a working-tree edit can neither block a deploy nor contaminate one. ---
-SRC=$(mktemp -d "${TMPDIR:-/tmp}/responder-src.XXXXXX") || fail "mktemp for the HEAD source tree failed"
+SRC=$(command mktemp -d "${TMPDIR:-/tmp}/responder-src.XXXXXX") || fail "mktemp for the HEAD source tree failed"
 cleanup() {
     rc=$?
     cd "$REPO_ROOT" || exit "$rc"
-    git worktree remove --force "$SRC" >/dev/null 2>&1 || rm -rf "$SRC"  # remove is the clean path; rm covers a half-created worktree
+    git worktree remove --force "$SRC" >/dev/null 2>&1 || command rm -rf "$SRC"  # remove is the clean path; rm covers a half-created worktree
     git worktree prune >/dev/null 2>&1 || :  # a stale admin entry is cosmetic, never worth failing a deploy over
     exit "$rc"
 }
@@ -55,8 +55,8 @@ if [ -n "$dirty_functions" ]; then
         echo "##########################################################" >&2
         echo "$dirty_functions" >&2
         echo "# This flag is for genuine field emergencies only." >&2
-        rm -rf "$SRC/functions"
-        cp -a functions "$SRC/functions" || fail "could not overlay the working-tree functions/ onto ${SRC}"
+        command rm -rf "$SRC/functions"
+        command cp -a functions "$SRC/functions" || fail "could not overlay the working-tree functions/ onto ${SRC}"
     else
         echo "NOTE: functions/ has uncommitted changes; shipping HEAD (${head_commit}) Functions instead:" >&2
         echo "$dirty_functions" >&2
@@ -108,19 +108,19 @@ else
 fi
 
 # --- Build stripped deploy dir ---
-rm -rf "$deploy_dir"
-mkdir -p "$deploy_dir"
+command rm -rf "$deploy_dir"
+command mkdir -p "$deploy_dir"
 git archive HEAD | tar -x -C "$deploy_dir" || fail "git archive extraction failed"
-rm -f "$deploy_dir/js/chat.js"
-rm -f "$deploy_dir/js/master.js"
+command rm -f "$deploy_dir/js/chat.js"
+command rm -f "$deploy_dir/js/master.js"
 # Field Notes is disabled and LAN-only; boot.js injects it on ?notes/?note, so the mirror needs neither file
-rm -f "$deploy_dir/js/notes.js"
-rm -f "$deploy_dir/css/notes.css"
+command rm -f "$deploy_dir/js/notes.js"
+command rm -f "$deploy_dir/css/notes.css"
 # ops-side code no browser can execute: the cycle/chat/deploy scripts and the LAN server, which
 # together carry the ops host's absolute paths, its cron lines and the whole /api/chat plumbing
-rm -rf "$deploy_dir/scripts"
-rm -f "$deploy_dir/server.py"
-rm -f "$deploy_dir/.gitignore"
+command rm -rf "$deploy_dir/scripts"
+command rm -f "$deploy_dir/server.py"
+command rm -f "$deploy_dir/.gitignore"
 printf '{"messages":[]}\n' > "$deploy_dir/data/chat-outbox.json"
 
 # --- Strip-verify before upload ---
@@ -183,9 +183,9 @@ if [ "$SKIP_LIVE" -eq 1 ]; then
     echo "skipping live smoke checks (--skip-live)"
 else
     live_ok=0
-    for attempt in $(seq 1 8); do
+    for attempt in $(command seq 1 8); do
         live_version=""
-        cb=$(date +%s)  # cache-buster so an intermediary cache can't return a stale copy
+        cb=$(command date +%s)  # cache-buster so an intermediary cache can't return a stale copy
         if live_version=$(curl -sf --retry 3 "https://respondertx.org/data/changelog.json?_cb=${cb}" \
             | python3 -c "import sys,json; print(json.load(sys.stdin)['versions'][0]['v'])"); then
             if [ "$live_version" = "$version" ]; then
@@ -195,7 +195,7 @@ else
         fi
         if [ "$attempt" -lt 8 ]; then
             echo "live changelog.json not yet ${version} (attempt ${attempt}/8, got '${live_version}'), waiting 15s for CDN propagation"
-            sleep 15
+            command sleep 15
         fi
     done
     [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version} after ~2min (CDN propagation lag or deploy failure)"
@@ -211,14 +211,14 @@ else
     # manifest lands, so this retries like the changelog check above rather than failing on lag
     for stripped in js/chat.js js/master.js js/notes.js css/notes.css server.py scripts/deploy.sh; do
         stripped_ok=0
-        for attempt in $(seq 1 6); do
-            stripped_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/${stripped}?_cb=$(date +%s%N)") \
+        for attempt in $(command seq 1 6); do
+            stripped_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/${stripped}?_cb=$(command date +%s%N)") \
                 || fail "curl origin status check for live ${stripped} failed"
             if [ "$stripped_status" = "404" ]; then
                 stripped_ok=1
                 break
             fi
-            if [ "$attempt" -lt 6 ]; then sleep 10; fi  # `[ ] &&` as the last body statement would trip set -e
+            if [ "$attempt" -lt 6 ]; then command sleep 10; fi  # `[ ] &&` as the last body statement would trip set -e
         done
         [ "$stripped_ok" -eq 1 ] || fail "live ${stripped} returned HTTP ${stripped_status} from the origin, expected 404"
 

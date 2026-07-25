@@ -4,7 +4,7 @@ set -euo pipefail
 
 # RESPONDER_ROOT lets run-cycle.sh execute a committed copy of this script against the live repo:
 # the script body comes from HEAD, the data it validates is still the working tree's
-cd "${RESPONDER_ROOT:-$(dirname "$0")/..}" || exit 1
+cd "${RESPONDER_ROOT:-$(command dirname "$0")/..}" || exit 1
 
 CODE_FROM_HEAD=0
 for arg in "$@"; do
@@ -29,15 +29,15 @@ CODE_TMP=""
 # shellcheck disable=SC2317  # reached only via the EXIT trap below
 cleanup_code_snapshot() {
     rc=$?
-    if [ -n "$CODE_TMP" ]; then rm -rf "$CODE_TMP"; fi
+    if [ -n "$CODE_TMP" ]; then command rm -rf "$CODE_TMP"; fi
     exit "$rc"
 }
 if [ "$CODE_FROM_HEAD" -eq 1 ]; then
     git rev-parse --verify HEAD >/dev/null 2>&1 || { echo "FAIL: --code-from-head needs a commit to read" >&2; exit 1; }
-    CODE_TMP=$(mktemp -d "${TMPDIR:-/tmp}/responder-codecheck.XXXXXX") || { echo "FAIL: mktemp for the HEAD code snapshot failed" >&2; exit 1; }
+    CODE_TMP=$(command mktemp -d "${TMPDIR:-/tmp}/responder-codecheck.XXXXXX") || { echo "FAIL: mktemp for the HEAD code snapshot failed" >&2; exit 1; }
     trap cleanup_code_snapshot EXIT
     CODE_ROOT="$CODE_TMP"
-    mkdir -p "$CODE_ROOT/js" "$CODE_ROOT/data"
+    command mkdir -p "$CODE_ROOT/js" "$CODE_ROOT/data"
     while IFS= read -r f; do
         git show "HEAD:$f" > "$CODE_ROOT/$f" || { echo "FAIL: cannot read ${f} from HEAD" >&2; exit 1; }
     done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/event.json \
@@ -216,12 +216,12 @@ check_cursors() {
     local p_cur='' p_ack='' p_lines=''
     local int_re='^[0-9]+$'
     if [ -f data/chat-inbox.jsonl ]; then
-        lines=$(wc -l < data/chat-inbox.jsonl)
+        lines=$(command wc -l < data/chat-inbox.jsonl)
     fi
     for f in data/.chat-cursor data/.chat-ack-cursor; do
         # absent cursor file = 0 (fresh checkout, or inbox just rotated to an archive)
         [ -f "$f" ] || continue
-        val=$(tr -d '[:space:]' < "$f")
+        val=$(command tr -d '[:space:]' < "$f")
         if ! [[ "$val" =~ $int_re ]]; then
             echo "${f}: '${val}' does not match ^[0-9]+\$" >&2
             return 1
@@ -248,7 +248,7 @@ check_cursors() {
     fi
     # record even when failing: the regression is reported once, and an ops-chat fault does not go
     # on to strand the public flood board on stale data every cycle after it
-    printf '%s %s %s\n' "$cur" "$ack" "$lines" > "${CURSOR_GUARD}.tmp" && mv "${CURSOR_GUARD}.tmp" "$CURSOR_GUARD"
+    printf '%s %s %s\n' "$cur" "$ack" "$lines" > "${CURSOR_GUARD}.tmp" && command mv "${CURSOR_GUARD}.tmp" "$CURSOR_GUARD"
     return "$rc"
 }
 if check_cursors; then pass "chat cursors (integer, <= inbox lines, no regression, rotation-aware)"; else failck "chat cursors"; fi

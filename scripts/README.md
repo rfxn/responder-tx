@@ -462,12 +462,33 @@ Each run:
    4x/hour, so the ladder sits well above one missed cycle: **WARN at 45 min**
    (3 missed cycles), **CRITICAL at 90 min** (6 missed cycles).
 2. **Reads local pipeline health**: the age of the local cycle output
-   (`data/gauges-snapshot.json`), the age of the last commit touching it, and the
-   last `deploy OK` in the cycle log.
-3. **Attributes the fault** from those two halves. Local output stale means the
-   cycle or its host is down. Local output fresh but the commit not landing means
-   the commit and push path broke. Both current with a stale mirror means the
-   publish path (deploy or Cloudflare) is at fault.
+   (`data/gauges-snapshot.json`), the age of the last commit touching it, the
+   last `deploy OK` in the cycle log, and the cycle's **last sign-off**.
+3. **Attributes the fault** from those two halves. A degraded sign-off means a
+   source is not refreshing, and it outranks every local reading, because the
+   cycle plainly ran. Otherwise: local output stale means the cycle or its host is
+   down; local output fresh but the commit not landing means the commit and push
+   path broke; both current with a stale mirror means the publish path (deploy or
+   Cloudflare) is at fault.
+
+   The sign-off is `run-cycle.sh`'s `cycle_end()`, which is the single exit point
+   for **four** messages, one per publishing path:
+
+   | Sign-off | Reached the publish path? |
+   | --- | --- |
+   | `=== cycle complete ===` | yes: committed, pushed, deployed |
+   | `=== no data changes vs HEAD; nothing to commit, skipping push/deploy ===` | no |
+   | `=== no data files present to commit; skipping push/deploy ===` | no |
+   | `=== DRY-RUN OK: … ===` | no (`--dry-run`) |
+
+   A partial cycle signs any of them off as `=== MSG (DEGRADED) === refreshed: … |
+   failed: … | skipped: …`. The monitor matches the banner shape rather than one
+   message, excluding only `=== cycle start …`, which shares the shape and is not
+   a verdict. The second form is what a broad upstream outage produces (the
+   snapshot fetch fails, the derived generators skip, `git diff --quiet` finds
+   nothing), so reading only `cycle complete` blamed exactly that outage on a dead
+   cron. The alert says which of the two it is: *publishing what it can* when the
+   cycle reached the publish path, *had nothing new to publish* when it did not.
 4. **Alerts the ops chat** (`data/chat-outbox.json`) as one `action` entry,
    written with the same re-read plus atomic-rename swap every other writer uses,
    so a concurrent session reply is never clobbered. It never touches
@@ -506,13 +527,15 @@ the three local ages, then act on the cause line it prints:
 | --- | --- |
 | the data cycle is not producing fresh local output | `tail -50 /var/log/responder-cycle.log`, confirm the cron is still installed (`crontab -l`), clear a stale `/tmp/responder-cycle.lock` if a run died holding it, then `scripts/run-cycle.sh` by hand. |
 | the cycle is running and publishing what it can, but a source is not refreshing | The pipeline is healthy; one upstream is not. `grep 'WARN:\|SKIP:' /var/log/responder-cycle.log \| tail -20` names it. For an NWPS `429` this usually clears itself, so confirm nothing local is hammering the API (see "Browser verification" in `tests/README.md`) and let the next cycle retry. |
+| the cycle is running but a source is not refreshing, so it had nothing new to publish | Same upstream story, one step worse: enough sources failed that no data file changed, so the cycle signed off without committing or deploying and the mirror is frozen at the last good publish. Still not the cron. `grep '=== ' /var/log/responder-cycle.log \| tail -5` shows the sign-off, `grep 'WARN:\|SKIP:' /var/log/responder-cycle.log \| tail -20` names the sources. If it persists past a few cycles the upstream outage is broad; check the source's own status page before touching anything local. |
 | the commit and push path is not landing | Run `git status` and `git log --oneline -3` in the repo. Usually a push rejection (remote moved) or a dirty tree blocking the cycle: `git pull --rebase origin main`, then `scripts/run-cycle.sh`. |
 | the publish path (deploy or Cloudflare) is serving stale data | Run `scripts/deploy.sh` by hand and read the pre-flight output. Most often the Cloudflare token is unreadable (see "Deploy token / ansible-vault") or wrangler failed. The data is already safe in git; the deploy is the only missing step. |
 | UNREACHABLE | Check the site from another network before touching the pipeline. If respondertx.org is genuinely down, this is a Cloudflare or DNS problem, not a data problem, and the local pipeline needs no action. |
 
 Test coverage lives in `tests/freshness-monitor.test.sh` (fresh, stale, transient
-failure, streak, cooldown, fresh-install, recovery); it uses a `file://` mirror
-URL, so it never touches the network or the real repo data.
+failure, streak, cooldown, fresh-install, recovery, plus all four sign-off forms
+degraded and clean, and a mid-run `cycle start` banner); it uses a `file://`
+mirror URL, so it never touches the network or the real repo data.
 
 ## Cron schedule & install
 

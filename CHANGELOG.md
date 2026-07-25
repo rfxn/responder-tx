@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.16 · 2026-07-25 (a stale board names the source that stopped answering)
+
+-- Bug Fixes --
+- [Fix] The freshness monitor reads the data cycle's sign-off in every form it
+      takes, not just one. A cycle that ran, found a source not answering, and
+      therefore had nothing new to publish was reported as a dead cron or a dead
+      host, which is the wrong place to send whoever is on call
+
+-- Changes --
+- [Change] The alert now separates the two upstream cases: a cycle still
+           publishing what it can, and a cycle that published nothing because
+           too little refreshed. Both name the sources involved
+- [Change] The runbook lists the four sign-offs, which of them publish, and what
+           to do for each of the two upstream causes
+
 ## v0.99.15 · 2026-07-25 (every gauge on the map is in the Gauges list)
 
 -- New Features --

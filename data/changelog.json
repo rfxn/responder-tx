@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.16",
+      "date": "2026-07-25",
+      "line": "The freshness monitor that watches the public board now reads the data cycle's sign-off in every form it takes, not just one. A cycle that ran, found a source not answering, and therefore had nothing new to publish was being reported as a dead cron or a dead host, which sent whoever is on call to the wrong place. The alert now separates a cycle still publishing what it can from a cycle that published nothing because too little refreshed, and names the sources in both. Ops facing, nothing on the board changes."
+    },
+    {
       "v": "v0.99.15",
       "date": "2026-07-25",
       "line": "Every gauge on the map can now be found in the Gauges list. The gauges NWPS reports without a usable flood category, 411 of the 1018 statewide today, had no place in the list at all; they now have their own fold, counted by state: no thresholds defined, data not current, out of service. Their cards say which state the gauge is in where a severity word would go, plus what that state means, so they never read as normal, and they no longer show a crest of record line off a forecast that is not current either. The gauge popup's open in gauges list button now lands on the gauge you tapped instead of switching an unrelated filter and leaving you on a list without it."

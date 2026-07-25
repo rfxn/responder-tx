@@ -167,6 +167,103 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 8-12: every cycle_end() sign-off form, not just "cycle complete" ------
+# run-cycle.sh signs off through one function with four messages. Only one of them says
+# "cycle complete"; the other three stop before the publish path. The monitor used to read
+# only that one, so the "no data changes vs HEAD" form an upstream outage produces (snapshot
+# fetch fails, derived generators skip, git finds nothing to commit) fell through to "the cron
+# or its host is down" and sent the operator to the wrong place. Each case below makes the
+# local snapshot stale as well, which is exactly the state that triggered that fall-through.
+DEG_TAIL='notices | failed: snapshot roads shelters | skipped: history crest feeds caltopo'
+
+mk_cycle_log() {  # MSG [degraded] — a log whose last sign-off is MSG, behind a cycle start banner
+    {
+        printf '%s === cycle start (dry_run=0) repo=/repo ===\n' "$(date -u -d '-130 min' '+%Y-%m-%dT%H:%M:%SZ')"
+        printf '%s deploy OK\n' "$(date -u -d '-125 min' '+%Y-%m-%dT%H:%M:%SZ')"
+        if [ "${2:-}" = degraded ]; then
+            printf '%s === %s (DEGRADED) === refreshed: %s\n' "$(date -u -d '-5 min' '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$DEG_TAIL"
+        else
+            printf '%s === %s ===\n' "$(date -u -d '-5 min' '+%Y-%m-%dT%H:%M:%SZ')" "$1"
+        fi
+    } > "$WORK/cycle.log"
+}
+
+cause_of() {  # -> the "Likely cause: ..." sentence out of the alert the run posted
+    python3 - "$OUT" <<'PY'
+import json, re, sys
+try:
+    msgs = json.load(open(sys.argv[1])).get("messages", [])
+except (OSError, ValueError):
+    raise SystemExit(0)
+for m in msgs:
+    hit = re.search(r"Likely cause: (.*?)\. Runbook", m.get("text") or "")
+    if hit:
+        print(hit.group(1))
+PY
+}
+
+expect_cause() {  # LABEL WANT [MUST_NOT_CONTAIN]
+    local got
+    got=$(cause_of)
+    case "$got" in
+        *"$2"*) ;;
+        *) fail "$1 (cause was: ${got:-none})"; return 0 ;;
+    esac
+    if [ -n "${3:-}" ]; then
+        case "$got" in
+            *"$3"*) fail "$1 (cause still blames: $3)"; return 0 ;;
+        esac
+    fi
+    pass "$1"
+}
+
+stale_both() {  # a mirror and a local pipeline both 2h old: the alerting shape every case below needs
+    setup
+    mk_snapshot "$WORK/remote/gauges-snapshot.json" 120
+    mk_snapshot "$WORK/data/gauges-snapshot.json" 120
+}
+
+stale_both; mk_cycle_log 'cycle complete' degraded; run_monitor
+expect_cause "8 degraded 'cycle complete': named as publishing what it can" \
+    "publishing what it can, but a source is not refreshing (${DEG_TAIL})" "cron or its host is down"
+rm -rf "$WORK"
+
+n=9
+for msg in \
+    'no data changes vs HEAD; nothing to commit, skipping push/deploy' \
+    'no data files present to commit; skipping push/deploy' \
+    'DRY-RUN OK: fetch + generators + validation composed; stopping before git/deploy'
+do
+    stale_both; mk_cycle_log "$msg" degraded; run_monitor
+    expect_cause "${n} degraded '${msg%%;*}': blamed on the upstream, not the cron" \
+        "a source is not refreshing (${DEG_TAIL}), so it had nothing new to publish" "cron or its host is down"
+    if has_text "$OUT" "last cycle DEGRADED (${DEG_TAIL}), and published nothing"; then
+        pass "${n}b same run reports the degraded sources and that nothing was published"
+    else
+        fail "${n}b pipeline line carries the degraded sources and the no-publish note"; cat "$OUT"
+    fi
+    rm -rf "$WORK"
+    n=$((n + 1))
+done
+
+# a cycle that has only just started shares the "=== ... ===" banner shape but is not a verdict
+stale_both
+mk_cycle_log 'no data changes vs HEAD; nothing to commit, skipping push/deploy' degraded
+printf '%s === cycle start (dry_run=0) repo=/repo ===\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$WORK/cycle.log"
+run_monitor
+expect_cause "12 a cycle start banner after the sign-off does not erase the verdict" \
+    "a source is not refreshing (${DEG_TAIL})" "cron or its host is down"
+rm -rf "$WORK"
+
+# and the reader must not over-match: a clean sign-off is still a clean sign-off
+stale_both; mk_cycle_log 'no data changes vs HEAD; nothing to commit, skipping push/deploy'; run_monitor
+if [ "$RC" -eq 1 ] && ! has_text "$OUT" "DEGRADED" && has_text "$OUT" "the data cycle is not producing fresh local output"; then
+    pass "13 a clean sign-off invents no degraded sources, and a dead cron is still called a dead cron"
+else
+    fail "13 clean sign-off adds no degraded facet"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL FRESHNESS-MONITOR TESTS PASSED"

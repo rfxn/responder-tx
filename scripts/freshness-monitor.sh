@@ -112,16 +112,35 @@ deploy_age_min() {
     iso_age_min "${line%% *}"
 }
 
-# cycle_degraded_sources — the stale-source list from the cycle log's last verdict, empty when the
-# last verdict was clean. run-cycle.sh publishes what refreshed and signs a partial cycle off as
-# "=== cycle complete (DEGRADED) === refreshed: ... | failed: ... | skipped: ...".
-cycle_degraded_sources() {
+# cycle_signoff — the cycle log's last sign-off line, whatever publishing path produced it.
+# run-cycle.sh's cycle_end() is the single exit point for all four: "cycle complete", the --dry-run
+# stop, "no data files present to commit" and "no data changes vs HEAD" (the shape an upstream
+# outage leaves behind, since the snapshot fetch fails, the derived generators skip, and git finds
+# nothing to commit). Each signs off as "=== MSG ===" or, when partial, as
+# "=== MSG (DEGRADED) === refreshed: ... | failed: ... | skipped: ...". Reading only the first form
+# blamed the other three on a dead cron. "=== cycle start ..." shares the banner shape and is not a
+# verdict, so it is the one line excluded; matching by shape keeps a fifth sign-off working.
+cycle_signoff() {
     local line
     [ -f "$CYCLE_LOG" ] || return 0
-    line=$(grep -F '=== cycle complete' "$CYCLE_LOG" | command tail -1) || return 0  # no verdict yet
-    case "$line" in
-        *'(DEGRADED)'*) printf '%s' "${line#*=== refreshed: }" ;;
+    line=$(grep -E '^[^[:space:]]+ === ' "$CYCLE_LOG" | grep -vF '=== cycle start' | command tail -1) || return 0  # no verdict yet
+    printf '%s' "$line"
+}
+
+# cycle_degraded_sources SIGNOFF — the stale-source list, empty when the sign-off was clean.
+cycle_degraded_sources() {
+    case "$1" in
+        *'(DEGRADED)'*) printf '%s' "${1#*=== refreshed: }" ;;
         *) : ;;  # last cycle signed off clean, so a stale mirror is not a partial-publish story
+    esac
+}
+
+# cycle_published SIGNOFF — 1 only for the sign-off that commits, pushes and deploys. The other
+# three stop before the publish path, so a degraded cycle behind one of them published nothing.
+cycle_published() {
+    case "$1" in
+        *'=== cycle complete'*) printf 1 ;;
+        *) printf 0 ;;
     esac
 }
 
@@ -219,10 +238,13 @@ fi
 LOCAL_AGE=$(snapshot_age_min "$SNAPSHOT")
 COMMIT_AGE=$(commit_age_min "$SNAPSHOT")
 DEPLOY_AGE=$(deploy_age_min)
-DEGRADED_SRC=$(cycle_degraded_sources)
+SIGNOFF=$(cycle_signoff)
+DEGRADED_SRC=$(cycle_degraded_sources "$SIGNOFF")
+PUBLISHED=$(cycle_published "$SIGNOFF")
 PIPELINE="last cycle output $(fmt_min "$LOCAL_AGE"), last data commit $(fmt_min "$COMMIT_AGE"), last successful deploy $(fmt_min "$DEPLOY_AGE")"
 if [ -n "$DEGRADED_SRC" ]; then
     PIPELINE="${PIPELINE}, last cycle DEGRADED (${DEGRADED_SRC})"
+    [ "$PUBLISHED" -eq 1 ] || PIPELINE="${PIPELINE}, and published nothing"
 fi
 
 STREAK="$ST_STREAK"
@@ -250,10 +272,14 @@ CAUSE=""
 if [ "$VERDICT" = UNREACHABLE ]; then
     CAUSE="the mirror or the network path to it is down, so its freshness cannot be confirmed"
 elif [ "$VERDICT" != FRESH ]; then
-    if [ -n "$DEGRADED_SRC" ]; then
+    if [ -n "$DEGRADED_SRC" ] && [ "$PUBLISHED" -eq 1 ]; then
         # the cycle IS running and IS publishing; one upstream is not answering. Saying "the cron
         # or its host is down" here would send an operator to the wrong place entirely.
         CAUSE="the cycle is running and publishing what it can, but a source is not refreshing (${DEGRADED_SRC})"
+    elif [ -n "$DEGRADED_SRC" ]; then
+        # the cycle ran and signed off without reaching the publish path, because the sources it
+        # needed did not answer. Still upstream, still not the cron, but nothing new was published.
+        CAUSE="the cycle is running but a source is not refreshing (${DEGRADED_SRC}), so it had nothing new to publish"
     elif [ -z "$LOCAL_AGE" ] || [ "$LOCAL_AGE" -ge "$WARN_MIN" ]; then
         CAUSE="the data cycle is not producing fresh local output, so the cron or its host is down"
     elif [ -n "$COMMIT_AGE" ] && [ "$COMMIT_AGE" -ge "$WARN_MIN" ]; then

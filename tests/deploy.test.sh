@@ -349,6 +349,66 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 15-17: staging is per-run, so two deploys can never share a directory -----------------
+# A hand-run deploy died with ENOENT on data/history.json because the 8,23,38,53 cron deploy was
+# building into the same fixed /tmp/responder-deploy and `rm -rf`d it mid-archive.
+setup
+
+# a wrangler that lingers, so the two runs' staging windows genuinely overlap
+cat > "$WORK/bin/wrangler" <<'SH'
+#!/bin/bash
+sleep 3
+echo "stub wrangler: deployed $*"
+SH
+chmod +x "$WORK/bin/wrangler"
+
+run_unpinned() {  # deploy.sh with NO RESPONDER_DEPLOY_DIR: the default per-run staging path
+    RESPONDER_DEPLOY_WRANGLER="$WORK/bin/wrangler" \
+    CLOUDFLARE_API_TOKEN='stub-token-not-a-real-credential' \
+    bash "$REPO/scripts/deploy.sh" --skip-live --skip-tests > "$1" 2>&1
+}
+
+run_unpinned "$WORK/conc-a.out" & A=$!
+run_unpinned "$WORK/conc-b.out" & B=$!
+wait "$A"; RC_A=$?
+wait "$B"; RC_B=$?
+DIR_A=$(sed -n 's/.*absent from \(.*\)$/\1/p' "$WORK/conc-a.out")
+DIR_B=$(sed -n 's/.*absent from \(.*\)$/\1/p' "$WORK/conc-b.out")
+if [ "$RC_A" -eq 0 ] && [ "$RC_B" -eq 0 ] \
+   && [ -n "$DIR_A" ] && [ -n "$DIR_B" ] && [ "$DIR_A" != "$DIR_B" ] \
+   && ! grep -q 'No such file or directory' "$WORK/conc-a.out" "$WORK/conc-b.out"; then
+    pass "15 two concurrent deploys both finish, in different staging dirs ($(basename "$DIR_A") vs $(basename "$DIR_B"))"
+else
+    fail "15 concurrent deploys collided (rc ${RC_A}/${RC_B}, dirs '${DIR_A}' vs '${DIR_B}')"
+    cat "$WORK/conc-a.out" "$WORK/conc-b.out"
+fi
+
+# the strip-verify assertions still run, and still run against the new per-run path
+if grep -q "strip-verify OK: v1.0.0 archive, chat + master + notes + ops-scripts + field-intake markup absent from ${DIR_A}" "$WORK/conc-a.out" \
+   && [ ! -e "$DIR_A" ] && [ ! -e "$DIR_B" ]; then
+    pass "16 strip-verify ran against the per-run staging dir, and both dirs are gone after exit"
+else
+    fail "16 strip-verify path + cleanup (A exists: $([ -e "$DIR_A" ] && echo yes || echo no))"
+    cat "$WORK/conc-a.out"
+fi
+
+# a failing run must not leave staging behind either. wrangler is made to fail so the run gets
+# past strip-verify and names its staging dir, which is then asserted on directly rather than by
+# scanning /tmp (a live production deploy has a dir of the same shape in flight).
+printf '%s\n' '#!/bin/bash' 'echo "stub wrangler: refusing"; exit 1' > "$WORK/bin/wrangler"
+chmod +x "$WORK/bin/wrangler"
+run_unpinned "$WORK/conc-fail.out"
+RC=$?
+DIR_F=$(sed -n 's/.*absent from \(.*\)$/\1/p' "$WORK/conc-fail.out")
+if [ "$RC" -ne 0 ] && [ -n "$DIR_F" ] && [ ! -e "$DIR_F" ] \
+   && grep -q 'wrangler pages deploy failed' "$WORK/conc-fail.out"; then
+    pass "17 a failed deploy removes its staging dir on the way out ($(basename "$DIR_F") gone)"
+else
+    fail "17 failed deploy left staging behind (rc=${RC}, dir='${DIR_F}')"
+    cat "$WORK/conc-fail.out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL DEPLOY GATE TESTS PASSED"

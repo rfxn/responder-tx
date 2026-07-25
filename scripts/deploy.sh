@@ -1,5 +1,6 @@
 #!/bin/bash
 # deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--allow-dirty-functions] — gate HEAD, build the stripped archive, deploy to Cloudflare Pages
+# Staging is a per-run mktemp dir, dropped on exit; set RESPONDER_DEPLOY_DIR to pin it and keep it.
 set -euo pipefail
 
 # RESPONDER_ROOT lets run-cycle.sh execute a committed copy of this script against the live repo
@@ -23,11 +24,18 @@ done
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
 WRANGLER="${RESPONDER_DEPLOY_WRANGLER:-wrangler}"
-deploy_dir="${RESPONDER_DEPLOY_DIR:-/tmp/responder-deploy}"
-case "$deploy_dir" in
-    /*) ;;
-    *) fail "RESPONDER_DEPLOY_DIR must be an absolute path, got '${deploy_dir}'" ;;
+
+# Staging is per-run by default. It used to be a fixed /tmp/responder-deploy shared by every
+# deploy, so the 8,23,38,53 cron's `rm -rf` under a concurrent hand-run deploy killed it with
+# ENOENT on data/history.json mid-archive. RESPONDER_DEPLOY_DIR still pins the path for a caller
+# that needs to inspect the artifact afterwards (tests/deploy.test.sh does); that caller owns the
+# directory's lifetime, and two deploys sharing one deliberately can still collide.
+DEPLOY_DIR_PINNED="${RESPONDER_DEPLOY_DIR:-}"
+case "$DEPLOY_DIR_PINNED" in
+    ''|/*) ;;
+    *) fail "RESPONDER_DEPLOY_DIR must be an absolute path, got '${DEPLOY_DIR_PINNED}'" ;;
 esac
+deploy_dir=''  # set at build time; the EXIT trap removes it only when this run created it
 
 # --- Materialize HEAD. The version gate, the test gate, and the Functions tree wrangler compiles
 # all read from here, so a working-tree edit can neither block a deploy nor contaminate one. ---
@@ -37,9 +45,13 @@ cleanup() {
     cd "$REPO_ROOT" || exit "$rc"
     git worktree remove --force "$SRC" >/dev/null 2>&1 || command rm -rf "$SRC"  # remove is the clean path; rm covers a half-created worktree
     git worktree prune >/dev/null 2>&1 || :  # a stale admin entry is cosmetic, never worth failing a deploy over
+    # only a dir this run made: a pinned one belongs to the caller, which may still want to read it
+    if [ -z "$DEPLOY_DIR_PINNED" ] && [ -n "$deploy_dir" ]; then
+        command rm -rf "$deploy_dir"
+    fi
     exit "$rc"
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 git worktree add --detach "$SRC" HEAD >/dev/null || fail "could not check HEAD out to ${SRC}"
 head_commit=$(git rev-parse --short HEAD) || fail "git rev-parse HEAD failed"
 
@@ -108,8 +120,13 @@ else
 fi
 
 # --- Build stripped deploy dir ---
-command rm -rf "$deploy_dir"
-command mkdir -p "$deploy_dir"
+if [ -n "$DEPLOY_DIR_PINNED" ]; then
+    deploy_dir="$DEPLOY_DIR_PINNED"
+    command rm -rf "$deploy_dir"
+    command mkdir -p "$deploy_dir"
+else
+    deploy_dir=$(command mktemp -d "${TMPDIR:-/tmp}/responder-deploy.XXXXXX") || fail "mktemp for the deploy staging dir failed"
+fi
 git archive HEAD | tar -x -C "$deploy_dir" || fail "git archive extraction failed"
 command rm -f "$deploy_dir/js/chat.js"
 command rm -f "$deploy_dir/js/master.js"

@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.19 · 2026-07-25 (two deploys can no longer stage into one directory)
+
+-- Bug Fixes --
+- [Fix] A deploy run by hand while the 15 minute cycle was deploying could die
+      partway through building its upload, because both were assembling it in
+      the same directory
+
+-- Changes --
+- [Change] Each deploy now builds its upload in a directory of its own and
+           removes it on the way out, including when the deploy fails. The
+           directory can still be pinned when the built files need to be kept
+
 ## v0.99.18 · 2026-07-25 (the automatic recovery leaves the working copy as it found it)
 
 -- Bug Fixes --

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.19",
+      "date": "2026-07-25",
+      "line": "Two deploys can no longer stage into one directory. A deploy run by hand while the 15 minute cycle was deploying could die partway through building its upload, because both were assembling it in the same place. Each deploy now builds in a directory of its own and removes it on the way out, including when the deploy fails, and the directory can still be pinned when the built files need to be kept. Ops facing, nothing on the board changes."
+    },
+    {
       "v": "v0.99.18",
       "date": "2026-07-25",
       "line": "The automatic ops-chat recovery now leaves the board's working copy as it found it. An interrupted run could leave half-finished edits behind, and the data cycle could publish from them. The recovery no longer starts while the working copy carries uncommitted changes, and anything one of its own runs leaves uncommitted is set aside as a patch and the working copy restored, with the files the data cycle regenerates itself left alone. Ops facing, nothing on the board changes."

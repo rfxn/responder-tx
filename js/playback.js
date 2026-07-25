@@ -546,6 +546,7 @@ async function openPlayback() {
     setPlaybackFrame(pbFrameAt(pbt));
     updatePlaybackNote();
   }
+  if (typeof syncViewsTrigger === 'function') syncViewsTrigger(); // the bar opens after openView() returned
 }
 
 function closePlayback() {
@@ -554,6 +555,7 @@ function closePlayback() {
   $('#playback-bar').hidden = true;
   $('#pb-pill').classList.remove('open');
   document.body.classList.remove('pb-bar-open');
+  if (typeof syncViewsTrigger === 'function') syncViewsTrigger();
 }
 
 function togglePlayback() {

@@ -327,6 +327,7 @@ function openView(name, opts) {
     case 'summary': closeLens('summary'); if (typeof openCrestSummary === 'function') openCrestSummary(); break;
     default: break; // absent or unknown: leave the board where it is rather than throw on a stale link
   }
+  if (typeof syncViewsTrigger === 'function') syncViewsTrigger();
 }
 
 async function openCrestSummary() {

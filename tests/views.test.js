@@ -191,3 +191,101 @@ test('applyShareParams delegates view routing instead of dispatching inline', ()
   assert.ok(!/openRecoveryView\(\)|openBasinView\(/.test(m[0]),
     'applyShareParams still opens a lens directly; the switch belongs in openView()');
 });
+
+/* Views control names its own state (v0.97.98). The lens picker shipped behind an unlabelled glyph
+   as the fifth stacked box at map top-right, which made the field's most important surface less
+   discoverable than the header button it replaced. The control now carries the active lens name and
+   an exit segment, and the stack is back to three boxes. */
+
+const mapSrc = () => read('js/map.js');
+
+test('the map top-right stack is three boxes: layers, views, share', () => {
+  const src = mapSrc();
+  const topright = [...src.matchAll(/L\.control\(\{ position: 'topright' \}\)/g)].length;
+  assert.equal(topright, 3,
+    `map top-right should hold exactly 3 controls (layers, views, share), found ${topright}`);
+  // neither capability was deleted to hit the number: the compass rides the nav bar, offline is a sheet section
+  assert.ok(/L\.DomUtil\.create\('a', 'compass-btn', bar\)/.test(src),
+    'the compass must join the + / - / locate nav bar, not disappear');
+  const render = src.match(/function renderLayerSheet\(\)[\s\S]*?\n\}/);
+  assert.ok(render && /offlineSheetHtml\(\)/.test(render[0]),
+    'the offline tile save must render inside the layer sheet');
+  assert.ok(!/initOfflineControl/.test(src), 'the standalone offline map control must be gone');
+  assert.ok(!/compass-ctl/.test(src), 'the standalone compass control must be gone');
+});
+
+test('the offline save/clear actions stay reachable from the layer sheet body', () => {
+  const src = mapSrc();
+  const m = src.match(/function onLayerSheetClick\(e\)[\s\S]*?\n\}/);
+  assert.ok(m, 'onLayerSheetClick() not found in js/map.js');
+  assert.ok(/off-save"\]'\)\) \{ saveViewportOffline\(\)/.test(m[0]), 'the sheet must dispatch off-save');
+  assert.ok(/off-clear"\]'\)\) \{ clearOfflineCache\(\)/.test(m[0]), 'the sheet must dispatch off-clear');
+  // the body is rewritten wholesale on every render, so the async tile count has to be re-read
+  const r = src.match(/function renderLayerSheet\(\)[\s\S]*?\n\}/);
+  assert.ok(/refreshOfflineStatus\(\)/.test(r[0]), 'renderLayerSheet must refresh the offline tile count');
+});
+
+test('syncViewsTrigger names the active lens and reveals the way back to Live', () => {
+  const src = mapSrc();
+  const m = src.match(/function syncViewsTrigger\(\)[\s\S]*?\n\}/);
+  assert.ok(m, 'syncViewsTrigger() not found in js/map.js');
+  assert.ok(/activeViewName\(\)/.test(m[0]), 'the tag must be read from the panes, not a parallel state flag');
+  assert.ok(/views\.tag\.\$\{name\}/.test(m[0]), 'the trigger must render the per-lens tag key');
+  assert.ok(/back\.hidden = live/.test(m[0]), 'the exit segment shows only while a lens owns the board');
+  // the exit segment is the dedicated way back to Live that openView('live') never had a control for
+  assert.ok(/\.views-back'\), 'click', \(e\) => \{ L\.DomEvent\.stop\(e\); openView\('live'\)/.test(src),
+    "the exit segment must call openView('live')");
+});
+
+test('i18n: every route openView handles has a short lens tag in both languages', () => {
+  const i18n = require('./i18n-load.js');
+  const m = mapSrc().match(/const VIEW_ROWS = \[([\s\S]*?)\];/);
+  const names = [...m[1].matchAll(/\[\s*'([a-z]+)'/g)].map((x) => x[1]);
+  for (const n of names) {
+    for (const lang of ['en', 'es']) {
+      const v = i18n[lang][`views.tag.${n}`];
+      assert.ok(typeof v === 'string' && v.length, `${lang} missing views.tag.${n}`);
+      assert.ok(v.length <= 12, `views.tag.${n} (${lang}) is ${v.length} chars; the control has room for 12`);
+      assert.ok(!v.includes('—'), `em-dash in ${lang} views.tag.${n}`);
+    }
+    assert.notEqual(i18n.en[`views.tag.${n}`], i18n.es[`views.tag.${n}`], `views.tag.${n} was never translated`);
+  }
+  for (const k of ['views.exit', 'views.open.on']) {
+    for (const lang of ['en', 'es']) assert.ok(i18n[lang][k], `${lang} missing ${k}`);
+  }
+  assert.ok(i18n.en['views.open.on'].includes('{v}') && i18n.es['views.open.on'].includes('{v}'),
+    'views.open.on must keep the {v} placeholder in both languages');
+});
+
+test('the trigger re-syncs on every path that can change the active lens', () => {
+  assert.ok(/if \(typeof syncViewsTrigger === 'function'\) syncViewsTrigger\(\);/
+    .test(read('js/panels.js').match(/function openView\(name, opts\)[\s\S]*?\n\}/)[0]),
+  'openView() must re-sync the trigger');
+  const pb = read('js/playback.js');
+  for (const fn of ['openPlayback', 'closePlayback']) {
+    const m = pb.match(new RegExp(`function ${fn}\\(\\)[\\s\\S]*?\\n\\}`));
+    assert.ok(m && /syncViewsTrigger\(\)/.test(m[0]), `${fn}() must re-sync the trigger`);
+  }
+  // a live language switch repaints every dynamic surface; the lens tag is one of them
+  const boot = read('js/boot.js');
+  const rl = boot.match(/function relocalizeDynamic\(\)[\s\S]*?\n\}/);
+  assert.ok(rl && /syncViewsTrigger\(\)/.test(rl[0]), 'relocalizeDynamic() must re-sync the trigger');
+});
+
+test('every lens entrance and exit goes through the openView router', () => {
+  const boot = read('js/boot.js');
+  assert.ok(/\$\('#drive-btn'\)\.addEventListener\('click', \(\) => openView\('drive'\)\)/.test(boot),
+    "the header Drive button must route through openView('drive')");
+  assert.ok(/\$\('#drive-exit'\)\.addEventListener\('click', \(\) => openView\('live'\)\)/.test(boot),
+    "Drive Mode's exit must route through openView('live')");
+  assert.ok(/\['#summary-exit', '#recovery-exit', '#basin-exit'\][\s\S]{0,90}openView\('live'\)/.test(boot),
+    "the three docked lens exits must route through openView('live')");
+});
+
+test('the playback fast path and its deep link survive the control consolidation', () => {
+  const html = read('index.html');
+  assert.ok(html.includes('id="pb-pill"'), '#pb-pill must stay on the map as the playback fast path');
+  const pb = read('js/playback.js');
+  assert.ok(/\$\('#pb-pill'\)\.addEventListener\('click', togglePlayback\)/.test(pb), '#pb-pill must still toggle playback');
+  assert.ok(/get\('playback'\) === '1'\) openPlayback\(\)/.test(read('js/boot.js')), '?playback=1 must still open playback');
+});

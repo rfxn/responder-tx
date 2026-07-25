@@ -586,6 +586,7 @@ function relocalizeDynamic() {
   renderForecastList();
   renderGaugesTab();
   renderRequests();
+  if (typeof syncViewsTrigger === 'function') syncViewsTrigger(); // the lens tag is localized text
   if (state.resources) { renderResources(); renderMonitors(); }
   renderCrossings();
   renderTides();
@@ -695,7 +696,9 @@ async function boot() {
   $('#share-btn').addEventListener('click', (e) => shareView(e.currentTarget));
   const enterDrive = () => { $('#drive-mode').hidden = false; keepAwake(true, 'drive'); if (!state.myPos) { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); } else { startLocTrack(); } renderDriveMode(); };
   window.enterDriveMode = enterDrive; // openView('drive') reaches drive mode without depending on #drive-btn
-  $('#drive-btn').addEventListener('click', enterDrive);
+  // every entrance and exit goes through the one router, so one lens owns the board and the map
+  // control that names the active lens can never disagree with what is on screen
+  $('#drive-btn').addEventListener('click', () => openView('drive'));
   // one-time discoverability nudge — Drive Mode is the field's best view but hides behind an icon.
   // Deferred while the safety/onboarding chain is up: one nudge at a time; it shows on the next visit.
   if (!localStorage.getItem('respondertx.driveHintSeen')) {
@@ -703,10 +706,10 @@ async function boot() {
     setTimeout(() => {
       if (!localStorage.getItem('respondertx.driveHintSeen') && $('#safety-modal').hidden && $('#onboard').hidden) $('#drive-hint').hidden = false;
     }, 3500);
-    $('#drive-hint-go').addEventListener('click', () => { dismissHint(); enterDrive(); });
+    $('#drive-hint-go').addEventListener('click', () => { dismissHint(); openView('drive'); });
     $('#drive-hint-x').addEventListener('click', dismissHint);
   }
-  $('#drive-exit').addEventListener('click', () => { $('#drive-mode').hidden = true; updateDriveFreshness(); keepAwake(false, 'drive'); }); // tracking continues in the app
+  $('#drive-exit').addEventListener('click', () => openView('live')); // closeLens releases the wake lock; tracking continues in the app
   // owner directive: "Am I at risk?" hidden by default — first-responder/public-info tool, not a
   // consumer address lookup. Code + modal stay intact; ?risk=1 reveals the button and opens the modal.
   const riskEnabled = new URLSearchParams(location.search).has('risk');
@@ -792,9 +795,7 @@ async function boot() {
   $('#caltopo-copy').addEventListener('click', copyCaltopoUrl);
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
-  $('#summary-exit').addEventListener('click', () => { $('#summary-view').hidden = true; });
-  $('#recovery-exit').addEventListener('click', () => { $('#recovery-view').hidden = true; });
-  $('#basin-exit').addEventListener('click', closeBasinView);
+  for (const id of ['#summary-exit', '#recovery-exit', '#basin-exit']) $(id).addEventListener('click', () => openView('live'));
   // ticker halves are duplicated markup — delegate clicks by item index instead of per-node listeners
   $('#ticker').addEventListener('click', (e) => {
     const it = e.target.closest('.ticker-item');
@@ -890,6 +891,7 @@ async function boot() {
         m.hidden = true;
         if (id === '#drive-mode') { updateDriveFreshness(); keepAwake(false, 'drive'); }
         if (id === '#basin-view') closeBasinView(); // Escape must drop the corridor rings too
+        if (typeof syncViewsTrigger === 'function') syncViewsTrigger();
         break;
       }
     }

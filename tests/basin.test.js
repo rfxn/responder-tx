@@ -178,8 +178,13 @@ test('closeBasinView clears the highlight set, the framed slug, and re-applies',
 });
 
 test('every exit path from Basin Focus goes through closeBasinView', () => {
-  assert.match(bootSrc, /\$\('#basin-exit'\)\.addEventListener\('click', closeBasinView\)/,
-    'the exit button must call it');
+  // the exit button routes through openView('live') so the lens family stays radio-exclusive and the
+  // map's views control cannot disagree with what is on screen; closeLens() is what reaches closeBasinView
+  assert.match(bootSrc, /'#basin-exit'[\s\S]{0,120}openView\('live'\)/,
+    "the exit button must route through openView('live')");
+  const cl = panelsSrc.match(/function closeLens\(keep\)[\s\S]*?\n\}/);
+  assert.ok(cl, 'closeLens() not found in js/panels.js');
+  assert.match(cl[0], /closeBasinView\(\)/, 'closeLens must reach closeBasinView, not just hide the panel');
   // anchor on the same comment scripts/cycle-check.sh uses: boot.js has more than one such loop
   const esc = bootSrc.match(/never on Escape or a backdrop click[\s\S]*?\n {4}\}/);
   assert.ok(esc, 'the Escape-dismiss loop was not found in js/boot.js (anchor comment moved?)');

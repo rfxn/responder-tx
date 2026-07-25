@@ -1,5 +1,24 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.98 · 2026-07-25 (the views control names its own state)
+
+-- Changes --
+- [Change] The map views control now names the lens that owns the board instead
+           of hiding behind an unlabelled glyph. It reads Live at rest, says
+           Basin or Replay or Recovery while one of those is up, tints itself
+           when a lens is active, and grows a dedicated exit segment that is the
+           first visible way back to the live map any lens has had. The label is
+           read from the lens panes themselves, so no parallel state can drift.
+- [Change] Map top-right stack cut from five boxes to three. Orientation joined
+           navigation: the compass rose is now a fourth button on the existing
+           zoom and locate bar rather than its own box. Offline map save moved
+           into the layer sheet, where deciding what the map can show with no
+           signal already belongs; both keep every capability they had.
+- [Change] Every lens entrance and exit now routes through openView(), including
+           the header Drive button and the Drive, Crest summary, Recovery and
+           Basin exit buttons, so exactly one lens can own the board and the
+           control that names the active lens can never disagree with the screen.
+
 ## v0.97.97 · 2026-07-25 (the archive is retained wide and published narrow)
 
 -- Bug Fixes --

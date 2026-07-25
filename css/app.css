@@ -786,27 +786,19 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 
 .locate-btn { font-size: 18px; }
 
-/* offline tile save — topright stack, directly below the compass; panel slides out leftward */
-.offline-ctl { position: relative; font: 11.5px system-ui, sans-serif; color: var(--ink-1); }
-.off-toggle.open { color: var(--accent); }
-.off-toggle.has-cache { color: var(--good); } /* something is cached */
-.off-panel {
-  position: absolute; top: 0; right: calc(100% + 8px); width: 214px;
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 9px; box-shadow: 0 1px 6px rgba(0,0,0,0.35);
-}
-.off-panel[hidden] { display: none; }
-.off-panel-head { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: var(--ink-2); margin-bottom: 6px; text-transform: uppercase; }
-.offline-ctl .off-save { width: 100%; min-height: 0; padding: 5px 8px; font-size: 12px; font-weight: 650; }
-.offline-ctl .off-save:disabled { opacity: 0.6; cursor: progress; }
-.offline-ctl .off-status { margin-top: 5px; color: var(--ink-2); font-size: 11px; line-height: 1.35; }
-.offline-ctl .off-status.over { color: var(--sev-warning); font-weight: 650; }
-.offline-ctl .off-note { margin-top: 4px; color: var(--ink-muted); font-size: 10px; line-height: 1.3; }
-.offline-ctl .off-clear {
-  margin-top: 6px; width: 100%; min-height: 0; padding: 3px 6px; font-size: 10.5px;
+/* offline tile save — a section of the layer sheet, since it decides what the map can show with no signal */
+.ls-off { padding: 2px 4px 0; color: var(--ink-1); }
+.ls-off .off-save { width: 100%; min-height: 44px; padding: 6px 8px; font-size: 12.5px; font-weight: 650; }
+.ls-off .off-save:disabled { opacity: 0.6; cursor: progress; }
+.ls-off .off-status { margin-top: 6px; color: var(--ink-2); font-size: 11.5px; line-height: 1.35; }
+.ls-off .off-status.over { color: var(--sev-warning); font-weight: 650; }
+.ls-off .off-note { margin-top: 4px; color: var(--ink-muted); font-size: 11px; line-height: 1.35; }
+.ls-off .off-clear {
+  margin-top: 8px; width: 100%; min-height: 36px; padding: 4px 6px; font-size: 11.5px;
   color: var(--ink-muted); background: none; border: 1px dashed var(--border); border-radius: 6px;
 }
-.offline-ctl .off-clear:hover { color: var(--accent); border-color: var(--accent); }
+.ls-off .off-clear[hidden] { display: none; }
+.ls-off .off-clear:hover { color: var(--accent); border-color: var(--accent); }
 
 .card .head .sid {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; font-weight: 700;
@@ -1101,11 +1093,11 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
   50% { background: var(--accent); color: #fff; }
 }
 
-/* compass box: third box under Share in the top-right stack; static north-up rose, tap to rotate the rose to the live device heading */
-.compass-ctl a { cursor: pointer; }
-.compass-ctl svg { display: block; width: 20px; height: 20px; transform-origin: 50% 54%; } /* 54% ~ circle center at y=13/24 so rotation stays wobble-free */
-.compass-ctl.live a { color: var(--accent); } /* subtle active tint: currentColor parts go accent, the red north needle stays red */
-.compass-ctl.live svg { transition: transform 0.12s linear; }
+/* compass rides the + / − / ⌖ nav bar: static north-up rose, tap to rotate it to the live device heading */
+.leaflet-bar a.compass-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; } /* outspecify the .leaflet-touch .leaflet-bar a block rule */
+.compass-btn svg { display: block; width: 20px; height: 20px; transform-origin: 50% 54%; } /* 54% ~ circle center at y=13/24 so rotation stays wobble-free */
+.compass-btn.live { color: var(--accent); } /* subtle active tint: currentColor parts go accent, the red north needle stays red */
+.compass-btn.live svg { transition: transform 0.12s linear; }
 
 /* overlay-legend stack: one bottom-right flex column (bottom→top: rain, radar, surge, inundation);
    hidden legends leave the flow, so whatever is visible always hugs the corner with no mid-map floating */
@@ -1442,15 +1434,13 @@ button.inspect-gauge:hover { color: var(--accent); }
   /* collapse behavior is now in the base rules (both breakpoints) */
   /* one-thumb targets on the merged + / − / ⌖ bar */
   .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
-  .compass-ctl svg { width: 28px; height: 28px; } /* scale the rose with the 42px phone buttons */
+  .compass-btn svg { width: 28px; height: 28px; } /* scale the rose with the 42px phone buttons */
   .ao-jump { left: 62px; right: 62px; }
   .layer-pills { left: 62px; right: 62px; }
   .layer-pill { min-height: 30px; }
   .ao-current, .ao-chip { min-height: 30px; }
   /* expanded row scrolls sideways — six wrapped pills would bury the 42vh map */
   .ao-jump.open .ao-row { flex-wrap: nowrap; overflow-x: auto; pointer-events: auto; padding-bottom: 4px; }
-  .offline-ctl .off-panel { width: 200px; }
-  .offline-ctl .off-note { font-size: 9.5px; }
 }
 
 /* small phones: tighter tab type keeps all five Spanish labels readable before ellipsis kicks in */
@@ -1913,6 +1903,23 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .leaflet-bar a.leaflet-disabled { background: var(--surface-2); color: var(--ink-muted); }
 .ls-trigger a { font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; }
 .ls-trigger svg { display: block; }
+/* the views control names the lens that owns the board, and grows an exit segment while one is up.
+   It widens instead of stacking: landscape is the posture with height to spare nowhere and width to spare everywhere. */
+.views-trigger { display: flex; }
+/* .leaflet-bar-qualified so the phone/landscape `.leaflet-touch .leaflet-bar a { width: 42px }`
+   rule cannot re-square the box and clip the lens name */
+.leaflet-bar.views-trigger a { width: auto; min-width: 30px; gap: 5px; padding: 0 8px; border-bottom: none; }
+.views-trigger a + a { border-left: 1px solid var(--hairline); }
+.views-trigger .views-open { border-radius: 5px; }
+.views-trigger.on .views-open { border-radius: 5px 0 0 5px; color: var(--accent); font-weight: 700; }
+.views-trigger .views-back { border-radius: 0 5px 5px 0; font-size: 16px; font-weight: 700; }
+.views-trigger .views-back[hidden] { display: none; }
+.views-tag { font-size: 11.5px; font-weight: 700; letter-spacing: 0.01em; line-height: 1; white-space: nowrap; }
+/* declared after the phone/landscape .leaflet-bar blocks so the segments keep a thumb-sized target */
+@media (max-width: 768px), (max-height: 500px) and (orientation: landscape) {
+  .leaflet-bar.views-trigger a { min-width: 44px; }
+  .views-tag { font-size: 12.5px; }
+}
 #layer-sheet, #views-sheet { position: fixed; inset: 0; z-index: 1460; }
 #layer-sheet[hidden], #views-sheet[hidden] { display: none; }
 /* views sheet is a radio group, not a set of toggles: the active lens reads as selected.

@@ -152,8 +152,8 @@ test('i18n: device-alerts (push) keys exist in both languages, 911 framing intac
   assert.ok(/WEA/.test(I18N.es['push.disclaimer']));
 });
 
-test('i18n: offline-panel keys exist in both languages with placeholders intact', () => {
-  const keys = ['off.toggle.title', 'off.toggle.aria', 'off.head', 'off.save', 'off.save.title',
+test('i18n: offline keys exist in both languages with placeholders intact', () => {
+  const keys = ['sheet.g.offline', 'off.save', 'off.save.title',
     'off.note', 'off.clear', 'off.cleared', 'off.none', 'off.saved', 'off.savedfull', 'off.saving', 'off.cap'];
   for (const k of keys) {
     assert.ok(typeof I18N.en[k] === 'string' && I18N.en[k].length, `en missing ${k}`);

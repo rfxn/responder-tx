@@ -123,8 +123,6 @@ function refreshOfflineStatus() {
     if (s) { s.textContent = n > 0 ? t('off.saved').replace('{n}', n) : t('off.none'); s.classList.remove('over'); }
     const clr = $('#off-clear');
     if (clr) clr.hidden = n === 0;
-    const toggle = $('#off-toggle');
-    if (toggle) toggle.classList.toggle('has-cache', n > 0); // subtle filled state when something is cached
     return n;
   }).catch(() => {});
 }
@@ -175,35 +173,17 @@ async function clearOfflineCache() {
   if (s) s.textContent = t('off.cleared');
 }
 
-function initOfflineControl() {
-  if (!OfflineTiles.available()) return;
-  const ctl = L.control({ position: 'topright' }); // added after the compass so it stacks directly below it
-  ctl.onAdd = () => {
-    const div = L.DomUtil.create('div', 'offline-ctl');
-    div.innerHTML = `<div class="leaflet-bar ls-trigger"><a href="#" role="button" class="off-toggle" id="off-toggle" aria-expanded="false" title="${esc(t('off.toggle.title'))}" aria-label="${esc(t('off.toggle.aria'))}" data-i18n-title="off.toggle.title" data-i18n-aria="off.toggle.aria">⬇</a></div>` +
-      '<div class="off-panel" id="off-panel" hidden>' +
-      `<div class="off-panel-head" data-i18n="off.head">${esc(t('off.head'))}</div>` +
-      `<button class="off-save" title="${esc(t('off.save.title'))}" data-i18n="off.save" data-i18n-title="off.save.title">${esc(t('off.save'))}</button>` +
-      '<div class="off-status" id="off-status">…</div>' +
-      `<div class="off-note" data-i18n="off.note">${esc(t('off.note'))}</div>` +
-      `<button class="off-clear" id="off-clear" hidden data-i18n="off.clear">${esc(t('off.clear'))}</button>` +
-      '</div>';
-    L.DomEvent.disableClickPropagation(div);
-    L.DomEvent.disableScrollPropagation(div);
-    L.DomEvent.on(div.querySelector('#off-toggle'), 'click', (e) => {
-      L.DomEvent.stop(e);
-      const p = div.querySelector('#off-panel');
-      p.hidden = !p.hidden;
-      const tg = div.querySelector('#off-toggle');
-      tg.classList.toggle('open', !p.hidden);
-      tg.setAttribute('aria-expanded', String(!p.hidden));
-    });
-    L.DomEvent.on(div.querySelector('.off-save'), 'click', saveViewportOffline);
-    L.DomEvent.on(div.querySelector('#off-clear'), 'click', clearOfflineCache);
-    return div;
-  };
-  ctl.addTo(state.map);
-  refreshOfflineStatus();
+// caching the basemap is a choice about what the map shows with no signal, so it belongs in the
+// layer sheet, not in a fifth box along the map edge
+function offlineSheetHtml() {
+  if (!OfflineTiles.available()) return '';
+  return `<div class="ls-group">${esc(t('sheet.g.offline'))}</div>` +
+    '<div class="ls-off">' +
+    `<button class="off-save" data-act="off-save" title="${esc(t('off.save.title'))}" data-i18n="off.save" data-i18n-title="off.save.title">${esc(t('off.save'))}</button>` +
+    '<div class="off-status" id="off-status">…</div>' +
+    `<div class="off-note" data-i18n="off.note">${esc(t('off.note'))}</div>` +
+    `<button class="off-clear" id="off-clear" data-act="off-clear" hidden data-i18n="off.clear">${esc(t('off.clear'))}</button>` +
+    '</div>';
 }
 
 /* ---------- ArcGIS dynamic-export overlay (per-tile bbox) ---------- */
@@ -561,8 +541,18 @@ function initMap() {
       L.DomEvent.on(drawer, 'click', (e) => { L.DomEvent.stop(e); recenterAndFollow(); });
       state.recenterDrawer = drawer;
       L.DomEvent.on(a, 'click', (e) => { L.DomEvent.stop(e); recenterAndFollow(); });
+      // orientation is navigation: the rose joins + / − / ⌖ instead of holding its own box on the far edge
+      const c = L.DomUtil.create('a', 'compass-btn', bar);
+      c.href = '#';
+      c.setAttribute('role', 'button');
+      c.innerHTML = CTL_ICON_COMPASS;
+      setCompassLabel(c, 'ctl.compass.title', 'ctl.compass.aria');
+      state.compassEl = c;
+      state.compassRose = c.querySelector('svg');
+      L.DomEvent.on(c, 'click', (e) => { L.DomEvent.stop(e); toggleCompassHeading(c); });
       return bar;
     },
+    onRemove() { stopCompassHeading(); },
   });
   state.map.addControl(new NavControl({ position: 'topleft' }));
   // the stock checkbox control is hidden (CSS) but stays on the map as the
@@ -580,16 +570,21 @@ function initMap() {
     return div;
   };
   sheetBtn.addTo(state.map);
-  // views trigger sits with the layers trigger: what the map SHOWS and how you LOOK at it, together
+  // views trigger sits with the layers trigger: what the map SHOWS and how you LOOK at it, together.
+  // It names the lens that owns the board and grows an exit segment while one is up (see syncViewsTrigger)
   const viewsBtn = L.control({ position: 'topright' });
   viewsBtn.onAdd = () => {
     const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger views-trigger');
-    div.innerHTML = `<a href="#" role="button" title="${esc(t('views.open'))}" aria-label="${esc(t('views.open'))}" data-i18n-title="views.open" data-i18n-aria="views.open">${CTL_ICON_VIEWS}</a>`;
+    div.innerHTML = `<a href="#" role="button" class="views-open">${CTL_ICON_VIEWS}<span class="views-tag"></span></a>` +
+      '<a href="#" role="button" class="views-back" hidden>✕</a>';
     L.DomEvent.disableClickPropagation(div);
-    L.DomEvent.on(div.firstChild, 'click', (e) => {
+    state.viewsEl = div;
+    L.DomEvent.on(div.querySelector('.views-open'), 'click', (e) => {
       L.DomEvent.stop(e);
       if (viewsSheetIsOpen()) closeViewsSheet(); else openViewsSheet();
     });
+    L.DomEvent.on(div.querySelector('.views-back'), 'click', (e) => { L.DomEvent.stop(e); openView('live'); });
+    syncViewsTrigger();
     return div;
   };
   viewsBtn.addTo(state.map);
@@ -606,21 +601,6 @@ function initMap() {
     return div;
   };
   shareCtl.addTo(state.map);
-  // compass box under Share: static north-up rose by default; tap to rotate the rose to the device's live heading (progressive enhancement)
-  const compassCtl = L.control({ position: 'topright' });
-  compassCtl.onAdd = () => {
-    const div = L.DomUtil.create('div', 'leaflet-bar ls-trigger compass-ctl');
-    div.innerHTML = `<a href="#" role="button" title="${esc(t('ctl.compass.title'))}" aria-label="${esc(t('ctl.compass.aria'))}" data-i18n-title="ctl.compass.title" data-i18n-aria="ctl.compass.aria">${CTL_ICON_COMPASS}</a>`;
-    L.DomEvent.disableClickPropagation(div);
-    const a = div.firstChild;
-    state.compassEl = div;
-    state.compassRose = a.querySelector('svg');
-    L.DomEvent.on(a, 'click', (e) => { L.DomEvent.stop(e); toggleCompassHeading(a); });
-    return div;
-  };
-  compassCtl.onRemove = () => stopCompassHeading();
-  compassCtl.addTo(state.map);
-  initOfflineControl(); // after the compass so the ⬇ box stacks directly below it (owner ask 7/24)
   initAoJump();
   initLayerPills();
   initLayerSheet();
@@ -1027,8 +1007,10 @@ function renderLayerSheet() {
     `<button class="ls-row ls-pbrow" data-act="playback"${dis}><span class="ls-icon">⏮</span>` +
     `<span class="ls-txt"><span class="ls-name">${esc(t('sheet.playback'))}</span><span class="ls-sub">${esc(t('sheet.s.playback'))}</span></span>` +
     '<span class="ls-knob ls-go" aria-hidden="true">›</span></button>' +
+    offlineSheetHtml() +
     `<button class="ls-reset"${dis} title="${esc(t('sheet.reset.title'))}">↺ ${esc(t('sheet.reset'))}</button>`;
   el.querySelector('.ls-body').innerHTML = html;
+  refreshOfflineStatus(); // the tile count is async and the body was just rewritten
 }
 
 function layerSheetSync() { if (layerSheetIsOpen()) renderLayerSheet(); }
@@ -1064,6 +1046,8 @@ function onLayerSheetClick(e) {
     return;
   }
   if (e.target.closest('.ls-reset')) { layerSheetReset(); return; }
+  if (e.target.closest('[data-act="off-save"]')) { saveViewportOffline(); return; }
+  if (e.target.closest('[data-act="off-clear"]')) { clearOfflineCache(); return; }
   const sub = e.target.closest('.ls-subhead');
   if (sub) {
     const key = sub.dataset.sub;
@@ -1161,6 +1145,31 @@ function activeViewName() {
 function viewsSheetIsOpen() {
   const el = document.getElementById('views-sheet');
   return !!el && !el.hidden;
+}
+
+/* The trigger names the lens that owns the board rather than hiding behind an unlabelled glyph:
+   ATAK draws state onto the control, CalTopo swaps the 3D button for a 2D one so the exit is the
+   entry. Live is the resting state; any other lens tints the control and reveals the ✕ back to Live. */
+function syncViewsTrigger() {
+  const div = state.viewsEl;
+  if (!div) return;
+  const name = activeViewName();
+  const live = name === 'live';
+  const tag = div.querySelector('.views-tag');
+  const open = div.querySelector('.views-open');
+  const back = div.querySelector('.views-back');
+  const label = t(`views.tag.${name}`);
+  if (tag) tag.textContent = label;
+  if (open) {
+    open.title = live ? t('views.open') : t('views.open.on').replace('{v}', label);
+    open.setAttribute('aria-label', open.title);
+  }
+  if (back) {
+    back.hidden = live;
+    back.title = t('views.exit');
+    back.setAttribute('aria-label', t('views.exit'));
+  }
+  L.DomUtil[live ? 'removeClass' : 'addClass'](div, 'on');
 }
 
 function renderViewsSheet() {

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.98",
+      "date": "2026-07-25",
+      "line": "The map control that switches how you look at the event now tells you which view you are in. It reads Live when you are on the normal board, and says Basin, Replay, Recovery or Crests when one of those is open, so the view you are looking at is named on screen instead of being something you have to remember. While a view is open the control also carries an exit, which is the first plain way back to the live map any of them has had. The map edge is quieter too: the stack of boxes in the top right is down from five to three. Nothing was removed to get there. The compass moved onto the zoom and locate bar it belongs with, and saving map tiles for use with no signal moved into the layers panel, which is already where you choose what the map shows. On a phone held sideways that gives the map back most of a column of buttons."
+    },
+    {
       "v": "v0.97.97",
       "date": "2026-07-25",
       "line": "The board's history goes back to July 5th again. When the coverage area was moved to the coast for Tropical Storm Bertha, the part of the system that rebuilds the playback timeline treated the new, smaller map area as if it described the whole past: every older reading outside the new box was quietly dropped on the next update. Eighteen days of Hill Country river readings disappeared, and the crest summary fell from 46 rivers to 4. All of it is back, rebuilt from our own records: Guadalupe at Comfort at 35.48 feet, Cibolo at Sutherland Springs at 35.34, Pedernales at Fredericksburg at 34.31, Guadalupe at Kerrville at 30.06, Frio at Concan at 19.69, and 18 rivers at major flood in total. What the board keeps and what the board shows are now two separate things, so changing where the map is focused can narrow the view and can never erase a reading again. Playback also tells you where each frame came from: one we recorded ourselves, one rebuilt from the federal gauge archives, or one recovered from our own earlier records. This board should never look like it knows more than it does."

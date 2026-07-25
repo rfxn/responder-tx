@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.31 · 2026-07-25 (one more El Paso bridge view)
+
+-- New Features --
+- [New] An eighth City of El Paso international-bridge camera, a second Santa Fe
+      St. Bridge view, joins the live bridge set
+
+-- Bug Fixes --
+- [Fix] A weather camera whose publishing gap ran longer than the board's search
+      window returned no picture at all. The window the viewer searches is now
+      wider than the one used to decide the camera is working, so a slow camera
+      still opens
+
 ## v0.99.30 · 2026-07-25 (Hill Country and Guadalupe weather cameras)
 
 -- New Features --

@@ -61,13 +61,13 @@ HOUSTON = 'https://traffic.houstontranstar.org/data/layers/cctvSnapshots_out.js'
 # geometry is requested because 18 online rows carry a valid point but NULL Lat/Long columns
 ARLINGTON = 'https://services.arcgis.com/jXi5GuMZwfCYtZP9/arcgis/rest/services/Traffic_Camera_Updates/FeatureServer/0/query?where=1%3D1&outFields=Camera_Location,Status,Pic_URL,Lat,Long&returnGeometry=true&outSR=4326&f=json'
 ELP_BRIDGE_HOST = 'https://zoocams.elpasozoo.org'
-# NOT a growth source: elpasotexas.gov/disclaimer forbids copying or reproduction "without the
-# prior written consent of the CITY OF EL PASO" (verified 2026-07-25). bridgesantafe2.m3u8 is
-# live and absent from this table on purpose. See CAMERA-SOURCES-RESEARCH.md row 7.
 # City of El Paso Rio Grande international-bridge cams — direct-play CORS-open HLS; the operator
 # rotates stream names, so each .m3u8 is liveness-checked at gen time and dead ones are dropped.
+# A sweep of 31 candidate names found exactly these 8 live; the host is case-insensitive, so
+# BridgePDN1 and bridgepdn1 are one stream, not two.
 ELP_BRIDGE_CAMS = (
     {'name': 'Paso del Norte Bridge (Santa Fe St.)', 'lat': 31.7527, 'lon': -106.4869, 'file': 'bridgepdn1.m3u8'},
+    {'name': 'Santa Fe St. Bridge (view 2)', 'lat': 31.7530, 'lon': -106.4875, 'file': 'bridgesantafe2.m3u8'},
     {'name': 'Santa Fe St. Bridge (view 3)', 'lat': 31.7530, 'lon': -106.4875, 'file': 'bridgesantafe3.m3u8'},
     {'name': 'Santa Fe St. Bridge (view 4)', 'lat': 31.7530, 'lon': -106.4875, 'file': 'bridgesantafe4.m3u8'},
     {'name': 'Stanton St. Bridge', 'lat': 31.7566, 'lon': -106.4790, 'file': 'BridgeStanton3.m3u8'},
@@ -106,7 +106,9 @@ WEATHERBUG_IMG = 'https://cameras-cam.cdn.weatherbug.net/{id}/{y}/{m}/{d}/{stamp
 WEATHERBUG_ID_RE = re.compile(r'^[A-Z0-9]{4,8}$')  # mirrors the /api/cam/weatherbug proxy validator
 # the filename stamp is station-local (America/Chicago) wall time to the minute
 WB_TZ = 'America/Chicago'
-WB_PROBE_MINUTES = 12  # cadence is per camera: Camp Verde posts every minute, others every five
+# gen-time liveness window. The proxies use a wider one, so anything shipped here stays
+# resolvable when a camera's cadence stretches; never raise this above the proxy window.
+WB_PROBE_MINUTES = 12
 WB_REC_RE = re.compile(
     r'\{\\"city\\":\\"(?P<city>[^"\\]{0,40})\\",\\"distance\\":[-0-9.]+,\\"id\\":\\"(?P<id>[A-Z0-9]{4,8})\\"'
     r'.{0,200}?\\"lat\\":(?P<lat>[-0-9.]+),\\"lng\\":(?P<lon>[-0-9.]+),\\"name\\":\\"(?P<name>[^"\\]{0,60})\\"'

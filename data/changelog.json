@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.31",
+      "date": "2026-07-25",
+      "line": "An eighth City of El Paso international-bridge camera, a second Santa Fe St. Bridge view, joins the live bridge set. A weather camera whose publishing gap ran longer than the board's search window returned no picture at all; the window the viewer searches is now wider than the one used to decide a camera is working, so a slow camera still opens."
+    },
+    {
       "v": "v0.99.30",
       "date": "2026-07-25",
       "line": "Thirty WeatherBug weather cameras join the camera layer. They fill the Guadalupe corridor the board had no camera on: Camp Verde Ranch at Center Point on the upper river, and Cuero ISD and two Victoria cameras on the lower river, along with Harris County OHSEM, Madison County OEM, Edna ISD and cameras across Houston and the Metroplex. This operator publishes no fixed address for its newest picture, so the board finds it by working back a minute at a time from now, and the capture time shown is the one the picture is filed under rather than a delivery time."

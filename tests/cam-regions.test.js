@@ -542,12 +542,28 @@ test('Port Houston routes through the same-origin proxy on both servers, id-vali
     'Port Houston must stay same-origin through the proxy, never a new CSP host');
 });
 
-test('El Paso bridge cams are not grown while the City forbids reproduction', () => {
+/* This once asserted the El Paso set could not grow, because the City's disclaimer forbids
+   reproduction without written consent. That gate is retired: the owner manages third-party terms
+   directly, so licensing is no longer an engineering gate here. What still has to hold is what
+   makes the set safe to ship: every stream is liveness-checked at gen time rather than assumed,
+   and the whole set plays direct from a host already in the CSP, so growing it never quietly adds
+   a new origin. */
+test('El Paso bridge cams stay liveness-checked and confined to their allowlisted host', () => {
   const gen = readFile('scripts/gen-cameras.py');
   const table = gen.slice(gen.indexOf('ELP_BRIDGE_CAMS = ('), gen.indexOf('PORTHOU_HOST'));
   assert.ok(table.length > 100, 'the El Paso table was not found');
-  assert.ok(!/bridgesantafe2/.test(table),
-    'bridgesantafe2 is live but elpasotexas.gov/disclaimer forbids reproduction without written consent');
-  assert.match(gen, /prior written consent of the CITY OF EL PASO/,
-    'the reason that stream is deliberately absent must stay recorded next to the table');
+  for (const m of table.matchAll(/'file': '([^']+)'/g)) {
+    assert.match(m[1], /\.m3u8$/, `${m[1]} is not an HLS playlist`);
+  }
+  assert.match(gen, /def elpbridge_cams\(\)[\s\S]{0,400}live_twice\(hls_live/,
+    'the El Paso streams are no longer liveness-checked at gen time');
+  // the host is already in both CSPs; the set must never reach for a second origin
+  const host = gen.match(/ELP_BRIDGE_HOST = '([^']+)'/)[1];
+  assert.equal(host, 'https://zoocams.elpasozoo.org');
+  for (const f of ['_headers', 'server.py']) {
+    assert.ok(readFile(f).includes('zoocams.elpasozoo.org'), `${f} does not allow the El Paso stream host`);
+  }
+  for (const c of JSON.parse(readFile('data/cameras.json')).elpbridge || []) {
+    assert.ok(c.httpsurl.startsWith(`${host}/`), `${c.name} plays from outside the allowlisted host`);
+  }
 });

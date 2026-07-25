@@ -162,9 +162,11 @@ test('every camera network the client ships is served by BOTH proxies', () => {
   }
   // WeatherBug resolves a frame by walking the filename back, so the window has to match in all
   // three places or gen ships a camera a proxy then refuses to find
-  const win = (src, key) => (src.match(new RegExp(`${key}\\s*=\\s*(\\d+)`)) || [])[1];
-  assert.equal(win(gen, 'WB_PROBE_MINUTES'), win(edge, 'WB_PROBE_MINUTES'), 'gen and edge disagree on the probe window');
-  assert.equal(win(gen, 'WB_PROBE_MINUTES'), win(lan, 'CAM_WB_PROBE_MINUTES'), 'gen and server.py disagree on the probe window');
+  const win = (src, key) => Number((src.match(new RegExp(`${key}\\s*=\\s*(\\d+)`)) || [])[1]);
+  assert.equal(win(edge, 'WB_PROBE_MINUTES'), win(lan, 'CAM_WB_PROBE_MINUTES'), 'the two proxies disagree on the probe window');
+  // gen may look back less far than the proxies, never further: a camera it ships has to resolve
+  assert.ok(win(gen, 'WB_PROBE_MINUTES') <= win(edge, 'WB_PROBE_MINUTES'),
+    'gen ships cameras the proxies would not find'); 
 });
 
 test('the marker states its kind in text, not in colour and glyph alone', () => {

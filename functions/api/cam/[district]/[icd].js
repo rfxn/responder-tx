@@ -31,7 +31,9 @@ const BYTES_SOURCES = {
 // against the site's own camera index is deliberately avoided: that list is ranked by the
 // requester's geolocation, and at the edge the requester is the colo, not the user.
 const WB_ID_RE = /^[A-Z0-9]{4,8}$/; // matches gen-cameras.py WEATHERBUG_ID_RE
-const WB_PROBE_MINUTES = 12; // matches gen-cameras.py WB_PROBE_MINUTES
+// view-time window, deliberately wider than the gen-time liveness window: a camera whose
+// cadence stretches past it (Navasota has sat 12+ min between frames) must still resolve
+const WB_PROBE_MINUTES = 20;
 const WB_IMG = (id, p) => `https://cameras-cam.cdn.weatherbug.net/${id}/${p.y}/${p.m}/${p.d}/${p.stamp}_s.jpg`;
 
 // station-local wall-clock parts for a UTC instant, as the filename spells them

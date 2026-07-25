@@ -364,14 +364,22 @@ def main():
                     for fid, name in FOLDERS if any(f["properties"]["folderId"] == fid for f in members)]
 
     now = now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
+    # a truncated export must say so in the artifact itself: whoever imports the URL into CalTopo
+    # never sees our share sheet, and the title is the one string CalTopo always shows them
+    partial = (f" (partial: {len(members)} of {len(members) + dropped} features, "
+               f"lowest-priority dropped first)" if dropped else "")
     doc = {
         "type": "FeatureCollection",
         "properties": {
-            "title": f"{event.get('name') or 'Responder TX'} · CalTopo export",
+            "title": f"{event.get('name') or 'Responder TX'} · CalTopo export{partial}",
             "generated": now,
-            "note": DISCLAIMER,
+            "note": (DISCLAIMER + f" This export is capped at {MAX_FEATURES} features and {dropped} "
+                     "lower-priority features were dropped; every alert, crest, closure and "
+                     "in-flood gauge is kept before any quiet gauge." if dropped else DISCLAIMER),
             "import_url": f"{SITE}/data/caltopo-export.json",
             "counts": counts,
+            "candidates": len(members) + dropped,
+            "cap": MAX_FEATURES,
             "truncated": dropped > 0,
             "dropped": dropped,
             "crests_unresolved": crests_unresolved,

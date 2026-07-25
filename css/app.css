@@ -489,6 +489,8 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
   padding: 8px 10px; margin-bottom: 10px; background: var(--surface-2);
 }
 #caltopo-box .hint { font-size: 11px; color: var(--ink-muted); margin: 4px 0; }
+/* a capped export reads as a caution, not as muted small print */
+#caltopo-status.caltopo-partial { color: var(--sev-watch, #d98324); font-weight: 600; }
 .caltopo-url-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
 .caltopo-url-row code {
   font-size: 12px; padding: 4px 8px; background: var(--surface-1);

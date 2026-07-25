@@ -539,7 +539,9 @@
 
       'caltopo.menu': '🗺 CalTopo URL',
       'caltopo.menu.title': 'Bookmarkable import URL and QR code for CalTopo / SARTopo',
-      'caltopo.hint': 'Curated map export for CalTopo / SARTopo: gauges, crests, alerts, road closures, crossings, notices, and storm reports, refreshed about every 15 minutes at a fixed URL.',
+      'caltopo.hint': 'Curated map export for CalTopo / SARTopo: a priority-ranked selection of gauges, crests, alerts, road closures, crossings, notices, and storm reports, refreshed about every 15 minutes at a fixed URL.',
+      'caltopo.complete': 'This export carries all {n} features in scope.',
+      'caltopo.partial': 'This export is capped and carries {n} of {total} features. Alerts, crests, road closures and gauges in flood are kept first; quiet gauges are dropped to fit.',
       'caltopo.how': 'In CalTopo choose Import, then "Import from URL", and paste this address. Each import downloads a fresh copy; CalTopo does not refresh it on its own.',
       'caltopo.copy': 'Copy URL',
       'caltopo.copied': 'Copied ✓',
@@ -1612,7 +1614,9 @@
 
       'caltopo.menu': '🗺 URL CalTopo',
       'caltopo.menu.title': 'URL de importación fija y código QR para CalTopo / SARTopo',
-      'caltopo.hint': 'Exportación de mapa curada para CalTopo / SARTopo: medidores, crestas, alertas, cierres viales, cruces, avisos y reportes de tormenta, actualizada cada 15 minutos en una URL fija.',
+      'caltopo.hint': 'Exportación de mapa curada para CalTopo / SARTopo: una selección por prioridad de medidores, crestas, alertas, cierres viales, cruces, avisos y reportes de tormenta, actualizada cada 15 minutos en una URL fija.',
+      'caltopo.complete': 'Esta exportación incluye las {n} entidades en alcance.',
+      'caltopo.partial': 'Esta exportación tiene un límite y incluye {n} de {total} entidades. Se conservan primero las alertas, crestas, cierres viales y medidores en inundación; los medidores sin actividad se descartan para caber.',
       'caltopo.how': 'En CalTopo elija Import, luego "Import from URL", y pegue esta dirección. Cada importación descarga una copia nueva; CalTopo no la actualiza por sí solo.',
       'caltopo.copy': 'Copiar URL',
       'caltopo.copied': 'Copiado ✓',

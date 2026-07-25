@@ -251,6 +251,48 @@ try:
 finally:
     shutil.rmtree(tmp2)
 
+# build_gauges only appends " · CATEGORY" when the gauge is in a flood category, so the suffix
+# is how a surviving gauge proves it was not a quiet one the cap should have dropped first
+def gauge_cat_in_title(f):
+    return any(f['properties']['title'].endswith(' · ' + c)
+               for c in ('ACTION', 'MINOR', 'MODERATE', 'MAJOR'))
+
+
+tmp3 = tempfile.mkdtemp()
+try:
+    write_fixtures(tmp3)
+    rc = run_gen(tmp3)
+    check('uncapped run exits 0', rc.returncode == 0, rc.stderr[-300:])
+    whole = load(tmp3)
+    whole_n = len([f for f in whole['features'] if (f.get('properties') or {}).get('class') != 'Folder'])
+    check('an untruncated export claims nothing was dropped',
+          whole['properties']['truncated'] is False and whole['properties']['dropped'] == 0)
+    check('an untruncated export counts candidates as what it carries',
+          whole['properties']['candidates'] == whole_n, 'got %s vs %d' % (whole['properties'].get('candidates'), whole_n))
+    check('an untruncated title makes no partial claim', 'partial' not in whole['properties']['title'])
+
+    rt = run_gen(tmp3, RESPONDER_CALTOPO_MAX_FEATURES='2')
+    check('capped run exits 0', rt.returncode == 0, rt.stderr[-300:])
+    cut = load(tmp3)
+    kept = [f for f in cut['features'] if (f.get('properties') or {}).get('class') != 'Folder']
+    p = cut['properties']
+    check('the cap is actually applied', len(kept) == 2, 'got %d' % len(kept))
+    check('a truncated export reports the drop', p['truncated'] is True and p['dropped'] == whole_n - 2,
+          'dropped=%s expected %d' % (p.get('dropped'), whole_n - 2))
+    check('a truncated export publishes the candidate total and the cap',
+          p['candidates'] == whole_n and p['cap'] == 2)
+    # the artifact must be honest to someone who imports the URL and never sees our share sheet
+    check('a truncated title says partial, with both numbers',
+          'partial' in p['title'] and ('%d of %d' % (2, whole_n)) in p['title'], p['title'])
+    check('a truncated note explains what survives the cut',
+          'dropped' in p['note'] and 'in-flood gauge' in p['note'], p['note'][-120:])
+    check('truncation keeps the highest-ranked features, never quiet gauges',
+          all(f['properties']['folder'] != 'Gauges (NOAA NWPS)' for f in kept)
+          or all(gauge_cat_in_title(f) for f in kept if f['properties']['folder'] == 'Gauges (NOAA NWPS)'),
+          [f['properties']['title'] for f in kept])
+finally:
+    shutil.rmtree(tmp3)
+
 print('---')
 if FAILS:
     print('%d FAILURE(S)' % FAILS)

@@ -1,5 +1,45 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.1 · 2026-07-25 (a capped CalTopo export has to say it is capped)
+
+-- Bug Fixes --
+- [Fix] The CalTopo export silently shipped a fraction of itself. The statewide
+      AO in v0.99.0 pushed the candidate set past the 500-feature cap, so the
+      published file carried 506 of 1131 while the share sheet still described
+      it as gauges, crests, alerts, closures, crossings, notices and storm
+      reports, with nothing anywhere saying most of it had been left out. The
+      export counted the drop correctly; no surface read the counter. This is
+      the same class of failure v0.98.5 fixed, and the second time the board
+      has shipped it.
+- [Fix] The artifact is now honest on its own, for the field team that imports
+      the URL and never opens our page. A truncated export names itself
+      partial in the FeatureCollection title with both numbers, and its note
+      states the cap and what survives it, so the truth travels with the file
+      into CalTopo rather than living only on the site.
+
+-- New Features --
+- [New] The share sheet reads the export's own metadata and states what the
+      file holds, either all N features in scope or N of M with the reason,
+      in English and Spanish. It reads the same-origin copy, so the LAN build
+      reports on the LAN build.
+- [New] The export publishes candidates and cap alongside truncated and
+      dropped, so a consumer can tell a complete export from a capped one
+      without recounting the features itself.
+- [New] tests/gen-caltopo.test.py pins the honesty in both directions: an
+      uncapped export must claim nothing was dropped and must not say partial,
+      and a capped one must report the drop, publish the candidate total and
+      the cap, name itself partial in its title, explain the cut in its note,
+      and keep no quiet gauge ahead of a gauge in flood.
+
+-- Changes --
+- [Change] The cap stays at 500. CalTopo's real import limit is unpublished
+           (CALTOPO-ASSESSMENT.md), so raising the ceiling would trade a
+           documented partial export for an undocumented risk of a failed
+           import in the field. What was wrong here was the silence, not the
+           number. Priority ranking already keeps every alert, crest, road
+           closure, crossing, storm report and in-flood gauge ahead of every
+           quiet gauge, so the cut falls only on gauges reporting no flooding.
+
 ## v0.99.0 · 2026-07-25 (the AO resets to standing Texas regions)
 
 -- Changes --

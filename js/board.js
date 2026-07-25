@@ -718,12 +718,38 @@ function renderQr(host, url) {
   } catch { host.hidden = true; }
 }
 
+// the export is capped, so the surface offering it has to say what the file actually holds.
+// reads the same-origin copy (present in both builds) rather than the absolute import URL.
+function caltopoStatusText(p) {
+  if (!p || typeof p !== 'object') return '';
+  const kept = Object.values(p.counts || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+  if (!p.truncated) return t('caltopo.complete').replace('{n}', fmtNum(kept));
+  return t('caltopo.partial')
+    .replace('{n}', fmtNum(kept))
+    .replace('{total}', fmtNum(Number(p.candidates) || kept + (Number(p.dropped) || 0)));
+}
+
+function renderCaltopoStatus() {
+  const el = $('#caltopo-status');
+  if (!el) return;
+  fetch('data/caltopo-export.json', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      const txt = caltopoStatusText(d && d.properties);
+      el.textContent = txt;
+      el.classList.toggle('caltopo-partial', !!(d && d.properties && d.properties.truncated));
+      el.hidden = !txt;
+    })
+    .catch(() => { el.hidden = true; }); // no metadata is silent; a wrong completeness claim would not be
+}
+
 function toggleCaltopoBox() {
   const box = $('#caltopo-box');
   box.hidden = !box.hidden;
   if (box.hidden) return;
   $('#caltopo-url').textContent = CALTOPO_EXPORT_URL;
   renderQr($('#caltopo-qr'), CALTOPO_EXPORT_URL);
+  renderCaltopoStatus();
 }
 
 function copyCaltopoUrl() {

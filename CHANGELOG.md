@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.9 · 2026-07-25 (the changelog says what changed, not how it was found)
+
+-- Changes --
+- [Change] Entries from v0.97.81 forward are rewritten to state the change and
+           stop there. Root-cause narration, discovery stories, severity
+           commentary, before and after measurements and internal names are
+           gone, in the file and in the in-app What's new list. Every
+           correction to something the board asserts to a reader is kept
+
 ## v0.99.8 · 2026-07-25 (a live camera and a still photo stop wearing the same icon)
 
 -- New Features --
@@ -37,773 +46,479 @@
 ## v0.99.6 · 2026-07-25 (a gear that never met the tap floor, and an Alerts panel that led with prose)
 
 -- Bug Fixes --
-- [Fix] The settings gear was the one header control that never reached the
-      44px tap floor on a phone. `#hmore-btn` declared `min-width: 40px` at ID
-      specificity, which outranks the `.controls button` floors in the phone,
-      landscape and tablet blocks no matter where they sit in the file, so the
-      gear measured 40x44 beside four 44x44 siblings at 390x844, 844x390 and
-      932x430. The declaration is gone; the gear now takes the same floor as
-      every other control, and desktop is unchanged at its natural 89px
+- [Fix] The settings gear now meets the same minimum tap size as every other
+      control in the header row on a phone. It was the one that did not
 
 -- Changes --
-- [Change] The Alerts panel leads with the control instead of the explanation.
-           The state line and the on/off switch now sit together on the first
-           row; before this, 67 words of prose stood between opening Settings
-           and reaching the switch, which rendered last in the card and below
-           the fold of the height-capped menu. Visible text drops from 76 to
-           32 words when alerts are on and from 71 to 28 when they are off
+- [Change] The Alerts panel leads with the control. The current state and the
+           on/off switch sit together on the first row, ahead of the
+           explanation
 - [Change] Alert types are two compact rows rather than three wrapped chips:
-           Flash Flood Emergencies takes Off/On, river gauges take
-           Off/Moderate/Major. Each option sets its value instead of toggling
-           it, so the gauge tiers read as the single exclusive choice they
-           always were
-- [Change] The honesty text is compact rather than absent. A one-line note
-           (best effort, not a 911 replacement, not a Wireless Emergency Alert)
-           is always on screen in every card state, and the full paragraphs are
-           unchanged behind a visible "How these alerts work" disclosure that
-           remembers whether it was opened
+           Flash Flood Emergencies takes Off or On, river gauges take Off,
+           Moderate or Major. Each option sets its value instead of toggling
+           it, so the gauge tiers read as the single exclusive choice they are
+- [Change] A one-line note (best effort, not a 911 replacement, not a Wireless
+           Emergency Alert) is on screen in every state of the card, with the
+           full text behind a "How these alerts work" disclosure that remembers
+           whether it was opened
 - [Change] The blocked, unsupported and iOS states each carry a short state
-           line plus their own one-sentence fix, so a revoked OS permission
-           still reads differently from a plain off; blocked now has its own
-           colour
+           line and their own one-sentence fix, so a revoked browser permission
+           reads differently from a plain off
 
 ## v0.99.5 · 2026-07-25 (a source we were not licensed to copy, and cameras that never worked)
 
 -- Bug Fixes --
-- [Fix] The ATX Floods camera source is removed. api.atxfloods.com is operated
-      by Beholder Technology, LLC, not the City of Austin, and its terms at
-      /admin/static/terms section 4(i) forbid "copying, distributing, or
-      disclosing any part of the Service in any medium, including without
-      limitation by any automated or non-automated scraping" (verified
-      2026-07-25, HTTP 200). The board polled it every cycle and republished
-      the inventory on a public mirror. The 26 cameras, the poller, the client
-      path and the CSP entries are all gone, and so is the attribution string
-      that credited the City of Austin for someone else's service
-- [Fix] Two USGS river cameras had never produced a single image and a third
-      had not produced one since April 2023, and all three were listed as
-      available. river_cams filtered on hideCam and the bbox and never looked
-      at newestImageDT. Cameras with no frame ever, or none inside 30 days,
-      are dropped at build time; every shipped row now carries the stamp it
-      was judged on, and cycle-check fails the build if one does not
-- [Fix] The river-camera bbox clipped the Canadian River at Amarillo out of
-      Texas and the Pecos headwaters out of their own basin. The north edge
-      moves above the Panhandle line
+- [Fix] The ATX Floods camera source is removed, and with it 26 Austin
+      low-water-crossing cameras and the attribution that credited the City of
+      Austin for a private company's service. Its terms forbid redistributing
+      any part of it
+- [Fix] Two USGS river cameras had never produced an image and a third had none
+      since April 2023, yet all three were listed as available. A camera with no
+      frame inside 30 days no longer ships, and every camera that does carries
+      the timestamp it was judged on
+- [Fix] The river-camera area no longer cuts the Canadian River at Amarillo out
+      of Texas or the Pecos headwaters out of their own basin
 
 -- New Features --
 - [New] Port Houston Ship Channel cameras, 13 of them, including the Sidney
-      Sherman (I-610) bridge air-draft view over the channel. There is no
-      index to enumerate, so the ids are hand-kept and liveness-checked like
-      the Hays County table, through a same-origin proxy on both servers with
-      the same id validator at every layer and no new CSP host. Port Houston
-      publishes no per-camera coordinate, so a wharf camera carries its
-      terminal's position and the viewer note says so rather than implying a
+      Sherman (I-610) bridge air-draft view. A wharf camera carries its
+      terminal's position and the viewer says so, rather than implying a
       berth-level fix
-- [New] The Port Houston check guards against an empty frame, not just a bad
-      status: one camera answers HTTP 200 with a zero-length body when its
-      head is down, and that is not a camera
+- [New] The Port Houston check requires a real frame, not just a good status
 
 -- Changes --
 - [Change] El Paso bridge cameras are deliberately not grown. One live stream
-           is missing from our table and stays missing: elpasotexas.gov
-           forbids copying or reproduction "without the prior written consent
-           of the CITY OF EL PASO" (verified 2026-07-25). The reason now sits
-           next to the table so nobody adds it back by accident
-- [Change] Twelve per-source camera picker strings orphaned by the v0.99.2
+           stays out of the table because the city forbids reproduction without
+           its written consent, and that reason now sits beside the table
+- [Change] Twelve per-source camera picker strings left over from the v0.99.2
            regroup are removed from both languages
 
 ## v0.99.4 · 2026-07-25 (three surfaces stop claiming more than they know)
 
 -- Bug Fixes --
-- [Fix] The crest summary said every peak was an observed stage read from this
-      board's own snapshot archive. 30 of its 47 rows were rebuilt from the
-      upstream USGS/NWPS record for the window before that archive begins.
-      gen-crest-summary already stamped those rows with src and the file's own
-      source field already said so; the lens printed a flat citation instead.
-      A reconstructed row now carries its own badge, and the citation states
-      how many of how many were rebuilt
-- [Fix] The same distinction reaches the CalTopo export, where it matters
-      most: a reconstructed crest names itself in its title, in its notes and
-      in its citation, so a crew that scans the code and imports the file in
-      the field learns it without visiting the site
-- [Fix] The open-shelter count never read a curated shelter's status. The
-      filter short-circuited on a shelter not being live, so a curated entry
-      counted as open whatever its status said. v0.98.0 fixed this for the
-      live NSS feed only; both paths now read status through one predicate,
-      and a curated entry with no status reads unknown rather than open
-- [Fix] The curated shelter list is aged against its own generated stamp, with
-      a 72h window. Past that the entries stay on the list and on the map with
-      their dates shown, and stop being counted as open; the strip chip says
-      the count is live-feed-only rather than letting the number quietly drop
-- [Fix] The live shelter feed's updated stamp headed the curated list as well
-      as its own, dating a hand-kept record with the feed's clock. Each block
-      now carries its own header, and a live feed that returns nothing says
-      that instead of appearing to vouch for the curated entries
-- [Fix] Curated shelters render their status and source badge on the card and
-      in the map popup; they previously rendered no status field at all
-- [Fix] The Roads badge counted every non-open crossing with no aging gate,
-      sitting beside Alerts and Gauges counts that both suppress a sensor they
-      cannot vouch for. It now counts only closures re-confirmed inside the
-      existing 12h window; the rest stay on the list and on the map, the panel
-      says how many were excluded, and their markers are dashed and dimmed
-      instead of reading as current
+- [Fix] The crest summary said every peak was an observed stage this board
+      recorded. 30 of its 47 rows were reconstructed from the upstream USGS and
+      NWPS record. A reconstructed row now carries its own badge, and the
+      citation states how many of how many were rebuilt
+- [Fix] A reconstructed crest names itself in the CalTopo export too, in its
+      title, its notes and its citation
+- [Fix] A curated shelter's status is read at last. A curated entry no longer
+      counts as open whatever its status says, and one with no status reads
+      unknown
+- [Fix] The curated shelter list ages out after 72 hours. Its entries stay on
+      the list and on the map with their dates shown, stop being counted as
+      open, and the strip chip says the count is live-feed-only
+- [Fix] Each shelter block carries its own header date. The live feed's stamp
+      used to head the curated list as well, and a live feed that returns
+      nothing now says so instead of appearing to vouch for curated entries
+- [Fix] Curated shelters render their status and source badge on the card and in
+      the map popup; they previously rendered no status field at all
+- [Fix] The Roads badge counts only closures re-confirmed inside the existing
+      12h window, so closures last confirmed days ago no longer add to it. They
+      stay on the list and on the map, dashed and dimmed, and the panel says how
+      many are excluded
 
 -- Changes --
-- [Change] Curated low-water-crossing text drops its em-dashes, per the
-           punctuation rule that already governs the app's own strings
-- [Change] The v0.98.0 shelter-count test asserted that the string "=== 'open'"
-           appears in the counter, which the short-circuit satisfied while
-           counting curated entries regardless of status. It now asserts the
-           reading rather than its spelling, and that the short-circuit stays
-           gone
+- [Change] Curated low-water-crossing text drops its em-dashes
+- [Change] The v0.98.0 shelter-count test asserts how a status is read rather
+           than how it is spelled
 
 ## v0.99.3 · 2026-07-25 (the life-safety cues speak Spanish)
 
 -- Bug Fixes --
-- [Fix] The flash flood emergency banner is localized. It was a hardcoded
-      English template literal, so a Spanish session read the loudest warning
-      this board can raise in a language it had already been told the reader
-      does not use. The EMERGENCY flag on emergency alert cards and the alert
-      reader's own title carried the same defect and are localized with it
-- [Fix] All four data-age bar states are localized: gauges from snapshot,
-      data never loaded, data n minutes old, and the USGS raw-stage fallback
-      note, plus the bar's dismiss control. Every stale-data warning on the
-      board was English-only, which is the aging discipline the board asserts
-      loudest failing in the one place a Spanish reader needs it
-- [Fix] Six more untranslated controls: the map's My location button, the
-      emergency banner dismiss (which also had no accessible name), the
-      changelog load-failure line, the sort, time window and distance filters,
-      the aged-cards toggle, and the version chip
+- [Fix] The flash flood emergency banner is localized, along with the EMERGENCY
+      flag on emergency alert cards and the alert reader's own title
+- [Fix] All four data-age bar states are localized: gauges from snapshot, data
+      never loaded, data n minutes old, and the USGS raw-stage fallback note,
+      plus the bar's dismiss control
+- [Fix] Six more controls are translated: the map's My location button, the
+      emergency banner dismiss, the changelog load-failure line, the sort, time
+      window and distance filters, the aged-cards toggle, and the version chip
 - [Fix] The data-age bar's dismiss control and the map's My location button
       gained accessible names; both were glyph-only with no label
 
 -- Changes --
-- [Change] The i18n renderer guard is structural instead of a denylist. The
-           old guard asserted that a fixed list of previously fixed English
-           strings never returns, which by construction cannot see a new one,
-           and that is how these cues shipped. The new guard reads every
-           string literal in the renderer set and fails on the two forms these
-           cues took: a warning-glyph literal, and a run of two or more
-           all-caps words. It fails by default, so a new literal of the same
-           class is caught with nobody remembering to list it
-- [Change] Exemptions to that guard are token-shaped, not phrase-shaped: a
-           caps run built only of organization, protocol and product acronyms
-           is a proper noun, and the handful of machine and interop strings
-           (the SITREP section labels, the upstream where= predicates) are
-           named one at a time with a reason. It is a class detector, not an
-           English detector, and says so
-- [Change] Every title and aria-label in index.html must now carry a
-           data-i18n-title or data-i18n-aria, asserted by a test; applyI18n
-           cannot reach a bare attribute, so one is a tooltip that renders in
-           English forever
+- [Change] The guard against untranslated text is structural instead of a list
+           of known strings: it fails on a warning-glyph literal or a run of two
+           or more all-caps words anywhere in the renderers
+- [Change] Exemptions to that guard are token-shaped: a caps run built only of
+           organization, protocol and product acronyms is a proper noun, and the
+           few machine and interop strings are named one at a time
+- [Change] Every title and aria-label on the page must now carry a translation
+           attribute, asserted by a test
 
 ## v0.99.2 · 2026-07-25 (cameras group by Texas region, not by who owns the lens)
 
 -- Changes --
-- [Change] The camera picker is organised by region. It used to be eight rows
-           named after operators, filed under Flood, Traffic and Border, which
-           asks a driver to know that the camera on the road ahead belongs to
-           Houston TranStar rather than TxDOT. There is now one row per Texas
-           region, holding every source that has a camera there, filed under
-           the Gulf Coast, Central Texas, North and East Texas, and West Texas.
-           The operator did not disappear: it still sets the marker glyph, the
-           popup, the viewer and the citation, which is where it belongs.
+- [Change] The camera picker is organised by region. Eight rows named after
+           operators become one row per Texas region, grouped under the Gulf
+           Coast, Central Texas, North and East Texas, and West Texas. The
+           operator still sets the marker glyph, the popup and the citation.
 - [Change] Each of the 6,263 cameras is assigned to exactly one region by its
-           own coordinates, nearest anchor wins, longitude scaled by latitude
-           so nearest means real distance. The regions and their anchors come
-           from data/event.json, the same definition the AO quick-jump uses, so
-           the two cannot drift apart. Current split: Houston 2,195, DFW 1,415,
-           Austin 1,123, San Antonio 348, El Paso 267, West Texas 174, Waco
-           169, Rio Grande Valley 144, Beaumont 140, Panhandle 109, East Texas
-           95, Coastal Bend 76.
-- [Change] Each row states its own camera count once the inventory is in, and a
-           region with no cameras says so instead of offering an empty toggle.
+           own coordinates. The regions are the same ones the AO quick-jump
+           uses, so the two cannot drift apart.
+- [Change] Each row states its own camera count, and a region with no cameras
+           says so instead of offering an empty toggle.
 
 -- Bug Fixes --
-- [Fix] Cameras beyond 100 miles of every region anchor are named as outside
-      the Texas regions and counted there, in their own row. Nearest anchor on
-      its own would have folded the eight USGS river cameras around Ruidoso and
-      Roswell, New Mexico, onto the El Paso and Panhandle rows at 117 to 145
-      miles and called them Texas, which is a silent drop wearing a region's
-      name. Cameras with no usable coordinates are counted too rather than
-      skipped in a loop. The residual today is 8 of 6,263, none of them in
-      Texas.
-- [Fix] The playback sweep now covers the region camera layers. PB_LIVE_HIDE
-      named the eight retired per-source layers, so after the regroup the
-      layers it hid no longer existed and today's cameras could have drawn
-      under a historical frame with a live citation. The sweep is derived from
-      the region list instead of hardcoded, and a test asserts every camera
-      layer the map builds is in it.
+- [Fix] Cameras beyond 100 miles of every region anchor get their own row naming
+      them as outside the Texas regions, rather than being folded onto the
+      nearest Texas row. Cameras with no usable coordinates are counted there
+      too. The residual today is 8 of 6,263, none in Texas.
+- [Fix] The sweep that hides live camera layers during playback covers the
+      region layers, so today's cameras cannot draw under a historical frame
+      with a live citation.
 - [Fix] Four region anchors sat outside the bounds of their own region, so the
-      quick-jump rectangle for Dallas Fort Worth, El Paso, the Panhandle and
-      the Coastal Bend did not contain places those regions claim to cover
-      (Sherman, Pecos, Wichita Falls, Matagorda). The bounds now contain every
-      anchor, and a test enforces it.
-- [Fix] The CalTopo status line treated any object as a describable export, so
-      metadata that arrived empty or half-read would have claimed the file was
-      complete. It now requires real per-folder counts and stays silent
-      otherwise, because saying nothing is correct and claiming completeness is
-      not.
+      quick-jump rectangles for Dallas Fort Worth, El Paso, the Panhandle and
+      the Coastal Bend did not contain Sherman, Pecos, Wichita Falls and
+      Matagorda. The bounds now contain every anchor.
+- [Fix] The CalTopo status line stays silent unless it has real per-folder
+      counts, rather than describing a half-read export as complete.
 
 -- New Features --
-- [New] Camera regions are addressable. A shared link carries ?camreg= with the
-      region ids that are open, including the residual one. The eight retired
-      per-source parameters (cams, camr, cama, camf, camh, caml, came, camm)
-      are still read on the way in and mapped onto the regions each source
-      actually covered, measured from data/cameras.json, so links shared before
-      the split still open the same cameras. They are no longer written out.
-- [New] A new source slots in without another restructure: add it to CAM_NETS
-      in js/cameras.js and its cameras are assigned by coordinate into the
-      regions that already exist, with no new layer, no new row, no new URL
-      parameter and no new i18n key. Region rows are built from config, so a
-      new region is a data/event.json edit.
-- [New] tests/cam-regions.test.js covers the assignment, the distance guard on
-      both sides of the line, malformed region config, the residual bucket, the
-      shipped region set against fifteen Texas cities, the frozen legacy
-      parameters, and the playback sweep. 451 tests, up from 426.
+- [New] Camera regions are addressable: a shared link carries the region ids
+      that are open. The eight retired per-source parameters are still read on
+      the way in and mapped onto the regions each source covered, so links
+      shared before the split still open the same cameras.
+- [New] A new source slots in without another restructure: its cameras are
+      assigned by coordinate into the regions that already exist, and a new
+      region is a config edit.
+- [New] Tests cover the assignment, the distance guard, malformed region config,
+      the residual bucket, the shipped region set, the frozen legacy parameters
+      and the playback sweep.
 
 ## v0.99.1 · 2026-07-25 (a capped CalTopo export has to say it is capped)
 
 -- Bug Fixes --
-- [Fix] The CalTopo export silently shipped a fraction of itself. The statewide
-      AO in v0.99.0 pushed the candidate set past the 500-feature cap, so the
-      published file carried 506 of 1131 while the share sheet still described
-      it as gauges, crests, alerts, closures, crossings, notices and storm
-      reports, with nothing anywhere saying most of it had been left out. The
-      export counted the drop correctly; no surface read the counter. This is
-      the same class of failure v0.98.5 fixed, and the second time the board
-      has shipped it.
-- [Fix] The artifact is now honest on its own, for the field team that imports
-      the URL and never opens our page. A truncated export names itself
-      partial in the FeatureCollection title with both numbers, and its note
-      states the cap and what survives it, so the truth travels with the file
-      into CalTopo rather than living only on the site.
+- [Fix] The CalTopo export shipped a fraction of itself without saying so. The
+      statewide AO pushed it past the 500-feature cap, so the file carried 506
+      of 1131 while the share sheet still described it as complete.
+- [Fix] A truncated export names itself partial in its title with both numbers,
+      and its note states the cap and what survives it.
 
 -- New Features --
-- [New] The share sheet reads the export's own metadata and states what the
-      file holds, either all N features in scope or N of M with the reason,
-      in English and Spanish. It reads the same-origin copy, so the LAN build
-      reports on the LAN build.
-- [New] The export publishes candidates and cap alongside truncated and
-      dropped, so a consumer can tell a complete export from a capped one
-      without recounting the features itself.
-- [New] tests/gen-caltopo.test.py pins the honesty in both directions: an
-      uncapped export must claim nothing was dropped and must not say partial,
-      and a capped one must report the drop, publish the candidate total and
-      the cap, name itself partial in its title, explain the cut in its note,
+- [New] The share sheet states what the file holds, either all N features in
+      scope or N of M with the reason, in English and Spanish.
+- [New] The export publishes its candidate total and cap alongside the truncated
+      flag and the drop count.
+- [New] Tests pin the honesty in both directions: an uncapped export must not
+      say partial, and a capped one must report the drop, name itself partial,
       and keep no quiet gauge ahead of a gauge in flood.
 
 -- Changes --
-- [Change] The cap stays at 500. CalTopo's real import limit is unpublished
-           (CALTOPO-ASSESSMENT.md), so raising the ceiling would trade a
-           documented partial export for an undocumented risk of a failed
-           import in the field. What was wrong here was the silence, not the
-           number. Priority ranking already keeps every alert, crest, road
+- [Change] The cap stays at 500. Priority ranking keeps every alert, crest, road
            closure, crossing, storm report and in-flood gauge ahead of every
            quiet gauge, so the cut falls only on gauges reporting no flooding.
 
 ## v0.99.0 · 2026-07-25 (the AO resets to standing Texas regions)
 
 -- Changes --
-- [Change] The board stops being framed on a finished storm. data/event.json
-           drops the TS Bertha name and event label, the coverage line becomes
-           Texas, and the Full AO widens from the upper-coast box (-98.0, 27.5,
-           -93.4, 31.0) to Texas-wide (-106.65, 25.83, -93.4, 36.5), which is
-           captureBbox exactly. Nothing narrows: since v0.97.97 publication
-           scope is the union of every gaugeBbox ever committed, so a display
-           change can only add. Measured against the same record, the published
-           snapshot goes from 290 to 1018 gauges and roads from 271 to 287,
-           playback holds at 826 frames with its gauge index rising from 283 to
-           608, and the crest record is unchanged at 47 gauges and 18 majors,
-           with zero gauges, frames or closures held out of scope.
+- [Change] The board is no longer framed on a finished storm. The TS Bertha name
+           and event label are gone, the coverage line reads Texas, and the Full
+           AO widens to the whole state: 290 gauges to 1018 and 271 road
+           closures to 287, with nothing held out of scope.
 - [Change] Twelve standing Texas regions replace the four Bertha sub-AOs in the
-           quick-jump list, each one an operational area drawn around the water
-           it drains rather than a rectangle on a grid: Houston · Gulf Coast,
-           Beaumont · Golden Triangle, Coastal Bend · Victoria, Rio Grande
-           Valley · Laredo, Austin · Hill Country, San Antonio · South Central,
-           Waco · Brazos Valley, Dallas · Fort Worth, East Texas · Piney Woods,
-           West Texas · Permian Basin, El Paso · Far West, and Panhandle ·
-           South Plains. The set is derived from where the gauges actually are:
-           1018 capture gauges grouped by riverOf() over the Guadalupe, Brazos,
-           Colorado, Trinity, Neches, Sabine, Nueces, Pecos, Red and Rio Grande
-           basins, cross-checked against gauge density at each population
-           centre, and every region carries a Spanish label.
-- [Change] The tide card grows from ten upper-coast stations to fourteen.
-           Freeport, Bob Hall Pier, Port Mansfield and Port Isabel cover the
-           middle and lower coast, which a statewide board left blank, and
-           Aransas Pass is now read at the Port Aransas gauge. Every station id
-           was verified against the NOAA CO-OPS station metadata service before
-           shipping.
-- [Change] With no named event configured, the crest summary now labels its
-           window by month instead of carrying a storm name that has expired.
+           quick-jump list: Houston · Gulf Coast, Beaumont · Golden Triangle,
+           Coastal Bend · Victoria, Rio Grande Valley · Laredo, Austin · Hill
+           Country, San Antonio · South Central, Waco · Brazos Valley, Dallas ·
+           Fort Worth, East Texas · Piney Woods, West Texas · Permian Basin, El
+           Paso · Far West, and Panhandle · South Plains. Every region carries a
+           Spanish label.
+- [Change] The tide card grows from ten upper-coast stations to fourteen, adding
+           Freeport, Bob Hall Pier, Port Mansfield and Port Isabel, and Aransas
+           Pass is now read at the Port Aransas gauge.
+- [Change] With no named event configured, the crest summary labels its window
+           by month rather than by a storm name that has expired.
 
 -- New Features --
-- [New] Regions are event config, never code. Each lives in data/event.json
-      aoPresets with an id, label, labelEs, bounds, band and an anchor list of
-      the towns and gauge clusters it exists to cover, so a future re-target
-      stays a config flip and the client keeps reading config rather than
-      literals.
+- [New] Regions are event config, never code, so a future re-target stays a
+      config flip.
 
 ## v0.98.11 · 2026-07-25 (the public mirror stops shipping the intake form)
 
 -- Changes --
-- [Change] The field-report intake form is operator-only markup and now leaves
-           the public artifact entirely. Since v0.98.6 the mirror has withdrawn
-           its entry point and refused submit, because no ops backend answers
-           there, but 45 lines of form still shipped in every public page load.
-           index.html wraps the entry-point button and the form in
-           lan-only:intake markers and deploy.sh removes both regions from the
-           upload directory, alongside the js/chat.js, js/master.js,
-           js/notes.js, css/notes.css, scripts/ and server.py strips it already
-           performs. HEAD keeps the markup whole, so the LAN operator build
-           files notices exactly as before.
-- [Change] Every reader of #new-request-form and #toggle-form now tolerates the
-           element being absent instead of throwing. That is what makes the
-           strip possible: boot.js bound a submit listener at boot and read the
-           form's open state for the update-rollover gate, and map.js, board.js
-           and team.js each read it too, so removing the markup by text alone
-           killed boot on the first null dereference. The intake wiring in
-           boot.js is now one conditional block, and ?intake on the mirror is a
-           no-op rather than a page error.
+- [Change] The field-report intake form no longer ships in the public artifact.
+           The deploy removes both the entry-point button and the form; the LAN
+           operator build keeps them whole.
+- [Change] Every reader of the intake form tolerates the element being absent,
+           and asking for the intake form on the mirror is a no-op rather than a
+           page error.
 
 -- New Features --
-- [New] The strip is asserted on its result, in both directions: HEAD's
-      index.html must still carry #new-request-form, and the artifact must
-      carry neither the form, the button, nor a marker. Markup left unmarked
-      therefore fails the deploy instead of shipping, which a region count
-      alone would have missed. tests/deploy.test.sh adds three cases against a
-      fixture that now carries realistic marked intake markup, one of them a
-      mutation with the markers deleted; tests/team-tab-gate.test.js adds three
-      more, pinning the markers in the real index.html, a repo-wide sweep for
-      unguarded intake dereferences, and rolloverBusy reading idle rather than
-      throwing when the form was stripped.
+- [New] The strip is asserted on its result, in both directions: the source must
+      still carry the form, and the published artifact must carry neither the
+      form nor the button.
 
 ## v0.98.10 · 2026-07-25 (the data cycle runs committed code)
 
 -- Bug Fixes --
-- [Fix] scripts/run-cycle.sh ran the WORKING TREE's generators on a 15-minute
-      cron, so a half-finished pipeline edit became production data at the next
-      boundary. Three agents hit it in one night: an uncommitted gen-caltopo.py
-      published a crest export before its release commit landed, and an
-      uncommitted gen-history.py wrote a bounded data/history.json while the
-      committed validator still demanded the whole record, which failed the
-      05:53Z cycle and left the public mirror 30 minutes stale. The cycle now
-      checks HEAD out to a throwaway git worktree and runs the generators, the
-      validator and deploy.sh from there, the same fix deploy.sh got in
-      v0.97.85.
-- [Fix] The post-deploy strip gate asked for each stripped path with a cache
-      buster, which reaches the origin, then reported the answer as though it
-      were what a browser receives. It could not see that js/notes.js was
-      answering 404 cache-busted and 200 plain on respondertx.org, because a
-      zone-level Cloudflare cache rule (max-age=14400) overrides this repo's
-      _headers and keeps a stripped asset at the edge for up to four hours. The
-      gate now asks twice. An origin 404 stays the pass condition, since the
-      origin is the only half a deploy controls, and an edge still serving a
-      stripped path is named in a warning that does not fail the deploy: the
-      zone rule is dashboard configuration no deploy can fix, and blocking on
-      it would hold back flood data over a cached asset.
+- [Fix] The 15-minute data cycle ran the working tree's generators, so a
+      half-finished pipeline edit became production data. It now checks HEAD out
+      to a throwaway worktree and runs the generators, the validator and the
+      deploy from there.
+- [Fix] The post-deploy strip gate asks for each stripped path both with and
+      without a cache buster. An origin 404 stays the pass condition, and an
+      edge still serving a stripped path is named in a warning that does not
+      fail the deploy.
 
 -- Changes --
-- [Change] The cycle's CODE comes from HEAD, its DATA does not. Every generator
-           resolves its paths through RESPONDER_ROOT, the override gen-notices,
-           gen-shelters and gen-caltopo already carried and that
-           fetch-snapshot.py, gen-roads-snapshot.py, gen-history.py,
-           gen-crest-summary.py and gen-feeds.py now carry too, so a generator
-           executed out of the HEAD worktree still reads the live
-           data/event.json and still writes data/, history/, feed.xml and
-           crests.ics into the real repo. Re-targeting a live event stays an
-           edit to a data file, never a release. cycle-check.sh and deploy.sh
-           take the same variable for their working directory.
-- [Change] run-cycle.sh gains --allow-dirty-code for running an uncommitted
-           pipeline on purpose, the counterpart to deploy.sh's
-           --allow-dirty-functions and behind the same kind of loud banner.
-           Without it, a cycle that finds uncommitted work under scripts/ logs
-           the file list, says it is running HEAD instead, and carries on
-           publishing. run-cycle.sh itself is the one file still read from the
-           tree, because it is the bootstrap, and it names itself in that list
-           when it is the dirty one.
+- [Change] The cycle's code comes from HEAD, its data does not. A generator
+           running out of the HEAD worktree still reads the live event config
+           and writes into the real repo, so re-targeting a live event stays an
+           edit to a data file, never a release.
+- [Change] The cycle gains an option to run an uncommitted pipeline on purpose,
+           behind a loud banner. Without it, a cycle that finds uncommitted
+           pipeline work logs the file list, says it is running HEAD instead,
+           and carries on publishing.
 
 -- New Features --
-- [New] Five regressions pin the new boundary in tests/run-cycle.test.sh, all
-      against a scratch repo with stub generators: a poisoned working-tree
-      generator cannot reach the data while HEAD's version still refreshes it,
-      --allow-dirty-code runs the poisoned one on purpose and says so, an
-      uncommitted data/event.json edit still takes effect on the next cycle, no
-      pipeline worktree is leaked, and every generator run-cycle.sh invokes is
-      statically asserted to honor RESPONDER_ROOT, because one that did not
-      would write its output into the throwaway tree and still report OK.
-      tests/deploy.test.sh adds a stub network and three strip-gate cases: an
-      edge still serving a stripped path, an origin still serving one, and a
-      clean run.
+- [New] Five regressions pin the new boundary, among them that a poisoned
+      working-tree generator cannot reach the data, that an uncommitted
+      event-config edit still takes effect on the next cycle, and that no
+      worktree is leaked.
 
 ## v0.98.9 · 2026-07-25 (the playback archive stops paying for itself twice)
 
 -- Changes --
-- [Change] data/history.json is now a bounded seven-day view of the playback
-           record instead of a copy of the whole thing. The chunked archive
-           under history/ has held the complete record since v0.98.1, but the
-           old whole-record file was still rewritten in full on every
-           15-minute cycle: 2.44 MB as a single line, 323 KB of git object per
-           cycle and about 29.6 MB a day, growing with the archive forever.
-           Bounded, it is 1.66 MB and 161 KB per cycle, and that number stays
-           put however deep the archive gets. Seven days was chosen to match a
-           range chip and the reconstruction floor, so the fallback file's
-           depth is not a third unrelated number
-- [Change] The bounded file says what it is. A new top-level "view" object,
-           emitted ahead of the frames so it is readable in a one-line file,
-           names the window, the frames it carries, the whole record's frame
-           count and start, and the path to the full archive. A partial file
-           that reads as a complete one is the failure this board keeps
-           having, so it is now impossible to publish one silently
+- [Change] The whole-record playback file is now a bounded seven-day view rather
+           than a copy of the entire archive, which is published in day-sized
+           pieces and stays complete
+- [Change] The bounded file says what it is: a view block names the window, the
+           frames it carries, the whole record's frame count and start, and
+           where the full archive lives
 - [Change] Playback on the fallback file no longer claims the missing stretch
-           was never recorded. When the loaded file declares itself a window,
-           the archive-birth flash, the hatched pre-archive band, the range
-           chip titles and the timeline note all switch to fallback wording
-           that names the full archive instead of the board's birth, in
-           English and Spanish
+           was never recorded. The archive-birth flash, the hatched pre-archive
+           band, the range chip titles and the timeline note switch to wording
+           that names the full archive, in English and Spanish
 
 -- Bug Fixes --
-- [Fix] gen-crest-summary.py read the pre-archive reconstruction out of
-      data/history.json, which the bound would have emptied: 23 of 47 gauges
-      and every one of the 30 reconstruction-sourced peaks would have vanished
-      from the crest record, and seven surviving peaks would have moved to a
-      later, lower reading. It now reads the chunked archive, which is whole.
-      Verified byte-identical to the previous whole-record output before the
-      bound, and byte-identical again after it
-- [Fix] gen-history.py read its own previous output back as the record it
-      compares against, for the scope ratchet and to avoid re-fetching a fixed
-      reconstruction window from USGS and NWPS every cycle. Reading a bounded
-      file there would have put both on a file that no longer contains them,
-      so it now reads the chunked archive as well; data/history.json is a pure
-      output with no reader left in the pipeline
-- [Fix] cycle-check.sh asserted the compatibility view and the chunked record
-      hold the same frame count, which the bound breaks. It now asserts the
-      harder thing: the view must be an exact suffix of the reassembled
-      record, so a stale, forked or silently truncated fallback fails, and any
-      view shorter than the record must declare a window whose depth, first
-      frame, frame count and pointer to the full archive all agree with the
-      bytes actually carried
+- [Fix] The crest summary reads its pre-archive reconstruction from the chunked
+      archive rather than the bounded file, and its output is byte-identical to
+      before the change
+- [Fix] The history generator reads the chunked archive too, so the bounded file
+      is a pure output with no reader left in the pipeline
+- [Fix] The cycle check asserts the bounded view is an exact suffix of the
+      reassembled record, and that any shorter view declares a window whose
+      depth, first frame, frame count and archive pointer match the bytes
+      carried
 
 ## v0.98.8 · 2026-07-25 (two guards that were not guarding)
 
 -- Bug Fixes --
-- [Fix] The bilingual renderer guard was a hand-kept list of six files.
-      js/playback.js and js/cameras.js fell out of coverage the moment the
-      v0.97.77 module split created them, and js/team.js had never been in it,
-      so an English string could reappear in any of the three and no test would
-      say so. The guarded set is now derived from the scripts index.html
-      actually loads, following the ones loaded at runtime as well, so an
-      extraction cannot drop a renderer out of coverage again. Thirteen files
-      are covered where six were.
-- [Fix] The release cycle's chat-cursor check read format and an upper bound
-      but never direction, so a cursor moving backwards, which is how an owner
-      message gets re-delivered or hidden a second time, passed it cleanly. The
-      check now compares against the previous cycle and fails on a regression,
-      while still reading an inbox rotation and a fresh checkout as the
-      legitimate resets they are.
+- [Fix] The bilingual renderer guard covered a hand-kept list of six files while
+      the board loads thirteen, so an English string could reappear in the
+      playback, camera or team panels unflagged. The guarded set is now derived
+      from the scripts the page actually loads.
+- [Fix] The release cycle's chat-cursor check now fails on a cursor moving
+      backwards, while still reading an inbox rotation and a fresh checkout as
+      the legitimate resets they are.
 
 -- Changes --
 - [Change] A cursor regression is reported once and the new position recorded,
            so an ops-chat fault costs a single data cycle rather than stranding
-           the public board on stale flood data on every cycle after it.
+           the public board on stale flood data.
 
 ## v0.98.7 · 2026-07-25 (the road closures playback stopped recording)
 
 -- Bug Fixes --
-- [Fix] Road playback stopped recording new closures when the area of
-      operations moved to the coast. The archive walk read the display-scoped
-      roads-snapshot.json, which the pivot left empty, while the statewide
-      roads-capture.json it should have read was being committed every cycle.
-      Nothing was lost, because the capture is in git, but no out-of-view
-      closure had entered the record since 2026-07-23 and the roads playback
-      still showed were reconstructions from posted start and end times that
-      drain as those windows expire. Retention now reads the capture and falls
-      back to the snapshot for commits older than the split, recovering the
-      pre-pivot depth: 285 closures retained where 257 were, and the newest
-      frame replays 49 instead of 35.
+- [Fix] Road playback stopped recording new closures when the area of operations
+      moved to the coast. Retention now reads the statewide capture and falls
+      back to the display snapshot for older commits: 285 closures retained
+      where 257 were, and the newest frame replays 49 instead of 35.
 
 -- Changes --
-- [Change] Roads now get the same two layers the gauges got. Retention walks
-           the statewide capture with no geographic filter anywhere in the
-           path; publication projects that through the union of every area this
-           board has declared, plus everything already published, so an area
-           change can narrow the view and can never delete a stored closure.
-           roadIndex and roadsFrom keep their contract and stay display-scoped,
-           and history.json now carries retained.roads so the record can say it
-           is wider than the view (285 retained, 271 published, 14 held).
+- [Change] Roads get the same two layers the gauges got. Retention walks the
+           statewide capture with no geographic filter, and publication projects
+           that through every area this board has declared, so an area change
+           can narrow the view and can never delete a stored closure.
 
 ## v0.98.6 · 2026-07-25 (two things the public board offered that it could not honour)
 
 -- Changes --
-- [Change] The Team tab is no longer in the tab bar by default. A resident
-           opening the board to check one address was being asked to create or
-           join an operations team, next to Feed, Alerts, Gauges and Roads. The
-           capability is unchanged and the tab returns for anyone who has a
-           reason to see it: a team link, a live team, ?tab=team, the new Live
-           team entry in Settings, or the operator build, which still shows it
-           as a first-class tab.
+- [Change] The Team tab is no longer in the tab bar by default. The capability
+           is unchanged and the tab returns for a team link, a live team, a URL
+           request for it, the new Live team entry in Settings, or the operator
+           build.
 - [Change] The field-report form is withdrawn wherever no ops backend answers.
-           On the public board a submitted notice saved to that one device and
-           reached nobody, disclosed only by an English sentence a Spanish
-           reader never saw. The form is now taken off the board entirely in
-           that case, and a submission that gets through anyway is declined in
-           both languages instead of being banked in silence.
+           A notice submitted on the public board saved to that one device and
+           reached nobody; a submission that gets through now is declined in
+           both languages.
 
 -- Bug Fixes --
-- [Fix] The post-deploy check added in v0.98.5 failed on its own first run. A
-      file the previous deploy served keeps answering for a few seconds after
-      the new manifest lands, and the check had no retry where the neighbouring
-      version check has eight. It now retries for a minute per path.
+- [Fix] The post-deploy check added in v0.98.5 retries for a minute per path,
+      instead of failing on a file the previous deploy is still serving.
 
 ## v0.98.5 · 2026-07-25 (the crests the CalTopo export was quietly leaving out)
 
 -- Bug Fixes --
-- [Fix] The CalTopo export dropped most of the event's crests without saying
-      so. It placed each crest by looking its gauge up in the display snapshot,
-      but the crest record deliberately spans every area this board has covered,
-      so a peak outside the current area had no coordinates and was skipped. 33
-      of 47 crests were missing, 17 of the 18 major ones among them, while the
-      file still reported dropped 0. Coordinates now resolve against the
-      wide-area capture as well and all 47 export.
-- [Fix] A crest that still cannot be placed is counted instead of swallowed.
-      The number is published as crests_unresolved in the export properties and
-      printed in the generator's log line, so a partial file says it is partial.
+- [Fix] The CalTopo export dropped most of the event's crests while reporting
+      nothing dropped: 33 of 47 were missing, 17 of the 18 major ones among
+      them. Coordinates now resolve against the wide-area capture and all 47
+      export.
+- [Fix] A crest that still cannot be placed is counted in the export properties
+      and in the generator's log, so a partial file says it is partial.
 
 -- Changes --
-- [Change] Field Notes stops loading for visitors who never asked for it. The
-           feature has been off since July, but js/notes.js and css/notes.css
-           sat in the service-worker precache and downloaded for everyone, 24 KB
-           that returns immediately without ?notes or ?note. Both are out of the
-           precache and out of the public artifact; boot.js injects them on
-           demand, so the operator build keeps the feature unchanged.
+- [Change] Field Notes stops loading for visitors who never asked for it. It is
+           injected on demand, so the operator build keeps the feature
+           unchanged.
 - [Change] The public mirror stops publishing ops-side code no browser can run.
-           scripts/, server.py and .gitignore were served as static files, 320 KB
-           carrying the ops host's absolute paths, its cron lines and the whole
-           /api/chat plumbing the mirror is supposed to have none of. deploy.sh
-           strips them, asserts their absence before upload, and confirms each
-           one returns 404 after the deploy.
+           The operations scripts and the LAN server are stripped, their absence
+           asserted before upload, and each confirmed 404 afterwards.
 
 ## v0.98.4 · 2026-07-25 (two defects that only show up in a moving vehicle)
 
 -- Bug Fixes --
 - [Fix] The hazard line no longer scrolls itself. Android for Cars app quality
-      requirement ST-1 is "The app must not display automatically scrolling
-      text", and it is the only published in-vehicle standard that addresses
-      it. The line is already ranked worst-first, so the top item is now pinned
-      and always legible at a glance instead of being readable only when the
-      loop brought it round.
-- [Fix] Nothing was dropped to get there. The remaining items sit behind a
-      count button and open as a static list, one tap, no motion. Acting on any
-      item closes it again.
-- [Fix] A dash-mounted phone in landscape could not give the map the screen at
-      all. The resize handle was hidden in that layout while the panel stayed
-      pinned at 40% of the width, so in the exact posture where the map matters
-      most there was no way to expand it. Minimize now collapses the panel in
-      landscape as it already did in portrait: the map goes from 506 to 844 px
-      wide on a 844x390 screen, and 592 to 932 on a 932x430.
+      requirement ST-1 forbids automatically scrolling text. The line is ranked
+      worst-first, so the top item is pinned and legible at a glance.
+- [Fix] Nothing was dropped to get there. The remaining items sit behind a count
+      button and open as a static list, one tap, no motion. Acting on an item
+      closes it.
+- [Fix] Minimize now collapses the panel in landscape as it already did in
+      portrait. A dash-mounted phone could not give the map the screen at all.
 
 -- Changes --
 - [Change] The landscape handle is the portrait pill turned on its side. It
-           rides the panel's inner edge while the panel is open and moves to the
-           right edge once the panel is gone, because a right thumb on a mount
-           cannot reach the far left of an 844 px screen. It sits in the lower
-           third, clear of the zoom bar above it and the legend below it, and
-           never in the top-right corner, which is the furthest point of all.
-- [Change] Landscape reuses the existing minimize state rather than inventing
-           one, so ?sheet=peek and the stored panel preference now work in
-           landscape too. The full-screen-panel button is hidden there, since in
-           a fixed-width column it does the same thing as half.
+           rides the panel's inner edge while the panel is open, moves to the
+           right edge once the panel is gone, and sits in the lower third.
+- [Change] Landscape reuses the existing minimize state, so a shared link naming
+           the panel size and the stored panel preference both work there. The
+           full-screen-panel button is hidden in landscape.
 - [Change] Hazard-line items are real buttons, so they are keyboard reachable
-           and pick up the 44 px phone target floor. They were 23 px spans.
-- [Change] The expanded list floats over the map instead of pushing it down. At
-           its old height a 390x844 phone was left with 96 px of map and a
-           re-tile on every open.
+           and pick up the phone target floor. They were spans.
+- [Change] The expanded list floats over the map instead of pushing it down.
 - [Change] Reduced-motion users previously got the marquee frozen in place,
-           which left every item past the fold unreachable. With no motion
+           leaving every item past the fold unreachable. With no motion
            anywhere, that whole class of failure is gone.
-- [Change] tests/css-contract.test.js gains three guards: no animation may
-           return to the hazard line in any form, the remainder must float
-           rather than resize, and the landscape block must keep a visible 44 px
-           handle with a collapsing sidebar.
+- [Change] Three guards keep it that way: no animation may return to the hazard
+           line, the remainder must float rather than resize, and the landscape
+           layout must keep a visible handle with a collapsing sidebar.
 
 ## v0.98.3 · 2026-07-25 (degraded gauges become peer values in the legend)
 
 -- New Features --
-- [New] The map legend is now one list of eight gauge states: the five flood
-      severities in colour, then three degraded states in desaturated greys.
-      "Flood category not defined", "Data not current" and "Out of service"
-      sit as peers of MAJOR and No flooding rather than as a footnote or a
-      shape the glossary explains once.
+- [New] The map legend is now one list of eight gauge states: five flood
+      severities in colour, then "Flood category not defined", "Data not
+      current" and "Out of service" in greys, as peers of MAJOR and No flooding.
 - [New] Every legend row carries a live count and its own checkbox, so the
-      legend is also the filter. The counts are derived, not stored: they move
-      with each refresh and always total the gauges the board holds.
-- [New] Degraded rows ship ON by default, the deliberate inverse of the NWPS
-      default. They hide theirs because 9.8% degraded across 12,222 national
-      gauges is map noise; roughly 29% of our ~290 gauge display area is
-      degraded, and a stale gauge that is silently absent is the exact failure
-      the aging rules exist to prevent.
-- [New] Degraded gauges reach the map at all for the first time. 84 of 290 were
-      being discarded at load, including 67 carrying live current readings that
-      simply have no flood thresholds defined.
+      legend is also the filter.
+- [New] Degraded rows ship ON by default, the inverse of the NWPS default.
+- [New] Degraded gauges reach the map at all for the first time. They were being
+      discarded at load, including ones carrying live readings that have no
+      flood thresholds defined.
 
 -- Bug Fixes --
-- [Fix] The sparkline drew a chart over dead data. A gauge frozen between 12 and
-      48 hours still rendered a trace and labelled its last point with a bare
-      value, which read as a current level. That label is now hedged the moment
-      the record stops short of now, naming the time it stops.
-- [Fix] An out-of-service gauge gets a sentence where the chart goes, in both
-      the popup and the hydrograph modal, instead of a chart of nothing.
-- [Fix] Both charts asserted flood-stage bands they had not drawn. A gauge with
-      no thresholds got no dashed lines and no shading, under a caption that
-      promised both; the caption now states that no stages are defined.
-- [Fix] A disabled sensor arrives as a -999 reading stamped year 0001. Nothing
-      renders that as a level any more.
-- [Fix] The hydrograph left a gap between the end of the trace and now for the
-      reader to interpret. It now says where the observed record stops.
-- [Fix] The playback layer subtitle still advertised 3 / 7 / 14 days after
-      v0.98.2 added 30 and 90.
+- [Fix] The sparkline no longer labels the last point of a frozen trace with a
+      bare value that reads as a current level; it names when the record stops.
+- [Fix] An out-of-service gauge gets a sentence where the chart goes, in the
+      popup and the hydrograph modal, instead of a chart of nothing.
+- [Fix] A gauge with no thresholds carries a caption stating that no stages are
+      defined, not one promising bands neither chart drew.
+- [Fix] A disabled sensor arrives as a -999 reading stamped year 0001, and
+      nothing renders that as a level any more.
+- [Fix] The hydrograph says where the observed record stops instead of leaving
+      the gap to now for the reader to interpret.
+- [Fix] The playback layer subtitle still advertised 3 / 7 / 14 days after 30
+      and 90 were added.
 
 -- Changes --
-- [Change] The degraded filter is stored locally rather than in the URL, so no
-           new share-link contract is created and no shared link can arrive with
-           dead gauges silently hidden from the recipient.
-- [Change] Layer subtitles now state the limitation in the layer picker instead
-           of only in a popup: gauges name the three degraded states, alerts say
-           a polygon is the area a warning covers rather than observed flooding
-           inside it, storm reports say each is a moment already past, and
-           shelters say to call ahead.
-- [Change] Degraded gauges declutter at low zoom exactly as no-flood gauges
-           already did. They carry no severity either, and 84 grey dots at state
-           scale would bury the flood ramp; the legend keeps their count.
-- [Change] The duplicated degraded-category filter in the live and cold-start
-           paths is now one shared splitGauges helper.
-- [Change] The glossary lists the same three degraded states as the legend, so
-           neither surface can name a state the other omits.
+- [Change] The degraded filter is stored locally rather than in the URL, so a
+           shared link cannot arrive with dead gauges hidden from the recipient.
+- [Change] Layer subtitles state the limitation in the layer picker: gauges name
+           the three degraded states, alerts say a polygon is the area a warning
+           covers, storm reports say each is a moment already past, and shelters
+           say to call ahead.
+- [Change] Degraded gauges declutter at low zoom as no-flood gauges do.
+- [Change] The live and cold-start paths share one gauge-splitting helper.
+- [Change] The glossary lists the same three degraded states as the legend.
 
 ## v0.98.2 · 2026-07-25 (30 and 90 day playback, and what the board does not have)
 
 -- New Features --
-- [New] Playback gains 30d and 90d ranges alongside 3d, 7d and 14d. The chunked
-      loader is what makes them affordable: a 90d window moves about the bytes
-      a 3d window used to cost, arrives progressively, and reuses every frozen
-      day from the browser cache between visits.
+- [New] Playback gains 30d and 90d ranges alongside 3d, 7d and 14d, arriving
+      progressively and reusing every frozen day from the browser cache.
 - [New] A range deeper than the archive is marked before it is chosen. The chip
       takes a dashed border and a warning dot, and its title and accessible name
       read "Replay the last 90 days. The archive holds 20; the rest predates
       this board and shows hatched, not as calm water."
 - [New] The playback note states the shortfall in place: "90d window · 20d
-      recorded, the rest is before this board existed". It appears before you
-      scrub rather than only once engaged, and it is text on the bar rather than
-      a hover title, so a touch device sees it too.
+      recorded, the rest is before this board existed". It is text on the bar
+      rather than a hover title, so a touch device sees it too.
 
 -- Changes --
-- [Change] The window is deliberately not clamped to the archive. Keeping the
-           full 30 or 90 days on the track is what keeps the hatched pre-archive
-           span proportionally honest: at 90d it covers 78% of the bar, which is
-           the true shape of a 20 day record. Clamping would have made 30d and
-           90d look identical and quietly imply three months of data.
-- [Change] No range chip is ever disabled. The archive grows, so a chip disabled
-           today is a working range in ten days with nothing to announce it.
-           Marked and reachable beats dead and silent.
+- [Change] The window is not clamped to the archive, so the hatched pre-archive
+           span stays proportionally honest.
+- [Change] No range chip is ever disabled, because the archive grows.
 - [Change] The archive-birth flash fires once per range that overreaches instead
-           of once per session, so choosing 90d after 30d does not inherit 30d's
-           acknowledgement.
+           of once per session.
 
 -- Bug Fixes --
-- [Fix] A shared ?pbt= link to a moment older than the open window clamped
-      silently to the window start, so the board showed a different time than
-      the link named. It now opens the narrowest range that contains the linked
-      moment and loads that day's chunk first.
+- [Fix] A shared link to a moment older than the open window clamped silently to
+      the window start, so the board showed a different time than the link
+      named. It now opens the narrowest range that contains the linked moment.
 
 ## v0.98.1 · 2026-07-25 (the archive publishes in day-sized pieces)
 
 -- New Features --
-- [New] The playback archive now publishes as an index plus one file per UTC
-      day, and the client fetches only the days the chosen window touches,
-      newest first, splicing each one in as it lands. A 3-day window used to
-      pull the entire 2.4 MB record before the scrubber would move; it now
-      pulls about four day files, and the bar is scrubbable from the first one.
-- [New] history/index.json carries the gauge and road indexes plus a descriptor
-      per day: frame count, time bounds, and a content hash. A day file holds no
-      build stamp, so a frozen day is byte-identical every cycle and its hash
-      does not move; the client puts that hash in the query string, which is
-      what makes serving history/day/* immutable a fact rather than a promise.
-- [New] The scrubber now distinguishes two kinds of absence. The existing hatch
-      still means the board never recorded that stretch; a new band marks
-      archived days that are still downloading or that failed to download. An
-      unloaded day never renders as bare track, because bare track reads as a
-      quiet stretch of river.
-- [New] tests/run.sh runs any suite with the whole log written to a file and the
-      failing test names printed at the end, after redirecting every production
-      lock and log path into a scratch directory.
+- [New] The playback archive publishes as an index plus one file per UTC day,
+      and the client fetches only the days the chosen window touches, newest
+      first, splicing each one in as it lands. A 3-day window used to pull the
+      whole record before the scrubber would move.
+- [New] The index carries the gauge and road indexes plus a descriptor per day:
+      frame count, time bounds, and a content hash. A frozen day is
+      byte-identical every cycle, so it can be served immutable.
+- [New] The scrubber now distinguishes two kinds of absence. The hatch still
+      means the board never recorded that stretch; a new band marks archived
+      days still downloading or failed to download, so an unloaded day never
+      renders as bare track.
+- [New] The test runner writes a whole run to a log file and prints the failing
+      test names at the end.
 
 -- Changes --
-- [Change] data/history.json is unchanged and stays published as the whole-record
-           compatibility view: gen-crest-summary.py reads it, and a client cached
-           from an older deploy still asks for it. When the chunk index is
-           missing or unreadable the client falls back to it and plays normally.
-- [Change] cycle-check re-hashes every published day file against the hash in the
-           index and fails the cycle on a mismatch, on a frame-count
-           disagreement with data/history.json, or on a day file the index does
-           not list. An immutable URL that can serve different bytes is a data
-           integrity fault, not a caching detail.
-- [Change] The archive-start note moved out of the engaged-only branch, so the
-           window's real depth is stated before you scrub rather than after.
-- [Change] tests/README.md corrects the browser-verification rule. Serving the
-           page from 127.0.0.1 does not stop the upstream requests: the board
-           calls NWPS, USGS, NWS and IEM from the browser, and CORS blocks
-           reading a response, never sending the request. A viewport matrix at
-           02:38Z contributed to an NWPS 429 that degraded a production cycle
-           while the page was correctly served locally. Verification now has to
-           block those hosts at the network layer inside the driver, with the
-           host list derived from source rather than guessed.
-- [Change] tests/README.md states the log rule outright: always tee a run to a
-           file, never pipe it away, and on any flake keep the full log and
-           report the failing test name from it.
+- [Change] The whole-record file is unchanged and stays published as the
+           compatibility view. When the chunk index is missing or unreadable the
+           client falls back to it and plays normally.
+- [Change] The cycle check re-hashes every published day file against the index
+           and fails on a mismatch, on a frame-count disagreement, or on a day
+           file the index does not list.
+- [Change] The archive-start note is stated before you scrub rather than after.
+- [Change] The test docs correct the browser-verification rule: serving the page
+           locally does not stop the upstream requests, so verification blocks
+           those hosts at the network layer inside the driver.
+- [Change] The test docs state the log rule outright: always tee a run to a
+           file, and on any flake keep the full log and report the failing test
+           name from it.
 
 -- Bug Fixes --
-- [Fix] run-cycle.test.sh check 10 probed /tmp/responder-cycle.lock with
-      flock at the end of the suite, which failed spuriously whenever an
-      unrelated 15-minute cycle was legitimately mid-run, and which took the
-      production lock for an instant to do it. It now asserts statically that
-      no test file can name a production lock path at all.
+- [Fix] A test probed the production cycle lock at the end of the suite, which
+      failed spuriously whenever an unrelated cycle was mid-run. It now asserts
+      statically that no test file can name a production lock path.
 
 ## v0.98.0 · 2026-07-25 (Resources dissolves)
 
 -- Changes --
-- [Change] The Resources tab is gone. It was a junk drawer by construction, not
-           by untidiness: the only tab with no count badge, because it held no
-           single kind of thing; the only one needing a paragraph to explain
-           itself; and its reading order gave a resident feed-health telemetry
-           first and shelters at position 6 of 8. Its contents are redistributed
-           by who is asking and when.
+- [Change] The Resources tab is gone. Its contents are redistributed by who is
+           asking and when.
 - [Change] Roads takes that slot: closed and cautioned low-water crossings and
-           the roads that have reopened behind them, which is live hazard
-           content of the same kind as Alerts and Gauges. It carries a count
-           badge like every other tab. Low-water crossings are the most
-           life-critical curated dataset on this board and no longer sit at
-           position 3 under diagnostics.
-- [Change] Coastal water levels moved to Gauges: a tide is a water-level
-           reading. On an inland event the card is absent rather than an empty
-           host, and the lazy fetch follows the Gauges tab.
+           the roads that have reopened behind them, with a count badge like
+           every other tab.
+- [Change] Coastal water levels moved to Gauges. On an inland event the card is
+           absent rather than an empty host, and the lazy fetch follows the
+           Gauges tab.
 - [Change] Live feed status became the detail view behind the data-age bar and
            the header status line, not a content section. Tapping either opens
-           it in place; neither switches tabs any more, and the header slot is
-           now always tappable because no tab hosts feed health.
-- [Change] Shelters and hotlines are promoted out of position 6 of 8: a
-           count-gated chip in the threat strip a resident already reads, and a
-           permanent row leading the settings sheet. Both open one host and add
-           no fetch. Only sites listed as open are counted; standby, full,
-           closed and unknown never read as open, and the chip never suppresses
-           the all-clear line because shelters are help, not a hazard.
+           it in place, and neither switches tabs any more.
+- [Change] Shelters and hotlines become a count-gated chip in the threat strip
+           and a permanent row leading the settings sheet. Only sites listed as
+           open are counted; standby, full, closed and unknown never read as
+           open, and the chip never suppresses the all-clear line.
 - [Change] The source and recovery link lists moved to the share surface under
            their own labelled group.
-- [Change] ?tab=resources and ?tab=monitor both resolve to Roads through one
-           transitive alias table shared by the URL and the saved view, so links
-           already in the wild keep working across both renames.
-- [Change] The monitor link farm left the client: #monitor-body, renderMonitors()
-           and the monitors/comms blocks in data/resources.json are gone. It was
-           a coordinator desk tool three taps deep, event-specific, stamped
-           2026-07-19, and shipped to every public visitor.
+- [Change] Links naming the old Resources and Monitor tabs both resolve to
+           Roads, so links already in the wild keep working across both renames.
+- [Change] The monitor link farm left the client. It was a coordinator desk tool
+           three taps deep, shipped to every public visitor.
 
 -- Bug Fixes --
 - [Fix] The migration cue now shows one pointer at a time rather than stacking
@@ -813,713 +528,438 @@
 
 -- Changes --
 - [Change] Export JSON, Export GeoJSON, the CalTopo live URL, Export AAR and
-           Import moved out of the Resources tab into a Share surface reached
-           from the map link control and from Settings > Share. Share and Export
-           are the same verb at different fidelity: a link, a file, or a live URL
-           another tool can read. No comparable product puts export in a content
-           tab or a settings page, and every element id is unchanged, so the
-           interchange wiring in js/boot.js needed no edit.
-- [Change] The Share control now presents that surface instead of silently
-           copying, per the platform guidance that a Share button should show an
-           activity view rather than a second way to do the same thing. Copy
-           link, the native share sheet, and a QR of the current view link are
-           the first group; the CalTopo live URL sits inside the export group.
-- [Change] RSS and the crest calendar moved to the same surface under Follow and
-           subscribe: subscribe is the public's export, and it no longer sits
-           twenty lines from the coordinator's interchange block in one tab.
-- [Change] renderCaltopoQr() is now renderQr(): the same helper draws the share
-           link QR and the CalTopo export QR.
+           Import moved out of Resources into a Share surface, reached from the
+           map link control and from Settings > Share.
+- [Change] The Share control opens that surface instead of silently copying:
+           copy link, the native share sheet and a QR of the current view, with
+           the CalTopo live URL in the export group.
+- [Change] RSS and the crest calendar moved to the same surface, under Follow
+           and subscribe.
+- [Change] One QR renderer now draws both the share link QR and the CalTopo
+           export QR.
 
 -- New Features --
-- [New] One-time migration cue. A dismissible pointer renders where a moved
-      control used to live, naming its new home. Dismissal persists, it never
-      returns, and it is deliberately not a fifth bottom toast: that lane is the
-      update and data channel, and a layout note must never impersonate one or
-      touch the header freshness slot.
+- [New] One-time migration cue: a dismissible pointer renders where a moved
+      control used to live, naming its new home. Dismissal persists.
 
 ## v0.97.98 · 2026-07-25 (the views control names its own state)
 
 -- Changes --
-- [Change] The map views control now names the lens that owns the board instead
-           of hiding behind an unlabelled glyph. It reads Live at rest, says
-           Basin or Replay or Recovery while one of those is up, tints itself
-           when a lens is active, and grows a dedicated exit segment that is the
-           first visible way back to the live map any lens has had. The label is
-           read from the lens panes themselves, so no parallel state can drift.
-- [Change] Map top-right stack cut from five boxes to three. Orientation joined
-           navigation: the compass rose is now a fourth button on the existing
-           zoom and locate bar rather than its own box. Offline map save moved
-           into the layer sheet, where deciding what the map can show with no
-           signal already belongs; both keep every capability they had.
-- [Change] Every lens entrance and exit now routes through openView(), including
-           the header Drive button and the Drive, Crest summary, Recovery and
-           Basin exit buttons, so exactly one lens can own the board and the
-           control that names the active lens can never disagree with the screen.
+- [Change] The map views control names the active lens instead of showing an
+           unlabelled glyph. It reads Live at rest, says Basin, Replay or Recovery
+           while one is open, and carries an exit back to the live map.
+- [Change] The map top-right stack drops from five boxes to three with no
+           capability lost: the compass rose joins the zoom and locate bar, and
+           offline map save moves into the layer sheet.
+- [Change] Every lens entrance and exit routes through one dispatcher, so only
+           one lens can own the board and the views control cannot disagree with
+           the screen.
 
 ## v0.97.97 · 2026-07-25 (the archive is retained wide and published narrow)
 
 -- Bug Fixes --
-- [Fix] A display-scope change could delete stored observations. The TS Bertha
-      coastal pivot narrowed gaugeBbox, and because gen-history.py and
-      gen-crest-summary.py filtered every re-walked frame against the CURRENT
-      bbox, the next cycle retroactively pruned 18 days of already-collected Hill
-      Country data: 575 frames to 431, 281 gauges to 206, and a 46-gauge crest
-      summary with 17 majors down to 4 gauges with 1 major. Retention and
-      publication are now separate layers; frame_from() and walk() no longer take
-      or reference a bbox at all, and scope is applied once, at publish time.
-- [Fix] The pre-archive reconstruction stage had been dead on every run.
-      backfill_start() read event.json "start", which the pivot moved to
-      2026-07-22, postdating the first git frame, so build_backfill() returned
-      nothing and all 152 reconstructed frames vanished. Depth is its own field
-      now, archiveStart, set to 2026-07-05; "start" is a display field and no
-      longer gates reconstruction.
-- [Fix] gen-history.py ordered snapshot commits by raw %cI string; same-second
-      commits walked newest-first and silently dropped frames.
-- [Fix] tests/run-cycle.test.sh drove freshness-monitor.sh without
-      RESPONDER_MONITOR_LOCK, taking the production lock on every run. A
-      hand-held lock on the production cycle path also made the 2026-07-25T01:23Z
-      cycle skip and miss a publish.
+- [Fix] A display-scope change could delete stored observations: narrowing the
+      map area for the coastal pivot pruned 18 days of already-collected Hill
+      Country readings and shrank the crest summary with them. All of it is
+      restored. Retention and publication are separate now, and scope is applied
+      only at publish time.
+- [Fix] The pre-archive reconstruction stage had been dead on every run. Archive
+      depth is its own field now, set to 2026-07-05, and 152 reconstructed
+      frames are back.
+- [Fix] History frames were ordered by raw commit-time string, so same-second
+      commits walked newest-first and were dropped.
+- [Fix] A test run took the production lock on the data cycle, which made one
+      live cycle skip and miss a publish.
 
 -- New Features --
-- [New] Playback frames carry provenance and the board states it. No src means
-      this board captured the frame itself, "usgs" and "nwps" mean it was rebuilt
-      from those observed archives, and "git" plus a commit sha means it was
-      recovered out of our own earlier archive. The playback note now says which,
-      the same way it already separated archived road snapshots from
-      reconstructed ones.
-- [New] history.json publishes "retained" counts beside the published ones, so
-      the file states that the record is wider than the current view rather than
-      implying the held-back gauges never reported.
-- [New] tests/gen-history.test.py pins the retention invariant against a
-      throwaway git repo: narrowing the display bbox removes no retained frame or
-      gauge, un-publishes nothing, and a cold rebuild with no prior history.json
-      still publishes what the wider bbox recorded.
-- [New] tests/run-cycle.test.sh test 10 pins skip-on-contention against a scratch
-      lock and asserts the production lock is free afterwards.
+- [New] Playback frames carry provenance and the board states it: captured by
+      this board, rebuilt from the observed USGS or NWPS archives, or recovered
+      from our own earlier archive. The playback note says which.
+- [New] The published history reports retained counts beside published ones, so
+      the record states it is wider than the current view rather than implying
+      the held-back gauges never reported.
+- [New] A test pins the retention invariant: narrowing the display area removes
+      no retained frame or gauge, and a cold rebuild still publishes what the
+      wider area recorded.
+- [New] A test pins skip-on-contention and asserts the production lock is free
+      afterwards.
 
 -- Changes --
-- [Change] Publication scope is the union of every gaugeBbox this repo has ever
-         committed, plus every lid already published. Both terms only grow, so
-         the published record is a ratchet.
-- [Change] Both generators build from data/gauges-capture.json where it exists
-         and fall back to data/gauges-snapshot.json for older commits, so archive
-         depth survives a future pivot. The display snapshot stays display
-         scoped, since js/boot.js hydrates the public map from it unfiltered.
-- [Change] SIZE_BUDGET 600 KB to 3000 KB, TOTAL_SIZE_BUDGET 1150 KB to 3600 KB.
-         The restored record is 2.36 MB raw but 193 KB gzipped, so nothing is
-         thinned today. Any future thinning protects the frame holding each
-         gauge's crest and is declared in the payload as "thinned", which the
-         playback note surfaces; it is never applied silently.
-- [Change] Reconstruction reads the local NWPS 30-day rescue buffer before any
-         network call and is scoped to the lids in publication scope, so a
-         routine cycle never re-pulls a window it already has.
+- [Change] Publication scope is the union of every map area this repo has ever
+           committed plus every gauge already published, so the published record
+           only grows.
+- [Change] Both history builders read the wide capture snapshot where it exists
+           and fall back to the display snapshot for older commits, so archive
+           depth survives a future pivot.
+- [Change] Archive size budgets were raised so the restored record ships whole;
+           nothing is thinned today. Any future thinning protects each gauge's
+           crest frame and is declared in the payload, never applied silently.
+- [Change] Reconstruction reads the local 30-day rescue buffer before any
+           network call, so a routine cycle never re-pulls a window it already
+           has.
 
 ## v0.97.96 · 2026-07-24 (one failing upstream no longer blocks the whole publish)
 
 -- Bug Fixes --
-- [Fix] scripts/run-cycle.sh aborted the entire cycle when a single generator
-      failed. On 2026-07-24T23:53Z NWPS answered 429, fetch-snapshot.py exited 1,
-      and roads, history, crest, feeds, shelters and the CalTopo export never
-      regenerated, so nothing published at all including the sources that were
-      perfectly healthy. Generators are non-fatal now and the cycle publishes
-      whatever refreshed; same shape as the F3 deploy fix in v0.97.85.
-- [Fix] The cycle's ERR trap logged "near line 0" for every real failure:
-      ${BASH_LINENO[0]} is the caller frame, which is empty at top level. It
-      reports $LINENO now.
-- [Fix] tests/cycle-check.test.sh scratch fixture gains #disclaimer and the
-      per-lens .drive-911 footers that check k has required since v0.97.94,
-      so four tests stop failing on the fixture rather than on the code.
+- [Fix] One failing generator no longer aborts the whole cycle. A single
+      upstream refusing requests left roads, history, crest, feeds, shelters and
+      the CalTopo export unpublished; the cycle now publishes whatever
+      refreshed.
+- [Fix] The cycle's error trap logged "near line 0" for every real failure. It
+      reports the failing line now.
+- [Fix] A stale test fixture was missing the 911 footers the validation check
+      requires, so four tests failed on the fixture rather than the code.
 
 -- Changes --
-- [Change] A partial cycle degrades honestly rather than silently. A failed
-           generator's output file is never touched, so it keeps its own older
-           generated stamp and the board's freshness, aging and stale
-           suppression machinery marks that source stale on its own. A
-           generator derived from a source that did not refresh is skipped
-           rather than run: gen-crest-summary.py and gen-caltopo.py would
-           otherwise rewrite unchanged stale numbers under a brand-new stamp.
-           gen-feeds.py still runs because it also carries live NWS flash-flood
-           alerts and its lastBuildDate is a document build stamp.
-- [Change] The cycle's exit status tells the truth: 0 clean, 1 nothing
-           refreshed or a fatal step, 2 bad argument, 3 published but degraded.
-           A degraded cycle logs "=== cycle complete (DEGRADED) ===" naming the
-           failed and skipped sources, and commits under an "(auto-cron,
-           partial)" subject instead of claiming a full regen. Validation stays
-           fatal and the fetch-snapshot partial-response guard is untouched.
-- [Change] scripts/freshness-monitor.sh reads the degraded verdict out of the
-           cycle log. A stale mirror caused by an upstream that is not
-           answering no longer gets blamed on a dead cron, which sent operators
-           to the wrong place; the runbook gains the matching row.
-- [Change] scripts/README.md documents the real nine-step cycle, the exit-code
-           table and the partial-publish rules. It had drifted to six steps and
-           "six data files", and misstated the snapshot guard as a 200-gauge
-           floor.
+- [Change] A partial cycle degrades honestly. A failed generator's output is
+           never touched, so it keeps its older stamp and the board marks that
+           source stale; a generator derived from a source that did not refresh is
+           skipped rather than restamped as current.
+- [Change] The cycle's exit status distinguishes clean, nothing refreshed, bad
+           argument and published-but-degraded, and a degraded cycle commits as
+           partial instead of claiming a full regen.
+- [Change] The freshness monitor reads the degraded verdict from the cycle log,
+           so a stale mirror caused by an upstream that is not answering is no
+           longer blamed on a dead cron.
+- [Change] The pipeline README documents the real nine-step cycle, the exit
+           codes and the partial-publish rules.
 
 -- Tests --
-- [New] tests/run-cycle.test.sh: nine tests over a scratch repo with stub
-      generators, covering the 2026-07-24T23:53Z incident shape directly. One
-      failing generator still publishes the rest; the failed source keeps its
-      older stamp; derived generators are skipped not restamped; degraded is
-      distinguishable from clean in exit status and log verdict; everything
-      failing is still a hard failure that publishes nothing; validation stays
-      fatal; and the freshness monitor reads the degraded verdict. Wired into
-      CI alongside the other shell suites.
-- [New] tests/README.md documents that viewport-matrix browser verification must
-      point at a local server. The client fetches NWPS, USGS and NWS directly,
-      so a matrix run against the public mirror is another full round of
-      upstream requests and can rate-limit the live board.
+- [New] Nine tests cover the partial-publish shape: one failure still publishes
+      the rest, the failed source keeps its older stamp, derived generators are
+      skipped, total failure publishes nothing.
+- [New] Viewport-matrix browser verification must point at a local server; a
+      matrix run against the public mirror can rate-limit the live board.
 
 ## v0.97.95 · 2026-07-24 (the freshness slot has one writer again, and tells the truth in Spanish)
 
 -- Bug Fixes --
 - [Fix] A transient failure can no longer erase or impersonate a degraded-feed
-      warning. compassNotice() still wrote #refresh-note directly, so with feeds
-      degraded a denied compass permission left the header reading "compass
-      unavailable" while wearing the amber degraded chip, still tapping through
-      to Live feeds and still carrying the stale "these sources did not answer"
-      tooltip, with the real degraded state gone from the only place it was
-      shown.
-- [Fix] The degraded tooltip is fully localized. A hardcoded English SOURCE_NAMES
-      array was concatenated onto the translated note.degraded.detail, so a
-      Spanish reader got "Estas fuentes no respondieron en la ultima
-      actualizacion: NWS alerts, NWPS gauges"; the names now come from the Live
-      feeds chip labels in both languages, indexed in Promise.allSettled order
-      rather than the life-safety display order.
+      warning. A denied compass permission left the header reading "compass
+      unavailable" while wearing the amber degraded chip, with the real degraded
+      state gone.
+- [Fix] The degraded tooltip is fully localized; a Spanish reader used to get
+      the list of unanswering feeds in English.
 
 -- Changes --
-- [Change] Transient op failures get their own home, #op-toast: compass denied
-           or unavailable, locate failed, camera list, tropical feed, storm
-           surge tiles and the history archive. They are gesture feedback, not
-           statements about data currency, so they auto-dismiss above the map,
-           are styled apart from the degraded chip and carry no tap-through to
-           Live feeds. The freshness slot is now written only by js/boot.js and
-           only says how current the data is.
-- [Change] Removed the .disc-full footer span and its disc.full key in both
-           languages. It was display:none with no rule anywhere that ever
-           showed it, so a full 911 notice was being translated and shipped to
-           no screen; the live wording is disc.short in the footer and the
-           safety modal it opens, both unchanged.
+- [Change] Transient failures now show a self-dismissing notice above the map
+           (compass, locate, camera list, tropical feed, storm surge tiles,
+           history archive), and the header slot says only how current the data
+           is.
+- [Change] Removed a hidden long-form 911 notice and its translations; no rule
+           ever showed it. The footer wording and the safety modal are unchanged.
 
 -- Tests --
-- [New] tests/css-contract.test.js asserts the freshness slot behaviorally: a
-      transient notice cannot change its text, degraded class, tooltip, role or
-      tabindex, and every setFeedNote() call must be a data-currency state. The
-      single-writer guard now matches the LOOKUP of #refresh-note rather than
-      the assignment, which is how the two-line compass write slipped past it.
-- [New] tests/i18n.test.js forbids the English source-name array returning and
-      pins REFRESH_SOURCE_KEYS to one entry per settled source.
+- [New] A contract test asserts the freshness slot behaviorally: a transient
+      notice cannot change its text, degraded class, tooltip, role or tabindex.
+- [New] A test forbids the English source-name array returning and pins one
+      source key per settled source.
 
 ## v0.97.94 · 2026-07-24 (Basin, Recovery and Crest summary dock beside the map they describe)
 
 -- Changes --
 - [Change] Basin Focus, Recovery and Crest summary are lenses now, not covers.
-           All three rendered position:fixed inset:0 and registered as modals,
-           which marks the rest of the page inert. Basin was the clearest case:
-           it fits the map to the river corridor and rings that river's gauges,
-           then covered the map it had just framed, and the map could not be
-           touched. They take the sidebar column instead, matching #sidebar at
-           every width: 420px on desktop, the bottom sheet at the height the
-           sheet handle is set to on a phone held upright, and 40vw capped at
-           340px sideways, leaving the map the other 60%.
-- [Change] Drive Mode deliberately did NOT change. It stays full-screen and
-           stays a registered modal: it is eyes-off-road, big-type and
-           glare-hardened, and covering the map is the correct behavior there.
-- [Change] The three docked panes drop aria-modal, which no longer described
-           them, and keep an accessible name, their Exit buttons and their
-           place in the Escape chain. Leaflet is told to re-measure whenever a
-           pane appears or leaves.
+           All three filled the screen and froze the page behind them; they take
+           the sidebar column instead, leaving the map visible and usable at every
+           width.
+- [Change] Drive Mode deliberately did not change. It stays full-screen because
+           it is eyes-off-road.
+- [Change] The docked panes keep an accessible name, their Exit buttons and
+           their place in the Escape chain, and the map re-measures when a pane
+           appears or leaves.
 - [Change] The update chip goes icon-only on a phone like every other header
-           control. Since v0.97.93 the header no longer wraps, so a chip
-           carrying its full sentence squeezed the brand out of the row; its
-           title and aria-label carry the meaning.
+           control.
 
 -- New Features --
-- [New] scripts/cycle-check.sh gains an eleventh check: every lens root
-      (Drive, Crest summary, Recovery, Basin) must carry its .drive-911 footer
-      and the board must keep its #disclaimer strip. A lens that fills the
-      screen without the 911 line is the one place a responder could read this
-      board and never see it.
-- [New] tests/modal-a11y.test.js asserts which surfaces are modal, because
-      that is a correctness question rather than a style one: registerModal
-      marks the page inert. Drive Mode must be registered, the three lenses
-      must not, they must live inside <main>, they must stay in the Escape
-      chain, and the Recovery playback guard from v0.97.87 must survive.
+- [New] The publish check now requires every lens (Drive, Crest summary,
+      Recovery, Basin) to carry its 911 footer and the board to keep its
+      disclaimer strip.
+- [New] A test asserts which surfaces are modal: Drive Mode is, the three lenses
+      are not, and the Recovery playback guard from v0.97.87 survives.
 
 ## v0.97.93 · 2026-07-24 (landscape stops shrinking the tap targets; the header holds one row)
 
 -- Bug Fixes --
-- [Fix] The degraded-feed status shoved the header nav aside (owner report).
-      #refresh-note is the last item in a nowrap header and every writer
-      assigned it a whole sentence. Measured at 390x844 with all seven sources
-      failing: .refresh-meta went from 77px to 600px, .controls from 281px to
-      804px, the nav slid 85px left, the brand was crushed to zero width, and
-      the document scrolled sideways at 820px on a 390px screen. The plain
-      "offline · cached as of" message did the same at 230px. The status is now
-      width-capped in CSS and written through one function, so the header
-      geometry is identical in a healthy and a fully degraded state.
-- [Fix] The countdown tooltip overwrote the degraded detail once a second,
-      because both wrote #refresh-note.title. They compose now.
+- [Fix] The degraded-feed status no longer shoves the header nav aside (owner
+      report). Written as a full sentence in a nowrap header, it crushed the
+      brand and made the page scroll sideways on a phone. It is width-capped
+      now.
+- [Fix] The countdown tooltip overwrote the degraded detail once a second. They
+      compose now.
 
 -- Changes --
 - [Change] A degraded, offline or snapshot state reads as an amber "⚠ degraded"
-           chip rather than a sentence. The signal is not dropped and is not
-           dismissible, because the state is persistent rather than transient
-           and this board's honesty rules say a stale feed stays visible while
-           it is true. The chip names the state; which source failed stays in
-           Resources > Live feeds, which already tracks every feed, and the
-           chip is a button that opens it. The full list also rides the
-           tooltip for pointer users.
+           chip rather than a sentence. It is not dismissible, and it is a button
+           that opens Resources > Live feeds, which names which source failed.
 
 -- Bug Fixes (responsive) --
-- [Fix] The landscape block declared .controls button { min-height: 34px } at
-      the same specificity as the 44px phone rule and later in the file, so
-      holding a phone sideways made every header control SMALLER, in exactly
-      the vehicle-mount posture where they should be largest. Raised to 44px.
-- [Fix] Tablet gap: 769px to 960px wide with a tall viewport matched neither
-      phone query, so an iPad Air in portrait got the full desktop layout. The
-      header wrapped to two rows and the controls sat at about 27px against
-      about 25px feed buttons. A new additive block hides the control labels,
-      compacts the refresh meta, and raises the control, feed, card-action and
-      tab targets to 44px. The 768px breakpoint itself is untouched: roughly 40
-      rules key off it (bottom sheet, marker hit-halos, playback bar, layer
-      sheet, search takeover) and moving it is a far larger blast radius.
-- [Fix] A Pro Max held sideways is 932px wide, clearing the 768px width query
-      entirely, so every sidebar control fell back to desktop sizing near 25px.
-      The landscape block now restores the feed, card-action and tab targets,
-      the map control bar, the layer pills and the AO chips.
-- [Fix] The settings panel widened in v0.97.92 to carry the alerts card, and
-      because the gear is not flush right (the clock sits after it) its left
-      edge ran 3px off a 390px screen. On phones it now spans the viewport
-      under the header, capped at 420px so a 768px phone does not get a slab.
-- [Fix] Import JSON was a 30px tap target at every width; it renders as a badge
-      rather than a button, so no button rule ever reached it.
+- [Fix] Holding a phone sideways made every header control smaller, in the
+      vehicle-mount posture where they should be largest. They are full size
+      now.
+- [Fix] A tablet in portrait matched neither phone query and got the desktop
+      layout, a two-row header and undersized targets. A new block compacts the
+      header and raises the targets.
+- [Fix] A wide phone held sideways cleared the phone width query, so sidebar
+      controls fell back to desktop sizing. Landscape now restores the feed,
+      card-action and tab targets, the map control bar and the layer pills.
+- [Fix] The settings panel, widened in v0.97.92, ran off the edge of a small
+      phone screen. On phones it spans the viewport under the header, capped.
+- [Fix] Import JSON was never a full-size tap target at any width; it renders as
+      a badge, so no button rule reached it.
 
 -- Changes --
-- [Change] The four header tiles are gone. They were display:none on every
-           phone viewport already, and the CSS comment beside them conceded
-           they duplicate the threat strip, which is richer and tappable. The
-           two counts the strip did not carry, flood warnings and active
-           notices, are now chips in it, routing to Alerts and to Feed.
-- [Change] The header holds exactly two things at every width: the brand on
-           the left and one control cluster on the right, with flex-wrap set to
-           nowrap. The lockup scales down inside a squeezed header instead of
-           overflowing it.
-- [Change] Landscape swaps the wordmark lockup for the square mark at 28px. A
-           44px lockup is a large share of a 430px-tall screen, and the mark
-           was already shipped and stamped as the SVG favicon.
-- [Change] renderTiles() keeps its name and its three delegating calls plus the
-           document.title update; only the four tile writes left it. It is the
-           composite entry every refresh calls.
+- [Change] The four header tiles are gone. They were hidden on every phone
+           already and duplicated the threat strip; the two counts only they
+           carried, flood warnings and active notices, are now chips in that
+           strip.
+- [Change] The header holds two things at every width: the brand and one control
+           cluster, with no wrapping.
+- [Change] Landscape swaps the wordmark lockup for the square mark.
+- [Change] The composite refresh entry keeps its delegating calls and the
+           document title update; only the tile writes left it.
 
 -- New Features --
-- [New] tests/css-contract.test.js: the responsive rules are invisible to every
-      other test in the suite, because there is no DOM in the node harness and
-      nothing else can see a media query. Ten checks over the phone, landscape
-      and tablet blocks, the settings-panel scroll cap, the retired tiles, the
-      promoted chips and the landscape brand swap. Reverting the landscape rule
-      to 34px fails it, which is the proof it discriminates.
+- [New] A CSS contract test covers the responsive rules no other test can see:
+      the phone, landscape and tablet blocks, the retired tiles, the promoted
+      chips and the brand swap.
 
 ## v0.97.92 · 2026-07-24 (the header menu becomes a real settings sheet)
 
 -- Bug Fixes --
-- [Fix] The header overflow menu was an absolutely positioned box with no
-      max-height and no overflow rule. It held five rows at about 212px, which
-      already cleared a 375px-tall landscape viewport, and any sixth row would
-      have run off the bottom with no way to scroll to it. It now caps at
-      min(60vh, 420px) and scrolls, with overscroll-behavior contained so the
-      page underneath does not move with it.
+- [Fix] The header overflow menu had no height limit and could not scroll, so
+      its lower rows were unreachable on a short landscape viewport. It caps and
+      scrolls now.
 
 -- Changes --
-- [Change] The ⋮ button is now a gear labelled Settings, and its menu is
-           grouped: Display (theme, language), Alerts, Actions (share), Help
-           (legend and glossary, what's new, the 911 safety notice). What's new
-           and the safety notice were reachable only by tapping the version
-           string or the footer strip; they are named entries now.
-- [Change] Device alerts moved out of Resources into Settings > Alerts, which
-           is where a device-level notification setting belongs. The card keeps
-           its id, so the render, boot-sync and self-heal paths are unchanged,
-           and the group heading stays hidden until there is a card to head.
+- [Change] The ⋮ button is now a gear labelled Settings, with grouped contents:
+           Display (theme, language), Alerts, Actions (share) and Help. What's new
+           and the 911 safety notice are named entries in Help now, not just a tap
+           on the version string or the footer strip.
+- [Change] Device alerts moved out of Resources into Settings > Alerts. The card
+           behaves exactly as before.
 - [Change] "Notify me" on a gauge popup or hydrograph now opens Settings with
-           the gauge picker expanded and that gauge pinned, instead of
-           switching to the Resources tab.
-- [Change] The ⋮ Team entry is gone. It called showTeamTab() and re-rendered,
-           which is what the Team tab itself does, so it was a second door onto
-           one room. window.openTeamEntry went with it; the create and join
-           paths arm their own lifecycle handlers, so nothing was left unwired.
-- [Change] The menu declares role="menu" with role="menuitem" rows, matching
-           the aria-haspopup the button already advertised. Only the menu's own
-           rows dismiss it now, so tapping the alerts toggle or a tier chip no
-           longer closes the panel out from under the tap.
+           the gauge picker expanded and that gauge pinned, instead of switching
+           to Resources.
+- [Change] The ⋮ Team entry is gone; it was a second door onto the Team tab.
+- [Change] Only the menu's own rows dismiss it now, so tapping the alerts toggle
+           or a tier chip no longer closes the panel out from under the tap.
 
 ## v0.97.91 · 2026-07-24 (exports move to Resources, and Feed > More is retired)
 
 -- Changes --
 - [Change] Export JSON, Export GeoJSON, CalTopo URL, Export AAR, Import JSON and
-           the CalTopo URL/QR box moved out of the Feed tab into Resources,
-           under a new "Data & interchange" heading with a line saying what the
-           section is for. Resources already held the authoritative-data links
-           and the RSS and calendar feeds, so every way of getting this board's
-           picture in or out now sits in one place.
-- [Change] The Feed > More drawer is gone. With the four lens entries removed in
-           v0.97.90 and the exports moved here, it held nothing, and the Feed
-           action row is now three buttons: New notice, SITREP, Filters.
-- [Change] The button ids did not change, so the export, import and CalTopo
-           handlers in js/boot.js needed no edit; only the containing markup
-           moved. The #more-menu and #more-toggle CSS went with the drawer.
+           the CalTopo QR box moved out of the Feed tab into Resources, under a
+           new "Data & interchange" heading.
+- [Change] The Feed > More drawer is gone; the Feed action row is now New
+           notice, SITREP and Filters.
+- [Change] Export, import and CalTopo behavior is unchanged; only the markup
+           moved.
 
 -- New Features --
-- [New] tests/i18n.test.js gains a placement guard: the interchange controls
-      must be declared exactly once and inside Resources, and neither js/boot.js
-      nor css/app.css may still reference the retired drawer. The action-row
-      translation check now also asserts no row grew a nested div, which is what
-      the extractor it uses depends on.
+- [New] A placement gate requires the interchange controls to be declared once,
+      inside Resources, and fails on any reference to the retired drawer.
 
 ## v0.97.90 · 2026-07-24 (the lenses move to the map, in a views sheet of their own)
 
 -- New Features --
 - [New] Views sheet: a new map control beside the layers trigger opens a picker
       for how the board is being looked at. Live map, Drive, Basin, Playback,
-      Recovery, Crest summary, each with a one-line plain-language subtitle. It
-      is the layer sheet's own markup and CSS, so the 48px rows and the phone
-      bottom sheet behave identically, and the sheet closes on backdrop, on its
-      ✕, and on Escape.
-- [New] closeLens() in js/panels.js gives the lens family radio semantics: every
-      openView() route leaves whichever lens was open before opening the next
-      one, and the Live map row is the way back out of any of them. The sheet
-      marks the active lens from the panes themselves, so no second copy of
-      "which view am I in" can drift out of step.
+      Recovery and Crest summary, each with a one-line subtitle.
+- [New] Opening any lens leaves whichever one was open before, and the Live map
+      row is the way back out of any of them.
 
 -- Changes --
-- [Change] Crest summary, Recovery, Basin and Playback left the Feed > More
-           menu. That menu was a junk drawer holding four whole views next to
-           four export buttons; the views now live on the map, where they act.
-           Playback keeps both of its other paths, the ⏮ map pill and the
-           ?playback=1 deep link, so it lost nothing.
-- [Change] Every views-sheet row dispatches through openView() by route name.
-           The four button ids the menu used are gone from index.html and from
-           js/boot.js, which is exactly what the v0.97.84 router was built to
-           make safe. ?view=drive, ?view=basin, ?view=playback, ?view=recovery
-           and ?view=summary are unchanged, and ?view=live now genuinely exits
-           a lens rather than being accepted and ignored.
-- [Change] Opening either map sheet closes the other; they share one anchor and
-           stacking them read as a bug.
+- [Change] Crest summary, Recovery, Basin and Playback left the Feed > More menu
+           and now live on the map. Playback keeps its ⏮ map pill and its
+           ?playback=1 link.
+- [Change] The existing ?view= links are unchanged, and ?view=live now genuinely
+           exits a lens rather than being accepted and ignored.
+- [Change] Opening either map sheet closes the other.
 
 ## v0.97.89 · 2026-07-24 (a mid-bump working tree can no longer fail a data cycle)
 
 -- Bug Fixes --
-- [Fix] scripts/cycle-check.sh read APP_VERSION, and the four files it must
-      agree with, from the working tree, and scripts/run-cycle.sh runs it as the
-      data cycle's validation step. Any cycle that landed between a release's
-      first version-bump edit and its commit therefore failed the whole cycle,
-      so fresh gauge, road and shelter data did not reach the public board until
-      a later run. This fired seven times in the cycle log, the last four
-      including sw.js, one of them during the v0.97.86 bump in this same wave.
-      It is the same root cause as the v0.97.85 deploy fix: cron-side validation
-      reading a tree a release agent is actively editing.
-- [Fix] The same working-tree read affected the JS-syntax check, the 911-gate
-      Escape-immunity check and the event-config brand-hook check, so a
-      half-saved js file could fail a data cycle too. Fixed as a class rather
-      than one instance: all four code-lane checks now read one source.
+- [Fix] A release in mid-bump can no longer fail a data cycle. Validation read
+      version and code files from the working tree, so a cycle landing mid-bump
+      failed outright and fresh gauge, road and shelter data did not reach the
+      public board until a later run.
+- [Fix] The same read affected the JS-syntax, 911-gate and event-config checks.
+      All four now read one source.
 
 -- Changes --
-- [Change] cycle-check.sh takes --code-from-head, which points the code lane
-           (JS syntax, version agreement, 911 gate, brand hook) at a throwaway
-           snapshot of HEAD. The data lane (JSON validity, feeds, snapshot
-           sanity, staged files, chat cursors, data schemas) always reads the
-           working tree, because that is the data the cycle is about to commit.
-           run-cycle.sh passes the flag. A release agent running cycle-check
-           before committing a bump still gets the working tree at full
-           strength, which is what that call exists for. An unknown argument is
-           now rejected rather than silently ignored.
-- [Change] deploy.sh needs no change here: since v0.97.85 it runs cycle-check
-           inside its own HEAD worktree, where the tree and HEAD are the same
-           thing.
+- [Change] Validation points its code lane at a snapshot of the last commit,
+           while the data lane always reads the working tree, which is the data
+           the cycle is about to commit. An unknown argument is rejected.
+- [Change] The deploy path needs no change here: since v0.97.85 it validates
+           inside its own committed checkout.
 
 -- New Features --
-- [New] tests/cycle-check.test.sh: ten regressions against a scratch git repo.
-      A mid-bump tree fails the release lane but not the data cycle; a complete
-      but uncommitted bump passes both ways; a committed four-way disagreement
-      still fails, so the check is not weakened into a no-op; a syntax error at
-      HEAD still fails; the 911-gate check still fires when read from HEAD;
-      uncommitted data is still validated, so the flag cannot blind the data
-      lane; run-cycle.sh is asserted to pass the flag; and an unknown argument
-      is rejected. Wired into CI.
+- [New] Ten regressions against a scratch repo: a mid-bump tree fails the
+      release lane but not the data cycle, a committed disagreement still fails,
+      and uncommitted data is still validated. Wired into CI.
 
 ## v0.97.88 · 2026-07-24 (the offline data cache survives updates, plus three smaller fixes)
 
 -- Bug Fixes --
-- [Fix] CACHE_DATA was keyed to SW_VERSION and the activate handler deletes
-      every respondertx-* cache except the current three, so every accepted
-      update toast emptied the last-good /data/ cache. On a day with 17
-      releases that is 17 wipes, and a responder who lost signal before the
-      next successful fetch had no offline fallback left. The data cache now
-      has a stable name and survives activation, exactly as CACHE_PUSH already
-      did in the same file. The app shell still versions per release.
-- [Fix] Activation now carries the contents of the retired per-version data
-      caches into the stable one before deleting them, so the release that
-      stops the wiping is not itself the last wipe. It is best effort, never
-      blocks activation, and never overwrites a data cache that already holds
-      something fresher.
-- [Fix] "Notify me" rendered whenever a VAPID key was configured, independent
-      of subscription state, so tapping it with alerts off switched to a card
-      with no manage view, no preselected gauge and no explanation. The card
-      now states what is missing, and because the request is remembered,
-      turning alerts on opens the picker with that gauge pinned, which is what
-      v0.97.79 claimed it already did.
-- [Fix] Leaving Basin Focus never cleared state.basinHiLids, so roughly a dozen
-      gauges kept a 3px corridor ring on the live map with no legend and no
-      open view explaining them, re-applied by every 90 second marker rebuild.
-      Both exits, the close button and Escape, now go through closeBasinView,
-      which drops the ring set and the framed slug so reopening the same river
-      re-frames instead of silently doing nothing.
-- [Fix] The LAN board is served over http:// and therefore has no secure
-      context, so navigator.clipboard is unavailable and the prompt fallback is
-      routinely reached. That fallback, the JSON import result and failure
-      dialogs, the intake form validation and duplicate confirmation, the team
-      link copy fallback and the curated shelter location note were all
-      hardcoded English. All now route through t() with real Spanish.
+- [Fix] The offline copy of the flood data is no longer erased by an app update,
+      so a responder who loses signal after updating still has the last readings
+      the board saw.
+- [Fix] Copies saved under the old per-version scheme are carried over on
+      activation rather than thrown away, and a fresher copy is never
+      overwritten.
+- [Fix] "Notify me" with alerts off gave a card with no manage view and no
+      explanation. It states what is missing now, and turning alerts on opens
+      the picker with that gauge pinned.
+- [Fix] Leaving Basin Focus never cleared the corridor rings, so about a dozen
+      gauges kept a ring on the live map with nothing explaining them. Both
+      exits clear it now.
+- [Fix] The clipboard fallback prompt, the import dialogs, intake validation,
+      the team link copy fallback and the shelter location note were English
+      only. All have real Spanish now.
 
 -- New Features --
-- [New] A CacheStorage stand-in in tests/sw.test.js drives the carry-over
-      directly: the newest retired cache wins on overlap, a populated cache is
-      never clobbered, a first install is a silent no-op, and a cache failure
-      cannot block activation. That file previously asserted
-      CACHE_DATA.includes(SW_VERSION), codifying the bug; the assertion now
-      states the intended lifetime instead. Added with it: the pushPendingHtml
-      and pushFollowPending tables, the basin ring lifecycle across both exit
-      paths, and a renderer guard that fails if any alert, confirm or prompt is
-      called with a bare string literal.
+- [New] Service-worker tests now state the intended cache lifetime. Added with
+      them: the push body tables, the basin ring lifecycle, and a guard against
+      untranslated dialogs.
 
 ## v0.97.87 · 2026-07-24 (two honesty fixes: shelter status, and Recovery under playback)
 
 -- Bug Fixes --
-- [Fix] A FEMA NSS record with a null, empty or absent shelter_status published
-      as OPEN, so the board rendered a green "OPEN: <name>" carrying a FEMA and
-      ARC citation for a shelter no authoritative source had called open. The
-      layer is named OpenShelters, but it demonstrably carries standby, full and
-      closed rows, so the name is not a warrant. gen-shelters.py now emits
-      "unknown" for a record with no reported status and passes a real reported
-      status through verbatim, trimmed. data/shelters-live.json holds zero
-      shelters today, so this landed before the first status-less record could
-      ship the false positive.
-- [Fix] shlStatus gained an explicit "unknown" mapping with its own en and es
-      string and the muted colour, instead of falling through to a raw
-      uppercased English word. Only a reported status is now presented as fact.
-- [Fix] The Recovery view called addTo(state.map) for reopened roads and
-      shelters with no playback guard, so engaging playback, scrubbing back
-      three days and opening Recovery put today's shelter markers under the
-      PLAYBACK badge with popups citing the live FEMA and ARC feed. Both adds
-      now sit behind pbBlocksLive, matching the pattern the USGS fallback
-      already used, so nothing live is added while playback owns the map.
-- [Fix] roadReopen was absent from PB_LIVE_HIDE entirely, a pre-existing hole in
-      the same time-integrity sweep: engaging playback left reopened road
-      markers on a historical frame. It now hides on engage and restores on
-      go-live like every other live-only layer.
+- [Fix] A shelter with no reported status is no longer published as OPEN. A
+      null, empty or absent status rendered a green "OPEN: <name>" citing FEMA
+      and ARC for a shelter no source had called open; it reads "unknown" now.
+- [Fix] Unknown shelter status has its own English and Spanish string and a
+      muted colour. Only a reported status is presented as fact.
+- [Fix] Opening Recovery during playback put today's shelters and reopened roads
+      under the PLAYBACK badge citing the live feed. Neither is added while
+      playback owns the map now.
+- [Fix] Reopened roads were missing from the playback hide list, so engaging
+      playback left them on a historical frame. They hide on engage and restore
+      on go-live now.
 
 -- Changes --
-- [Change] The cycle-check shelter schema gate no longer accepts any truthy
-           string as a status, which is what once rewarded the OPEN default. It
-           names the mapped vocabulary, requires a status-less record to publish
-           as "unknown", and prints a note for upstream vocabulary drift rather
-           than aborting the data cycle over it.
-- [Change] gen-shelters.py honors RESPONDER_ROOT like gen-notices.py and
-           gen-caltopo.py, so a test can drive it against a fixture instead of
-           the real data directory, and its summary line now reports how many
-           shelters arrived with no status.
+- [Change] The shelter schema gate names the mapped vocabulary, requires a
+           status-less record to publish as "unknown", and notes upstream drift
+           rather than aborting the cycle.
+- [Change] The shelter generator reports how many shelters arrived with no
+           status, and can be pointed at a fixture directory.
 
 -- New Features --
-- [New] tests/gen-shelters.test.py: the status default across null, empty,
-      whitespace and absent, real statuses passing through, and the cycle-check
-      schema gate itself extracted from scripts/cycle-check.sh and run against
-      fixture output, so "unknown" is proven to pass the gate the generator now
-      feeds. Four playback tests cover PB_LIVE_HIDE membership and shape, that
-      every key in it is a layer map.js really creates, and that
-      openRecoveryView guards on pbBlocksLive. The three generator suites are
-      now wired into CI, which had been running none of them.
+- [New] Tests cover the status default, real statuses passing through, and the
+      schema gate against fixture output, plus the playback hide list and the
+      Recovery guard. The generator suites are wired into CI now.
 
 ## v0.97.86 · 2026-07-24 (device alerts always carry a reachable off switch)
 
 -- Bug Fixes --
-- [Fix] The alerts card rendered only when the board was opened with ?push, and
-      the notifications the Worker sends did not carry that flag. Tapping a
-      Flash Flood Emergency notification landed on a board with no alerts card,
-      no state line, no toggle and no manage view, and with pushManageAvailable()
-      false the gauge-popup bell went with it, while pushBootSync kept renewing
-      the 60 day subscription in the background. An opted-in device had no
-      reachable way to turn alerts off. Card visibility is now a pure predicate,
-      pushCardVisible, over two facts: holding a subscription is on its own
-      sufficient, so the off switch and the honest on/off/blocked state line are
-      always one tap away however the board was opened.
-- [Fix] Every Worker notification payload deep links with push=1 now. The gauge
-      crossing link keeps its hydrograph target, and the digest, Flash Flood
-      Emergency and confirmation links carry the flag too. The service worker's
-      payload-free fallback does the same, so even a push that arrives with no
-      body opens a page the card is on.
+- [Fix] An opted-in device always has a reachable off switch. Tapping a
+      notification used to open a board with no alerts card, no state line and
+      no toggle; holding a subscription now shows the card however the board was
+      opened.
+- [Fix] Every notification deep links with push=1 now, including the
+      payload-free fallback, so a push always opens a page the alerts card is
+      on.
 
 -- Changes --
-- [Change] ?push stays exactly what it was for devices that never opted in: the
-           discovery gate. Nothing new is exposed to anyone who has not
-           subscribed, so the soft launch stays soft.
-- [Change] workers/push-alerts is a separate deploy target from Cloudflare
-           Pages, so this release ships in two steps and the Worker deploy is
-           what puts the new deep links on the wire.
+- [Change] ?push stays the discovery gate for devices that never opted in.
+- [Change] The push Worker is a separate deploy target, so this release ships in
+           two steps.
 
 -- New Features --
-- [New] Seven tests: the pushCardVisible truth table including the
-      subscribed-without-the-flag case that was broken, a source assertion that
-      initPushCard consults the predicate rather than the bare flag, and
-      coverage that every payload builder emits a url carrying push=1 in both
-      languages plus the service worker's payload-free fallback.
+- [New] Seven tests cover card visibility including the
+      subscribed-without-the-flag case, and every payload emitting push=1 in
+      both languages.
 
 ## v0.97.85 · 2026-07-24 (the deploy gate reads and ships HEAD, not the working tree)
 
 -- Bug Fixes --
-- [Fix] deploy.sh read the app version out of the working tree but shipped
-      `git archive HEAD`, so a release bumped-but-not-yet-committed made the
-      post-deploy smoke check wait two minutes for a version that was never
-      uploaded, then fail a deploy that had in fact succeeded. Seven cycles
-      failed this way between 7/19 and 7/24, four of them during Tropical Storm
-      Bertha. The version gate, the test gate and the live smoke check now all
-      read a throwaway checkout of HEAD, which is what actually ships.
-- [Fix] Any uncommitted change under functions/ aborted deploy.sh before every
-      other step, which marked the whole 15 minute data cycle failed, skipped
-      the push-evaluator nudge, and left the public board serving stale flood
-      data until a later clean cycle recovered. wrangler compiles functions/
-      from its working directory, so that directory is now the HEAD checkout:
-      uncommitted Functions code cannot reach production, and a dirty code lane
-      no longer blocks the data publish. It warns instead of aborting.
+- [Fix] The deploy gate now reads what it ships. It took the app version from
+      the working tree but uploaded the last commit, so a bumped-but-uncommitted
+      release failed a deploy that had in fact succeeded.
+- [Fix] An uncommitted change to the server-side functions aborted the deploy,
+      which failed the whole cycle and left the public board serving stale flood
+      data. It warns instead of aborting.
 
 -- Changes --
-- [Change] --allow-dirty-functions keeps its exact meaning. The working tree
-           functions/ is copied over the HEAD checkout so uncommitted Functions
-           code really does ship, behind the same loud warning. --skip-tests
-           keeps bypassing both halves of the test gate.
-- [Change] --preflight-only now also builds and strip-verifies the deploy
-           archive, so a strip regression surfaces before the push instead of
-           after it, and the gated version is asserted against the version in
-           the upload directory. deploy.sh gained RESPONDER_DEPLOY_WRANGLER and
-           RESPONDER_DEPLOY_DIR overrides and honors a preset
-           CLOUDFLARE_API_TOKEN, which is what lets a test drive it against a
-           scratch repo.
+- [Change] --allow-dirty-functions keeps its exact meaning: the working tree
+           copy really does ship, behind the same loud warning. --skip-tests is
+           unchanged.
+- [Change] --preflight-only now builds and strip-verifies the deploy archive, so
+           a strip regression surfaces before the push.
 
 -- New Features --
-- [New] tests/deploy.test.sh: eight release-gate regressions driven against a
-      scratch git repo with a stub wrangler and a local bare remote, never the
-      live repo or the live Pages project. Covers the HEAD version read, the
-      upload directory matching the gated version, a dirty functions/ still
-      publishing, uncommitted Functions reaching neither wrangler's working
-      directory nor the upload directory, --allow-dirty-functions still
-      shipping them on purpose, the test gate running at HEAD, a red HEAD suite
-      still blocking, --skip-tests still bypassing, and no leaked git worktree
-      on the success or the failure path. Wired into CI.
+- [New] Eight release-gate regressions run against a scratch repo with a stub
+      uploader, never the live site, covering the committed version read, dirty
+      server code, and leaked worktrees. Wired into CI.
 
 ## v0.97.84 · 2026-07-24 (openView() router for the ?view= deep links, no visual change)
 
 -- Changes --
-- [Change] Every ?view= deep link now routes through one openView(name, opts)
-           dispatcher in js/panels.js instead of being spread across two files
-           and two dispatch styles. ?view=drive and ?view=summary were opened
-           by synthesizing clicks on #drive-btn and #summary-btn, which tied
-           two shipped links to two button ids: relocating either button would
-           have broken the link with nothing failing loudly. ?view=recovery and
-           ?view=basin took a second, separate path through applyShareParams.
-           Both now go through the router, and applyShareParams delegates to
-           it. Nothing changes on screen.
-- [Change] The river slug allowlist that guards ?view=basin moved into the
-           router unchanged, so a crafted slug still falls back to the most
-           active river rather than being passed through.
+- [Change] Every ?view= deep link routes through one dispatcher. ?view=drive and
+           ?view=summary had worked by synthesizing button clicks, tying two
+           shipped links to two button ids. Nothing changes on screen.
+- [Change] The river slug allowlist guarding ?view=basin moved into the router
+           unchanged, so a crafted slug still falls back to the most active river.
 
 -- New Features --
-- [New] ?view=playback and ?view=live are accepted route names, playback
-      opening the historical playback lens (the existing ?playback=1 still
-      works) and live being a documented no-op so the plain board has a name.
-      An unknown or missing view name stays a silent no-op and never throws,
-      so a stale or mistyped bookmark opens the board rather than failing.
-- [New] tests/views.test.js covers the router: every value buildShareUrl can
-      emit has a matching case, each route reaches its own opener without any
-      button id, crafted and oversized river slugs fall back to null, unknown
-      and non-string names are inert, and the active lens is asserted absent
-      from saveViewState. That last one is deliberate: restoring "Recovery" on
-      a later boot would imply an all-clear the data does not support.
+- [New] ?view=playback and ?view=live are accepted route names, and an unknown
+      or missing view name stays a silent no-op, so a stale or mistyped bookmark
+      opens the board rather than failing.
+- [New] Router tests cover every value a share link can emit, crafted river
+      slugs falling back, and the active lens staying out of saved view state:
+      restoring "Recovery" on a later boot would imply an all-clear the data
+      does not support.
 
 ## v0.97.83 · 2026-07-24 (Spanish parity for the feed and export controls)
 
 -- Bug Fixes --
-- [Fix] Eight shipped Feed-tab controls had no translation binding at all, so a
-      Spanish session still read them in English: New notice, SITREP, Filters,
-      More, Export JSON, Export GeoJSON, Export AAR, and Import JSON. Each now
-      carries data-i18n and data-i18n-title, with real Spanish added alongside
-      the English in both language tables.
-- [Fix] The filters button rebuilt its own label from an English literal on
-      every feed render, which would have overwritten a translated label even
-      once the markup was bound. It now reads feed.filters and feed.filters.n,
-      the latter keeping the active-filter count in an {n} placeholder.
+- [Fix] Eight Feed-tab controls read in English in a Spanish session: New
+      notice, SITREP, Filters, More, Export JSON, Export GeoJSON, Export AAR and
+      Import JSON. All are translated now.
+- [Fix] The filters button rebuilt its label from an English literal on every
+      render. It uses the translated label now and keeps the active-filter
+      count.
 
 -- Changes --
-- [Change] Export JSON and Import JSON gained the hover tooltip their
-           neighbours already had; every control in both feed action rows now
-           has a label and a title in both languages.
+- [Change] Export JSON and Import JSON gained the tooltip their neighbours had;
+           every control in both feed action rows has a label and a title in both
+           languages.
 
 -- New Features --
-- [New] tests/i18n.test.js gained a markup-parity gate: it parses index.html
-      and fails if any control in a feed action row lacks a data-i18n
-      attribute. The check is positional, not id-based, so it keeps holding as
-      later restructuring moves these controls into other surfaces.
+- [New] A markup-parity gate fails if any control in a feed action row lacks a
+      translation attribute. The check is positional, so it holds as controls
+      move.
 
 ## v0.97.82 · 2026-07-24 (Fix: the Recovery view rendered into the wrong container)
 
 -- Bug Fixes --
-- [Fix] Recovery view opened empty. renderResources() emitted a second element
-      carrying id "recovery-body" inside the Resources tab whenever the curated
-      recovery links list was non-empty (it currently holds 6). Because `$` is
-      document.querySelector and the Resources tab precedes the Recovery
-      overlay in the document, openRecoveryView() and renderRecoveryBody() both
-      resolved to the Resources copy, writing the whole dashboard into a hidden
-      collapsed disclosure while the overlay showed only its header and the 911
-      footer. Present since the view shipped in v0.97.75. The resources-side
-      container is now id "res-recovery-body"; the lens keeps "recovery-body".
-- [Fix] Removes an unintended style leak: the lens rules in css/app.css
-      (padding plus flex sizing) were also matching the Resources disclosure,
-      which was never their target.
+- [Fix] Recovery view opened empty, showing only its header and the 911 footer,
+      because a Resources element carried the same id. Present since the view
+      shipped in v0.97.75; the two containers have distinct ids now.
+- [Fix] Removes a style leak: the lens padding and sizing rules were also
+      matching the Resources disclosure.
 
 -- New Features --
-- [New] tests/dom-ids.test.js guards the class, not just the instance: it
-      intersects every id declared in index.html with every id a renderer
-      template literal emits across panels, board, map, sources, team,
-      playback, notes, and cameras, and fails on any overlap, so a future
-      renderer cannot silently shadow a container the page already owns.
+- [New] A test intersects every id declared in the markup with every id a
+      renderer emits and fails on any overlap, so a renderer cannot shadow a
+      container the page owns.
 
 ## v0.97.81 · 2026-07-24 (Deploy resilience: external public-mirror freshness monitor)
 
 -- New Features --
-- [New] External data-freshness monitor (scripts/freshness-monitor.sh). Every
-      durable job in the pipeline watched local state, which left the worst
-      failure mode unseen: respondertx.org serving a stale flood picture with
-      nobody told. The monitor fetches the published gauge snapshot over the
-      network, ages its embedded generation stamp, and rates it on a ladder set
-      well above one missed cycle (warn over 45 min, critical over 90 min,
-      against a data cron that publishes 4x/hour).
-- [New] Fault attribution, not just detection: each run also reads local
-      pipeline health (age of the cycle's own snapshot, age of the last data
-      commit, last successful deploy in the cycle log) and names the likely
-      cause in the alert, separating a dead cron from a commit and push path
-      that is not landing from a publish path (deploy or Cloudflare) serving a
-      stale copy.
-- [New] Alerts post to the ops chat outbox as one action entry through the
-      established re-read plus atomic-rename swap, so a concurrent session
-      reply is never clobbered and data/.chat-cursor is never touched;
-      transition-gated with a 6h cooldown and a single recovery notice, so a
-      multi-day outage costs a handful of entries instead of one per run.
-- [New] Fails safe and quiet: a network error is not staleness, so consecutive
-      fetch failures are counted and only a streak (default 3, about 45 min at
-      the installed cadence) raises an UNREACHABLE alert, while a missing state
-      file, outbox, cycle log, or git history degrades to unknown instead of
-      alerting or crashing.
-- [New] Installable with scripts/install-cron.sh --monitor (13,28,43,58, offset
-      about 5 min after each data cycle), documented in scripts/README.md with
-      an operator runbook per cause line, and covered by
-      tests/freshness-monitor.test.sh (fresh, stale, transient failure, streak,
-      cooldown, fresh install, recovery) which is now a CI step.
+- [New] External data-freshness monitor: it fetches the published gauge snapshot
+      over the network, ages its generation stamp, and rates it (warn over 45
+      min, critical over 90 min).
+- [New] Fault attribution, not just detection: each run names the likely cause,
+      separating a dead cron from a push path that is not landing from a publish
+      path serving a stale copy.
+- [New] Alerts post to the ops chat outbox, transition-gated with a 6h cooldown
+      and one recovery notice, so a multi-day outage costs a handful of entries.
+- [New] A network error is not staleness: only a streak of consecutive fetch
+      failures raises an UNREACHABLE alert, and missing local state degrades to
+      unknown.
+- [New] Installable from the cron installer, documented with an operator runbook
+      per cause line, and covered by tests that are now a CI step.
 
 ## v0.97.80 · 2026-07-24 (Basin Focus: single-river corridor view with the crest wave)
 

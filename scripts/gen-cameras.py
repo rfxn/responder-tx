@@ -5,7 +5,9 @@ via the district ITS API), USGS HIVIS river cams (NIMS API) inside the AO
 bbox, City of El Paso international-bridge live HLS cams, Port Houston Ship
 Channel wharf and air-draft cams, ATX Floods low-water-crossing flood cams,
 plus Hays County OES flood cams (CameraFTP/DriveHQ stills, San Marcos
-corridor). Hand-maintained sources are liveness-checked at gen time. Run at
+corridor), Saltwater Recon Gulf Coast cams and City of Corpus Christi cams
+(both Ozolio posters, which publish no capture time). Hand-maintained sources
+are liveness-checked at gen time. Run at
 build time; the inventory is near-static, so the output is committed.
 Stdlib only."""
 
@@ -91,6 +93,23 @@ PORTHOU_CAMS = (
     for n in range(2, 7)
 )
 PORTHOU_ID_RE = re.compile(r'^[A-Za-z0-9_]{1,32}$')  # mirrors the /api/cam/porthou proxy validator
+OZOLIO_POSTER = 'https://relay.ozolio.com/pub.api?cmd=poster&oid={oid}'
+OZOLIO_OID_RE = re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$')  # mirrors the /api/cam/{swrecon,corpus} proxy validator
+OZOLIO_MIN_BYTES = 8000  # a live poster runs 130-550 KB; a down head answers far smaller or not at all
+# Ozolio publishes no capture time on the poster (no Last-Modified, and ses.api is 403 to the public),
+# so these cameras reach the viewer through the no-capture-time path rather than the aging badge.
+SWRECON = 'https://saltwater-recon.nyc3.cdn.digitaloceanspaces.com/app/webcams.json'
+# City of Corpus Christi webcams. The city publishes no inventory and no coordinates: the oids are
+# lifted from its page's Ozolio iframes and each position is hand-placed against a verified source
+# (the Calallen cam sits on USGS gauge 08211500 "Nueces Rv at Calallen", which is the barrier).
+# The city also publishes "Commodores at Park Road 22"; it is omitted because no source places
+# Commodores Dr, and a guessed coordinate on a routing map is worse than one fewer camera.
+CORPUS_CAMS = (
+    {'name': 'Calallen Reservoir, Nueces River saltwater barrier', 'lat': 27.883077, 'lon': -97.625273, 'oid': 'EMB_JBTF00001277'},
+    {'name': 'Aquarius St at Park Road 22', 'lat': 27.626936, 'lon': -97.227023, 'oid': 'CID_WEGM000011BE'},
+    {'name': 'Whitecap Beach', 'lat': 27.602140, 'lon': -97.223803, 'oid': 'CID_XCLW000002D1'},
+    {'name': 'St. Augustine beach access', 'lat': 27.607037, 'lon': -97.209852, 'oid': 'CID_BHYP000002DB'},
+)
 HAYS_THUMB = 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'
 HAYS_MIN_BYTES = 15000  # a live cam is a ~170 KB JPEG; DriveHQ serves a ~6 KB PNG placeholder when a head is idle/rotated
 # Hays County Office of Emergency Services flood cams (Blue Iris NVR via CameraFTP/DriveHQ). Each thumbnail
@@ -551,6 +570,55 @@ def porthou_cams():
     return sorted(cams, key=lambda c: c['name'])
 
 
+def ozolio_poster_live(url):
+    # a head that is down answers with a placeholder far under a real frame, or not at all
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
+        with urllib.request.urlopen(req, timeout=25) as r:
+            ctype = (r.headers.get('Content-Type') or '').lower()
+            return r.getcode() == 200 and 'image/jpeg' in ctype and len(r.read(OZOLIO_MIN_BYTES)) >= OZOLIO_MIN_BYTES
+    except (OSError, ValueError, http.client.HTTPException):
+        return False
+
+
+def ozolio_cams(rows, label):
+    """Liveness-check a list of {name,lat,lon,oid} Ozolio cameras and emit the live ones."""
+    cams = []
+    for c in rows:
+        if not OZOLIO_OID_RE.match(c['oid']):  # an oid the strict proxy would reject is never emitted
+            continue
+        if not in_texas(c['lat'], c['lon']):
+            continue
+        if not live_twice(ozolio_poster_live, OZOLIO_POSTER.format(oid=c['oid'])):
+            print(f"{label}: {c['name']} not live, dropped")
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['oid']})
+    print(f'{label}: {len(cams)}/{len(rows)} live cams kept')
+    return sorted(cams, key=lambda c: c['name'])
+
+
+def swrecon_cams():
+    # Saltwater Recon publishes its own inventory with exact coordinates; the oid is the Ozolio channel
+    rows = []
+    for c in (fetch_json(SWRECON).get('webcams') or []):
+        coords = c.get('coords') or {}
+        try:
+            lat, lon = float(coords['lat']), float(coords['long'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        oid = str(c.get('id') or '')
+        name = (c.get('label') or '').strip()
+        city = (c.get('city') or '').strip()
+        if not oid or not name:
+            continue
+        rows.append({'name': f'{name} · {city}' if city else name, 'lat': lat, 'lon': lon, 'oid': oid})
+    return ozolio_cams(rows, 'Saltwater Recon')
+
+
+def corpus_cams():
+    return ozolio_cams(list(CORPUS_CAMS), 'Corpus Christi')
+
+
 def hays_cams():
     cams = []
     for c in HAYS_CAMS:
@@ -576,8 +644,10 @@ def main():
     elp = elpbridge_cams()  # scoped liveness check — a dead host yields [] here, never aborts the whole gen
     ph = porthou_cams()  # hand-kept, liveness-checked; an offline head serves an empty body and is dropped
     ha = hays_cams()  # liveness-checked hand-list; idle cams serve a placeholder, so this legitimately shrinks toward 0
-    # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays floor is 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0)):
+    sw = swrecon_cams()  # liveness-checked; the operator rotates heads, so a dropped one is normal
+    co = corpus_cams()  # hand-placed 4-cam list, liveness-checked
+    # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays/corpus floors are 0 (idle heads are expected, never a shape-change signal)
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -594,6 +664,8 @@ def main():
             'elpbridge': 'Live cameras: City of El Paso international bridges',
             'hays': 'Flood cameras: Hays County Office of Emergency Services',
             'porthou': 'Ship Channel cameras: Port Houston',
+            'swrecon': 'Coastal cameras: Saltwater Recon (Gulf Coast webcam network); no capture time published',
+            'corpus': 'City cameras: City of Corpus Christi; no capture time published',
         },
         'txdot': tx + its,
         'river': rv,
@@ -604,6 +676,8 @@ def main():
         'elpbridge': elp,
         'hays': ha,
         'porthou': ph,
+        'swrecon': sw,
+        'corpus': co,
     }
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:
@@ -617,7 +691,8 @@ def main():
     print(f'{OUT}: {len(tx)} TxDOT streamable + {len(its)} ITS snapshot-only cams, {len(rv)} USGS river cams, '
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
           f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, '
-          f'{len(ph)} Port Houston cams, {os.path.getsize(OUT)} bytes')
+          f'{len(ph)} Port Houston cams, {len(sw)} Saltwater Recon coastal cams, {len(co)} Corpus Christi cams, '
+          f'{os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

@@ -1,5 +1,23 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.28 · 2026-07-25 (Gulf Coast cameras)
+
+-- New Features --
+- [New] 33 Saltwater Recon coastal cameras join the camera layer, adding the
+      board's first camera coverage at Port O'Connor, Surfside, Freeport,
+      Quintana, San Luis Pass and Trinity Bay, plus Galveston, Bolivar, Clear
+      Lake and Kemah
+- [New] 4 City of Corpus Christi cameras join the camera layer, including the
+      Calallen Reservoir saltwater barrier on the Nueces River and Park Road 22,
+      the only road off North Padre Island
+
+-- Changes --
+- [Change] A camera whose operator publishes no capture time now says so in the
+           viewer instead of showing an empty capture row, and it no longer
+           carries the ordinary snapshot badge. Its age cannot be checked, so
+           the viewer states that and asks for a refresh before the image is
+           acted on
+
 ## v0.99.27 · 2026-07-25 (crossings reported closed, and a wider tide picture)
 
 -- New Features --

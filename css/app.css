@@ -901,6 +901,8 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .cam-badge.live { color: #fff; background: var(--sev-emergency); }
 .cam-badge.still { color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--border); }
 .cam-badge.stale { color: var(--sev-warning); background: var(--surface-2); border: 1px solid var(--sev-warning); }
+/* a feed with no capture time is not stale and not verified-fresh: it reads as its own state */
+.cam-badge.nostamp { color: var(--sev-warning); background: var(--surface-2); border: 1px dashed var(--sev-warning); }
 .cam-time { color: var(--ink-1); }
 .cam-stale-note { flex: 1 1 100%; font-size: 11.5px; font-weight: 500; color: var(--sev-warning); }
 #cam-note { padding: 6px 14px 12px; }

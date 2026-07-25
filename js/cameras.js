@@ -13,7 +13,9 @@ const CAM_ATTRIB_HOUSTON = 'Traffic cameras: Houston TranStar (Houston region)';
 const CAM_ATTRIB_ARLINGTON = 'Traffic cameras: City of Arlington, Texas';
 const CAM_ATTRIB_ELP = 'Live cameras: City of El Paso (international bridges)';
 const CAM_ATTRIB_HAYS = 'Flood cameras: Hays County Office of Emergency Services';
-const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, arlington: CAM_ATTRIB_ARLINGTON, elpbridge: CAM_ATTRIB_ELP, hays: CAM_ATTRIB_HAYS, porthou: CAM_ATTRIB_PORTHOU };
+const CAM_ATTRIB_SWRECON = 'Coastal cameras: Saltwater Recon (Gulf Coast webcam network)';
+const CAM_ATTRIB_CORPUS = 'City cameras: City of Corpus Christi';
+const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, arlington: CAM_ATTRIB_ARLINGTON, elpbridge: CAM_ATTRIB_ELP, hays: CAM_ATTRIB_HAYS, porthou: CAM_ATTRIB_PORTHOU, swrecon: CAM_ATTRIB_SWRECON, corpus: CAM_ATTRIB_CORPUS };
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
 const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
@@ -24,7 +26,7 @@ function loadCameras() {
   state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
     .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
     .then((d) => {
-      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [] };
+      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [], swrecon: d.swrecon || [], corpus: d.corpus || [] };
       renderCameras();
       return state.cameras;
     });
@@ -33,7 +35,7 @@ function loadCameras() {
 }
 
 function camTitle(c, kind) {
-  if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston' || kind === 'arlington' || kind === 'elpbridge' || kind === 'hays' || kind === 'porthou') return c.name;
+  if (kind !== 'txdot') return c.name; // every non-TxDOT network publishes a usable name of its own
   if (c.src === 'its') return c.name || prettyRoute(c.route) || t('cam.generic'); // ITS names carry the cross-street
   return c.description || prettyRoute(c.route) || c.name || t('cam.generic');
 }
@@ -57,6 +59,8 @@ const CAM_NETS = [
   ['elpbridge', 'elpbridge'],
   ['hays', 'hays'],
   ['porthou', 'porthou'],
+  ['swrecon', 'swrecon'],
+  ['corpus', 'corpus'],
 ];
 
 // every source is pooled into the AO region it sits in, so one toggle covers an area rather than an operator
@@ -114,26 +118,18 @@ function renderCameras() {
   }
 }
 
-// resolve a deep-link token across every network (camId / name / numeric id)
+/* Deep-link precedence is frozen: river ids resolve before TxDOT names, then every other network
+   in CAM_NETS order, so a ?cam= link shared before a network existed still opens the same camera. */
+const CAM_FIND_ORDER = ['river'].concat(CAM_NETS.map(([arr]) => arr).filter((a) => a !== 'river'));
+
+// resolve a deep-link token across every network (camId / name / id)
 function findCamByKey(want) {
-  const rv = state.cameras.river.find((c) => c.camId === want || c.name === want);
-  if (rv) return { c: rv, kind: 'river' };
-  const tx = state.cameras.txdot.find((c) => c.name === want);
-  if (tx) return { c: tx, kind: 'txdot' };
-  const au = state.cameras.austin.find((c) => String(c.id) === want || c.name === want);
-  if (au) return { c: au, kind: 'austin' };
-  const af = (state.cameras.atxfloods || []).find((c) => String(c.id) === want || c.name === want);
-  if (af) return { c: af, kind: 'atxfloods' };
-  const ho = state.cameras.houston.find((c) => String(c.id) === want || c.name === want);
-  if (ho) return { c: ho, kind: 'houston' };
-  const ar = state.cameras.arlington.find((c) => String(c.id) === want || c.name === want);
-  if (ar) return { c: ar, kind: 'arlington' };
-  const ep = state.cameras.elpbridge.find((c) => c.name === want);
-  if (ep) return { c: ep, kind: 'elpbridge' };
-  const hy = (state.cameras.hays || []).find((c) => String(c.id) === want || c.name === want);
-  if (hy) return { c: hy, kind: 'hays' };
-  const ph = (state.cameras.porthou || []).find((c) => String(c.id) === want || c.name === want);
-  if (ph) return { c: ph, kind: 'porthou' };
+  for (const arr of CAM_FIND_ORDER) {
+    const hit = (state.cameras[arr] || []).find((c) => c.name === want ||
+      (c.camId !== undefined && c.camId === want) ||
+      (c.id !== undefined && String(c.id) === want));
+    if (hit) return { c: hit, kind: arr };
+  }
   return null;
 }
 
@@ -143,6 +139,7 @@ function camPopup(c, kind) {
   if (kind === 'river') sub = `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`;
   else if (kind === 'atxfloods' || kind === 'hays') sub = esc(t('cam.floodcam'));
   else if (kind === 'porthou') sub = esc(t('cam.channel'));
+  else if (kind === 'swrecon' || kind === 'corpus') sub = esc(t('cam.coastal'));
   else if (kind === 'elpbridge') sub = esc(t('cam.bridge'));
   else if (kind === 'austin' || kind === 'houston' || kind === 'arlington') sub = esc(t('cam.traffic'));
   else sub = `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
@@ -167,6 +164,8 @@ function camNetLabel(kind) {
   if (kind === 'elpbridge') return `City of El Paso · ${t('cam.bridge')}`;
   if (kind === 'hays') return `Hays County OES · ${t('cam.floodcam')}`;
   if (kind === 'porthou') return `Port Houston · ${t('cam.channel')}`;
+  if (kind === 'swrecon') return `Saltwater Recon · ${t('cam.coastal')}`;
+  if (kind === 'corpus') return `Corpus Christi · ${t('cam.coastal')}`;
   return `TxDOT · ${t('cam.traffic')}`;
 }
 
@@ -179,6 +178,20 @@ function nearestRiverCam(lat, lon, maxKm) {
   }
   return best;
 }
+
+/* Networks whose viewer is the shared proxied-still player; the value is the note that names the
+   operator's own cadence. A new still network is a row here, never another branch in the viewer. */
+const CAM_STILL_NOTES = {
+  austin: 'cam.austin.note',
+  houston: 'cam.houston.note',
+  arlington: 'cam.arlington.note',
+  hays: 'cam.hays.note',
+  atxfloods: 'cam.atx.note',
+  porthou: 'cam.porthou.note',
+  swrecon: 'cam.swrecon.note',
+  corpus: 'cam.corpus.note',
+};
+const camStillNote = (kind) => (Object.prototype.hasOwnProperty.call(CAM_STILL_NOTES, kind) ? CAM_STILL_NOTES[kind] : null);
 
 function openCamViewer(c, kind) {
   camViewerTeardown();
@@ -209,36 +222,11 @@ function openCamViewer(c, kind) {
     } else {
       stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`;
     }
-  } else if (kind === 'austin') {
-    // City of Austin still: fresh JPEG via the same-origin /api/cam/austin proxy (no CORS upstream)
-    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.austin.note'))} · ${esc(CAM_ATTRIB_AUSTIN)}`;
+  } else if (camStillNote(kind)) {
+    // proxied still: one same-origin /api/cam/{net} fetch, the same player for every network
+    note.innerHTML = `${srcBadge('official')} ${esc(t(camStillNote(kind)))} · ${esc(CAM_ATTRIB[kind])}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadCityStill(c, stage, meta, false, gen, 'austin');
-  } else if (kind === 'houston') {
-    // Houston TranStar still: fresh JPEG via the same-origin /api/cam/houston proxy (no CORS upstream)
-    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.houston.note'))} · ${esc(CAM_ATTRIB_HOUSTON)}`;
-    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadCityStill(c, stage, meta, false, gen, 'houston');
-  } else if (kind === 'arlington') {
-    // City of Arlington still: fresh JPEG via the same-origin /api/cam/arlington proxy (no CORS upstream)
-    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.arlington.note'))} · ${esc(CAM_ATTRIB_ARLINGTON)}`;
-    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadCityStill(c, stage, meta, false, gen, 'arlington');
-  } else if (kind === 'hays') {
-    // Hays County OES flood still: fresh JPEG via the same-origin /api/cam/hays proxy (DriveHQ drops CORS with an Origin)
-    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.hays.note'))} · ${esc(CAM_ATTRIB_HAYS)}`;
-    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadCityStill(c, stage, meta, false, gen, 'hays');
-  } else if (kind === 'atxfloods') {
-    // ATX Floods low-water-crossing still: the /api/cam/atxfloods proxy resolves the newest frame
-    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.atx.note'))} · ${esc(CAM_ATTRIB_ATX)}`;
-    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadCityStill(c, stage, meta, false, gen, 'atxfloods');
-  } else if (kind === 'porthou') {
-    // Port Houston Ship Channel still: fresh JPEG via the same-origin /api/cam/porthou proxy
-    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.porthou.note'))} · ${esc(CAM_ATTRIB_PORTHOU)}`;
-    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
-    loadCityStill(c, stage, meta, false, gen, 'porthou');
+    loadCityStill(c, stage, meta, false, gen, kind);
   } else if (kind === 'txdot') {
     // snapshot-only ITS cam: fresh JPEG via the same-origin /api/cam proxy, never a "LIVE" player
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.its.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
@@ -290,11 +278,17 @@ async function loadProxyStill(stage, meta, bust, gen, opts) {
     stage.appendChild(img);
     const when = opts.parse(captured);
     const stale = !!when && ageMins(when.toISOString()) > CAM_STALE_MINS;
-    meta.innerHTML = (stale
-      ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
-      : `<span class="cam-badge still">${esc(t('cam.snapshot'))}</span>`) +
-      `<span class="cam-time">${esc(t('cam.captured'))} ${esc(when ? fmtWhen(when.toISOString()) : (captured || '·'))}</span>` +
-      (stale ? `<span class="cam-stale-note">${esc(t('cam.stale.note'))}</span>` : '') +
+    /* A feed that publishes no capture time cannot be aged, so it must not wear the plain
+       snapshot chip either: without this the frame reads as current and the aging gate can
+       never fire on it. Say the time is missing instead of printing an empty one. */
+    meta.innerHTML = (when
+      ? (stale
+        ? `<span class="cam-badge stale">⏱ ${esc(t('cam.stale'))}</span>`
+        : `<span class="cam-badge still">${esc(t('cam.snapshot'))}</span>`) +
+        `<span class="cam-time">${esc(t('cam.captured'))} ${esc(fmtWhen(when.toISOString()))}</span>` +
+        (stale ? `<span class="cam-stale-note">${esc(t('cam.stale.note'))}</span>` : '')
+      : `<span class="cam-badge nostamp">${esc(t('cam.nostamp'))}</span>` +
+        `<span class="cam-stale-note">${esc(t('cam.nostamp.note'))}</span>`) +
       `<button class="popup-expand cam-refresh">↻ ${esc(t('cam.refresh'))}</button>`;
     meta.querySelector('.cam-refresh').addEventListener('click', () => {
       stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;

@@ -99,15 +99,51 @@ test('the viewer plays exactly what the marker calls live, and nothing else', ()
   const liveAt = body.indexOf('camIsLive(c)');
   assert.notEqual(liveAt, -1, 'the viewer no longer dispatches on the live predicate');
   assert.equal(body.split('camIsLive(c)').length - 1, 1, 'one predicate, one branch');
-  // every per-source still branch must sit BELOW it, or a stream camera could be routed to a proxy
-  for (const net of ['austin', 'atxfloods', 'houston', 'arlington', 'hays', 'porthou', 'txdot']) {
-    const at = body.indexOf(`kind === '${net}'`);
-    if (at === -1) continue;
-    assert.ok(liveAt < at, `the '${net}' still branch is tested before the live branch`);
-  }
-  // and the still branches must never reach the player
-  assert.ok(!/loadCityStill|loadItsSnapshot|loadRiverStill/.test(body.slice(liveAt, body.indexOf("kind === 'austin'"))),
+  // every still branch must sit BELOW it, or a stream camera could be routed to a proxy. The
+  // proxied networks dispatch off one table lookup; ITS and USGS keep their own branches.
+  const stillAt = [body.indexOf('camStillNote(kind)')]
+    .concat(['txdot', 'austin', 'atxfloods', 'houston', 'arlington', 'hays', 'porthou', 'swrecon', 'corpus']
+      .map((net) => body.indexOf(`kind === '${net}'`)))
+    .filter((i) => i !== -1);
+  assert.ok(stillAt.length, 'no still branch found in the viewer');
+  for (const at of stillAt) assert.ok(liveAt < at, 'a still branch is tested before the live branch');
+  // and the live branch must never reach a still loader
+  assert.ok(!/loadCityStill|loadItsSnapshot|loadRiverStill/.test(body.slice(liveAt, Math.min(...stillAt))),
     'the live branch loads a still');
+});
+
+/* A feed that publishes no capture time cannot be aged, so the aging gate can never fire on it.
+   Before this the viewer printed the ordinary snapshot chip and an empty "captured ·", which let a
+   frame of unknown age read as current. The absent stamp now has to be stated as its own condition,
+   and it has to be derived from the missing header rather than from a list of source names, so any
+   feed that drops its Last-Modified is covered the moment it does. */
+test('a still with no capture time says so, and never wears the plain snapshot chip', () => {
+  const fn = SRC.match(/async function loadProxyStill\([\s\S]*?\n\}/);
+  assert.ok(fn, 'loadProxyStill not found in js/cameras.js');
+  const body = fn[0];
+  assert.match(body, /cam\.nostamp/, 'the viewer has no no-capture-time state');
+  assert.match(body, /cam\.nostamp\.note/, 'the no-capture-time state carries no explanation');
+  // the honest render is chosen by the parsed stamp, not by which source the camera came from
+  for (const [, net] of CAM_NETS) {
+    assert.ok(!body.includes(`'${net}'`), `loadProxyStill branches on the '${net}' source`);
+  }
+  // the snapshot chip and the captured row must both sit inside the has-a-stamp branch
+  const nostampAt = body.indexOf('cam.nostamp');
+  for (const key of ['cam.snapshot', 'cam.captured', 'cam.stale']) {
+    const at = body.indexOf(key);
+    assert.notEqual(at, -1, `${key} vanished from the viewer`);
+    assert.ok(at < nostampAt, `${key} is rendered outside the has-a-stamp branch`);
+  }
+});
+
+test('every shipped camera on a stampless feed is a still, so none can claim live', () => {
+  // the no-capture-time path lives in the still player; a live network reaching it would mean a
+  // stream camera rendered through a chip that says its age is unknown
+  const cams = JSON.parse(readFile('data/cameras.json'));
+  for (const net of ['swrecon', 'corpus']) {
+    assert.ok(Array.isArray(cams[net]), `${net} is not in data/cameras.json`);
+    for (const c of cams[net]) assert.equal(camIsLive(c), false, `${net} camera ${c.id} claims live`);
+  }
 });
 
 test('the marker states its kind in text, not in colour and glyph alone', () => {

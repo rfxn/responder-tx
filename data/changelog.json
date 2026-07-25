@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.28",
+      "date": "2026-07-25",
+      "line": "Thirty-three Saltwater Recon coastal cameras and four City of Corpus Christi cameras join the camera layer. They bring the board its first camera coverage at Port O'Connor, Surfside, Freeport, Quintana, San Luis Pass and Trinity Bay, along with Galveston, Bolivar, Clear Lake and Kemah, plus the Calallen Reservoir saltwater barrier on the Nueces River and Park Road 22, the only road off North Padre Island. Neither operator publishes a capture time, so the viewer says so on those cameras rather than showing an empty capture row, and it drops the ordinary snapshot badge: the age of the frame cannot be checked, so the board states that and asks for a refresh before the image is acted on."
+    },
+    {
       "v": "v0.99.27",
       "date": "2026-07-25",
       "line": "A new layer shows low-water crossings that a Central Texas jurisdiction reports as closed or caution, across 39 reporting jurisdictions, with the jurisdiction named on each one. It is off by default and sits in the water group of the layers sheet. The layer states plainly what its timestamps mean: the feed records when a report last changed, not that anyone rechecked it, so each crossing carries the age of its own report, nothing is counted as a confirmed hazard, and anything unchanged for more than two days is marked to confirm before routing. Only reported closures and cautions are carried, never an open crossing, because a crossing nobody has looked at in a year should not be shown as passable. The all-locations crossings layer now points at the new one instead of only noting it has no status of its own. Separately, tide coverage grows from 14 stations to 32, adding Port Arthur, Rainbow Bridge, High Island, Rollover Pass, the Galveston Railroad Bridge, San Luis Pass, Sargent, Matagorda City, Port Lavaca, Copano Bay, the Corpus Christi bay stations, Realitos Peninsula and South Padre Island. Three configured stations that returned no data are replaced by working neighbours."

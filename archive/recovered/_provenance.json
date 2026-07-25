@@ -1,0 +1,56 @@
+{
+ "generated": "2026-07-25T00:55:34Z",
+ "source_commit": "7a7519a525fbece3d6ebd01d3b2d641aecc25636",
+ "source_commit_date": "2026-07-23T23:09:05-05:00",
+ "pin_tag": "preprune-history-2026-07-23",
+ "extracted_by": "git show <commit>:<path>, byte-verbatim",
+ "why": "data/event.json commit 07949f0 narrowed gaugeBbox for the TS Bertha coastal pivot. gen-history.py and gen-crest-summary.py filter every re-walked frame against the current display bbox, so the next cycle retroactively pruned 18 days of already collected South/Central Texas observations out of the published files.",
+ "status": "staged for a later merge phase; data/history.json on disk is still the pruned version",
+ "files": [
+  {
+   "path": "history-preprune-7a7519a.json",
+   "was": "data/history.json",
+   "bytes": 1830704,
+   "sha256": "f1404fceee2210c20fd7509e8184e87fd64f9c25efabf82bb10999efc4fcb625",
+   "frames": 575,
+   "gauges": 281,
+   "gauges_west_of_-98": 74,
+   "first_frame": "2026-07-05T00:00:00Z",
+   "last_frame": "2026-07-24T03:53:00Z",
+   "live_now": {
+    "frames": 459,
+    "gauges": 208,
+    "first_frame": "2026-07-17T15:31:40Z"
+   }
+  },
+  {
+   "path": "crest-summary-preprune-7a7519a.json",
+   "was": "data/crest-summary.json",
+   "bytes": 15903,
+   "sha256": "169294da41467119e12b2c6f5e4bdf0aa396624298dac1199d28c310c6310dc7",
+   "gauges": 46,
+   "peak_categories": {
+    "major": 17,
+    "moderate": 16,
+    "minor": 13
+   },
+   "window": {
+    "first": "2026-07-05T00:00:00Z",
+    "last": "2026-07-24T03:53:00Z"
+   },
+   "backfill": {
+    "from": "2026-07-05T00:00:00Z",
+    "until": "2026-07-17T15:31:40Z",
+    "src": "usgs"
+   },
+   "live_now": {
+    "gauges": 4,
+    "peak_categories": {
+     "major": 1,
+     "moderate": 2,
+     "minor": 1
+    }
+   }
+  }
+ ]
+}

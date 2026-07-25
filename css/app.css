@@ -151,13 +151,6 @@ button.primary { background: var(--accent); color: #fff; border-color: transpare
   font-weight: 700; animation: pulse 2.4s infinite;
 }
 #update-chip[hidden] { display: none; }
-/* open-shelter count: the public-facing help control, so it reads as help and not as a hazard */
-#shelter-chip {
-  border-color: color-mix(in srgb, var(--good) 55%, transparent);
-  background: color-mix(in srgb, var(--good) 12%, var(--surface-1));
-  color: var(--ink-1); font-weight: 700;
-}
-#shelter-chip[hidden] { display: none; }
 
 /* actionable hazard line, ranked. The worst item is pinned and never moves; the remainder loops
    beside it as a marquee (two identical runs, -50% for a seamless seam). Motion pauses on hover

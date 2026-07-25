@@ -781,7 +781,6 @@ async function boot() {
   $('#health-close').addEventListener('click', () => { $('#health-modal').hidden = true; });
   $('#health-modal').addEventListener('click', (e) => { if (e.target.id === 'health-modal') $('#health-modal').hidden = true; });
   $('#shelters-btn').addEventListener('click', openHelpSheet);
-  $('#shelter-chip').addEventListener('click', openHelpSheet);
   $('#help-sheet-close').addEventListener('click', closeHelpSheet);
   $('#help-sheet .ls-backdrop').addEventListener('click', closeHelpSheet);
   $('#help-btn').addEventListener('click', openGlossary);

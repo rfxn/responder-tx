@@ -1078,24 +1078,6 @@ function quietState() {
   return !openInAO.length && !inFlood.length && !(state.roadClosures.lines || []).length;
 }
 
-/* Shelters are help, not a hazard, so the count cannot ride in the hazard line without breaking
-   that line's aging invariant. It sits in the header instead, where a resident reaches it in one
-   tap and does not have to scroll a chip row sideways to find it. */
-function renderShelterChip() {
-  const btn = $('#shelter-chip');
-  if (!btn) return;
-  const open = openShelterCount();
-  const unconfirmed = unconfirmedShelterCount();
-  const n = open || unconfirmed;
-  if (!n) { btn.hidden = true; return; }
-  const label = open > 0 ? t(unconfirmed ? 'threat.shelters.live' : 'threat.shelters') : t('threat.shelters.unconf');
-  const text = `${fmtNum(n)} ${label}`;
-  btn.hidden = false;
-  btn.querySelector('.ctl-lbl').textContent = text;
-  btn.title = text;
-  btn.setAttribute('aria-label', text);
-}
-
 /* The hazard line carries the ranked live items now, so the strip no longer repeats them as
    counts. What is left is the reassurance that line cannot give: it renders only when the line
    has nothing to carry, so the two are never stacked. */
@@ -1239,7 +1221,6 @@ function applyTickerOpen() {
 // v0.97.93 (they duplicated the richer, tappable threat strip and were hidden on every phone)
 function renderTiles() {
   renderThreatStrip();
-  renderShelterChip();
   renderTicker();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical').length;

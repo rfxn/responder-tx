@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.22 · 2026-07-25 (one route to shelters and hotlines)
+
+-- Changes --
+- [Change] The shelters button has been taken off the top bar. Shelters and
+           hotlines opens from the gear menu, which was already there, and the
+           top bar keeps the room
+
 ## v0.99.21 · 2026-07-25 (out-of-state cameras split by state)
 
 -- New Features --

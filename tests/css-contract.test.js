@@ -285,7 +285,7 @@ test('the header stays one row at every width and the tiles are gone', () => {
   // renderTiles stays: it is the composite entry every refresh calls
   const fn = panels.match(/function renderTiles\(\)[\s\S]*?\n\}/);
   assert.ok(fn, 'renderTiles() was removed; it is the per-refresh composite entry');
-  for (const call of ['renderThreatStrip()', 'renderShelterChip()', 'renderTicker()', 'renderDriveMode()']) {
+  for (const call of ['renderThreatStrip()', 'renderTicker()', 'renderDriveMode()']) {
     assert.ok(fn[0].includes(call), `renderTiles() no longer calls ${call}`);
   }
   assert.ok(/document\.title\s*=/.test(fn[0]), 'renderTiles() no longer updates document.title');
@@ -309,29 +309,25 @@ test('the strip stands down while the hazard line is carrying, and never repeats
   assert.ok(/playback\.striplive/.test(fn[0]), 'the strip lost the playback live-data note');
 });
 
-/* The open-shelter count was the one public-facing number in the retired chip row, and it was the
-   last chip in a row that scrolled sideways. It moves to the header, where it is reachable in one
-   tap, and it stays out of the hazard line: shelters are help, not a hazard. */
-test('the open-shelter count kept a home the resident reaches, outside the hazard line', () => {
+/* The open-shelter count briefly rode in the header. The owner removed it: the settings menu
+   already opens the same sheet and the top bar has no room for a second route to it. What this
+   guards is that exactly one entry point survives and the count stays out of the hazard line. */
+test('the shelters sheet keeps one entry point, and no shelter count rides in the header', () => {
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
-  assert.ok(/id="shelter-chip"/.test(html), 'index.html no longer declares the header shelter control');
-  const header = html.slice(html.indexOf('<div class="controls">'), html.indexOf('</header>'));
-  assert.ok(header.includes('id="shelter-chip"'), 'the shelter control must sit in the header controls');
-  assert.ok(/#shelter-chip'\)\.addEventListener\('click', openHelpSheet\)/.test(boot),
-    'the header shelter control must open the same shelters sheet');
-  const fn = panels.match(/function renderShelterChip\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderShelterChip() not found');
-  assert.ok(/btn\.hidden = true/.test(fn[0]), 'the control must hide itself when no shelter is open');
-  // the hazard line's aging invariant admits only hazards; a shelter count must never enter it
+  const header = html.slice(html.indexOf('<div class="controls">'), html.indexOf('<div id="hmore-menu"'));
+  assert.ok(!/shelter-chip/.test(header), 'the header carries a shelter control again; there is no room for one');
+  assert.ok(!/shelter-chip/.test(html + panels + boot), 'a shelter-chip vestige survives');
+  // the settings row is the entry point, and it still opens the sheet
+  assert.ok(/id="shelters-btn"/.test(html), 'the settings shelters row is gone; the sheet is unreachable');
+  assert.ok(/#shelters-btn'\)\.addEventListener\('click', openHelpSheet\)/.test(boot),
+    'the settings shelters row must still open the help sheet');
+  // shelters are help, not a hazard: the count must never enter the hazard line
   const ticker = panels.match(/function tickerItems\(\)[\s\S]*?\n\}/);
   assert.ok(!/[Ss]helter/.test(ticker[0]), 'a shelter count leaked into the hazard line');
 });
 
-/* The camera band parent is a real toggle, so it carries the same floor as every other control a
-   gloved thumb has to hit, and it must express its third state by the knob's position rather than
-   by colour alone. The disclosure beside it declares its own floor (see the sub-header test). */
 /* The camera bands are the sheet's only sub-category headers. Everything about them that is not
    genuinely new (the disclosure and the parent toggle) follows .ls-group, the one header idiom the
    sheet already had, instead of inventing a type step of its own. */

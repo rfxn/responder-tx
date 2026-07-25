@@ -94,8 +94,6 @@ test('shelters and hotlines are promoted out of position 6 of 8', () => {
     'the shelters row must lead the settings sheet, not trail the preferences');
 
   const panels = read('js/panels.js');
-  // count-gated header control, reachable in one tap without opening a menu
-  assert.match(panels, /function renderShelterChip\(\)/, 'the shelter count lost its renderer');
   const count = panels.match(/function openShelterCount\(\)[\s\S]*?\n\}/);
   assert.ok(count, 'openShelterCount() not found');
   // v0.98.0 asserted `=== 'open'` appears here, which the `!sh.live ||` short-circuit satisfied

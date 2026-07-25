@@ -54,8 +54,13 @@ CAM_BYTES_SOURCES = {
     'porthou': (re.compile(r'^[A-Za-z0-9_]{1,32}$'), 'https://info.porthouston.com/vtraffic/gateimages/{id}.jpg'),
     'hays': (re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$'), 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'),
 }
+CAM_ATX_LIST = 'https://api.atxfloods.com/api/cameras'
+CAM_ATX_IMG = 'https://api.atxfloods.com/uploads/'
+CAM_ATX_ID_RE = re.compile(r'^[0-9]{1,8}$')  # matches gen-cameras.py ATX_ID_RE
+CAM_ATX_NAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,160}\.jpe?g$', re.I)  # upstream-supplied filename: never let it steer the URL
 CAM_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some CDNs 1010-block the default urllib UA
 CAM_TTL = 120
+CAM_ATX_LIST_TTL = 90  # the newest image_name rotates every ~3 min; one shared list fetch serves every cam
 DENY_PREFIXES = ('/.git', '/.rdf', '/.claude')
 DENY_DIRS = ('.git', '.rdf', '.claude', '.github', 'docs', 'pkg', 'audit-output')  # dev/working dirs, never served on the LAN
 DENY_EXTS = ('.py', '.sh', '.md', '.toml', '.yml', '.yaml')  # source/config/working docs — the app only fetches html/js/css/json/assets/feeds, so denying these blocks git-excluded notes (CLAUDE.md, *-SCOPE.md, BRAND-SPEC.md, etc.) and source (server.py) from LAN clients
@@ -91,6 +96,7 @@ _gauge_cache = {}
 _gauge_lock = threading.Lock()
 _cam_cache = {}
 _cam_lock = threading.Lock()
+_atx_list = [0.0, None]  # (fetched_at, parsed inventory) shared by every ATX Floods viewer open
 _admin_cache = {}
 _admin_lock = threading.Lock()
 _rate_buckets = {}
@@ -207,6 +213,8 @@ class Handler(SimpleHTTPRequestHandler):
     def _cam_proxy(self, source, cid):
         if CAM_DIST_RE.match(source):
             self._cam_its(source, cid)
+        elif source == 'atxfloods':
+            self._cam_atx(cid)
         elif source in CAM_BYTES_SOURCES:
             self._cam_bytes(source, cid)
         else:
@@ -275,6 +283,52 @@ class Handler(SimpleHTTPRequestHandler):
             entry = (now, jpeg, stamp)
             self._cam_cache_put(key, entry, now)
         self._send_jpeg(entry[1], entry[2])
+
+    # ATX Floods: the newest filename rotates every ~3 min, so the id is resolved against the live
+    # inventory here rather than baked into a URL the client builds. Fixed host, id- and
+    # filename-validated; the upstream never gets to steer the URL.
+    def _cam_atx(self, cid):
+        if not CAM_ATX_ID_RE.fullmatch(cid):  # fullmatch: reject a trailing newline
+            self.send_error(400)
+            return
+        key = 'atxfloods/' + cid
+        now = time.time()
+        with _cam_lock:
+            hit = _cam_cache.get(key)
+        entry = hit if hit and now - hit[0] < CAM_TTL else None
+        if entry is None:
+            try:
+                cams = self._cam_atx_list(now)
+                im = next(((c.get('images') or [{}])[0] for c in cams if str(c.get('id')) == cid), None)
+                name = str((im or {}).get('image_name') or '')
+                if not CAM_ATX_NAME_RE.fullmatch(name):
+                    raise ValueError('no snapshot')
+                req = urllib.request.Request(CAM_ATX_IMG + urllib.parse.quote(name),
+                                             headers={'Accept': 'image/jpeg', 'User-Agent': CAM_UA})
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    jpeg = r.read()
+                    ctype = r.headers.get('Content-Type', '')
+                if not jpeg or 'image' not in ctype.lower():
+                    raise ValueError('not an image')
+                stamp = re.sub(r'[^\x20-\x7e]+', ' ', str(im.get('created_at') or '')).strip()[:64]
+            except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException):
+                self.send_error(502)
+                return
+            entry = (now, jpeg, stamp)
+            self._cam_cache_put(key, entry, now)
+        self._send_jpeg(entry[1], entry[2])
+
+    def _cam_atx_list(self, now):
+        with _cam_lock:
+            fetched, cams = _atx_list
+        if cams is not None and now - fetched < CAM_ATX_LIST_TTL:
+            return cams
+        req = urllib.request.Request(CAM_ATX_LIST, headers={'Accept': 'application/json', 'User-Agent': CAM_UA})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            cams = (json.loads(r.read()) or {}).get('attributes') or []
+        with _cam_lock:
+            _atx_list[0], _atx_list[1] = now, cams
+        return cams
 
     def _send_jpeg(self, jpeg, stamp):
         self.send_response(200)

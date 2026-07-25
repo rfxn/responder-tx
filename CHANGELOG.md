@@ -1,5 +1,23 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.7 · 2026-07-25 (the Austin low-water-crossing cameras are back)
+
+-- New Features --
+- [New] The 26 Austin low-water-crossing flood cameras are on the board again,
+      in the Austin region row with every other camera there
+
+-- Changes --
+- [Change] The credit on those cameras now names the operator of the service,
+           ATX Floods by Beholder Technology, LLC, alongside the City of Austin
+           crossings they watch. The previous credit named only the City
+- [Change] Their images are served through this site rather than the browser
+           reaching the camera service directly
+
+-- Bug Fixes --
+- [Fix] A low-water crossing with no picture ever, or none in the last 30 days,
+      is not offered as a camera you can look through. This is the gate the
+      river cameras already use
+
 ## v0.99.6 · 2026-07-25 (a gear that never met the tap floor, and an Alerts panel that led with prose)
 
 -- Bug Fixes --

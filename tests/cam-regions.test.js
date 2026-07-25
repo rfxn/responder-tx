@@ -207,45 +207,83 @@ test('pbLiveHideAll keeps the static entries the sweep already covered', () => {
   assert.ok(keys.includes('shelters') && keys.includes('roadReopen'));
 });
 
-/* ---------- source licensing and liveness (v0.99.5) ---------- */
-/* Two separate defects. api.atxfloods.com is operated by Beholder Technology, LLC, whose terms
-   at /admin/static/terms §4(i) forbid "copying, distributing, or disclosing any part of the
-   Service in any medium, including without limitation by any automated or non-automated
-   'scraping'" (verified 2026-07-25, HTTP 200). We polled it on a schedule and republished the
-   inventory on a public mirror. Separately, NIMS lists a camera from the day it is registered,
-   so the board shipped two that had never returned a single frame. */
+/* ---------- source liveness and attribution ---------- */
+/* NIMS lists a camera from the day it is registered, so the board once shipped two that had never
+   returned a single frame. The same gate now covers every still source that publishes a stamp. */
 
 const ROOT_DIR = path.join(__dirname, '..');
 const readFile = (f) => fs.readFileSync(path.join(ROOT_DIR, f), 'utf8');
 const CAMS = JSON.parse(readFile('data/cameras.json'));
+const MAX_AGE_D = Number(readFile('scripts/gen-cameras.py').match(/CAM_MAX_AGE_D = (\d+)/)[1]);
 
-test('the ATX Floods source is gone from every layer it reached', () => {
-  for (const f of ['js/cameras.js', 'js/panels.js', 'js/map.js', 'js/boot.js', 'js/board.js',
-    'scripts/gen-cameras.py', 'scripts/cycle-check.sh', 'server.py', '_headers',
-    'functions/api/cam/[district]/[icd].js']) {
-    const src = readFile(f);
-    const stray = src.split('\n')
-      .map((l, i) => [i + 1, l])
-      .filter(([, l]) => /atxfloods|api\.atxfloods\.com/i.test(l) && !/source retired/.test(l));
-    assert.deepEqual(stray.map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 70)}`), [],
-      `${f} still reaches api.atxfloods.com`);
+test('the ATX Floods low-water-crossing cams are on the board', () => {
+  const rows = CAMS.atxfloods || [];
+  assert.ok(rows.length >= 10, `ATX Floods inventory is ${rows.length}`);
+  for (const c of rows) {
+    assert.ok(/^[0-9]{1,8}$/.test(String(c.id)), `${c.id} would be rejected by the proxy validator`);
+    assert.ok(Number.isFinite(c.lat) && Number.isFinite(c.lon), `${c.id} has no position`);
+    assert.ok(c.name, `${c.id} has no name`);
   }
-  assert.ok(!('atxfloods' in CAMS), 'data/cameras.json still publishes the atxfloods inventory');
+  assert.match(readFile('scripts/gen-cameras.py'), /def atxfloods_cams\(\)/, 'the poller is missing');
+  assert.match(readFile('scripts/cycle-check.sh'), /"atxfloods": "id"/, 'cycle-check does not check the source');
 });
 
-test('the CSP no longer permits a connection or an image from the Beholder host', () => {
-  for (const f of ['_headers', 'server.py']) {
-    assert.ok(!/atxfloods/i.test(readFile(f)), `${f} still allowlists api.atxfloods.com`);
+test('every shipped ATX Floods camera has actually produced a recent image', () => {
+  // the same gate as the river cams: a crossing with no frame ever, or none this month, is not
+  // something an operator can look through and must not be offered as one
+  const rows = CAMS.atxfloods || [];
+  const noStamp = rows.filter((c) => !c.newest).map((c) => c.id);
+  assert.deepEqual(noStamp, [], 'a camera that has never returned a frame is listed as available');
+  const tooOld = rows
+    .map((c) => [c.id, (Date.now() - Date.parse(c.newest)) / 86400000])
+    .filter(([, d]) => !Number.isFinite(d) || d > MAX_AGE_D + 1); // +1d: the file is committed, not live
+  assert.deepEqual(tooOld, [], 'a long-dead camera is still shipped');
+});
+
+test('the ATX Floods credit names the operator of the service, not just the City', () => {
+  // the service is Beholder Technology, LLC; the cameras themselves report jurisdiction COA
+  for (const s of [readFile('js/cameras.js').match(/const CAM_ATTRIB_ATX = '([^']+)'/)[1],
+    CAMS.attribution.atxfloods]) {
+    assert.match(s, /Beholder Technology/, 'the operator is not credited');
+    assert.match(s, /City of Austin/, 'the camera owner is not credited');
+    assert.ok(!s.includes('—'), 'em-dash in a user-facing credit');
   }
 });
 
-test('the frozen camf link param survives the source it was named for', () => {
-  // v0.99.0 froze these: an old shared link must keep opening the same cameras. camf mapped to the
-  // Austin region, not to the ATX Floods source, so retiring the source leaves the contract intact.
+test('ATX Floods routes through the same-origin proxy on both servers, id-validated', () => {
+  const re = /api\.atxfloods\.com/;
+  for (const f of ['functions/api/cam/[district]/[icd].js', 'server.py']) {
+    assert.match(readFile(f), re, `${f} has no atxfloods route`);
+    assert.ok(readFile(f).includes('[0-9]{1,8}'), `${f} atxfloods id pattern drifted from the generator`);
+  }
+  const genRe = readFile('scripts/gen-cameras.py').match(/ATX_ID_RE = re\.compile\(r'([^']+)'\)/)[1];
+  assert.equal(genRe, '^[0-9]{1,8}$');
+  // the browser never talks to the Beholder host: the proxy is the only path, so no CSP host is added
+  for (const f of ['_headers']) {
+    assert.ok(!/atxfloods/i.test(readFile(f)), `${f} allowlists api.atxfloods.com instead of proxying`);
+  }
+  assert.ok(!/atxfloods/i.test(readFile('server.py').match(/^CSP = \([\s\S]*?\)$/m)[0]),
+    'the server CSP allowlists api.atxfloods.com instead of proxying');
+  assert.ok(!/api\.atxfloods\.com/.test(readFile('js/cameras.js')),
+    'the client reaches the Beholder host directly instead of the same-origin proxy');
+});
+
+test('the frozen camf link param still resolves', () => {
+  // v0.99.0 froze these: an old shared link must keep opening the same cameras. camf maps to the
+  // Austin region, not to the ATX Floods source, so a source coming or going leaves it intact.
   assert.deepEqual([...CAM_LEGACY_PARAMS.camf], ['austin']); // cross-realm array: copy before comparing
   for (const p of ['cams', 'camr', 'cama', 'camf', 'camh', 'caml', 'came', 'camm']) {
     assert.ok(CAM_LEGACY_PARAMS[p], `frozen link param ${p} was dropped`);
   }
+});
+
+test('every ATX Floods camera lands in the Austin region row', () => {
+  withRegions(EVENT.aoPresets, () => {
+    const r = camRegions();
+    for (const c of CAMS.atxfloods || []) {
+      assert.equal(camRegionId(c.lat, c.lon, r), 'austin', `${c.name} is not in the Austin row`);
+    }
+  });
 });
 
 test('every shipped river camera has actually produced an image', () => {
@@ -253,11 +291,10 @@ test('every shipped river camera has actually produced an image', () => {
   assert.ok(rows.length >= 20, `river inventory collapsed to ${rows.length}`);
   const noStamp = rows.filter((c) => !c.newest).map((c) => c.camId);
   assert.deepEqual(noStamp, [], 'a camera that has never returned a frame is listed as available');
-  const maxAgeD = Number(readFile('scripts/gen-cameras.py').match(/CAM_RIVER_MAX_AGE_D = (\d+)/)[1]);
-  assert.equal(maxAgeD, 30);
+  assert.equal(MAX_AGE_D, 30);
   const tooOld = rows
     .map((c) => [c.camId, (Date.now() - Date.parse(c.newest)) / 86400000])
-    .filter(([, d]) => !Number.isFinite(d) || d > maxAgeD + 1); // +1d: the file is committed, not live
+    .filter(([, d]) => !Number.isFinite(d) || d > MAX_AGE_D + 1); // +1d: the file is committed, not live
   assert.deepEqual(tooOld, [], 'a long-dead camera is still shipped');
 });
 

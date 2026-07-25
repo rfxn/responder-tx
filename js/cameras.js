@@ -7,12 +7,13 @@
 const CAM_ATTRIB_TXDOT = 'Traffic cameras: TxDOT (Lonestar/DriveTexas)';
 const CAM_ATTRIB_USGS = 'River cameras: USGS HIVIS (public domain, provisional)';
 const CAM_ATTRIB_AUSTIN = 'Traffic cameras: City of Austin, Texas (public domain)';
+const CAM_ATTRIB_ATX = 'Flood cameras: ATX Floods, a service of Beholder Technology, LLC · City of Austin low-water crossings';
 const CAM_ATTRIB_PORTHOU = 'Ship Channel cameras: Port Houston';
 const CAM_ATTRIB_HOUSTON = 'Traffic cameras: Houston TranStar (Houston region)';
 const CAM_ATTRIB_ARLINGTON = 'Traffic cameras: City of Arlington, Texas';
 const CAM_ATTRIB_ELP = 'Live cameras: City of El Paso (international bridges)';
 const CAM_ATTRIB_HAYS = 'Flood cameras: Hays County Office of Emergency Services';
-const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, houston: CAM_ATTRIB_HOUSTON, arlington: CAM_ATTRIB_ARLINGTON, elpbridge: CAM_ATTRIB_ELP, hays: CAM_ATTRIB_HAYS, porthou: CAM_ATTRIB_PORTHOU };
+const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CAM_ATTRIB_AUSTIN, atxfloods: CAM_ATTRIB_ATX, houston: CAM_ATTRIB_HOUSTON, arlington: CAM_ATTRIB_ARLINGTON, elpbridge: CAM_ATTRIB_ELP, hays: CAM_ATTRIB_HAYS, porthou: CAM_ATTRIB_PORTHOU };
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
 const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
@@ -23,7 +24,7 @@ function loadCameras() {
   state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
     .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
     .then((d) => {
-      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [] };
+      state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [] };
       renderCameras();
       return state.cameras;
     });
@@ -32,7 +33,7 @@ function loadCameras() {
 }
 
 function camTitle(c, kind) {
-  if (kind === 'river' || kind === 'austin' || kind === 'houston' || kind === 'arlington' || kind === 'elpbridge' || kind === 'hays' || kind === 'porthou') return c.name;
+  if (kind === 'river' || kind === 'austin' || kind === 'atxfloods' || kind === 'houston' || kind === 'arlington' || kind === 'elpbridge' || kind === 'hays' || kind === 'porthou') return c.name;
   if (c.src === 'its') return c.name || prettyRoute(c.route) || t('cam.generic'); // ITS names carry the cross-street
   return c.description || prettyRoute(c.route) || c.name || t('cam.generic');
 }
@@ -41,6 +42,7 @@ function camTitle(c, kind) {
 function camIconClass(c, kind) {
   if (kind === 'river') return ' cam-river';
   if (kind === 'austin') return ' cam-austin';
+  if (kind === 'atxfloods') return ' cam-flood';
   if (kind === 'houston') return ' cam-houston';
   if (kind === 'arlington') return ' cam-arlington';
   if (kind === 'elpbridge') return ' cam-elp';
@@ -53,6 +55,7 @@ const CAM_NETS = [
   ['txdot', 'txdot'],
   ['river', 'river'],
   ['austin', 'austin'],
+  ['atxfloods', 'atxfloods'],
   ['houston', 'houston'],
   ['arlington', 'arlington'],
   ['elpbridge', 'elpbridge'],
@@ -115,6 +118,8 @@ function findCamByKey(want) {
   if (tx) return { c: tx, kind: 'txdot' };
   const au = state.cameras.austin.find((c) => String(c.id) === want || c.name === want);
   if (au) return { c: au, kind: 'austin' };
+  const af = (state.cameras.atxfloods || []).find((c) => String(c.id) === want || c.name === want);
+  if (af) return { c: af, kind: 'atxfloods' };
   const ho = state.cameras.houston.find((c) => String(c.id) === want || c.name === want);
   if (ho) return { c: ho, kind: 'houston' };
   const ar = state.cameras.arlington.find((c) => String(c.id) === want || c.name === want);
@@ -132,7 +137,7 @@ function camPopup(c, kind) {
   const el = document.createElement('div');
   let sub;
   if (kind === 'river') sub = `${esc(t('cam.river'))}${c.nwisId ? ` · USGS ${esc(c.nwisId)}` : ''}`;
-  else if (kind === 'hays') sub = esc(t('cam.floodcam'));
+  else if (kind === 'atxfloods' || kind === 'hays') sub = esc(t('cam.floodcam'));
   else if (kind === 'porthou') sub = esc(t('cam.channel'));
   else if (kind === 'elpbridge') sub = esc(t('cam.bridge'));
   else if (kind === 'austin' || kind === 'houston' || kind === 'arlington') sub = esc(t('cam.traffic'));
@@ -149,6 +154,7 @@ function camPopup(c, kind) {
 function camNetLabel(kind) {
   if (kind === 'river') return `USGS · ${t('cam.river')}`;
   if (kind === 'austin') return `Austin · ${t('cam.traffic')}`;
+  if (kind === 'atxfloods') return `ATX Floods · ${t('cam.floodcam')}`;
   if (kind === 'houston') return `Houston TranStar · ${t('cam.traffic')}`;
   if (kind === 'arlington') return `Arlington · ${t('cam.traffic')}`;
   if (kind === 'elpbridge') return `City of El Paso · ${t('cam.bridge')}`;
@@ -194,6 +200,11 @@ function openCamViewer(c, kind) {
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.hays.note'))} · ${esc(CAM_ATTRIB_HAYS)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
     loadCityStill(c, stage, meta, false, gen, 'hays');
+  } else if (kind === 'atxfloods') {
+    // ATX Floods low-water-crossing still: the /api/cam/atxfloods proxy resolves the newest frame
+    note.innerHTML = `${srcBadge('official')} ${esc(t('cam.atx.note'))} · ${esc(CAM_ATTRIB_ATX)}`;
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    loadCityStill(c, stage, meta, false, gen, 'atxfloods');
   } else if (kind === 'porthou') {
     // Port Houston Ship Channel still: fresh JPEG via the same-origin /api/cam/porthou proxy
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.porthou.note'))} · ${esc(CAM_ATTRIB_PORTHOU)}`;
@@ -295,7 +306,7 @@ function loadItsSnapshot(c, stage, meta, bust, gen) {
   });
 }
 
-// direct-JPEG city stills (austin/houston/arlington) proxied same-origin; net is both the
+// direct-JPEG city stills (austin/houston/arlington/atxfloods) proxied same-origin; net is both the
 // /api/cam path segment and the camTitle kind
 function loadCityStill(c, stage, meta, bust, gen, net) {
   loadProxyStill(stage, meta, bust, gen, {

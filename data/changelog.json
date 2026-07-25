@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.7",
+      "date": "2026-07-25",
+      "line": "The 26 Austin low-water-crossing flood cameras are back, in the Austin region row. Their credit now names the operator of the service, ATX Floods by Beholder Technology, LLC, alongside the City of Austin crossings they watch; before, it named only the City. A crossing with no picture in the last 30 days is not offered as a camera you can look through."
+    },
+    {
       "v": "v0.99.6",
       "date": "2026-07-25",
       "line": "Two things you told us were wrong on a phone. The settings gear was a hair narrower than every other button in the top row, because one old style rule quietly opted it out of the 44 pixel minimum the rest of the row meets; it is now exactly the same size as its neighbours. And the Alerts section in Settings opened with two paragraphs before you could find the on/off switch. It now opens with the switch: the current state and the control sit on the first line, alert types are two short rows you can read at a glance, and the honest detail is still there, shortened to one always visible line with the full text one tap away under \"How these alerts work\". The important part has not moved: these notifications are best effort only, they are not a 911 replacement and they are not Wireless Emergency Alerts, and the panel still tells you plainly whether alerts are on, off, or blocked by your browser."

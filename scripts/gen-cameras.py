@@ -3,10 +3,11 @@
 MapLarge inventory), TxDOT ITS snapshot-only cams (no HLS stream, JPEG stills
 via the district ITS API), USGS HIVIS river cams (NIMS API) inside the AO
 bbox, City of El Paso international-bridge live HLS cams, Port Houston Ship
-Channel wharf and air-draft cams, plus Hays County OES flood cams
-(CameraFTP/DriveHQ stills, San Marcos corridor). Hand-maintained sources are
-liveness-checked at gen time. Run at build time; the inventory is
-near-static, so the output is committed. Stdlib only."""
+Channel wharf and air-draft cams, ATX Floods low-water-crossing flood cams,
+plus Hays County OES flood cams (CameraFTP/DriveHQ stills, San Marcos
+corridor). Hand-maintained sources are liveness-checked at gen time. Run at
+build time; the inventory is near-static, so the output is committed.
+Stdlib only."""
 
 import http.client
 import json
@@ -24,7 +25,7 @@ DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)  # event-neutral Texas-wide fallbac
 # statewide-TX river-cam clip. The north edge sits above the Panhandle line so the Canadian River
 # at Amarillo and the NM Pecos headwaters that feed Texas are not clipped out of their own basins.
 CAM_RIVER_BBOX = (-107.0, 25.5, -93.5, 36.6)
-CAM_RIVER_MAX_AGE_D = 30  # a camera whose newest frame is a month old has nothing to show
+CAM_MAX_AGE_D = 30  # a camera whose newest frame is a month old has nothing to show
 
 
 def ao_bbox():
@@ -46,6 +47,12 @@ ITS_DISTRICTS = ('ABL', 'AMA', 'ATL', 'AUS', 'BMT', 'BRY', 'BWD', 'CHS', 'CRP', 
                  'FTW', 'HOU', 'LBB', 'LFK', 'LRD', 'ODA', 'PAR', 'PHR', 'SJT', 'SAT', 'TYL',
                  'WAC', 'WFS', 'YKM')
 AUSTIN = 'https://data.austintexas.gov/resource/b4k4-adkb.json'
+# ATX Floods low-water-crossing flood cams. The service is operated by Beholder Technology, LLC;
+# every row reports jurisdiction COA, so the cameras themselves are City of Austin assets and the
+# credit names both. Inventory only: the newest image_name rotates every ~3 min and is resolved at
+# view time by the /api/cam/atxfloods proxy, so no imagery is mirrored here.
+ATXFLOODS = 'https://api.atxfloods.com/api/cameras'
+ATX_ID_RE = re.compile(r'^[0-9]{1,8}$')  # mirrors the /api/cam/atxfloods proxy validator
 HOUSTON = 'https://traffic.houstontranstar.org/data/layers/cctvSnapshots_out.js'
 ARLINGTON = 'https://services.arcgis.com/jXi5GuMZwfCYtZP9/arcgis/rest/services/Traffic_Camera_Updates/FeatureServer/0/query?where=1%3D1&outFields=Camera_Location,Status,Pic_URL,Lat,Long&returnGeometry=false&f=json'
 ELP_BRIDGE_HOST = 'https://zoocams.elpasozoo.org'
@@ -253,7 +260,7 @@ def river_cams():
         if age is None:
             never += 1
             continue
-        if age > CAM_RIVER_MAX_AGE_D:
+        if age > CAM_MAX_AGE_D:
             dead += 1
             continue
         cams.append({
@@ -265,7 +272,7 @@ def river_cams():
             'newest': c['newestImageDT'],
         })
     print(f'USGS HIVIS: {len(cams)} river cams kept (statewide-TX clip), '
-          f'{never} dropped with no image ever, {dead} dropped over {CAM_RIVER_MAX_AGE_D}d stale')
+          f'{never} dropped with no image ever, {dead} dropped over {CAM_MAX_AGE_D}d stale')
     return sorted(cams, key=lambda c: c['camId'])
 
 
@@ -301,6 +308,39 @@ def austin_cams():
         })
     print(f'Austin ATD: {len(cams)} live city cams kept ({skipped_id} skipped on id charset)')
     return sorted(cams, key=lambda c: int(c['id']))
+
+
+def atxfloods_cams():
+    d = fetch_json(ATXFLOODS)
+    cams, never, dead = [], 0, 0
+    for c in (d.get('attributes') or []):
+        try:
+            lat, lon = float(c['lat']), float(c['lon'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        cid = str(c.get('id') or '')
+        if not ATX_ID_RE.match(cid) or not c.get('display_status') or not in_texas(lat, lon):
+            continue
+        # same gate as the river cams: a crossing with no frame ever, or none this month, is not a
+        # camera an operator can look through, and must not be offered as one
+        newest = ((c.get('images') or [{}])[0]).get('created_at')
+        age = iso_age_days(newest)
+        if age is None:
+            never += 1
+            continue
+        if age > CAM_MAX_AGE_D:
+            dead += 1
+            continue
+        cams.append({
+            'name': (c.get('name') or f'LWC {cid}').strip(),
+            'lat': round(lat, 6),
+            'lon': round(lon, 6),
+            'id': int(cid),
+            'newest': newest,
+        })
+    print(f'ATX Floods: {len(cams)} low-water-crossing flood cams kept, '
+          f'{never} dropped with no image ever, {dead} dropped over {CAM_MAX_AGE_D}d stale')
+    return sorted(cams, key=lambda c: c['id'])
 
 
 def houston_cams():
@@ -441,13 +481,14 @@ def main():
     its = its_cams(tx)
     rv = river_cams()
     au = austin_cams()
+    af = atxfloods_cams()
     ho = houston_cams()
     ar = arlington_cams()
     elp = elpbridge_cams()  # scoped liveness check — a dead host yields [] here, never aborts the whole gen
     ph = porthou_cams()  # hand-kept, liveness-checked; an offline head serves an empty body and is dropped
     ha = hays_cams()  # liveness-checked hand-list; idle cams serve a placeholder, so this legitimately shrinks toward 0
     # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays floor is 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0)):
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -457,6 +498,7 @@ def main():
             'txdot': 'Traffic cameras: TxDOT (Lonestar/DriveTexas + ITS district snapshots); imagery not recorded',
             'river': 'River cameras: USGS HIVIS (public domain, provisional imagery)',
             'austin': 'Traffic cameras: City of Austin, Texas (public domain); imagery not recorded',
+            'atxfloods': 'Flood cameras: ATX Floods, a service of Beholder Technology, LLC · City of Austin low-water crossings; imagery not recorded',
             'houston': 'Traffic cameras: Houston TranStar (Houston region incl. Galveston/Bolivar ferry)',
             'arlington': 'Traffic cameras: City of Arlington, Texas (public arterial cams)',
             'elpbridge': 'Live cameras: City of El Paso international bridges',
@@ -466,6 +508,7 @@ def main():
         'txdot': tx + its,
         'river': rv,
         'austin': au,
+        'atxfloods': af,
         'houston': ho,
         'arlington': ar,
         'elpbridge': elp,
@@ -482,7 +525,7 @@ def main():
         os.unlink(tmp)
         raise
     print(f'{OUT}: {len(tx)} TxDOT streamable + {len(its)} ITS snapshot-only cams, {len(rv)} USGS river cams, '
-          f'{len(au)} Austin city cams, {len(ho)} Houston TranStar cams, '
+          f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
           f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, '
           f'{len(ph)} Port Houston cams, {os.path.getsize(OUT)} bytes')
 

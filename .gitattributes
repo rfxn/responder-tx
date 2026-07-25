@@ -6,6 +6,10 @@ docs/           export-ignore
 pkg/            export-ignore
 audit-output/   export-ignore
 archive/        export-ignore
+# capture files are the wide-area archive: git-tracked for durability, never published
+# (the client, CalTopo export, history, and crest all read the display-scoped snapshots)
+data/gauges-capture.json export-ignore
+data/roads-capture.json  export-ignore
 .gitattributes  export-ignore
 assets/architecture.svg export-ignore
 workers/        export-ignore

@@ -146,6 +146,27 @@ test('every shipped camera on a stampless feed is a still, so none can claim liv
   }
 });
 
+/* The two camera proxies are separate implementations of one contract: the LAN server and the
+   edge Function must resolve the same upstream for the same id, or a camera works on one board and
+   404s on the other. Every source key that reaches the client has to exist in both. */
+test('every camera network the client ships is served by BOTH proxies', () => {
+  const edge = readFile('functions/api/cam/[district]/[icd].js');
+  const lan = readFile('server.py');
+  const gen = readFile('scripts/gen-cameras.py');
+  const cams = JSON.parse(readFile('data/cameras.json'));
+  for (const [arr, net] of CAM_NETS) {
+    if (!(cams[arr] || []).length) continue;
+    if (net === 'txdot' || net === 'river' || net === 'elpbridge') continue; // ITS path, and the two direct-play sets
+    assert.ok(new RegExp(`\\b${net}\\b`).test(edge), `${net} is missing from the edge proxy`);
+    assert.ok(new RegExp(`\\b${net}\\b`).test(lan), `${net} is missing from server.py`);
+  }
+  // WeatherBug resolves a frame by walking the filename back, so the window has to match in all
+  // three places or gen ships a camera a proxy then refuses to find
+  const win = (src, key) => (src.match(new RegExp(`${key}\\s*=\\s*(\\d+)`)) || [])[1];
+  assert.equal(win(gen, 'WB_PROBE_MINUTES'), win(edge, 'WB_PROBE_MINUTES'), 'gen and edge disagree on the probe window');
+  assert.equal(win(gen, 'WB_PROBE_MINUTES'), win(lan, 'CAM_WB_PROBE_MINUTES'), 'gen and server.py disagree on the probe window');
+});
+
 test('the marker states its kind in text, not in colour and glyph alone', () => {
   const m = SRC.match(/const mark = \(c, kind\) => \{[\s\S]*?\n  \};/);
   assert.ok(m, 'the camera marker builder was not found');

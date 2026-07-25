@@ -11,10 +11,12 @@ import ssl
 import sys
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, ThreadingHTTPServer
+from zoneinfo import ZoneInfo
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 INBOX = os.path.join(ROOT, 'data', 'chat-inbox.jsonl')
@@ -60,6 +62,14 @@ CAM_BYTES_SOURCES = {
     'swrecon': (re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$'), 'https://relay.ozolio.com/pub.api?cmd=poster&oid={id}'),
     'corpus': (re.compile(r'^[A-Z]{3}_[A-Za-z0-9]{4,24}$'), 'https://relay.ozolio.com/pub.api?cmd=poster&oid={id}'),
 }
+# WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped filename
+# back from now. The stamp is station-local (America/Chicago) wall time. Resolving against the
+# site's own camera index is deliberately avoided: that list is ranked by the requester's
+# geolocation, which is the server rather than the viewer.
+CAM_WB_ID_RE = re.compile(r'^[A-Z0-9]{4,8}$')  # matches gen-cameras.py WEATHERBUG_ID_RE
+CAM_WB_IMG = 'https://cameras-cam.cdn.weatherbug.net/{id}/{y}/{m}/{d}/{stamp}_s.jpg'
+CAM_WB_TZ = ZoneInfo('America/Chicago')
+CAM_WB_PROBE_MINUTES = 12  # matches gen-cameras.py WB_PROBE_MINUTES
 CAM_ATX_LIST = 'https://api.atxfloods.com/api/cameras'
 CAM_ATX_IMG = 'https://api.atxfloods.com/uploads/'
 CAM_ATX_ID_RE = re.compile(r'^[0-9]{1,8}$')  # matches gen-cameras.py ATX_ID_RE
@@ -221,6 +231,8 @@ class Handler(SimpleHTTPRequestHandler):
             self._cam_its(source, cid)
         elif source == 'atxfloods':
             self._cam_atx(cid)
+        elif source == 'weatherbug':
+            self._cam_weatherbug(cid)
         elif source in CAM_BYTES_SOURCES:
             self._cam_bytes(source, cid)
         else:
@@ -289,6 +301,43 @@ class Handler(SimpleHTTPRequestHandler):
             entry = (now, jpeg, stamp)
             self._cam_cache_put(key, entry, now)
         self._send_jpeg(entry[1], entry[2])
+
+    # WeatherBug: walk the minute-stamped filename back from now until a frame exists. The capture
+    # time is the filename itself, which is exact, so the stamp never depends on the CDN header.
+    def _cam_weatherbug(self, cid):
+        if not CAM_WB_ID_RE.fullmatch(cid):  # fullmatch: reject a trailing newline
+            self.send_error(400)
+            return
+        key = 'weatherbug/' + cid
+        now = time.time()
+        with _cam_lock:
+            hit = _cam_cache.get(key)
+        entry = hit if hit and now - hit[0] < CAM_TTL else None
+        if entry is None:
+            entry = self._cam_weatherbug_fetch(cid, now)
+            if entry is None:
+                self.send_error(502)
+                return
+            self._cam_cache_put(key, entry, now)
+        self._send_jpeg(entry[1], entry[2])
+
+    def _cam_weatherbug_fetch(self, cid, now):
+        at = datetime.now(CAM_WB_TZ)
+        for back in range(1, CAM_WB_PROBE_MINUTES + 1):  # the current minute is still being written
+            t = at - timedelta(minutes=back)
+            url = CAM_WB_IMG.format(id=cid, y=f'{t:%Y}', m=f'{t:%m}', d=f'{t:%d}', stamp=f'{t:%m%d%Y%H%M}')
+            try:
+                req = urllib.request.Request(url, headers={'Accept': 'image/jpeg', 'User-Agent': CAM_UA})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    jpeg = r.read()
+                    ctype = r.headers.get('Content-Type', '')
+                if not jpeg or 'image' not in ctype.lower():
+                    continue
+            except (OSError, ValueError, http.client.HTTPException):
+                continue  # one missing minute is not the camera being down; keep walking back
+            stamp = t.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:00Z')  # filename resolves to the minute
+            return (now, jpeg, stamp)
+        return None
 
     # ATX Floods: the newest filename rotates every ~3 min, so the id is resolved against the live
     # inventory here rather than baked into a URL the client builds. Fixed host, id- and

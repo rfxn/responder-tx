@@ -6,10 +6,10 @@ bbox, City of El Paso international-bridge live HLS cams, Port Houston Ship
 Channel wharf and air-draft cams, ATX Floods low-water-crossing flood cams,
 plus Hays County OES flood cams (CameraFTP/DriveHQ stills, San Marcos
 corridor), Saltwater Recon Gulf Coast cams and City of Corpus Christi cams
-(both Ozolio posters, which publish no capture time), and City of Lubbock
-signal cameras. Hand-maintained sources are liveness-checked at gen time. Run
-at build time; the inventory is near-static, so the output is committed.
-Stdlib only."""
+(both Ozolio posters, which publish no capture time), City of Lubbock signal
+cameras, and WeatherBug weather-camera stills. Hand-maintained sources are
+liveness-checked at gen time. Run at build time; the inventory is near-static,
+so the output is committed. Stdlib only."""
 
 import email.utils
 import http.client
@@ -21,7 +21,8 @@ import sys
 import tempfile
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 ROOT = os.environ.get('RESPONDER_ROOT') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)  # event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
@@ -94,6 +95,22 @@ PORTHOU_CAMS = (
     for n in range(2, 7)
 )
 PORTHOU_ID_RE = re.compile(r'^[A-Za-z0-9_]{1,32}$')  # mirrors the /api/cam/porthou proxy validator
+# WeatherBug / Earth Networks camera stills. There is no JSON API and no per-camera page: the
+# per-camera URL 302s back to this index, whose records carry a "distance" field because the list
+# is ranked against the requester's own geolocation. That is fine here (gen runs in Texas and the
+# rows are state-filtered) but it is why the /api/cam/weatherbug proxy must never resolve against
+# this page: a Cloudflare colo's idea of "near" is not the user's. There is also no "latest" URL,
+# so the proxy walks the minute-stamped filename back from now instead. See WB_PROBE_MINUTES.
+WEATHERBUG = 'https://www.weatherbug.com/weather-camera'
+WEATHERBUG_IMG = 'https://cameras-cam.cdn.weatherbug.net/{id}/{y}/{m}/{d}/{stamp}_s.jpg'
+WEATHERBUG_ID_RE = re.compile(r'^[A-Z0-9]{4,8}$')  # mirrors the /api/cam/weatherbug proxy validator
+# the filename stamp is station-local (America/Chicago) wall time to the minute
+WB_TZ = 'America/Chicago'
+WB_PROBE_MINUTES = 12  # cadence is per camera: Camp Verde posts every minute, others every five
+WB_REC_RE = re.compile(
+    r'\{\\"city\\":\\"(?P<city>[^"\\]{0,40})\\",\\"distance\\":[-0-9.]+,\\"id\\":\\"(?P<id>[A-Z0-9]{4,8})\\"'
+    r'.{0,200}?\\"lat\\":(?P<lat>[-0-9.]+),\\"lng\\":(?P<lon>[-0-9.]+),\\"name\\":\\"(?P<name>[^"\\]{0,60})\\"'
+    r',\\"state\\":\\"(?P<state>[^"\\]{0,24})\\"')
 # City of Lubbock signal cameras. The inventory lists every signalised asset, not every camera:
 # most asset numbers have no image at all, and a fair share of the rest are heads that stopped
 # posting months ago. Both are settled here at gen time, by HTTP status and by frame age.
@@ -637,6 +654,56 @@ def lubbock_cams():
     return sorted(cams, key=lambda c: int(c['id']))
 
 
+def weatherbug_newest(cid, minutes=WB_PROBE_MINUTES):
+    """Newest published frame for a WeatherBug camera as (url, capture-datetime), or None.
+
+    There is no 'latest' URL: the filename is a station-local wall-time stamp to the minute, so
+    the newest frame is found by walking back from now. Mirrors the /api/cam/weatherbug proxy.
+    """
+    now = datetime.now(ZoneInfo(WB_TZ))
+    for back in range(1, minutes + 1):  # the current minute is still being written
+        t = now - timedelta(minutes=back)
+        url = WEATHERBUG_IMG.format(id=cid, y=f'{t:%Y}', m=f'{t:%m}', d=f'{t:%d}', stamp=f'{t:%m%d%Y%H%M}')
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
+            req.get_method = lambda: 'HEAD'
+            with urllib.request.urlopen(req, timeout=15) as r:
+                if r.getcode() == 200 and 'image/jpeg' in (r.headers.get('Content-Type') or '').lower():
+                    return url, t
+        except (OSError, http.client.HTTPException):
+            continue
+    return None
+
+
+def weatherbug_cams():
+    txt = fetch_text(WEATHERBUG)
+    rows, seen = [], set()
+    for m in WB_REC_RE.finditer(txt):
+        cid = m.group('id')
+        if cid in seen or not WEATHERBUG_ID_RE.match(cid) or m.group('state') != 'Texas':
+            continue
+        try:
+            lat, lon = float(m.group('lat')), float(m.group('lon'))
+        except ValueError:
+            continue
+        if not in_texas(lat, lon):
+            continue
+        seen.add(cid)
+        city, name = m.group('city').strip(), m.group('name').strip()
+        rows.append({'name': f'{name} · {city}' if city else name, 'lat': lat, 'lon': lon, 'id': cid})
+    cams, dead = [], 0
+    for c in rows:
+        hit = weatherbug_newest(c['id'])
+        if hit is None:
+            dead += 1
+            print(f"WeatherBug: {c['name']} has no frame in the last {WB_PROBE_MINUTES} min, dropped")
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id'],
+                     'newest': hit[1].astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')})
+    print(f'WeatherBug: {len(cams)}/{len(rows)} live Texas cams kept ({dead} with no recent frame)')
+    return sorted(cams, key=lambda c: c['name'])
+
+
 def ozolio_poster_live(url):
     # a head that is down answers with a placeholder far under a real frame, or not at all
     try:
@@ -714,8 +781,9 @@ def main():
     sw = swrecon_cams()  # liveness-checked; the operator rotates heads, so a dropped one is normal
     co = corpus_cams()  # hand-placed 4-cam list, liveness-checked
     lu = lubbock_cams()  # inventory is every signal, so the camera set is settled by image + frame age
+    wb = weatherbug_cams()  # no 'latest' URL: liveness is a walk back through the minute-stamped filenames
     # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays/corpus floors are 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20)):
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -735,6 +803,7 @@ def main():
             'swrecon': 'Coastal cameras: Saltwater Recon (Gulf Coast webcam network); no capture time published',
             'corpus': 'City cameras: City of Corpus Christi; no capture time published',
             'lubbock': 'Traffic cameras: City of Lubbock, Texas',
+            'weatherbug': 'Weather cameras: WeatherBug (Earth Networks) and the hosting sites',
         },
         'txdot': tx + its,
         'river': rv,
@@ -748,6 +817,7 @@ def main():
         'swrecon': sw,
         'corpus': co,
         'lubbock': lu,
+        'weatherbug': wb,
     }
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:
@@ -762,7 +832,7 @@ def main():
           f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
           f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, '
           f'{len(ph)} Port Houston cams, {len(sw)} Saltwater Recon coastal cams, {len(co)} Corpus Christi cams, '
-          f'{os.path.getsize(OUT)} bytes')
+          f'{len(lu)} Lubbock city cams, {len(wb)} WeatherBug cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

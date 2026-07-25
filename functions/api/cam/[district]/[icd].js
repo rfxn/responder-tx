@@ -26,6 +26,24 @@ const BYTES_SOURCES = {
   corpus: { idRe: /^[A-Z]{3}_[A-Za-z0-9]{4,24}$/, url: (id) => `https://relay.ozolio.com/pub.api?cmd=poster&oid=${id}` },
 };
 
+// WeatherBug: no 'latest' URL, so the newest frame is found by walking the minute-stamped
+// filename back from now. The stamp is station-local (America/Chicago) wall time. Resolving
+// against the site's own camera index is deliberately avoided: that list is ranked by the
+// requester's geolocation, and at the edge the requester is the colo, not the user.
+const WB_ID_RE = /^[A-Z0-9]{4,8}$/; // matches gen-cameras.py WEATHERBUG_ID_RE
+const WB_PROBE_MINUTES = 12; // matches gen-cameras.py WB_PROBE_MINUTES
+const WB_IMG = (id, p) => `https://cameras-cam.cdn.weatherbug.net/${id}/${p.y}/${p.m}/${p.d}/${p.stamp}_s.jpg`;
+
+// station-local wall-clock parts for a UTC instant, as the filename spells them
+function wbParts(at) {
+  const f = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(at).reduce((o, p) => { o[p.type] = p.value; return o; }, {});
+  const hour = f.hour === '24' ? '00' : f.hour; // hourCycle h24 reports midnight as 24
+  return { y: f.year, m: f.month, d: f.day, stamp: `${f.month}${f.day}${f.year}${hour}${f.minute}` };
+}
+
 export async function onRequestGet(context) {
   // params arrive percent-encoded, unlike server.py's unquote; without this every id holding a
   // space, '@' or '&' fails its own charset check. decodeURIComponent throws on a malformed escape.
@@ -38,6 +56,7 @@ export async function onRequestGet(context) {
   }
   if (DIST_RE.test(source)) return itsSnapshot(context, source, id);
   if (source === 'atxfloods') return ATX_ID_RE.test(id) ? atxSnapshot(context, id) : new Response('bad request', { status: 400 });
+  if (source === 'weatherbug') return WB_ID_RE.test(id) ? wbSnapshot(context, id) : new Response('bad request', { status: 400 });
   const src = Object.prototype.hasOwnProperty.call(BYTES_SOURCES, source) ? BYTES_SOURCES[source] : null;
   if (src && src.idRe.test(id)) return bytesSnapshot(context, source, id, src.url(id));
   return new Response('bad request', { status: 400 });
@@ -100,6 +119,32 @@ async function bytesSnapshot(context, source, id, upstream) {
   const res = jpegResponse(body, captured);
   context.waitUntil(cache.put(cacheKey, res.clone()));
   return res;
+}
+
+// WeatherBug: walk back a minute at a time until a frame exists. The capture time is the
+// filename itself, which is exact, so the stamp does not depend on the CDN's Last-Modified.
+async function wbSnapshot(context, id) {
+  const cache = caches.default;
+  const cacheKey = new Request(new URL(context.request.url).origin + `/api/cam/weatherbug/${id}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+  const now = Date.now();
+  for (let back = 1; back <= WB_PROBE_MINUTES; back++) {
+    const at = new Date(now - back * 60000);
+    try {
+      const up = await fetch(WB_IMG(id, wbParts(at)), { headers: { Accept: 'image/jpeg', 'User-Agent': UA } });
+      if (!up.ok) continue;
+      if (!/image/i.test(up.headers.get('content-type') || '')) continue;
+      const body = await up.arrayBuffer();
+      // minute-resolution filename: report the start of that minute, never a rounded-up time
+      const res = jpegResponse(body, new Date(Math.floor(at.getTime() / 60000) * 60000).toISOString());
+      context.waitUntil(cache.put(cacheKey, res.clone()));
+      return res;
+    } catch {
+      // a single minute that fails to fetch is not the camera being down; keep walking back
+    }
+  }
+  return new Response('no recent frame', { status: 502 });
 }
 
 // ATX Floods: the newest filename rotates every ~3 min, so the id is resolved against the live

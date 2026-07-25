@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.30 · 2026-07-25 (Hill Country and Guadalupe weather cameras)
+
+-- New Features --
+- [New] 30 WeatherBug weather cameras join the camera layer, including Camp
+      Verde Ranch at Center Point on the upper Guadalupe, Cuero ISD and two
+      Victoria cameras on the lower Guadalupe, Harris County OHSEM, Madison
+      County OEM and Edna ISD
+
 ## v0.99.29 · 2026-07-25 (Lubbock city cameras)
 
 -- New Features --

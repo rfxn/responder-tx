@@ -411,12 +411,12 @@ if d is not None:
 
 d = optional("data/cameras.json")
 if d is not None:
-    nets = ("txdot", "river", "austin", "atxfloods", "houston", "arlington", "elpbridge", "hays")
+    nets = ("txdot", "river", "austin", "houston", "arlington", "elpbridge", "hays", "porthou")
     miss = [n for n in nets if not isinstance(d.get(n), list)]
     if miss:
         die("cameras.json: network arrays missing: %s" % ",".join(miss))
-    need = {"river": "camId", "austin": "id", "atxfloods": "id", "houston": "id",
-            "arlington": "id", "hays": "id", "elpbridge": "httpsurl"}
+    need = {"river": "camId", "austin": "id", "houston": "id",
+            "arlington": "id", "hays": "id", "porthou": "id", "elpbridge": "httpsurl"}
     for n in nets:
         for i, c in enumerate(d[n]):
             if not isinstance(c.get("lat"), (int, float)) or not isinstance(c.get("lon"), (int, float)):
@@ -426,6 +426,8 @@ if d is not None:
                 die("cameras.json: %s[%d] missing %s" % (n, i, k))
             if n == "txdot" and not (c.get("httpsurl") or (c.get("dist") and c.get("icd"))):
                 die("cameras.json: txdot[%d] missing httpsurl or dist/icd" % i)
+            if n == "river" and not c.get("newest"):
+                die("cameras.json: river[%d] has no newest-image stamp (a camera that never produced one must not ship)" % i)
 
 with open("data/requests.json") as f:
     d = json.load(f)

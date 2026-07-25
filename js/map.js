@@ -995,7 +995,7 @@ const CAM_LEGACY_PARAMS = {
   cams: '*',                        // TxDOT road cams, statewide
   camr: '*',                        // USGS river/flood cams, statewide
   cama: ['austin'],                 // City of Austin
-  camf: ['austin'],                 // ATX Floods low-water crossings
+  camf: ['austin'],                 // ATX Floods low-water crossings, source retired v0.99.5; the param stays
   camh: ['houston', 'centraltx'],   // Houston TranStar
   caml: ['dfw'],                    // City of Arlington
   came: ['elpaso'],                 // El Paso international bridges

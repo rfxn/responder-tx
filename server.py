@@ -51,6 +51,7 @@ CAM_BYTES_SOURCES = {
     'austin': (re.compile(r'^[0-9]{1,8}$'), 'https://cctv.austinmobility.io/image/{id}.jpg'),
     'houston': (re.compile(r'^[0-9]{1,8}$'), 'https://www.houstontranstar.org/snapshots/cctv/{id}.jpg'),
     'arlington': (re.compile(r'^[A-Za-z0-9_-]{1,64}$'), 'https://webapps.arlingtontx.gov/webcams/{id}.jpg'),
+    'porthou': (re.compile(r'^[A-Za-z0-9_]{1,32}$'), 'https://info.porthouston.com/vtraffic/gateimages/{id}.jpg'),
     'hays': (re.compile(r'^[0-9]{1,12}-[0-9]{1,12}$'), 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'),
 }
 CAM_UA = 'Mozilla/5.0 (compatible; responder-tx-board/1.0)'  # some CDNs 1010-block the default urllib UA
@@ -76,12 +77,12 @@ ADMIN_TTL = 5
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
        "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com "
        "https://mesonet.agron.iastate.edu https://*.rainviewer.com https://tiles.arcgis.com "
-       "https://maps.water.noaa.gov https://usgs-nims-images.s3.amazonaws.com https://api.atxfloods.com; "
+       "https://maps.water.noaa.gov https://usgs-nims-images.s3.amazonaws.com; "
        "connect-src 'self' https://api.weather.gov https://api.water.noaa.gov https://maps.water.noaa.gov "
        "https://waterservices.usgs.gov https://mesonet.agron.iastate.edu https://api.rainviewer.com "
        "https://services5.arcgis.com https://services9.arcgis.com https://feature.geographic.texas.gov "
        "https://nominatim.openstreetmap.org https://overpass-api.de https://api.tidesandcurrents.noaa.gov "
-       "https://api.atxfloods.com https://usgs-nims-images.s3.amazonaws.com https://tile.openstreetmap.org "
+       "https://usgs-nims-images.s3.amazonaws.com https://tile.openstreetmap.org "
        "https://*.basemaps.cartocdn.com https://*.skyvdn.com https://zoocams.elpasozoo.org; "
        "media-src 'self' blob: https://*.skyvdn.com https://zoocams.elpasozoo.org; "
        "font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; "

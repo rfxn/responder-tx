@@ -206,3 +206,123 @@ test('pbLiveHideAll keeps the static entries the sweep already covered', () => {
   for (const k of PB_LIVE_HIDE.map(([x]) => x)) assert.ok(keys.includes(k), `${k} dropped from the sweep`);
   assert.ok(keys.includes('shelters') && keys.includes('roadReopen'));
 });
+
+/* ---------- source licensing and liveness (v0.99.5) ---------- */
+/* Two separate defects. api.atxfloods.com is operated by Beholder Technology, LLC, whose terms
+   at /admin/static/terms §4(i) forbid "copying, distributing, or disclosing any part of the
+   Service in any medium, including without limitation by any automated or non-automated
+   'scraping'" (verified 2026-07-25, HTTP 200). We polled it on a schedule and republished the
+   inventory on a public mirror. Separately, NIMS lists a camera from the day it is registered,
+   so the board shipped two that had never returned a single frame. */
+
+const ROOT_DIR = path.join(__dirname, '..');
+const readFile = (f) => fs.readFileSync(path.join(ROOT_DIR, f), 'utf8');
+const CAMS = JSON.parse(readFile('data/cameras.json'));
+
+test('the ATX Floods source is gone from every layer it reached', () => {
+  for (const f of ['js/cameras.js', 'js/panels.js', 'js/map.js', 'js/boot.js', 'js/board.js',
+    'scripts/gen-cameras.py', 'scripts/cycle-check.sh', 'server.py', '_headers',
+    'functions/api/cam/[district]/[icd].js']) {
+    const src = readFile(f);
+    const stray = src.split('\n')
+      .map((l, i) => [i + 1, l])
+      .filter(([, l]) => /atxfloods|api\.atxfloods\.com/i.test(l) && !/source retired/.test(l));
+    assert.deepEqual(stray.map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 70)}`), [],
+      `${f} still reaches api.atxfloods.com`);
+  }
+  assert.ok(!('atxfloods' in CAMS), 'data/cameras.json still publishes the atxfloods inventory');
+});
+
+test('the CSP no longer permits a connection or an image from the Beholder host', () => {
+  for (const f of ['_headers', 'server.py']) {
+    assert.ok(!/atxfloods/i.test(readFile(f)), `${f} still allowlists api.atxfloods.com`);
+  }
+});
+
+test('the frozen camf link param survives the source it was named for', () => {
+  // v0.99.0 froze these: an old shared link must keep opening the same cameras. camf mapped to the
+  // Austin region, not to the ATX Floods source, so retiring the source leaves the contract intact.
+  assert.deepEqual([...CAM_LEGACY_PARAMS.camf], ['austin']); // cross-realm array: copy before comparing
+  for (const p of ['cams', 'camr', 'cama', 'camf', 'camh', 'caml', 'came', 'camm']) {
+    assert.ok(CAM_LEGACY_PARAMS[p], `frozen link param ${p} was dropped`);
+  }
+});
+
+test('every shipped river camera has actually produced an image', () => {
+  const rows = CAMS.river || [];
+  assert.ok(rows.length >= 20, `river inventory collapsed to ${rows.length}`);
+  const noStamp = rows.filter((c) => !c.newest).map((c) => c.camId);
+  assert.deepEqual(noStamp, [], 'a camera that has never returned a frame is listed as available');
+  const maxAgeD = Number(readFile('scripts/gen-cameras.py').match(/CAM_RIVER_MAX_AGE_D = (\d+)/)[1]);
+  assert.equal(maxAgeD, 30);
+  const tooOld = rows
+    .map((c) => [c.camId, (Date.now() - Date.parse(c.newest)) / 86400000])
+    .filter(([, d]) => !Number.isFinite(d) || d > maxAgeD + 1); // +1d: the file is committed, not live
+  assert.deepEqual(tooOld, [], 'a long-dead camera is still shipped');
+});
+
+test('the two cameras that had never produced a frame are not in the inventory', () => {
+  const ids = new Set((CAMS.river || []).map((c) => c.camId));
+  for (const dead of ['TX_Ray_Roberts_Lake_near_Pilot_Point', 'TX_Trinity_Rvr_at_Hwy_287_nr_Cayuga_TX',
+    'TX_New_Year_Ck_at_FM_1155_nr_Chappel_Hill']) {
+    assert.ok(!ids.has(dead), `${dead} is back in the shipped inventory`);
+  }
+});
+
+test('the river bbox reaches the Panhandle and the Pecos headwaters that feed Texas', () => {
+  const gen = readFile('scripts/gen-cameras.py');
+  const box = gen.match(/CAM_RIVER_BBOX = \(([^)]+)\)/)[1].split(',').map((n) => Number(n.trim()));
+  assert.equal(box.length, 4);
+  assert.ok(box[3] >= 36.5, `north edge ${box[3]} still clips the Texas Panhandle`);
+  const ids = new Set((CAMS.river || []).map((c) => c.camId));
+  assert.ok(ids.has('TX_Canadian_Rv_nr_Amarillo'), 'the Canadian River at Amarillo is still clipped out');
+});
+
+test('Port Houston ships with a zero-byte guard and no invented berth coordinates', () => {
+  const gen = readFile('scripts/gen-cameras.py');
+  assert.match(gen, /PORTHOU_MIN_BYTES/, 'the empty-frame guard is missing');
+  assert.match(gen, /porthou_still_live/, 'the liveness check is missing');
+  const rows = CAMS.porthou || [];
+  assert.ok(rows.length >= 10, `Port Houston inventory is ${rows.length}`);
+  for (const c of rows) {
+    assert.ok(/^[A-Za-z0-9_]{1,32}$/.test(c.id), `${c.id} would be rejected by the proxy validator`);
+    assert.ok(Number.isFinite(c.lat) && Number.isFinite(c.lon), `${c.id} has no position`);
+  }
+  // every wharf cam on a terminal carries that terminal's position; no per-berth coordinate is invented
+  const bct = new Set(rows.filter((c) => c.id.startsWith('bct_')).map((c) => `${c.lat},${c.lon}`));
+  const bpt = new Set(rows.filter((c) => c.id.startsWith('bpt_')).map((c) => `${c.lat},${c.lon}`));
+  assert.equal(bct.size, 1, 'Barbours Cut cams claim more position precision than the source publishes');
+  assert.equal(bpt.size, 1, 'Bayport cams claim more position precision than the source publishes');
+  // and the viewer note says the position is the terminal, in both languages
+  const I18N_T = require('./i18n-load.js');
+  for (const lang of ['en', 'es']) {
+    assert.ok(I18N_T[lang]['cam.porthou.note'], `${lang} missing cam.porthou.note`);
+    assert.ok(I18N_T[lang]['cam.channel'], `${lang} missing cam.channel`);
+  }
+  assert.match(I18N_T.en['cam.porthou.note'], /terminal not the berth/);
+});
+
+test('Port Houston routes through the same-origin proxy on both servers, id-validated', () => {
+  const re = /porthou.*info\.porthouston\.com\/vtraffic\/gateimages/;
+  assert.match(readFile('functions/api/cam/[district]/[icd].js'), re, 'the Pages Function has no porthou route');
+  assert.match(readFile('server.py'), re, 'server.py has no porthou route');
+  // the proxy is an allowlist, never an open image proxy: the id pattern must match the generator's
+  const gen = readFile('scripts/gen-cameras.py');
+  const genRe = gen.match(/PORTHOU_ID_RE = re\.compile\(r'([^']+)'\)/)[1];
+  assert.equal(genRe, '^[A-Za-z0-9_]{1,32}$');
+  for (const f of ['functions/api/cam/[district]/[icd].js', 'server.py']) {
+    assert.ok(readFile(f).includes('[A-Za-z0-9_]{1,32}'), `${f} porthou id pattern drifted from the generator`);
+  }
+  assert.ok(!/porthouston/.test(readFile('_headers')),
+    'Port Houston must stay same-origin through the proxy, never a new CSP host');
+});
+
+test('El Paso bridge cams are not grown while the City forbids reproduction', () => {
+  const gen = readFile('scripts/gen-cameras.py');
+  const table = gen.slice(gen.indexOf('ELP_BRIDGE_CAMS = ('), gen.indexOf('PORTHOU_HOST'));
+  assert.ok(table.length > 100, 'the El Paso table was not found');
+  assert.ok(!/bridgesantafe2/.test(table),
+    'bridgesantafe2 is live but elpasotexas.gov/disclaimer forbids reproduction without written consent');
+  assert.match(gen, /prior written consent of the CITY OF EL PASO/,
+    'the reason that stream is deliberately absent must stay recorded next to the table');
+});

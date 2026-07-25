@@ -125,7 +125,6 @@ cost bandwidth and time but not a cycle.
 *://feature.geographic.texas.gov/*    TxGIO low-water-crossing inventory
 *://api.tidesandcurrents.noaa.gov/*   NOAA CO-OPS water levels and predictions
 *://api.rainviewer.com/*              RainViewer radar frame index
-*://api.atxfloods.com/*               ATX Floods camera list and stills
 *://usgs-nims-images.s3.amazonaws.com/*   USGS HIVIS river-cam listing and stills
 ```
 

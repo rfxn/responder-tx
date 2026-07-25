@@ -12,6 +12,7 @@ const BYTES_SOURCES = {
   austin: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://cctv.austinmobility.io/image/${id}.jpg` },
   houston: { idRe: /^[0-9]{1,8}$/, url: (id) => `https://www.houstontranstar.org/snapshots/cctv/${id}.jpg` },
   arlington: { idRe: /^[A-Za-z0-9_-]{1,64}$/, url: (id) => `https://webapps.arlingtontx.gov/webcams/${id}.jpg` },
+  porthou: { idRe: /^[A-Za-z0-9_]{1,32}$/, url: (id) => `https://info.porthouston.com/vtraffic/gateimages/${id}.jpg` },
   hays: { idRe: /^[0-9]{1,12}-[0-9]{1,12}$/, url: (id) => { const [pid, sid] = id.split('-'); return `https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID=${pid}&shareID=${sid}`; } },
 };
 

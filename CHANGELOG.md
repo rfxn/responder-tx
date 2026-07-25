@@ -1,5 +1,49 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.5 · 2026-07-25 (a source we were not licensed to copy, and cameras that never worked)
+
+-- Bug Fixes --
+- [Fix] The ATX Floods camera source is removed. api.atxfloods.com is operated
+      by Beholder Technology, LLC, not the City of Austin, and its terms at
+      /admin/static/terms section 4(i) forbid "copying, distributing, or
+      disclosing any part of the Service in any medium, including without
+      limitation by any automated or non-automated scraping" (verified
+      2026-07-25, HTTP 200). The board polled it every cycle and republished
+      the inventory on a public mirror. The 26 cameras, the poller, the client
+      path and the CSP entries are all gone, and so is the attribution string
+      that credited the City of Austin for someone else's service
+- [Fix] Two USGS river cameras had never produced a single image and a third
+      had not produced one since April 2023, and all three were listed as
+      available. river_cams filtered on hideCam and the bbox and never looked
+      at newestImageDT. Cameras with no frame ever, or none inside 30 days,
+      are dropped at build time; every shipped row now carries the stamp it
+      was judged on, and cycle-check fails the build if one does not
+- [Fix] The river-camera bbox clipped the Canadian River at Amarillo out of
+      Texas and the Pecos headwaters out of their own basin. The north edge
+      moves above the Panhandle line
+
+-- New Features --
+- [New] Port Houston Ship Channel cameras, 13 of them, including the Sidney
+      Sherman (I-610) bridge air-draft view over the channel. There is no
+      index to enumerate, so the ids are hand-kept and liveness-checked like
+      the Hays County table, through a same-origin proxy on both servers with
+      the same id validator at every layer and no new CSP host. Port Houston
+      publishes no per-camera coordinate, so a wharf camera carries its
+      terminal's position and the viewer note says so rather than implying a
+      berth-level fix
+- [New] The Port Houston check guards against an empty frame, not just a bad
+      status: one camera answers HTTP 200 with a zero-length body when its
+      head is down, and that is not a camera
+
+-- Changes --
+- [Change] El Paso bridge cameras are deliberately not grown. One live stream
+           is missing from our table and stays missing: elpasotexas.gov
+           forbids copying or reproduction "without the prior written consent
+           of the CITY OF EL PASO" (verified 2026-07-25). The reason now sits
+           next to the table so nobody adds it back by accident
+- [Change] Twelve per-source camera picker strings orphaned by the v0.99.2
+           regroup are removed from both languages
+
 ## v0.99.4 · 2026-07-25 (three surfaces stop claiming more than they know)
 
 -- Bug Fixes --

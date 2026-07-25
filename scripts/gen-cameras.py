@@ -2,9 +2,10 @@
 """gen-cameras.py — build data/cameras.json: TxDOT traffic cams (full statewide
 MapLarge inventory), TxDOT ITS snapshot-only cams (no HLS stream, JPEG stills
 via the district ITS API), USGS HIVIS river cams (NIMS API) inside the AO
-bbox, City of El Paso international-bridge live HLS cams, plus Hays County OES
-flood cams (CameraFTP/DriveHQ stills, San Marcos corridor). Hand-maintained
-sources are liveness-checked at gen time. Run at build time; the inventory is
+bbox, City of El Paso international-bridge live HLS cams, Port Houston Ship
+Channel wharf and air-draft cams, plus Hays County OES flood cams
+(CameraFTP/DriveHQ stills, San Marcos corridor). Hand-maintained sources are
+liveness-checked at gen time. Run at build time; the inventory is
 near-static, so the output is committed. Stdlib only."""
 
 import http.client
@@ -20,7 +21,10 @@ from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)  # event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
-CAM_RIVER_BBOX = (-107.0, 25.5, -93.5, 33.8)  # statewide-TX river-cam clip — pulls Houston/DFW/Laredo flood-gage cams the gauge AO drops
+# statewide-TX river-cam clip. The north edge sits above the Panhandle line so the Canadian River
+# at Amarillo and the NM Pecos headwaters that feed Texas are not clipped out of their own basins.
+CAM_RIVER_BBOX = (-107.0, 25.5, -93.5, 36.6)
+CAM_RIVER_MAX_AGE_D = 30  # a camera whose newest frame is a month old has nothing to show
 
 
 def ao_bbox():
@@ -42,10 +46,12 @@ ITS_DISTRICTS = ('ABL', 'AMA', 'ATL', 'AUS', 'BMT', 'BRY', 'BWD', 'CHS', 'CRP', 
                  'FTW', 'HOU', 'LBB', 'LFK', 'LRD', 'ODA', 'PAR', 'PHR', 'SJT', 'SAT', 'TYL',
                  'WAC', 'WFS', 'YKM')
 AUSTIN = 'https://data.austintexas.gov/resource/b4k4-adkb.json'
-ATXFLOODS = 'https://api.atxfloods.com/api/cameras'
 HOUSTON = 'https://traffic.houstontranstar.org/data/layers/cctvSnapshots_out.js'
 ARLINGTON = 'https://services.arcgis.com/jXi5GuMZwfCYtZP9/arcgis/rest/services/Traffic_Camera_Updates/FeatureServer/0/query?where=1%3D1&outFields=Camera_Location,Status,Pic_URL,Lat,Long&returnGeometry=false&f=json'
 ELP_BRIDGE_HOST = 'https://zoocams.elpasozoo.org'
+# NOT a growth source: elpasotexas.gov/disclaimer forbids copying or reproduction "without the
+# prior written consent of the CITY OF EL PASO" (verified 2026-07-25). bridgesantafe2.m3u8 is
+# live and absent from this table on purpose. See CAMERA-SOURCES-RESEARCH.md row 7.
 # City of El Paso Rio Grande international-bridge cams — direct-play CORS-open HLS; the operator
 # rotates stream names, so each .m3u8 is liveness-checked at gen time and dead ones are dropped.
 ELP_BRIDGE_CAMS = (
@@ -57,6 +63,26 @@ ELP_BRIDGE_CAMS = (
     {'name': 'Ysleta-Zaragoza Bridge (view 2)', 'lat': 31.6698, 'lon': -106.3272, 'file': 'BridgeZaragoza2.m3u8'},
     {'name': 'Ysleta-Zaragoza Bridge (view 3)', 'lat': 31.6698, 'lon': -106.3272, 'file': 'BridgeZaragoza3.m3u8'},
 )
+PORTHOU_HOST = 'https://info.porthouston.com/vtraffic/gateimages'
+PORTHOU_MIN_BYTES = 1  # one probe answered 200 with content-length 0; an empty frame is not a camera
+# Port Houston Ship Channel cams. There is no index to enumerate, so the ids are hand-kept like
+# HAYS_CAMS and each is liveness-checked at gen time. Man1 watches air draft under the 610 bridge,
+# which is the one that matters when the channel is running high.
+# Positions are the terminal, not the individual berth: Port Houston publishes no per-camera
+# coordinate, so every wharf cam on a terminal carries that terminal's position and the layer
+# subtitle says so. Man1 is a single fixed structure and is placed on the bridge itself.
+PORTHOU_BCT = (29.6836, -95.0680)   # Barbours Cut Terminal, Morgan's Point
+PORTHOU_BPT = (29.6135, -95.0155)   # Bayport Container Terminal, Seabrook
+PORTHOU_CAMS = (
+    {'name': 'Sidney Sherman (I-610) Bridge air draft, Houston Ship Channel', 'lat': 29.7284, 'lon': -95.2588, 'id': 'Man1'},
+) + tuple(
+    {'name': f'Barbours Cut Terminal wharf {n}', 'lat': PORTHOU_BCT[0], 'lon': PORTHOU_BCT[1], 'id': f'bct_wharf_{n}'}
+    for n in range(1, 8)
+) + tuple(
+    {'name': f'Bayport Container Terminal wharf {n}', 'lat': PORTHOU_BPT[0], 'lon': PORTHOU_BPT[1], 'id': f'bpt_wharf_{n}'}
+    for n in range(2, 7)
+)
+PORTHOU_ID_RE = re.compile(r'^[A-Za-z0-9_]{1,32}$')  # mirrors the /api/cam/porthou proxy validator
 HAYS_THUMB = 'https://cameraftpapi.drivehq.com/api/Camera/GetCameraThumbnail.ashx?parentID={pid}&shareID={sid}'
 HAYS_MIN_BYTES = 15000  # a live cam is a ~170 KB JPEG; DriveHQ serves a ~6 KB PNG placeholder when a head is idle/rotated
 # Hays County Office of Emergency Services flood cams (Blue Iris NVR via CameraFTP/DriveHQ). Each thumbnail
@@ -200,9 +226,20 @@ def its_cams(streamable):
     return sorted(cams, key=lambda c: (c['dist'], c['name']))
 
 
+def iso_age_days(stamp):
+    # None means the camera has never produced a frame, which is not the same as an old one
+    try:
+        t = datetime.fromisoformat(str(stamp).replace('Z', '+00:00'))
+    except (TypeError, ValueError):
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - t).total_seconds() / 86400
+
+
 def river_cams():
     xmin, ymin, xmax, ymax = CAM_RIVER_BBOX
-    cams = []
+    cams, never, dead = [], 0, 0
     for c in fetch_json(NIMS):
         try:
             lat, lon = float(c['lat']), float(c['lng'])
@@ -210,14 +247,25 @@ def river_cams():
             continue
         if c.get('hideCam') or not (ymin <= lat <= ymax and xmin <= lon <= xmax):
             continue
+        # NIMS lists a camera the moment it is registered, years before (or after) it ever
+        # returns a frame; listing one as available is the same defect as counting a shut shelter
+        age = iso_age_days(c.get('newestImageDT'))
+        if age is None:
+            never += 1
+            continue
+        if age > CAM_RIVER_MAX_AGE_D:
+            dead += 1
+            continue
         cams.append({
             'camId': c['camId'],
             'name': c.get('camDesc') or c.get('camName') or c['camId'],
             'nwisId': c.get('nwisId') or '',
             'lat': round(lat, 6),
             'lon': round(lon, 6),
+            'newest': c['newestImageDT'],
         })
-    print(f'USGS HIVIS: {len(cams)} river cams kept (statewide-TX clip)')
+    print(f'USGS HIVIS: {len(cams)} river cams kept (statewide-TX clip), '
+          f'{never} dropped with no image ever, {dead} dropped over {CAM_RIVER_MAX_AGE_D}d stale')
     return sorted(cams, key=lambda c: c['camId'])
 
 
@@ -253,28 +301,6 @@ def austin_cams():
         })
     print(f'Austin ATD: {len(cams)} live city cams kept ({skipped_id} skipped on id charset)')
     return sorted(cams, key=lambda c: int(c['id']))
-
-
-def atxfloods_cams():
-    # inventory only — the newest image_name changes every ~3 min, so it is resolved client-side at view time
-    d = fetch_json(ATXFLOODS)
-    cams = []
-    for c in (d.get('attributes') or []):
-        try:
-            lat, lon = float(c['lat']), float(c['lon'])
-        except (KeyError, TypeError, ValueError):
-            continue
-        cid = c.get('id')
-        if cid is None or not in_texas(lat, lon):
-            continue
-        cams.append({
-            'name': (c.get('name') or f'LWC {cid}').strip(),
-            'lat': round(lat, 6),
-            'lon': round(lon, 6),
-            'id': int(cid),
-        })
-    print(f'ATX Floods: {len(cams)} low-water-crossing flood cams kept')
-    return sorted(cams, key=lambda c: c['id'])
 
 
 def houston_cams():
@@ -372,6 +398,30 @@ def hays_thumb_live(url):
         return False
 
 
+def porthou_still_live(url):
+    # the terminal cams answer 200 with content-length 0 when a head is down; that is not a frame
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': BROWSER_UA})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            ctype = (r.headers.get('Content-Type') or '').lower()
+            return r.getcode() == 200 and 'image/jpeg' in ctype and len(r.read(PORTHOU_MIN_BYTES)) >= PORTHOU_MIN_BYTES
+    except (OSError, ValueError, http.client.HTTPException):
+        return False
+
+
+def porthou_cams():
+    cams = []
+    for c in PORTHOU_CAMS:
+        if not PORTHOU_ID_RE.match(c['id']):  # an id the strict proxy would reject is never emitted
+            continue
+        if not porthou_still_live(f"{PORTHOU_HOST}/{c['id']}.jpg"):
+            print(f"Port Houston: {c['id']} not live (empty or offline), dropped")
+            continue
+        cams.append({'name': c['name'], 'lat': round(c['lat'], 6), 'lon': round(c['lon'], 6), 'id': c['id']})
+    print(f'Port Houston: {len(cams)}/{len(PORTHOU_CAMS)} live Ship Channel cams kept')
+    return sorted(cams, key=lambda c: c['name'])
+
+
 def hays_cams():
     cams = []
     for c in HAYS_CAMS:
@@ -391,13 +441,13 @@ def main():
     its = its_cams(tx)
     rv = river_cams()
     au = austin_cams()
-    af = atxfloods_cams()
     ho = houston_cams()
     ar = arlington_cams()
     elp = elpbridge_cams()  # scoped liveness check — a dead host yields [] here, never aborts the whole gen
+    ph = porthou_cams()  # hand-kept, liveness-checked; an offline head serves an empty body and is dropped
     ha = hays_cams()  # liveness-checked hand-list; idle cams serve a placeholder, so this legitimately shrinks toward 0
     # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays floor is 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0)):
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -407,20 +457,20 @@ def main():
             'txdot': 'Traffic cameras: TxDOT (Lonestar/DriveTexas + ITS district snapshots); imagery not recorded',
             'river': 'River cameras: USGS HIVIS (public domain, provisional imagery)',
             'austin': 'Traffic cameras: City of Austin, Texas (public domain); imagery not recorded',
-            'atxfloods': 'Flood cameras: ATX Floods / City of Austin low-water crossings',
             'houston': 'Traffic cameras: Houston TranStar (Houston region incl. Galveston/Bolivar ferry)',
             'arlington': 'Traffic cameras: City of Arlington, Texas (public arterial cams)',
             'elpbridge': 'Live cameras: City of El Paso international bridges',
             'hays': 'Flood cameras: Hays County Office of Emergency Services',
+            'porthou': 'Ship Channel cameras: Port Houston',
         },
         'txdot': tx + its,
         'river': rv,
         'austin': au,
-        'atxfloods': af,
         'houston': ho,
         'arlington': ar,
         'elpbridge': elp,
         'hays': ha,
+        'porthou': ph,
     }
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:
@@ -432,8 +482,9 @@ def main():
         os.unlink(tmp)
         raise
     print(f'{OUT}: {len(tx)} TxDOT streamable + {len(its)} ITS snapshot-only cams, {len(rv)} USGS river cams, '
-          f'{len(au)} Austin city cams, {len(af)} ATX Floods cams, {len(ho)} Houston TranStar cams, '
-          f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, {os.path.getsize(OUT)} bytes')
+          f'{len(au)} Austin city cams, {len(ho)} Houston TranStar cams, '
+          f'{len(ar)} Arlington city cams, {len(elp)} El Paso bridge cams, {len(ha)} Hays OES flood cams, '
+          f'{len(ph)} Port Houston cams, {os.path.getsize(OUT)} bytes')
 
 
 if __name__ == '__main__':

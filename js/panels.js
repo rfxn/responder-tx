@@ -1232,13 +1232,33 @@ function tickerItems() {
   return emerg.concat(rise.slice(0, riseSlots), majors, tail);
 }
 
-/* No motion, by rule: Android for Cars ST-1 forbids automatically scrolling text, and this board is
-   read one-handed in moving vehicles. The old marquee also made the highest-priority item readable
-   only when the loop happened to bring it round. tickerItems() is already ranked, so the lead item
-   is pinned and always legible at a glance, and the remainder opens as a static list on one tap. */
-function tickerItemHtml(item, n, cls) {
-  return `<button type="button" class="ticker-item${cls ? ` ${cls}` : ''}" data-ti="${n}"` +
+/* The hazard line scrolls, and the worst item never has to come round for you to read it.
+   tickerItems() is ranked worst-first, so item 0 is pinned outside the moving lane and the
+   remainder loops beside it. The loop is two identical runs translated -50%, which is what makes
+   it seamless; the duplicate is aria-hidden and unfocusable so nothing is announced twice.
+   The motion pauses on hover and on keyboard focus, and prefers-reduced-motion drops the lane
+   entirely, leaving the pinned item plus the same remainder as a static list behind the count. */
+const TICKER_SECS_PER_ITEM = 5; // ~50px/s at a typical item width: readable, not a blur
+const tickerSecs = (n) => Math.max(20, n * TICKER_SECS_PER_ITEM);
+
+function tickerItemHtml(item, n, cls, dup) {
+  return `<button type="button" class="ticker-item${cls ? ` ${cls}` : ''}" data-ti="${n}"${dup ? ' tabindex="-1"' : ''}` +
     `${item.color ? ` style="color:${item.color}"` : ''}>${esc(item.text)}</button>`;
+}
+
+// one pass of the remainder; the reel holds two of these, so -50% lands exactly on the seam
+const tickerRunHtml = (rest, dup) => rest
+  .map((it, n) => `${tickerItemHtml(it, n + 1, '', dup)}<span class="ticker-sep" aria-hidden="true">·</span>`)
+  .join('');
+
+/* The emergency banner is fixed and has to clear the hazard line, whose height depends on its
+   content and its breakpoint. Publish the line's bottom edge for #emergency-banner's top to read;
+   with no line, the header's own bottom is the edge. */
+function syncHazlineAnchor() {
+  const el = $('#ticker');
+  const anchor = (el && !el.hidden) ? el : document.querySelector('header');
+  if (!anchor || !anchor.getBoundingClientRect) return;
+  document.documentElement.style.setProperty('--hazline-bottom', `${Math.round(anchor.getBoundingClientRect().bottom)}px`);
 }
 
 function renderTicker() {
@@ -1246,21 +1266,27 @@ function renderTicker() {
   if (!el) return;
   const items = tickerItems();
   state.tickerActs = items.map((i) => i.act);
-  if (!items.length) { el.hidden = true; state.tickerHash = ''; state.tickerOpen = false; return; }
+  if (!items.length) { el.hidden = true; state.tickerHash = ''; state.tickerOpen = false; syncHazlineAnchor(); return; }
   el.hidden = false;
   const rest = items.slice(1);
-  const lead = tickerItemHtml(items[0], 0, 'ticker-lead') +
+  const marquee = rest.length
+    ? `<div class="ticker-marquee"><div class="ticker-reel" style="animation-duration:${tickerSecs(rest.length)}s">` +
+      `<div class="ticker-run">${tickerRunHtml(rest, false)}</div>` +
+      `<div class="ticker-run" aria-hidden="true">${tickerRunHtml(rest, true)}</div></div></div>`
+    : '';
+  const lead = tickerItemHtml(items[0], 0, `ticker-lead${rest.length ? '' : ' ticker-solo'}`) + marquee +
     (rest.length ? `<button type="button" class="ticker-more" aria-controls="ticker-rest">` +
       `<span class="tm-n">${esc(String(rest.length))}</span><span class="tm-lbl">${esc(t('ticker.more'))}</span></button>` : '');
   const restHtml = rest.map((it, n) => tickerItemHtml(it, n + 1)).join('');
   const hash = lead + restHtml;
-  if (hash !== state.tickerHash) {
+  if (hash !== state.tickerHash) { // unchanged content must not restart the loop mid-pass
     state.tickerHash = hash;
     $('#ticker-track').innerHTML = lead;
     $('#ticker-rest').innerHTML = restHtml;
   }
   if (!rest.length) state.tickerOpen = false; // nothing left to expand into
   applyTickerOpen();
+  syncHazlineAnchor();
 }
 
 function applyTickerOpen() {

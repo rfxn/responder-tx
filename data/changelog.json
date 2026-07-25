@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.13",
+      "date": "2026-07-25",
+      "line": "The hazard line scrolls again, on every platform. The highest-priority hazard stays pinned in place at the left so you do not have to wait for it to come round, and the rest loops beside it. Hovering or tabbing into it stops the motion, the count button still opens the whole list at any time, and a device set to reduce motion gets no scrolling at all. The line is also visible now with a phone held sideways, which is the dash-mount view where it matters most and the one view that hid it. The flash flood emergency banner no longer sits on top of it."
+    },
+    {
       "v": "v0.99.12",
       "date": "2026-07-25",
       "line": "Cameras have parent switches. One at the top of the Cameras group turns every region on or off at once, and each region group (Gulf Coast, Central Texas, North and East Texas, West Texas) has its own. When only some regions are on, the switch shows that: the count reads \"12 of 13 on\" and the switch sits between off and on, and tapping it turns the rest on rather than clearing what you had. A link shared with every region on now carries them all as one statewide value; links you shared before keep working. Turning on more than two regions collapses the layer chips over the map into a single chip with the count."

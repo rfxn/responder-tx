@@ -682,7 +682,10 @@ async function boot() {
   let resizeT;
   window.addEventListener('resize', () => {
     clearTimeout(resizeT);
-    resizeT = setTimeout(() => { if (state.map) state.map.invalidateSize(); }, 200);
+    resizeT = setTimeout(() => {
+      if (state.map) state.map.invalidateSize();
+      syncHazlineAnchor(); // the hazard line's height changes with the breakpoint; the banner follows it
+    }, 200);
   });
   $('#theme-toggle').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));

@@ -1,5 +1,27 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.13 · 2026-07-25 (the hazard line scrolls again, and shows up in landscape)
+
+-- Changes --
+- [Change] The hazard line scrolls again, on every platform. The
+           highest-priority hazard stays pinned in place at the left and does
+           not move, so it is readable at a glance; the rest of the list loops
+           beside it
+- [Change] The scroll stops while you hover or tab into it, and the count
+           button still opens the whole list as a static list at any time
+- [Change] A device set to reduce motion gets no scrolling at all: the pinned
+           hazard takes the full width and the rest stays one tap away
+- [Change] On a phone the moving list takes its own row under the pinned
+           hazard, rather than a narrow strip beside it
+
+-- Bug Fixes --
+- [Fix] The hazard line is visible with a phone held sideways. It was hidden
+      outright in that layout, which is the dash-mount posture it matters most
+      in
+- [Fix] The flash flood emergency banner no longer covers the hazard line
+      underneath it. The banner now sits below the line at every screen size,
+      in both languages
+
 ## v0.99.12 · 2026-07-25 (one switch for every camera, one per region group)
 
 -- New Features --

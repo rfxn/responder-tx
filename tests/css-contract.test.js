@@ -16,20 +16,30 @@ const { loadHeaderStatus } = require('./harness.js');
 
 const CSS = fs.readFileSync(path.join(__dirname, '..', 'css', 'app.css'), 'utf8');
 
-// pull one @media block out by its condition text, brace-counting so nested blocks survive
+/* Every @media block carrying this exact condition, brace-counted so nested blocks survive and
+   concatenated so a rule is found wherever its block sits. The file keeps several blocks per
+   breakpoint, next to the component each one tunes, so reading only the first would let a rule
+   escape a guard purely by being declared in a different block for the same condition. */
 function mediaBlock(condition) {
-  const at = CSS.indexOf(`@media ${condition}`);
-  assert.notEqual(at, -1, `no @media ${condition} block in css/app.css`);
-  const open = CSS.indexOf('{', at);
-  let depth = 0;
-  for (let i = open; i < CSS.length; i++) {
-    if (CSS[i] === '{') depth += 1;
-    else if (CSS[i] === '}') {
-      depth -= 1;
-      if (depth === 0) return CSS.slice(open + 1, i);
+  const needle = `@media ${condition}`;
+  const out = [];
+  for (let at = CSS.indexOf(needle); at !== -1; at = CSS.indexOf(needle, at + 1)) {
+    // an exact match only: "(max-width: 768px)" must not swallow "(max-width: 768px), (…)"
+    if (!/^\s*\{/.test(CSS.slice(at + needle.length))) continue;
+    const open = CSS.indexOf('{', at);
+    let depth = 0;
+    let closed = false;
+    for (let i = open; i < CSS.length; i++) {
+      if (CSS[i] === '{') depth += 1;
+      else if (CSS[i] === '}') {
+        depth -= 1;
+        if (depth === 0) { out.push(CSS.slice(open + 1, i)); closed = true; break; }
+      }
     }
+    if (!closed) throw new Error(`unbalanced braces after @media ${condition}`);
   }
-  throw new Error(`unbalanced braces after @media ${condition}`);
+  assert.notEqual(out.length, 0, `no @media ${condition} block in css/app.css`);
+  return out.join('\n');
 }
 
 // the declaration a selector makes for one property inside a block ('' when the selector is absent)
@@ -86,20 +96,87 @@ test('no ID-specificity rule undercuts the 44px floor on a header control', () =
     'rules in every responsive block, so the control silently opts out of the tap-target floor');
 });
 
-/* Android for Cars app-quality requirement ST-1: "The app must not display automatically scrolling
-   text." This board is read one-handed in moving vehicles, and #ticker carries live hazard content,
-   so the marquee had to go without the content going with it. */
-test('the hazard line never scrolls itself, in any form', () => {
-  assert.equal(CSS.includes('tickerScroll'), false, 'the marquee keyframes are back in css/app.css');
-  assert.equal(decl(CSS, '.ticker-track', 'animation'), '', '.ticker-track must declare no animation');
-  assert.equal(decl(CSS, '.ticker-item', 'animation'), '');
-  assert.equal(decl(CSS, '#ticker', 'animation'), '');
-  // the duplicated-halves structure only existed to make a transform loop seamless
+/* The hazard line scrolls (owner requirement, v0.99.13, reversing the v0.98.4 removal). What this
+   guards is the part that is not negotiable while it does: the worst item is pinned outside the
+   moving lane, the motion can be stopped, a reduced-motion device gets a readable static list
+   instead of a frozen loop, and the whole remainder stays reachable without waiting for the loop.
+   The v0.98.4 assertion that no animation may exist is deliberately gone: it encoded Android for
+   Cars ST-1, and the owner has asked for the scroll with that stated. */
+test('the hazard line scrolls, and the worst item is pinned outside the moving lane', () => {
+  assert.ok(CSS.includes('@keyframes tickerScroll'), 'the marquee keyframes are missing');
+  assert.match(decl(CSS, '.ticker-reel', 'animation'), /tickerScroll/, '.ticker-reel must run the loop');
+  assert.match(decl(CSS, '.ticker-reel', 'animation'), /infinite/);
+  // the pinned item must not live inside the lane, or it moves with everything else
+  assert.equal(decl(CSS, '.ticker-lead', 'animation'), '', 'the pinned lead must never animate');
+  assert.equal(decl(CSS, '.ticker-marquee', 'animation'), '', 'the lane clips, the reel inside it moves');
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
-  assert.equal(panels.includes('ticker-half'), false, 'renderTicker still emits the marquee halves');
   assert.match(panels, /function renderTicker\(\)/);
   assert.match(panels, /ticker-lead/, 'renderTicker must pin a lead item');
   assert.match(panels, /ticker-more/, 'renderTicker must offer the remainder on demand');
+  // item 0 is the ranked worst; it is emitted on its own and the lane starts at item 1
+  assert.match(panels, /tickerItemHtml\(items\[0\], 0, `ticker-lead/, 'the lead must be items[0], the ranked worst');
+  assert.match(panels, /const rest = items\.slice\(1\)/, 'the lane must carry the remainder, not the lead again');
+  // two identical runs are what make -50% seamless; the duplicate must not be announced or focusable
+  assert.match(panels, /ticker-run" aria-hidden="true"/, 'the duplicate run must be hidden from assistive tech');
+  assert.match(panels, /dup \? ' tabindex="-1"' : ''/, 'the duplicate run must not be keyboard reachable');
+});
+
+test('the scroll can be stopped, and a reduced-motion device gets a static list', () => {
+  // WCAG 2.2.2: content that moves by itself for more than five seconds needs a pause
+  assert.match(CSS, /#ticker:hover \.ticker-reel[^{]*\{[^}]*animation-play-state:\s*paused/,
+    'the loop must pause on hover');
+  assert.match(CSS, /#ticker:focus-within \.ticker-reel|focus-within[^{]*\.ticker-reel/,
+    'the loop must pause on keyboard focus, not only on hover');
+  const rm = mediaBlock('(prefers-reduced-motion: reduce)');
+  assert.equal(decl(rm, '.ticker-marquee', 'display'), 'none',
+    'reduced motion must drop the lane, not freeze it: a frozen loop hides every item past the fold');
+  assert.equal(decl(rm, '.ticker-lead', 'max-width'), 'none',
+    'with the lane gone the pinned item must take the width back');
+  // and nothing is lost: the count button still opens every remainder item as a static list
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  assert.match(panels, /\$\('#ticker-rest'\)\.innerHTML = restHtml/,
+    '#ticker-rest must carry the full remainder independently of the lane');
+});
+
+/* The hazard line was display:none in the landscape block, so the one posture it matters most in,
+   a phone on a dash mount, was the one posture that had no hazard line at all. */
+test('landscape shows the hazard line rather than hiding it', () => {
+  const block = mediaBlock(LANDSCAPE);
+  assert.equal(decl(block, '#ticker', 'display'), '',
+    'the landscape block must not hide #ticker');
+  assert.ok(!/#ticker\s*\{[^}]*display:\s*none/.test(block), 'a landscape rule still hides the hazard line');
+});
+
+/* The emergency banner is fixed at the top and the hazard line is the flow content under the
+   header, so a constant `top` covered the line. Measured before the fix: 26px of overlap at
+   1440x900, 87px at 390x844, 28px at 844x390 and 932x430. */
+test('the emergency banner clears the hazard line instead of covering it', () => {
+  const at = CSS.indexOf('#emergency-banner {');
+  assert.notEqual(at, -1, '#emergency-banner rule not found');
+  const rule = CSS.slice(at, CSS.indexOf('}', at));
+  assert.match(rule, /top:\s*calc\(var\(--hazline-bottom/,
+    'the banner must be positioned from the hazard line, not a constant');
+  assert.match(rule, /--hazline-bottom,\s*\d+px/, 'the variable needs a fallback for a board with no hazard line');
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  assert.match(panels, /function syncHazlineAnchor\(\)/, 'nothing publishes the hazard line edge');
+  assert.match(panels, /setProperty\('--hazline-bottom'/);
+  // both exits of renderTicker must publish it, or a board that loses its last item leaves a stale edge
+  const fn = panels.match(/function renderTicker\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderTicker() not found');
+  assert.equal((fn[0].match(/syncHazlineAnchor\(\)/g) || []).length, 2,
+    'renderTicker must publish the edge on both the empty and the populated path');
+  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
+  assert.match(boot, /syncHazlineAnchor\(\);/, 'rotation changes the line height; resize must republish it');
+});
+
+test('the phone gives the moving lane its own row rather than 46% of a 390px one', () => {
+  const block = mediaBlock('(max-width: 768px)');
+  assert.equal(decl(block, '.ticker-track', 'flex-wrap'), 'wrap');
+  assert.match(decl(block, '.ticker-marquee', 'flex'), /100%/, 'the lane must take a full row on a phone');
+  assert.equal(decl(block, '.ticker-lead', 'max-width'), 'none', 'the pinned item keeps its full width there');
+  // order matters: without it the count button wraps to a third row below the lane
+  assert.equal(decl(block, '.ticker-more', 'order'), '1');
+  assert.equal(decl(block, '.ticker-marquee', 'order'), '2');
 });
 
 test('the hazard remainder floats over the map instead of resizing it', () => {

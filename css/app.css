@@ -152,18 +152,29 @@ button.primary { background: var(--accent); color: #fff; border-color: transpare
 }
 #update-chip[hidden] { display: none; }
 
-/* actionable hazard line, ranked. Static by rule: no marquee, no auto-advance, no transform loop.
-   Motion here made the top item readable only when the loop reached it, and Android for Cars ST-1
-   forbids automatically scrolling text outright. The lead item is pinned; the rest open on tap. */
+/* actionable hazard line, ranked. The worst item is pinned and never moves; the remainder loops
+   beside it as a marquee (two identical runs, -50% for a seamless seam). Motion pauses on hover
+   and on focus, and prefers-reduced-motion below drops the lane for a static list. */
 #ticker { position: relative; background: var(--surface-2); border-bottom: 1px solid var(--hairline); }
 #ticker[hidden] { display: none; }
-.ticker-track { display: flex; align-items: stretch; gap: 8px; padding: 0 10px; }
+.ticker-track { display: flex; align-items: center; gap: 8px; padding: 0 10px; }
 .ticker-item {
   font-size: 12.5px; font-weight: 600; padding: 5px 0; cursor: pointer; color: var(--ink-2);
   background: none; border: 0; text-align: left; font-family: inherit;
 }
 .ticker-item:hover { text-decoration: underline; }
-.ticker-lead { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* capped so the moving lane has room, and never shrunk below its own text by it: flex-shrink 0,
+   because the lane's content is max-content wide and would otherwise squeeze this to nothing */
+.ticker-lead { flex: 0 0 auto; min-width: 0; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ticker-lead.ticker-solo { flex: 1 1 auto; max-width: none; }
+.ticker-marquee { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.ticker-reel { display: flex; width: max-content; animation: tickerScroll linear infinite; will-change: transform; }
+.ticker-run { display: flex; align-items: center; flex: 0 0 auto; }
+.ticker-marquee .ticker-item { flex: 0 0 auto; white-space: nowrap; }
+.ticker-sep { color: var(--ink-muted); padding: 0 14px; flex: 0 0 auto; }
+@keyframes tickerScroll { to { transform: translateX(-50%); } }
+/* WCAG 2.2.2: moving content that starts on its own needs a way to stop it */
+#ticker:hover .ticker-reel, #ticker:active .ticker-reel, #ticker:focus-within .ticker-reel { animation-play-state: paused; }
 .ticker-more {
   flex: 0 0 auto; display: flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer;
   background: var(--surface-1); color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px;
@@ -184,9 +195,29 @@ button.primary { background: var(--accent); color: #fff; border-color: transpare
 #ticker-rest[hidden] { display: none; }
 #ticker-rest .ticker-item { white-space: normal; padding: 6px 0; border-bottom: 1px solid var(--hairline); }
 #ticker-rest .ticker-item:last-child { border-bottom: 0; }
+/* a device that asks for no animation gets the list, not a frozen loop with items past the fold:
+   the lane goes, the pinned item takes the width back, and the count button still opens all of it */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-marquee { display: none; }
+  .ticker-lead { flex: 1 1 auto; max-width: none; }
+}
+/* a 390px phone cannot carry a full hazard line and a readable moving lane on one row: 46% of it
+   is ~80px of scroll. The lane takes its own row instead, and the pinned item keeps its width. */
+@media (max-width: 768px) {
+  .ticker-track { flex-wrap: wrap; }
+  .ticker-lead { flex: 1 1 auto; max-width: none; order: 0; }
+  .ticker-more { order: 1; }
+  .ticker-marquee { order: 2; flex: 1 0 100%; padding-bottom: 3px; }
+  /* the lane is a reading surface, not a tap target: nothing should be aimed at while it moves.
+     The 44px targets are the pinned item and the rows behind the count, which keep theirs. */
+  .ticker-marquee .ticker-item { min-height: 0; padding: 2px 0; }
+}
 
+/* top follows the hazard line's real bottom edge (published by renderTicker as --hazline-bottom),
+   because that height depends on the content and the breakpoint. The banner used to sit at a fixed
+   64px and cover the line underneath it, at every viewport, in both languages. */
 #emergency-banner {
-  position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+  position: fixed; top: calc(var(--hazline-bottom, 64px) + 8px); left: 50%; transform: translateX(-50%);
   z-index: 1200; max-width: min(92vw, 720px);
   display: flex; align-items: center; gap: 10px;
   background: var(--sev-emergency); color: #fff;
@@ -1526,7 +1557,9 @@ button.inspect-gauge:hover { color: var(--accent); }
      the dark-theme lockup rule is (1,2,0), so the override has to carry the same weight. */
   :root .brand-logo, :root[data-theme="dark"] .brand-logo { display: none; }
   .brand-mark { display: block; }
-  #ticker { display: none; }
+  /* the hazard line stays: a dash mount is the posture it is most needed in, and it was the one
+     posture that hid it outright. One row here, since the width is 844px and not 390px. */
+  .ticker-item { font-size: 12px; padding: 3px 0; }
   .controls { margin-left: auto; gap: 8px; }
   .controls .ctl-lbl { display: none; }
   /* vehicle-mount posture: the targets must be the LARGEST here, not the smallest. This rule

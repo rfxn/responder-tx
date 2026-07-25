@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadMapApp } = require('./harness.js');
 
-const { pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, PB_LIVE_HIDE, state } = loadMapApp();
+const { pbFrameAt, pbFirstIdx, pbRadarStampAt, pbMrmsStampAt, pbBlocksLive, pbGaugeNoteKey, PB_LIVE_HIDE, state } = loadMapApp();
 
 /* frame-selection math for historical playback: frames are as-of snapshots, so a scrub
    time must resolve to the latest frame at-or-before it, clamped inside the 3d/7d/14d
@@ -133,4 +133,34 @@ test('openRecoveryView refuses to add live layers while playback is engaged', ()
   assert.ok(fn, 'openRecoveryView not found in js/panels.js');
   const guarded = fn[0].slice(0, fn[0].indexOf('addTo(state.map)'));
   assert.match(guarded, /pbBlocksLive\(state\)/, 'the live-layer adds must sit behind pbBlocksLive');
+});
+
+/* frame provenance: the board must never let a rebuilt or recovered frame read as one it
+   captured live, the same way the roads note separates archived from reconstructed. */
+
+test('pbGaugeNoteKey — a natively captured frame (no src) reads as the plain archive replay', () => {
+  assert.equal(pbGaugeNoteKey(undefined), 'playback.note.replay');
+  assert.equal(pbGaugeNoteKey(''), 'playback.note.replay');
+});
+
+test('pbGaugeNoteKey — usgs and nwps frames are labelled reconstructed, not captured', () => {
+  assert.equal(pbGaugeNoteKey('usgs'), 'playback.note.gauges.recon');
+  assert.equal(pbGaugeNoteKey('nwps'), 'playback.note.gauges.recon');
+});
+
+test('pbGaugeNoteKey — a frame recovered from our own archive says so, not "reconstructed"', () => {
+  assert.equal(pbGaugeNoteKey('git'), 'playback.note.gauges.recov');
+});
+
+test('pbGaugeNoteKey — an unknown future src still degrades to reconstructed, never to captured', () => {
+  assert.equal(pbGaugeNoteKey('ibwc'), 'playback.note.gauges.recon');
+});
+
+test('every gauge-provenance note key exists in both locales', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+  for (const key of ['playback.note.replay', 'playback.note.gauges.recon',
+    'playback.note.gauges.recov', 'playback.note.thinned']) {
+    const hits = src.split(`'${key}':`).length - 1;
+    assert.equal(hits, 2, `${key} must appear once in en and once in es, found ${hits}`);
+  }
 });

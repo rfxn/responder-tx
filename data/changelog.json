@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.97.97",
+      "date": "2026-07-25",
+      "line": "The board's history goes back to July 5th again. When the coverage area was moved to the coast for Tropical Storm Bertha, the part of the system that rebuilds the playback timeline treated the new, smaller map area as if it described the whole past: every older reading outside the new box was quietly dropped on the next update. Eighteen days of Hill Country river readings disappeared, and the crest summary fell from 46 rivers to 4. All of it is back, rebuilt from our own records: Guadalupe at Comfort at 35.48 feet, Cibolo at Sutherland Springs at 35.34, Pedernales at Fredericksburg at 34.31, Guadalupe at Kerrville at 30.06, Frio at Concan at 19.69, and 18 rivers at major flood in total. What the board keeps and what the board shows are now two separate things, so changing where the map is focused can narrow the view and can never erase a reading again. Playback also tells you where each frame came from: one we recorded ourselves, one rebuilt from the federal gauge archives, or one recovered from our own earlier records. This board should never look like it knows more than it does."
+    },
+    {
       "v": "v0.97.96",
       "date": "2026-07-24",
       "line": "The board now publishes what it has, even when one source is down. Last night one of the government gauge services briefly refused requests, and because of that single failure the whole update run stopped: the road closures, the history, the crest tracker, the feeds, the shelter list and the mapping export were all left unpublished even though every one of them had worked. That is exactly the moment a flood board is most needed. Each source now stands on its own, and anything that did not refresh keeps its real, older timestamp so the board still shows you plainly which information is out of date. Nothing is ever republished as though it were current: a summary built from stale gauge readings is held back rather than given a fresh time on it. If nothing at all refreshes, the run still fails outright, and a run that only partly succeeded is now recorded as such instead of being reported as a clean one."

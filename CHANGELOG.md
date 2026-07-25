@@ -1,5 +1,63 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.97.97 · 2026-07-25 (the archive is retained wide and published narrow)
+
+-- Bug Fixes --
+- [Fix] A display-scope change could delete stored observations. The TS Bertha
+      coastal pivot narrowed gaugeBbox, and because gen-history.py and
+      gen-crest-summary.py filtered every re-walked frame against the CURRENT
+      bbox, the next cycle retroactively pruned 18 days of already-collected Hill
+      Country data: 575 frames to 431, 281 gauges to 206, and a 46-gauge crest
+      summary with 17 majors down to 4 gauges with 1 major. Retention and
+      publication are now separate layers; frame_from() and walk() no longer take
+      or reference a bbox at all, and scope is applied once, at publish time.
+- [Fix] The pre-archive reconstruction stage had been dead on every run.
+      backfill_start() read event.json "start", which the pivot moved to
+      2026-07-22, postdating the first git frame, so build_backfill() returned
+      nothing and all 152 reconstructed frames vanished. Depth is its own field
+      now, archiveStart, set to 2026-07-05; "start" is a display field and no
+      longer gates reconstruction.
+- [Fix] gen-history.py ordered snapshot commits by raw %cI string; same-second
+      commits walked newest-first and silently dropped frames.
+- [Fix] tests/run-cycle.test.sh drove freshness-monitor.sh without
+      RESPONDER_MONITOR_LOCK, taking the production lock on every run. A
+      hand-held lock on the production cycle path also made the 2026-07-25T01:23Z
+      cycle skip and miss a publish.
+
+-- New Features --
+- [New] Playback frames carry provenance and the board states it. No src means
+      this board captured the frame itself, "usgs" and "nwps" mean it was rebuilt
+      from those observed archives, and "git" plus a commit sha means it was
+      recovered out of our own earlier archive. The playback note now says which,
+      the same way it already separated archived road snapshots from
+      reconstructed ones.
+- [New] history.json publishes "retained" counts beside the published ones, so
+      the file states that the record is wider than the current view rather than
+      implying the held-back gauges never reported.
+- [New] tests/gen-history.test.py pins the retention invariant against a
+      throwaway git repo: narrowing the display bbox removes no retained frame or
+      gauge, un-publishes nothing, and a cold rebuild with no prior history.json
+      still publishes what the wider bbox recorded.
+- [New] tests/run-cycle.test.sh test 10 pins skip-on-contention against a scratch
+      lock and asserts the production lock is free afterwards.
+
+-- Changes --
+- [Change] Publication scope is the union of every gaugeBbox this repo has ever
+         committed, plus every lid already published. Both terms only grow, so
+         the published record is a ratchet.
+- [Change] Both generators build from data/gauges-capture.json where it exists
+         and fall back to data/gauges-snapshot.json for older commits, so archive
+         depth survives a future pivot. The display snapshot stays display
+         scoped, since js/boot.js hydrates the public map from it unfiltered.
+- [Change] SIZE_BUDGET 600 KB to 3000 KB, TOTAL_SIZE_BUDGET 1150 KB to 3600 KB.
+         The restored record is 2.36 MB raw but 193 KB gzipped, so nothing is
+         thinned today. Any future thinning protects the frame holding each
+         gauge's crest and is declared in the payload as "thinned", which the
+         playback note surfaces; it is never applied silently.
+- [Change] Reconstruction reads the local NWPS 30-day rescue buffer before any
+         network call and is scoped to the lids in publication scope, so a
+         routine cycle never re-pulls a window it already has.
+
 ## v0.97.96 · 2026-07-24 (one failing upstream no longer blocks the whole publish)
 
 -- Bug Fixes --

@@ -1064,6 +1064,14 @@ function updatePlaybackReadout() {
   $('#pb-badge-t').textContent = fmtCT(frame.t);
 }
 
+// frame provenance, the same distinction the roads note already draws: no src means this board
+// captured the frame itself, "git" means it came back out of our own earlier archive, anything
+// else means it was rebuilt from an upstream observed archive rather than observed live
+function pbGaugeNoteKey(src) {
+  if (!src) return 'playback.note.replay';
+  return src === 'git' ? 'playback.note.gauges.recov' : 'playback.note.gauges.recon';
+}
+
 // truth line: which layers replay vs re-render as-of the frame vs hide, incl. the viewer's own 7d alert history
 function updatePlaybackNote() {
   const pb = state.pb;
@@ -1071,8 +1079,9 @@ function updatePlaybackNote() {
   const roadsNote = hasRoads
     ? t(state.pbData.frames[pb.idx]._t >= state.pbRoadsFromT ? 'playback.note.roads.arch' : 'playback.note.roads.recon')
     : '';
+  const gaugesNote = t(pbGaugeNoteKey(pb.live ? '' : state.pbData.frames[pb.idx].src));
   let note = pb.live ? t('playback.note.idle')
-    : `${t('playback.note.replay')}${t('playback.note.warn')}${roadsNote}${pb.radarFader ? t('playback.note.radar') : ''}`;
+    : `${gaugesNote}${t('playback.note.warn')}${roadsNote}${pb.radarFader ? t('playback.note.radar') : ''}`;
   if (!pb.live) {
     if (pb.mrmsFader) {
       const hour = fmtCT(new Date(Math.floor(state.pbData.frames[pb.idx]._t / 3600000) * 3600000).toISOString());
@@ -1096,6 +1105,10 @@ function updatePlaybackNote() {
     if (n) note += ` · ${t('playback.note.alerthist').replace('{n}', n)}`;
     if (state.pbData.frames[pbFirstIdx()]._t > pb.winLoT + 60000) {
       note += ` · ${t('playback.note.start').replace('{t}', fmtCT(state.pbData.frames[0].t))}`;
+    }
+    const thin = state.pbData.thinned;
+    if (thin && thin.olderGapMinutes && ft < new Date(thin.fullFrom).getTime()) {
+      note += ` · ${t('playback.note.thinned').replace('{n}', thin.olderGapMinutes)}`;
     }
   }
   $('#pb-note').textContent = note;

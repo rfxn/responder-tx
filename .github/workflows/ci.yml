@@ -59,12 +59,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 tests/server-gate.test.py
 
-      - name: Generator tests (notices, shelters, caltopo)
+      - name: Generator tests (notices, shelters, caltopo, history)
         if: ${{ !cancelled() }}
         run: |
           python3 tests/gen-notices.test.py
           python3 tests/gen-shelters.test.py
           python3 tests/gen-caltopo.test.py
+          python3 tests/gen-history.test.py
 
       - name: Release-cycle sanity checks
         if: ${{ !cancelled() }}

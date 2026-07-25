@@ -999,7 +999,8 @@ async function boot() {
   // shared/rollover layer toggles (set only when ON); radar handled above
   const shareQs = new URLSearchParams(location.search);
   const camOn = (lk) => { if (state.layers[lk]) state.layers[lk].addTo(state.map); };
-  for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
+  for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen'],
+    ['rs', 'riverSentry']]) {
     if (shareQs.get(qk) === '1') camOn(lk);
   }
   // ?camreg=<id,id> names the camera regions to open; unknown ids are ignored, never fatal

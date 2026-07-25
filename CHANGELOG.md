@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.11 · 2026-07-25 (a shared link keeps the siren layer on)
+
+-- Bug Fixes --
+- [Fix] Sharing a link with River Sentry siren sites switched on dropped the
+      layer, so the person opening the link saw a different map. It now travels
+      in the link as `rs=1`, matching the other layers that ship off by default
+
 ## v0.99.10 · 2026-07-25 (River Sentry siren sites, as reported locations)
 
 -- New Features --

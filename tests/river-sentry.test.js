@@ -119,6 +119,15 @@ test('the renderer cites its source and never hotlinks the third-party map for i
   assert.ok(!/google\.com/.test(layerCode), 'the layer fetches Google at runtime, which needs a CSP entry');
 });
 
+test('the layer travels in a shared link, like every other off-by-default layer', () => {
+  const share = readFile('js/board.js').match(/for \(const \[key, lk\] of \[\['radar'[\s\S]*?\]\) \{/);
+  assert.ok(share, 'the share-url layer list was not found');
+  assert.match(share[0], /\['rs', 'riverSentry'\]/, 'a shared link silently drops the siren layer');
+  const boot = readFile('js/boot.js').match(/for \(const \[qk, lk\] of \[\['usgs'[\s\S]*?\]\) \{/);
+  assert.ok(boot, 'the share-param parser was not found');
+  assert.match(boot[0], /\['rs', 'riverSentry'\]/, 'an incoming ?rs=1 link does not reopen the layer');
+});
+
 test('no em-dash reaches the shipped data file', () => {
   assert.ok(!readFile('data/river-sentry.json').includes('—'), 'em-dash in data/river-sentry.json');
 });

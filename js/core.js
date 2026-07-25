@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.10';
+const APP_VERSION = 'v0.99.11';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -109,7 +109,7 @@ function resolveAoPresets(lang) {
 
 const CAM_REGION_PREFIX = 'camsR_';
 const camRegionKey = (id) => CAM_REGION_PREFIX + id;
-const anchorOk = (a) => Array.isArray(a) && a.length === 2 && a.every(Number.isFinite);
+const anchorOk =(a) => Array.isArray(a) && a.length === 2 && a.every(Number.isFinite);
 
 // regions that can carry cameras: an id, a label, and at least one anchor to assign against
 function camRegions() {

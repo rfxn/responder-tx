@@ -704,6 +704,7 @@ async function boot() {
   // only the menu's own rows dismiss it; the alerts card's toggle and tier chips live inside it
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('#hmore-menu > button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', openShareSheet);
+  $('#team-open-btn').addEventListener('click', () => { if (window.showTeamTab) showTeamTab(); });
   $('#share-copy').addEventListener('click', copyShareUrl);
   $('#share-native').addEventListener('click', () => {
     if (navigator.share) navigator.share({ url: state.shareUrl || buildShareUrl() }).catch(() => copyShareUrl());
@@ -937,17 +938,20 @@ async function boot() {
 
   // ops chat + master oversight are LAN-only constructs: their UI (js/chat.js, js/master.js) loads
   // only when the local backend advertises the capability — the public mirror ships neither file
-  const markMirror = () => {
-    $('#new-request-form .hint').textContent =
-      'Read-only mirror: notices added here save to THIS DEVICE ONLY; they do not reach the ops session. Click the map to set the pin.';
+  // with no LAN write endpoint a filed notice saves to this device and reaches nobody, so the
+  // board withdraws the form rather than accepting a report it cannot deliver
+  const withdrawIntake = () => {
+    $('#toggle-form').hidden = true;
+    $('#new-request-form').classList.remove('open');
   };
   const loadScript = (src) => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s); };
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
-    if (d && d.chat) loadScript('js/chat.js');
-    else markMirror();
     if (d && d.requests) state.lanIntake = true; // LAN write endpoint present — intakes also share board-wide
+    else withdrawIntake();
+    if (d && window.revealTeamTab) revealTeamTab(); // the operator build keeps Team a first-class tab
+    if (d && d.chat) loadScript('js/chat.js');
     if (d && d.master) loadScript('js/master.js'); // command-side, all-teams oversight view
-  }).catch(markMirror);
+  }).catch(withdrawIntake);
 
   // Field Notes is off by default and stripped from the public artifact, so it loads on demand only
   const notesParams = new URLSearchParams(location.search);

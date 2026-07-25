@@ -1,5 +1,28 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.6 · 2026-07-25 (two things the public board offered that it could not honour)
+
+-- Changes --
+- [Change] The Team tab is no longer in the tab bar by default. A resident
+           opening the board to check one address was being asked to create or
+           join an operations team, next to Feed, Alerts, Gauges and Roads. The
+           capability is unchanged and the tab returns for anyone who has a
+           reason to see it: a team link, a live team, ?tab=team, the new Live
+           team entry in Settings, or the operator build, which still shows it
+           as a first-class tab.
+- [Change] The field-report form is withdrawn wherever no ops backend answers.
+           On the public board a submitted notice saved to that one device and
+           reached nobody, disclosed only by an English sentence a Spanish
+           reader never saw. The form is now taken off the board entirely in
+           that case, and a submission that gets through anyway is declined in
+           both languages instead of being banked in silence.
+
+-- Bug Fixes --
+- [Fix] The post-deploy check added in v0.98.5 failed on its own first run. A
+      file the previous deploy served keeps answering for a few seconds after
+      the new manifest lands, and the check had no retry where the neighbouring
+      version check has eight. It now retries for a minute per path.
+
 ## v0.98.5 · 2026-07-25 (the crests the CalTopo export was quietly leaving out)
 
 -- Bug Fixes --

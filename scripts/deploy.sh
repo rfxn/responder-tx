@@ -199,10 +199,20 @@ else
     done
     [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version} after ~2min (CDN propagation lag or deploy failure)"
 
+    # an asset the previous deploy served keeps answering 200 for a few seconds after the new
+    # manifest lands, so this retries like the changelog check above rather than failing on lag
     for stripped in js/chat.js js/master.js js/notes.js css/notes.css server.py scripts/deploy.sh; do
-        stripped_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/${stripped}?_cb=$(date +%s)") \
-            || fail "curl status check for live ${stripped} failed"
-        [ "$stripped_status" = "404" ] || fail "live ${stripped} returned HTTP ${stripped_status}, expected 404"
+        stripped_ok=0
+        for attempt in $(seq 1 6); do
+            stripped_status=$(curl -s -o /dev/null -w '%{http_code}' "https://respondertx.org/${stripped}?_cb=$(date +%s%N)") \
+                || fail "curl status check for live ${stripped} failed"
+            if [ "$stripped_status" = "404" ]; then
+                stripped_ok=1
+                break
+            fi
+            if [ "$attempt" -lt 6 ]; then sleep 10; fi  # `[ ] &&` as the last body statement would trip set -e
+        done
+        [ "$stripped_ok" -eq 1 ] || fail "live ${stripped} returned HTTP ${stripped_status}, expected 404"
     done
 fi
 

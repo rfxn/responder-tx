@@ -333,6 +333,8 @@ async function geocodePlace() {
 
 function submitRequest(ev) {
   ev.preventDefault();
+  // no LAN write endpoint means the notice reaches nobody; say so instead of banking it silently
+  if (!state.lanIntake) { intakeToast(t('intake.nolan')); return; }
   const ll = state.pendingLatLng;
   const r = {
     id: `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,

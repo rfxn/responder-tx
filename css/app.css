@@ -361,6 +361,8 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 }
 /* labels shrink with ellipsis so all five tabs stay on-screen at narrow widths; counts never shrink */
 .tabs button > span:not(.count) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* the rule above forces display:inline-flex, which beats the UA [hidden] rule — re-hide */
+.tabs button[hidden] { display: none; }
 .tabs button:hover { color: var(--ink-1); }
 .tabs button.active { color: var(--ink-1); border-bottom-color: var(--accent); font-weight: 600; }
 .tabs button .count {

@@ -503,13 +503,31 @@
 
   function teamHost() { return document.getElementById('team-tab-body'); }
 
+  // an unaffiliated visitor is not offered an ops team in the tab bar. A team link, a live team,
+  // ?tab=team, the Settings entry or the LAN operator build all bring the tab back.
+  let teamTabForced = false;
+
+  function teamTabAllowed() {
+    if (T.active || T.id || teamTabForced) return true;
+    const q = new URLSearchParams(location.search);
+    return q.has('team') || q.get('tab') === 'team';
+  }
+
+  function applyTeamTabVisibility() {
+    const btn = document.querySelector('.tabs button[data-tab="tab-team"]');
+    if (btn) btn.hidden = !teamTabAllowed();
+  }
+
   function showTeamTab() {
+    teamTabForced = true;
+    applyTeamTabVisibility();
     const btn = document.querySelector('.tabs button[data-tab="tab-team"]');
     if (btn) btn.click();
   }
 
   // active team → Team floats to far-left (before Feed); on leave it returns to its home just left of Resources, the rightmost tab. idempotent.
   function updateTeamTabOrder() {
+    applyTeamTabVisibility();
     const tabsEl = document.querySelector('.tabs');
     const btn = tabsEl && tabsEl.querySelector('button[data-tab="tab-team"]');
     if (!tabsEl || !btn) return;
@@ -1566,8 +1584,11 @@
   };
 
   // paint the Team tab body on boot so it is populated the first time it is opened
-  window.initTeamTab = function initTeamTab() { renderTeamTab(); };
+  window.initTeamTab = function initTeamTab() { applyTeamTabVisibility(); renderTeamTab(); };
   window.renderTeamTab = renderTeamTab; // relocalizeDynamic() re-renders it on language switch
+  window.teamTabAllowed = teamTabAllowed;
+  window.showTeamTab = showTeamTab; // the Settings entry opens the tab on request
+  window.revealTeamTab = function revealTeamTab() { teamTabForced = true; applyTeamTabVisibility(); };
 
   // reused by the LAN-only master oversight view (js/master.js) to plot members with the exact
   // same marker style; inert on the public mirror where master.js never loads

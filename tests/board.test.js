@@ -294,3 +294,36 @@ test('renderQr — dataset.done guard makes re-render a no-op', () => {
   assert.equal(host.innerHTML, 'existing', 'already-rendered QR untouched');
   assert.equal(host.hidden, false);
 });
+
+/* ---------- CalTopo export completeness: the share sheet must not overstate the file ---------- */
+
+const { caltopoStatusText } = loadApp();
+const I18N = require('./i18n-load.js');
+
+// the harness t() echoes keys, so these assert WHICH claim is made; the placeholder test below
+// proves the chosen strings actually carry the numbers the function substitutes into them
+test('caltopoStatusText: a complete export claims completeness, a capped one never does', () => {
+  assert.equal(caltopoStatusText({ counts: { A: 40, B: 2 }, truncated: false, dropped: 0, candidates: 42 }),
+    'caltopo.complete');
+  assert.equal(caltopoStatusText({ counts: { A: 500, B: 6 }, truncated: true, dropped: 625, candidates: 1131 }),
+    'caltopo.partial');
+});
+
+test('caltopoStatusText: a pre-v0.99.1 export with no candidates key still reads as capped', () => {
+  assert.equal(caltopoStatusText({ counts: { A: 506 }, truncated: true, dropped: 625 }), 'caltopo.partial');
+});
+
+test('caltopoStatusText: unreadable metadata yields no claim at all, never a false complete', () => {
+  // {} and a zero-count export are the dangerous ones: both are truthy, neither describes a file
+  for (const bad of [null, undefined, 'nope', 42, {}, { counts: {} }, { counts: null, truncated: false }]) {
+    assert.equal(caltopoStatusText(bad), '', `bad metadata must stay silent, got ${caltopoStatusText(bad)}`);
+  }
+});
+
+test('caltopo status strings carry the counts they promise, in both languages', () => {
+  for (const lang of ['en', 'es']) {
+    assert.ok(I18N[lang]['caltopo.complete'].includes('{n}'), `${lang} caltopo.complete lost {n}`);
+    assert.ok(I18N[lang]['caltopo.partial'].includes('{n}'), `${lang} caltopo.partial lost {n}`);
+    assert.ok(I18N[lang]['caltopo.partial'].includes('{total}'), `${lang} caltopo.partial lost {total}`);
+  }
+});

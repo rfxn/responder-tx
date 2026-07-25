@@ -160,19 +160,17 @@ function pbSbwPopup(p) {
 const PB_LIVE_HIDE = [
   ['shelters', 'layers.shelters'],
   ['roadReopen', 'layers.reopen'],
-  ['camsTxdot', 'layers.cams.txdot'],
-  ['camsRiver', 'layers.cams.river'],
-  ['camsAustin', 'layers.cams.austin'],
-  ['camsFlood', 'layers.cams.flood'],
-  ['camsHouston', 'layers.cams.houston'],
-  ['camsArlington', 'layers.cams.arlington'],
-  ['camsElpBridge', 'layers.cams.elpbridge'],
-  ['camsHays', 'layers.cams.hays'],
   ['usgs', 'layers.usgs'],
   ['fcstMax', 'layers.fcst'],
   ['fcstRadar', 'layers.fcstradar'],
   ['inundation', 'layers.inun'],
 ];
+
+/* Camera layers are built per region from data/event.json, so they cannot be named in a static
+   list. Time integrity depends on this: a region layer missing here would let today's cameras
+   draw under the PLAYBACK badge. A null i18n key means the label comes from the region itself. */
+const pbLiveHideAll = () => PB_LIVE_HIDE.concat(
+  (typeof camRegionsAll === 'function' ? camRegionsAll() : []).map((r) => [camRegionKey(r.id), null]));
 const PB_LSR_SHOW_MS = 3 * 3600000; // a storm report stays on the frame for 3h after its valid time
 const PB_STORY_TYPES = { evacuation: ['playback.story.evac', 6], cutoff: ['playback.story.cutoff', 6], shelter: ['playback.story.shelter', 4], rescue: ['playback.story.rescue', 5] };
 
@@ -1148,7 +1146,7 @@ function playbackEngage() {
   pbSbw.visibleN = null;
   // time-integrity: timestamped curated/report layers re-render as-of the frame; live-only layers hide
   pb.liveOff = {};
-  for (const k of ['requests', 'crossings', 'lsrs', 'lsrsAged'].concat(PB_LIVE_HIDE.map((x) => x[0]))) {
+  for (const k of ['requests', 'crossings', 'lsrs', 'lsrsAged'].concat(pbLiveHideAll().map((x) => x[0]))) {
     pb.liveOff[k] = !!(state.layers[k] && state.map.hasLayer(state.layers[k]));
     if (pb.liveOff[k]) state.map.removeLayer(state.layers[k]);
   }
@@ -1309,7 +1307,7 @@ function updatePlaybackNote() {
     if (pb.curatedOn && pb.curatedOn.crossings) filt.push(t('layers.crossings'));
     if (pb.curatedOn && pb.curatedOn.lsr) filt.push(t('layers.lsr'));
     if (filt.length) note += ` · ${t('playback.note.filtered').replace('{list}', filt.join(', '))}`;
-    const hidden = PB_LIVE_HIDE.filter(([k]) => pb.liveOff && pb.liveOff[k]).map(([, key]) => t(key));
+    const hidden = pbLiveHideAll().filter(([k]) => pb.liveOff && pb.liveOff[k]).map(([k, key]) => pillLabel(k, key));
     if (hidden.length) note += ` · ${t('playback.note.hidden').replace('{list}', hidden.join(', '))}`;
     if (!hasRoads) note += ` · ${t('playback.note.live')}`;
   }

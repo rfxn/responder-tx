@@ -411,7 +411,7 @@ function initMap() {
     if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { opNotice(t('note.tropfail')); }); }
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
-    if ([state.layers.camsTxdot, state.layers.camsRiver, state.layers.camsAustin, state.layers.camsFlood, state.layers.camsHouston, state.layers.camsArlington, state.layers.camsElpBridge, state.layers.camsHays].includes(e.layer)) loadCameras().catch(() => { opNotice(t('note.camfail')); });
+    if ((state.camLayerList || []).includes(e.layer)) loadCameras().catch(() => { opNotice(t('note.camfail')); });
     if (e.layer === state.layers.fcstRadar) fcstEnable();
     if (e.layer !== state.layers.radar) return;
     rtlSync();
@@ -469,19 +469,20 @@ function initMap() {
   state.layers.tropical = L.layerGroup();
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
   state.layers.lwc = L.layerGroup();
-  // cameras — one independent sub-layer per source, all OFF by default, lazy-loaded, clustered;
-  // plain group if the markercluster plugin failed to load
+  // cameras: one group per AO region (every source pooled into the region it sits in), all OFF by
+  // default, lazy-loaded, clustered; plain group if the markercluster plugin failed to load
   const camGroup = () => (L.markerClusterGroup
     ? L.markerClusterGroup({ disableClusteringAtZoom: 12, maxClusterRadius: 46 })
     : L.layerGroup());
-  state.layers.camsTxdot = camGroup();
-  state.layers.camsRiver = camGroup();
-  state.layers.camsAustin = camGroup();
-  state.layers.camsFlood = camGroup();
-  state.layers.camsHouston = camGroup();
-  state.layers.camsArlington = camGroup();
-  state.layers.camsElpBridge = camGroup();
-  state.layers.camsHays = camGroup();
+  const camOverlays = {};
+  state.camLayerList = [];
+  for (const p of camRegionsAll()) {
+    const lyr = camGroup();
+    state.layers[camRegionKey(p.id)] = lyr;
+    state.camLayerList.push(lyr);
+    camOverlays[`Cameras: ${p.label || p.id}`] = lyr;
+  }
+  initCamRegionRows(); // sheet rows + pills share the same region list as the layers just built
   L.control.layers({
     'Dark (CARTO)': state.baseLayers.dark,
     'Light (CARTO)': state.baseLayers.light,
@@ -506,14 +507,7 @@ function initMap() {
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
     'Road reopenings (recovering)': state.layers.roadReopen,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
-    'Cameras: TxDOT road (live/still)': state.layers.camsTxdot,
-    'Cameras: USGS river/flood (stills)': state.layers.camsRiver,
-    'Cameras: Austin city (stills)': state.layers.camsAustin,
-    'Cameras: ATX Floods low-water crossings': state.layers.camsFlood,
-    'Cameras: Houston TranStar (stills)': state.layers.camsHouston,
-    'Cameras: Arlington city (stills)': state.layers.camsArlington,
-    'Cameras: El Paso international bridges (live)': state.layers.camsElpBridge,
-    'Cameras: Hays County flood (stills)': state.layers.camsHays,
+    ...camOverlays,
   }, { collapsed: true }).addTo(state.map);
 
   const legend = L.control({ position: 'bottomleft' });
@@ -870,16 +864,15 @@ const PILL_LAYERS = (CONFIG.wxUnified
   ['usgs', 'layers.usgs'],
   ['lsrsAged', 'layers.lsrhist'],
   ['lwc', 'layers.lwc'],
-  ['camsTxdot', 'layers.cams.txdot'],
-  ['camsRiver', 'layers.cams.river'],
-  ['camsAustin', 'layers.cams.austin'],
-  ['camsFlood', 'layers.cams.flood'],
-  ['camsHouston', 'layers.cams.houston'],
-  ['camsArlington', 'layers.cams.arlington'],
-  ['camsElpBridge', 'layers.cams.elpbridge'],
-  ['camsHays', 'layers.cams.hays'],
   ['roadReopen', 'layers.reopen'],
-]);
+]); // region camera pills are appended by initCamRegionRows()
+
+// a static row carries an i18n key; a region camera row takes its name from the event config
+function pillLabel(k, key) {
+  if (key) return t(key);
+  const p = camRegions().find((r) => camRegionKey(r.id) === k);
+  return p ? `📷 ${regionLabel(p, getLang())}` : k;
+}
 
 // membership test that understands the virtual merged 'wx' row (radar OR forecast); null = no such layer
 function layerRowOn(k) {
@@ -904,7 +897,7 @@ function renderLayerPills() {
   if (!on.length) { el.hidden = true; el.innerHTML = ''; return; }
   el.hidden = false;
   el.innerHTML = on.map(([k, key]) =>
-    `<button class="layer-pill" data-layer="${k}" title="${esc(t('layers.off'))}">${esc(t(key))} <span class="lp-x">✕</span></button>`).join('') +
+    `<button class="layer-pill" data-layer="${k}" title="${esc(t('layers.off'))}">${esc(pillLabel(k, key))} <span class="lp-x">✕</span></button>`).join('') +
     `<button class="layer-pill lp-add" title="${esc(t('layers.more'))}">＋</button>`;
   el.querySelectorAll('.layer-pill[data-layer]').forEach((b) =>
     b.addEventListener('click', () => {
@@ -937,7 +930,10 @@ const WX_RAIN_ROWS = CONFIG.wxUnified
     ['fcstRadar', '🌦', 'layers.fcstradar', 'sheet.s.fcstradar', null, false],
   ];
 
-// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?, camSub?]
+// one camera row per AO region, filled from the event config by initCamRegionRows()
+const CAM_ROWS = [];
+
+// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?, camSub?, region?]
 const SHEET_GROUPS = [
   ['sheet.g.base', [
     ['labelBoost', '🔤', 'layers.labels', 'sheet.s.labels', null, true],
@@ -961,16 +957,7 @@ const SHEET_GROUPS = [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],
     ['roadReopen', '<span class="reopen-icon">✓</span>', 'layers.reopen', 'sheet.s.reopen', 'official', false, true],
   ]],
-  ['sheet.g.cameras', [
-    ['camsFlood', '📷', 'layers.cams.flood', 'sheet.s.cams.flood', 'official', false, true, 'flood'],
-    ['camsHays', '📷', 'layers.cams.hays', 'sheet.s.cams.hays', 'official', false, true, 'flood'],
-    ['camsRiver', '📷', 'layers.cams.river', 'sheet.s.cams.river', 'official', false, true, 'flood'],
-    ['camsTxdot', '📷', 'layers.cams.txdot', 'sheet.s.cams.txdot', 'official', false, true, 'traffic'],
-    ['camsHouston', '📷', 'layers.cams.houston', 'sheet.s.cams.houston', 'official', false, true, 'traffic'],
-    ['camsAustin', '📷', 'layers.cams.austin', 'sheet.s.cams.austin', 'official', false, true, 'traffic'],
-    ['camsArlington', '📷', 'layers.cams.arlington', 'sheet.s.cams.arlington', 'official', false, true, 'traffic'],
-    ['camsElpBridge', '📷', 'layers.cams.elpbridge', 'sheet.s.cams.elpbridge', 'official', false, true, 'border'],
-  ]],
+  ['sheet.g.cameras', CAM_ROWS],
   ['sheet.g.reports', [
     ['alerts', '⚠️', 'layers.alerts', 'sheet.s.alerts', 'official', true],
     ['lsrs', '💧', 'layers.lsr', 'sheet.s.lsr', 'official', true],
@@ -980,12 +967,51 @@ const SHEET_GROUPS = [
   ]],
 ];
 
-// camera sub-groups (flood-first): each source row carries its sub key in tuple[7]
+// camera sub-groups are the region bands (coast first); each region row carries its band in tuple[7]
 const CAM_SUBGROUPS = [
-  ['flood', 'sheet.g.cams.flood'],
-  ['traffic', 'sheet.g.cams.traffic'],
-  ['border', 'sheet.g.cams.border'],
+  ['coast', 'sheet.g.cams.coast'],
+  ['central', 'sheet.g.cams.central'],
+  ['north', 'sheet.g.cams.north'],
+  ['west', 'sheet.g.cams.west'],
 ];
+
+// region camera rows + pills, built from data/event.json once the event config is applied
+function initCamRegionRows() {
+  CAM_ROWS.length = 0;
+  for (const p of camRegionsAll()) {
+    const k = camRegionKey(p.id);
+    CAM_ROWS.push([k, '\u{1F4F7}', null, null, 'official', false, true, p.band || CAM_SUBGROUPS[0][0], p]);
+    PILL_LAYERS.push([k, null]);
+  }
+}
+
+/* Links shared before the by-region split carry one param per source. Each maps onto the regions
+   that source actually covered, measured from data/cameras.json, so an old link still shows the
+   same cameras. '*' is a statewide source. These params are frozen: never renamed, never dropped. */
+const CAM_LEGACY_PARAMS = {
+  cams: '*',                        // TxDOT road cams, statewide
+  camr: '*',                        // USGS river/flood cams, statewide
+  cama: ['austin'],                 // City of Austin
+  camf: ['austin'],                 // ATX Floods low-water crossings
+  camh: ['houston', 'centraltx'],   // Houston TranStar
+  caml: ['dfw'],                    // City of Arlington
+  came: ['elpaso'],                 // El Paso international bridges
+  camm: ['austin'],                 // Hays County
+};
+
+// a region with no cameras is not a row worth offering; before the inventory lands, count is
+// undefined and every row shows, which is what lets the user turn one on and trigger the load
+function camRegionHasCams(p) {
+  const n = state.camCounts && state.camCounts[p.id];
+  return !Number.isFinite(n) || n > 0;
+}
+
+// region row subtitle: the live camera count once the inventory is in, a generic line before that
+function camRegionSub(p) {
+  const n = state.camCounts && state.camCounts[p.id];
+  if (!Number.isFinite(n)) return t('sheet.s.cams.region');
+  return n ? t('sheet.s.cams.count').replace('{n}', fmtNum(n)) : t('sheet.s.cams.none');
+}
 
 function layerSheetIsOpen() {
   const el = document.getElementById('layer-sheet');
@@ -994,13 +1020,15 @@ function layerSheetIsOpen() {
 
 // one toggle row; identical markup for flat groups and the indented camera children (child flag adds .ls-child)
 function lsRowHtml(row, dis) {
-  const [k, icon, nameKey, subKey, badge, , child] = row;
+  const [k, icon, nameKey, subKey, badge, , child, , region] = row;
   const on = layerRowOn(k); // understands the virtual merged 'wx' row; null = no such layer
   if (on === null) return '';
+  const name = region ? regionLabel(region, getLang()) : t(nameKey);
+  const sub = region ? camRegionSub(region) : t(subKey);
   return `<button class="ls-row${on ? ' on' : ''}${child ? ' ls-child' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
     `<span class="ls-icon">${icon}</span>` +
-    `<span class="ls-txt"><span class="ls-name">${esc(t(nameKey))}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +
-    `<span class="ls-sub">${esc(t(subKey))}</span></span>` +
+    `<span class="ls-txt"><span class="ls-name">${esc(name)}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +
+    `<span class="ls-sub">${esc(sub)}</span></span>` +
     '<span class="ls-knob" aria-hidden="true"></span></button>';
 }
 
@@ -1008,7 +1036,7 @@ function lsRowHtml(row, dis) {
 function camSubgroupsHtml(rows, dis) {
   let out = '';
   for (const [sub, nameKey] of CAM_SUBGROUPS) {
-    const kids = rows.filter((r) => r[7] === sub);
+    const kids = rows.filter((r) => r[7] === sub && camRegionHasCams(r[8]));
     if (!kids.length) continue;
     const onCount = kids.filter((r) => state.layers[r[0]] && state.map.hasLayer(state.layers[r[0]])).length;
     const open = state.lsCamOpen.has(sub) || onCount > 0;

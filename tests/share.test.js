@@ -274,3 +274,57 @@ test('share round-trip — applyShareParams reopens drive mode from view=drive',
   assert.equal(opened, 1);
   delete sb.enterDriveMode;
 });
+
+/* ---------- cameras travel by region (v0.99.2), and old per-source links keep working ---------- */
+
+const { CONFIG, camRegionKey, camRegionsAll } = app;
+
+const CAM_REGION_FIXTURE = [
+  { id: 'houston', label: 'Houston', anchors: [[29.76, -95.37]] },
+  { id: 'dfw', label: 'DFW', anchors: [[32.78, -96.80]] },
+  { id: 'austin', label: 'Austin', anchors: [[30.27, -97.74]] },
+];
+
+function withCamRegions(fn) {
+  const saved = CONFIG.aoPresets;
+  CONFIG.aoPresets = CAM_REGION_FIXTURE;
+  try { fn(); } finally { CONFIG.aoPresets = saved; }
+}
+
+test('buildShareUrl: the camera regions that are ON travel as one ?camreg= list', () => {
+  withCamRegions(() => {
+    seedState();
+    const layers = {};
+    for (const r of camRegionsAll()) layers[camRegionKey(r.id)] = { id: r.id };
+    state.layers = layers;
+    state.map = fakeMap([29.76, -95.37], 9,
+      new Set([layers[camRegionKey('houston')], layers[camRegionKey('austin')]]));
+    const q = new URLSearchParams(buildShareUrl().split('?')[1]);
+    assert.equal(q.get('camreg'), 'houston,austin', 'only the regions on the map, in config order');
+    for (const dead of ['cams', 'camr', 'cama', 'camf', 'camh', 'caml', 'came', 'camm']) {
+      assert.equal(q.get(dead), null, `${dead} is read on the way in, never written on the way out`);
+    }
+  });
+});
+
+test('buildShareUrl: no camera region on means no camreg param at all', () => {
+  withCamRegions(() => {
+    seedState();
+    const layers = {};
+    for (const r of camRegionsAll()) layers[camRegionKey(r.id)] = { id: r.id };
+    state.layers = layers;
+    state.map = fakeMap([31, -99], 6, new Set());
+    assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('camreg'), null);
+  });
+});
+
+test('buildShareUrl: the residual region is addressable too, so it can be shared like any other', () => {
+  withCamRegions(() => {
+    seedState();
+    const layers = {};
+    for (const r of camRegionsAll()) layers[camRegionKey(r.id)] = { id: r.id };
+    state.layers = layers;
+    state.map = fakeMap([31, -99], 6, new Set([layers[camRegionKey('other')]]));
+    assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('camreg'), 'other');
+  });
+});

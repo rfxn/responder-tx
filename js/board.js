@@ -721,8 +721,11 @@ function renderQr(host, url) {
 // the export is capped, so the surface offering it has to say what the file actually holds.
 // reads the same-origin copy (present in both builds) rather than the absolute import URL.
 function caltopoStatusText(p) {
-  if (!p || typeof p !== 'object') return '';
-  const kept = Object.values(p.counts || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+  // metadata that does not carry per-folder counts is not an export we can describe; claiming
+  // completeness from an empty or half-read object is the exact failure this line exists to stop
+  if (!p || typeof p !== 'object' || !p.counts || typeof p.counts !== 'object') return '';
+  const kept = Object.values(p.counts).reduce((a, b) => a + (Number(b) || 0), 0);
+  if (!kept) return '';
   if (!p.truncated) return t('caltopo.complete').replace('{n}', fmtNum(kept));
   return t('caltopo.partial')
     .replace('{n}', fmtNum(kept))
@@ -887,9 +890,15 @@ function buildShareUrl() {
   if ($('#flt-alert-q').value) p.set('aq', $('#flt-alert-q').value);
   if (state.map.hasLayer(state.layers.mrms)) p.set('rain', state.rainWindow); // rollover/share carry the rainfall window
   // non-default layer toggles travel too (set only when ON — default URLs stay short); parsed at boot
-  for (const [key, lk] of [['radar', 'radar'], ['fcst', 'fcstRadar'], ['cams', 'camsTxdot'], ['camr', 'camsRiver'], ['cama', 'camsAustin'], ['camf', 'camsFlood'], ['camh', 'camsHouston'], ['caml', 'camsArlington'], ['came', 'camsElpBridge'], ['camm', 'camsHays'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
+  for (const [key, lk] of [['radar', 'radar'], ['fcst', 'fcstRadar'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
     if (state.layers[lk] && state.map.hasLayer(state.layers[lk])) p.set(key, '1');
   }
+  // cameras travel as one ?camreg= list of region ids; the retired per-source params stay readable
+  // on the way in (js/boot.js CAM_LEGACY_PARAMS) so links shared before the split keep working
+  const camOn = camRegionsAll()
+    .filter((r) => state.layers[camRegionKey(r.id)] && state.map.hasLayer(state.layers[camRegionKey(r.id)]))
+    .map((r) => r.id);
+  if (camOn.length) p.set('camreg', camOn.join(','));
   const rv = $('#recovery-view');
   if (rv && !rv.hidden) p.set('view', 'recovery');
   const bv = $('#basin-view');

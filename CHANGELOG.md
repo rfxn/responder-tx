@@ -1,5 +1,70 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.2 · 2026-07-25 (cameras group by Texas region, not by who owns the lens)
+
+-- Changes --
+- [Change] The camera picker is organised by region. It used to be eight rows
+           named after operators, filed under Flood, Traffic and Border, which
+           asks a driver to know that the camera on the road ahead belongs to
+           Houston TranStar rather than TxDOT. There is now one row per Texas
+           region, holding every source that has a camera there, filed under
+           the Gulf Coast, Central Texas, North and East Texas, and West Texas.
+           The operator did not disappear: it still sets the marker glyph, the
+           popup, the viewer and the citation, which is where it belongs.
+- [Change] Each of the 6,263 cameras is assigned to exactly one region by its
+           own coordinates, nearest anchor wins, longitude scaled by latitude
+           so nearest means real distance. The regions and their anchors come
+           from data/event.json, the same definition the AO quick-jump uses, so
+           the two cannot drift apart. Current split: Houston 2,195, DFW 1,415,
+           Austin 1,123, San Antonio 348, El Paso 267, West Texas 174, Waco
+           169, Rio Grande Valley 144, Beaumont 140, Panhandle 109, East Texas
+           95, Coastal Bend 76.
+- [Change] Each row states its own camera count once the inventory is in, and a
+           region with no cameras says so instead of offering an empty toggle.
+
+-- Bug Fixes --
+- [Fix] Cameras beyond 100 miles of every region anchor are named as outside
+      the Texas regions and counted there, in their own row. Nearest anchor on
+      its own would have folded the eight USGS river cameras around Ruidoso and
+      Roswell, New Mexico, onto the El Paso and Panhandle rows at 117 to 145
+      miles and called them Texas, which is a silent drop wearing a region's
+      name. Cameras with no usable coordinates are counted too rather than
+      skipped in a loop. The residual today is 8 of 6,263, none of them in
+      Texas.
+- [Fix] The playback sweep now covers the region camera layers. PB_LIVE_HIDE
+      named the eight retired per-source layers, so after the regroup the
+      layers it hid no longer existed and today's cameras could have drawn
+      under a historical frame with a live citation. The sweep is derived from
+      the region list instead of hardcoded, and a test asserts every camera
+      layer the map builds is in it.
+- [Fix] Four region anchors sat outside the bounds of their own region, so the
+      quick-jump rectangle for Dallas Fort Worth, El Paso, the Panhandle and
+      the Coastal Bend did not contain places those regions claim to cover
+      (Sherman, Pecos, Wichita Falls, Matagorda). The bounds now contain every
+      anchor, and a test enforces it.
+- [Fix] The CalTopo status line treated any object as a describable export, so
+      metadata that arrived empty or half-read would have claimed the file was
+      complete. It now requires real per-folder counts and stays silent
+      otherwise, because saying nothing is correct and claiming completeness is
+      not.
+
+-- New Features --
+- [New] Camera regions are addressable. A shared link carries ?camreg= with the
+      region ids that are open, including the residual one. The eight retired
+      per-source parameters (cams, camr, cama, camf, camh, caml, came, camm)
+      are still read on the way in and mapped onto the regions each source
+      actually covered, measured from data/cameras.json, so links shared before
+      the split still open the same cameras. They are no longer written out.
+- [New] A new source slots in without another restructure: add it to CAM_NETS
+      in js/cameras.js and its cameras are assigned by coordinate into the
+      regions that already exist, with no new layer, no new row, no new URL
+      parameter and no new i18n key. Region rows are built from config, so a
+      new region is a data/event.json edit.
+- [New] tests/cam-regions.test.js covers the assignment, the distance guard on
+      both sides of the line, malformed region config, the residual bucket, the
+      shipped region set against fifteen Texas cities, the frozen legacy
+      parameters, and the playback sweep. 451 tests, up from 426.
+
 ## v0.99.1 · 2026-07-25 (a capped CalTopo export has to say it is capped)
 
 -- Bug Fixes --

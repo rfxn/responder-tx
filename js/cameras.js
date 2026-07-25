@@ -50,20 +50,21 @@ function camIconClass(c, kind) {
   return c.src === 'its' ? ' cam-snap' : ''; // snapshot-only ITS cams read as "still", not "live"
 }
 
-// [state.layers key, cameras array, net] — one independent sub-layer per source
+// [cameras array key, net]; the source a camera came from still drives its glyph, popup and viewer
 const CAM_NETS = [
-  ['camsTxdot', 'txdot', 'txdot'],
-  ['camsRiver', 'river', 'river'],
-  ['camsAustin', 'austin', 'austin'],
-  ['camsFlood', 'atxfloods', 'atxfloods'],
-  ['camsHouston', 'houston', 'houston'],
-  ['camsArlington', 'arlington', 'arlington'],
-  ['camsElpBridge', 'elpbridge', 'elpbridge'],
-  ['camsHays', 'hays', 'hays'],
+  ['txdot', 'txdot'],
+  ['river', 'river'],
+  ['austin', 'austin'],
+  ['atxfloods', 'atxfloods'],
+  ['houston', 'houston'],
+  ['arlington', 'arlington'],
+  ['elpbridge', 'elpbridge'],
+  ['hays', 'hays'],
 ];
 
+// every source is pooled into the AO region it sits in, so one toggle covers an area rather than an operator
 function renderCameras() {
-  if (!state.cameras || !state.layers.camsTxdot) return;
+  if (!state.cameras || !state.camLayerList || !state.camLayerList.length) return;
   const put = (layer, marks) => {
     if (!layer) return;
     layer.clearLayers();
@@ -81,9 +82,24 @@ function renderCameras() {
     m.bindPopup(() => camPopup(c, kind), { minWidth: 230 });
     return m;
   };
-  for (const [lk, arr, net] of CAM_NETS) {
-    put(state.layers[lk], (state.cameras[arr] || []).map((c) => mark(c, net)).filter(Boolean));
+  const regions = camRegions();
+  const buckets = {};
+  for (const p of camRegionsAll()) buckets[p.id] = [];
+  let unplaceable = 0;
+  for (const [arr, net] of CAM_NETS) {
+    for (const c of state.cameras[arr] || []) {
+      const m = mark(c, net);
+      if (!m) { unplaceable++; continue; } // no usable coordinates: counted, not quietly skipped
+      buckets[camRegionId(c.lat, c.lon, regions)].push(m);
+    }
   }
+  state.camCounts = {};
+  state.camNoCoords = unplaceable;
+  for (const p of camRegionsAll()) {
+    state.camCounts[p.id] = buckets[p.id].length;
+    put(state.layers[camRegionKey(p.id)], buckets[p.id]);
+  }
+  layerSheetSync(); // the sheet shows per-region counts, so repaint if it is open when the inventory lands
   // ?cam=<name|camId|id> deep link — open the viewer once the inventory is in (once)
   if (state.pendingCam) {
     const want = state.pendingCam;

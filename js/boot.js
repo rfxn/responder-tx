@@ -995,9 +995,24 @@ async function boot() {
   const hydroParam = new URLSearchParams(location.search).get('hydro');
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
   // ?cam=<camId|name|id> deep-links straight into the viewer (handled below).
-  // shared/rollover layer toggles (set only when ON) — radar handled above; ?cams=1 stays the TxDOT-cams shortcut
-  for (const [qk, lk] of [['cams', 'camsTxdot'], ['camr', 'camsRiver'], ['cama', 'camsAustin'], ['camf', 'camsFlood'], ['camh', 'camsHouston'], ['caml', 'camsArlington'], ['came', 'camsElpBridge'], ['camm', 'camsHays'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
-    if (new URLSearchParams(location.search).get(qk) === '1' && state.layers[lk]) state.layers[lk].addTo(state.map);
+  // shared/rollover layer toggles (set only when ON); radar handled above
+  const shareQs = new URLSearchParams(location.search);
+  const camOn = (lk) => { if (state.layers[lk]) state.layers[lk].addTo(state.map); };
+  for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen']]) {
+    if (shareQs.get(qk) === '1') camOn(lk);
+  }
+  // ?camreg=<id,id> names the camera regions to open; unknown ids are ignored, never fatal
+  const wanted = new Set((shareQs.get('camreg') || '').split(',').map((x) => x.trim()).filter(Boolean));
+  for (const p of camRegionsAll()) {
+    if (wanted.has(p.id)) camOn(camRegionKey(p.id));
+  }
+  // links shared before the by-region split carry per-source params; map each onto the regions that
+  // source actually covered, so an old link opens the same cameras it always did
+  for (const [qk, ids] of Object.entries(CAM_LEGACY_PARAMS)) {
+    if (shareQs.get(qk) !== '1') continue;
+    for (const p of camRegionsAll()) {
+      if (ids === '*' || ids.includes(p.id)) camOn(camRegionKey(p.id));
+    }
   }
   const camParam = new URLSearchParams(location.search).get('cam');
   if (camParam) {

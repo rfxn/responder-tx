@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.1';
+const APP_VERSION = 'v0.99.2';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -93,13 +93,58 @@ function aoBoundsOk(b) {
     b.every((c) => Array.isArray(c) && c.length === 2 && c.every(Number.isFinite));
 }
 
-// [label, bounds] pill list: Full AO (always first, from CONFIG.gaugeBbox) + event sub-AOs, if any
+// event-config regions name themselves; the built-in residual region takes its name from i18n
+const regionLabel = (p, lang) => (p.i18nKey ? t(p.i18nKey)
+  : ((lang === 'es' && typeof p.labelEs === 'string') ? p.labelEs : p.label));
+
+// [label, bounds] pill list: Full AO (always first, from CONFIG.gaugeBbox) + the Texas region AOs
 function resolveAoPresets(lang) {
   const evp = (Array.isArray(CONFIG.aoPresets) ? CONFIG.aoPresets : [])
     .filter((p) => p && typeof p.label === 'string' && aoBoundsOk(p.bounds))
-    .map((p) => [(lang === 'es' && typeof p.labelEs === 'string') ? p.labelEs : p.label, p.bounds]);
+    .map((p) => [regionLabel(p, lang), p.bounds]);
   return [[t('ao.full'), aoFullBounds()]].concat(evp);
 }
+
+/* ---------- region camera layers: one Leaflet group per AO region, not per source ---------- */
+
+const CAM_REGION_PREFIX = 'camsR_';
+const camRegionKey = (id) => CAM_REGION_PREFIX + id;
+const anchorOk = (a) => Array.isArray(a) && a.length === 2 && a.every(Number.isFinite);
+
+// regions that can carry cameras: an id, a label, and at least one anchor to assign against
+function camRegions() {
+  return (Array.isArray(CONFIG.aoPresets) ? CONFIG.aoPresets : []).filter((p) =>
+    p && typeof p.id === 'string' && typeof p.label === 'string' &&
+    Array.isArray(p.anchors) && p.anchors.some(anchorOk));
+}
+
+/* The residual bucket. Nearest-anchor alone would fold a camera 145 mi into New Mexico onto the
+   Panhandle row and call it Texas, which is a silent drop wearing a region's name. Anything beyond
+   CAM_REGION_MAX_MI of every anchor is named as outside the regions instead, and counted. */
+const CAM_REGION_OTHER = { id: 'other', i18nKey: 'cams.region.other', band: 'west' };
+const CAM_REGION_MAX_MI = 100;
+const MI_PER_DEG_LAT = 69;
+
+// nearest anchor wins; the anchor set tiles Texas, so every in-state camera lands in exactly one
+// region. Longitude is scaled by cos(lat) so the comparison is real distance, not degrees.
+function camRegionId(lat, lon, regions) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const kx = Math.cos((lat * Math.PI) / 180);
+  let best = null, bestD = Infinity;
+  for (const p of regions) {
+    for (const a of p.anchors) {
+      if (!anchorOk(a)) continue;
+      const dy = lat - a[0], dx = (lon - a[1]) * kx;
+      const d = dy * dy + dx * dx;
+      if (d < bestD) { bestD = d; best = p.id; }
+    }
+  }
+  if (best === null) return CAM_REGION_OTHER.id; // no usable anchors: still reachable, never dropped
+  return Math.sqrt(bestD) * MI_PER_DEG_LAT > CAM_REGION_MAX_MI ? CAM_REGION_OTHER.id : best;
+}
+
+// the rows/layers cameras can land in: the configured regions plus the residual bucket
+const camRegionsAll = () => camRegions().concat([CAM_REGION_OTHER]);
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
 const LSR_FLOOD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE/i;

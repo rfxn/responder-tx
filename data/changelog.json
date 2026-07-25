@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.8",
+      "date": "2026-07-25",
+      "line": "Cameras that stream live video and cameras that return a still photo now look different on the map. A live camera is a filled marker with a play triangle, a still is a dashed outline with a camera icon, and both are in the map legend. The popup, the Drive Mode camera rows and the marker's hover and screen-reader label all say which kind it is, so the difference does not depend on colour. A camera region row in the layer sheet now tells you how many of its cameras stream video before you switch it on. Markers no longer carry a colour ring for the operator; the operator is named in text instead."
+    },
+    {
       "v": "v0.99.7",
       "date": "2026-07-25",
       "line": "The 26 Austin low-water-crossing flood cameras are back, in the Austin region row. Their credit now names the operator of the service, ATX Floods by Beholder Technology, LLC, alongside the City of Austin crossings they watch; before, it named only the City. A crossing with no picture in the last 30 days is not offered as a camera you can look through."

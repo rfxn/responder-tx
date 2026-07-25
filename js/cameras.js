@@ -38,19 +38,15 @@ function camTitle(c, kind) {
   return c.description || prettyRoute(c.route) || c.name || t('cam.generic');
 }
 
-// per-network marker glyph — distinct outline so river/city/flood cams read apart at a glance
-function camIconClass(c, kind) {
-  if (kind === 'river') return ' cam-river';
-  if (kind === 'austin') return ' cam-austin';
-  if (kind === 'atxfloods') return ' cam-flood';
-  if (kind === 'houston') return ' cam-houston';
-  if (kind === 'arlington') return ' cam-arlington';
-  if (kind === 'elpbridge') return ' cam-elp';
-  if (kind === 'hays') return ' cam-flood'; // Hays OES flood cams reuse the flood glyph
-  return c.src === 'its' ? ' cam-snap' : ''; // snapshot-only ITS cams read as "still", not "live"
-}
+/* A camera is live iff it carries a stream URL the player can load; every other camera is a
+   still. Read off the camera's own row rather than a list of source names, so a network added
+   to CAM_NETS inherits its marker, its label and its player from the data it publishes. The
+   predicate is safeUrl, so the marker can only claim live where the viewer gets a real URL. */
+const camIsLive = (c) => !!c && safeUrl(c.httpsurl) !== '#';
+const camKindLabel = (c) => t(camIsLive(c) ? 'cam.kind.live' : 'cam.kind.still');
+const camKindLong = (c) => t(camIsLive(c) ? 'cam.kind.live.long' : 'cam.kind.still.long');
 
-// [cameras array key, net]; the source a camera came from still drives its glyph, popup and viewer
+// [cameras array key, net]; the net names the operator, the row's own data names the kind
 const CAM_NETS = [
   ['txdot', 'txdot'],
   ['river', 'river'],
@@ -72,11 +68,15 @@ function renderCameras() {
     if (layer.addLayers) layer.addLayers(marks); // markercluster bulk add
     else marks.forEach((m) => layer.addLayer(m));
   };
+  // filled disc + ▶ for a stream, dashed outline + 📷 for a snapshot: the pair reads apart in
+  // greyscale and in glare, and leaves colour on this map meaning severity and nothing else
   const mark = (c, kind) => {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) return null;
+    const live = camIsLive(c);
+    const lbl = esc(camKindLong(c));
     const icon = L.divIcon({
       className: '',
-      html: `<div class="cam-icon${camIconClass(c, kind)}">📷</div>`,
+      html: `<div class="cam-icon ${live ? 'cam-live' : 'cam-still'}" role="img" aria-label="${lbl}" title="${lbl}">${live ? '▶' : '📷'}</div>`,
       iconSize: [22, 22], iconAnchor: [11, 11],
     });
     const m = L.marker([c.lat, c.lon], { icon, attribution: CAM_ATTRIB[kind] });
@@ -84,20 +84,24 @@ function renderCameras() {
     return m;
   };
   const regions = camRegions();
-  const buckets = {};
-  for (const p of camRegionsAll()) buckets[p.id] = [];
+  const buckets = {}, liveN = {};
+  for (const p of camRegionsAll()) { buckets[p.id] = []; liveN[p.id] = 0; }
   let unplaceable = 0;
   for (const [arr, net] of CAM_NETS) {
     for (const c of state.cameras[arr] || []) {
       const m = mark(c, net);
       if (!m) { unplaceable++; continue; } // no usable coordinates: counted, not quietly skipped
-      buckets[camRegionId(c.lat, c.lon, regions)].push(m);
+      const rid = camRegionId(c.lat, c.lon, regions);
+      buckets[rid].push(m);
+      if (camIsLive(c)) liveN[rid]++;
     }
   }
   state.camCounts = {};
+  state.camLive = {};
   state.camNoCoords = unplaceable;
   for (const p of camRegionsAll()) {
     state.camCounts[p.id] = buckets[p.id].length;
+    state.camLive[p.id] = liveN[p.id];
     put(state.layers[camRegionKey(p.id)], buckets[p.id]);
   }
   layerSheetSync(); // the sheet shows per-region counts, so repaint if it is open when the inventory lands
@@ -142,8 +146,11 @@ function camPopup(c, kind) {
   else if (kind === 'elpbridge') sub = esc(t('cam.bridge'));
   else if (kind === 'austin' || kind === 'houston' || kind === 'arlington') sub = esc(t('cam.traffic'));
   else sub = `${esc(prettyRoute(c.route) || '')}${c.route ? ' · ' : ''}${esc(t(c.src === 'its' ? 'cam.snapcam' : 'cam.traffic'))}`;
+  const live = camIsLive(c);
+  // same chip vocabulary the viewer uses, so the popup's claim and the player's badge match
+  const chip = `<span class="cam-badge ${live ? 'live' : 'still'}">${live ? '▶' : '📷'} ${esc(camKindLabel(c))}</span>`;
   el.innerHTML = `<div class="popup-title">📷 ${esc(camTitle(c, kind))}</div>` +
-    `<div class="popup-meta">${sub}</div>` +
+    `<div class="popup-meta">${chip}${sub}</div>` +
     `<button class="popup-expand cam-view-btn">${esc(t('cam.view'))}</button>` +
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(CAM_ATTRIB[kind])} · ${esc(t('cam.verify'))}</div>`;
   el.querySelector('.cam-view-btn').addEventListener('click', () => openCamViewer(c, kind));
@@ -180,7 +187,29 @@ function openCamViewer(c, kind) {
   $('#cam-viewer').hidden = false;
   $('#cam-title').textContent = `📷 ${camTitle(c, kind)}`;
   const stage = $('#cam-stage'), meta = $('#cam-meta'), note = $('#cam-note');
-  if (kind === 'austin') {
+  // the live test leads the chain, so what the marker calls live is exactly what reaches the
+  // player and no per-source still branch below can take a stream camera
+  if (camIsLive(c)) {
+    // live HLS: TxDOT SkyVDN + City of El Paso bridge cams both play direct (CORS-open) in the shared player
+    const url = safeUrl(c.httpsurl);
+    const isElp = kind === 'elpbridge';
+    note.innerHTML = `${srcBadge('official')} ${esc(t(isElp ? 'cam.elp.note' : 'cam.txdot.note'))} · ${esc(CAM_ATTRIB[kind] || CAM_ATTRIB_TXDOT)}`;
+    const video = document.createElement('video');
+    video.muted = true; video.autoplay = true; video.playsInline = true; video.controls = true;
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      stage.appendChild(video);
+      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
+      video.src = url;
+    } else if (window.Hls && Hls.isSupported()) {
+      stage.appendChild(video);
+      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
+      state.camHls = new Hls({ maxBufferLength: 15 });
+      state.camHls.loadSource(url);
+      state.camHls.attachMedia(video);
+    } else {
+      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`;
+    }
+  } else if (kind === 'austin') {
     // City of Austin still: fresh JPEG via the same-origin /api/cam/austin proxy (no CORS upstream)
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.austin.note'))} · ${esc(CAM_ATTRIB_AUSTIN)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
@@ -210,31 +239,11 @@ function openCamViewer(c, kind) {
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.porthou.note'))} · ${esc(CAM_ATTRIB_PORTHOU)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
     loadCityStill(c, stage, meta, false, gen, 'porthou');
-  } else if (kind === 'txdot' && c.src === 'its') {
+  } else if (kind === 'txdot') {
     // snapshot-only ITS cam: fresh JPEG via the same-origin /api/cam proxy, never a "LIVE" player
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.its.note'))} · ${esc(CAM_ATTRIB_TXDOT)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
     loadItsSnapshot(c, stage, meta, false, gen);
-  } else if (kind === 'txdot' || kind === 'elpbridge') {
-    // live HLS: TxDOT SkyVDN + City of El Paso bridge cams both play direct (CORS-open) in the shared player
-    const url = safeUrl(c.httpsurl);
-    const isElp = kind === 'elpbridge';
-    note.innerHTML = `${srcBadge('official')} ${esc(t(isElp ? 'cam.elp.note' : 'cam.txdot.note'))} · ${esc(isElp ? CAM_ATTRIB_ELP : CAM_ATTRIB_TXDOT)}`;
-    const video = document.createElement('video');
-    video.muted = true; video.autoplay = true; video.playsInline = true; video.controls = true;
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      stage.appendChild(video);
-      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
-      video.src = url;
-    } else if (window.Hls && Hls.isSupported()) {
-      stage.appendChild(video);
-      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
-      state.camHls = new Hls({ maxBufferLength: 15 });
-      state.camHls.loadSource(url);
-      state.camHls.attachMedia(video);
-    } else {
-      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`;
-    }
   } else {
     note.innerHTML = `${srcBadge('official')} ${esc(t('cam.usgs.note'))} · ${esc(CAM_ATTRIB_USGS)}`;
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;

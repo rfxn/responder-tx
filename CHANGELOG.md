@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.8 · 2026-07-25 (a live camera and a still photo stop wearing the same icon)
+
+-- New Features --
+- [New] The map legend has a Cameras key showing the live-stream marker and the
+      still-photo marker
+
+-- Changes --
+- [Change] Camera markers separate live video from still photos: a filled
+           marker with a play triangle streams, a dashed outline with a camera
+           glyph is a still. The popup, the Drive Mode camera rows and the
+           marker's hover and screen-reader label all name which one it is
+- [Change] A camera region row in the layer sheet reports how many of its
+           cameras stream video, alongside the total
+- [Change] Camera markers no longer carry a per-operator ring colour; the
+           operator is named in the popup, the credit line and the Drive Mode row
+
 ## v0.99.7 · 2026-07-25 (the Austin low-water-crossing cameras are back)
 
 -- New Features --

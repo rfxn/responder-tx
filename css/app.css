@@ -909,17 +909,20 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
   font-size: 12px; line-height: 1; background: var(--surface-1);
   border: 1px solid var(--border); border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
-.cam-icon.cam-river { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 1px 3px rgba(0,0,0,0.4); }
-/* City of Austin arterial cams — amber ring to read apart from TxDOT/USGS */
-.cam-icon.cam-austin { border-color: #e0902f; box-shadow: 0 0 0 1px #e0902f, 0 1px 3px rgba(0,0,0,0.4); }
-/* ATX Floods low-water-crossing cams — bold flood-blue ring (the on-mission flagged layer) */
-.cam-icon.cam-flood { border-color: #2f80ed; box-shadow: 0 0 0 1.5px #2f80ed, 0 1px 3px rgba(0,0,0,0.4); }
-/* Houston TranStar cams — teal ring to read apart from the other metros */
-.cam-icon.cam-houston { border-color: #17a2a2; box-shadow: 0 0 0 1px #17a2a2, 0 1px 3px rgba(0,0,0,0.4); }
-/* City of El Paso bridge cams — purple ring (live HLS, border crossings) */
-.cam-icon.cam-elp { border-color: #8e5cd9; box-shadow: 0 0 0 1px #8e5cd9, 0 1px 3px rgba(0,0,0,0.4); }
-/* snapshot-only ITS cams: muted + dashed so a still never reads as a live stream */
-.cam-icon.cam-snap { border: 1.5px dashed var(--ink-muted); opacity: 0.8; filter: saturate(0.4); }
+/* Live stream vs still photo, the one camera axis an operator acts on. Achromatic on purpose:
+   colour on this map means severity, so the pair separates by fill and border instead and stays
+   readable in greyscale and in glare. Ink/surface invert together, so both themes stay high
+   contrast. The per-operator rings this replaced were never legended and never covered every
+   source; region toggles carry the operator axis now, and the popup names the operator in text. */
+.cam-icon.cam-live {
+  background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1);
+  font-size: 10px; padding-left: 1px; /* optical centring of the triangle */
+  box-shadow: 0 0 0 1.5px var(--surface-1), 0 1px 3px rgba(0,0,0,0.45);
+}
+.cam-icon.cam-still { border: 1.5px dashed var(--ink-muted); } /* dashed = discrete frames, not a stream */
+.map-legend .cam-icon { width: 16px; height: 16px; margin-right: 6px; font-size: 10px; display: inline-flex; vertical-align: middle; box-shadow: none; }
+.map-legend .cam-icon.cam-live { box-shadow: none; }
+.popup-meta .cam-badge { display: inline-block; vertical-align: middle; margin-right: 5px; }
 /* viewer sits above Drive Mode (1600) — drive rows open cameras without leaving Drive Mode */
 #cam-viewer { position: fixed; inset: 0; z-index: 1700; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; }
 #cam-viewer[hidden] { display: none; }

@@ -335,6 +335,9 @@ function mapLegendHtml() {
       return `<div><span class="sw sw-line" style="background:${rc.color}"></span>${esc(roadLabel(rc))}</div>`;
     }).join('') +
     `<div><span class="reopen-icon">✓</span>${esc(t('legend.reopen'))}</div>` +
+    `<div class="lg-title" style="margin-top:6px">${esc(t('legend.cams'))}</div>` +
+    `<div><span class="cam-icon cam-live">▶</span>${esc(t('cam.kind.live.long'))}</div>` +
+    `<div><span class="cam-icon cam-still">📷</span>${esc(t('cam.kind.still.long'))}</div>` +
     `<div class="lg-title" style="margin-top:6px">${esc(t('legend.reports'))}</div>` +
     `<div><span style="margin-right:6px">💧</span>${esc(t('legend.lsr'))}</div>` +
     `<div><span style="margin-right:6px">🆘</span>${esc(t('legend.glyph'))}</div>`;
@@ -1009,11 +1012,14 @@ function camRegionHasCams(p) {
   return !Number.isFinite(n) || n > 0;
 }
 
-// region row subtitle: the live camera count once the inventory is in, a generic line before that
+// region row subtitle: how many cameras and how many of them stream, a generic line before the
+// inventory is in. The split is what decides whether the region is worth opening for a moving picture.
 function camRegionSub(p) {
   const n = state.camCounts && state.camCounts[p.id];
   if (!Number.isFinite(n)) return t('sheet.s.cams.region');
-  return n ? t('sheet.s.cams.count').replace('{n}', fmtNum(n)) : t('sheet.s.cams.none');
+  if (!n) return t('sheet.s.cams.none');
+  const live = (state.camLive && state.camLive[p.id]) || 0;
+  return t('sheet.s.cams.count').replace('{n}', fmtNum(n)).replace('{l}', fmtNum(live));
 }
 
 function layerSheetIsOpen() {

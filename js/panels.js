@@ -195,8 +195,8 @@ function driveItems() {
     for (const x of pool) { if (Number.isFinite(x.c.lat) && Number.isFinite(x.c.lon)) x.d = distMi(p.lat, p.lng, x.c.lat, x.c.lon); }
     for (const x of pool.filter((y) => y.d != null).sort((a, b) => a.d - b.d).slice(0, 2)) {
       cams.push({
-        glyph: '📷', color: 'var(--accent)', name: camTitle(x.c, x.kind),
-        sub: `${camNetLabel(x.kind)} · ${t('cam.view')}`,
+        glyph: camIsLive(x.c) ? '▶' : '📷', color: 'var(--accent)', name: camTitle(x.c, x.kind),
+        sub: `${camKindLong(x.c)} · ${camNetLabel(x.kind)} · ${t('cam.view')}`,
         lat: x.c.lat, lon: x.c.lon, rank: 4, cam: x.c, camKind: x.kind,
       });
     }

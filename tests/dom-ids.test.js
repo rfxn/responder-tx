@@ -5,7 +5,7 @@
    in tree order. So when a renderer template literal re-emits an id that index.html already
    declares, every later `$('#that-id')` silently resolves to whichever node comes first in
    the document, not the one the caller meant. That shipped once: renderResources() emitted a
-   second #recovery-body inside #tab-resources (which precedes #recovery-view), so the whole
+   second #recovery-body inside the Resources tab (which preceded #recovery-view), so the whole
    Recovery dashboard rendered into a hidden disclosure and the lens opened empty (v0.97.75
    through v0.97.81, fixed in v0.97.82 by renaming the resources-side node). */
 

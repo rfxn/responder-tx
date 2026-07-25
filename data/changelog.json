@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.98.0",
+      "date": "2026-07-25",
+      "line": "The Resources tab is gone, and everything in it went somewhere it actually belongs. It had become a drawer for leftovers: a resident looking for a shelter got feed diagnostics first and shelters six items down. In its place is Roads, holding the closed and cautioned low-water crossings and the roads that have reopened, with a count on the tab like every other one. Low-water crossings are the most life-critical list on this board and they are now the first thing in it. Coastal water levels moved to Gauges, because a tide is a water level. Shelters and hotlines are now a chip in the alert strip you already read at the top, and a permanent entry at the top of Settings; only shelters actually listed as open are counted. Live feed status opens straight from the data age bar and the status line in the header instead of being a section in a tab. The link list for coordinators has left the public board entirely. Old links still work: anything pointing at the Resources tab now lands on Roads."
+    },
+    {
       "v": "v0.97.99",
       "date": "2026-07-25",
       "line": "Everything that takes this board somewhere else now lives in one place. Tap Share, on the map or in Settings, and you get the link to this exact view, a QR code so the next truck can scan it off your screen, the file exports for JSON, GeoJSON and after-action reports, the live CalTopo address, loading a saved board file back in, and the RSS and calendar subscriptions. Sharing and exporting are the same thing at different levels of detail, so they belong together instead of being scattered between a menu, a tab and a settings page. Because things moved, the board now tells you so: the first time you open the tab where the exports used to be, a small note points you to their new home, and it goes away for good once you have seen it."

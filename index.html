@@ -11,32 +11,32 @@
   <meta property="og:title" content="ResponderTX: Live Hazard Awareness">
   <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://respondertx.org/">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.99">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.98.0">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness">
   <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.97.99">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.98.0">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.97.99" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.97.99" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.97.99" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.97.99">
-  <link rel="manifest" href="manifest.webmanifest?v=0.97.99">
-  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.97.99">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.97.99">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.97.99">
-  <link rel="stylesheet" href="css/app.css?v=0.97.99">
-  <link rel="stylesheet" href="css/notes.css?v=0.97.99">
-  <link rel="stylesheet" href="css/team.css?v=0.97.99">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.98.0" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.98.0" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.98.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.98.0">
+  <link rel="manifest" href="manifest.webmanifest?v=0.98.0">
+  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.98.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.98.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.98.0">
+  <link rel="stylesheet" href="css/app.css?v=0.98.0">
+  <link rel="stylesheet" href="css/notes.css?v=0.98.0">
+  <link rel="stylesheet" href="css/team.css?v=0.98.0">
 </head>
 <body>
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.97.99" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.97.99" alt="ResponderTX" width="677" height="162">
-      <img class="brand-mark" src="assets/brand/icon.svg?v=0.97.99" alt="ResponderTX" width="32" height="32">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.98.0" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.98.0" alt="ResponderTX" width="677" height="162">
+      <img class="brand-mark" src="assets/brand/icon.svg?v=0.98.0" alt="ResponderTX" width="32" height="32">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="controls">
@@ -52,6 +52,8 @@
       <div class="hmore" id="hmore">
         <button id="hmore-btn" title="Settings: display, alerts, share, help" aria-label="Settings" aria-haspopup="true" aria-expanded="false" data-i18n-title="ctl.settings.title" data-i18n-aria="ctl.settings.aria">⚙ <span class="ctl-lbl" data-i18n="ctl.settings">Settings</span></button>
         <div id="hmore-menu" role="menu" hidden>
+          <div class="hm-group" role="presentation" data-i18n="set.g.public">Public help</div>
+          <button id="shelters-btn" role="menuitem" title="Open shelters and hotlines" aria-label="Open shelters and hotlines" data-i18n-title="set.shelters.title" data-i18n-aria="set.shelters.title">🏠 <span class="ctl-lbl" data-i18n="set.shelters">Shelters &amp; hotlines</span></button>
           <div class="hm-group" role="presentation" data-i18n="set.g.display">Display</div>
           <button id="theme-toggle" role="menuitem" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
           <button id="lang-toggle" role="menuitem" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
@@ -106,7 +108,7 @@
         <button data-tab="tab-alerts"><span data-i18n="tab.alerts">Alerts</span> <span class="count" id="alerts-count">0</span></button>
         <button data-tab="tab-gauges"><span data-i18n="tab.gauges">Gauges</span> <span class="count" id="gauges-count">0</span></button>
         <button data-tab="tab-team"><span data-i18n="tab.team">Team</span> <span class="count" id="team-count" hidden>0</span></button>
-        <button data-tab="tab-resources"><span data-i18n="tab.resources">Resources</span></button>
+        <button data-tab="tab-roads"><span data-i18n="tab.roads">Roads</span> <span class="count" id="roads-count">0</span></button>
       </div>
 
       <div class="tab-body active" id="tab-requests">
@@ -208,9 +210,10 @@
         <div id="forecast-list"></div>
         <div id="lsr-list"></div>
       </div>
-      <div class="tab-body" id="tab-gauges"><div id="wave-list" hidden></div><div id="gauge-list"></div></div>
-      <div class="tab-body" id="tab-resources"><div id="moved-cue"></div><div class="tab-sub" data-i18n="tab.resources.sub"></div><div id="source-health"></div><div id="crossings-body"></div><div id="tides-body"></div><div id="resources-body"></div>
-      <div id="monitor-body"></div></div>
+      <div class="tab-body" id="tab-gauges"><div id="wave-list" hidden></div><div id="tides-body"></div><div id="gauge-list"></div></div>
+      <!-- Roads holds live hazard content of the same kind as Alerts and Gauges: closed and cautioned
+           low-water crossings, and the roads that have reopened behind them. -->
+      <div class="tab-body" id="tab-roads"><div id="moved-cue"></div><div id="crossings-body"></div></div>
       <div class="tab-body" id="tab-team"><div id="team-tab-body" class="team-tab"></div></div>
 
       <div class="disclaimer" id="disclaimer">
@@ -319,6 +322,24 @@
 
   <!-- Share and Export are the same verb at different fidelity: a link, a file, or a live URL another
        tool can read. One surface owns all three, reached from the map 🔗 control and Settings > Share. -->
+  <!-- Live feed status is diagnostics, not content: it opens from the header status line and the
+       data-age bar, the two places that already tell you something about data currency. -->
+  <div id="health-modal" role="dialog" aria-modal="true" aria-labelledby="health-title" hidden>
+    <div class="modal-box">
+      <div class="modal-head"><strong id="health-title" data-i18n="health.title">Live feeds</strong><button id="health-close" title="Close" data-i18n-title="risk.close">✕</button></div>
+      <div class="health-body"><div class="hint" data-i18n="health.sub">Per source, when it last answered. A source that has not answered recently is excluded from the counts on this board.</div><div id="source-health"></div></div>
+    </div>
+  </div>
+
+  <div id="help-sheet" hidden>
+    <div class="ls-backdrop"></div>
+    <div class="ls-panel" role="dialog" aria-modal="true" aria-labelledby="help-sheet-title">
+      <div class="ls-grab"></div>
+      <div class="ls-head"><strong id="help-sheet-title" data-i18n="help.sheet.title">🏠 Shelters &amp; hotlines</strong><button class="ls-close" id="help-sheet-close" title="Close" data-i18n-title="risk.close">✕</button></div>
+      <div class="ls-body"><div id="resources-body"></div></div>
+    </div>
+  </div>
+
   <div id="share-sheet" hidden>
     <div class="ls-backdrop"></div>
     <div class="ls-panel" role="dialog" aria-modal="true" aria-labelledby="share-sheet-title">
@@ -357,6 +378,9 @@
             <div class="hint" data-i18n="caltopo.qr">Scan to open the export URL on another device.</div>
           </div>
         </div>
+
+        <div class="ls-group" data-i18n="res.sources">Sources &amp; recovery links</div>
+        <div id="datalinks-body"></div>
 
         <div class="ls-group" data-i18n="res.follow">Follow / subscribe</div>
         <div id="follow-body">
@@ -495,21 +519,21 @@
     </div>
   </div>
 
-  <script src="js/vendor/leaflet.js?v=0.97.99"></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.97.99"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.97.99"></script>
-  <script src="js/usng.js?v=0.97.99"></script>
-  <script src="js/i18n.js?v=0.97.99"></script>
-  <script src="js/core.js?v=0.97.99"></script>
-  <script src="js/map.js?v=0.97.99"></script>
-  <script src="js/playback.js?v=0.97.99"></script>
-  <script src="js/sources.js?v=0.97.99"></script>
-  <script src="js/cameras.js?v=0.97.99"></script>
-  <script src="js/panels.js?v=0.97.99"></script>
-  <script src="js/board.js?v=0.97.99"></script>
-  <script src="js/boot.js?v=0.97.99"></script>
-  <script src="js/notes.js?v=0.97.99"></script>
-  <script src="js/vendor/qrcode.min.js?v=0.97.99"></script>
-  <script src="js/team.js?v=0.97.99"></script>
+  <script src="js/vendor/leaflet.js?v=0.98.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.98.0"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.98.0"></script>
+  <script src="js/usng.js?v=0.98.0"></script>
+  <script src="js/i18n.js?v=0.98.0"></script>
+  <script src="js/core.js?v=0.98.0"></script>
+  <script src="js/map.js?v=0.98.0"></script>
+  <script src="js/playback.js?v=0.98.0"></script>
+  <script src="js/sources.js?v=0.98.0"></script>
+  <script src="js/cameras.js?v=0.98.0"></script>
+  <script src="js/panels.js?v=0.98.0"></script>
+  <script src="js/board.js?v=0.98.0"></script>
+  <script src="js/boot.js?v=0.98.0"></script>
+  <script src="js/notes.js?v=0.98.0"></script>
+  <script src="js/vendor/qrcode.min.js?v=0.98.0"></script>
+  <script src="js/team.js?v=0.98.0"></script>
 </body>
 </html>

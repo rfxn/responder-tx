@@ -1,5 +1,47 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.98.0 · 2026-07-25 (Resources dissolves)
+
+-- Changes --
+- [Change] The Resources tab is gone. It was a junk drawer by construction, not
+           by untidiness: the only tab with no count badge, because it held no
+           single kind of thing; the only one needing a paragraph to explain
+           itself; and its reading order gave a resident feed-health telemetry
+           first and shelters at position 6 of 8. Its contents are redistributed
+           by who is asking and when.
+- [Change] Roads takes that slot: closed and cautioned low-water crossings and
+           the roads that have reopened behind them, which is live hazard
+           content of the same kind as Alerts and Gauges. It carries a count
+           badge like every other tab. Low-water crossings are the most
+           life-critical curated dataset on this board and no longer sit at
+           position 3 under diagnostics.
+- [Change] Coastal water levels moved to Gauges: a tide is a water-level
+           reading. On an inland event the card is absent rather than an empty
+           host, and the lazy fetch follows the Gauges tab.
+- [Change] Live feed status became the detail view behind the data-age bar and
+           the header status line, not a content section. Tapping either opens
+           it in place; neither switches tabs any more, and the header slot is
+           now always tappable because no tab hosts feed health.
+- [Change] Shelters and hotlines are promoted out of position 6 of 8: a
+           count-gated chip in the threat strip a resident already reads, and a
+           permanent row leading the settings sheet. Both open one host and add
+           no fetch. Only sites listed as open are counted; standby, full,
+           closed and unknown never read as open, and the chip never suppresses
+           the all-clear line because shelters are help, not a hazard.
+- [Change] The source and recovery link lists moved to the share surface under
+           their own labelled group.
+- [Change] ?tab=resources and ?tab=monitor both resolve to Roads through one
+           transitive alias table shared by the URL and the saved view, so links
+           already in the wild keep working across both renames.
+- [Change] The monitor link farm left the client: #monitor-body, renderMonitors()
+           and the monitors/comms blocks in data/resources.json are gone. It was
+           a coordinator desk tool three taps deep, event-specific, stamped
+           2026-07-19, and shipped to every public visitor.
+
+-- Bug Fixes --
+- [Fix] The migration cue now shows one pointer at a time rather than stacking
+      every undismissed move onto one tab.
+
 ## v0.97.99 · 2026-07-25 (share and export become one surface)
 
 -- Changes --

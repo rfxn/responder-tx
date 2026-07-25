@@ -74,7 +74,7 @@ async function refresh() {
     if (!failed.length) saveCache();
     renderSourceHealth();
     // keep the coastal water-level card live only while its tab is open; never fetch 20 CO-OPS requests unseen
-    if ($('#tab-resources') && $('#tab-resources').classList.contains('active')) loadTides();
+    if ($('#tab-gauges') && $('#tab-gauges').classList.contains('active')) loadTides();
     checkAppVersion();
     if (failed.length) setFeedNote(t('note.degraded'), `${t('note.degraded.detail')} ${failedNames}`);
     else setFeedNoteHealthy(`<span class="fresh-dot fresh"></span> ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} CT`);
@@ -95,8 +95,8 @@ function setFeedNote(short, detail) {
   el.textContent = short;
   state.feedNoteDetail = detail || '';
   el.classList.toggle('degraded', Boolean(detail));
-  el.setAttribute('role', detail ? 'button' : 'status');
-  if (detail) el.setAttribute('tabindex', '0'); else el.removeAttribute('tabindex');
+  el.setAttribute('role', 'button'); // always tappable: the per-source detail has no other home
+  el.setAttribute('tabindex', '0');
   refreshNoteTitle();
 }
 
@@ -107,8 +107,8 @@ function setFeedNoteHealthy(html) {
   el.innerHTML = html;
   state.feedNoteDetail = '';
   el.classList.remove('degraded');
-  el.setAttribute('role', 'status');
-  el.removeAttribute('tabindex');
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
   refreshNoteTitle();
 }
 
@@ -131,7 +131,8 @@ function refreshNoteTitle() {
   const el = $('#refresh-note');
   if (!el) return;
   const parts = [];
-  if (state.feedNoteDetail) parts.push(state.feedNoteDetail, t('note.feedtap'));
+  if (state.feedNoteDetail) parts.push(state.feedNoteDetail);
+  parts.push(t('note.feedtap'));
   if (state.refreshAt) {
     const s = Math.max(0, Math.round((state.refreshAt - Date.now()) / 1000));
     parts.push(`${t('note.nextrefresh')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
@@ -151,7 +152,7 @@ function feedStatusText() {
   return t('health.status').replace('{time}', updated).replace('{next}', next);
 }
 
-// compact colored chip row headlining Resources; life-safety sources first, then the rest
+// compact colored chip row behind the data-age bar; life-safety sources first, then the rest
 function renderSourceHealth() {
   const el = $('#source-health');
   if (!el) return; // called before seeds load
@@ -161,8 +162,7 @@ function renderSourceHealth() {
     const { cls, txt } = chipHealth(state.sourceHealth[k], Date.now());
     return `<span class="feed-chip"><span class="fresh-dot ${cls}"></span>${esc(label)}${esc(txt)}</span>`;
   }).join(' · ');
-  el.innerHTML = `<div class="section-title">${esc(t('health.title'))}</div>` +
-    `<div class="feed-chips">${chips}</div>` +
+  el.innerHTML = `<div class="feed-chips">${chips}</div>` +
     `<div class="feed-status" id="feed-status">${esc(feedStatusText())}</div>`;
 }
 
@@ -201,7 +201,7 @@ function rolloverBusy() {
   if (state.refreshBusy) return 'refresh';
   if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
   if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
-  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet', '#share-sheet']) {
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet', '#share-sheet', '#help-sheet', '#health-modal']) {
     const el = $(id);
     if (el && !el.hidden) return id;
   }
@@ -587,7 +587,7 @@ function relocalizeDynamic() {
   renderGaugesTab();
   renderRequests();
   if (typeof syncViewsTrigger === 'function') syncViewsTrigger(); // the lens tag is localized text
-  if (state.resources) { renderResources(); renderMonitors(); }
+  if (state.resources) renderResources();
   renderCrossings();
   renderTides();
   renderSourceHealth();
@@ -629,6 +629,8 @@ async function boot() {
   registerModal($('#risk-modal'), { initialFocus: '#risk-addr' });
   registerModal($('#sitrep-modal'), { initialFocus: '#sitrep-copy' });
   registerModal($('#share-sheet'), { focusEl: '.ls-panel' }); // same sheet family as the layer/views pickers
+  registerModal($('#help-sheet'), { focusEl: '.ls-panel' });
+  registerModal($('#health-modal'));
   registerModal($('#drive-mode')); // eyes-off-road by design: it SHOULD cover the map and trap focus
   // the three docked lenses are deliberately NOT modals. registerModal marks the rest of the page
   // inert, which would make the map they exist to describe unclickable. They keep their exit
@@ -647,7 +649,7 @@ async function boot() {
   document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
     document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
     document.querySelectorAll('.tab-body').forEach((t) => t.classList.toggle('active', t.id === b.dataset.tab));
-    if (b.dataset.tab === 'tab-resources') loadTides(); // lazy: coastal water levels fetch on first Resources open
+    if (b.dataset.tab === 'tab-gauges') loadTides(); // lazy: a tide is a water-level reading, fetched on first Gauges open
     if (state.viewReady) saveViewState(); // skip during boot restore/URL apply — only real user taps
     if (window.innerWidth <= 768 && document.querySelector('main').classList.contains('sheet-peek')) setSheet('sheet-half');
   }));
@@ -742,7 +744,7 @@ async function boot() {
   $('#drive-loc').addEventListener('click', () => { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });
   $('#update-chip').addEventListener('click', () => location.reload());
   $('#data-age-bar').addEventListener('click', (e) => {
-    if (!e.target.closest('.age-bar-x')) return;
+    if (!e.target.closest('.age-bar-x')) { if (window.openFeedHealth) window.openFeedHealth(); return; } // the bar IS the way in to per-source detail
     sessionStorage.setItem('respondertx.ageBarDismiss', $('#data-age-bar').dataset.key || '');
     $('#data-age-bar').hidden = true;
   });
@@ -758,15 +760,17 @@ async function boot() {
   if (window.initTeam) initTeam(); // ?team= deep-link auto-opens the Team tab; chains behind the 911 ack
   renderMovedCues(); // one-time pointer from where a moved control used to live
   initHeaderSearch();
-  // the header chip names the STATE; Resources > Live feeds names which source, so the chip goes there
-  const openFeedHealth = () => {
-    if (!state.feedNoteDetail) return;
-    document.querySelector('.tabs button[data-tab="tab-resources"]').click();
-    const sh = $('#source-health');
-    if (sh && sh.scrollIntoView) sh.scrollIntoView({ block: 'start' });
-  };
+  // the header slot names the STATE; the detail names which source. Both it and the data-age bar
+  // open that detail in place, because neither is a statement about a tab
+  const openFeedHealth = () => { renderSourceHealth(); $('#health-modal').hidden = false; };
+  window.openFeedHealth = openFeedHealth;
   $('#refresh-note').addEventListener('click', openFeedHealth);
   $('#refresh-note').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFeedHealth(); } });
+  $('#health-close').addEventListener('click', () => { $('#health-modal').hidden = true; });
+  $('#health-modal').addEventListener('click', (e) => { if (e.target.id === 'health-modal') $('#health-modal').hidden = true; });
+  $('#shelters-btn').addEventListener('click', openHelpSheet);
+  $('#help-sheet-close').addEventListener('click', closeHelpSheet);
+  $('#help-sheet .ls-backdrop').addEventListener('click', closeHelpSheet);
   $('#help-btn').addEventListener('click', openGlossary);
   $('#whatsnew-btn').addEventListener('click', openChangelog);
   $('#safety-btn').addEventListener('click', () => { $('#safety-modal').hidden = false; });
@@ -891,11 +895,12 @@ async function boot() {
     if (window.closeNotesFlyout && !$('#notes-flyout').hidden) { window.closeNotesFlyout(); return; } // keeps N.open in sync
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
     if (!$('#share-sheet').hidden) { closeShareSheet(); return; }
+    if (!$('#help-sheet').hidden) { closeHelpSheet(); return; }
     if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
     // #safety-modal is intentionally absent: the 911 self-deploy gate closes only via #safety-ack (which
     // records the acknowledgment), never on Escape or a backdrop click
-    for (const id of ['#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#team-drop', '#team-edit']) {
+    for (const id of ['#health-modal', '#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#team-drop', '#team-edit']) {
       const m = $(id);
       if (m && !m.hidden) {
         m.hidden = true;
@@ -947,7 +952,7 @@ async function boot() {
   }
 
   let tabParam = new URLSearchParams(location.search).get('tab');
-  if (tabParam === 'monitor') tabParam = 'resources'; // legacy: the Social tab merged into Resources
+  if (tabParam) tabParam = resolveTabName(tabParam); // shipped ?tab= links survive every rename
   // guard the selector interpolation — a crafted ?tab= (e.g. %22%5D) would throw a DOMException and abort boot()
   if (tabParam && /^[a-z-]+$/.test(tabParam)) {
     const btn = document.querySelector(`.tabs button[data-tab="tab-${tabParam}"]`);
@@ -982,9 +987,8 @@ async function boot() {
   }
   if (!ok) {
     $('#request-list').innerHTML = '<div class="card">Failed to load seed data. Serve over HTTP (see README), not file://.</div>';
-    state.resources = state.resources || { shelters: [], hotlines: [], monitors: [], comms: [], dataLinks: [] };
+    state.resources = state.resources || { shelters: [], hotlines: [], dataLinks: [] };
     renderResources();
-    renderMonitors();
   }
   await refresh();
   // battery/data saver: don't poll while backgrounded; catch up the moment we're visible again

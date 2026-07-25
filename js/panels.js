@@ -743,6 +743,7 @@ function renderGaugesTab() {
    bottom toast: that stack is the data/update channel and a layout note must never impersonate it. */
 const MOVED_CUES = [
   ['exports', 'moved.exports', () => { if (typeof openShareSheet === 'function') openShareSheet(); }],
+  ['resources', 'moved.resources', () => { if (typeof openHelpSheet === 'function') openHelpSheet(); }],
 ];
 
 function movedCueSeen(key) {
@@ -757,7 +758,7 @@ function dismissMovedCue(key) {
 function renderMovedCues() {
   const el = $('#moved-cue');
   if (!el) return;
-  el.innerHTML = MOVED_CUES.filter(([key]) => !movedCueSeen(key)).map(([key, textKey]) =>
+  el.innerHTML = MOVED_CUES.filter(([key]) => !movedCueSeen(key)).slice(0, 1).map(([key, textKey]) =>
     `<div class="moved-note" data-cue="${esc(key)}"><span class="moved-glyph" aria-hidden="true">↗</span>` +
     `<span class="moved-txt">${esc(t(textKey))}</span>` +
     `<button class="moved-go" data-go="${esc(key)}">${esc(t('moved.go'))}</button>` +
@@ -817,15 +818,19 @@ function renderResources() {
     shlLiveUpdatedHtml() +
     shelters.map((s) => (s.live ? liveShelterHtml(s, shlSrcUrl) : curatedShelterHtml(s))).join('') +
     `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
-    r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('') +
-    `<div class="section-title">${esc(t('res.data'))}</div>` +
-    r.dataLinks.map(dataLinkHtml).join('') +
-    (recovery.length
-      ? `<button class="aged-toggle" id="recovery-toggle">${state.showRecovery ? '▾' : '▸'} ${esc(t('res.recovery'))}</button>` +
-        `<div id="res-recovery-body"${state.showRecovery ? '' : ' hidden'}>${recovery.map(dataLinkHtml).join('')}</div>`
-      : '');
-  const rt = $('#recovery-toggle');
-  if (rt) rt.addEventListener('click', () => { state.showRecovery = !state.showRecovery; renderResources(); });
+    r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('');
+  // outbound source and recovery links are pointers off the board, so they ride the share surface
+  const links = $('#datalinks-body');
+  if (links) {
+    links.innerHTML = `<div class="section-title">${esc(t('res.data'))}</div>` +
+      r.dataLinks.map(dataLinkHtml).join('') +
+      (recovery.length
+        ? `<button class="aged-toggle" id="recovery-toggle">${state.showRecovery ? '▾' : '▸'} ${esc(t('res.recovery'))}</button>` +
+          `<div id="res-recovery-body"${state.showRecovery ? '' : ' hidden'}>${recovery.map(dataLinkHtml).join('')}</div>`
+        : '');
+    const rt = $('#recovery-toggle');
+    if (rt) rt.addEventListener('click', () => { state.showRecovery = !state.showRecovery; renderResources(); });
+  }
   refreshRecoveryView(); // shelters lens tracks resources + shelters-live
 
   state.layers.shelters.clearLayers();
@@ -846,26 +851,13 @@ function renderResources() {
   }
 }
 
-function monitorGroupHtml(g) {
-  return `<div class="monitor-group"><div class="section-title">${esc(g.group)}</div>` +
-    (g.note ? `<div class="resource-item" style="border-bottom:none;font-size:12px;color:var(--ink-2)">${esc(g.note)}</div>` : '') +
-    g.links.map((l) => `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">↗ ${esc(l.label)}</a>`).join('') + '</div>';
-}
-
-// social searches + scanner/net groups, behind one default-closed disclosure
-function renderMonitors() {
-  const el = $('#monitor-body');
-  if (!el) return;
-  const open = state.showMonitors;
-  const body = open
-    ? `<div class="section-title">${esc(t('mon.social'))}</div>` +
-      state.resources.monitors.map(monitorGroupHtml).join('') +
-      `<div class="section-title">${esc(t('mon.comms'))}</div>` +
-      (state.resources.comms || []).map(monitorGroupHtml).join('')
-    : '';
-  el.innerHTML = `<button class="aged-toggle" id="mon-toggle">${open ? '▾' : '▸'} ${esc(t('mon.verify'))}</button>` +
-    `<div id="mon-verify-body"${open ? '' : ' hidden'}>${body}</div>`;
-  $('#mon-toggle').addEventListener('click', () => { state.showMonitors = !state.showMonitors; renderMonitors(); });
+// count only sites currently listed as open; standby, full, closed and unknown must never read as open
+function openShelterCount() {
+  const r = state.resources;
+  if (!r) return 0;
+  const live = state.sheltersLive;
+  return mergeShelters(r.shelters, live && live.shelters)
+    .filter((sh) => !sh.live || String(sh.status || '').toLowerCase() === 'open').length;
 }
 
 /* ---------- coastal water levels (NOAA CO-OPS): observed-vs-predicted surge residual ---------- */
@@ -883,8 +875,9 @@ function tideSurgeColor(surge) {
 function renderTides() {
   const el = $('#tides-body');
   if (!el) return;
-  // no configured tide stations (inland event) — the coastal card does not render at all
-  if (!Array.isArray(CONFIG.tideStations) || !CONFIG.tideStations.length) { el.innerHTML = ''; return; }
+  // inland event: the coastal card is absent, not an empty host that still carries fetch hooks
+  if (!Array.isArray(CONFIG.tideStations) || !CONFIG.tideStations.length) { el.innerHTML = ''; el.hidden = true; return; }
+  el.hidden = false;
   const rows = state.tides;
   const open = localStorage.getItem('respondertx.tidesOpen') !== '0'; // default open once the operator picks the tab
   const live = rows ? rows.filter((r) => r.ok) : [];
@@ -1004,6 +997,24 @@ function bindHeadline(el) {
   });
 }
 
+// build the chip grid, append it, and hand it back so callers can add a trailing row
+function appendChipGrid(el, chips) {
+  if (!chips.length) return null;
+  const grid = document.createElement('div');
+  grid.className = 'threat-grid';
+  for (const c of chips) {
+    const b = document.createElement('button');
+    b.className = `stat-row ${c.cls}`;
+    b.innerHTML = `<span class="glyph">${c.glyph}</span><span class="num">${c.n}</span><span class="lbl">${esc(c.label)}</span>` +
+      (c.src ? srcBadge(c.src, 'src-mini') : '');
+    if (c.src) b.title = t(`src.${c.src}.title`);
+    b.addEventListener('click', c.act);
+    grid.appendChild(b);
+  }
+  el.appendChild(grid);
+  return grid;
+}
+
 function renderThreatStrip() {
   const el = $('#threat-strip');
   // playback engaged: the dimmed strip stays LIVE data — say so, never let it read as the frame
@@ -1033,19 +1044,27 @@ function renderThreatStrip() {
       act: () => fitTo(state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down').map((g) => [g.latitude, g.longitude])),
     },
   ].filter((c) => c.n > 0);
+  // shelters are help, not a threat: the chip rides along but never counts toward "is anything wrong"
+  const shelters = openShelterCount();
+  const shelterChip = shelters > 0
+    ? { n: shelters, cls: 'good', label: t('threat.shelters'), glyph: '🏠', act: () => { if (typeof openHelpSheet === 'function') openHelpSheet(); } }
+    : null;
   if (!chips.length) {
     if (!state.alertsLoadedOnce) { el.innerHTML = ''; return; }
     if (quietState()) {
       const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !gaugeObsStale(g)).length;
       const sub = t('quiet.sub').replace('{n}', state.gauges.length).replace('{m}', normal);
       el.innerHTML = `${pbNote}<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
+      appendChipGrid(el, shelterChip ? [shelterChip] : []);
       return;
     }
     el.innerHTML = pbNote + headlineHtml()
       + `<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span><span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
     bindHeadline(el);
+    appendChipGrid(el, shelterChip ? [shelterChip] : []);
     return;
   }
+  if (shelterChip) chips.push(shelterChip);
   el.innerHTML = pbNote + headlineHtml();
   bindHeadline(el);
   if (chips.some((c) => c.cls === 'emergency')) {
@@ -1054,17 +1073,7 @@ function renderThreatStrip() {
     h.textContent = t('threat.headline');
     el.appendChild(h);
   }
-  const grid = document.createElement('div');
-  grid.className = 'threat-grid';
-  for (const c of chips) {
-    const b = document.createElement('button');
-    b.className = `stat-row ${c.cls}`;
-    b.innerHTML = `<span class="glyph">${c.glyph}</span><span class="num">${c.n}</span><span class="lbl">${esc(c.label)}</span>` +
-      (c.src ? srcBadge(c.src, 'src-mini') : '');
-    if (c.src) b.title = t(`src.${c.src}.title`);
-    b.addEventListener('click', c.act);
-    grid.appendChild(b);
-  }
+  const grid = appendChipGrid(el, chips);
   // the board knows crest timing and emergency clocks — surface them at glance level
   const soonest = state.gauges
     .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor
@@ -1078,7 +1087,6 @@ function renderThreatStrip() {
     b.addEventListener('click', () => state.map.setView([soonest.latitude, soonest.longitude], 11));
     grid.appendChild(b);
   }
-  el.appendChild(grid);
   const emergAlerts = state.alerts.filter((a) => a._sev === 'emergency');
   if (emergAlerts.length) {
     const row = document.createElement('div');
@@ -1210,7 +1218,6 @@ async function loadSeeds() {
     renderRequests();
     renderResources();
     renderCrossings();
-    renderMonitors();
     pbRefreshCurated(); // playback may have engaged before this data arrived
     return true;
   } catch { return false; }
@@ -1229,6 +1236,8 @@ function renderCrossings() {
   if (layer) layer.clearLayers();
   const list = state.crossings || [];
   const el = $('#crossings-body');
+  const badge = $('#roads-count');
+  if (badge) badge.textContent = String(list.filter((c) => c.status !== 'open').length);
   if (el) {
     el.innerHTML = list.length
       ? `<div class="section-title">${esc(t('cross.title'))}</div>` +

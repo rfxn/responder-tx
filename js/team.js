@@ -517,7 +517,7 @@
       if (tabsEl.firstElementChild !== btn) tabsEl.prepend(btn);
       return;
     }
-    const anchor = tabsEl.querySelector('button[data-tab="tab-resources"]');
+    const anchor = tabsEl.querySelector('button[data-tab="tab-roads"]');
     if (anchor) { if (btn.nextElementSibling !== anchor) tabsEl.insertBefore(btn, anchor); }
     else if (tabsEl.lastElementChild !== btn) tabsEl.appendChild(btn);
   }

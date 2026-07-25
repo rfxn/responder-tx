@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.97.99';
+const APP_VERSION = 'v0.98.0';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -168,7 +168,6 @@ const state = {
   showAged: false,
   showAgedLsrs: false,
   showAgedReopened: false,
-  showMonitors: false,
   showRecovery: false,
   roadMemory: null,
   showAlertHist: false,

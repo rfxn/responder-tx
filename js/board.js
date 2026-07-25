@@ -894,6 +894,18 @@ function closeShareSheet() {
   if (el) el.hidden = true;
 }
 
+/* Shelters and hotlines are the public's entire job on this board. They render from one host, reached
+   from the threat strip chip the resident already reads and from a permanent Settings row. */
+function openHelpSheet() {
+  const el = $('#help-sheet');
+  if (el) el.hidden = false;
+}
+
+function closeHelpSheet() {
+  const el = $('#help-sheet');
+  if (el) el.hidden = true;
+}
+
 function copyShareUrl() {
   const btn = $('#share-copy');
   const url = state.shareUrl || buildShareUrl();
@@ -970,6 +982,15 @@ function initSheet() {
     b.addEventListener('click', () => setSheet(b.dataset.sheet)));
 }
 
+/* Tab renames are a deep-link hazard: ?tab=monitor and ?tab=resources are both in the wild, and a
+   saved view can name either. Resolve transitively so one table serves the URL and the saved view. */
+const TAB_ALIASES = { monitor: 'resources', resources: 'roads' };
+function resolveTabName(name) {
+  let n = String(name || '');
+  for (let hop = 0; hop < 4 && TAB_ALIASES[n]; hop++) n = TAB_ALIASES[n];
+  return n;
+}
+
 // persist the user's view (feed + alert filters, sort, aged toggle, active tab) across
 // hard refreshes and app updates. URL share-params still win for their load (applied after).
 const VIEW_KEY = 'respondertx.view';
@@ -1003,7 +1024,7 @@ function restoreViewState() {
   $('#flt-alert-q').value = v.aq || '';
   if (v.ft || v.fc || v.fq || v.fw || v.fd || (v.fs && v.fs !== 'smart') || v.aged) $('#req-filters').hidden = false;
   let vtab = v.tab;
-  if (vtab === 'tab-monitor') vtab = 'tab-resources'; // legacy saved view: Social merged into Resources
+  if (vtab && /^tab-[a-z-]+$/.test(vtab)) vtab = `tab-${resolveTabName(vtab.slice(4))}`; // legacy saved view
   if (vtab && vtab !== 'tab-requests' && /^[a-z-]+$/.test(vtab)) {
     const btn = document.querySelector(`.tabs button[data-tab="${vtab}"]`);
     if (btn) btn.click();

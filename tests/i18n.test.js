@@ -304,17 +304,17 @@ test('the settings sheet declares menu roles and holds the alerts card', () => {
   assert.ok(/<div id="hmore-menu" role="menu"/.test(html), '#hmore-menu is missing role="menu"');
   assert.ok(/id="hmore-btn"[^>]*aria-haspopup="true"/.test(html), '#hmore-btn lost aria-haspopup');
   // every button the menu owns directly is a menuitem; the alerts card's own buttons are not
-  for (const id of ['theme-toggle', 'lang-toggle', 'share-btn', 'help-btn', 'whatsnew-btn', 'safety-btn']) {
+  for (const id of ['shelters-btn', 'theme-toggle', 'lang-toggle', 'share-btn', 'help-btn', 'whatsnew-btn', 'safety-btn']) {
     assert.ok(new RegExp(`id="${id}" role="menuitem"`).test(menu), `#${id} is not a role="menuitem" in the settings sheet`);
   }
-  for (const g of ['set.g.display', 'set.g.alerts', 'set.g.actions', 'set.g.help']) {
+  for (const g of ['set.g.public', 'set.g.display', 'set.g.alerts', 'set.g.actions', 'set.g.help']) {
     assert.ok(menu.includes(`data-i18n="${g}"`), `settings sheet is missing the ${g} heading`);
   }
   assert.equal((html.match(/id="push-body"/g) || []).length, 1, '#push-body is not declared exactly once');
   assert.ok(menu.includes('id="push-body"'), '#push-body did not move into the settings sheet');
   assert.ok(menu.includes('id="set-alerts"'), 'the Alerts group wrapper is missing');
-  const resources = html.slice(html.indexOf('id="tab-resources"'), html.indexOf('id="tab-team"'));
-  assert.ok(!resources.includes('id="push-body"'), '#push-body is still in Resources');
+  const tabs = html.slice(html.indexOf('id="tab-requests"'), html.indexOf('</main>'));
+  assert.ok(!tabs.includes('id="push-body"'), '#push-body is back inside a tab body');
 });
 
 test('the Team shortcut is gone from markup, wiring, and both languages', () => {
@@ -334,7 +334,7 @@ test('the Notify me entry point opens the settings sheet, not the Resources tab'
   const m = board.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
   assert.ok(m, 'pushOpenManageFor() not found in js/board.js');
   assert.ok(/openSettingsMenu\(\)/.test(m[0]), 'pushOpenManageFor should open the settings sheet');
-  assert.ok(!/tab-resources/.test(m[0]), 'pushOpenManageFor still clicks the Resources tab');
+  assert.ok(!/\.tabs button/.test(m[0]), 'pushOpenManageFor still clicks a tab');
   // the three resolvers of #push-body must all still find it in its new home
   for (const fn of ['renderPushCard', 'initPushCard']) {
     const f = board.match(new RegExp(`function ${fn}\\(\\)[\\s\\S]*?\\n\\}`));

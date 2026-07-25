@@ -46,9 +46,10 @@ test('the docked lenses live inside <main> and stay in the Escape chain', () => 
     assert.ok(main.includes(`id="${id}"`), `#${id} must be inside <main> for the docked geometry to anchor`);
   }
   assert.ok(!main.includes('id="drive-mode"'), '#drive-mode is full-screen fixed; it does not belong in <main>');
-  const esc = BOOT.match(/for \(const id of \['#risk-modal'[\s\S]*?\]/);
+  // anchored on a member rather than the first entry: new modals join the head of this list
+  const esc = BOOT.match(/for \(const id of \[[^\]]*'#drive-mode'[^\]]*\]/);
   assert.ok(esc, 'the Escape-dismiss loop array was not found');
-  for (const id of ['#summary-view', '#recovery-view', '#basin-view']) {
+  for (const id of ['#summary-view', '#recovery-view', '#basin-view', '#health-modal']) {
     assert.ok(esc[0].includes(id), `${id} left the Escape chain`);
   }
 });

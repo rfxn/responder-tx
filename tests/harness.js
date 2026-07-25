@@ -108,7 +108,7 @@ function buildSandbox() {
 // global object), so the epilogue must name them explicitly to export them.
 const EXPORTS = [
   'CONFIG', 'state', 'FLOOD_CATS', 'CAT_RANK', 'PRI_WEIGHT',
-  'esc', 'fmtNum', 'safeUrl', 'ageMins', 'distMi', 'freshClass',
+  'esc', 'fmtNum', 'safeUrl', 'telHref', 'ageMins', 'distMi', 'freshClass',
   'modalCycleIndex', 'modalIsFocusableVisible',
   'toUSNG',
   'alertReach', 'alertSeverity',
@@ -133,6 +133,7 @@ const EXPORTS = [
 const PANEL_EXPORTS = ['gaugeCardDiv', 'gaugeGlyphHtml', 'degradedGaugePool', 'degradedGaugeList', 'degradedStateCounts',
   'openInGaugesList', 'gaugeListUnfoldFor', 'DEG_GLYPH',
   'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',
+  'hotlineHtml', 'hotlinesOrdered', 'hotlineIsEmergency', 'shlNavHtml',
   'curatedShelterAgeH', 'SHELTER_CURATED_STALE_H', 'shelterOpen',
   'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H'];
 

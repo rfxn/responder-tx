@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadApp } = require('./harness.js');
 
-const { esc, fmtNum, safeUrl, distMi, freshClass, cardAged, CONFIG } = loadApp();
+const { esc, fmtNum, safeUrl, telHref, distMi, freshClass, cardAged, CONFIG } = loadApp();
 
 test('esc — HTML injection payloads never produce raw markup', () => {
   const payloads = [
@@ -56,6 +56,56 @@ test('safeUrl — only http(s) survives; script/data schemes are neutralized', (
   assert.equal(safeUrl('//evil.test'), '#');
   assert.equal(safeUrl(''), '#');
   assert.equal(safeUrl(null), '#');
+});
+
+/* Hotline values come from the curator-editable data/resources.json, and safeUrl covers no tel:
+   scheme, so the dial href must be rebuilt from digits rather than interpolated. Anything that is
+   not a dialable number has to return '' so the caller renders text instead of a broken link. */
+test('telHref — every shipped hotline value dials, punctuation stripped', () => {
+  assert.equal(telHref('911'), 'tel:911');
+  assert.equal(telHref('211'), 'tel:211');
+  assert.equal(telHref('1-800-733-2767'), 'tel:18007332767');
+  assert.equal(telHref('800-985-5990'), 'tel:8009855990');
+  assert.equal(telHref('800-252-3439'), 'tel:8002523439');
+  assert.equal(telHref('(830) 257-8181'), 'tel:8302578181');
+  assert.equal(telHref('  911  '), 'tel:911');
+});
+
+test('telHref — a leading + is the only non-digit that reaches the href', () => {
+  assert.equal(telHref('+1 800 733 2767'), 'tel:+18007332767');
+  assert.equal(telHref('+52 (55) 5128-0000'), 'tel:+525551280000');
+  assert.equal(telHref('1+800+7332767'), ''); // a + anywhere but the front is not a phone number
+});
+
+test('telHref — a non-dialable curated value degrades to text, never a link', () => {
+  for (const bad of [
+    'javascript:alert(1)',
+    'tel:911"><script>alert(1)</script>',
+    'call 911',
+    '911 or the sheriff',
+    'dial911',
+    '#911',
+    '911;+18005551212',
+    '',
+    '  ',
+    null,
+    undefined,
+  ]) assert.equal(telHref(bad), '', `expected no href for ${JSON.stringify(bad)}`);
+});
+
+test('telHref — length bounds reject a too-short stub and a past-E.164 run of digits', () => {
+  assert.equal(telHref('11'), '');
+  assert.equal(telHref('9'), '');
+  assert.equal(telHref('1234567890123456'), ''); // 16 digits, one past the E.164 ceiling
+  assert.equal(telHref('123456789012345'), 'tel:123456789012345');
+});
+
+test('telHref — the raw value never reaches the href it builds', () => {
+  const href = telHref('911');
+  assert.ok(/^tel:\+?[0-9]+$/.test(href), `href carries something other than digits: ${href}`);
+  for (const c of ['"', "'", '<', '>', ' ', '&', ';']) {
+    assert.ok(!href.includes(c), `href carries ${c}`);
+  }
 });
 
 test('distMi — identical points are zero distance', () => {

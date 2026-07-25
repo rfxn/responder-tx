@@ -213,6 +213,15 @@ test('landscape restores the sidebar targets that escape the 768px width query',
     'landscape must raise the feed, card-action and tab targets to 44px');
 });
 
+/* The hotline number is now the dial control itself, so it is a tap target on every layout a
+   phone can be held in, not a run of text that happens to be clickable. */
+test('the dial link meets the 44px floor at every phone and vehicle-mount width', () => {
+  for (const condition of ['(max-width: 500px)', '(max-width: 768px)', TABLET, LANDSCAPE]) {
+    assert.equal(decl(mediaBlock(condition), '.tel-link', 'min-height'), '44px',
+      `@media ${condition} does not hold the 44px floor for .tel-link`);
+  }
+});
+
 test('the 769-960px tablet block exists and raises the targets it was created for', () => {
   const block = mediaBlock(TABLET);
   assert.equal(decl(block, '.controls button', 'min-height'), '44px');

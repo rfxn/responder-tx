@@ -842,6 +842,12 @@ function shlStatus(status) {
   const st = SHELTER_STATUS[String(status || '').toLowerCase()];
   return { label: (st ? t(st.key) : String(status || '')).toUpperCase(), color: st ? st.color : 'var(--ink-2)' };
 }
+// a listed address is only actionable if it can be handed to a map, so the row carries the same
+// navigate affordance a notice card does; no coordinates means no button rather than a dead one
+const shlNavHtml = (s) => (Number.isFinite(s.lat) && Number.isFinite(s.lon)
+  ? `<div class="card-actions"><button class="act-btn shl-nav" type="button" data-lat="${esc(s.lat)}" data-lon="${esc(s.lon)}">🧭 ${esc(t('card.nav'))}</button></div>`
+  : '');
+
 function liveShelterHtml(s, srcUrl) {
   const st = shlStatus(s.status);
   const meta = [];
@@ -849,7 +855,7 @@ function liveShelterHtml(s, srcUrl) {
   if (Number.isFinite(s.occupancy)) meta.push(t('shl.occ').replace('{n}', s.occupancy));
   if (s.org) meta.push(s.org);
   return `<div class="resource-item"><strong style="color:${st.color}">🏠 ${esc(st.label)}</strong>: <strong>${esc(s.name)}</strong> ${srcBadge('official')}` +
-    `<div class="addr">${esc(s.address || '')}${meta.length ? ` · ${esc(meta.join(' · '))}` : ''} · ${esc(t('shl.livesrc'))} <a href="${esc(safeUrl(srcUrl))}" target="_blank" rel="noopener">src</a></div></div>`;
+    `<div class="addr">${esc(s.address || '')}${meta.length ? ` · ${esc(meta.join(' · '))}` : ''} · ${esc(t('shl.livesrc'))} <a href="${esc(safeUrl(srcUrl))}" target="_blank" rel="noopener">src</a></div>${shlNavHtml(s)}</div>`;
 }
 
 /* The curated list is hand-maintained from official statements and carries no live feed behind it,
@@ -868,7 +874,7 @@ function curatedShelterHtml(s) {
   const unconf = curatedSheltersStale()
     ? ` · <span class="xg-stale">${esc(t('shl.curated.unconf').replace('{h}', Math.round(curatedShelterAgeH())))}</span>` : '';
   return `<div class="resource-item"><strong style="color:${st.color}">🏠 ${esc(st.label)}</strong>: <strong>${esc(s.name)}</strong> ${srcBadge('curated')}` +
-    `<div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)}${unconf} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div></div>`;
+    `<div class="addr">${esc(s.address)} · ${esc(s.county)} Co. · ${esc(s.note)}${unconf} <a href="${esc(safeUrl(s.source))}" target="_blank" rel="noopener">src</a></div>${shlNavHtml(s)}</div>`;
 }
 
 const shlLiveSrcUrl = () => (state.sheltersLive && state.sheltersLive.source && state.sheltersLive.source.url) || 'https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0';
@@ -902,6 +908,23 @@ const shelterListHtml = (shelters, srcUrl) => {
     (curated.length ? shlCuratedHeadHtml() + curated.map(curatedShelterHtml).join('') : '');
 };
 
+// "who do I call" is one line, "where do I go" is a list, so the emergency number leads whatever
+// order the curated file happens to carry
+const hotlineIsEmergency = (h) => telHref(h && h.value) === 'tel:911';
+const hotlinesOrdered = (list) => {
+  const arr = Array.isArray(list) ? list : [];
+  return arr.filter(hotlineIsEmergency).concat(arr.filter((h) => !hotlineIsEmergency(h)));
+};
+
+// a curated value that is not a dialable number stays plain text rather than becoming a dead link
+function hotlineHtml(h) {
+  const href = telHref(h.value);
+  const num = href
+    ? `<a class="tel-link" href="${esc(href)}" aria-label="${esc(t('res.call').replace('{n}', h.value))}">${esc(h.value)}</a>`
+    : `<strong>${esc(h.value)}</strong>`;
+  return `<div class="resource-item">${num} · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`;
+}
+
 function renderResources() {
   const r = state.resources;
   if (!r) return;
@@ -910,10 +933,16 @@ function renderResources() {
   const liveShl = state.sheltersLive;
   const shelters = mergeShelters(r.shelters, liveShl && liveShl.shelters);
   const shlSrcUrl = shlLiveSrcUrl();
-  el.innerHTML = `<div class="section-title">${esc(t('res.shelters'))}</div>` +
-    shelterListHtml(shelters, shlSrcUrl) +
-    `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
-    r.hotlines.map((h) => `<div class="resource-item"><strong>${esc(h.value)}</strong> · ${esc(h.name)}<div class="addr">${esc(h.note)}</div></div>`).join('');
+  el.innerHTML = `<div class="section-title">${esc(t('res.hotlines'))}</div>` +
+    hotlinesOrdered(r.hotlines).map(hotlineHtml).join('') +
+    `<div class="section-title">${esc(t('res.shelters'))}</div>` +
+    shelterListHtml(shelters, shlSrcUrl);
+  el.querySelectorAll('.shl-nav').forEach((b) => b.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    const lat = Number(b.dataset.lat);
+    const lon = Number(b.dataset.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) window.open(`https://maps.google.com/?q=${lat},${lon}`, '_blank', 'noopener');
+  }));
   // outbound source and recovery links are pointers off the board, so they ride the share surface
   const links = $('#datalinks-body');
   if (links) {

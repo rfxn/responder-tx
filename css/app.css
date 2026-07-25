@@ -496,6 +496,19 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .resource-item { padding: 7px 2px; border-bottom: 1px solid var(--hairline); font-size: 13px; }
 .resource-item .addr { color: var(--ink-2); font-size: 12px; }
 .resource-item a { color: var(--accent); text-decoration: none; }
+/* a hotline is the shortest answer the board can give, so the number dials on tap */
+.tel-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 34px; padding: 3px 10px; margin-right: 2px;
+  font-weight: 700; color: var(--accent);
+  border: 1px solid var(--border); border-radius: 7px;
+}
+.tel-link::before { content: '☎'; font-weight: 400; }
+.tel-link:hover { border-color: var(--accent); }
+.tel-link:active { transform: translateY(1px); }
+/* a shelter row's navigate button hugs its label instead of stretching the whole list width */
+.resource-item .card-actions { margin-top: 6px; }
+.resource-item .act-btn { flex: 0 0 auto; }
 .resource-item.reopened { border-left: 3px solid var(--good); padding-left: 8px; cursor: pointer; }
 .resource-item.reopened strong { color: var(--good); }
 .resource-item.reopened.aged { opacity: 0.65; border-left-color: var(--ink-muted); }
@@ -1418,6 +1431,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .card .badges { gap: 5px; margin-top: 6px; }
   .card-actions { gap: 7px; margin-top: 8px; }
   .act-btn { min-height: 44px; font-size: 12.5px; }
+  .tel-link { min-height: 44px; }
   .badge.src-link { max-width: 150px; }
   /* Alerts density on phones (owner: cards ran too tall) — .card.alert-card outranks the ≤768 .card padding */
   .card.alert-card { padding: 7px 10px; margin-bottom: 5px; }
@@ -1514,6 +1528,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .card .when { font-size: 12px; }
   .card .meta { font-size: 12px; }
   .act-btn { min-height: 44px; }
+  .tel-link { min-height: 44px; }
   .badge { padding: 4px 9px; font-size: 12px; }
   .map-legend { font-size: 10px; line-height: 1.5; max-width: 140px; padding: 6px 8px; opacity: 0.92; }
   /* collapse behavior is now in the base rules (both breakpoints) */
@@ -1542,6 +1557,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .controls button { min-height: 44px; min-width: 44px; padding: 4px 8px; font-size: 15px; }
   .refresh-meta { min-width: 0; font-size: 12px; white-space: nowrap; max-width: 120px; }
   .feed-actions button, .act-btn, .tabs button { min-height: 44px; }
+  .tel-link { min-height: 44px; }
   button, select { min-height: 40px; }
   .filters select, .filters input[type="search"] { min-height: 36px; }
   .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }
@@ -1571,6 +1587,7 @@ button.inspect-gauge:hover { color: var(--accent); }
   .refresh-meta { min-width: 0; font-size: 12px; max-width: 120px; }
   /* 932x430 clears the 768px width query, so every sidebar control fell back to ~25px desktop sizing */
   .feed-actions button, .act-btn, .tabs button { min-height: 44px; }
+  .tel-link { min-height: 44px; }
   button, select { min-height: 40px; }
   .filters select, .filters input[type="search"] { min-height: 36px; }
   .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 42px; height: 42px; line-height: 42px; }

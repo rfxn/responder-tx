@@ -159,3 +159,60 @@ test('data/resources.json — every curated shelter carries a status the rendere
     assert.ok(typeof s.status === 'string' && s.status.length, `${s.name} has no status`);
   }
 });
+
+/* ---------- help sheet reachability: dial the hotline, navigate to the shelter ---------- */
+
+const { hotlineHtml, hotlinesOrdered, hotlineIsEmergency, shlNavHtml } = loadApp();
+
+test('hotlineHtml — a dialable value renders a tel: anchor carrying only digits', () => {
+  const html = hotlineHtml({ value: '1-800-733-2767', name: 'American Red Cross', note: 'Shelter info' });
+  assert.match(html, /href="tel:18007332767"/);
+  assert.match(html, /class="tel-link"/);
+  assert.ok(html.includes('American Red Cross'), 'the hotline name still reads on the row');
+});
+
+test('hotlineHtml — a value that is not a number stays text, with no href at all', () => {
+  const html = hotlineHtml({ value: 'call the county EOC', name: 'Kerr County', note: '' });
+  assert.ok(!html.includes('href'), `a non-dialable value produced a link: ${html}`);
+  assert.match(html, /<strong>call the county EOC<\/strong>/);
+});
+
+test('hotlineHtml — a hostile curated value neither links nor escapes its markup', () => {
+  const html = hotlineHtml({ value: '911"><img src=x onerror=alert(1)>', name: 'x', note: 'y' });
+  assert.ok(!html.includes('href'), 'a hostile value must not become a link');
+  assert.ok(!html.includes('<img'), `raw markup leaked: ${html}`);
+});
+
+test('hotlinesOrdered — 911 leads whatever order the curated file carries', () => {
+  const shuffled = [
+    { value: '211', name: 'Texas 211' },
+    { value: '1-800-733-2767', name: 'Red Cross' },
+    { value: '911', name: 'Life-threatening emergency' },
+  ];
+  assert.deepEqual(hotlinesOrdered(shuffled).map((h) => h.value), ['911', '211', '1-800-733-2767']);
+  assert.equal(hotlinesOrdered(null).length, 0, 'a missing list is empty, not a throw');
+  assert.equal(hotlineIsEmergency({ value: '9111' }), false, 'only 911 itself is the emergency row');
+});
+
+test('data/resources.json — every shipped hotline is dialable as written', () => {
+  const r = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'resources.json'), 'utf8'));
+  assert.ok((r.hotlines || []).length, 'resources.json must carry hotlines');
+  for (const h of r.hotlines) {
+    assert.match(hotlineHtml(h), /href="tel:\+?[0-9]+"/, `${h.name} (${h.value}) does not render a dial link`);
+  }
+  assert.equal(hotlinesOrdered(r.hotlines)[0].value, '911', '911 must be the first hotline rendered');
+});
+
+test('shlNavHtml — a shelter with coordinates gets the notice card navigate affordance', () => {
+  const html = shlNavHtml({ lat: 30.0301, lon: -99.1162 });
+  assert.match(html, /class="act-btn shl-nav"/);
+  assert.match(html, /data-lat="30\.0301"/);
+  assert.match(html, /data-lon="-99\.1162"/);
+  assert.ok(html.includes('card.nav'), 'the button reuses the existing card.nav label key');
+});
+
+test('shlNavHtml — no coordinates means no button rather than a dead one', () => {
+  assert.equal(shlNavHtml({ address: '3000 Loop 534, Kerrville, TX' }), '');
+  assert.equal(shlNavHtml({ lat: 30.03, lon: null }), '');
+  assert.equal(shlNavHtml({ lat: 'north', lon: -99.1 }), '');
+});

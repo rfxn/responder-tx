@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.16';
+const APP_VERSION = 'v0.99.17';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -252,6 +252,15 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const fmtNum = (v) => (Number.isFinite(+v) ? +v : esc(String(v)));
 // esc() blocks attribute-breakout but not javascript:/data: schemes — gate hrefs to http(s)
 const safeUrl = (u) => (/^https?:\/\//i.test(String(u)) ? String(u) : '#');
+// safeUrl covers no tel: scheme; curator values are rebuilt digit-wise, never interpolated. '' = render as text
+const TEL_SHAPE = /^\+?[0-9(][0-9\s().-]*$/;
+const telHref = (v) => {
+  const raw = String(v ?? '').trim();
+  if (!TEL_SHAPE.test(raw)) return '';
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (digits.length < 3 || digits.length > 15) return ''; // 3 = shortest US short code (911), 15 = E.164 ceiling
+  return `tel:${raw.charAt(0) === '+' ? '+' : ''}${digits}`;
+};
 // compact citation label — bare domain for the source link, never the full raw URL
 const hostOf = (u) => { try { return new URL(String(u)).hostname.replace(/^www\./, ''); } catch { return ''; } };
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();

@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.17 · 2026-07-25 (call the number, navigate to the shelter)
+
+-- New Features --
+- [New] Hotline numbers in Shelters & hotlines are now tap to dial. 911 is
+      listed first
+- [New] Shelters with a known location carry a Navigate button, the same one the
+      notice cards use
+
+-- Changes --
+- [Change] Hotlines are listed above shelters, so the number to call is the
+           first thing in the sheet rather than the last
+- [Change] A hotline entry that is not a dialable number is shown as plain text
+           instead of a link that goes nowhere
+
 ## v0.99.16 · 2026-07-25 (a stale board names the source that stopped answering)
 
 -- Bug Fixes --

@@ -226,20 +226,23 @@ generalization and the in-app provenance surface. See the forward queue.
   surface stripped from the artifact: ops chat, master view, Field Notes, and
   since v0.98.5 the whole `scripts/` tree and `server.py`.
 
-**Genuinely still open** (detail in the forward queue): road replay still scoped
-to the display box while the statewide road capture goes unread by
-`gen-history.py` · the `data/history.json` compatibility view still rewriting the
-whole record every cycle, which is the git cost chunking was meant to end · the
-i18n renderer guard covering a fixed file list that the module splits outgrew ·
-chat-cursor monotonicity checking · multi-source failover for the two remaining
-single-host feeds (HRRR, DriveTexas) · dead intake markup and a broken `?note=`
-contract on the public mirror · deploy-credential decoupling from the rfxn-infra
-vault · region/event-pack generalization remainder (#25) · trust/governance
-content · team Phase-2 SAR · severe/tornado + wildfire all-hazard remainder ·
-T5 evacuation zones (data-gated) · V4 wall view · camera-imagery retention
-(object-store scale, not repo scale) · CalTopo live-sync stretch
-(subscription-gated) · small polish (A3 desktop KPI declutter, A8 LSR ranking,
-#18 measure tool, #19 watchlist star).
+**Genuinely still open** (detail in the forward queue): device alerts built and
+deployed but undiscoverable behind `?push=1` · a still-closed road able to paint
+a reopened badge when the upstream re-codes its condition · multi-source failover
+for the two remaining single-host feeds (HRRR, DriveTexas) · a broken `?note=`
+contract on the public mirror · no in-app about/methodology/privacy surface ·
+deploy-credential decoupling from the rfxn-infra vault · region/event-pack
+generalization remainder (#25) · team Phase-2 SAR · severe/tornado + wildfire
+all-hazard remainder · T5 evacuation zones (data-gated) · V4 wall view ·
+camera-imagery retention (object-store scale, not repo scale) · CalTopo live-sync
+stretch (subscription-gated) · small polish (#18 measure tool, #19 watchlist
+star).
+
+Refuted on re-verification, do not re-queue: **A3** desktop KPI declutter (the
+tiles went at v0.97.93; no `kpi` identifier survives anywhere in the tree) and
+**A8** LSR ranking (`js/sources.js:1349` already sorts freshest first). The N1
+through N4 items this paragraph used to carry all shipped in the
+v0.98.7–v0.99.34 arc; see the forward queue for their versions.
 
 > **Known permanent gap in the archive.** DriveTexas keeps no upstream archive of
 > its own, and between 2026-07-23T14:49Z and the capture/display split our own

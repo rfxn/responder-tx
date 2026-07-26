@@ -882,7 +882,10 @@ async function boot() {
   $('#export-btn').addEventListener('click', exportRequests);
   $('#export-geo-btn').addEventListener('click', exportGeoJSON);
   $('#caltopo-btn').addEventListener('click', toggleCaltopoBox);
-  $('#caltopo-copy').addEventListener('click', copyCaltopoUrl);
+  for (const [, btnSel, url] of FEED_URLS) {
+    const btn = $(btnSel);
+    if (btn) btn.addEventListener('click', () => copyFeedUrl(btnSel, url));
+  }
   $('#sitrep-btn').addEventListener('click', (e) => copySitrep(e.target));
   $('#aar-btn').addEventListener('click', exportAAR);
   for (const id of ['#summary-exit', '#recovery-exit', '#basin-exit']) $(id).addEventListener('click', () => openView('live'));

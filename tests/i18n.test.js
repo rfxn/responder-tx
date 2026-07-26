@@ -312,9 +312,28 @@ test('both Share entry points open the one Share surface, and the export ids kep
   assert.ok(!/\bshareView\b/.test(boot + map), 'the old copy-on-tap shareView() must be gone');
   // relocating the markup must not have touched the interchange wiring
   for (const [sel, fn] of [['#export-btn', 'exportRequests'], ['#export-geo-btn', 'exportGeoJSON'],
-    ['#caltopo-btn', 'toggleCaltopoBox'], ['#caltopo-copy', 'copyCaltopoUrl'], ['#aar-btn', 'exportAAR']]) {
+    ['#caltopo-btn', 'toggleCaltopoBox'], ['#aar-btn', 'exportAAR']]) {
     assert.ok(boot.includes(`$('${sel}').addEventListener('click', ${fn})`), `${sel} lost its ${fn} handler`);
   }
+  // the three interchange addresses are one table read by both the renderer and the copy wiring,
+  // so a format cannot ship a visible row with a dead button or a button with no row
+  const board = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const table = board.match(/const FEED_URLS = \[[\s\S]*?\n\];/);
+  assert.ok(table, 'js/board.js lost the FEED_URLS interchange table');
+  assert.ok(/for \(const \[, btnSel, url\] of FEED_URLS\)/.test(boot),
+    'js/boot.js must wire every FEED_URLS copy button, not one by name');
+  for (const [slot, btn, url] of [['#caltopo-url', '#caltopo-copy', 'data/caltopo-export.json'],
+    ['#kml-url', '#kml-copy', 'data/board-live.kml'], ['#georss-url', '#georss-copy', 'data/board-georss.xml']]) {
+    assert.ok(table[0].includes(`'${slot}'`) && table[0].includes(`'${btn}'`),
+      `FEED_URLS is missing the ${slot} row`);
+    assert.ok(html.includes(`id="${slot.slice(1)}"`) && html.includes(`id="${btn.slice(1)}"`),
+      `index.html is missing the ${slot} row markup`);
+    assert.ok(board.includes(`https://respondertx.org/${url}`), `js/board.js lost the ${url} address`);
+  }
+  // the subscribe URL must be the NetworkLink wrapper: board.kml alone is a one-shot import
+  assert.ok(/KML_LIVE_URL = 'https:\/\/respondertx\.org\/data\/board-live\.kml'/.test(board),
+    'the KML row must offer the self-refreshing NetworkLink, not the payload KML');
 });
 
 /* Migration cue (v0.97.99). Moving a surface with no in-product pointer is the documented cause of

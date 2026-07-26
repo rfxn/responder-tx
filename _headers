@@ -7,6 +7,24 @@
 /data/*
   Cache-Control: no-store
 
+# nosniff is set globally, so the interchange feeds have to be typed correctly or the consumer
+# refuses them. CORS is open because these are the public read-only artifacts the board publishes
+# for other tools to pull.
+/data/board.kml
+  Content-Type: application/vnd.google-earth.kml+xml
+  Access-Control-Allow-Origin: *
+
+/data/board-live.kml
+  Content-Type: application/vnd.google-earth.kml+xml
+  Access-Control-Allow-Origin: *
+
+/data/board-georss.xml
+  Content-Type: application/atom+xml; charset=utf-8
+  Access-Control-Allow-Origin: *
+
+/data/caltopo-export.json
+  Access-Control-Allow-Origin: *
+
 /history/index.json
   Cache-Control: no-cache
 

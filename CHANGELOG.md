@@ -1,5 +1,23 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.45 · 2026-07-26 (a live layer in the tools you already run)
+
+-- New Features --
+- [New] The board publishes its curated map as a KML layer at a fixed address.
+      Added once in ArcGIS, ATAK or Google Earth, the layer re-checks the board
+      about every 15 minutes on its own, so it stays current without being
+      re-imported
+- [New] A GeoRSS feed of the same features, for ArcGIS Online and feed readers
+- [New] Both formats carry what the GeoJSON export carries: the source for every
+      feature, its update time, the generation time, and a plain statement on
+      the layer name when the export is capped and how many features were left
+      out
+
+-- Changes --
+- [Change] Share now lists three addresses for the same curated selection,
+           GeoJSON for CalTopo, KML for a self-updating layer, and GeoRSS,
+           each saying what it is for
+
 ## v0.99.44 · 2026-07-26 (one door per view)
 
 -- Changes --

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.45",
+      "date": "2026-07-26",
+      "line": "The board publishes its curated map as a KML layer at a fixed address. Added once in ArcGIS, ATAK or Google Earth, the layer re-checks the board about every 15 minutes on its own, so it stays current without being re-imported. A GeoRSS feed of the same features is published for ArcGIS Online and feed readers. Both carry what the GeoJSON export carries: the source for every feature, its update time, the generation time, and a plain statement on the layer name when the export is capped and how many features were left out. Share now lists all three addresses, each saying what it is for."
+    },
+    {
       "v": "v0.99.44",
       "date": "2026-07-26",
       "line": "Views is the one place to pick a view. Playback is no longer listed in the map layers sheet and Crest summary no longer has its own button in the Gauges tab; both open from Views. The playback pill on the map still opens playback in one tap, and Drive keeps its header button. With the bottom panel expanded to full height on a phone, the map controls stay on screen instead of being cut off, so Views is reachable without collapsing the panel first."

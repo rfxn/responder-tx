@@ -409,6 +409,44 @@ if d is not None:
         if not (f.get("properties") or {}).get("title"):
             die("caltopo-export.json: features[%d] missing properties.title" % i)
 
+    # the KML and the GeoRSS are the same feature list in two more syntaxes. A feed that carries a
+    # different count, or that drops the truncation claim, tells a subscriber a different story
+    # about the same flood than the GeoJSON does.
+    import xml.etree.ElementTree as ET
+    ns = {"k": "http://www.opengis.net/kml/2.2", "a": "http://www.w3.org/2005/Atom"}
+    members = len([f for f in d["features"] if (f.get("properties") or {}).get("class") != "Folder"])
+    truncated = bool((d.get("properties") or {}).get("truncated"))
+    for path, root_q, count_q, title_q in (
+            ("data/board.kml", "kml", ".//k:Placemark", ".//k:Document/k:name"),
+            ("data/board-georss.xml", "feed", "a:entry", "a:title")):
+        if not os.path.exists(path):
+            continue
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError as exc:
+            die("%s: not well-formed XML: %s" % (path, exc))
+        if not root.tag.endswith("}" + root_q):
+            die("%s: root element is %s, expected a namespaced %s" % (path, root.tag, root_q))
+        got = len(root.findall(count_q, ns))
+        if got != members:
+            die("%s carries %d features, caltopo-export.json %d; the feeds disagree about the board"
+                % (path, got, members))
+        title = root.findtext(title_q, "", ns) or ""
+        if truncated and "partial" not in title:
+            die("%s is truncated but its title makes no partial claim" % path)
+        if not truncated and "partial" in title:
+            die("%s claims to be partial but nothing was dropped" % path)
+
+    if os.path.exists("data/board-live.kml"):
+        try:
+            live = ET.parse("data/board-live.kml").getroot()
+        except ET.ParseError as exc:
+            die("board-live.kml: not well-formed XML: %s" % exc)
+        if live.findtext(".//k:Link/k:refreshMode", "", ns) != "onInterval":
+            die("board-live.kml: no onInterval refreshMode; the subscribe URL would not self-update")
+        if not (live.findtext(".//k:Link/k:href", "", ns) or "").endswith("/data/board.kml"):
+            die("board-live.kml: NetworkLink does not point at board.kml")
+
 d = optional("data/cameras.json")
 if d is not None:
     nets = ("txdot", "river", "austin", "atxfloods", "houston", "arlington", "elpbridge", "hays",
@@ -485,7 +523,7 @@ EOF
 }
 if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin) + #disclaimer"; else failck "911 footer on every lens"; fi
 
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, caltopo-export, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 if [ "$FAILURES" -eq 0 ]; then
     echo "SUMMARY: all 11 checks passed"

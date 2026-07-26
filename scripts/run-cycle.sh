@@ -160,7 +160,7 @@ gen feeds gen-feeds.py "feed.xml + crests.ics" || :  # outcome recorded in gen()
 # the CalTopo export is a snapshot of published gauge/crest state; restamping it over stale gauges
 # would hand a field team a fresh-looking export of old numbers
 if [ "$SNAPSHOT_FRESH" -eq 1 ]; then
-    gen caltopo gen-caltopo.py data/caltopo-export.json || :  # outcome recorded in gen()
+    gen caltopo gen-caltopo.py "caltopo-export.json + board.kml + board-georss.xml" || :  # outcome recorded in gen()
 else
     skip caltopo gen-caltopo.py "the gauge snapshot did not refresh"
 fi
@@ -209,6 +209,9 @@ DATA_FILES=(
     data/shelters-live.json
     data/crossing-status.json
     data/caltopo-export.json
+    data/board.kml
+    data/board-live.kml
+    data/board-georss.xml
     feed.xml
     crests.ics
 )

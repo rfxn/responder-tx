@@ -717,9 +717,13 @@ function exportGeoJSON() {
     'application/geo+json', `responder-requests-${stamp()}.geojson`);
 }
 
-/* ---------- CalTopo stable import URL: cycle-refreshed server export, QR for cross-device handoff ---------- */
+/* ---------- Stable interchange URLs: one cycle-refreshed feature set in three formats ---------- */
 
 const CALTOPO_EXPORT_URL = 'https://respondertx.org/data/caltopo-export.json';
+// the NetworkLink wrapper, not board.kml itself: a plain KML at a URL is a one-shot import, and
+// the in-file refresh directive is what ArcGIS and ATAK honor to keep the layer current
+const KML_LIVE_URL = 'https://respondertx.org/data/board-live.kml';
+const GEORSS_URL = 'https://respondertx.org/data/board-georss.xml';
 
 const renderQr = (host, url) => renderQrCode(host, url, 8);
 
@@ -751,20 +755,29 @@ function renderCaltopoStatus() {
     .catch(() => { el.hidden = true; }); // no metadata is silent; a wrong completeness claim would not be
 }
 
+const FEED_URLS = [
+  ['#caltopo-url', '#caltopo-copy', CALTOPO_EXPORT_URL],
+  ['#kml-url', '#kml-copy', KML_LIVE_URL],
+  ['#georss-url', '#georss-copy', GEORSS_URL],
+];
+
 function toggleCaltopoBox() {
   const box = $('#caltopo-box');
   box.hidden = !box.hidden;
   if (box.hidden) return;
-  $('#caltopo-url').textContent = CALTOPO_EXPORT_URL;
+  for (const [slot, , url] of FEED_URLS) {
+    const el = $(slot);
+    if (el) el.textContent = url;
+  }
   renderQr($('#caltopo-qr'), CALTOPO_EXPORT_URL);
   renderCaltopoStatus();
 }
 
-function copyCaltopoUrl() {
-  const btn = $('#caltopo-copy');
-  copyText(CALTOPO_EXPORT_URL).then(
+function copyFeedUrl(btnSel, url) {
+  const btn = $(btnSel);
+  copyText(url).then(
     () => { btn.textContent = t('caltopo.copied'); setTimeout(() => { btn.textContent = t('caltopo.copy'); }, 1400); },
-    () => prompt(t('share.prompt'), CALTOPO_EXPORT_URL));
+    () => prompt(t('share.prompt'), url));
 }
 
 function importRequests(file) {

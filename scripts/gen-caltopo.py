@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
-"""Publish data/caltopo-export.json: a CalTopo/SARTopo-importable FeatureCollection.
+"""Publish the board's curated feature set in three interchange formats.
 
-Curated multi-layer export refreshed each cycle and served at a stable public URL.
-CalTopo's GeoJSON import honors mapbox simplestyle keys (marker-color/-size,
-stroke, fill), takes the object label from properties.title (name/id show N/A),
-and restores folders from CalTopo-native folder features (class Folder + folderId).
-One-shot import semantics: re-importing duplicates; CalTopo does not poll this URL.
+One assembled, priority-ranked, capped feature list feeds every emitter, so the
+GeoJSON, the KML and the GeoRSS always describe the same board:
+
+  data/caltopo-export.json  GeoJSON FeatureCollection, CalTopo/SARTopo import.
+                            One-shot: re-importing duplicates. Honors mapbox
+                            simplestyle keys, labels from properties.title,
+                            folders from CalTopo-native folder features.
+  data/board.kml            KML 2.2 document, folders + styled placemarks.
+  data/board-live.kml       NetworkLink onto board.kml with a refresh interval,
+                            which is what makes a static file a self-updating
+                            layer in Google Earth, ArcGIS and ATAK.
+  data/board-georss.xml     Atom + GeoRSS-Simple, one entry per feature.
 
 Local layers come from the committed data files; alerts and LSRs are fetched live
 (non-fatal: a failed source drops its folder and is listed in
 properties.sources_unavailable). Failures exit non-zero, keeping last-good.
 """
 import datetime
+import hashlib
 import json
 import math
 import os
@@ -19,11 +27,20 @@ import re
 import sys
 import tempfile
 import urllib.request
+import xml.etree.ElementTree as ET
 
 ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "caltopo-export.json")
+OUT_KML = os.path.join(ROOT, "data", "board.kml")
+OUT_KML_LIVE = os.path.join(ROOT, "data", "board-live.kml")
+OUT_GEORSS = os.path.join(ROOT, "data", "board-georss.xml")
 UA = "responder-tx-ops/gen-caltopo (rfxnryan@gmail.com)"
 SITE = "https://respondertx.org"
+
+KML_NS = "http://www.opengis.net/kml/2.2"
+ATOM_NS = "http://www.w3.org/2005/Atom"
+GEORSS_NS = "http://www.georss.org/georss"
+REFRESH_SECONDS = 900  # the data cycle's own period; a shorter poll would only re-fetch identical bytes
 
 ALERTS_URL = "https://api.weather.gov/alerts/active?area=TX"
 LSR_URL = "https://mesonet.agron.iastate.edu/geojson/lsr.geojson?hours=24&states=TX"
@@ -102,18 +119,25 @@ def desc(lines, source, updated):
     return "\n".join(parts)
 
 
-def feature(folder_id, folder_name, geometry, title, description, style, extra=None, rank=5):
+def feature(folder_id, folder_name, geometry, title, lines, style,
+            extra=None, rank=5, source=None, updated=None, key=None):
+    """(rank, GeoJSON feature, meta). meta carries what GeoJSON only has prose for:
+    the XML emitters need source and update time as fields, not inside a description."""
     props = {
         "class": "Marker" if geometry and geometry.get("type") == "Point" else "Shape",
         "folderId": folder_id,
         "folder": folder_name,
         "title": title,
-        "description": description,
+        "description": desc(lines, source, updated),
     }
     props.update(style)
     if extra:
         props.update(extra)
-    return rank, {"type": "Feature", "geometry": geometry, "properties": props}
+    feat = {"type": "Feature", "geometry": geometry, "properties": props}
+    meta = {"folder_id": folder_id, "folder": folder_name, "title": title,
+            "source": source, "updated": updated,
+            "key": str(key or (extra or {}).get("lid") or (extra or {}).get("id") or "")}
+    return rank, feat, meta
 
 
 def ring(lat, lon, radius_km=1.5, points=24):
@@ -153,8 +177,9 @@ def build_gauges(snapshot):
             "folder-gauges", "Gauges (NOAA NWPS)",
             {"type": "Point", "coordinates": [round(lon, 5), round(lat, 5)]},
             f"Gauge: {g.get('name') or g.get('lid')}" + (f" · {cat.upper()}" if cat != "none" else ""),
-            desc(lines, f"NOAA NWPS · https://water.noaa.gov/gauges/{g.get('lid')}", obs.get("validTime")),
-            style, extra={"lid": g.get("lid")}, rank=8 if cat != "none" else 3))
+            lines, style, extra={"lid": g.get("lid")}, rank=8 if cat != "none" else 3,
+            source=f"NOAA NWPS · https://water.noaa.gov/gauges/{g.get('lid')}",
+            updated=obs.get("validTime")))
     return out
 
 
@@ -190,10 +215,10 @@ def build_crests(crest, snapshot, capture):
             ring(lat, lon),
             f"Crest: {c.get('name') or c.get('lid')} · peak {c.get('peak')} {c.get('unit') or 'ft'}"
             + (" (reconstructed)" if recon else ""),
-            desc(lines, cite, c.get("peak_time")),
+            lines,
             {"stroke": CAT_COLOR.get(cat, CAT_NONE), "stroke-width": 2, "stroke-opacity": 0.9,
              "fill": CAT_COLOR.get(cat, CAT_NONE), "fill-opacity": 0.08},
-            extra={"lid": c.get("lid")}, rank=8))
+            extra={"lid": c.get("lid")}, rank=8, source=cite, updated=c.get("peak_time")))
     return out, unresolved
 
 
@@ -225,11 +250,11 @@ def build_alerts(gj):
         out.append(feature(
             "folder-alerts", "NWS alerts (active)", geom,
             f"{p.get('event')} · {(p.get('areaDesc') or '')[:80]}",
-            desc([p.get("headline"), f"Severity: {sev}", f"Expires: {p.get('expires')}"],
-                 f"NWS · {p.get('@id') or p.get('id') or 'https://api.weather.gov/alerts'}", p.get("sent")),
+            [p.get("headline"), f"Severity: {sev}", f"Expires: {p.get('expires')}"],
             {"stroke": SEV_COLOR[sev], "stroke-width": 2, "stroke-opacity": 0.9,
              "fill": SEV_COLOR[sev], "fill-opacity": 0.15},
-            rank=9))
+            rank=9, source=f"NWS · {p.get('@id') or p.get('id') or 'https://api.weather.gov/alerts'}",
+            updated=p.get("sent")))
     return out
 
 
@@ -244,9 +269,9 @@ def build_roads(roads):
             "folder-roads", "Road closures (TxDOT)",
             {"type": "Point", "coordinates": [v[1], v[0]]},
             f"{r.get('cond') or 'Closure'}: {r.get('route') or 'road'}",
-            desc([strip_html(r.get("desc"))[:200], f"From: {r.get('start')}" if r.get("start") else None],
-                 "TxDOT DriveTexas · https://drivetexas.org", r.get("start")),
-            {"marker-color": color, "marker-size": "medium"}, rank=7))
+            [strip_html(r.get("desc"))[:200], f"From: {r.get('start')}" if r.get("start") else None],
+            {"marker-color": color, "marker-size": "medium"}, rank=7,
+            source="TxDOT DriveTexas · https://drivetexas.org", updated=r.get("start")))
     return out
 
 
@@ -260,9 +285,10 @@ def build_crossings(x):
             "folder-crossings", "Low-water crossings",
             {"type": "Point", "coordinates": [round(c["lon"], 5), round(c["lat"], 5)]},
             f"{status.upper()}: {c.get('name')}",
-            desc([c.get("reason")], c.get("source") or "Responder TX curated", c.get("updated_at")),
+            [c.get("reason")],
             {"marker-color": CROSSING_COLOR[status], "marker-size": "medium"},
-            extra={"status": status}, rank=7))
+            extra={"status": status}, rank=7, key=c.get("id"),
+            source=c.get("source") or "Responder TX curated", updated=c.get("updated_at")))
     return out
 
 
@@ -291,11 +317,11 @@ def build_notices(reqs):
             "folder-notices", "Curated notices",
             {"type": "Point", "coordinates": [round(r["lon"], 5), round(r["lat"], 5)]},
             f"{str(r.get('type') or 'notice').upper()} · {pri}: {str(r.get('summary') or '')[:70]}",
-            desc([r.get("summary"), place, f"Status: {r.get('status')}"],
-                 ((r.get("source") or {}).get("url")) or "Responder TX curated board", r.get("ts")),
+            [r.get("summary"), place, f"Status: {r.get('status')}"],
             {"marker-color": PRI_COLOR[pri], "marker-size": "medium"},
             extra={"type": r.get("type"), "priority": pri, "status": r.get("status"), "id": r.get("id")},
-            rank=8))
+            rank=8, source=((r.get("source") or {}).get("url")) or "Responder TX curated board",
+            updated=r.get("ts")))
     return out
 
 
@@ -317,10 +343,11 @@ def build_lsrs(gj):
         out.append(feature(
             "folder-lsrs", "Storm reports (NWS LSR)", g,
             f"LSR: {p.get('typetext')}{mag} · {p.get('city') or ''}",
-            desc([str(p.get("remark") or "")[:300], f"{p.get('city')}, {p.get('county')} Co. · via {p.get('source')}"],
-                 "NWS Local Storm Reports via IEM · https://mesonet.agron.iastate.edu/lsr/", p.get("valid")),
+            [str(p.get("remark") or "")[:300], f"{p.get('city')}, {p.get('county')} Co. · via {p.get('source')}"],
             {"marker-color": LSR_COLOR, "marker-size": "small"},
-            rank=6 if i < 30 else 2))
+            rank=6 if i < 30 else 2,
+            source="NWS Local Storm Reports via IEM · https://mesonet.agron.iastate.edu/lsr/",
+            updated=p.get("valid")))
     return out
 
 
@@ -333,6 +360,400 @@ FOLDERS = [
     ("folder-notices", "Curated notices"),
     ("folder-lsrs", "Storm reports (NWS LSR)"),
 ]
+
+ATTRIBUTION = ("Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, "
+               "Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.")
+NO_GEOM_NOTE = "No mappable geometry in the source record; this entry carries text only."
+UNPARSED_TIME_NOTE = ("The source published no machine-readable update time, so this entry's "
+                      "timestamp is the feed's own generation time, not the observation time.")
+
+
+def atomic_write(path, text):
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix="." + os.path.basename(path) + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+        os.unlink(tmp)
+        raise
+
+
+def num(v):
+    s = "%.6f" % float(v)
+    return s.rstrip("0").rstrip(".")
+
+
+def is_pos(c):
+    return isinstance(c, (list, tuple)) and len(c) >= 2 \
+        and all(isinstance(x, (int, float)) for x in c[:2])
+
+
+def serialize(root):
+    if hasattr(ET, "indent"):
+        ET.indent(root, "  ")
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="unicode") + "\n"
+
+
+# ---------- KML 2.2 ----------
+
+MARKER_SCALE = {"small": 0.8, "medium": 1.0, "large": 1.3}
+
+
+def kml_color(hex_rgb, opacity=1.0):
+    """KML colors are aabbggrr, the reverse byte order of the CSS #rrggbb the board styles with."""
+    h = re.sub(r"[^0-9a-f]", "", str(hex_rgb or "").lower())
+    if len(h) != 6:
+        h = "ffffff"
+    try:
+        a = max(0, min(255, int(round(float(opacity) * 255))))
+    except (TypeError, ValueError):
+        a = 255
+    return "%02x%s%s%s" % (a, h[4:6], h[2:4], h[0:2])
+
+
+def style_id(props):
+    if "marker-color" in props:
+        raw = "mk-%s-%s" % (kml_color(props.get("marker-color")), props.get("marker-size") or "medium")
+    else:
+        raw = "sh-%s-%s-%s" % (kml_color(props.get("stroke"), props.get("stroke-opacity", 1)),
+                              kml_color(props.get("fill"), props.get("fill-opacity", 0)),
+                              props.get("stroke-width") or 2)
+    return re.sub(r"[^A-Za-z0-9_-]", "-", raw)
+
+
+def kml_style(sid, props):
+    st = ET.Element("Style", {"id": sid})
+    if "marker-color" in props:
+        # no <Icon><href>: the client's own default pin is tinted, so the feed pulls no external image
+        icon = ET.SubElement(st, "IconStyle")
+        ET.SubElement(icon, "color").text = kml_color(props.get("marker-color"))
+        ET.SubElement(icon, "scale").text = str(MARKER_SCALE.get(props.get("marker-size"), 1.0))
+    else:
+        ln = ET.SubElement(st, "LineStyle")
+        ET.SubElement(ln, "color").text = kml_color(props.get("stroke"), props.get("stroke-opacity", 1))
+        ET.SubElement(ln, "width").text = str(props.get("stroke-width") or 2)
+        po = ET.SubElement(st, "PolyStyle")
+        ET.SubElement(po, "color").text = kml_color(props.get("fill"), props.get("fill-opacity", 0))
+        ET.SubElement(po, "fill").text = "1" if float(props.get("fill-opacity") or 0) > 0 else "0"
+        ET.SubElement(po, "outline").text = "1"
+    return st
+
+
+def kml_coords(seq):
+    return " ".join("%s,%s" % (num(c[0]), num(c[1])) for c in seq if is_pos(c))
+
+
+def kml_polygon(rings):
+    e = ET.Element("Polygon")
+    ET.SubElement(e, "tessellate").text = "1"
+    for i, r in enumerate(rings or []):
+        txt = kml_coords(r or [])
+        if not txt:
+            continue
+        boundary = ET.SubElement(e, "outerBoundaryIs" if i == 0 else "innerBoundaryIs")
+        ET.SubElement(ET.SubElement(boundary, "LinearRing"), "coordinates").text = txt
+    return e if len(e) > 1 else None
+
+
+MULTI_PART = {"MultiPoint": "Point", "MultiLineString": "LineString", "MultiPolygon": "Polygon"}
+
+
+def kml_geometry(geom):
+    """KML element for a GeoJSON geometry, or None when nothing mappable survives."""
+    t = (geom or {}).get("type")
+    c = (geom or {}).get("coordinates")
+    if t == "Point":
+        if not is_pos(c):
+            return None
+        e = ET.Element("Point")
+        ET.SubElement(e, "coordinates").text = "%s,%s" % (num(c[0]), num(c[1]))
+        return e
+    if t == "LineString":
+        txt = kml_coords(c or [])
+        if not txt:
+            return None
+        e = ET.Element("LineString")
+        ET.SubElement(e, "tessellate").text = "1"
+        ET.SubElement(e, "coordinates").text = txt
+        return e
+    if t == "Polygon":
+        return kml_polygon(c)
+    if t in MULTI_PART or t == "GeometryCollection":
+        if t == "GeometryCollection":
+            parts = [kml_geometry(g) for g in (geom.get("geometries") or [])]
+        else:
+            parts = [kml_geometry({"type": MULTI_PART[t], "coordinates": p}) for p in (c or [])]
+        parts = [p for p in parts if p is not None]
+        if not parts:
+            return None
+        if len(parts) == 1:
+            return parts[0]
+        e = ET.Element("MultiGeometry")
+        for p in parts:
+            e.append(p)
+        return e
+    return None
+
+
+def write_kml(members, metas, header, path):
+    root = ET.Element("kml", {"xmlns": KML_NS})
+    doc = ET.SubElement(root, "Document")
+    ET.SubElement(doc, "name").text = header["title"]
+    ET.SubElement(doc, "open").text = "1"
+    ET.SubElement(doc, "description").text = header["note"] + "\n" + ATTRIBUTION
+
+    styles = {}
+    for f in members:
+        sid = style_id(f["properties"])
+        styles.setdefault(sid, kml_style(sid, f["properties"]))
+    for sid in sorted(styles):
+        doc.append(styles[sid])
+
+    ext = ET.SubElement(doc, "ExtendedData")
+    for k in ("generated", "features", "candidates", "cap", "truncated", "dropped"):
+        ET.SubElement(ET.SubElement(ext, "Data", {"name": k}), "value").text = str(header[k])
+    ET.SubElement(ET.SubElement(ext, "Data", {"name": "attribution"}), "value").text = ATTRIBUTION
+
+    unmapped = 0
+    for fid, fname in FOLDERS:
+        rows = [(f, m) for f, m in zip(members, metas) if m["folder_id"] == fid]
+        if not rows:
+            continue
+        folder = ET.SubElement(doc, "Folder")
+        ET.SubElement(folder, "name").text = fname
+        ET.SubElement(folder, "open").text = "0"
+        for f, m in rows:
+            geom = kml_geometry(f.get("geometry"))
+            body = f["properties"].get("description") or ""
+            if geom is None:
+                unmapped += 1
+                body = (body + "\n" + NO_GEOM_NOTE).strip()
+            pm = ET.SubElement(folder, "Placemark")
+            ET.SubElement(pm, "name").text = m["title"]
+            ET.SubElement(pm, "description").text = body
+            ET.SubElement(pm, "styleUrl").text = "#" + style_id(f["properties"])
+            # source and update time also ride as fields, not just prose, so a client that
+            # renders ExtendedData as a table shows provenance without parsing the balloon.
+            # No <TimeStamp>: it would arm Google Earth's time slider and hide features behind it.
+            ed = ET.SubElement(pm, "ExtendedData")
+            for k, v in (("folder", fname), ("source", m.get("source")), ("updated", m.get("updated"))):
+                if v:
+                    ET.SubElement(ET.SubElement(ed, "Data", {"name": k}), "value").text = str(v)
+            if geom is not None:
+                pm.append(geom)
+    atomic_write(path, serialize(root))
+    return unmapped
+
+
+def write_kml_networklink(path):
+    root = ET.Element("kml", {"xmlns": KML_NS})
+    doc = ET.SubElement(root, "Document")
+    ET.SubElement(doc, "name").text = "Responder TX live map"
+    ET.SubElement(doc, "description").text = (
+        "Self-updating link to the Responder TX board. The linked document is re-fetched every "
+        f"{REFRESH_SECONDS // 60} minutes, which is how often the board republishes. "
+        + DISCLAIMER.split(" One-shot")[0] + " " + ATTRIBUTION)
+    nl = ET.SubElement(doc, "NetworkLink")
+    ET.SubElement(nl, "name").text = "Responder TX board"
+    ET.SubElement(nl, "open").text = "1"
+    ET.SubElement(nl, "refreshVisibility").text = "0"
+    ET.SubElement(nl, "flyToView").text = "0"
+    link = ET.SubElement(nl, "Link")
+    ET.SubElement(link, "href").text = f"{SITE}/data/board.kml"
+    ET.SubElement(link, "refreshMode").text = "onInterval"
+    ET.SubElement(link, "refreshInterval").text = str(REFRESH_SECONDS)
+    atomic_write(path, serialize(root))
+
+
+# ---------- GeoRSS-Simple over Atom ----------
+
+def ring_area(ring):
+    a = 0.0
+    pts = [c for c in (ring or []) if is_pos(c)]
+    for i in range(len(pts) - 1):
+        a += pts[i][0] * pts[i + 1][1] - pts[i + 1][0] * pts[i][1]
+    return abs(a) / 2
+
+
+def georss_coords(seq):
+    """GeoRSS-Simple is whitespace-separated "lat lon" pairs, the reverse of GeoJSON's [lon, lat]."""
+    return " ".join("%s %s" % (num(c[1]), num(c[0])) for c in seq if is_pos(c))
+
+
+def georss_ring(coords):
+    """OGC 17-002r1: a georss:polygon SHALL carry at least four pairs and close on the first."""
+    pts = [c for c in (coords or []) if is_pos(c)]
+    if len(pts) >= 3 and (pts[0][0], pts[0][1]) != (pts[-1][0], pts[-1][1]):
+        pts.append(pts[0])
+    return georss_coords(pts) if len(pts) >= 4 else ""
+
+
+def georss_path(coords):
+    """OGC 17-002r1: a georss:line SHALL carry at least two pairs."""
+    pts = [c for c in (coords or []) if is_pos(c)]
+    return georss_coords(pts) if len(pts) >= 2 else ""
+
+
+def georss_geometry(geom):
+    """(tag, text, note) in GeoRSS-Simple, which has only point, line, polygon and box:
+    no multi-part and no hole syntax. Multi-part shapes degrade to their largest part and
+    say so, because a georss:box would claim ground the alert does not cover and dropping
+    them silently is the same defect in a new syntax."""
+    t = (geom or {}).get("type")
+    c = (geom or {}).get("coordinates")
+    if t == "Point":
+        return ("georss:point", "%s %s" % (num(c[1]), num(c[0])), "") if is_pos(c) else (None, None, "")
+    if t == "LineString":
+        txt = georss_path(c)
+        return ("georss:line", txt, "") if txt else (None, None, "")
+    if t == "Polygon":
+        rings = [r for r in (c or []) if georss_ring(r)]
+        if not rings:
+            return (None, None, "")
+        note = ("" if len(rings) == 1 else
+                "Outline simplified for this feed: %d interior hole(s) are not represented. "
+                "The KML and GeoJSON carry the full shape." % (len(rings) - 1))
+        return "georss:polygon", georss_ring(rings[0]), note
+    if t == "MultiPolygon":
+        polys = [p for p in (c or []) if p and georss_ring(p[0])]
+        if not polys:
+            return (None, None, "")
+        best = max(polys, key=lambda p: ring_area(p[0]))
+        note = ("" if len(polys) == 1 else
+                "Outline simplified for this feed: the largest of %d separate parts is shown. "
+                "The KML and GeoJSON carry all of them." % len(polys))
+        return "georss:polygon", georss_ring(best[0]), note
+    if t == "MultiLineString":
+        lines = [ln for ln in (c or []) if georss_path(ln)]
+        if not lines:
+            return (None, None, "")
+        best = max(lines, key=len)
+        note = ("" if len(lines) == 1 else
+                "Geometry simplified for this feed: the longest of %d segments is shown. "
+                "The KML and GeoJSON carry all of them." % len(lines))
+        return "georss:line", georss_path(best), note
+    if t == "MultiPoint":
+        pts = [p for p in (c or []) if is_pos(p)]
+        if not pts:
+            return (None, None, "")
+        note = ("" if len(pts) == 1 else
+                "Geometry simplified for this feed: the first of %d points is shown. "
+                "The KML and GeoJSON carry all of them." % len(pts))
+        return "georss:point", "%s %s" % (num(pts[0][1]), num(pts[0][0])), note
+    if t == "GeometryCollection":
+        for g in (geom.get("geometries") or []):
+            tag, txt, _ = georss_geometry(g)
+            if tag:
+                return tag, txt, ("Geometry simplified for this feed: one part of a collection is shown. "
+                                  "The KML and GeoJSON carry all of them.")
+    return None, None, ""
+
+
+def atom_time(value, fallback):
+    """(RFC 3339 stamp, was_guessed). NWPS publishes 0001-01-01 for "no reading", which is a
+    sentinel rather than an observation time and which strftime cannot even render as RFC 3339."""
+    dt = parse_iso(value)
+    if dt is None or dt.year < 2000:
+        return fallback, True
+    return dt.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), False
+
+
+def entry_id(meta, feat):
+    key = meta.get("key")
+    if not key:
+        seed = (meta.get("title") or "") + "|" + json.dumps(feat.get("geometry"), sort_keys=True)
+        key = hashlib.sha1(seed.encode("utf-8")).hexdigest()[:16]  # identity only, not a security digest
+    return "tag:respondertx.org,2026:%s:%s" % (meta["folder_id"], re.sub(r"[^A-Za-z0-9._-]", "-", str(key))[:64])
+
+
+def write_georss(members, metas, header, path):
+    root = ET.Element("feed", {"xmlns": ATOM_NS, "xmlns:georss": GEORSS_NS})
+    ET.SubElement(root, "title").text = header["title"]
+    ET.SubElement(root, "subtitle").text = header["note"]
+    ET.SubElement(root, "id").text = header["georss_url"]
+    ET.SubElement(root, "link", {"rel": "self", "type": "application/atom+xml", "href": header["georss_url"]})
+    ET.SubElement(root, "link", {"rel": "alternate", "type": "text/html", "href": SITE + "/"})
+    ET.SubElement(root, "updated").text = header["generated"]
+    ET.SubElement(root, "rights").text = ATTRIBUTION
+    ET.SubElement(ET.SubElement(root, "author"), "name").text = "Responder TX"
+    ET.SubElement(root, "generator", {"uri": SITE}).text = "Responder TX board"
+
+    simplified = 0
+    for f, m in zip(members, metas):
+        tag, txt, note = georss_geometry(f.get("geometry"))
+        body = f["properties"].get("description") or ""
+        if note:
+            simplified += 1
+        if tag is None:
+            note = (note + " " + NO_GEOM_NOTE).strip()
+        stamp, guessed = atom_time(m.get("updated"), header["generated"])
+        if guessed:
+            note = (note + " " + UNPARSED_TIME_NOTE).strip()
+        entry = ET.SubElement(root, "entry")
+        ET.SubElement(entry, "title").text = m["title"]
+        ET.SubElement(entry, "id").text = entry_id(m, f)
+        ET.SubElement(entry, "updated").text = stamp
+        ET.SubElement(entry, "link", {"rel": "alternate", "type": "text/html", "href": SITE + "/"})
+        ET.SubElement(entry, "category", {"term": m["folder"]})
+        ET.SubElement(entry, "summary", {"type": "text"}).text = (body + ("\n" + note if note else "")).strip()
+        if tag:
+            ET.SubElement(entry, tag).text = txt
+    atomic_write(path, serialize(root))
+    return simplified
+
+
+# ---------- emitted-artifact gate ----------
+
+def verify_feeds(expected, header):
+    """Re-read what was just written. A feed that does not parse, or that carries a different
+    feature count than the GeoJSON, must fail the cycle rather than publish over last-good."""
+    kml = ET.parse(OUT_KML).getroot()
+    ns = {"k": KML_NS, "a": ATOM_NS, "g": GEORSS_NS}
+    placemarks = kml.findall(".//k:Placemark", ns)
+    if len(placemarks) != expected:
+        raise ValueError("board.kml carries %d placemarks, the GeoJSON export %d" % (len(placemarks), expected))
+    defined = {s.get("id") for s in kml.findall(".//k:Style", ns)}
+    for pm in placemarks:
+        ref = (pm.findtext("k:styleUrl", "", ns) or "").lstrip("#")
+        if ref not in defined:
+            raise ValueError("board.kml placemark references undefined style %r" % ref)
+    link = ET.parse(OUT_KML_LIVE).getroot()
+    if link.findtext(".//k:Link/k:refreshMode", "", ns) != "onInterval":
+        raise ValueError("board-live.kml carries no onInterval refresh; it would not self-update")
+
+    feed = ET.parse(OUT_GEORSS).getroot()
+    entries = feed.findall("a:entry", ns)
+    if len(entries) != expected:
+        raise ValueError("board-georss.xml carries %d entries, the GeoJSON export %d" % (len(entries), expected))
+    rfc3339 = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$")
+    for el in [feed.find("a:updated", ns)] + feed.findall("a:entry/a:updated", ns):
+        if el is None or not rfc3339.match(el.text or ""):
+            raise ValueError("board-georss.xml has an Atom timestamp that is not RFC 3339: %r"
+                             % (el is not None and el.text))
+    # OGC 17-002r1 minimums, checked on what was written rather than on what was intended
+    for tag, least in (("point", 2), ("line", 4), ("polygon", 8)):
+        for el in feed.findall(".//g:" + tag, ns):
+            vals = (el.text or "").split()
+            if len(vals) < least or len(vals) % 2 or any(not re.match(r"^-?\d+(\.\d+)?$", v) for v in vals):
+                raise ValueError("board-georss.xml georss:%s is not %d+ lat/lon pairs: %r"
+                                 % (tag, least // 2, el.text))
+            if any(abs(float(v)) > 90 for v in vals[0::2]) or any(abs(float(v)) > 180 for v in vals[1::2]):
+                raise ValueError("board-georss.xml georss:%s is out of range; lat/lon may be swapped" % tag)
+            if tag == "polygon" and vals[:2] != vals[-2:]:
+                raise ValueError("board-georss.xml georss:polygon does not close on its first pair")
+
+    # ArcGIS Online refuses a KML layer over 10 MB. Warn rather than fail: withholding the whole
+    # cycle over one consumer's ceiling would cost more than the layer it protects.
+    kml_mb = os.path.getsize(OUT_KML) / 1048576.0
+    if kml_mb > 10:
+        print("warn: board.kml is %.1f MB; ArcGIS Online will not add a KML layer over 10 MB" % kml_mb,
+              file=sys.stderr)
+    if header["truncated"]:
+        for label, text in (("board.kml", kml.findtext(".//k:Document/k:name", "", ns)),
+                            ("board-georss.xml", feed.findtext("a:title", "", ns))):
+            if "partial" not in (text or ""):
+                raise ValueError("%s is truncated but its title makes no partial claim" % label)
 
 
 def main():
@@ -362,7 +783,8 @@ def main():
         dropped = len(ranked) - MAX_FEATURES
         ranked = ranked[:MAX_FEATURES]
 
-    members = [f for _, f in ranked]
+    members = [f for _, f, _ in ranked]
+    metas = [m for _, _, m in ranked]
     counts = {}
     for f in members:
         counts[f["properties"]["folder"]] = counts.get(f["properties"]["folder"], 0) + 1
@@ -376,15 +798,19 @@ def main():
     # never sees our share sheet, and the title is the one string CalTopo always shows them
     partial = (f" (partial: {len(members)} of {len(members) + dropped} features, "
                f"lowest-priority dropped first)" if dropped else "")
+    note = (DISCLAIMER + f" This export is capped at {MAX_FEATURES} features and {dropped} "
+            "lower-priority features were dropped; every alert, crest, closure and "
+            "in-flood gauge is kept before any quiet gauge." if dropped else DISCLAIMER)
     doc = {
         "type": "FeatureCollection",
         "properties": {
             "title": f"{event.get('name') or 'Responder TX'} · CalTopo export{partial}",
             "generated": now,
-            "note": (DISCLAIMER + f" This export is capped at {MAX_FEATURES} features and {dropped} "
-                     "lower-priority features were dropped; every alert, crest, closure and "
-                     "in-flood gauge is kept before any quiet gauge." if dropped else DISCLAIMER),
+            "note": note,
             "import_url": f"{SITE}/data/caltopo-export.json",
+            "kml_url": f"{SITE}/data/board.kml",
+            "kml_live_url": f"{SITE}/data/board-live.kml",
+            "georss_url": f"{SITE}/data/board-georss.xml",
             "counts": counts,
             "candidates": len(members) + dropped,
             "cap": MAX_FEATURES,
@@ -395,18 +821,31 @@ def main():
         },
         "features": folder_feats + members,
     }
+    atomic_write(OUT, json.dumps(doc, separators=(",", ":")))
 
-    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".caltopo-export.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump(doc, fh, separators=(",", ":"))
-        os.replace(tmp, OUT)
-    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
-        os.unlink(tmp)
-        raise
+    # the XML feeds re-state the same truncation claim: a KML that quietly drops 200 features is
+    # the same defect the GeoJSON title was fixed to stop, only in another syntax
+    header = {
+        "title": f"{event.get('name') or 'Responder TX'} · live map{partial}",
+        "note": note,
+        "generated": now,
+        "features": len(members),
+        "candidates": len(members) + dropped,
+        "cap": MAX_FEATURES,
+        "truncated": dropped > 0,
+        "dropped": dropped,
+        "georss_url": f"{SITE}/data/board-georss.xml",
+    }
+    unmapped = write_kml(members, metas, header, OUT_KML)
+    write_kml_networklink(OUT_KML_LIVE)
+    simplified = write_georss(members, metas, header, OUT_GEORSS)
+    verify_feeds(len(members), header)
+
     print(f"caltopo-export.json: {len(members)} features in {len(folder_feats)} folders "
           f"(dropped {dropped}, crests unresolved {crests_unresolved}, "
           f"unavailable: {','.join(unavailable) or 'none'}) @ {now}")
+    print(f"board.kml + board-live.kml + board-georss.xml: {len(members)} features "
+          f"(kml unmapped {unmapped}, georss simplified {simplified})")
 
 
 if __name__ == "__main__":

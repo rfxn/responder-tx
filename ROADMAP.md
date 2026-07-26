@@ -1,11 +1,39 @@
 # ResponderTX · MASTER ROADMAP (updated 2026-07-26)
 
-Current build: **v0.99.34** (see `CHANGELOG.md` for the full v0.1.0 → v0.99.34 arc,
+Current build: **v0.99.52** (see `CHANGELOG.md` for the full v0.1.0 → v0.99.52 arc,
 which is the authoritative record of what has shipped). This roadmap tracks
 delivered capabilities and the forward queue; per-cycle volatile status lives in
 CHANGELOG/HANDOFF, not here. The forward queue below was re-derived from source
 on 2026-07-25 after the v0.97.82–v0.98.6 arc and reconciled against the
 v0.98.7–v0.99.34 arc on 2026-07-26.
+
+> The v0.99.35–v0.99.52 arc came from a product-owner assessment (UX audit,
+> competitive analysis, backlog reconciliation) and then from the failure class
+> those releases kept exposing. Delivered inventory:
+> **the assessment's top ten** · device alerts discoverable at last, the whole
+> push stack having been built, tested and reachable only behind a query flag
+> (v0.99.37); alerts scoped to an alert area rather than all of Texas, which
+> mattered the moment the registry opened (v0.99.38); the complete 8,339-crossing
+> inventory and a Roads tab that lists the roads (v0.99.39); Alerts leading with
+> what is near you (v0.99.40); 44px targets, working list-to-map on a phone, and
+> reduce-motion honoured across the stylesheet (v0.99.41); 121 KB off the cold
+> load (v0.99.43); one door per lens, which also repaired a state where four
+> lenses had no door at all (v0.99.44); an in-app about surface and a version
+> poll that stopped pulling a 130 KB changelog every 3 minutes (v0.99.46); KML
+> and GeoRSS making the board a live layer in ArcGIS, ATAK and Google Earth
+> (v0.99.45).
+> **owner asks that had gone cold** · view state surviving a refresh, a
+> rising-to-major focus that had lost its caller and gone dead, and an offline
+> save that reported success after saving nothing (v0.99.47).
+> **things the board asserted that no source stated** · an "All clear" over live
+> hazards and a cold-load emergency banner that never fired (v0.99.35); a green
+> REOPENED on a still-closed road, twice by two mechanisms (v0.99.36, v0.99.50);
+> an RSS feed publishing zero flash-flood emergencies from a failed fetch, plus a
+> channel that had silently lost its 911 line (v0.99.51); a gauge coded not-in-flood
+> at a record crest (v0.99.52).
+> **the USGS layer** · dead in production for three days after the AO widened past
+> an undocumented upstream area cap, restored by tiling, with the real cosine rule
+> measured and a guard that fails the cycle on a repeat (v0.99.49).
 
 > The v0.98.7–v0.99.34 arc closed five of the six NOW items and then spent most
 > of its length on the camera fleet, which grew from roughly 1,000 to 6,510.

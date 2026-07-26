@@ -256,10 +256,12 @@ test('pushNormalizePrefs: followed gauges uppercased, deduped, invalid entries d
   assert.deepEqual(JSON.parse(JSON.stringify(out)), {
     ffe: false, tier: 'major',
     gauges: [{ lid: 'SRRT2', tier: 'moderate' }, { lid: 'CMKT2', tier: 'major' }],
+    scope: 'none', places: [],
   });
   const over = pushNormalizePrefs({ gauges: Array.from({ length: 25 }, (_, i) => ({ lid: `G${i}LID`, tier: 'major' })) });
   assert.equal(over.gauges.length, 20, 'client mirrors the registry cap');
-  assert.deepEqual(JSON.parse(JSON.stringify(pushNormalizePrefs(null))), { ffe: true, tier: null, gauges: [] });
+  assert.deepEqual(JSON.parse(JSON.stringify(pushNormalizePrefs(null))),
+    { ffe: true, tier: null, gauges: [], scope: 'none', places: [] });
 });
 
 test('pushKeysMatch: byte-wise, ArrayBuffer or view, null-safe', () => {

@@ -1157,9 +1157,33 @@ function pushLocalSet(v) {
 
 const PUSH_MAX_GAUGES = 20; // registry cap per subscription (worker rejects above)
 const PUSH_LID_RE = /^[A-Z0-9]{3,10}$/;
+const PUSH_MAX_PLACES = 5;              // registry cap per subscription
+const PUSH_PLACE_KM = [8, 16, 40];      // the 5, 10 and 25 mile radius chips
+const PUSH_PLACE_KM_DEFAULT = 16;
+const PUSH_PLACE_DP = 2;                // stored coordinate precision, about 1 km
+const PUSH_SCOPES = ['statewide', 'places', 'none'];
 
-// pure prefs normalizer (client mirror of the worker's sanitizePrefs): FFE on/off + AO-wide
-// gauge tier + followed gauges [{lid, tier}] deduped by lid, capped
+// client mirror of the worker's sanitizePlaces: coordinates rounded to about a kilometer,
+// deduped at that precision, no label ever leaves the device
+function pushNormalizePlaces(src) {
+  const out = [];
+  const seen = {};
+  const q = 10 ** PUSH_PLACE_DP;
+  for (const p of Array.isArray(src) ? src.slice(0, PUSH_MAX_PLACES) : []) {
+    const lat = Math.round(Number(p && p.lat) * q) / q;
+    const lon = Math.round(Number(p && p.lon) * q) / q;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    const key = `${lat},${lon}`;
+    if (seen[key]) continue;
+    seen[key] = 1;
+    out.push({ lat, lon, km: PUSH_PLACE_KM.indexOf(Number(p.km)) >= 0 ? Number(p.km) : PUSH_PLACE_KM_DEFAULT });
+  }
+  return out;
+}
+
+// pure prefs normalizer (client mirror of the worker's sanitizePrefs): FFE on/off + alert area
+// + area-wide gauge tier + followed gauges [{lid, tier}] + followed places [{lat, lon, km}].
+// An unset area is 'none': a device that shared no location is never given the whole state.
 function pushNormalizePrefs(p) {
   const src = p && typeof p === 'object' ? p : {};
   const gauges = [];
@@ -1175,7 +1199,18 @@ function pushNormalizePrefs(p) {
     ffe: src.ffe !== false,
     tier: src.tier === 'moderate' || src.tier === 'major' ? src.tier : null,
     gauges,
+    scope: PUSH_SCOPES.indexOf(src.scope) >= 0 ? src.scope : 'none',
+    places: pushNormalizePlaces(src.places),
   };
+}
+
+// what the card must say about area coverage: 'ok' when area alerts can really fire,
+// 'unset' when no area was chosen, 'empty' when places is chosen with nothing in it
+function pushScopeState(prefs) {
+  const p = prefs || {};
+  if (p.scope === 'statewide') return 'ok';
+  if (p.scope === 'places') return (p.places || []).length ? 'ok' : 'empty';
+  return 'unset';
 }
 
 function pushPrefs() {
@@ -1264,6 +1299,7 @@ function pushNearbyGauges(gauges, followed, lat, lon, n) {
 let pushManageOpen = false;      // in-card manage view (followed gauges) expanded
 let pushManagePreselect = null;  // lid pinned atop the picker by a "Notify me" entry point
 let pushAboutOpen = false;       // the full honesty paragraphs, expanded; survives a re-render
+let pushPlaceMsg = '';           // one-shot place-editor message (geolocation refusal)
 
 // the one-sentence fix for a state the user cannot toggle out of ('' when the toggle is the fix)
 function pushFixKey(cardState) {
@@ -1322,6 +1358,55 @@ function pushManageHtml(prefs) {
   '</div>';
 }
 
+const PUSH_PLACE_MI = [5, 10, 25];   // display units, parallel to PUSH_PLACE_KM
+
+function pushRadiusLabel(km) {
+  const i = PUSH_PLACE_KM.indexOf(Number(km));
+  return `${PUSH_PLACE_MI[i >= 0 ? i : 1]} ${t('risk.mi')}`;
+}
+
+// the row shows exactly what is stored: the rounded pair and the radius, no label
+function pushPlaceLabel(p) {
+  return `${p.lat.toFixed(PUSH_PLACE_DP)}, ${p.lon.toFixed(PUSH_PLACE_DP)}`;
+}
+
+// saved my-places that are not already an alert place, offered as an explicit copy: the label
+// stays on the device and only the rounded coordinates travel
+function pushSavedCandidates(places) {
+  return loadPlaces()
+    .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon)
+      && !(places || []).some((p) => distMi(p.lat, p.lon, s.lat, s.lon) < 0.7))
+    .slice(0, 5);
+}
+
+// the alert-area editor: the points this subscription is scoped to, their radius, and the two
+// explicit ways to add one (a fresh position fix, or a copy of a saved place)
+function pushPlacesHtml(prefs) {
+  const places = prefs.places || [];
+  const atCap = places.length >= PUSH_MAX_PLACES;
+  const radiusBtns = (i, km) => PUSH_PLACE_KM.map((k) =>
+    `<button type="button" class="push-chip push-p-radius${k === km ? ' active' : ''}" data-i="${i}" data-km="${k}" aria-pressed="${k === km}">${esc(pushRadiusLabel(k))}</button>`).join('');
+  const rows = places.map((p, i) =>
+    `<div class="push-g-row" data-i="${i}">` +
+      `<span class="push-g-name">${esc(pushPlaceLabel(p))}</span>` +
+      `<span class="push-g-tiers" role="group">${radiusBtns(i, p.km)}` +
+        `<button type="button" class="push-chip push-p-remove" data-i="${i}" aria-label="${esc(t('push.places.removearia').replace('{n}', String(i + 1)))}">✕</button>` +
+      '</span>' +
+    '</div>').join('');
+  const savedRow = atCap ? '' : pushSavedCandidates(places).map((s, i) =>
+    `<button type="button" class="push-chip push-p-saved" data-i="${i}">+ ${esc(s.label || pushPlaceLabel(s))}</button>`).join('');
+  return '<div class="push-places">' +
+    `<div class="push-m-title">${esc(t('push.places.title'))}</div>` +
+    (rows || `<div class="push-m-note">${esc(t('push.places.none'))}</div>`) +
+    (atCap
+      ? `<div class="push-m-note">${esc(t('push.places.limit'))}</div>`
+      : `<div class="card-actions"><button type="button" class="act-btn" id="push-place-geo">${esc(t('push.places.add'))}</button></div>` +
+        (savedRow ? `<div class="push-m-note">${esc(t('push.places.saved'))}</div><div class="push-p-saved-row">${savedRow}</div>` : '')) +
+    (pushPlaceMsg ? `<div class="push-fix">${esc(pushPlaceMsg)}</div>` : '') +
+    `<div class="push-m-note">${esc(t('push.places.store'))}</div>` +
+  '</div>';
+}
+
 // the pending-follow explanation, or '' when the tap will really open the picker
 function pushPendingHtml(cardState, preselect) {
   if (!pushFollowPending(cardState, preselect)) return '';
@@ -1335,6 +1420,7 @@ function renderPushCard() {
   const on = st === 'on';
   const toggleable = st === 'on' || st === 'off';
   const prefs = pushPrefs();
+  const scopeState = pushScopeState(prefs);
   const fresh = pushFreshState(state.pushLastEval, Date.now());
   const freshTxt = fresh === 'ok'
     ? t('push.fresh.ok').replace('{m}', String(Math.max(0, Math.round((Date.now() - state.pushLastEval) / 60000))))
@@ -1357,12 +1443,19 @@ function renderPushCard() {
       pushPendingHtml(st, pushManagePreselect) +
       (on
         ? `<div class="push-types" role="group" aria-label="${esc(t('push.types.label'))}">` +
+            typeRow('scope', opt('scope', 'none', prefs.scope !== 'statewide' && prefs.scope !== 'places', t('push.opt.off')) +
+              opt('scope', 'statewide', prefs.scope === 'statewide', t('push.scope.statewide')) +
+              opt('scope', 'places', prefs.scope === 'places', t('push.scope.places'))) +
             typeRow('ffe', opt('ffe', 'off', !prefs.ffe, t('push.opt.off')) + opt('ffe', 'on', prefs.ffe, t('push.opt.on'))) +
             typeRow('gauges', opt('tier', 'off', !prefs.tier, t('push.opt.off')) +
               opt('tier', 'moderate', prefs.tier === 'moderate', t('push.tier.moderate')) +
               opt('tier', 'major', prefs.tier === 'major', t('push.tier.major'))) +
           '</div>'
         : '') +
+      // an area that cannot cover anything says so where the choice is made: the card never
+      // shows alert types as live when nothing they describe can reach this device
+      (on && scopeState !== 'ok' ? `<div class="push-fix">${esc(t(`push.scope.${scopeState}`))}</div>` : '') +
+      (on && prefs.scope === 'places' ? pushPlacesHtml(prefs) : '') +
       (on
         ? `<button type="button" class="push-manage-btn" id="push-manage-btn" aria-expanded="${pushManageOpen}">${esc(t(pushManageOpen ? 'push.manage.hide' : 'push.manage.show'))}</button>`
         : '') +
@@ -1405,8 +1498,63 @@ function renderPushCard() {
   host.querySelectorAll('.push-g-remove').forEach((el) => {
     el.addEventListener('click', () => pushUnfollowGauge(el.getAttribute('data-lid')));
   });
+  host.querySelectorAll('.push-p-radius').forEach((el) => {
+    el.addEventListener('click', () => pushSetPlaceRadius(+el.getAttribute('data-i'), +el.getAttribute('data-km')));
+  });
+  host.querySelectorAll('.push-p-remove').forEach((el) => {
+    el.addEventListener('click', () => pushRemovePlace(+el.getAttribute('data-i')));
+  });
+  host.querySelectorAll('.push-p-saved').forEach((el) => {
+    el.addEventListener('click', () => pushAddSavedPlace(+el.getAttribute('data-i')));
+  });
+  const geo = $('#push-place-geo');
+  if (geo) geo.addEventListener('click', pushAddMyLocation);
   const unsub = $('#push-unsub-all');
   if (unsub) unsub.addEventListener('click', pushDisable);
+}
+
+// alert places: added only by an explicit tap, stored rounded, removable one by one
+function pushAddPlace(lat, lon) {
+  const p = pushPrefs();
+  if (p.places.length >= PUSH_MAX_PLACES) return;
+  p.places = pushNormalizePlaces(p.places.concat([{ lat, lon, km: PUSH_PLACE_KM_DEFAULT }]));
+  p.scope = 'places';
+  pushPlaceMsg = '';
+  pushSetPrefs(p);
+}
+
+// a fresh fix taken for this purpose only: maximumAge 0 refuses a position the browser cached
+// for Drive Mode or team sharing, so nothing captured elsewhere is silently reused here
+function pushAddMyLocation() {
+  if (!navigator.geolocation) { pushPlaceMsg = t('push.places.geoerr'); renderPushCard(); return; }
+  const btn = $('#push-place-geo');
+  if (btn) btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => pushAddPlace(pos.coords.latitude, pos.coords.longitude),
+    () => { pushPlaceMsg = t('push.places.geoerr'); renderPushCard(); },
+    { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 },
+  );
+}
+
+// an explicit copy of a saved my-place: the label stays local, only the rounded pair travels
+function pushAddSavedPlace(i) {
+  const s = pushSavedCandidates(pushPrefs().places)[i];
+  if (s) pushAddPlace(s.lat, s.lon);
+}
+
+function pushSetPlaceRadius(i, km) {
+  const p = pushPrefs();
+  if (!p.places[i] || p.places[i].km === km) return;
+  p.places[i].km = km;
+  pushSetPrefs(p);
+}
+
+function pushRemovePlace(i) {
+  const p = pushPrefs();
+  if (!p.places[i]) return;
+  p.places.splice(i, 1);
+  pushPlaceMsg = '';
+  pushSetPrefs(p);
 }
 
 // follow (or retier) a gauge; the worker enforces the cap and lid shape authoritatively
@@ -1454,12 +1602,17 @@ function pushOptTap(group, val) {
   const p = pushPrefs();
   if (group === 'ffe') p.ffe = val === 'on';
   else if (group === 'tier') p.tier = val === 'off' ? null : val;
+  else if (group === 'scope') {
+    p.scope = PUSH_SCOPES.indexOf(val) >= 0 ? val : 'none';
+    if (p.scope !== 'places') p.places = []; // leaving the places area drops the points it stored
+  }
   else return;
   pushSetPrefs(p);
 }
 
 // persist a prefs change server-side (subscribe upserts by endpoint); local cache only on success
-async function pushSetPrefs(next) {
+async function pushSetPrefs(prefs) {
+  const next = pushNormalizePrefs(prefs);
   try {
     const reg = state.swReg || await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
@@ -1484,7 +1637,7 @@ async function pushEnable() {
     if (perm !== 'granted') { renderPushCard(); return; }
     const reg = state.swReg || await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(state.pushVapidKey) });
-    const prefs = pushPrefs(); // restore this device's last prefs; defaults: FFE on, no gauge tier
+    const prefs = pushPrefs(); // restore this device's last prefs; a first subscribe has no alert area yet
     const r = await fetch('api/push/subscribe', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub.toJSON(), prefs, lang: getLang() }),
@@ -1518,6 +1671,14 @@ async function pushDisable() {
   } catch (err) { /* no registration — nothing to tear down */ }
   pushLocalSet({ on: false });
   renderPushCard();
+}
+
+// repaint an ALREADY rendered card after a background prefs sync, so a device whose stored
+// settings differ from its local cache never keeps reading the stale claim. Never paints a card
+// that the backend check has not admitted yet (an empty host means initPushCard has not passed).
+function pushRerender() {
+  const host = $('#push-body');
+  if (host && host.firstChild) renderPushCard();
 }
 
 // silent boot-time keepalive + self-heal for subscribed devices (runs regardless of ?push=1):
@@ -1569,7 +1730,10 @@ async function pushBootSync() {
       if (r.ok) {
         const d = await r.json();
         // renew doubles as the endpoint-authenticated self-lookup: server prefs are authoritative
-        if (d && d.prefs) pushLocalSet({ on: true, prefs: pushNormalizePrefs(d.prefs) });
+        if (d && d.prefs) {
+          pushLocalSet({ on: true, prefs: pushNormalizePrefs(d.prefs) });
+          pushRerender();
+        }
       } else if (r.status === 404) {
         // server row gone (expiry / rotation cleanup) but the browser sub lives: re-upsert
         await fetch('api/push/subscribe', {

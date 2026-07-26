@@ -25,7 +25,9 @@ function loadPushRegistry() {
   const epilogue = '\n;globalThis.__PUSH = { PushRegistry, allowedEndpoint, isFfe, geomBbox, bboxOverlap, '
     + 'vapidJwk, signVapidJwt, b64u, b64uDecode, encryptPayload, '
     + 'CAT_RANK, PUSH_STRINGS, fmt, gaugePayload, digestPayload, ffePayload, confirmPayload, '
-    + 'sanitizePrefs, effectiveTierRank, gaugeRank, crossingStep, applyHourlyCap, verifyNudgeSig };\n';
+    + 'sanitizePrefs, effectiveTierRank, gaugeRank, crossingStep, applyHourlyCap, verifyNudgeSig, '
+    + 'sanitizePlaces, scopeOf, scopeCoversPoint, ffeReachesSub, alertReachesPlace, '
+    + 'kmBetween, ringsOf, pointInRings, kmToRings, kmToBbox, PLACE_KM, MAX_PLACES };\n';
 
   const sandbox = {
     console,

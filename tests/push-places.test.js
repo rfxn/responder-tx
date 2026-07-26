@@ -1,0 +1,539 @@
+'use strict';
+
+/*
+ * Web-push alert area (v0.99.38). Until this shipped, every area-wide notification was scoped to
+ * the event AO, which is the whole state, so one Flash Flood Emergency reached every subscriber
+ * in Texas regardless of distance. These tests pin the replacement: an explicit per-subscription
+ * area (statewide, followed places, or unset), the unset default for a subscriber who shared no
+ * location, the grandfathered statewide for rows written before the choice existed, and the
+ * unchanged most-sensitive-wins merge with per-gauge follows.
+ */
+
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const {
+  newRegistry, mockRes, sandbox, makeClientKeys, decryptPush,
+  sanitizePrefs, sanitizePlaces, scopeOf, scopeCoversPoint, ffeReachesSub, alertReachesPlace,
+  effectiveTierRank, kmBetween, pointInRings, kmToRings, PUSH_STRINGS, CAT_RANK, PLACE_KM,
+} = require('./push-harness.js');
+
+const MIN = 60 * 1000;
+const FCM = 'https://fcm.googleapis.com/fcm/send/test-endpoint-';
+const J = (x) => JSON.parse(JSON.stringify(x));
+
+// the two ends of the state the old behavior collapsed into one notification list
+const HOUSTON = { lat: 29.76, lon: -95.37 };
+const EL_PASO = { lat: 31.76, lon: -106.49 };
+
+const place = (p, km = 16) => ({ lat: p.lat, lon: p.lon, km });
+
+const sub = (n, prefs, keys) => ({
+  subscription: { endpoint: FCM + n, keys: keys || { p256dh: 'pk' + n, auth: 'ak' + n } },
+  prefs, lang: 'en',
+});
+
+const gauge = (lid, cat, obsAgoMin, now, at, name) => ({
+  lid,
+  name: name || `${lid} test river`,
+  latitude: at ? at.lat : undefined,
+  longitude: at ? at.lon : undefined,
+  status: {
+    observed: {
+      primary: 20.5, primaryUnit: 'ft', floodCategory: cat,
+      validTime: new Date(now - obsAgoMin * MIN).toISOString(),
+    },
+  },
+});
+
+// a square FFE polygon of about 0.2 degrees around a point
+const ffeAt = (id, p, half = 0.1, extra = {}) => ({
+  id,
+  geometry: {
+    type: 'Polygon',
+    coordinates: [[
+      [p.lon - half, p.lat - half], [p.lon + half, p.lat - half],
+      [p.lon + half, p.lat + half], [p.lon - half, p.lat + half], [p.lon - half, p.lat - half],
+    ]],
+  },
+  properties: { event: 'Flash Flood Warning', description: 'This is a FLASH FLOOD EMERGENCY for the area.', parameters: {}, ...extra },
+});
+
+// statewide AO, as data/event.json has carried since the standing-regions reset
+const STATE_BBOX = { xmin: -106.65, ymin: 25.83, xmax: -93.4, ymax: 36.5 };
+
+function mockNet({ features = [], snapshot = null, zones = {}, pushStatus = 201, pushLog = [] } = {}) {
+  sandbox.__fetchMock = async (url, opts = {}) => {
+    const u = String(url);
+    if (u.includes('api.weather.gov/alerts')) return mockRes(200, { features });
+    if (u.includes('api.weather.gov/zones')) {
+      const z = zones[u];
+      return z ? mockRes(200, z) : mockRes(404, {});
+    }
+    if (u.includes('respondertx.org/data/event.json')) return mockRes(200, { gaugeBbox: STATE_BBOX });
+    if (u.includes('respondertx.org/data/gauges-snapshot.json')) {
+      return mockRes(200, snapshot || { generated: '', gauges: [] });
+    }
+    pushLog.push({ url: u, headers: (opts && opts.headers) || {}, body: (opts && opts.body) || null });
+    return mockRes(typeof pushStatus === 'function' ? pushStatus(u) : pushStatus, {});
+  };
+  return pushLog;
+}
+
+/* ---------- prefs: the area choice and the stored points ---------- */
+
+test('sanitizePrefs: an unstated or unknown area is never statewide', () => {
+  assert.equal(sanitizePrefs({}).scope, 'none', 'a subscriber who chose nothing gets nothing area-wide');
+  assert.equal(sanitizePrefs({ scope: 'texas' }).scope, 'none');
+  assert.equal(sanitizePrefs({ scope: '' }).scope, 'none');
+  assert.equal(sanitizePrefs(null).scope, 'none');
+  assert.equal(sanitizePrefs({ scope: 'statewide' }).scope, 'statewide', 'statewide stays available, as a choice');
+  assert.equal(sanitizePrefs({ scope: 'places' }).scope, 'places');
+});
+
+test('sanitizePlaces rounds to about a kilometer, dedups at that precision, and caps the radius set', () => {
+  const out = J(sanitizePlaces([
+    { lat: 30.267153, lon: -97.743057, km: 8 },
+    { lat: 30.2669, lon: -97.7434, km: 40 },     // same rounded pair: dropped
+    { lat: 29.76, lon: -95.37, km: 999 },        // radius outside the chip set: default
+    { lat: 91, lon: -95, km: 8 },                // impossible latitude
+    { lat: 'x', lon: -95, km: 8 },
+    'garbage',
+  ]));
+  assert.deepEqual(out, [
+    { lat: 30.27, lon: -97.74, km: 8 },
+    { lat: 29.76, lon: -95.37, km: 16 },
+  ]);
+  for (const p of out) {
+    assert.ok(PLACE_KM.includes(p.km), 'radius comes from the offered set');
+    assert.deepEqual(Object.keys(p).sort(), ['km', 'lat', 'lon'], 'no label, no address, no accuracy trail');
+  }
+});
+
+test('sanitizePlaces keeps at most 5 points', () => {
+  const many = Array.from({ length: 9 }, (_, i) => ({ lat: 30 + i, lon: -97, km: 16 }));
+  assert.equal(sanitizePlaces(many).length, 5);
+});
+
+test('subscribe rejects more than 5 places with 400; exactly 5 is accepted', async () => {
+  const { reg } = newRegistry();
+  mockNet({});
+  const many = (n) => Array.from({ length: n }, (_, i) => ({ lat: 30 + i, lon: -97, km: 16 }));
+  const over = await reg.doSubscribe(sub('pcap', { scope: 'places', places: many(6) }), '', Date.now());
+  assert.equal(over._status, 400);
+  const atCap = await reg.doSubscribe(sub('pcap', { scope: 'places', places: many(5) }), '', Date.now());
+  assert.equal(atCap.ok, true);
+  assert.equal(J(atCap.prefs).places.length, 5);
+});
+
+/* ---------- the failure this release exists to end ---------- */
+
+test('an El Paso subscriber is not notified for a Houston emergency; a statewide subscriber is', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('elp', { ffe: true, scope: 'places', places: [place(EL_PASO)] }), '', now);
+  await reg.doSubscribe(sub('state', { ffe: true, scope: 'statewide' }), '', now);
+  const log = mockNet({ features: [ffeAt('urn:oid:hou', HOUSTON)] });
+  const out = await reg.doEvaluate(now);
+  assert.equal(out.newFfe, 1, 'the emergency is still detected, and still in the AO');
+  assert.equal(out.enqueued, 1, 'only the statewide subscriber is queued');
+  assert.equal(log.length, 1);
+  assert.match(String(log[0].url), /test-endpoint-state$/, 'the 750 mile away device stays quiet');
+});
+
+test('a place subscriber inside the polygon, and one within the radius of its edge, are both notified', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  // inside the polygon
+  await reg.doSubscribe(sub('inside', { ffe: true, scope: 'places', places: [place(HOUSTON)] }), '', now);
+  // about 15 km east of the polygon edge: inside a 16 km radius, outside an 8 km one
+  await reg.doSubscribe(sub('near', { ffe: true, scope: 'places', places: [place({ lat: 29.76, lon: -95.11 }, 16)] }), '', now);
+  await reg.doSubscribe(sub('near8', { ffe: true, scope: 'places', places: [place({ lat: 29.76, lon: -95.11 }, 8)] }), '', now);
+  // a different metro entirely
+  await reg.doSubscribe(sub('far', { ffe: true, scope: 'places', places: [place({ lat: 30.27, lon: -97.74 })] }), '', now);
+  const log = mockNet({ features: [ffeAt('urn:oid:hou2', HOUSTON)] });
+  const out = await reg.doEvaluate(now);
+  assert.equal(out.enqueued, 2, 'the covered point and the one inside its radius');
+  const hit = log.map((l) => String(l.url).replace(/^.*test-endpoint-/, '')).sort();
+  assert.deepEqual(hit, ['inside', 'near']);
+});
+
+test('a place subscriber only gets gauge crossings inside the radius, statewide still gets all', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('gp', { ffe: false, tier: 'moderate', scope: 'places', places: [place(HOUSTON)] }), '', now);
+  await reg.doSubscribe(sub('gs', { ffe: false, tier: 'moderate', scope: 'statewide' }), '', now);
+  const log = mockNet({
+    snapshot: {
+      generated: 'g1',
+      gauges: [
+        gauge('HOUG1', 'moderate', 10, now, { lat: 29.8, lon: -95.4 }),   // 5 km from the place
+        gauge('ELPG1', 'major', 10, now, EL_PASO),                        // 750 miles away
+      ],
+    },
+  });
+  const out = await reg.doEvaluate(now);
+  assert.equal(out.crossings, 3, 'statewide takes both gauges, the place subscriber takes one');
+  const hit = log.map((l) => String(l.url).replace(/^.*test-endpoint-/, ''));
+  assert.equal(hit.filter((h) => h === 'gp').length, 1, 'the place subscriber hears about its own river only');
+  assert.equal(hit.filter((h) => h === 'gs').length, 2);
+});
+
+test('a gauge with no coordinates never counts as near a place, and never blocks statewide', () => {
+  const places = { scope: 'places', places: [place(HOUSTON)] };
+  assert.equal(scopeCoversPoint(places, undefined, undefined), false);
+  assert.equal(scopeCoversPoint(places, NaN, NaN), false);
+  assert.equal(scopeCoversPoint({ scope: 'statewide' }, undefined, undefined), true);
+});
+
+/* ---------- the default for a subscriber who shared nothing ---------- */
+
+test('a subscriber who shares no location gets no area-wide alerts, provably', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  // exactly what the card sends on a first tap: alert types on, no area chosen
+  const out = await reg.doSubscribe(sub('fresh', { ffe: true, tier: 'moderate' }), '', now);
+  assert.equal(J(out.prefs).scope, 'none');
+  const ffeLog = mockNet({ features: [ffeAt('urn:oid:any', HOUSTON)] });
+  const first = await reg.doEvaluate(now);
+  assert.equal(first.newFfe, 1);
+  assert.equal(first.enqueued, 0, 'no emergency push without an area');
+  assert.equal(ffeLog.length, 0);
+  const gLog = mockNet({ snapshot: { generated: 'g1', gauges: [gauge('ANYG1', 'major', 10, now, HOUSTON)] } });
+  const second = await reg.doEvaluate(now + 10 * MIN);
+  assert.equal(second.crossings, 0, 'no area-wide gauge push without an area');
+  assert.equal(gLog.length, 0);
+});
+
+test('a followed gauge still alerts with no area chosen: the follow is the choice', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('fg', { ffe: true, tier: 'moderate', gauges: [{ lid: 'FOLL2', tier: 'major' }] }), '', now);
+  const log = mockNet({
+    snapshot: {
+      generated: 'g1',
+      gauges: [gauge('FOLL2', 'major', 10, now, EL_PASO), gauge('OTHR2', 'major', 10, now, HOUSTON)],
+    },
+  });
+  const out = await reg.doEvaluate(now);
+  assert.equal(out.crossings, 1, 'the followed gauge fires wherever it is; the unfollowed one does not');
+  assert.equal(log.length, 1);
+});
+
+test('the confirmation push asks for an area when none was chosen, and does not when one was', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  const c1 = makeClientKeys();
+  let log = mockNet({});
+  await reg.doSubscribe(sub('c1', { ffe: true }, { p256dh: c1.p256dh, auth: c1.auth }), '', now);
+  let payload = JSON.parse(decryptPush(c1, log[0].body).plaintext.toString());
+  assert.equal(payload.body, PUSH_STRINGS.en['confirm.body.noarea']);
+  assert.ok(payload.body.includes('Not a WEA/911 service'), 'the framing rides every payload');
+  const c2 = makeClientKeys();
+  log = mockNet({});
+  await reg.doSubscribe(sub('c2', { ffe: true, scope: 'statewide' }, { p256dh: c2.p256dh, auth: c2.auth }), '', now);
+  payload = JSON.parse(decryptPush(c2, log[0].body).plaintext.toString());
+  assert.equal(payload.body, PUSH_STRINGS.en['confirm.body']);
+});
+
+/* ---------- rows written before the choice existed ---------- */
+
+test('a subscription stored without an area keeps statewide delivery, and renew materializes it', async () => {
+  const { reg, state } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('legacy', { ffe: true, tier: 'moderate' }), '', now);
+  // rewrite the row the way v0.99.37 stored it: prefs with no scope key at all
+  const key = [...state._store.keys()].find((k) => k.startsWith('sub:'));
+  const row = await state.storage.get(key);
+  delete row.prefs.scope;
+  delete row.prefs.places;
+  await state.storage.put(key, row);
+  assert.equal(scopeOf(row.prefs), 'statewide', 'grandfathered, not silently switched off');
+
+  const log = mockNet({ features: [ffeAt('urn:oid:legacy', HOUSTON)] });
+  const out = await reg.doEvaluate(now);
+  assert.equal(out.enqueued, 1, 'an existing subscriber keeps the delivery they opted into');
+  assert.equal(log.length, 1);
+
+  mockNet({});
+  const renewed = await reg.doRenew({ endpoint: FCM + 'legacy' }, '', now + MIN);
+  assert.equal(J(renewed.prefs).scope, 'statewide', 'the card is told the same truth the evaluator uses');
+  assert.equal(J((await state.storage.get(key)).prefs).scope, 'statewide', 'and the row now says it explicitly');
+});
+
+/* ---------- the area and the follows coexist, most sensitive wins ---------- */
+
+test('effectiveTierRank: the area gates the area-wide tier only, never a per-gauge follow', () => {
+  const both = { tier: 'major', gauges: [{ lid: 'A1LID', tier: 'moderate' }] };
+  assert.equal(effectiveTierRank(both, 'A1LID', true), CAT_RANK.moderate, 'most sensitive of the two wins');
+  assert.equal(effectiveTierRank(both, 'A1LID', false), CAT_RANK.moderate, 'out of area, the follow still stands');
+  assert.equal(effectiveTierRank(both, 'B2LID', true), CAT_RANK.major, 'in area, the area-wide tier applies');
+  assert.equal(effectiveTierRank(both, 'B2LID', false), 0, 'out of area, an unfollowed gauge is unwatched');
+  assert.equal(effectiveTierRank({ tier: 'moderate' }, 'ANY1'), CAT_RANK.moderate, 'callers with no point to test still resolve');
+});
+
+test('a place subscriber following a distant gauge at major gets that one and nothing else near it', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('mix', {
+    ffe: false, tier: 'moderate', scope: 'places', places: [place(HOUSTON)],
+    gauges: [{ lid: 'FARG2', tier: 'major' }],
+  }), '', now);
+  const log = mockNet({
+    snapshot: {
+      generated: 'g1',
+      gauges: [
+        gauge('FARG2', 'moderate', 10, now, EL_PASO),                   // followed at major: silent at moderate
+        gauge('NEARG', 'moderate', 10, now, { lat: 29.8, lon: -95.4 }), // in the place radius: the area tier fires
+        gauge('OTHR2', 'major', 10, now, EL_PASO),                      // out of area, unfollowed: silent
+      ],
+    },
+  });
+  let out = await reg.doEvaluate(now);
+  assert.equal(out.crossings, 1);
+  assert.equal(log.length, 1);
+  // the followed gauge reaching its own tier fires wherever it is
+  const log2 = mockNet({
+    snapshot: { generated: 'g2', gauges: [gauge('FARG2', 'major', 10, now, EL_PASO)] },
+  });
+  out = await reg.doEvaluate(now + 40 * MIN);
+  assert.equal(out.crossings, 1);
+  assert.equal(log2.length, 1);
+});
+
+/* ---------- prefs round-trip through the registry ---------- */
+
+test('places round-trip through subscribe and come back on renew, rounded and capped', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  const wanted = {
+    ffe: true, tier: 'major', scope: 'places',
+    gauges: [{ lid: 'SRRT2', tier: 'moderate' }],
+    places: [{ lat: 29.761234, lon: -95.369876, km: 40 }, { lat: 30.27, lon: -97.74, km: 8 }],
+  };
+  const stored = await reg.doSubscribe(sub('rt', wanted), '', now);
+  assert.deepEqual(J(stored.prefs), {
+    ffe: true, tier: 'major', gauges: [{ lid: 'SRRT2', tier: 'moderate' }], scope: 'places',
+    places: [{ lat: 29.76, lon: -95.37, km: 40 }, { lat: 30.27, lon: -97.74, km: 8 }],
+  });
+  const back = await reg.doRenew({ endpoint: FCM + 'rt' }, '', now + MIN);
+  assert.deepEqual(J(back.prefs), J(stored.prefs), 'the registry hands back exactly what it holds');
+  // and nothing else about the subscriber is kept alongside it
+  const peek = await reg.doPeek(now);
+  assert.equal(peek.scopes.places, 1);
+  assert.equal(peek.places, 2);
+});
+
+test('dropping to statewide clears nothing but the area, and switching back needs new points', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('sw', { scope: 'places', places: [place(HOUSTON)], tier: 'major' }), '', now);
+  const wide = await reg.doSubscribe(sub('sw', { scope: 'statewide', tier: 'major' }), '', now + 1000);
+  assert.equal(J(wide.prefs).places.length, 0, 'the points are dropped when the card stops using them');
+  assert.equal(J(wide.prefs).scope, 'statewide');
+});
+
+/* ---------- geometry ---------- */
+
+test('alertReachesPlace: inside, within the radius, and beyond it', () => {
+  const geo = { rings: ffeAt('x', HOUSTON).geometry.coordinates, bboxes: [], resolved: true };
+  assert.equal(alertReachesPlace(geo, place(HOUSTON, 8)), true, 'the point is inside the polygon');
+  assert.equal(alertReachesPlace(geo, place({ lat: 29.76, lon: -95.11 }, 16)), true, 'about 15 km out, 16 km radius');
+  assert.equal(alertReachesPlace(geo, place({ lat: 29.76, lon: -95.11 }, 8)), false, 'same point, 8 km radius');
+  assert.equal(alertReachesPlace(geo, place(EL_PASO, 40)), false);
+});
+
+test('an emergency that cannot be located reaches statewide subscribers but no place subscriber', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('nsw', { ffe: true, scope: 'statewide' }), '', now);
+  await reg.doSubscribe(sub('npl', { ffe: true, scope: 'places', places: [place(HOUSTON)] }), '', now);
+  const noGeom = {
+    id: 'urn:oid:nogeo',
+    geometry: null,
+    properties: {
+      event: 'Flash Flood Warning', description: 'This is a FLASH FLOOD EMERGENCY for the area.',
+      parameters: {}, affectedZones: ['https://api.weather.gov/zones/county/TXC201'],
+    },
+  };
+  const log = mockNet({ features: [noGeom] });
+  const out = await reg.doEvaluate(now);
+  assert.equal(out.newFfe, 1, 'still notified about, since FFE fails toward telling people');
+  assert.equal(out.enqueued, 1);
+  assert.equal(String(log[0].url).endsWith('nsw'), true, 'proximity is never claimed for an unlocated product');
+});
+
+test('a zone-resolved emergency reaches a place subscriber inside the zone bbox', async () => {
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('zpl', { ffe: true, scope: 'places', places: [place(HOUSTON)] }), '', now);
+  await reg.doSubscribe(sub('zfar', { ffe: true, scope: 'places', places: [place(EL_PASO)] }), '', now);
+  const zoneUrl = 'https://api.weather.gov/zones/county/TXC201';
+  const noGeom = {
+    id: 'urn:oid:zone',
+    geometry: null,
+    properties: {
+      event: 'Flash Flood Warning', description: 'This is a FLASH FLOOD EMERGENCY for the area.',
+      parameters: {}, affectedZones: [zoneUrl],
+    },
+  };
+  const log = mockNet({ features: [noGeom], zones: { [zoneUrl]: ffeAt('z', HOUSTON, 0.3) } });
+  const out = await reg.doEvaluate(now);
+  assert.equal(out.enqueued, 1);
+  assert.equal(String(log[0].url).endsWith('zpl'), true);
+});
+
+test('kmBetween, pointInRings and kmToRings agree with known distances', () => {
+  assert.ok(Math.abs(kmBetween(HOUSTON.lat, HOUSTON.lon, EL_PASO.lat, EL_PASO.lon) - 1088) < 20,
+    'Houston to El Paso is about 1090 km');
+  assert.equal(kmBetween(29.76, -95.37, 29.76, -95.37), 0);
+  const rings = ffeAt('x', HOUSTON).geometry.coordinates;
+  assert.equal(pointInRings(HOUSTON.lat, HOUSTON.lon, rings), true);
+  assert.equal(pointInRings(EL_PASO.lat, EL_PASO.lon, rings), false);
+  assert.ok(kmToRings(HOUSTON.lat, HOUSTON.lon + 0.2, rings) > 8, 'a tenth of a degree east of the edge');
+  assert.ok(kmToRings(HOUSTON.lat, HOUSTON.lon + 0.2, rings) < 12);
+});
+
+/* ---------- the card: the choice, and what it says is stored ---------- */
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { loadApp } = require('./harness.js');
+const I18N = require('./i18n-load.js');
+
+const BOARD = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
+const { pushNormalizePrefs, pushNormalizePlaces, pushScopeState, pushPlacesHtml, pushRadiusLabel } = loadApp();
+
+test('the client prefs normalizer mirrors the registry: unstated area is none, points are rounded', () => {
+  assert.equal(pushNormalizePrefs({ ffe: true }).scope, 'none');
+  assert.equal(pushNormalizePrefs({ scope: 'nonsense' }).scope, 'none');
+  assert.equal(pushNormalizePrefs({ scope: 'statewide' }).scope, 'statewide');
+  assert.deepEqual(J(pushNormalizePlaces([
+    { lat: 29.761234, lon: -95.369876, km: 8 },
+    { lat: 29.7609, lon: -95.3701, km: 40 },   // same rounded pair
+    { lat: 30.27, lon: -97.74, km: 3 },        // radius outside the chip set
+  ])), [{ lat: 29.76, lon: -95.37, km: 8 }, { lat: 30.27, lon: -97.74, km: 16 }]);
+  assert.equal(pushNormalizePlaces(Array.from({ length: 9 }, (_, i) => ({ lat: 30 + i, lon: -97 }))).length, 5);
+});
+
+test('pushScopeState tells the card when area alerts cannot fire', () => {
+  assert.equal(pushScopeState({ scope: 'statewide' }), 'ok');
+  assert.equal(pushScopeState({ scope: 'places', places: [{ lat: 29.76, lon: -95.37, km: 16 }] }), 'ok');
+  assert.equal(pushScopeState({ scope: 'places', places: [] }), 'empty');
+  assert.equal(pushScopeState({ scope: 'none' }), 'unset');
+  assert.equal(pushScopeState({}), 'unset');
+  assert.equal(pushScopeState(null), 'unset');
+});
+
+test('the card offers the area choice ahead of the alert types, and explains an area that cannot fire', () => {
+  const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
+  const scopeRow = render.indexOf("typeRow('scope'");
+  const ffeRow = render.indexOf("typeRow('ffe'");
+  assert.ok(scopeRow !== -1 && ffeRow !== -1 && scopeRow < ffeRow, 'where you want alerts comes before which alerts');
+  assert.match(render, /push\.scope\.statewide/, 'statewide must stay an explicit, reachable choice');
+  assert.match(render, /push\.scope\.places/);
+  assert.match(render, /scopeState !== 'ok' \? `<div class="push-fix">\$\{esc\(t\(`push\.scope\.\$\{scopeState\}`\)\)\}<\/div>`/,
+    'an area that covers nothing must say so on the card');
+  // the honesty framing is unconditional, exactly as before this feature
+  assert.match(render, /`<div class="push-note">\$\{esc\(t\('push\.note'\)\)\}<\/div>` \+/);
+  assert.match(render, /push\.disclaimer/);
+});
+
+test('the places editor states what is stored, every time it renders', () => {
+  const html = pushPlacesHtml({ scope: 'places', places: [{ lat: 29.76, lon: -95.37, km: 16 }] });
+  assert.match(html, /push\.places\.store/, 'the storage sentence is not optional');
+  assert.match(html, /29\.76, -95\.37/, 'the row shows exactly the pair that is stored');
+  assert.match(html, /push-p-radius/);
+  assert.match(html, /push-p-remove/, 'each point is removable on its own');
+  const empty = pushPlacesHtml({ scope: 'places', places: [] });
+  assert.match(empty, /push\.places\.none/);
+  assert.match(empty, /push\.places\.store/);
+  assert.match(empty, /id="push-place-geo"/, 'the opt-in location control');
+  assert.equal(pushRadiusLabel(8).startsWith('5 '), true);
+  assert.equal(pushRadiusLabel(40).startsWith('25 '), true);
+});
+
+test('a position for alerts is taken fresh, on a tap, and never borrowed from another feature', () => {
+  const hits = [...BOARD.matchAll(/getCurrentPosition/g)];
+  const fn = BOARD.match(/function pushAddMyLocation\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'pushAddMyLocation() not found');
+  assert.match(fn[0], /maximumAge: 0/, 'a cached fix from Drive Mode or team sharing must not be reused here');
+  assert.ok(hits.length >= 1);
+  // the alerts path never reads a position another feature captured
+  const adders = BOARD.match(/function pushAddPlace\([\s\S]*?\n\}/)[0];
+  assert.ok(!/state\.(pos|position|lastPos|myPos)/.test(adders + fn[0]),
+    'alert places must come from an explicit fix or an explicit saved-place copy');
+  // and nothing on the boot path can add one
+  const sync = BOARD.match(/async function pushBootSync\(\)[\s\S]*?\n\}/)[0];
+  assert.ok(!/getCurrentPosition|pushAddPlace/.test(sync), 'boot must never capture a location');
+});
+
+test('leaving the places area drops the points it stored, on the card and in the registry', async () => {
+  const tap = BOARD.match(/function pushOptTap\(group, val\)[\s\S]*?\n\}/)[0];
+  assert.match(tap, /if \(p\.scope !== 'places'\) p\.places = \[\];/,
+    'switching to statewide or off must not leave coordinates behind');
+  const { reg } = newRegistry();
+  const now = Date.now();
+  mockNet({});
+  await reg.doSubscribe(sub('drop', { scope: 'places', places: [place(HOUSTON)] }), '', now);
+  const wide = await reg.doSubscribe(sub('drop', { scope: 'statewide', places: [] }), '', now + 1000);
+  assert.equal(J(wide.prefs).places.length, 0);
+  const peek = await reg.doPeek(now);
+  assert.equal(peek.places, 0, 'nothing kept beyond the choice that needed it');
+});
+
+test('a device whose stored area differs from its local cache is repainted, not left claiming the old one', () => {
+  const sync = BOARD.match(/async function pushBootSync\(\)[\s\S]*?\n\}/)[0];
+  assert.match(sync, /pushLocalSet\(\{ on: true, prefs: pushNormalizePrefs\(d\.prefs\) \}\);\s*\n\s*pushRerender\(\);/,
+    'the server prefs the renew brings back must reach the card');
+  const rerender = BOARD.match(/function pushRerender\(\)[\s\S]*?\n\}/);
+  assert.ok(rerender, 'pushRerender() not found');
+  assert.match(rerender[0], /host && host\.firstChild/,
+    'a background sync must not paint a card the backend check has not admitted');
+});
+
+test('i18n: the area choice and the places editor are complete in both languages and dash-free', () => {
+  const keys = ['push.type.scope', 'push.scope.statewide', 'push.scope.places', 'push.scope.unset',
+    'push.scope.empty', 'push.places.title', 'push.places.none', 'push.places.add', 'push.places.saved',
+    'push.places.store', 'push.places.limit', 'push.places.removearia', 'push.places.geoerr'];
+  for (const k of keys) {
+    for (const lang of ['en', 'es']) {
+      assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
+      assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+    }
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+  }
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['push.places.store'], lang === 'en' ? /rounded/ : /redondead/,
+      `${lang} must say the coordinates are rounded`);
+  }
+});
+
+test('the worker string table keeps en/es parity on the new-subscriber confirmation', () => {
+  assert.deepEqual(Object.keys(PUSH_STRINGS.en).sort(), Object.keys(PUSH_STRINGS.es).sort());
+  for (const lang of ['en', 'es']) {
+    const s = PUSH_STRINGS[lang]['confirm.body.noarea'];
+    assert.ok(s && !s.includes('—'), `${lang} confirm.body.noarea missing or dashed`);
+    assert.match(s, /911/, `${lang} confirm.body.noarea dropped the 911 carve-out`);
+  }
+});
+
+test('ffeReachesSub is the whole area rule, in one place', () => {
+  const geo = { rings: ffeAt('x', HOUSTON).geometry.coordinates, bboxes: [], resolved: true };
+  assert.equal(ffeReachesSub({ scope: 'statewide' }, geo), true);
+  assert.equal(ffeReachesSub({ scope: 'none' }, geo), false);
+  assert.equal(ffeReachesSub({ scope: 'places', places: [] }, geo), false, 'places with no points reaches nobody');
+  assert.equal(ffeReachesSub({ scope: 'places', places: [place(HOUSTON)] }, geo), true);
+  assert.equal(ffeReachesSub({ scope: 'places', places: [place(EL_PASO)] }, geo), false);
+  assert.equal(ffeReachesSub({}, geo), true, 'a pre-existing row keeps statewide');
+});

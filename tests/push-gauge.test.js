@@ -21,7 +21,7 @@ const FCM = 'https://fcm.googleapis.com/fcm/send/test-endpoint-';
 
 const subBody = (n, extra = {}) => ({
   subscription: { endpoint: FCM + n, keys: { p256dh: 'pk' + n, auth: 'ak' + n } },
-  prefs: { ffe: true }, lang: 'en', ...extra,
+  prefs: { ffe: true, scope: 'statewide' }, lang: 'en', ...extra,
 });
 
 const gauge = (lid, cat, obsAgoMin, now, name) => ({
@@ -214,7 +214,7 @@ test('a tier subscriber gets an encrypted gauge payload with name, category, and
   mockNet({});
   await reg.doSubscribe({
     subscription: { endpoint: FCM + 'g1', keys: { p256dh: client.p256dh, auth: client.auth } },
-    prefs: { ffe: true, tier: 'moderate' }, lang: 'en',
+    prefs: { ffe: true, tier: 'moderate', scope: 'statewide' }, lang: 'en',
   }, '', now);
   const snapshot = {
     generated: 'gen-1',
@@ -270,7 +270,7 @@ test('a mass crossing collapses into 5 direct sends plus one digest (6/hour cap)
   mockNet({});
   await reg.doSubscribe({
     subscription: { endpoint: FCM + 'cap', keys: { p256dh: client.p256dh, auth: client.auth } },
-    prefs: { ffe: true, tier: 'moderate' }, lang: 'en',
+    prefs: { ffe: true, tier: 'moderate', scope: 'statewide' }, lang: 'en',
   }, '', now);
   const gauges = [];
   for (let i = 0; i < 9; i++) gauges.push(gauge(`G${i}LID`, 'major', 10, now));

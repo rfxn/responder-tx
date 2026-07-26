@@ -1,6 +1,7 @@
 // responder-push-alerts — Cloudflare Worker hosting the PushRegistry Durable Object (web-push P3).
 // One well-known DO instance (idFromName('registry')) holds every anonymous push subscription:
-// endpoint + browser keys + prefs (ffe on/off, AO-wide gauge tier, followed gauges) + language, nothing else
+// endpoint + browser keys + prefs (ffe on/off, alert area, area-wide gauge tier, followed gauges,
+// followed places) + language, nothing else
 // (no name, no email, no IP retention). A Pages project cannot host a Durable Object, so this
 // ships as a standalone Worker and the Pages Functions under functions/api/push/ bind to it
 // (env.PUSH) and forward requests here. The evaluator is the */5 cron on this Worker (plus the
@@ -25,6 +26,11 @@ const KEY_MAX = 256;
 const MAX_GAUGES = 20;                         // followed gauges per subscription (400 above)
 const LID_RE = /^[A-Z0-9]{3,10}$/;
 const ZONE_FETCH_MAX = 3;                      // zone-geometry lookups per polygon-less alert
+const MAX_PLACES = 5;                          // followed places per subscription (400 above)
+const PLACE_KM = [8, 16, 40];                  // radius chips read 5, 10 and 25 miles on the card
+const PLACE_KM_DEFAULT = 16;
+const PLACE_DP = 2;                            // stored coordinate precision, about 1 km
+const SCOPES = ['statewide', 'places', 'none'];
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
 const RANK_CAT = ['none', 'action', 'minor', 'moderate', 'major'];
@@ -78,6 +84,74 @@ function geomBbox(geometry) {
 
 const bboxOverlap = (a, b) => a && b && a.xmin <= b.xmax && a.xmax >= b.xmin && a.ymin <= b.ymax && a.ymax >= b.ymin;
 
+const EARTH_KM = 6371.0088;
+const rad = (d) => (d * Math.PI) / 180;
+
+function kmBetween(lat1, lon1, lat2, lon2) {
+  const dLat = rad(lat2 - lat1);
+  const dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_KM * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+function ringsOf(geometry) {
+  if (!geometry) return [];
+  if (geometry.type === 'Polygon') return geometry.coordinates || [];
+  if (geometry.type === 'MultiPolygon') return (geometry.coordinates || []).flat(1);
+  return [];
+}
+
+// even-odd ray cast, XORed across rings so a hole reads as outside
+function pointInRings(lat, lon, rings) {
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// shortest distance from the point to any polygon edge, in a local equirectangular projection
+// (exact enough at the tens-of-km scale these radii work at)
+function kmToRings(lat, lon, rings) {
+  const kx = 111.32 * Math.cos(rad(lat));
+  const ky = 110.574;
+  let best = Infinity;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {   // wraps, so an unclosed ring keeps its last edge
+      const ax = (ring[j][0] - lon) * kx, ay = (ring[j][1] - lat) * ky;
+      const bx = (ring[i][0] - lon) * kx, by = (ring[i][1] - lat) * ky;
+      const dx = bx - ax, dy = by - ay;
+      const len2 = dx * dx + dy * dy;
+      const tt = len2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+      const px = ax + tt * dx, py = ay + tt * dy;
+      const d = Math.sqrt(px * px + py * py);
+      if (d < best) best = d;
+    }
+  }
+  return best;
+}
+
+function kmToBbox(lat, lon, b) {
+  if (!b) return Infinity;
+  const cx = Math.min(Math.max(lon, b.xmin), b.xmax);
+  const cy = Math.min(Math.max(lat, b.ymin), b.ymax);
+  return kmBetween(lat, lon, cy, cx);
+}
+
+// does an alert's geometry reach this followed place? Polygons are tested precisely (inside, or
+// within the radius of an edge); a product resolvable only to zone bboxes falls back to the bbox.
+// Nothing resolvable means no match: proximity cannot be claimed for an unlocated product.
+function alertReachesPlace(geo, place) {
+  if (!geo || !place) return false;
+  if (geo.rings.length) {
+    return pointInRings(place.lat, place.lon, geo.rings) || kmToRings(place.lat, place.lon, geo.rings) <= place.km;
+  }
+  return geo.bboxes.some((b) => kmToBbox(place.lat, place.lon, b) <= place.km);
+}
+
 async function sha256hex(subtle, s) {
   const d = new Uint8Array(await subtle.digest('SHA-256', new TextEncoder().encode(String(s))));
   let hex = '';
@@ -100,6 +174,7 @@ const PUSH_STRINGS = {
     'ffe.body': 'New NWS Flash Flood Emergency in the area. Not a WEA/911 service.',
     'confirm.title': 'Alerts enabled',
     'confirm.body': 'This device will now receive flood alerts. Adjust or turn them off on the board. Not a WEA/911 service.',
+    'confirm.body.noarea': 'Pick an alert area on the board to start getting emergency and gauge alerts. Not a WEA/911 service.',
   },
   es: {
     'cat.moderate': 'etapa de inundación MODERADA',
@@ -113,6 +188,7 @@ const PUSH_STRINGS = {
     'ffe.body': 'Nueva emergencia de inundación repentina del NWS en la zona. No sustituye a WEA ni al 911.',
     'confirm.title': 'Alertas activadas',
     'confirm.body': 'Este dispositivo ahora recibirá alertas de inundación. Ajústelas o desactívelas en el tablero. No sustituye a WEA ni al 911.',
+    'confirm.body.noarea': 'Elija un área de alerta en el tablero para comenzar a recibir alertas de emergencia y de medidores. No sustituye a WEA ni al 911.',
   },
 };
 
@@ -155,18 +231,38 @@ function ffePayload(lang, area, id, now) {
   });
 }
 
-function confirmPayload(lang, now) {
+function confirmPayload(lang, now, scope) {
   const s = pushStrings(lang);
   return JSON.stringify({
     t: 'confirm', lang,
     title: s['confirm.title'],
-    body: s['confirm.body'],
+    body: scope === 'none' ? s['confirm.body.noarea'] : s['confirm.body'],
     url: '/?push=1', ts: new Date(now).toISOString(), tag: 'confirm',
   });
 }
 
-// P3 prefs: ffe on/off + AO-wide gauge tier (moderate implies major) + followed gauges
-// [{lid, tier}] deduped by lid, capped at MAX_GAUGES
+// coordinates are rounded to PLACE_DP (about a kilometer) before storage, deduped at that
+// precision, and carry no label: the card states exactly this
+function sanitizePlaces(src) {
+  const out = [];
+  const seen = new Set();
+  const q = 10 ** PLACE_DP;
+  for (const p of Array.isArray(src) ? src.slice(0, MAX_PLACES) : []) {
+    const lat = Math.round(Number(p && p.lat) * q) / q;
+    const lon = Math.round(Number(p && p.lon) * q) / q;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    const key = `${lat},${lon}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ lat, lon, km: PLACE_KM.includes(Number(p.km)) ? Number(p.km) : PLACE_KM_DEFAULT });
+  }
+  return out;
+}
+
+// P3 prefs: ffe on/off + alert area (scope) + area-wide gauge tier (moderate implies major)
+// + followed gauges [{lid, tier}] + followed places [{lat, lon, km}], both deduped and capped.
+// An absent or unrecognized scope sanitizes to 'none': a subscriber who shared no location is
+// never given the whole state by default.
 function sanitizePrefs(p) {
   const src = p && typeof p === 'object' ? p : {};
   const gauges = [];
@@ -182,14 +278,44 @@ function sanitizePrefs(p) {
     ffe: src.ffe !== false,
     tier: src.tier === 'moderate' || src.tier === 'major' ? src.tier : null,
     gauges,
+    scope: SCOPES.includes(src.scope) ? src.scope : 'none',
+    places: sanitizePlaces(src.places),
   };
 }
 
-// effective threshold for one (prefs, gauge): the AO-wide tier and a per-gauge follow coexist,
-// and the most sensitive applicable threshold wins. 0 = not watched at all.
-function effectiveTierRank(prefs, lid) {
+// rows written before the alert area existed carry no scope. They subscribed under statewide
+// delivery, so they keep it until the card narrows it; sanitizePrefs never writes an implicit
+// statewide, so this only ever grandfathers a pre-existing row.
+function scopeOf(prefs) {
+  const s = prefs && prefs.scope;
+  return SCOPES.includes(s) ? s : 'statewide';
+}
+
+// does this subscription's area cover a point? Followed gauges are unaffected by the area:
+// they are an explicit per-gauge choice, wherever they are.
+function scopeCoversPoint(prefs, lat, lon) {
+  const sc = scopeOf(prefs);
+  if (sc === 'statewide') return true;
+  if (sc !== 'places') return false;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false; // an unlocated gauge is near nothing
+  return ((prefs && prefs.places) || []).some((p) => kmBetween(lat, lon, p.lat, p.lon) <= p.km);
+}
+
+// does an in-AO emergency reach this subscription? Statewide takes every one of them; a places
+// subscription takes only the ones that reach one of its points; an unset area takes none.
+function ffeReachesSub(prefs, geo) {
+  const sc = scopeOf(prefs);
+  if (sc === 'statewide') return true;
+  if (sc !== 'places') return false;
+  return ((prefs && prefs.places) || []).some((p) => alertReachesPlace(geo, p));
+}
+
+// effective threshold for one (prefs, gauge): the area-wide tier (only where the alert area
+// covers the gauge) and a per-gauge follow coexist, and the most sensitive applicable threshold
+// wins. 0 = not watched at all. inScope defaults to true for callers with no location to test.
+function effectiveTierRank(prefs, lid, inScope) {
   const p = prefs && typeof prefs === 'object' ? prefs : {};
-  let rank = p.tier === 'moderate' || p.tier === 'major' ? CAT_RANK[p.tier] : 0;
+  let rank = inScope !== false && (p.tier === 'moderate' || p.tier === 'major') ? CAT_RANK[p.tier] : 0;
   for (const g of Array.isArray(p.gauges) ? p.gauges : []) {
     if (g && g.lid === lid && (g.tier === 'moderate' || g.tier === 'major')) {
       const r = CAT_RANK[g.tier];
@@ -335,6 +461,10 @@ export class PushRegistry {
     if (Array.isArray(rawGauges) && rawGauges.length > MAX_GAUGES) {
       return { _status: 400, error: 'too many gauges' };
     }
+    const rawPlaces = body.prefs && body.prefs.places;
+    if (Array.isArray(rawPlaces) && rawPlaces.length > MAX_PLACES) {
+      return { _status: 400, error: 'too many places' };
+    }
     const keys = s.keys || {};
     const p256dh = String(keys.p256dh || '').slice(0, KEY_MAX);
     const auth = String(keys.auth || '').slice(0, KEY_MAX);
@@ -358,7 +488,7 @@ export class PushRegistry {
     let confirmed = false;
     if (!existing) {
       const q = (await this.state.storage.get('sendq')) || [];
-      q.push({ subId: id, payload: confirmPayload(lang, now), tries: 0 });
+      q.push({ subId: id, payload: confirmPayload(lang, now, prefs.scope), tries: 0 });
       await this.state.storage.put('sendq', q);
       const drained = await this.drain(now);
       confirmed = drained.sent > 0;
@@ -384,6 +514,11 @@ export class PushRegistry {
     const row = await this.state.storage.get(`sub:${id}`);
     if (!row) return { _status: 404, error: 'not subscribed' };
     row.renewed = now;
+    // materialize the grandfathered area on the first renew after the choice shipped, so the
+    // card shows the same truth the evaluator uses
+    if (!SCOPES.includes(row.prefs && row.prefs.scope)) {
+      row.prefs = sanitizePrefs({ ...(row.prefs || {}), scope: 'statewide' });
+    }
     await this.state.storage.put(`sub:${id}`, row);
     // renew doubles as the endpoint-authenticated self-lookup: possession of the unguessable
     // endpoint URL is the only credential, so the stored prefs ride back for the manage view
@@ -439,11 +574,15 @@ export class PushRegistry {
     const q = (await this.state.storage.get('sendq')) || [];
     const subs = await this.state.storage.list({ prefix: 'sub:' });
     const tiers = { moderate: 0, major: 0 };
+    const scopes = { statewide: 0, places: 0, none: 0 };
     const followedGauges = {};   // lid → follower count (counts only, no endpoints)
     let follows = 0;
+    let placeCount = 0;
     for (const row of subs.values()) {
       const tier = row.prefs && row.prefs.tier;
       if (tier === 'moderate' || tier === 'major') tiers[tier] += 1;
+      scopes[scopeOf(row.prefs)] += 1;
+      placeCount += ((row.prefs && row.prefs.places) || []).length;
       for (const g of (row.prefs && row.prefs.gauges) || []) {
         follows += 1;
         followedGauges[`${g.lid}:${g.tier}`] = (followedGauges[`${g.lid}:${g.tier}`] || 0) + 1;
@@ -453,6 +592,8 @@ export class PushRegistry {
       configured: this.configured(),
       subCount: subs.size,
       tiers,
+      scopes,
+      places: placeCount,
       follows,
       followedGauges,
       queue: q.length,
@@ -481,24 +622,26 @@ export class PushRegistry {
     return AO_FALLBACK;
   }
 
-  // polygon bbox test; polygon-less products fall back to a capped zone-geometry lookup and,
-  // failing that, count as in-AO (fail toward notifying — FFE is the highest-stakes class)
-  async inAo(feature, ao) {
-    const bb = geomBbox(feature.geometry);
-    if (bb) return bboxOverlap(bb, ao);
+  // resolve an alert's geometry once per pass: its own polygon, else a capped zone-geometry
+  // lookup. resolved=false means the product could not be located at all.
+  async alertGeo(feature) {
+    const out = { rings: ringsOf(feature.geometry), bboxes: [], resolved: false };
+    const own = geomBbox(feature.geometry);
+    if (own) { out.bboxes.push(own); out.resolved = true; return out; }
     const zones = ((feature.properties || {}).affectedZones || []).slice(0, ZONE_FETCH_MAX);
-    let resolved = 0;
     for (const z of zones) {
       try {
         const res = await fetch(`${z}`, { headers: { 'User-Agent': UA, Accept: 'application/geo+json' } });
         if (!res.ok) continue;
-        const zb = geomBbox((await res.json()).geometry);
+        const geom = (await res.json()).geometry;
+        const zb = geomBbox(geom);
         if (!zb) continue;
-        resolved += 1;
-        if (bboxOverlap(zb, ao)) return true;
-      } catch { /* zone lookup failed — falls through to the default-include rule */ }
+        out.resolved = true;
+        out.bboxes.push(zb);
+        for (const r of ringsOf(geom)) out.rings.push(r);
+      } catch { /* zone lookup failed, the caller's default-include rule covers it */ }
     }
-    return resolved === 0; // nothing resolvable → include; resolved-but-outside → exclude
+    return out;
   }
 
   async doEvaluate(now) {
@@ -531,8 +674,11 @@ export class PushRegistry {
         if (!isFfe(p)) continue;
         const id = String(f.id || p.id || '');
         if (!id || seen.has(id)) continue;
-        if (!(await this.inAo(f, ao))) continue;
-        fresh.push({ id, area: String(p.areaDesc || '') });
+        const geo = await this.alertGeo(f);
+        // unlocatable products still reach statewide subscribers (fail toward notifying on the
+        // highest-stakes class); place subscribers need geometry to be near anything
+        if (geo.resolved && !geo.bboxes.some((b) => bboxOverlap(b, ao))) continue;
+        fresh.push({ id, area: String(p.areaDesc || ''), geo });
         meta.ffeSeen.push({ id, ts: now });
       }
       meta.ffeSeen = (meta.ffeSeen || []).slice(-FFE_SEEN_MAX);
@@ -545,10 +691,10 @@ export class PushRegistry {
       const q = (await this.state.storage.get('sendq')) || [];
       for (const f of fresh) {
         for (const row of live) {
-          if (row.prefs && row.prefs.ffe) {
-            q.push({ subId: row.id, payload: ffePayload(row.lang, f.area, f.id, now), tries: 0 });
-            ffeQueued += 1;
-          }
+          if (!(row.prefs && row.prefs.ffe)) continue;
+          if (!ffeReachesSub(row.prefs, f.geo)) continue;
+          q.push({ subId: row.id, payload: ffePayload(row.lang, f.area, f.id, now), tries: 0 });
+          ffeQueued += 1;
         }
       }
       await this.state.storage.put('sendq', q);
@@ -571,8 +717,9 @@ export class PushRegistry {
   // P3: the crossing filter honors per-gauge follows alongside the AO-wide tier (§effectiveTierRank).
   async gaugePass(live, meta, now) {
     const out = { ok: true, crossings: 0, digests: 0, skipped: false };
-    const watchers = live.filter((r) => r.prefs && (r.prefs.tier === 'moderate' || r.prefs.tier === 'major'
-      || (Array.isArray(r.prefs.gauges) && r.prefs.gauges.length)));
+    const watchers = live.filter((r) => r.prefs
+      && (((r.prefs.tier === 'moderate' || r.prefs.tier === 'major') && scopeOf(r.prefs) !== 'none')
+        || (Array.isArray(r.prefs.gauges) && r.prefs.gauges.length)));
     try {
       const res = await fetch(SNAPSHOT_URL, { headers: { 'User-Agent': UA } });
       if (!res.ok) throw new Error(`snapshot HTTP ${res.status}`);
@@ -585,14 +732,17 @@ export class PushRegistry {
       for (const g of ((snap && snap.gauges) || [])) {
         const lid = String(g.lid || '');
         if (!lid) continue;
-        ranked.push({ lid, name: String(g.name || lid), rank: gaugeRank(g, now), obs: g.status && g.status.observed });
+        ranked.push({
+          lid, name: String(g.name || lid), rank: gaugeRank(g, now), obs: g.status && g.status.observed,
+          lat: Number(g.latitude), lon: Number(g.longitude),
+        });
       }
       const q = (await this.state.storage.get('sendq')) || [];
       for (const row of watchers) {
         const ns = (await this.state.storage.get(`ns:${row.id}`)) || { g: {}, hourly: [] };
         const candidates = [];
         for (const g of ranked) {
-          const tierRank = effectiveTierRank(row.prefs, g.lid);
+          const tierRank = effectiveTierRank(row.prefs, g.lid, scopeCoversPoint(row.prefs, g.lat, g.lon));
           const prev = ns.g[g.lid];
           if (!tierRank) { if (prev) delete ns.g[g.lid]; continue; } // gauge no longer watched — drop armed state
           if (g.rank < tierRank && !prev) continue; // no crossing, no armed state — nothing to do
@@ -742,12 +892,14 @@ export class PushRegistry {
     const results = [];
     for (const row of targets) {
       let payload = null;
-      if (kind === 'confirm') payload = confirmPayload(row.lang, now);
+      if (kind === 'confirm') payload = confirmPayload(row.lang, now, scopeOf(row.prefs));
       else if (kind === 'gauge' || kind === 'crossing') {
         const lid = String(body.lid || 'TEST').slice(0, 16);
         const rank = CAT_RANK[body.cat] >= CAT_RANK.moderate ? CAT_RANK[body.cat] : CAT_RANK.moderate;
         if (kind === 'crossing') {
-          const tierRank = effectiveTierRank(row.prefs, lid.toUpperCase());
+          // a synthetic gauge has no coordinates, so the area test degrades to "an area is set":
+          // this kind verifies the pref chain, not the geometry chain
+          const tierRank = effectiveTierRank(row.prefs, lid.toUpperCase(), scopeOf(row.prefs) !== 'none');
           if (!tierRank || rank < tierRank) {
             results.push({ id: row.id.slice(0, 8), status: 'skipped' });
             continue;

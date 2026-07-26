@@ -104,6 +104,13 @@ so its full history is auditable.
   Cloudflare storage, carry no name, email, account or retained IP, are never
   written to the git archive, and stop the moment you leave the team or turn
   alerts off.
+- **Alert places are the one location the alert registry can hold, and only if
+  you add one.** Choosing to be alerted near a place stores up to five points as
+  coordinates rounded to about a kilometer, each with the radius you picked. No
+  address, no label, no name, and no position captured for Drive Mode or team
+  sharing is ever reused for this. Statewide coverage stores no location at all,
+  and a subscription with no area chosen sends no area-wide alerts. Places are
+  removable one at a time and go with the subscription when you turn alerts off.
 - **PII discipline.** Curated exports strip exact addresses unless the requester
   posted them for help, carry no minors' identifying details, and drop phone
   numbers from resolved rescue cards (see [STRATEGY.md](STRATEGY.md)).

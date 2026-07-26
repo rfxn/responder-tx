@@ -19,7 +19,7 @@ const FCM = 'https://fcm.googleapis.com/fcm/send/test-endpoint-';
 
 const subBody = (n, extra = {}) => ({
   subscription: { endpoint: FCM + n, keys: { p256dh: 'pk' + n, auth: 'ak' + n } },
-  prefs: { ffe: true }, lang: 'en', ...extra,
+  prefs: { ffe: true, scope: 'statewide' }, lang: 'en', ...extra,
 });
 
 const gauge = (lid, cat, obsAgoMin, now, name) => ({
@@ -134,7 +134,7 @@ test('AO tier and per-gauge follows coexist in one evaluation pass', async () =>
   mockNet({});
   // AO-wide moderate + follows FARR2 at major: the AO tier covers BOTH gauges at moderate
   await reg.doSubscribe(subBody('co', {
-    prefs: { ffe: false, tier: 'moderate', gauges: [{ lid: 'FARR2', tier: 'major' }] },
+    prefs: { ffe: false, tier: 'moderate', scope: 'statewide', gauges: [{ lid: 'FARR2', tier: 'major' }] },
   }), '', now);
   const log = mockNet({
     snapshot: { generated: 'g1', gauges: [gauge('FARR2', 'moderate', 10, now), gauge('NEAR2', 'moderate', 10, now)] },
@@ -167,10 +167,12 @@ test('renew returns the stored prefs (endpoint possession is the credential); un
   const { reg } = newRegistry();
   const now = Date.now();
   mockNet({});
-  await reg.doSubscribe(subBody('rl', { prefs: { tier: 'major', gauges: [{ lid: 'SRRT2', tier: 'moderate' }] } }), '', now);
+  await reg.doSubscribe(subBody('rl', { prefs: { tier: 'major', scope: 'statewide', gauges: [{ lid: 'SRRT2', tier: 'moderate' }] } }), '', now);
   const out = await reg.doRenew({ endpoint: FCM + 'rl' }, '', now + MIN);
   assert.equal(out.ok, true);
-  assert.deepEqual(J(out.prefs), { ffe: true, tier: 'major', gauges: [{ lid: 'SRRT2', tier: 'moderate' }] });
+  assert.deepEqual(J(out.prefs), {
+    ffe: true, tier: 'major', gauges: [{ lid: 'SRRT2', tier: 'moderate' }], scope: 'statewide', places: [],
+  });
   const wrong = await reg.doRenew({ endpoint: FCM + 'someone-else' }, '', now);
   assert.equal(wrong._status, 404, 'a wrong endpoint learns nothing');
 });

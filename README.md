@@ -251,9 +251,12 @@ your own browser via `localStorage` and `IndexedDB` and is never sent anywhere. 
 public mirror has no chat and no board-data write routes. Two opt-in features do
 send something, and only after you turn them on: joining a team via `?team=`
 publishes your position to the team relay, and enabling device alerts stores the
-browser-minted push subscription plus your alert preferences. Both hold ephemeral,
-expiring state in Cloudflare, carry no name, email or account, and are never
-written to the git archive. See [ABOUT.md](ABOUT.md#privacy).
+browser-minted push subscription plus your alert preferences. Device alerts hold a
+location only if you choose to be alerted near a place, and then only up to five
+points rounded to about a kilometer with the radius you picked, never an address
+or a label, and never a position taken for Drive Mode or team sharing. Both hold
+ephemeral, expiring state in Cloudflare, carry no name, email or account, and are
+never written to the git archive. See [ABOUT.md](ABOUT.md#privacy).
 
 ## Project docs
 

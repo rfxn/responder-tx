@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.38 · 2026-07-26 (device alerts follow an area you pick)
+
+-- New Features --
+- [New] Device alerts now carry an alert area: statewide, or near up to five
+      places you add, each with a 5, 10 or 25 mile radius. Flash Flood Emergency
+      and river gauge alerts fire only where that area reaches
+- [New] A place is added only by tapping Use my current location or copying a
+      saved place. The card lists what is stored with the subscription: the
+      coordinates rounded to about a kilometer and the radius, no address and no
+      label. Each place can be removed on its own
+
+-- Changes --
+- [Change] A new subscription starts with no alert area, so it sends no
+           area-wide alerts until statewide or a place is chosen. The card and
+           the welcome notification both say so. Subscriptions made before this
+           release keep statewide coverage
+- [Change] Followed gauges are unchanged by the alert area: a followed gauge
+           alerts at its own threshold wherever it is, and the most sensitive
+           applicable threshold still wins
+
 ## v0.99.37 · 2026-07-26 (device alerts open to everyone, one tap from the header)
 
 -- New Features --

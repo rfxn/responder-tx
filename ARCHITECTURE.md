@@ -83,7 +83,7 @@ ships from its own standalone Worker (a Pages project cannot define a DO):
 | Path | Worker | Holds |
 |------|--------|-------|
 | `functions/api/team/*` | `workers/team-relay` (`TeamRelay`) | One DO per team: members, viewers, latest positions, capped breadcrumb trails. TTL'd, never written to the repo. |
-| `functions/api/push/*` | `workers/push-alerts` (`PushRegistry`) | One DO for every anonymous push subscription: endpoint, browser-minted keys, alert prefs, language. Rows expire 60 days after the last renew; a 404/410 from a push service deletes the row. |
+| `functions/api/push/*` | `workers/push-alerts` (`PushRegistry`) | One DO for every anonymous push subscription: endpoint, browser-minted keys, alert prefs (types, alert area, followed gauges and places), language. Rows expire 60 days after the last renew; a 404/410 from a push service deletes the row. |
 
 The push evaluator runs on a `*/5` Cron Trigger inside its Worker and is nudged by
 `run-cycle.sh` right after each data deploy. It reads the **deployed** mirror's

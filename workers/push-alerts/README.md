@@ -10,14 +10,27 @@ This directory is `export-ignore`d in `.gitattributes`, so it is **not** part of
 
 One well-known DO instance (`idFromName('registry')`) is the only copy of every anonymous push
 subscription: endpoint URL, browser-minted `p256dh`/`auth` keys, prefs
-(`{ffe, tier, gauges:[{lid, tier}]}` — FFE on/off, AO-wide gauge tier, and up to 20 followed
-gauges each with its own moderate/major threshold), and language (`en`/`es`). No name, no email,
+(`{ffe, tier, gauges:[{lid, tier}], scope, places:[{lat, lon, km}]}`: FFE on/off, the area-wide
+gauge tier, up to 20 followed gauges each with its own moderate/major threshold, the alert area
+(`statewide` / `places` / `none`), and up to 5 followed places as coordinates rounded to 2 decimal
+places with a radius), and language (`en`/`es`). No name, no email,
 no account, no IP retention (IPs touch only a transient in-memory rate bucket). Rows expire 60
 days after their last renew; the client silently renews on each app boot while subscribed (the
 renew response carries the stored prefs back — the endpoint-authenticated self-lookup). Any
 404/410 from a push service deletes the row immediately. `POST /api/push/resubscribe`
 (`{oldEndpoint, subscription}`) migrates prefs/language/dedup state to a rotated endpoint for the
 service worker's `pushsubscriptionchange` self-heal.
+
+## Alert area
+
+Every area-wide notification is filtered per subscription before it is queued. `statewide` takes
+every in-AO product; `places` takes only what covers or comes within a point's radius (precise
+point-in-polygon plus an edge-distance test, falling back to the resolved zone bbox); `none` takes
+nothing area-wide. A subscription arriving without a stated area sanitizes to `none`, so a device
+that shared no location is never given the whole state. Rows written before the area existed carry
+no `scope` key and are grandfathered to `statewide` (materialized on their next renew). Followed
+gauges are unaffected by the area: they are an explicit per-gauge choice, wherever the gauge is,
+and the most sensitive applicable threshold still wins.
 
 ## Evaluator (P2: Flash Flood Emergencies + AO-wide gauge tiers)
 
@@ -30,13 +43,15 @@ gauge crossings ride the fast path. Each pass:
    Keep products whose polygon bbox (else zone bbox, capped lookups; unresolvable geometry counts
    as in-AO — fail toward notifying) intersects the event AO from
    `https://respondertx.org/data/event.json` (cached 15 min, last-good on fetch failure).
-   New alert ids not in the seen-ring get one push per FFE subscriber (dedup by alert id).
+   New alert ids not in the seen-ring get one push per FFE subscriber whose alert area the
+   product reaches (dedup by alert id).
 2. **Gauges:** fetch `https://respondertx.org/data/gauges-snapshot.json` (the DEPLOYED mirror —
    the push must never claim something the board cannot show); skip when `generated` is
    unchanged. For each fresh (non-stale, 12h obs-recency rule) gauge, compute the observed
    category rank and run the per-(subscription, gauge) state machine: notify only on an upward
-   crossing into the subscriber's effective threshold for that gauge (the AO-wide tier and a
-   per-gauge follow coexist; the most sensitive applicable one wins), escalation notifies again,
+   crossing into the subscriber's effective threshold for that gauge (the area-wide tier, applied
+   only where the alert area covers the gauge, and a per-gauge follow coexist; the most sensitive
+   applicable one wins), escalation notifies again,
    30-min cooldown per key, re-arm only after 2 consecutive below-tier evals (hysteresis),
    max 6 gauge sends per subscription per rolling hour with overflow collapsed into one digest
    (FFE exempt from the cap).

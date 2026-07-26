@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.44 · 2026-07-26 (one door per view)
+
+-- Changes --
+- [Change] Views is the one place to pick a view. Playback is no longer listed in
+           the map layers sheet and Crest summary no longer has its own button in
+           the Gauges tab; both open from Views. The playback pill on the map
+           still opens playback in one tap, and Drive keeps its header button
+- [Change] With the bottom panel expanded to full height on a phone, the map
+           controls stay on screen instead of being cut off, so Views is
+           reachable without collapsing the panel first
+
+-- Bug Fixes --
+- [Fix] The note about Export and CalTopo moving to Share pointed at a button
+      that is no longer there. It names Settings, where the RSS feed and the
+      crest calendar are
+
 ## v0.99.43 · 2026-07-26 (lighter on a weak signal)
 
 -- Changes --

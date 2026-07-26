@@ -1192,11 +1192,7 @@ function renderLayerSheet() {
     if (gKey === 'sheet.g.cameras') { html += camAllRowHtml(dis) + camSubgroupsHtml(rows, dis); continue; }
     for (const row of rows) html += lsRowHtml(row, dis);
   }
-  html += `<div class="ls-group">${esc(t('sheet.g.history'))}</div>` +
-    `<button class="ls-row ls-pbrow" data-act="playback"${dis}><span class="ls-icon">⏮</span>` +
-    `<span class="ls-txt"><span class="ls-name">${esc(t('sheet.playback'))}</span><span class="ls-sub">${esc(t('sheet.s.playback'))}</span></span>` +
-    '<span class="ls-knob ls-go" aria-hidden="true">›</span></button>' +
-    offlineSheetHtml() +
+  html += offlineSheetHtml() +
     `<button class="ls-reset"${dis} title="${esc(t('sheet.reset.title'))}">↺ ${esc(t('sheet.reset'))}</button>`;
   const body = el.querySelector('.ls-body');
   const keepScroll = body.scrollTop; // an innerHTML swap resets it, and the camera group sits far down
@@ -1254,7 +1250,6 @@ function onLayerSheetClick(e) {
   }
   const row = e.target.closest('.ls-row');
   if (!row) return;
-  if (row.dataset.act === 'playback') { closeLayerSheet(); openPlayback(); return; }
   if (row.dataset.layer === 'wx') { wxToggle(); return; } // merged row toggles both underlying layers together
   const lyr = state.layers[row.dataset.layer];
   if (!lyr) return;

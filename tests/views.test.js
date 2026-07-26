@@ -367,3 +367,130 @@ test('data/crest-summary.json — the src stamp the UI now reads is really in th
   assert.match(String(d.source || ''), /reconstructed/i,
     'crest-summary.json no longer declares its reconstructed window');
 });
+
+/* ---------- one door per lens (v0.99.44) ----------
+   The views sheet is the single index for the six lenses: one row each, radio semantics. Beyond
+   that index a lens keeps a dedicated control only where the control earns its own place, and
+   LENS_DOORS below is the whole list. The duplicates are gone: the layer sheet's History row (a
+   lens is not something the map draws) and the Gauges filter-bar crest-summary button. Deep links
+   are a published contract, not a door, and are unaffected. */
+
+// lens -> controls it may keep OUTSIDE the views index. Empty means the index is the only way in.
+const LENS_DOORS = {
+  live: [],
+  drive: ['#drive-btn'],   // labelled header control: a driver gets one tap, not a sheet
+  basin: [],
+  playback: ['#pb-pill'],  // a scrub control that owns event time, not a second index entry
+  recovery: [],
+  summary: [],
+};
+
+function viewRowNames() {
+  const m = mapSrc().match(/const VIEW_ROWS = \[([\s\S]*?)\];/);
+  assert.ok(m, 'VIEW_ROWS table not found in js/map.js');
+  return [...m[1].matchAll(/\[\s*'([a-z]+)'/g)].map((x) => x[1]);
+}
+
+// every top-level `@media (max-width: 768px) {` block, concatenated: the phone-portrait rules
+function cssBlocks(css, header) {
+  const out = [];
+  let from = 0;
+  for (let at = css.indexOf(header, from); at !== -1; at = css.indexOf(header, from)) {
+    let depth = 1;
+    let i = at + header.length;
+    for (; i < css.length && depth; i++) {
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}') depth--;
+    }
+    out.push(css.slice(at + header.length, i - 1));
+    from = i;
+  }
+  assert.ok(out.length, `no ${header} block found in css/app.css`);
+  return out.join('\n');
+}
+
+// declaration bodies of every rule whose selector targets `token` itself, not a descendant of it
+function rulesTargeting(css, token) {
+  const out = [];
+  for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    for (const sel of m[1].split(',')) {
+      const last = sel.trim().split(/[\s>]+/).filter(Boolean).pop() || '';
+      if (last === token) out.push(m[2]);
+    }
+  }
+  return out;
+}
+
+test('the views sheet indexes every lens once, and no lens carries more than one door beside it', () => {
+  const names = viewRowNames();
+  assert.equal(new Set(names).size, names.length, 'a lens appears twice in the views sheet');
+  assert.deepEqual(names.slice().sort(), Object.keys(LENS_DOORS).sort(),
+    'the views sheet and the door table disagree about which lenses exist');
+  for (const [lens, doors] of Object.entries(LENS_DOORS)) {
+    assert.ok(doors.length <= 1, `${lens} keeps ${doors.length} doors outside the views index; one is the ceiling`);
+  }
+  const html = read('index.html');
+  for (const [lens, doors] of Object.entries(LENS_DOORS)) {
+    for (const sel of doors) {
+      assert.ok(html.includes(`id="${sel.slice(1)}"`), `${lens} claims ${sel} but index.html does not declare it`);
+    }
+  }
+});
+
+test('the duplicate doors are gone from the layer sheet and the Gauges filter bar', () => {
+  const map = mapSrc();
+  const render = map.match(/function renderLayerSheet\(\)[\s\S]*?\n\}/);
+  assert.ok(render, 'renderLayerSheet() not found in js/map.js');
+  assert.ok(!/data-act="playback"/.test(render[0]), 'the layer sheet still draws a Playback row; a lens is not a map layer');
+  assert.ok(!/ls-pbrow/.test(map), 'the retired playback-row markup survives in js/map.js');
+  const click = map.match(/function onLayerSheetClick\(e\)[\s\S]*?\n\}/);
+  assert.ok(!/openPlayback|openView/.test(click[0]), 'the layer sheet still dispatches a lens');
+
+  const gauges = read('js/panels.js').match(/function renderGaugesTab\(\)[\s\S]*?\n\}/);
+  assert.ok(gauges, 'renderGaugesTab() not found in js/panels.js');
+  assert.ok(!/openCrestSummary/.test(gauges[0]), 'the Gauges filter bar still opens the crest-summary lens');
+  assert.ok(!/summary\.menu/.test(gauges[0]), 'the Gauges filter bar still carries the crest-summary label');
+});
+
+test('the retired doors left no copy behind in either language', () => {
+  const i18n = require('./i18n-load.js');
+  for (const k of ['sheet.g.history', 'sheet.playback', 'sheet.s.playback', 'summary.menu.title']) {
+    for (const lang of ['en', 'es']) assert.ok(!(k in i18n[lang]), `${lang} still defines ${k}, whose only surface is gone`);
+    for (const f of ['js/map.js', 'js/panels.js', 'js/board.js', 'js/boot.js', 'js/playback.js']) {
+      assert.ok(!read(f).includes(`'${k}'`), `${f} still reads the retired key ${k}`);
+    }
+  }
+  // a migration cue that points at a control which no longer exists is worse than no cue
+  for (const lang of ['en', 'es']) {
+    assert.ok(!i18n[lang]['moved.exports'].includes('🔔'),
+      `${lang} moved.exports still points at the bell retired in v0.99.42`);
+  }
+});
+
+test('phone portrait: the squeezed map still shows the whole top-right stack', () => {
+  const css = read('css/app.css');
+  const phone = cssBlocks(css, '@media (max-width: 768px) {');
+  const controls = [...mapSrc().matchAll(/L\.control\(\{ position: 'topright' \}\)/g)].length;
+  const floor = Number(/#map \{[^}]*min-height:\s*(\d+)px/.exec(phone)[1]);
+  const btn = Number(/\.leaflet-bar a, \.leaflet-touch \.leaflet-bar a \{[^}]*height:\s*(\d+)px/.exec(phone)[1]);
+  // leaflet gives every .leaflet-top control a 10px top margin, so a column costs (btn + 10) each
+  assert.ok(controls * (btn + 10) > floor,
+    'a stacked top-right column now fits the phone map floor; re-derive the sheet-full rule below');
+  assert.match(phone, /main\.sheet-full \.leaflet-top\.leaflet-right \{[^}]*flex-direction:\s*row-reverse/,
+    'sheet-full squeezes the map below the stacked height, so the stack must lay across the sliver');
+});
+
+test('phone landscape and desktop give the map full height, so nothing clips the views control', () => {
+  const css = read('css/app.css');
+  const land = cssBlocks(css, '@media (max-height: 500px) and (orientation: landscape) {');
+  assert.match(land, /main \{ flex-direction: row; \}/, 'landscape must sit the map beside the panel, not under it');
+  assert.match(land, /#map \{ order: 0; flex: 1 1 auto; min-height: 0; \}/, 'the landscape map takes the full column height');
+  assert.match(css, /^main \{ flex: 1; display: flex;/m, 'the desktop main is a full-height row');
+  assert.match(css, /^#map \{ flex: 1;/m, 'the desktop map fills it');
+  // and no rule at any width may hide the control itself
+  const bodies = rulesTargeting(css, '.views-trigger');
+  assert.ok(bodies.length, 'no css/app.css rule targets .views-trigger; the selector this test guards has moved');
+  for (const body of bodies) {
+    assert.ok(!/display:\s*none/.test(body), 'the views control is hidden by a CSS rule; the index must survive every layout');
+  }
+});

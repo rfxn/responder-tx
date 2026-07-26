@@ -51,3 +51,28 @@ test('the Recovery lens container is declared once and owned by index.html', () 
   assert.ok(/id="res-recovery-body"/.test(panels),
     'the resources-side recovery disclosure should keep its own id');
 });
+
+/* Retired-id registry. Control consolidations delete buttons, and a stale `$('#gone-btn')`
+   left behind resolves to null: the listener is never attached and the failure is silent at
+   runtime. Every id retired by a consolidation is listed here and swept out of the whole
+   first-party tree, markup and script alike. */
+
+const RETIRED_IDS = [
+  // v0.97.90 · the views sheet replaced four Feed > More lens buttons
+  'summary-btn', 'recovery-btn', 'basin-btn', 'playback-btn',
+  // v0.99.42 · the header bell and the gear opened one panel; the bell went
+  'alerts-btn',
+];
+
+test('no retired element id is still referenced by markup or script', () => {
+  const files = ['index.html', ...fs.readdirSync(path.join(ROOT, 'js'))
+    .filter((f) => f.endsWith('.js')).map((f) => `js/${f}`)];
+  const stale = [];
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    for (const id of RETIRED_IDS) {
+      if (src.includes(`id="${id}"`) || src.includes(`#${id}`)) stale.push(`${f} references #${id}`);
+    }
+  }
+  assert.deepEqual(stale, [], `retired ids are back; a null selector fails silently:\n  ${stale.join('\n  ')}`);
+});

@@ -1426,6 +1426,11 @@ button.inspect-gauge:hover { color: var(--accent); }
   main.sheet-peek #sidebar { flex: 0 0 auto; height: 0; border-top: none; }
   main.sheet-half #sidebar { flex: 0 0 auto; height: 37vh; } /* mid/default: ~60/40 map-favoring split (header chrome excluded) */
   main.sheet-full #sidebar { flex: 0 0 auto; height: calc(100vh - 120px); height: calc(100dvh - 120px); }
+  /* sheet-full squeezes #map to its 60px floor, and a stacked top-right column needs 156px, so every
+     control below the first was clipped, including the views index, the only door Basin and Recovery
+     have. The stack lays across the sliver instead, and the AO row, unusable at 60px, stands down. */
+  main.sheet-full .leaflet-top.leaflet-right { display: flex; flex-direction: row-reverse; align-items: flex-start; }
+  main.sheet-full .ao-jump { display: none; }
   /* a docked lens becomes the bottom sheet, at the height the sheet handle is set to. peek is
      deliberately given half height: opening a lens is an explicit ask to see it. */
   .lens-pane { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-width: none; height: 37vh; }

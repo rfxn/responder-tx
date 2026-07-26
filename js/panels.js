@@ -728,12 +728,6 @@ function renderGaugesTab() {
   iv.classList.toggle('on', state.inView);
   iv.addEventListener('click', () => setInView(!state.inView));
   bar.appendChild(iv);
-  // one-tap crest summary (owner ask) — same view the ⋯ More menu opens
-  const sum = document.createElement('button');
-  sum.textContent = t('summary.menu');
-  sum.title = t('summary.menu.title');
-  sum.addEventListener('click', openCrestSummary);
-  bar.appendChild(sum);
   el.appendChild(bar);
 
   const section = (title, list) => {

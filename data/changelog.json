@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.44",
+      "date": "2026-07-26",
+      "line": "Views is the one place to pick a view. Playback is no longer listed in the map layers sheet and Crest summary no longer has its own button in the Gauges tab; both open from Views. The playback pill on the map still opens playback in one tap, and Drive keeps its header button. With the bottom panel expanded to full height on a phone, the map controls stay on screen instead of being cut off, so Views is reachable without collapsing the panel first."
+    },
+    {
       "v": "v0.99.43",
       "date": "2026-07-26",
       "line": "A first visit downloads noticeably less of the board: the live camera player, the QR code generator, and the live team tools are fetched when you open them rather than on every visit, so the map and the gauges arrive sooner on a weak connection. A live camera now shows that its player is loading and says plainly if it cannot be reached, a QR code that cannot be built without a connection points to the link instead, and a team link opened on too weak a connection opens the Team tab with the reason."

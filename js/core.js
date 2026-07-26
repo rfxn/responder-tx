@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.53';
+const APP_VERSION = 'v0.99.54';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -261,6 +261,8 @@ const state = {
   showRecovery: false,
   roadMemory: null,
   roadsTabFp: null, // last Roads-tab render fingerprint; an unchanged list must not reset the scroll
+  roadsFallbackAt: null, // snapshot `generated` epoch while the committed fallback is serving, else null
+  roadsUnknown: false, // live feed failed AND no snapshot: the closure set is unknown, never "none"
   lwcPartial: false, // true when the crossing inventory hit the paging ceiling with records left
   showAlertHist: false,
   showAlertsFar: false, // the alerts outside the current proximity scope are folded, never dropped

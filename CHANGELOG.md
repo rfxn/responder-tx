@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.54 · 2026-07-26 (road closures survive an upstream outage)
+
+-- New Features --
+- [New] Road closures stay on the board when the live TxDOT feed is unreachable.
+      The most recent saved closure set is served instead, labelled as a snapshot
+      and timed from when it was taken
+- [New] The Roads tab reports an unknown closure set when neither the live feed
+      nor a saved snapshot can be read, in place of reporting no closures
+
+-- Changes --
+- [Change] Snapshot closures are listed and mapped but left out of the Roads
+           count, and the closure feed still reads as down while one is serving
+- [Change] Road reopenings are detected from the live feed only, so a snapshot
+           can never report a road as reopened
+- [Change] The all-clear is withheld while the closure set is unknown
+
 ## v0.99.53 · 2026-07-26 (a camera network cannot empty quietly)
 
 -- New Features --

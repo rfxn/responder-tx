@@ -124,7 +124,7 @@ const EXPORTS = [
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT', 'gaugeDegraded',
   'roadId', 'roadMemory', 'updateRoadMemory', 'reopenedRoads', 'reopenIsFlood', 'ROADS_KEY', 'ROADS_KEY_LEGACY',
   'roadPointNear', 'roadSegMiles', 'roadSegParts', 'roadPopupHtml', 'arcgisHasMore', 'LWC_PAGE', 'LWC_MAX_PAGES',
-  'fetchRoadClosures', 'ROAD_PAGE', 'ROAD_MAX_PAGES',
+  'fetchRoadClosures', 'fetchRoadClosuresLive', 'hydrateRoadsSnapshot', 'roadFeatures', 'ROAD_PAGE', 'ROAD_MAX_PAGES',
   'cardAged',
   'buildShareUrl', 'applyShareParams', 'linkOwnsView', 'LINK_VIEW_PARAMS',
   'smartScore', 'shortId', 'allRequests',

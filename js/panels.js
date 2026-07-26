@@ -188,12 +188,13 @@ function driveItems() {
     cleared.push({ glyph: '✓', color: 'var(--good)', name: `${t('reopen.flag')} · ${prettyRoute(r.route_name) || t('ntype.road')}`, sub: `TxDOT DriveTexas · ${t('reopen.at')} ${relWhen(r.reopenedAt)}`, lat: r.vertex[0], lon: r.vertex[1], rank: 3 });
   }
   // live TxDOT road closures/flooding/damage, standing at the line vertex nearest the driver
-  for (const f of ((state.roadClosures && state.roadClosures.lines) || [])) {
+  for (const f of roadFeatures()) {
     const pt = roadPointNear(f.geometry, p);
     if (!pt) continue;
     const ct = roadCondType(f.properties);
     const cond = f.properties.condition;
-    items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${roadLabel(ct)} · ${prettyRoute(f.properties.route_name) || t('ntype.road')}`, sub: 'TxDOT DriveTexas', lat: pt[0], lon: pt[1], rank: cond === 'Damage' ? 2 : 1 });
+    const sub = f.properties._snapshot ? `TxDOT DriveTexas · ${t('roads.snapshot.sub')}` : 'TxDOT DriveTexas';
+    items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${roadLabel(ct)} · ${prettyRoute(f.properties.route_name) || t('ntype.road')}`, sub, lat: pt[0], lon: pt[1], rank: cond === 'Damage' ? 2 : 1 });
   }
   // verify-before-routing: the 2 nearest cameras tail the list like the reopened rows — never competing with hazards
   const cams = [];
@@ -1063,13 +1064,14 @@ const quietGauges = (scope) => state.gauges.filter((g) => ptInScope(g.latitude, 
    gauges and the road closures inside the current scope, with the wording naming that same area.
    An empty scope is not an all-clear either, so a radius holding no gauge stays silent. */
 function quietState() {
-  if (!state.gauges.length || !state.roadClosures) return false;
+  // an unknown closure set is not a checked one: never claim an all-clear over roads we cannot read
+  if (!state.gauges.length || !state.roadClosures || state.roadsUnknown) return false;
   const scope = alertScope();
   const gauges = quietGauges(scope);
   if (!gauges.length) return false;
   const open = state.alerts.filter((f) => alertOpen(f) && alertNear(f, scope));
   const inFlood = gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
-  const roads = (state.roadClosures.lines || []).filter((f) => geomInScope(f.geometry, scope));
+  const roads = roadFeatures().filter((f) => geomInScope(f.geometry, scope));
   return !open.length && !inFlood.length && !roads.length;
 }
 
@@ -1351,17 +1353,21 @@ const roadsAgeChip = (h) => (Number.isFinite(h) ? t('cross.stale').replace('{h}'
 
 function roadsTxdotRows(pos) {
   const rows = [];
-  for (const f of ((state.roadClosures && state.roadClosures.lines) || [])) {
+  for (const f of roadFeatures()) {
     const p = f.properties || {};
     const pt = roadPointNear(f.geometry, pos);
     const ct = roadCondType(p);
     const dscr = stripHtml(p.description).replace(/^[\s–—-]+/, ''); // TxDOT feeds a leading "- " artifact
+    // a snapshot row is not a current confirmation: it joins the unconfirmed bucket, is left out of
+    // the Roads badge, and ages on the snapshot's own stamp rather than on when we fell back to it
+    const snap = p._snapshot === true;
     rows.push({
-      kind: 'txdot', live: true, color: ct.color, glyph: ROADS_TXDOT_GLYPH[p.condition] || '⛔',
+      kind: 'txdot', live: !snap, color: ct.color, glyph: ROADS_TXDOT_GLYPH[p.condition] || '⛔',
       label: roadLabel(ct), name: prettyRoute(p.route_name) || t('word.road'),
       detail: dscr || [p.from_limit, p.to_limit].filter(Boolean).join(' → '),
-      when: p.start_time || '', whenText: p.start_time ? `${t('road.since')} ${fmtWhen(p.start_time)}` : '', age: '',
-      op: t('roads.src.txdot'), badge: 'official', href: 'https://drivetexas.org/',
+      when: p.start_time || '', whenText: p.start_time ? `${t('road.since')} ${fmtWhen(p.start_time)}` : '',
+      age: snap ? t('roads.snapshot.age').replace('{n}', String(Math.max(0, Math.round(ageMins(p._snapshotAt))))) : '',
+      op: snap ? t('roads.src.snapshot') : t('roads.src.txdot'), badge: 'official', href: 'https://drivetexas.org/',
       lat: pt ? pt[0] : NaN, lon: pt ? pt[1] : NaN,
     });
   }
@@ -1443,18 +1449,25 @@ function renderRoadsTab() {
   if (badge) badge.textContent = String(live.length);
   if (!el) return;
   // whole-mile distance buckets: a moving fix must not repaint (and reset the scroll) every tick
-  const fp = JSON.stringify([state.roadsPartial === true, rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
+  const fp = JSON.stringify([state.roadsPartial === true, state.roadsFallbackAt || 0, state.roadsUnknown === true,
+    rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
   if (fp === state.roadsTabFp) return;
   state.roadsTabFp = fp;
+  // the closure feed's own state leads the list: a snapshot is named as one, and a feed we cannot
+  // reach at all is reported as unknown. Neither may read as a current, complete closure set.
+  const feedNote = state.roadsFallbackAt
+    ? `<div class="rcv-note">${esc(t('roads.snapshot.note').replace('{t}', fmtWhen(new Date(state.roadsFallbackAt).toISOString())))}</div>`
+    : state.roadsUnknown ? `<div class="rcv-note">${esc(t('roads.unknown.note'))}</div>` : '';
   // one list, not one group per feed: a crossing shut two miles away must not sit below forty
   // distant TxDOT rows just because a different operator reported it
   el.innerHTML = rows.length
-    ? `<div class="section-title">${esc(t('roads.live.title'))}</div>` +
+    ? `<div class="section-title">${esc(t('roads.live.title'))}</div>` + feedNote +
       (state.roadsPartial ? `<div class="rcv-note">${esc(t('road.partial'))}</div>` : '') +
       (unconf.length ? `<div class="rcv-note">${esc(t('cross.unconfirmed').replace('{n}', unconf.length))}</div>` : '') +
       rows.map(roadsRowHtml).join('') +
       `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
-    : `<div class="rcv-none">${esc(t('roads.none'))}</div>`;
+    // E1: with the feed down and no snapshot, "none reported" would be a failed fetch published as a value
+    : `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : 'roads.none'))}</div>`;
   el.querySelectorAll('.road-row[data-lat]').forEach((d) => d.addEventListener('click', (ev) => {
     if (ev.target.closest('a')) return;
     state.map.setView([+d.dataset.lat, +d.dataset.lon], 13);

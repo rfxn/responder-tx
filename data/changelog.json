@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.54",
+      "date": "2026-07-26",
+      "line": "Road closures stay on the board when the live TxDOT feed is unreachable: the most recent saved closure set is served instead, labelled as a snapshot and timed from when it was taken. Snapshot closures are listed and mapped but left out of the Roads count, and the closure feed still reads as down while one is serving. Road reopenings are detected from the live feed only, so a snapshot can never report a road as reopened. When neither the live feed nor a saved snapshot can be read, the Roads tab reports the closure set as unknown rather than reporting no closures, and the all-clear is withheld."
+    },
+    {
       "v": "v0.99.53",
       "date": "2026-07-26",
       "line": "Cameras stay on the map when the published inventory cannot be read, so the board keeps the cameras it has rather than publishing an upstream dropout as a retirement. A camera network that empties, or that loses most of its cameras at once, is no longer published: each network is now measured against what it last carried. Crest of record data is kept when a refresh returns far fewer records than the set it would replace. Release checks flag a camera inventory or crest record set that has gone too long without a refresh."

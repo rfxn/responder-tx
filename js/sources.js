@@ -1085,6 +1085,11 @@ const roadCondActive = (f) => { const e = f.properties && f.properties.end_time;
 // [lat, lon] standing in for a closure line: the vertex nearest the driver, its midpoint with no fix
 function roadPointNear(geo, pos) {
   if (!geo || !Array.isArray(geo.coordinates)) return null;
+  // snapshot closures carry one vertex, not a line; without this they sort and map as unlocated
+  if (geo.type === 'Point') {
+    const c = geo.coordinates;
+    return Number.isFinite(c[0]) && Number.isFinite(c[1]) ? [c[1], c[0]] : null;
+  }
   const verts = geo.type === 'MultiLineString' ? geo.coordinates.flat() : geo.coordinates;
   let pt = null;
   if (pos) {
@@ -1113,9 +1118,24 @@ function roadParams(outFields) {
   });
 }
 
+// every closure feature the board holds: live lines and snapshot points share one hazard set
+const roadFeatures = () => (state.roadClosures ? (state.roadClosures.lines || []).concat(state.roadClosures.points || []) : []);
+
+// Live DriveTexas first; on any failure fall back to the committed snapshot and re-throw, so the
+// rows come back while feed health, the degraded note and the roads chip all still report the
+// live source as down. A served fallback must never paint the source green.
+async function fetchRoadClosures() {
+  try {
+    await fetchRoadClosuresLive();
+  } catch (e) {
+    await hydrateRoadsSnapshot();
+    throw e;
+  }
+}
+
 // paged: an unpaged query stops at the service's maxRecordCount, and every closure past that cut
 // would be missing from the map and read as cleared by the reopened diff
-async function fetchRoadClosures() {
+async function fetchRoadClosuresLive() {
   const fields = 'condition,route_name,travel_direction,from_limit,to_limit,description,start_time,end_time,detour_flag,delay_flag';
   const pages = [];
   let partial = false;
@@ -1135,6 +1155,8 @@ async function fetchRoadClosures() {
   if (partial) opNotice(t('road.partial'));
   // keep points: [] so renderRoadClosures's points loop stays safe (DriveTexas API is lines-only)
   state.roadClosures = { lines: [].concat(...pages).filter(roadCondActive), points: [] };
+  state.roadsFallbackAt = null; // live again: stand the snapshot claim down
+  state.roadsUnknown = false;
   markHealthy('roads');
   updateRoadMemory(state.roadClosures.lines, partial);
   renderRoadClosures();
@@ -1142,6 +1164,50 @@ async function fetchRoadClosures() {
   renderReopenedMap();
   renderReopenedRoads();
   renderTiles();
+}
+
+/* Fallback to the committed snapshot the 15-minute cycle publishes, the same cold-start pattern
+   hydrateGaugesSnapshot() uses for gauges. Three things this must not do: mark the live source
+   healthy (it did not answer), feed the reopened diff (see updateRoadMemory), or turn an
+   unreadable snapshot into an empty road network. The rows age on the snapshot's own `generated`
+   stamp, never on the moment we fell back to it. */
+async function hydrateRoadsSnapshot() {
+  let d = null;
+  try {
+    d = await fetch(`data/roads-snapshot.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
+  } catch { d = null; } // same-origin fetch failed; handled below as unknown, never as zero closures
+  const at = d && typeof d.generated === 'string' ? Date.parse(d.generated) : NaN;
+  if (!d || !Array.isArray(d.roads) || !Number.isFinite(at)) {
+    // E1: a failed fetch is not a value. With no snapshot the closure set is unknown, and the
+    // Roads tab must say so instead of asserting that no roads are closed.
+    state.roadsFallbackAt = null;
+    state.roadsUnknown = true;
+    renderRoadsTab();
+    renderTiles();
+    return false;
+  }
+  const stamp = new Date(at).toISOString();
+  const points = d.roads.map((r) => {
+    const v = Array.isArray(r.v) ? r.v : [];
+    if (!Number.isFinite(v[0]) || !Number.isFinite(v[1])) return null;
+    return {
+      // _snapshot taints the feature all the way to updateRoadMemory, which refuses to diff it
+      _snapshot: true,
+      properties: {
+        condition: r.cond, route_name: r.route, description: r.desc,
+        start_time: r.start, end_time: r.end, _snapshot: true, _snapshotAt: stamp,
+      },
+      geometry: { type: 'Point', coordinates: [v[1], v[0]] },
+    };
+  }).filter(Boolean).filter(roadCondActive);
+  state.roadClosures = { lines: [], points };
+  state.roadsFallbackAt = at;
+  state.roadsUnknown = false;
+  state.roadsPartial = false; // the snapshot generator refuses to publish a truncated capture
+  renderRoadClosures();
+  renderRoadsTab();
+  renderTiles();
+  return true;
 }
 
 /* ---------- recently-reopened roads — a closure leaving the live feed IS the recovery signal ---------- */
@@ -1202,6 +1268,10 @@ function roadMemory() {
 // on a road that is still under water. A partial fetch keeps the last good reopened set instead.
 function updateRoadMemory(lines, partial) {
   if (!lines.length || partial) return;
+  // Snapshot rows are up to 15 minutes stale and carry no from/to limits, so roadId hashes them to
+  // ids no live id can equal: diffing a snapshot set would mark every remembered closure reopened.
+  // The taint rides the feature itself so no future caller can route fallback data in here.
+  if (lines.some((f) => f && f._snapshot)) return;
   const mem = roadMemory();
   const now = new Date().toISOString();
   const live = new Set();
@@ -1260,7 +1330,8 @@ function roadPopupHtml(p, geo) {
     (p.start_time ? `<div class="popup-meta">${esc(t('road.since'))} ${esc(fmtWhen(p.start_time))}</div>` : '') +
     (detour ? `<div class="popup-meta">${esc(t('road.detour'))}</div>` : '') +
     `<div class="popup-meta" style="opacity:.8">${esc(t(isClosure ? 'road.note.closure' : 'road.note.cond'))}</div>` +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · ${esc(t('road.live'))}</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · ` +
+    `${esc(p._snapshot ? t('road.snapshot').replace('{t}', fmtWhen(p._snapshotAt)) : t('road.live'))}</div>`;
 }
 
 function renderRoadClosures() {
@@ -1268,7 +1339,8 @@ function renderRoadClosures() {
   if (!layer) return;
   layer.clearLayers();
   const rc = state.roadClosures || { lines: [], points: [] };
-  const attrib = state.roadsPartial ? `${ROAD_ATTRIB} · ${t('road.partial')}` : ROAD_ATTRIB;
+  const attrib = state.roadsPartial ? `${ROAD_ATTRIB} · ${t('road.partial')}`
+    : state.roadsFallbackAt ? `${ROAD_ATTRIB} · ${t('roads.src.snapshot')}` : ROAD_ATTRIB;
   for (const f of rc.lines) {
     if (!f.geometry) continue;
     const ct = roadCondType(f.properties);

@@ -247,6 +247,8 @@ function setRoadsState(o) {
   ST.roadClosures = o.roadClosures || { lines: [], points: [] };
   ST.myPos = o.myPos || null;
   ST.roadsTabFp = null;
+  ST.roadsFallbackAt = o.roadsFallbackAt || null;
+  ST.roadsUnknown = o.roadsUnknown === true;
 }
 
 const txdotLine = (route, condition, lat, lon) => ({
@@ -399,7 +401,8 @@ test('the empty tab says so instead of rendering nothing at all', () => {
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
   assert.equal(I18N.en['roads.src.txdot'], I18N.es['roads.src.txdot']);
-  assert.match(read('js/panels.js'), /t\('roads\.none'\)/, 'the empty state must render the string');
+  assert.match(read('js/panels.js'), /t\(state\.roadsUnknown \? 'roads\.unknown' : 'roads\.none'\)/,
+    'the empty state must render the string, and only claim "none" when the feed was actually read');
 });
 
 /* ---------- TxGIO crossing inventory paging (v0.99.39) ----------
@@ -528,7 +531,7 @@ test('a truncated closure set is declared partial and never diffed into reopenin
     'a truncated set must not seed the memory the reopened diff is built from');
 
   const src = read('js/sources.js');
-  assert.match(src, /state\.roadsPartial \? `\$\{ROAD_ATTRIB\} · \$\{t\('road\.partial'\)\}` : ROAD_ATTRIB/,
+  assert.match(src, /state\.roadsPartial \? `\$\{ROAD_ATTRIB\} · \$\{t\('road\.partial'\)\}`/,
     'the map attribution must carry the partial claim, not just a dismissable toast');
   assert.match(read('js/panels.js'), /state\.roadsPartial \? `<div class="rcv-note">\$\{esc\(t\('road\.partial'\)\)\}/,
     'the Roads tab must repeat that the closure list is partial');
@@ -548,4 +551,201 @@ test('a failed page leaves the layer retryable rather than half loaded', async (
   try { await SB.fetchLwc(); } finally { SB.fetch = prevFetch; SB.renderLwc = prevRender; }
   assert.equal(rendered, false, 'nothing may be drawn from a failed page');
   assert.equal(ST._lwcLoaded, false, 'the layer must be retryable on the next toggle');
+});
+
+/* ---------- DriveTexas outage fallback (v0.99.54) ----------
+   Road closures had exactly one source, so a DriveTexas outage emptied the layer entirely. The
+   15-minute cycle already commits data/roads-snapshot.json, so the board now serves that when the
+   live fetch fails. Everything below exists to keep that fallback honest: it ages on the
+   snapshot's own stamp, it is marked as a snapshot, it leaves the live source reading unhealthy,
+   it never reaches the reopened diff, and its absence is reported as unknown rather than as zero
+   closures. */
+
+const DRIVETEXAS_RE = /arcgis/i;
+const SNAPSHOT_RE = /roads-snapshot\.json/;
+
+// live DriveTexas fails; the snapshot endpoint answers with whatever `snap` scripts
+async function runRoadsFallback(snap, opts) {
+  const o = opts || {};
+  const healthy = [];
+  const saved = {};
+  for (const k of ['fetch', 'renderRoadClosures', 'renderRoadsTab', 'renderReopenedMap',
+    'renderReopenedRoads', 'renderTiles', 'opNotice', 'markHealthy']) saved[k] = SB[k];
+  for (const k of ['renderRoadClosures', 'renderRoadsTab', 'renderReopenedMap', 'renderReopenedRoads',
+    'renderTiles']) SB[k] = () => {};
+  SB.opNotice = () => {};
+  SB.markHealthy = (s) => healthy.push(s);
+  SB.fetch = (url) => {
+    const u = String(url);
+    if (DRIVETEXAS_RE.test(u)) {
+      return o.liveThrows ? Promise.reject(new Error('network down'))
+        : Promise.resolve({ ok: false, status: 503 });
+    }
+    if (SNAPSHOT_RE.test(u)) {
+      if (snap === 'missing') return Promise.resolve({ ok: false, status: 404 });
+      if (snap === 'throw') return Promise.reject(new Error('offline'));
+      if (snap === 'badjson') return Promise.resolve({ ok: true, json: () => Promise.reject(new Error('bad json')) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(snap) });
+    }
+    return Promise.reject(new Error(`unscripted fetch ${u}`));
+  };
+  let threw = null;
+  try {
+    await SB.fetchRoadClosures();
+  } catch (e) {
+    threw = e;
+  } finally {
+    Object.assign(SB, saved);
+  }
+  return { threw, healthy, closures: ST.roadClosures, fallbackAt: ST.roadsFallbackAt, unknown: ST.roadsUnknown };
+}
+
+// the harness stubs t() as a key echo, which swallows {n}/{t} substitution; these assertions are
+// about the rendered claim, so they run against the real en table
+function withEn(fn) {
+  const saved = SB.t;
+  SB.t = (k) => (typeof I18N.en[k] === 'string' ? I18N.en[k] : k);
+  try { return fn(); } finally { SB.t = saved; }
+}
+
+const snapshotBody = (ageMin, roads) => ({
+  generated: new Date(Date.now() - ageMin * 60000).toISOString(),
+  roads: roads || [{ id: 1, cond: 'Flooding', route: 'FM0481', desc: '- Water over roadway', start: iso(3), end: null, v: [29.9, -98.4] }],
+});
+
+test('a DriveTexas outage falls back to the committed snapshot instead of an empty layer', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  const r = await runRoadsFallback(snapshotBody(6));
+  assert.ok(r.threw, 'the live failure must still propagate to the refresh loop');
+  assert.equal(r.closures.points.length, 1, 'the snapshot closure must reach the layer');
+  assert.equal(r.closures.lines.length, 0, 'a snapshot carries one vertex, never a line');
+
+  // and the rows actually render, mapped and named
+  setRoadsState({ roadClosures: r.closures, roadsFallbackAt: r.fallbackAt });
+  const rows = app.roadsTabRows().filter((x) => x.kind === 'txdot');
+  assert.equal(rows.length, 1, 'the fallback closure must render as a Roads row');
+  assert.equal(rows[0].name, 'FM 481');
+  assert.ok(Number.isFinite(rows[0].lat) && Number.isFinite(rows[0].lon),
+    'a snapshot vertex must map, or the row is unreachable from the list');
+});
+
+test('fallback rows age on the snapshot stamp, not on when the fallback was served', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  const r = await runRoadsFallback(snapshotBody(120));
+  setRoadsState({ roadClosures: r.closures, roadsFallbackAt: r.fallbackAt });
+  const row = withEn(() => app.roadsTabRows().find((x) => x.kind === 'txdot'));
+  const n = Number((row.age.match(/(\d+)/) || [])[1]);
+  assert.ok(n >= 118 && n <= 122, `a two-hour-old snapshot must say so, said "${row.age}"`);
+  assert.ok(n > 5, 'ageing on fetch time would report a fresh row for two-hour-old data');
+  // the stamp the badge is built from is the snapshot's, so it keeps ageing without a new fetch
+  assert.equal(r.fallbackAt, Date.parse(r.closures.points[0].properties._snapshotAt));
+});
+
+test('fallback rows are marked as a snapshot and stay out of the live Roads count', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  const r = await runRoadsFallback(snapshotBody(9));
+  setRoadsState({ roadClosures: r.closures, roadsFallbackAt: r.fallbackAt });
+  const row = withEn(() => app.roadsTabRows().find((x) => x.kind === 'txdot'));
+  assert.equal(row.live, false, 'a snapshot row is not a current confirmation');
+  assert.equal(row.op, I18N.en['roads.src.snapshot'], 'the row must name the snapshot as its provenance');
+  assert.ok(row.age, 'the row must carry a staleness chip');
+  assert.match(app.roadsRowHtml(row), /unconfirmed/, 'it must take the unconfirmed treatment the board already uses');
+  // the popup makes the same claim on the map, not just in the list
+  const html = app.roadPopupHtml(r.closures.points[0].properties);
+  assert.match(html, /road\.snapshot/, 'the popup must say the data is a snapshot');
+  assert.ok(!/road\.live/.test(html), 'a snapshot popup must never claim live conditions');
+
+  for (const k of ['roads.src.snapshot', 'roads.snapshot.age', 'roads.snapshot.note', 'roads.snapshot.sub',
+    'road.snapshot', 'roads.unknown', 'roads.unknown.note']) {
+    for (const lang of ['en', 'es']) {
+      assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
+      assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+    }
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+  }
+  assert.match(read('js/panels.js'), /roads\.snapshot\.note/, 'the Roads tab must head the list with the snapshot claim');
+});
+
+test('a served fallback never paints the live closure source healthy', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  const r = await runRoadsFallback(snapshotBody(4));
+  assert.ok(!r.healthy.includes('roads'),
+    'marking roads healthy off a snapshot would hide the outage the way the USGS silence was hidden');
+  assert.ok(r.threw, 'fetchRoadClosures must reject so the refresh loop counts roads among the failed sources');
+
+  // the rejection is what puts roads in the degraded list, so that wiring must stay
+  const boot = read('js/boot.js');
+  assert.match(boot, /REFRESH_SOURCE_KEYS = \[[^\]]*'health\.roads'/, 'roads must stay named in the degraded detail');
+  assert.match(read('js/sources.js'), /await hydrateRoadsSnapshot\(\);\s*\n\s*throw e;/,
+    'the fallback must render and then re-throw, never swallow the live failure');
+});
+
+test('snapshot closures never enter the reopened diff', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  // a good live round first, so the memory holds real closures the diff could "reopen"
+  await runRoads(3);
+  const seeded = Object.keys(app.roadMemory().seen);
+  assert.equal(seeded.length, 3, 'the live round must seed the memory');
+  assert.equal(app.reopenedRoads().fresh.length, 0, 'nothing has reopened yet');
+
+  // now DriveTexas dies and the snapshot serves a completely different set of roads
+  const r = await runRoadsFallback(snapshotBody(11,
+    [{ id: 9, cond: 'Closure', route: 'SH0071', desc: 'x', start: iso(2), end: null, v: [30.2, -97.9] }]));
+  assert.ok(r.threw);
+  assert.equal(app.reopenedRoads().fresh.length, 0,
+    'a snapshot that omits a live closure must not manufacture a reopening');
+  assert.equal(app.reopenedRoads().aged.length, 0);
+  assert.deepEqual(Object.keys(app.roadMemory().seen).sort(), seeded.sort(),
+    'the remembered live set must survive the outage untouched');
+
+  // the guard is on the data, not on the call site, so a future caller cannot route around it
+  const tainted = r.closures.points;
+  assert.ok(tainted.length && tainted.every((f) => f._snapshot === true), 'snapshot features must be tainted');
+  app.updateRoadMemory(tainted, false);
+  assert.equal(app.reopenedRoads().fresh.length, 0,
+    'calling updateRoadMemory directly with snapshot features must still be refused');
+  assert.deepEqual(Object.keys(app.roadMemory().seen).sort(), seeded.sort(),
+    'and must not rewrite the remembered set either');
+});
+
+test('a missing or unreadable snapshot is reported as unknown, never as zero closures', async () => {
+  for (const bad of ['missing', 'throw', 'badjson', { roads: [] }, { generated: 'not-a-date', roads: [] },
+    { generated: new Date().toISOString() }]) {
+    ST.roadMemory = null;
+    SB.localStorage.clear();
+    ST.roadClosures = { lines: [], points: [] };
+    const label = typeof bad === 'string' ? bad : JSON.stringify(bad);
+    const r = await runRoadsFallback(bad);
+    assert.ok(r.threw, `${label}: the live failure must still propagate`);
+    assert.equal(r.unknown, true, `${label}: an unreadable snapshot is unknown, not an empty road network`);
+    assert.equal(r.fallbackAt, null, `${label}: nothing may claim a snapshot is being served`);
+    assert.ok(!r.healthy.includes('roads'), `${label}: the live source stays unhealthy`);
+  }
+
+  // and "unknown" is what the tab actually says, instead of "no closures reported"
+  setRoadsState({ roadsUnknown: true });
+  assert.equal(app.roadsTabRows().length, 0);
+  assert.notEqual(I18N.en['roads.unknown'], I18N.en['roads.none']);
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['roads.unknown'], /desconoc|unknown/i, `${lang} must say the set is unknown`);
+  }
+  // an unknown closure set must also stop the board claiming an all-clear over it
+  assert.match(read('js/panels.js'), /!state\.roadClosures \|\| state\.roadsUnknown\) return false;/,
+    'quietState must refuse an all-clear while the closure set is unknown');
+});
+
+test('a recovered live fetch stands the snapshot claim down', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  const r = await runRoadsFallback(snapshotBody(30));
+  assert.ok(r.fallbackAt, 'the fallback is serving');
+  await runRoads(2);
+  assert.equal(ST.roadsFallbackAt, null, 'a live round must clear the snapshot claim');
+  assert.equal(ST.roadsUnknown, false, 'and clear the unknown claim');
+  assert.equal(ST.roadClosures.points.length, 0, 'live lines replace the snapshot points entirely');
 });

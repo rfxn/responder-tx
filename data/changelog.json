@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.49",
+      "date": "2026-07-26",
+      "line": "The USGS gauge layer reports again, across the whole area of operations. Its raw stage readings are available once more as a backstop for sites the main gauge feed has nothing for, which is when the board leans on them most. If only part of the area answers, the layer now says so on the readings it did get instead of presenting a short sweep as a complete one. The layer refreshes on its own six-minute cycle, so its feed chip can read a few minutes older than the others without anything being wrong."
+    },
+    {
       "v": "v0.99.48",
       "date": "2026-07-26",
       "line": "The CalTopo import, the live KML layer and the GeoRSS feed now carry the whole board rather than a 500-feature slice. Every alert, crest, gauge, road closure and low-water crossing publishes, and the exports are held to a size that imports cleanly in ArcGIS Online, ATAK and Google Earth; when an export still has to be shortened it says so in all three formats and drops the lowest-priority features first. A road closure made up of separate stretches now says how many, so its distance reads as the total of those stretches rather than one continuous barricade. A shared note link opened on the public board now says Field Notes is not published there instead of doing nothing at all."

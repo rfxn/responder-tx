@@ -533,9 +533,78 @@ if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/b
 
 if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
+# l. USGS bbox area cap. WaterServices 400s any bBox over 25 equator-equivalent square degrees, and
+# the AO outgrew that in a config change alone, with no code touched: the layer died silently for
+# months. This fails the cycle at release time instead, for the shipped bbox and the built-in one.
+USGS_TILE_DETAIL=""
+check_usgs_bbox() {
+    USGS_TILE_DETAIL=$(node - <<'EOF'
+const fs = require('fs');
+const vm = require('vm');
+const root = process.env.CODE_ROOT || '.';
+const fail = (m) => { console.error(`usgs-bbox gate: ${m}`); process.exit(1); };
+const sandbox = {
+  console, Math, Date, JSON, RegExp, Array, Object, String, Number, Boolean, Map, Set,
+  parseInt, parseFloat, isNaN, isFinite, URL, URLSearchParams,
+  setTimeout, clearTimeout, setInterval, clearInterval, Promise,
+  document: {
+    title: '', documentElement: { lang: 'en' }, body: null,
+    addEventListener() {}, removeEventListener() {},
+    querySelector: () => null, querySelectorAll: () => [], getElementById: () => null,
+    createElement: () => ({ style: {}, dataset: {}, classList: { add() {}, remove() {} }, appendChild() {}, setAttribute() {} }),
+  },
+  navigator: {}, location: { origin: '', pathname: '/', search: '' },
+  addEventListener() {}, removeEventListener() {},
+  localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+};
+sandbox.window = sandbox;
+sandbox.globalThis = sandbox;
+vm.createContext(sandbox);
+const names = ['CONFIG', 'usgsBboxTiles', 'usgsBboxCost', 'USGS_BBOX_LIMIT', 'USGS_BBOX_BUDGET', 'USGS_BBOX_MAX_TILES'];
+const epilogue = `\n;globalThis.__G = { ${names.map((n) => `${n}: typeof ${n} !== 'undefined' ? ${n} : null`).join(', ')} };\n`;
+try {
+  vm.runInContext(fs.readFileSync(`${root}/js/core.js`, 'utf8') + epilogue, sandbox, { filename: 'core.js' });
+} catch (e) { fail(`cannot evaluate js/core.js: ${e.message}`); }
+const G = sandbox.__G;
+// a core.js that does not configure the USGS feed has no bbox query to gate (minimal test fixtures)
+if (!G.CONFIG || !G.CONFIG.usgsIvBase) { process.stdout.write('no USGS feed configured; nothing to gate'); process.exit(0); }
+for (const k of ['usgsBboxTiles', 'usgsBboxCost']) {
+  if (typeof G[k] !== 'function') fail(`js/core.js configures usgsIvBase but no longer defines ${k}(); the statewide query would 400`);
+}
+if (!(G.USGS_BBOX_BUDGET < G.USGS_BBOX_LIMIT)) fail('USGS_BBOX_BUDGET must sit under USGS_BBOX_LIMIT');
+
+let ev = {};
+try { ev = JSON.parse(fs.readFileSync(`${root}/data/event.json`, 'utf8')); } catch { /* absent event.json: CONFIG's built-in bbox is what ships */ }
+// event.json without a gaugeBbox is legal; loadEventConfig then leaves CONFIG's own bbox in place
+const boxes = [['CONFIG.gaugeBbox fallback', G.CONFIG.gaugeBbox]];
+if (ev.gaugeBbox) boxes.unshift(['data/event.json gaugeBbox', ev.gaugeBbox]);
+const detail = [];
+for (const [label, b] of boxes) {
+  if (!b) fail(`${label} is missing`);
+  const tiles = G.usgsBboxTiles(b);
+  if (!tiles.length) fail(`${label} yields no queryable tile; the USGS layer would be dead`);
+  if (tiles.length > G.USGS_BBOX_MAX_TILES) {
+    fail(`${label} needs ${tiles.length} sub-requests, over the ${G.USGS_BBOX_MAX_TILES} ceiling; narrow the AO or raise the ceiling deliberately`);
+  }
+  let worst = 0;
+  for (const t of tiles) {
+    const cost = G.usgsBboxCost(t);
+    if (cost > G.USGS_BBOX_BUDGET) fail(`${label} produced a tile costing ${cost.toFixed(2)}, over budget ${G.USGS_BBOX_BUDGET}`);
+    if (cost >= G.USGS_BBOX_LIMIT) fail(`${label} produced a tile costing ${cost.toFixed(2)}, at or over the upstream limit ${G.USGS_BBOX_LIMIT}`);
+    worst = Math.max(worst, cost);
+  }
+  if (!detail.length) detail.push(`${tiles.length} tiles, worst ${worst.toFixed(1)}/${G.USGS_BBOX_LIMIT}`);
+}
+process.stdout.write(detail[0]);
+EOF
+    ) || return 1
+    return 0
+}
+if check_usgs_bbox; then pass "USGS bbox area cap (${USGS_TILE_DETAIL}; event.json + CONFIG fallback both tile under the limit)"; else failck "USGS bbox area cap (gaugeBbox exceeds what WaterServices accepts)"; fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 11 checks passed"
+    echo "SUMMARY: all 12 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 11 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 12 checks FAILED"
 exit 1

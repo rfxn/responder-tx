@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.48';
+const APP_VERSION = 'v0.99.49';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -15,6 +15,13 @@ const CONFIG = {
   nwpsBase: 'https://api.water.noaa.gov/nwps/v1',
   fcstMaxUrl: 'https://maps.water.noaa.gov/server/rest/services/rfc/rfc_max_forecast/MapServer/0/query',
   usgsIvBase: 'https://waterservices.usgs.gov/nwis/iv/',
+  // the AO needs several bBox sub-requests, and USGS publishes on a 15-minute upstream cadence,
+  // so the sweep skips polls it would only waste; still well inside the 15-minute fallback trigger
+  usgsMinIntervalMs: 360000,
+  // WaterServices answers a tight burst of sub-requests with transient 503s, so the sweep is
+  // spread out and a missed tile gets one retry rather than flagging the whole sweep partial
+  usgsTileStaggerMs: 120,
+  usgsRetryMs: 1500,
   refreshMs: 180000,
   // throttle window for the heavy hazard re-rank; a continuous watch feeds the marker + follow glide every fix
   driveLocateMs: 10000,
@@ -219,6 +226,8 @@ const state = {
   gaugeFilter: null, // legend filter set; null until loadGaugeFilter() runs
   fcstMax: [],
   usgsSites: [],
+  usgsFetchedAt: 0,
+  usgsPartial: false, // true when a tiled sweep came back short; blocks the healthy stamp
   lsrs: [],
   zoneGeomCache: new Map(),
   filters: { type: '', county: '', q: '', window: '', dist: '' },
@@ -366,6 +375,61 @@ function distMi(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * toR, dLon = (lon2 - lon1) * toR;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toR) * Math.cos(lat2 * toR) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* USGS WaterServices rejects a bBox larger than 25 equator-equivalent square degrees:
+   width x height x cos(latitude nearest the equator). Measured against the live service
+   2026-07-26; the server's own 400 body states the same rule. See INTERNAL-NOTES.md. */
+const USGS_BBOX_LIMIT = 25;
+const USGS_BBOX_BUDGET = 18;
+// more tiles than this means a misconfigured AO, not a wider board; cycle-check fails on it
+const USGS_BBOX_MAX_TILES = 24;
+
+function usgsBboxCost(b) {
+  if (!b || ![b.xmin, b.ymin, b.xmax, b.ymax].every(Number.isFinite)) return Infinity;
+  const w = Math.abs(b.xmax - b.xmin), h = Math.abs(b.ymax - b.ymin);
+  // a degree of longitude is widest nearest the equator, so that edge binds the whole box
+  const lat = b.ymin <= 0 && b.ymax >= 0 ? 0 : Math.min(Math.abs(b.ymin), Math.abs(b.ymax));
+  return w * h * Math.cos((lat * Math.PI) / 180);
+}
+
+// split a bbox into the fewest near-square tiles that each stay under budget
+function usgsBboxTiles(b, budget) {
+  const cap = budget || USGS_BBOX_BUDGET;
+  const cost = usgsBboxCost(b);
+  if (!Number.isFinite(cost) || cost <= 0) return [];
+  const x0 = Math.min(b.xmin, b.xmax), y0 = Math.min(b.ymin, b.ymax);
+  const w = Math.abs(b.xmax - b.xmin), h = Math.abs(b.ymax - b.ymin);
+  const r5 = (v) => Math.round(v * 1e5) / 1e5;
+  const base = Math.max(1, Math.ceil(cost / cap));
+  // a split landing exactly on the budget can be tipped over it by the 5dp edge rounding below
+  for (let need = base; need < base + 4; need++) {
+    let best = null;
+    for (let nx = 1; nx <= need; nx++) {
+      const ny = Math.ceil(need / nx);
+      const skew = Math.abs(w / nx - h / ny);
+      const better = !best || nx * ny < best.nx * best.ny || (nx * ny === best.nx * best.ny && skew < best.skew);
+      if (better) best = { nx, ny, skew };
+    }
+    const tiles = [];
+    for (let i = 0; i < best.nx; i++) {
+      for (let j = 0; j < best.ny; j++) {
+        tiles.push({
+          xmin: r5(x0 + (w * i) / best.nx), ymin: r5(y0 + (h * j) / best.ny),
+          xmax: r5(x0 + (w * (i + 1)) / best.nx), ymax: r5(y0 + (h * (j + 1)) / best.ny),
+        });
+      }
+    }
+    if (tiles.every((tl) => usgsBboxCost(tl) <= cap)) return tiles;
+  }
+  return []; // unreachable in practice; an empty split makes fetchUsgsIv throw rather than guess
+}
+
+// overlapping tile edges can return the same site twice; first sweep to name it wins
+function usgsMergeSites(lists) {
+  const bySite = new Map();
+  for (const list of lists) for (const s of list) if (!bySite.has(s.site)) bySite.set(s.site, s);
+  return [...bySite.values()];
 }
 
 const shelterKey = (name) => String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();

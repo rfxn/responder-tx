@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.49 · 2026-07-26 (the USGS layer reports again)
+
+-- Bug Fixes --
+- [Fix] The USGS gauge layer reports again, across the whole area of operations.
+      Its raw stage readings are available once more as a backstop for sites the
+      main gauge feed has nothing for, which is when the board leans on them most
+- [Fix] If only part of the area answers, the USGS layer now says so on the
+      readings it did get instead of presenting a short sweep as a complete one
+
+-- Changes --
+- [Change] The USGS layer refreshes on its own six-minute cycle, so its feed chip
+           can read a few minutes older than the others without anything being
+           wrong
+
 ## v0.99.48 · 2026-07-26 (the whole board, in every export)
 
 -- Changes --

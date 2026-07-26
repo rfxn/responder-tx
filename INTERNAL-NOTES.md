@@ -56,9 +56,11 @@ before Q1 2027 and before the August 2026 no-degradation guarantee lapses.
 `/continuous` caps at three years per query. `js/sources.js` `fetchUsgsIv()`
 moves only once the CSP host is approved.
 
-## USGS IV client layer returns HTTP 400 (bbox too large)
+## USGS IV client layer returns HTTP 400 (bbox too large) — fixed in v0.99.49
 
-Separate from the decommission, live now, and the more urgent of the two.
+Separate from the decommission, and the more urgent of the two. Resolved by
+tiling (option 1 below); the record of the fault and the measurements is kept
+because the cap is an upstream limit that will bind again on the next AO change.
 
 `fetchUsgsIv()` passes the statewide `CONFIG.gaugeBbox` (13.25 by 10.67 degrees)
 to WaterServices, which rejects it. Verified 2026-07-26, deterministic:
@@ -71,12 +73,39 @@ GET /nwis/iv/?format=json&parameterCd=00065&modifiedSince=PT2H
               requested height of 10.7 degrees."
 ```
 
-The endpoint is healthy; the area cap is the sole fault. Controls from the same
-session: a 1 by 1 degree box returns 200 with 61 timeSeries, 5 by 5 returns 200
-with 478, 5.5 by 5 returns 200 with 509, and 6 by 5 returns 400 with "width must
-be less than or equal to 5.8 degrees at latitude 30.0". So the usable ceiling is
-roughly 29 square degrees and it varies with latitude. Covering the Texas AO
-needs about nine tiles at 5 by 5.
+The endpoint is healthy; the area cap is the sole fault.
+
+The cap is not raw square degrees. Measured 2026-07-26 against the live service,
+the exact rule is:
+
+```
+width_deg * height_deg * cos(latitude of the edge nearest the equator) <= 25
+```
+
+That is, 25 *equator-equivalent* square degrees. A degree of longitude narrows
+with latitude, so the same box is cheaper the further from the equator it sits,
+and the edge nearest the equator is the one that binds. The server's own 400 body
+states the same rule from the other direction: for the Texas box it reports a
+maximum width of 2.6 degrees at latitude 25.8, and `25 / (10.67 * cos 25.83)`
+is 2.60.
+
+Fitted against ten probes at latitudes 25.8, 29 and 45, all ten agree, including
+both sides of the boundary: at latitude 29, 28.58 raw square degrees returns 200
+and 28.60 returns 400 (24.997 and 25.014 equator-equivalent). The model was then
+confirmed out of sample: it predicts a maximum width of 7.07 degrees for a
+5-degree-tall box at latitude 45, and 7.0 returns 200 while 7.2 returns 400.
+
+An earlier reading of "roughly 29 square degrees, varies with latitude" was an
+artifact of probing at a single latitude. Do not use it; the cosine rule is exact.
+
+Two further properties, both measured, both load-bearing for the fix:
+
+- **bBox edges are inclusive on both sides.** A station sitting exactly on a
+  shared tile boundary is returned by both adjacent tiles, so a tiled sweep must
+  deduplicate by site code. Verified with site 08168000 at longitude -98.140009,
+  which appears in both a box ending at that longitude and one starting there.
+- **Aspect ratio is irrelevant.** Only the product matters: at latitude 29, a
+  28.6 by 1 strip and a 5.72 by 5 block both fail at the same 25.01.
 
 Introduced in v0.97.47 (`07949f0`) when the display bbox went statewide for the
 TS Bertha coastal pivot. `gen-history.py` is unaffected: it queries by site list,
@@ -87,17 +116,51 @@ This is **not** silent. `fetchUsgsIv()` throws before `markHealthy('usgs')`, and
 degraded through the normal feed-health path. That is why it was left alone in
 v0.99.48 rather than fixed in a hurry.
 
-Three ways out, and the choice is the owner's because each has a visible cost:
+Three ways out were considered:
 
-1. Tile the request into sub-5-degree boxes against the legacy endpoint. No CSP
-   change and no new host, but about nine requests per refresh instead of one,
-   and the work is thrown away at the 2027 decommission.
+1. **Tile the request** against the legacy endpoint. No CSP change and no new
+   host, at the cost of several requests per sweep. **Chosen.**
 2. Use `stateCd=` instead of `bBox=`, which has no area cap. One request, but it
    hardcodes a state and works against the region/event-pack generalization the
-   roadmap already carries.
-3. Migrate this call site to `latest-continuous` now. One request, no bbox size
-   limit (a CONUS box returns 200), and it retires the 2027 exposure at the same
-   time. Needs the CSP host from the section above.
+   roadmap already carries. Rejected.
+3. Migrate this call site to `latest-continuous` now. One request and it retires
+   the 2027 exposure at the same time, but it needs a new CSP host, a parser
+   rewrite, and a second join for station names. Deferred; WaterServices is good
+   until Q1 2027 and this fix is not thrown away by taking it later.
+
+### How the fix is built
+
+`usgsBboxTiles()` in `js/core.js` derives the split from whatever bbox it is
+given, so a re-target cannot silently outgrow the limit. It picks the fewest
+near-square tiles whose cost stays under `USGS_BBOX_BUDGET` (18, against the
+measured limit of 25, so roughly 28 percent margin). The standing Texas AO costs
+127.25 and takes 8 tiles at a worst tile cost of 15.9.
+
+Tiles are cut to 5 decimal places for the query string, and a split that lands
+exactly on the budget can be tipped over it by that rounding, so the function
+verifies every tile and steps up the tile count if any exceeds the budget. The
+whole-globe case exercises this.
+
+Request volume is held down by `CONFIG.usgsMinIntervalMs` (6 minutes) rather than
+by the 3-minute poll loop: USGS publishes instantaneous values on a 15-minute
+upstream cadence, so sweeping every poll would only spend requests. Six minutes
+also stays under the 10-minute mark where the feed chip stops reading fresh, and
+well under the 15-minute NWPS staleness that offers this layer as a fallback. Net
+cost is 8 requests per 6 minutes against the old 1 per 3 minutes.
+
+Partial sweeps keep their data but are never stamped healthy, so the feed chip
+keeps ageing and the popups carry `usgs.partial`. Only a sweep where every tile
+fails throws, which is what puts USGS in the degraded feed list. The throttle
+stamp is set on any sweep that produced data, including a partial one, so a
+permanently dead tile cannot double the request rate indefinitely.
+
+The guard against a repeat is `check_usgs_bbox` in `scripts/cycle-check.sh`
+(check l), which fails the release cycle if the shipped `data/event.json` bbox or
+the built-in `CONFIG.gaugeBbox` tiles over the limit or needs more than
+`USGS_BBOX_MAX_TILES` (24) sub-requests. It skips a core.js that configures no
+`usgsIvBase` so the minimal cycle-check fixtures still pass, but it fails loudly
+if a real core.js has the feed and lost the helper. `tests/usgs-bbox.test.js`
+pins the same contract, including an oversized AO.
 
 ## CalTopo/KML/GeoRSS export feature cap
 

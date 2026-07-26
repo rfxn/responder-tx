@@ -109,6 +109,8 @@ function buildSandbox() {
 const EXPORTS = [
   'CONFIG', 'state', 'FLOOD_CATS', 'CAT_RANK', 'PRI_WEIGHT',
   'esc', 'fmtNum', 'safeUrl', 'telHref', 'ageMins', 'distMi', 'freshClass',
+  'usgsBboxCost', 'usgsBboxTiles', 'usgsMergeSites', 'fetchUsgsIv',
+  'USGS_BBOX_LIMIT', 'USGS_BBOX_BUDGET', 'USGS_BBOX_MAX_TILES',
   'modalCycleIndex', 'modalIsFocusableVisible',
   'toUSNG',
   'alertReach', 'alertSeverity', 'alertOpen', 'emergencyBannerMode', 'alertNearPoint',

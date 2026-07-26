@@ -994,9 +994,10 @@ function renderFcstMax() {
 
 /* ---------- USGS instantaneous values (raw stage — no flood-stage context) ---------- */
 
-async function fetchUsgsIv() {
-  const b = CONFIG.gaugeBbox;
-  const url = `${CONFIG.usgsIvBase}?format=json&parameterCd=00065&modifiedSince=PT2H&bBox=${b.xmin},${b.ymin},${b.xmax},${b.ymax}`;
+// one tiled sub-request; the AO is far past what WaterServices accepts in a single bBox
+async function fetchUsgsTile(tile) {
+  const url = `${CONFIG.usgsIvBase}?format=json&parameterCd=00065&modifiedSince=PT2H`
+    + `&bBox=${tile.xmin},${tile.ymin},${tile.xmax},${tile.ymax}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`USGS IV HTTP ${res.status}`);
   const data = await res.json();
@@ -1011,9 +1012,36 @@ async function fetchUsgsIv() {
     const loc = si.geoLocation.geogLocation;
     sites.push({ site: si.siteCode[0].value, name: si.siteName, lat: loc.latitude, lon: loc.longitude, ft, t: last.dateTime });
   }
+  return sites;
+}
+
+const usgsWait = (ms) => new Promise((r) => { setTimeout(r, ms); });
+
+// stagger the burst, then allow one retry; a second failure is what makes a sweep partial
+async function fetchUsgsTileRetry(tile, slot) {
+  if (slot && CONFIG.usgsTileStaggerMs) await usgsWait(slot * CONFIG.usgsTileStaggerMs);
+  try {
+    return await fetchUsgsTile(tile);
+  } catch {
+    await usgsWait(CONFIG.usgsRetryMs);
+    return fetchUsgsTile(tile);
+  }
+}
+
+async function fetchUsgsIv() {
+  if (state.usgsFetchedAt && Date.now() - state.usgsFetchedAt < CONFIG.usgsMinIntervalMs) return;
+  const tiles = usgsBboxTiles(CONFIG.gaugeBbox);
+  if (!tiles.length) throw new Error('USGS IV: gaugeBbox yields no queryable tile');
+  const results = await Promise.allSettled(tiles.map((tile, i) => fetchUsgsTileRetry(tile, i)));
+  const ok = results.filter((r) => r.status === 'fulfilled');
+  if (!ok.length) throw new Error(`USGS IV: all ${tiles.length} sub-requests failed`);
+  const sites = usgsMergeSites(ok.map((r) => r.value));
+  state.usgsFetchedAt = Date.now();
   // NWPS gauges carry flood categories — keep USGS to the sites NWPS lacks
   state.usgsSites = sites.filter((s) => !state.gauges.some((g) => distMi(s.lat, s.lon, g.latitude, g.longitude) < 0.3));
-  markHealthy('usgs');
+  state.usgsPartial = ok.length < tiles.length;
+  // a short sweep is never stamped healthy: the chip keeps ageing until a whole pass lands
+  if (!state.usgsPartial) markHealthy('usgs');
   renderUsgsIv();
 }
 
@@ -1025,6 +1053,7 @@ function renderUsgsIv() {
     // raw stage has no flood-stage thresholds here — never imply a category
     m.bindPopup(`<div class="popup-title">${esc(s.name)}</div>` +
       `<div class="popup-meta">${esc(t('usgs.stage').replace('{v}', s.ft).replace('{t}', fmtWhen(s.t)))}</div>` +
+      (state.usgsPartial ? `<div class="popup-meta">${esc(t('usgs.partial'))}</div>` : '') +
       `<div class="popup-link"><a href="https://waterdata.usgs.gov/monitoring-location/${esc(s.site)}" target="_blank" rel="noopener">${esc(t('usgs.link'))}</a></div>`);
     state.layers.usgs.addLayer(m);
   }

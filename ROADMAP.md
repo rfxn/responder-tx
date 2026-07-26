@@ -36,7 +36,7 @@ v0.98.7–v0.99.34 arc on 2026-07-26.
 > measured and a guard that fails the cycle on a repeat (v0.99.49).
 
 > The v0.98.7–v0.99.34 arc closed five of the six NOW items and then spent most
-> of its length on the camera fleet, which grew from roughly 1,000 to 6,510.
+> of its length on the camera fleet, which grew from roughly 1,000 to 6,506.
 > Delivered inventory rather than queue:
 > **archive and pipeline** · road playback got the gauge lane's retention split,
 > so a display-scope change can no longer stop the road record (v0.98.7); the
@@ -166,7 +166,7 @@ generalization and the in-app provenance surface. See the forward queue.
   recently-reopened-roads recovery signal (v0.79.0), TxGIO low-water-crossing
   location inventory (~3.7k) plus the curator-maintained crossing tracker
   (W4/#13, v0.60.0).
-- **Cameras** · 6,510 cameras across 19 networks with live HLS + snapshot + stale
+- **Cameras** · 6,506 cameras across 19 networks with live HLS + snapshot + stale
   badging, auto-linked into nearby gauge popups (T6, v0.83.0; TxDOT ITS snapshot
   cams v0.88.x, opened on the public mirror v0.99.26). Grouped by Texas region
   rather than by operator (v0.99.2), with out-of-state cameras split by state

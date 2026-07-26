@@ -6,7 +6,7 @@ METHOD:PUBLISH
 X-WR-CALNAME:Responder TX · forecast river crests
 BEGIN:VEVENT
 UID:crest-TILT2-20260728T000000Z@responder.rfxn.com
-DTSTAMP:20260726T232323Z
+DTSTAMP:20260726T233818Z
 DTSTART:20260728T000000Z
 DTEND:20260728T010000Z
 SUMMARY:MAJOR crest · Nueces River near Tilden (23.1 ft)
@@ -15,11 +15,11 @@ URL:https://respondertx.org/?hydro=TILT2
 END:VEVENT
 BEGIN:VEVENT
 UID:crest-THET2-20260731T180000Z@responder.rfxn.com
-DTSTAMP:20260726T232323Z
+DTSTAMP:20260726T233818Z
 DTSTART:20260731T180000Z
 DTEND:20260731T190000Z
 SUMMARY:MAJOR crest · Nueces River near Three Rivers (40.4 ft)
-DESCRIPTION:Forecast MAJOR crest 40.4 ft (observed 5.15 ft). NOAA NWPS. Not a dispatch system\; call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 40.4 ft (observed 5.2 ft). NOAA NWPS. Not a dispatch system\; call 911 for emergencies.
 URL:https://respondertx.org/?hydro=THET2
 END:VEVENT
 END:VCALENDAR

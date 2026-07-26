@@ -511,6 +511,90 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 33-38: out-of-cycle artifact age (check n) -----------------------
+# gen-cameras.py and gen-records.py are hand-run, so nothing in the 15-minute cycle notices when
+# their output stops describing anything anyone verified. The release lane fails, the data lane
+# only warns: a stale camera inventory must not stop a flood publish.
+# write_static FILE DAYS_AGO — an artifact stamped N days ago, in the shape check j also demands,
+# so an age failure here is never really a schema failure wearing its clothes. DAYS_AGO "none"
+# writes the same body with no generated stamp at all.
+write_static() {
+    python3 - "$REPO/data/$1" "$2" <<'PY'
+import datetime, json, sys
+path, days = sys.argv[1], sys.argv[2]
+nets = ("txdot", "river", "austin", "atxfloods", "houston", "arlington", "elpbridge", "hays",
+        "porthou", "swrecon", "corpus", "lubbock", "weatherbug", "nmdot", "nps", "laredo",
+        "eaglepass", "delrio", "galveston")
+body = {n: [] for n in nets} if path.endswith("cameras.json") else {"records": {}}
+if days != "none":
+    when = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=int(days))
+    body["generated"] = when.strftime("%Y-%m-%dT%H:%M:%SZ")
+json.dump(body, open(path, "w"))
+PY
+}
+
+setup
+write_static cameras.json 3
+write_static records.json 10
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'out-of-cycle artifact age (cameras.json 3d/45d, records.json 10d/90d)' "$WORK/out"; then
+    pass "33 fresh hand-run artifacts pass and their measured age is reported"
+else
+    fail "33 fresh artifacts pass (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# MUTATION: age the camera inventory past its limit and watch the release lane fail.
+setup
+write_static cameras.json 46
+write_static records.json 10
+run_check; A=$?
+run_check --code-from-head; B=$?
+if [ "$A" -ne 0 ] && grep -q 'data/cameras.json is 46 days old (limit 45); re-run scripts/gen-cameras.py' "$WORK/out"; then
+    pass "34 MUTATION · a camera inventory past its limit fails the release lane and names the fix"
+else
+    fail "34 stale cameras.json fails the release lane (rc=${A})"; cat "$WORK/out"
+fi
+if [ "$B" -eq 0 ]; then
+    pass "35 the same stale inventory only WARNs the data cycle, so a flood publish is not stopped"
+else
+    fail "35 stale cameras.json must not fail the data lane (rc=${B})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# MUTATION: the records file has its own, longer limit, and it is enforced too.
+setup
+write_static cameras.json 3
+write_static records.json 91
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'data/records.json is 91 days old (limit 90); re-run scripts/gen-records.py' "$WORK/out"; then
+    pass "36 MUTATION · a records file past its own limit fails the release lane"
+else
+    fail "36 stale records.json fails (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# MUTATION: an artifact with no readable generated stamp must fail rather than age as 0 days.
+setup
+write_static cameras.json none
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'carries no readable generated stamp' "$WORK/out"; then
+    pass "37 MUTATION · a stamp-less artifact fails rather than letting the check go blind"
+else
+    fail "37 stamp-less artifact fails (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# A board that has never run either generator must not be failed for their absence.
+setup
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'cameras.json absent, records.json absent' "$WORK/out"; then
+    pass "38 absent hand-run artifacts are tolerated, not failed"
+else
+    fail "38 absent artifacts tolerated (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CYCLE-CHECK IMMUNITY TESTS PASSED"

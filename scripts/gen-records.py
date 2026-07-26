@@ -6,8 +6,9 @@ from the NWPS gauge endpoint, keeping the highest historic crest (stage + date).
 Output schema matches the curated 2026-07-17 file exactly:
 {generated, source, note, records:{LID:{name, record_ft, record_date}}}.
 Gauges with no historic crests are skipped (normal for minor gauges). Refuses
-to write unless at least MIN_RECORDS gauges yielded a record, so a degraded
-NWPS never replaces a good file with a stub. Atomic temp-file + rename write.
+to write unless the run clears MIN_RECORDS and reaches half of what the last
+published file carried, so a degraded NWPS never replaces a good file with a
+stub. Run out of band, by hand. Atomic temp-file + rename write.
 """
 import datetime
 import json
@@ -18,12 +19,13 @@ import time
 import urllib.error
 import urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAPSHOT = os.path.join(ROOT, "data", "gauges-snapshot.json")
 OUT = os.path.join(ROOT, "data", "records.json")
 NWPS_GAUGE_URL = "https://api.water.noaa.gov/nwps/v1/gauges/"
 UA = "responder-tx-ops/gen-records (rfxnryan@gmail.com)"
 MIN_RECORDS = 50
+RECORD_KEEP = 2  # divisor: a run must reach half what it last published, which MIN_RECORDS alone does not follow as the gauge network grows
 FETCH_SPACING_S = 0.2
 BACKOFFS = [2, 5]
 # A preliminary ("P") crest posted during the current event must not become the
@@ -74,7 +76,25 @@ def record_crest(gauge, now):
     return best
 
 
+def prev_records():
+    """How many records the last published file carried, or None on a genuine first run.
+
+    A file that exists and will not read is not a first run: treating it as one would drop the only
+    floor that follows the gauge network as it grows, and a broadly failing NWPS would then publish
+    a fraction of the records over a good file.
+    """
+    try:
+        with open(OUT, encoding="utf-8") as f:
+            return len(json.load(f).get("records") or {})
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError) as exc:
+        sys.exit(f"gen-records: {OUT} exists but will not read ({exc}); refusing to publish "
+                 f"without the floor it carries")
+
+
 def main():
+    known = prev_records()  # first, so an unreadable baseline aborts before ~1000 upstream fetches
     with open(SNAPSHOT, encoding="utf-8") as f:
         snap = json.load(f)
     lids = [(g["lid"], g.get("name") or g["lid"]) for g in snap.get("gauges", []) if g.get("lid")]
@@ -105,6 +125,9 @@ def main():
     if len(records) < MIN_RECORDS:
         sys.exit(f"gen-records: only {len(records)} gauges with records "
                  f"(need >={MIN_RECORDS}); keeping previous file")
+    if known and len(records) < known // RECORD_KEEP:
+        sys.exit(f"gen-records: {len(records)} gauges with records against {known} published last "
+                 f"run (floor {known // RECORD_KEEP}, {failed} fetches failed); keeping previous file")
 
     payload = {
         "generated": now.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ"),

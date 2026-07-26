@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.53",
+      "date": "2026-07-26",
+      "line": "Cameras stay on the map when the published inventory cannot be read, so the board keeps the cameras it has rather than publishing an upstream dropout as a retirement. A camera network that empties, or that loses most of its cameras at once, is no longer published: each network is now measured against what it last carried. Crest of record data is kept when a refresh returns far fewer records than the set it would replace. Release checks flag a camera inventory or crest record set that has gone too long without a refresh."
+    },
+    {
       "v": "v0.99.52",
       "date": "2026-07-26",
       "line": "Reconstructed playback leaves out a river gauge whose flood levels the board could not retrieve, in place of drawing it as not in flood for that period, and retries the retrieval on a later cycle. The map exports name every source that did not answer, in the CalTopo file, both KML files and the GeoRSS feed, so a layer that failed to load is reported as missing rather than shown as empty. The crest summary says when it cannot establish the start of the window it covers. Playback and the crest summary keep their previous copies when the already published record cannot be read, and a road closure snapshot that cannot be completed marks the update cycle degraded."

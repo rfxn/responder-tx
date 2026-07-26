@@ -666,9 +666,59 @@ else
     failck "offline warm depth (HISTORY_WARM_MAX_BYTES cannot hold HISTORY_WARM_MAX_DAYS at the index's real chunk sizes)"
 fi
 
+# n. out-of-cycle artifact age. gen-cameras.py and gen-records.py are hand-run because their inputs
+# are near-static, so nothing in the 15-minute cycle notices when their output stops describing
+# anything anyone verified. The camera inventory is the worst case: its per-camera liveness claims
+# expire at gen-cameras.py CAM_MAX_AGE_D, past which the board offers cameras it no longer knows are
+# alive. Release lane fails, data lane warns: a stale hand-run must never stop a flood publish.
+STATIC_DETAIL=""
+check_static_age() {
+    STATIC_DETAIL=$(python3 - <<'EOF'
+import datetime, json, os, sys
+
+# artifact -> (days it stays trustworthy, the generator that refreshes it). Cameras carry per-camera
+# liveness claims that expire at 30d, so 45 leaves a fortnight to act; records are all-time crests
+# that move only when one falls, so a quarter also catches "the gauge network grew and nobody re-ran it".
+LIMITS = (("data/cameras.json", 45, "gen-cameras.py"), ("data/records.json", 90, "gen-records.py"))
+root = os.environ.get("DATA_ROOT", ".")
+now = datetime.datetime.now(datetime.timezone.utc)
+detail, stale = [], []
+for rel, limit, gen in LIMITS:
+    path = os.path.join(root, rel)
+    if not os.path.exists(path):
+        detail.append("%s absent" % os.path.basename(rel))
+        continue
+    try:
+        with open(path, encoding="utf-8") as f:
+            stamp = json.load(f).get("generated")
+        t = datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+    except (OSError, ValueError, TypeError) as exc:
+        raise SystemExit("%s carries no readable generated stamp (%s); its age cannot be checked "
+                         "and this gate would go blind" % (rel, exc))
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=datetime.timezone.utc)
+    age = (now - t).days
+    detail.append("%s %dd/%dd" % (os.path.basename(rel), age, limit))
+    if age > limit:
+        stale.append("%s is %d days old (limit %d); re-run scripts/%s" % (rel, age, limit, gen))
+if stale:
+    raise SystemExit("; ".join(stale))
+sys.stdout.write(", ".join(detail))
+EOF
+    ) || return 1
+    return 0
+}
+if check_static_age; then
+    pass "out-of-cycle artifact age (${STATIC_DETAIL})"
+elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
+    echo "WARN: out-of-cycle artifact age: a hand-run generator's output has aged past its limit and nothing else watches it. The release lane fails on this; a data cycle does not, because a stale camera inventory must not stop a flood publish."
+else
+    failck "out-of-cycle artifact age (data/cameras.json or data/records.json past its limit; re-run the generator)"
+fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 13 checks passed"
+    echo "SUMMARY: all 14 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 13 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 14 checks FAILED"
 exit 1

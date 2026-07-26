@@ -22,7 +22,7 @@ suspended or mid-task).
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
-| `cycle-check.sh` | Pre-commit validation bundle, eleven checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, and the 911 footer on every lens. |
+| `cycle-check.sh` | Pre-commit validation bundle, fourteen checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, and out-of-cycle artifact age. |
 | `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). Staging is a fresh `mktemp -d` per run, removed on every exit path, so the cron deploy and a hand-run deploy can never share a directory; set `RESPONDER_DEPLOY_DIR` to pin the path and keep the artifact for inspection (the caller then owns it, and two runs pointed at one path can still collide). |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
@@ -37,6 +37,21 @@ part of the 15-minute cycle: `gen-cameras.py` (the camera inventory →
 → `data/records.json`), and `gen-river-sentry.py` (river-sentry tower positions →
 `data/river-sentry.json`). Re-run them by hand after an AO change or when a source
 network changes.
+
+Out of band is not unwatched. Each refuses to overwrite a good file from a degraded
+run, and each treats an output that exists but will not read as a reason to stop
+rather than as an empty one: an unreadable baseline is not a first run, and using it
+as one publishes an upstream dropout as a retirement. `gen-cameras.py` and
+`gen-records.py` also measure the new set against what was last published, per camera
+network and per record count, because a fixed floor does not follow the fleet as it
+grows. `cycle-check.sh` check n ages `data/cameras.json` and `data/records.json`, so a
+hand-run that stops happening fails the release lane instead of going unnoticed; the
+data lane only warns, because a stale camera inventory must never stop a flood publish.
+
+They stay off the 15-minute cycle deliberately. Their inputs do not change on that
+cadence, `gen-cameras.py` alone makes thousands of upstream liveness probes per run,
+and an unattended run would leave the working tree holding camera rows the cycle does
+not stage, which `deploy.sh` (shipping `git archive HEAD`) would not publish anyway.
 
 ## Shell conventions
 

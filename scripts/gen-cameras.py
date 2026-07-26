@@ -246,6 +246,8 @@ ITS_NEAR_M = 150.0  # an ITS cam this close to a MapLarge streamable cam is the 
 # fetch-snapshot.py partial-response guard, per district instead of per file.
 ITS_DISTRICT_KEEP = 2  # divisor: live must reach last-known // 2 or the district is held
 ITS_CARRY_MAX_D = 14  # a district that stays collapsed this long has really lost the cameras
+CAM_COLLAPSE_KEEP = 2  # divisor: a network must reach half what it last published
+CAM_COLLAPSE_MIN = 20  # under this, only a fall to zero counts; hand-kept lists shed heads normally
 OUT = os.path.join(ROOT, 'data', 'cameras.json')
 PAGE = 1000
 
@@ -321,29 +323,76 @@ def its_icd_key(icd):
     return key if ITS_ICD_RE.match(key) else None
 
 
-def prev_its():
-    """Last committed ITS rows grouped by district, plus the carry-forward clock."""
+def load_prev():
+    """The last published inventory, or None on a genuine first run.
+
+    A file that exists and will not read is not an empty inventory. Treating it as one disarms
+    both the ITS collapse hold and check_no_collapse, so a district or a network that dropped out
+    upstream would publish as a retirement.
+    """
     try:
         with open(OUT, encoding='utf-8') as f:
-            prev = json.load(f)
-    except (OSError, ValueError):
-        return {}, {}
+            return json.load(f)
+    except FileNotFoundError:
+        print(f'note: {OUT} absent, first run: no carry-forward baseline and no collapse floor')
+        return None
+    except (OSError, ValueError) as exc:
+        sys.exit(f'{OUT} exists but will not read ({exc}); refusing to publish, because an '
+                 f'unreadable baseline would retire every camera it exists to protect')
+
+
+def prev_its(prev):
+    """Last published ITS rows grouped by district, plus the carry-forward clock."""
     by_dist = {}
-    for c in prev.get('txdot') or []:
+    for c in (prev or {}).get('txdot') or []:
         if c.get('src') == 'its' and c.get('dist') and c.get('icd'):
             by_dist.setdefault(c['dist'], []).append(c)
-    clock = prev.get('itsCarried')
+    clock = (prev or {}).get('itsCarried')
     return by_dist, dict(clock) if isinstance(clock, dict) else {}
 
 
-def its_hold_collapsed(live, near_streamable):
+def camera_networks(payload):
+    """Network name -> rows for every camera array in a cameras.json payload.
+
+    Read off the payload rather than a hand-kept list, so a network added later is covered by the
+    collapse floor without anyone remembering to name it. bbox is numbers, not rows.
+    """
+    return {k: v for k, v in payload.items()
+            if isinstance(v, list) and all(isinstance(row, dict) for row in v)}
+
+
+def check_no_collapse(prev, out):
+    """Refuse to publish a network that collapsed against the last published inventory.
+
+    The absolute floors in main() are fixed numbers that do not follow the fleet as it grows, so a
+    network can shed most of its cameras and still clear one. This measures against what was
+    actually published last: an emptied network is never churn, and a large one at under half is a
+    partial response rather than a mass retirement.
+    """
+    if prev is None:
+        return
+    was = camera_networks(prev)
+    for name, rows in sorted(camera_networks(out).items()):
+        known = len(was.get(name) or [])
+        if not known:
+            continue
+        if not rows:
+            sys.exit(f'{name}: 0 cams against {known} published last run; a whole network does not '
+                     f'empty itself, refusing to overwrite {OUT}')
+        floor = known // CAM_COLLAPSE_KEEP
+        if known >= CAM_COLLAPSE_MIN and len(rows) < floor:
+            sys.exit(f'{name}: {len(rows)} cams against {known} published last run (floor {floor}); '
+                     f'partial response upstream? refusing to overwrite {OUT}')
+
+
+def its_hold_collapsed(live, near_streamable, prev):
     """Hold a district whose feed collapsed, so an upstream outage cannot prune the inventory.
 
     Gradual loss passes straight through, because a camera taken out of service is real. A
     district under half its last-known count is treated as a partial response and keeps the
     last-known rows, but only for ITS_CARRY_MAX_D — past that the loss is accepted as real.
     """
-    prev_rows, prev_clock = prev_its()
+    prev_rows, prev_clock = prev_its(prev)
     now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     cams, clock = [], {}
     for d in ITS_DISTRICTS:
@@ -368,7 +417,7 @@ def its_hold_collapsed(live, near_streamable):
     return cams, clock
 
 
-def its_cams(streamable):
+def its_cams(streamable, prev):
     cell = 0.002
     grid = {}
     for c in streamable:
@@ -423,7 +472,7 @@ def its_cams(streamable):
                 })
         live[d] = rows
         print(f'ITS {d}: +{len(rows)}')
-    cams, carried = its_hold_collapsed(live, near_streamable)
+    cams, carried = its_hold_collapsed(live, near_streamable, prev)
     print(f'ITS: {len(cams)} snapshot-only cams kept ({dropped_near} dropped as near-duplicates of streamable, {skipped_icd} skipped on icd charset)')
     return sorted(cams, key=lambda c: (c['dist'], c['name'])), carried
 
@@ -934,8 +983,9 @@ def hays_cams():
 
 
 def main():
+    prev = load_prev()  # first, so an unreadable baseline aborts before any upstream work
     tx = txdot_cams()
-    its, its_carried = its_cams(tx)
+    its, its_carried = its_cams(tx, prev)
     rv = river_cams()
     au = austin_cams()
     af = atxfloods_cams()
@@ -954,8 +1004,8 @@ def main():
     ep = dated_still_cams(EAGLEPASS_CAMS, IPCAMLIVE_ID_RE, lambda i: IPCAMLIVE_IMG.format(id=i), 'Eagle Pass bridges')
     dr = dated_still_cams(DELRIO_CAMS, IPCAMLIVE_ID_RE, lambda i: IPCAMLIVE_IMG.format(id=i), 'Del Rio bridge')
     gv = dated_still_cams(GALVESTON_CAMS, GALVESTON_ID_RE, galveston_url, 'Port of Galveston')
-    # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; hays/corpus floors are 0 (idle heads are expected, never a shape-change signal)
-    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('hays', ha, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5), ('nmdot', nm, 10), ('nps', np, 3), ('laredo', la, 4), ('eaglepass', ep, 2), ('delrio', dr, 1), ('galveston', gv, 0)):
+    # per-source floors abort a silently-zeroed source; its is the post-dedup residual (shrinks as the streamable set grows), so its floor stays low; the liveness-checked hand-lists sit at 0 because idle heads are expected there and check_no_collapse carries them against the last published count instead
+    for name, cams, floor in (('its', its, 300), ('river', rv, 20), ('austin', au, 400), ('atxfloods', af, 10), ('houston', ho, 400), ('arlington', ar, 40), ('elpbridge', elp, 0), ('hays', ha, 0), ('porthou', ph, 0), ('swrecon', sw, 10), ('corpus', co, 0), ('lubbock', lu, 20), ('weatherbug', wb, 5), ('nmdot', nm, 10), ('nps', np, 3), ('laredo', la, 4), ('eaglepass', ep, 2), ('delrio', dr, 1), ('galveston', gv, 0)):
         if len(cams) < floor:
             sys.exit(f'{name}: {len(cams)} cams below floor {floor} — upstream shape change? refusing to overwrite {OUT}')
     out = {
@@ -1003,6 +1053,7 @@ def main():
         'delrio': dr,
         'galveston': gv,
     }
+    check_no_collapse(prev, out)
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix='.cameras.', suffix='.tmp')
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as f:

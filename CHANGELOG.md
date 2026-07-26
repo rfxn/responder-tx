@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.53 · 2026-07-26 (a camera network cannot empty quietly)
+
+-- New Features --
+- [New] Release checks flag a camera inventory or crest record set that has gone
+      too long without a refresh to still describe what is out there
+
+-- Bug Fixes --
+- [Fix] Cameras stay on the map when the published inventory cannot be read. The
+      board keeps the cameras it has rather than publishing an upstream dropout
+      as a retirement
+- [Fix] A camera network that empties, or that loses most of its cameras at once,
+      is no longer published. Each network is now measured against what it last
+      carried
+- [Fix] Crest of record data is kept when a refresh returns far fewer records
+      than the set it would replace
+
 ## v0.99.52 · 2026-07-26 (what could not be read is not reported as nothing)
 
 -- Bug Fixes --

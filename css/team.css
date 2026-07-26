@@ -26,6 +26,8 @@
   color: var(--ink-1); font-size: 15px;
 }
 .tt-input:focus { outline: none; border-color: var(--accent); }
+/* the rule above outranks the global :focus-visible ring, so keyboard focus restates it here */
+.tt-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .tt-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;

@@ -364,14 +364,15 @@ function indexHtml() {
   return fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
 }
 
-test('the settings sheet declares menu roles and holds the alerts card', () => {
+/* v0.99.41 replaced role="menu"/"menuitem" here with a labelled disclosure group: the panel holds
+   group headings, the device-alerts card and RSS links, so it could never satisfy the keyboard
+   contract the menu roles promised. The container semantics are pinned in modal-a11y.test.js; what
+   this guards is the panel's contents. */
+test('the settings sheet owns every entry point and holds the alerts card', () => {
   const html = indexHtml();
   const menu = html.slice(html.indexOf('<div id="hmore-menu"'), html.indexOf('<div class="refresh-meta">'));
-  assert.ok(/<div id="hmore-menu" role="menu"/.test(html), '#hmore-menu is missing role="menu"');
-  assert.ok(/id="hmore-btn"[^>]*aria-haspopup="true"/.test(html), '#hmore-btn lost aria-haspopup');
-  // every button the menu owns directly is a menuitem; the alerts card's own buttons are not
   for (const id of ['shelters-btn', 'theme-toggle', 'lang-toggle', 'share-btn', 'help-btn', 'whatsnew-btn', 'safety-btn']) {
-    assert.ok(new RegExp(`id="${id}" role="menuitem"`).test(menu), `#${id} is not a role="menuitem" in the settings sheet`);
+    assert.ok(new RegExp(`id="${id}"`).test(menu), `#${id} left the settings sheet`);
   }
   for (const g of ['set.g.public', 'set.g.display', 'set.g.alerts', 'set.g.actions', 'set.g.help']) {
     assert.ok(menu.includes(`data-i18n="${g}"`), `settings sheet is missing the ${g} heading`);

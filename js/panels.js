@@ -26,8 +26,7 @@ function renderForecastList() {
 
 function focusGauge(g) {
   flyOpenPopup([g.latitude, g.longitude], 11, state.gaugeMarkers && state.gaugeMarkers[g.lid]);
-  // phone layout: the map is above the scrolled list — make the pan visible
-  if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+  revealMapOnPhone();
 }
 
 const DEG_GLYPH = { nothresh: '◌', stale: '⏱', oos: '⊘' };
@@ -275,9 +274,10 @@ function updateDriveFreshness() {
   if ($('#drive-mode').hidden || !state.locWatch) { el.hidden = true; return; }
   el.hidden = false;
   const secs = state.driveFixAt ? Math.round((Date.now() - state.driveFixAt) / 1000) : null;
-  el.textContent = secs == null
+  const text = secs == null
     ? `⌖ ${t('drive.autoupd')} · ${t('drive.locating')}`
     : `⌖ ${t('drive.autoupd')} · ${t('drive.lastfix').replace('{s}', secs)}`;
+  if (el.textContent !== text) el.textContent = text; // ticks every second: only touch the DOM on a change
 }
 
 /* ---------- crest summary — after-action peak-stage view (?view=summary) ---------- */

@@ -1,5 +1,33 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.41 · 2026-07-26 (usable with gloves, in sunlight, one hand, and a screen reader)
+
+-- Changes --
+- [Change] The close button on every panel and dialog, the Feed filters, the
+           rainfall legend buttons, the map area and layer chips, and the sheet
+           resize control are full-size tap targets on a phone or tablet now
+- [Change] A device set to reduce motion no longer gets the looping animations.
+           The live dot, major gauge markers, the data currency bar, the
+           emergency banner, cut-off area circles, the locating chip and the
+           playback crest line hold still; colour and meaning are unchanged
+- [Change] In map-full mode the rainfall, radar, surge and inundation legends
+           sit clear of the sheet resize control instead of behind it
+- [Change] The emergency banner and the data currency bar are announced by a
+           screen reader now. Drive Mode's location freshness line no longer
+           interrupts a screen reader once per second
+- [Change] The Settings panel describes itself to assistive tech as the panel
+           the Settings button opens, so it no longer offers arrow-key
+           navigation it does not have
+- [Change] Map legend text no longer shrinks below 10px on a small screen
+
+-- Bug Fixes --
+- [Fix] Tapping a card on a phone while the list covers the screen now opens
+      the map to the half-screen split, so the pin it flies to is visible
+- [Fix] Aged and reopened rows are muted with a readable colour rather than a
+      fade, so their text stays legible in both themes
+- [Fix] Keyboard focus draws a visible ring. Map controls no longer show focus
+      and hover identically
+
 ## v0.99.40 · 2026-07-26 (the Alerts tab tells you what is near you)
 
 -- New Features --

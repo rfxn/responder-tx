@@ -117,3 +117,106 @@ test('modalIsFocusableVisible — client rects alone (zero offsets) still count 
   const inline = { offsetWidth: 0, offsetHeight: 0, getClientRects: () => [{ width: 10, height: 4 }] };
   assert.equal(modalIsFocusableVisible(inline), true);
 });
+
+/* ---- v0.99.41: live regions, menu semantics, and the close button ---- */
+
+const CSS = fs.readFileSync(path.join(ROOT, 'css', 'app.css'), 'utf8');
+const PANELS = fs.readFileSync(path.join(ROOT, 'js', 'panels.js'), 'utf8');
+const BOARD = fs.readFileSync(path.join(ROOT, 'js', 'board.js'), 'utf8');
+
+const tagFor = (id) => {
+  const m = HTML.match(new RegExp(`<[a-z]+ id="${id}"[^>]*>`));
+  assert.ok(m, `#${id} not found in index.html`);
+  return m[0];
+};
+
+/* The wrong things were live regions. #drive-fresh is rewritten by a 1000ms interval, so a screen
+   reader in Drive Mode was interrupted once per second for as long as it stayed open, while the
+   two elements that genuinely announce a change to the board said nothing at all. */
+test('the per-second freshness line does not announce, and only writes on a change', () => {
+  assert.ok(!/aria-live/.test(tagFor('drive-fresh')),
+    '#drive-fresh is rewritten every second; an aria-live region there talks over everything else');
+  const fn = PANELS.match(/function updateDriveFreshness\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'updateDriveFreshness() not found');
+  assert.match(fn[0], /if \(el\.textContent !== text\) el\.textContent = text/,
+    'the per-second write must be guarded so an unchanged string never touches the DOM');
+});
+
+test('the emergency banner and the data-age bar announce themselves', () => {
+  assert.match(tagFor('emergency-banner'), /role="alert"/,
+    'the flash flood emergency banner is the loudest thing the board says and had no role at all');
+  assert.match(tagFor('data-age-bar'), /role="status"/,
+    'the data-age bar is a currency warning and was silent to assistive tech');
+  // role="status" is only safe here because the render is signature-guarded against the 1s tick
+  const boot = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
+  const fn = boot.match(/function renderDataAgeBar\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'renderDataAgeBar() not found');
+  assert.match(fn[0], /if \(el\.dataset\.sig === sig\) return;/,
+    'without the signature guard the status role would re-announce on every countdown tick');
+});
+
+test('the four toasts keep the status role they already had', () => {
+  for (const id of ['update-toast', 'intake-toast', 'op-toast', 'sw-toast']) {
+    assert.match(tagFor(id), /role="status"/, `#${id} lost its status role`);
+  }
+});
+
+/* role="menu" is a promise of roving tabindex and arrow-key navigation. #hmore-menu implemented
+   neither, and its children include group headings, the device-alerts card and RSS links, none of
+   which can be a menuitem. Claiming the role was worse for assistive tech than not claiming it. */
+test('the settings panel is a disclosure group, not a menu it cannot implement', () => {
+  const tag = tagFor('hmore-menu');
+  assert.ok(!/role="menu"/.test(tag), '#hmore-menu still claims role="menu" with no keyboard semantics');
+  assert.match(tag, /role="group"/, '#hmore-menu needs a container role that matches what it is');
+  assert.match(tag, /aria-labelledby="hmore-btn"/, 'the panel needs an accessible name');
+  assert.ok(!/role="menuitem"/.test(HTML), 'a role="menuitem" survives outside a menu');
+  const btn = tagFor('hmore-btn');
+  assert.ok(!/aria-haspopup/.test(btn), 'aria-haspopup on the trigger re-asserts the menu that was removed');
+  assert.match(btn, /aria-expanded="false"/, 'the disclosure state must still be published');
+  assert.match(btn, /aria-controls="hmore-menu"/, 'the trigger must point at the panel it opens');
+  // the JS half of the contract: the expanded state is kept in sync on every open and close
+  assert.match(BOOT, /setAttribute\('aria-expanded', open \? 'true' : 'false'\)/,
+    'aria-expanded must track the panel, or the published state lies');
+});
+
+/* Tapping a card on a phone panned a map that was not on screen. Nothing on the page scrolls:
+   html/body are height:100%, main is flex:1/min-height:0, and the only scroll containers are
+   .tab-body and the map. scrollIntoView('#map') was therefore a no-op, and at sheet-full the map
+   is squeezed to its 60px min-height, so the pan landed inside a strip with no feedback. */
+test('a card tap drops the sheet instead of scrolling a page that does not scroll', () => {
+  for (const f of ['board.js', 'panels.js', 'boot.js']) {
+    const src = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8');
+    assert.ok(!/\$\('#map'\)\.scrollIntoView/.test(src),
+      `${f} still scrolls #map into view; the page has no scroll container for it to move`);
+  }
+  const fn = BOARD.match(/function revealMapOnPhone\(\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'revealMapOnPhone() not found in js/board.js');
+  assert.match(fn[0], /window\.innerWidth > 768/, 'the reveal is a phone-layout concern only');
+  assert.match(fn[0], /main\.sheet-full/, 'only the full sheet hides the map; the other states need no change');
+  assert.match(fn[0], /setSheet\('sheet-half'\)/,
+    'the existing sheet helper owns the state, the class list and the map re-measure');
+  // every former call site routes through the one helper
+  const sites = ['board.js', 'panels.js', 'boot.js']
+    .map((f) => (fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').match(/revealMapOnPhone\(\)/g) || []).length)
+    .reduce((a, b) => a + b, 0);
+  assert.equal(sites, 6, 'expected five call sites plus the declaration to route through revealMapOnPhone()');
+});
+
+/* The ✕ on every modal and every bottom sheet was roughly a 22px target: `.modal-head button` and
+   `.ls-head button` are (0,1,1) and outrank the phone `button, select { min-height: 42px }` rule,
+   and no media query ever raised them again. */
+test('every modal and sheet close button is a real target at a touch width', () => {
+  for (const cls of ['modal-head', 'ls-head']) {
+    const base = CSS.indexOf(`.${cls} button {`);
+    assert.notEqual(base, -1, `.${cls} button rule not found`);
+    assert.match(CSS.slice(base, CSS.indexOf('}', base)), /min-height:\s*0/,
+      `.${cls} button should keep its compact desktop rule; the touch block is what raises it`);
+    const raised = [...CSS.matchAll(new RegExp(`\\.${cls} button \\{[^}]*min-height:\\s*44px`, 'g'))];
+    assert.equal(raised.length, 1, `.${cls} button must be raised to 44px exactly once, in the touch block`);
+  }
+  // the close buttons themselves are still in the markup for every surface that had one
+  for (const id of ['glossary-close', 'changelog-close', 'hydro-close', 'alert-close',
+    'cam-close', 'sitrep-close', 'risk-close', 'health-close', 'share-sheet-close', 'help-sheet-close']) {
+    assert.ok(HTML.includes(`id="${id}"`), `#${id} left index.html`);
+  }
+});

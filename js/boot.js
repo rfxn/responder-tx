@@ -417,7 +417,7 @@ function searchGoPoint(lat, lon) {
     .setLatLng([lat, lon])
     .setContent(inspectContent(lat, lon))
     .openOn(state.map);
-  if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+  revealMapOnPhone();
 }
 
 function searchGauges(q) {
@@ -809,8 +809,7 @@ async function boot() {
     intakeBtn.addEventListener('click', () => {
       const open = intakeForm.classList.toggle('open');
       if (open && window.teamDisarmDrop) window.teamDisarmDrop(); // intake pin-drop and F4 tap-to-locate are mutually exclusive
-      // pin-drop needs the map on screen: phones scroll it into view when intake opens
-      if (open && window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+      if (open) revealMapOnPhone(); // pin-drop needs the map on screen
     });
     // owner: "New notice" intake suppressed by default; ?intake=1 reveals it (code + form kept intact)
     if (new URLSearchParams(location.search).has('intake')) intakeBtn.hidden = false;

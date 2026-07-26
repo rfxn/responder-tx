@@ -11,31 +11,31 @@
   <meta property="og:title" content="ResponderTX: Live Hazard Awareness">
   <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://respondertx.org/">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.40">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.41">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness">
   <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.40">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.41">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.99.40" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.99.40" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.99.40" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.99.40">
-  <link rel="manifest" href="manifest.webmanifest?v=0.99.40">
-  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.99.40">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.99.40">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.99.40">
-  <link rel="stylesheet" href="css/app.css?v=0.99.40">
-  <link rel="stylesheet" href="css/team.css?v=0.99.40">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.99.41" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.99.41" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.99.41" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.99.41">
+  <link rel="manifest" href="manifest.webmanifest?v=0.99.41">
+  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.99.41">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.99.41">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.99.41">
+  <link rel="stylesheet" href="css/app.css?v=0.99.41">
+  <link rel="stylesheet" href="css/team.css?v=0.99.41">
 </head>
 <body>
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.99.40" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.99.40" alt="ResponderTX" width="677" height="162">
-      <img class="brand-mark" src="assets/brand/icon.svg?v=0.99.40" alt="ResponderTX" width="32" height="32">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.99.41" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.99.41" alt="ResponderTX" width="677" height="162">
+      <img class="brand-mark" src="assets/brand/icon.svg?v=0.99.41" alt="ResponderTX" width="32" height="32">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="controls">
@@ -50,32 +50,34 @@
       <button id="alerts-btn" title="Alerts: notifications on this device, RSS, and the crest calendar" aria-label="Get alerts" data-i18n-title="ctl.notify.title" data-i18n-aria="ctl.notify.aria">🔔 <span class="ctl-lbl" data-i18n="push.notify">Notify me</span></button>
       <button id="risk-btn" hidden title="Type an address to see the nearest gauges, alerts, and closed crossings at that point" aria-label="Am I at risk? Address flood check" data-i18n-title="ctl.risk.title" data-i18n-aria="ctl.risk.aria">🏠 <span class="ctl-lbl" data-i18n="ctl.risk">Am I at risk?</span></button>
       <div class="hmore" id="hmore">
-        <button id="hmore-btn" title="Settings: display, alerts, share, help" aria-label="Settings" aria-haspopup="true" aria-expanded="false" data-i18n-title="ctl.settings.title" data-i18n-aria="ctl.settings.aria">⚙ <span class="ctl-lbl" data-i18n="ctl.settings">Settings</span></button>
-        <div id="hmore-menu" role="menu" hidden>
-          <div class="hm-group" role="presentation" data-i18n="set.g.public">Public help</div>
-          <button id="shelters-btn" role="menuitem" title="Open shelters and hotlines" aria-label="Open shelters and hotlines" data-i18n-title="set.shelters.title" data-i18n-aria="set.shelters.title">🏠 <span class="ctl-lbl" data-i18n="set.shelters">Shelters &amp; hotlines</span></button>
+        <button id="hmore-btn" title="Settings: display, alerts, share, help" aria-label="Settings" aria-expanded="false" aria-controls="hmore-menu" data-i18n-title="ctl.settings.title" data-i18n-aria="ctl.settings.aria">⚙ <span class="ctl-lbl" data-i18n="ctl.settings">Settings</span></button>
+        <!-- a disclosure panel, not a menu: it holds group headings, the device-alerts card and RSS
+             links, so role="menu" promised roving-tabindex/arrow-key semantics it never implemented -->
+        <div id="hmore-menu" role="group" aria-labelledby="hmore-btn" hidden>
+          <div class="hm-group" data-i18n="set.g.public">Public help</div>
+          <button id="shelters-btn" title="Open shelters and hotlines" aria-label="Open shelters and hotlines" data-i18n-title="set.shelters.title" data-i18n-aria="set.shelters.title">🏠 <span class="ctl-lbl" data-i18n="set.shelters">Shelters &amp; hotlines</span></button>
           <!-- Alerts is the board's stated reason for existing, so it sits above the display
                preferences and holds every way of being told, on-device and off. -->
           <div id="set-alerts" role="group">
-            <div class="hm-group" role="presentation" data-i18n="set.g.alerts">Alerts</div>
+            <div class="hm-group" data-i18n="set.g.alerts">Alerts</div>
             <div id="push-body"></div>
-            <div class="hm-group" role="presentation" data-i18n="res.follow">Follow / subscribe</div>
+            <div class="hm-group" data-i18n="res.follow">Follow / subscribe</div>
             <div id="follow-body">
               <div class="hint" data-i18n="res.follow.sub">No account and no app. New notices and forecast crests arrive where you already read things.</div>
               <div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener" data-i18n="res.rss">📡 RSS feed</a> · <span data-i18n="res.rss.note">emergencies, forecast crests, active notices in any reader</span></div>
               <div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener" data-i18n="res.ics">📅 Crest calendar (.ics)</a> · <span data-i18n="res.ics.note">subscribe to add forecast MAJOR crests to your calendar</span></div>
             </div>
           </div>
-          <div class="hm-group" role="presentation" data-i18n="set.g.display">Display</div>
-          <button id="theme-toggle" role="menuitem" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
-          <button id="lang-toggle" role="menuitem" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
-          <div class="hm-group" role="presentation" data-i18n="set.g.actions">Actions</div>
-          <button id="share-btn" role="menuitem" title="Copy a link that reproduces this exact view: map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
-          <button id="team-open-btn" role="menuitem" title="Share live locations with your crew on a private, link-only team" aria-label="Open live team" data-i18n-title="set.team.title" data-i18n-aria="set.team">🧭 <span class="ctl-lbl" data-i18n="set.team">Live team</span></button>
-          <div class="hm-group" role="presentation" data-i18n="set.g.help">Help</div>
-          <button id="help-btn" role="menuitem" title="What do the symbols mean? Board legend &amp; glossary" aria-label="Board legend and glossary" data-i18n-title="glossary.btn.title" data-i18n-aria="glossary.btn.aria">? <span class="ctl-lbl" data-i18n="glossary.btn">Legend</span></button>
-          <button id="whatsnew-btn" role="menuitem" title="What's new" aria-label="What's new" data-i18n-title="changelog.head" data-i18n-aria="changelog.head">🆕 <span class="ctl-lbl" data-i18n="changelog.head">What's new</span></button>
-          <button id="safety-btn" role="menuitem" title="Safety notice (911)" aria-label="Safety notice (911)" data-i18n-title="set.safety" data-i18n-aria="set.safety">⚠ <span class="ctl-lbl" data-i18n="set.safety">Safety notice (911)</span></button>
+          <div class="hm-group" data-i18n="set.g.display">Display</div>
+          <button id="theme-toggle" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
+          <button id="lang-toggle" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
+          <div class="hm-group" data-i18n="set.g.actions">Actions</div>
+          <button id="share-btn" title="Copy a link that reproduces this exact view: map position, tab, filters, basemap" aria-label="Share this view" data-i18n-title="ctl.share.title" data-i18n-aria="ctl.share.aria">🔗 <span class="ctl-lbl" data-i18n="ctl.share">Share</span></button>
+          <button id="team-open-btn" title="Share live locations with your crew on a private, link-only team" aria-label="Open live team" data-i18n-title="set.team.title" data-i18n-aria="set.team">🧭 <span class="ctl-lbl" data-i18n="set.team">Live team</span></button>
+          <div class="hm-group" data-i18n="set.g.help">Help</div>
+          <button id="help-btn" title="What do the symbols mean? Board legend &amp; glossary" aria-label="Board legend and glossary" data-i18n-title="glossary.btn.title" data-i18n-aria="glossary.btn.aria">? <span class="ctl-lbl" data-i18n="glossary.btn">Legend</span></button>
+          <button id="whatsnew-btn" title="What's new" aria-label="What's new" data-i18n-title="changelog.head" data-i18n-aria="changelog.head">🆕 <span class="ctl-lbl" data-i18n="changelog.head">What's new</span></button>
+          <button id="safety-btn" title="Safety notice (911)" aria-label="Safety notice (911)" data-i18n-title="set.safety" data-i18n-aria="set.safety">⚠ <span class="ctl-lbl" data-i18n="set.safety">Safety notice (911)</span></button>
         </div>
       </div>
       <div class="refresh-meta"><div id="refresh-note">loading…</div></div>
@@ -105,13 +107,13 @@
   </div>
   <!-- same ranked set twice: #ticker-track scrolls it, #ticker-rest is the reduced-motion still list -->
   <div id="ticker" hidden><div class="ticker-track" id="ticker-track"></div><div id="ticker-rest"></div></div>
-  <div id="emergency-banner" hidden>
+  <div id="emergency-banner" role="alert" hidden>
     <span id="banner-text"></span>
     <button id="banner-dismiss" title="Dismiss" data-i18n-title="banner.dismiss" aria-label="Dismiss the flash flood emergency banner" data-i18n-aria="banner.dismiss.aria">✕</button>
   </div>
   <main>
     <div id="sidebar">
-      <div id="data-age-bar" hidden></div>
+      <div id="data-age-bar" role="status" hidden></div>
       <div id="threat-strip"></div>
       <div class="tabs">
         <button class="active" data-tab="tab-requests"><span data-i18n="tab.feed">Feed</span> <span class="count" id="requests-count">0</span></button>
@@ -458,7 +460,9 @@
       <button id="drive-loc" title="Use my location to rank by distance" data-i18n="drive.locate" data-i18n-title="drive.locate.title">⌖ Locate</button>
       <button id="drive-exit" title="Exit Drive Mode" data-i18n="drive.exit" data-i18n-title="drive.exit.title">✕ Exit</button>
     </div>
-    <div id="drive-fresh" aria-live="polite" hidden></div>
+    <!-- no aria-live: this line is rewritten every second, which made a screen reader interrupt
+         itself once per second for as long as Drive Mode was open -->
+    <div id="drive-fresh" hidden></div>
     <div id="drive-threat"></div>
     <div id="drive-list"></div>
     <div class="drive-911" data-i18n="drive.footer">⚠ Life-threatening emergency → call 911 · Turn Around, Don't Drown: never enter flooded roads</div>
@@ -531,20 +535,20 @@
     </div>
   </div>
 
-  <script src="js/vendor/leaflet.js?v=0.99.40"></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.99.40"></script>
-  <script src="js/vendor/hls.light.min.js?v=0.99.40"></script>
-  <script src="js/usng.js?v=0.99.40"></script>
-  <script src="js/i18n.js?v=0.99.40"></script>
-  <script src="js/core.js?v=0.99.40"></script>
-  <script src="js/map.js?v=0.99.40"></script>
-  <script src="js/playback.js?v=0.99.40"></script>
-  <script src="js/sources.js?v=0.99.40"></script>
-  <script src="js/cameras.js?v=0.99.40"></script>
-  <script src="js/panels.js?v=0.99.40"></script>
-  <script src="js/board.js?v=0.99.40"></script>
-  <script src="js/boot.js?v=0.99.40"></script>
-  <script src="js/vendor/qrcode.min.js?v=0.99.40"></script>
-  <script src="js/team.js?v=0.99.40"></script>
+  <script src="js/vendor/leaflet.js?v=0.99.41"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.99.41"></script>
+  <script src="js/vendor/hls.light.min.js?v=0.99.41"></script>
+  <script src="js/usng.js?v=0.99.41"></script>
+  <script src="js/i18n.js?v=0.99.41"></script>
+  <script src="js/core.js?v=0.99.41"></script>
+  <script src="js/map.js?v=0.99.41"></script>
+  <script src="js/playback.js?v=0.99.41"></script>
+  <script src="js/sources.js?v=0.99.41"></script>
+  <script src="js/cameras.js?v=0.99.41"></script>
+  <script src="js/panels.js?v=0.99.41"></script>
+  <script src="js/board.js?v=0.99.41"></script>
+  <script src="js/boot.js?v=0.99.41"></script>
+  <script src="js/vendor/qrcode.min.js?v=0.99.41"></script>
+  <script src="js/team.js?v=0.99.41"></script>
 </body>
 </html>

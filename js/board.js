@@ -74,7 +74,7 @@ function flyToRadioId(raw) {
   const hit = allRequests().find((r) => shortId(r.id) === want);
   if (!hit || !Number.isFinite(hit.lat)) return false;
   flyOpenPopup([hit.lat, hit.lon], 12, state.reqMarkers[hit.id]);
-  if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+  revealMapOnPhone();
   return true;
 }
 
@@ -285,8 +285,7 @@ function renderRequests() {
         flyOpenPopup([r.lat, r.lon], 12, state.reqMarkers[r.id]);
         document.querySelectorAll('.card.selected').forEach((c) => c.classList.remove('selected'));
         div.classList.add('selected');
-        // phone layout: the map is above the scrolled list — make the pan visible
-        if (window.innerWidth <= 768) $('#map').scrollIntoView({ behavior: 'smooth' });
+        revealMapOnPhone();
       }
     });
     el.appendChild(div);
@@ -1032,6 +1031,14 @@ function setSheet(stateCls) {
   document.querySelectorAll('#sheet-handle button').forEach((b) => b.classList.toggle('on', b.dataset.sheet === stateCls));
   if (state.map) setTimeout(() => state.map.invalidateSize(), 260); // re-tile after the height transition
 }
+// phone: at sheet-full the sidebar owns the viewport and #map is squeezed to its 60px min-height, so
+// a pan lands somewhere invisible. Nothing on the page scrolls, so scrolling #map into view was a
+// no-op; dropping the sheet to half is what actually puts the map back on screen.
+function revealMapOnPhone() {
+  if (window.innerWidth > 768) return;
+  if (document.querySelector('main.sheet-full')) setSheet('sheet-half');
+}
+
 function initSheet() {
   const param = new URLSearchParams(location.search).get('sheet'); // ?sheet=peek|half|full deep link
   const wanted = param ? `sheet-${param}` : localStorage.getItem('respondertx.sheet');

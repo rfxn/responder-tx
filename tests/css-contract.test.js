@@ -497,3 +497,149 @@ test('landscape swaps the lockup for the square mark at the dark-theme specifici
   assert.ok(/class="brand-mark" src="assets\/brand\/icon\.svg\?v=/.test(html),
     'index.html must ship the square mark from the already-stamped icon.svg');
 });
+
+/* ---- v0.99.41: gloves, sunlight, one hand, screen reader ---- */
+
+/* Every selector below is a control a field user aims at, and every one of them sat under the 44px
+   floor at a touch width. The cause is always the same: a component rule outranks the breakpoint's
+   `button, select` floor, so the floor never reached it. `.modal-head button` and `.ls-head button`
+   are (0,1,1) against a (0,0,1) rule, which made the ✕ on every modal and every bottom sheet a
+   ~22px target. The block that fixes this is declared last in the file so it wins at equal
+   specificity, and it is the only place the floor is stated. */
+const TOUCH = '(max-width: 960px), (max-height: 500px) and (orientation: landscape)';
+const TOUCH_FLOOR = [
+  '.modal-head button', '.ls-head button',
+  '.filters select', '.filters input[type="search"]',
+  '.mrms-chip', '.layer-pill', '.ao-current', '.ao-chip', '#sheet-handle button',
+];
+
+test('every touch-width control meets the 44px floor', () => {
+  const block = mediaBlock(TOUCH);
+  for (const sel of TOUCH_FLOOR) {
+    assert.equal(decl(block, sel, 'min-height'), '44px',
+      `${sel} must declare min-height: 44px in the touch block`);
+  }
+  assert.equal(decl(block, '#sheet-handle button', 'min-width'), '44px',
+    'the sheet handle is a square pill; its width is a target too');
+});
+
+/* A floor stated once is worth nothing if a later rule undercuts it. These selectors carry no
+   sub-44px min-height anywhere after the touch block, at any specificity. */
+test('nothing declared after the touch block undercuts the 44px floor', () => {
+  const at = CSS.indexOf(`@media ${TOUCH}`);
+  assert.notEqual(at, -1, 'the touch-target block is missing');
+  const after = CSS.slice(at).replace(/\/\*[\s\S]*?\*\//g, '');
+  const offenders = [];
+  for (const m of after.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = m[1].trim();
+    if (sel.startsWith('@')) continue;
+    if (!TOUCH_FLOOR.some((s) => sel.includes(s))) continue;
+    for (const d of m[2].matchAll(/min-(?:width|height)\s*:\s*(\d+)px/g)) {
+      if (Number(d[1]) < 44) offenders.push(`${sel} { ${d[0].trim()} }`);
+    }
+  }
+  assert.deepEqual(offenders, [], 'a rule after the touch block puts a listed control back under 44px');
+});
+
+/* The sheet handle is position:fixed at right:8/bottom:92 and three buttons tall; the overlay
+   legend stack is right:8/bottom:76 and grows upward. They miss at sheet-half because the stack is
+   measured from the map's shorter box, and collide head-on at sheet-peek, which is exactly the
+   state a field user picks to get a full map. Both sat at z-index 900, so there was no winner. */
+test('the overlay legends step clear of the sheet handle in map-full mode', () => {
+  const block = mediaBlock('(max-width: 768px), (max-height: 500px) and (orientation: landscape)');
+  const right = decl(block, 'main.sheet-peek #ov-legend-stack', 'right');
+  assert.match(right, /^\d+px$/, 'sheet-peek must reposition the legend stack away from the handle');
+  const handleRight = 8 + 44; // the handle sits at right: 8px and is now a 44px-wide target
+  assert.ok(Number(right.replace('px', '')) >= handleRight,
+    `the legend stack at right: ${right} still overlaps the ${handleRight}px the handle occupies`);
+  // the selector must outrank the bare #ov-legend-stack rules (1,0,0) that set right/bottom
+  assert.ok(/main\.sheet-peek #ov-legend-stack/.test(CSS),
+    'the override needs the ID plus a class or it loses to the base rule it is correcting');
+});
+
+/* Reduced motion was honored by three rules out of roughly thirty-one animations. What was left
+   running was the worst of it: everything in this list loops forever, so during an event it is a
+   screen full of movement for someone who asked the OS for less, and a battery cost on an old
+   phone. Colour and meaning are kept; only the movement stops. */
+const LOOPING = [
+  '.brand .sub .live-dot', '#update-chip', '#emergency-banner', '#data-age-bar.red',
+  '#gps-wait', '.locate-btn.locating', '.gauge-icon.cat-major', '.cutoff-circle', '.pb-crest-line',
+];
+
+test('every looping animation stops under prefers-reduced-motion', () => {
+  const rm = mediaBlock('(prefers-reduced-motion: reduce)');
+  for (const sel of LOOPING) {
+    assert.ok(rm.includes(sel), `${sel} loops forever and is not in the reduced-motion block`);
+  }
+  // a ring whose keyframes end invisible must not be left sitting on the map once it stops
+  assert.match(rm, /\.my-pos-ring,\s*\.alert-ping,\s*\.pb-ring\s*\{[^}]*opacity:\s*0/,
+    'stopping a ping animation must also hide the ring it would otherwise freeze on screen');
+  assert.match(rm, /transition:\s*none/, 'movement that comes from a transition must stop too');
+});
+
+test('no animation the reduced-motion block names is still declared infinite outside it', () => {
+  const rm = CSS.indexOf('@media (prefers-reduced-motion: reduce) {\n  .brand .sub .live-dot');
+  assert.notEqual(rm, -1, 'the consolidated reduced-motion block was not found');
+  for (const sel of LOOPING) {
+    const at = CSS.indexOf(`${sel} {`);
+    assert.notEqual(at, -1, `${sel} rule not found`);
+    assert.match(CSS.slice(at, CSS.indexOf('}', at)), /animation:/,
+      `${sel} is listed as looping but declares no animation; the guard has drifted`);
+  }
+});
+
+/* There was no :focus-visible rule anywhere in the stylesheet, and the one :focus rule gave focus
+   the same treatment as hover on the Leaflet controls, so a keyboard user could not tell where
+   they were. */
+test('keyboard focus has a ring of its own, distinct from hover', () => {
+  assert.match(CSS, /(^|\n):focus-visible\s*\{[^}]*outline:/,
+    'the stylesheet needs a global :focus-visible outline');
+  assert.match(CSS, /:focus-visible\s*\{[^}]*outline-offset:/, 'the ring needs an offset to be visible');
+  // Leaflet controls stack flush against each other, so their ring turns inward instead of overlapping
+  assert.match(CSS, /\.leaflet-bar a:focus-visible[\s\S]{0,220}?outline-offset:\s*-2px/,
+    'the Leaflet control ring must be inset or it draws over the neighbouring button');
+  assert.ok(!/:focus-visible[^{]*\{[^}]*outline:\s*none/.test(CSS), 'no rule may remove the focus ring');
+  /* A `:focus { outline: none }` anywhere outranks the global (0,1,0) ring, so every stylesheet
+     that suppresses an outline has to restate one for keyboard focus. */
+  for (const f of ['app.css', 'team.css']) {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'css', f), 'utf8');
+    for (const m of src.matchAll(/([^{}\n]*):focus\s*\{[^}]*outline:\s*(?:none|0)/g)) {
+      const base = m[1].trim();
+      assert.ok(new RegExp(`${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:focus-visible`).test(src),
+        `${f}: ${base}:focus removes the outline with no ${base}:focus-visible ring to replace it`);
+    }
+  }
+});
+
+/* Aging is an honesty signal, not a reason to make a card unreadable. `opacity: 0.55` composited
+   to about 3.3:1 in the light theme, under the 4.5:1 floor. */
+test('aged cards are muted with a colour token, never with opacity', () => {
+  for (const sel of ['.card.aged', '.resource-item.reopened.aged']) {
+    const at = CSS.indexOf(`${sel} {`);
+    assert.notEqual(at, -1, `${sel} rule not found`);
+    const rule = CSS.slice(at, CSS.indexOf('}', at));
+    assert.ok(!/opacity:/.test(rule), `${sel} still dims with opacity instead of a colour token`);
+    assert.match(rule, /color:\s*var\(--ink-aged\)/, `${sel} must take the aged ink token`);
+  }
+  // the token has to exist in both themes or one of them falls back to inherited ink
+  const dark = CSS.slice(CSS.indexOf(':root {'), CSS.indexOf('}', CSS.indexOf(':root {')));
+  const light = CSS.slice(CSS.indexOf(':root[data-theme="light"] {'),
+    CSS.indexOf('}', CSS.indexOf(':root[data-theme="light"] {')));
+  assert.match(dark, /--ink-aged:\s*#[0-9a-f]{6}/i, '--ink-aged is undefined in the dark theme');
+  assert.match(light, /--ink-aged:\s*#[0-9a-f]{6}/i, '--ink-aged is undefined in the light theme');
+});
+
+/* 9px was the smallest type the board rendered anywhere, on the overlay legends, at the widths
+   most likely to be read outdoors in glare. */
+test('no overlay legend text drops below 10px on a small screen', () => {
+  const block = mediaBlock('(max-width: 820px), (max-height: 500px)');
+  for (const m of block.matchAll(/font-size:\s*([\d.]+)px/g)) {
+    assert.ok(Number(m[1]) >= 10, `the small-screen legend block declares font-size: ${m[1]}px`);
+  }
+  for (const sel of ['.wx-src', '.mrms-labels', '.inun-note', '.surge-note', '.surge-rows']) {
+    const at = CSS.indexOf(`${sel} {`);
+    if (at === -1) continue;
+    const size = CSS.slice(at, CSS.indexOf('}', at)).match(/font-size:\s*([\d.]+)px/);
+    if (size) assert.ok(Number(size[1]) >= 10, `${sel} renders at ${size[1]}px`);
+  }
+});

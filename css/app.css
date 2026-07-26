@@ -50,6 +50,9 @@
   --sev-advisory: #898781;
   --good: #0ca30c;
   --tile-value: #ffffff;
+  /* aged/suppressed text. Must hold 4.5:1 on --surface-2 in BOTH themes: aging is an honesty
+     signal, not a reason to make a card unreadable. */
+  --ink-aged: #9ba3b8;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -78,6 +81,7 @@
   --cat-major: #8b2fd6;
   --good: #006300;
   --tile-value: #0d1b2a;
+  --ink-aged: #565e77;
 }
 
 * { box-sizing: border-box; }
@@ -429,8 +433,8 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .resource-item.road-row.unconfirmed { opacity: 0.72; }
 .resource-item.reopened { border-left: 3px solid var(--good); padding-left: 8px; cursor: pointer; }
 .resource-item.reopened strong { color: var(--good); }
-.resource-item.reopened.aged { opacity: 0.65; border-left-color: var(--ink-muted); }
-.resource-item.reopened.aged strong { color: var(--ink-muted); }
+.resource-item.reopened.aged { color: var(--ink-aged); border-left-color: var(--ink-muted); }
+.resource-item.reopened.aged strong, .resource-item.reopened.aged .addr { color: var(--ink-aged); }
 
 #new-request-form { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px; background: var(--surface-2); display: none; }
 #new-request-form.open { display: block; }
@@ -622,8 +626,10 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .badge.reverify { border-color: var(--sev-warning); color: var(--sev-warning); font-weight: 600; }
 .badge.reverify::before { content: '⏱'; margin-right: 3px; }
 
-/* aged/suppressed items — dimmed, retrievable, never deleted */
-.card.aged { opacity: 0.55; border-left-style: dashed; }
+/* aged/suppressed items: muted, retrievable, never deleted. The dashed rail and the aged chip
+   carry the state; the text stays at a readable contrast rather than fading toward the surface. */
+.card.aged { color: var(--ink-aged); border-left-style: dashed; }
+.card.aged .summary, .card.aged .meta, .card.aged .when, .card.aged .head { color: var(--ink-aged); }
 .card.gauge-card.stale { opacity: 0.72; border-left-style: dashed; }
 /* greyscale where the board cannot read the river, matching the map legend's degraded rows */
 .card.gauge-card.degraded { opacity: 0.72; border-left-style: dotted; }
@@ -860,7 +866,6 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
   70% { opacity: 0.5; }
   100% { transform: scale(2.6); opacity: 0; }
 }
-@media (prefers-reduced-motion: reduce) { .gauge-attn::after { animation: none; } }
 #hydro-canvas-wrap { padding: 10px 12px; }
 #hydro-canvas { width: 100%; height: auto; display: block; }
 #hydro-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 2px 14px 8px; font-size: 11.5px; color: var(--ink-2); }
@@ -1334,7 +1339,8 @@ button.inspect-gauge:hover { color: var(--accent); }
   #mrms-legend.open, #inun-legend.open, #surge-legend.open, #wx-legend.open { max-width: min(66vw, 230px); }
   #mrms-legend-title, #inun-legend-title, #surge-legend-title, #wx-legend-title { font-size: 10px; margin-bottom: 3px; }
   .mrms-ramp, .wx-ramp { height: 8px; }
-  .wx-src, .mrms-labels, .inun-note, .surge-note, .surge-rows { font-size: 9px; }
+  /* legend body text keeps its 10px base here: 9px was unreadable in glare and is the smallest
+     type the board renders anywhere */
   .mrms-chip { font-size: 10px; padding: 3px 6px; min-height: 30px; }
 }
 @media (max-width: 500px) {
@@ -1698,7 +1704,6 @@ body.pb-bar-open #radar-scrub { bottom: 148px; } /* radar timeline rides above t
   background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--sev-warning) 55%, transparent) 0 2px, transparent 2px 5px);
 }
 @keyframes pb-band-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .pb-band { animation: none; opacity: 0.8; } }
 #pb-ticks { position: absolute; top: -4px; left: 0; right: 0; height: 12px; pointer-events: none; }
 .pb-tick {
   position: absolute; transform: translateX(-50%); pointer-events: auto;
@@ -2194,3 +2199,72 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 #push-body .push-places .push-g-name { font-variant-numeric: tabular-nums; }
 #push-body .push-p-saved-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
 #push-body #push-place-geo { flex: 0 1 auto; min-height: 44px; padding: 5px 14px; }
+
+/* ---- keyboard focus ---- */
+/* The stylesheet had no :focus-visible rule at all, and its one :focus rule painted focus exactly
+   like hover on the Leaflet controls, so a keyboard user could not tell where they were. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* inside a clipping or tightly-packed container the ring turns inward so it is not cut off */
+#sheet-handle button:focus-visible,
+.ls-base-btn:focus-visible,
+.rs-go:focus-visible,
+.rs-x:focus-visible,
+.tabs button:focus-visible,
+.ticker-item:focus-visible,
+.leaflet-bar a:focus-visible,
+.leaflet-touch .leaflet-bar a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* ---- reduced motion ---- */
+/* One consolidated opt-out for everything except the ticker reel, which swaps to a static list of
+   its own further up. Colour and meaning are kept; only the movement stops. The looping animations
+   matter most: during an event they are on screen for hours. */
+@media (prefers-reduced-motion: reduce) {
+  .brand .sub .live-dot,
+  #update-chip,
+  #emergency-banner,
+  #drive-hint,
+  #data-age-bar.red,
+  #gps-wait,
+  .locate-btn.locating,
+  .gauge-icon.cat-major,
+  .cutoff-circle,
+  .pb-crest-line,
+  .gauge-attn::after,
+  .recenter-drawer.open,
+  #pb-caption.cap-in,
+  #pb-arch-note { animation: none; }
+  /* these end their keyframes invisible, so stopping them must not leave a permanent ring on the map */
+  .my-pos-ring, .alert-ping, .pb-ring { animation: none; opacity: 0; }
+  .pb-band { animation: none; opacity: 0.8; }
+  /* movement that comes from a transition rather than a keyframe */
+  #sidebar, .ob-panels, .recenter-drawer, .ls-knob::after, .ls-sub-caret, .ao-caret,
+  .compass-btn.live svg, .rtl-xfade, .pb-xfade,
+  body.pb-tween .pb-ghit .gauge-icon { transition: none; }
+}
+
+/* ---- touch-target floor ---- */
+/* Each control below sat under 44px at a touch width because its own component rule outranked the
+   breakpoint's `button, select` floor and no media query ever raised it again. Declared last so it
+   wins at equal specificity, and it is the single place the floor is stated. */
+@media (max-width: 960px), (max-height: 500px) and (orientation: landscape) {
+  .modal-head button { min-height: 44px; padding: 4px 12px; }
+  .ls-head button { min-height: 44px; padding: 4px 12px; }
+  .filters select { min-height: 44px; }
+  .filters input[type="search"] { min-height: 44px; }
+  .mrms-chip { min-height: 44px; }
+  .layer-pill { min-height: 44px; }
+  .ao-current { min-height: 44px; }
+  .ao-chip { min-height: 44px; }
+  #sheet-handle button { min-width: 44px; min-height: 44px; }
+  /* the AO chip grew down into the row beneath it, so the stack under it starts lower */
+  .layer-pills { top: 60px; }
+  #pb-badge { top: 62px; }
+  body.pb-on .layer-pills { top: 92px; }
+}
+
+/* map-full (peek) is the one sheet state where the fixed handle and the overlay legend stack claim
+   the same corner, in both portrait and landscape. The legends step left of the handle rather than
+   stacking under it, so the winner is deterministic instead of a z-index tie. */
+@media (max-width: 768px), (max-height: 500px) and (orientation: landscape) {
+  main.sheet-peek #ov-legend-stack { right: 60px; }
+}

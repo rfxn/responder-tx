@@ -76,7 +76,7 @@ if [ -n "$dirty_functions" ]; then
     fi
 fi
 
-# --- Pre-flight: four-way version agreement, read from HEAD because HEAD is what ships ---
+# --- Pre-flight: version agreement, read from HEAD because HEAD is what ships ---
 version=$(grep -oP "APP_VERSION = '\K[^']+" "$SRC/js/core.js") || fail "cannot extract APP_VERSION from HEAD js/core.js"
 [ -n "$version" ] || fail "APP_VERSION extracted from HEAD js/core.js is empty"
 stamp_version="${version#v}"

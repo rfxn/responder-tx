@@ -1,11 +1,39 @@
-# ResponderTX · MASTER ROADMAP (updated 2026-07-25)
+# ResponderTX · MASTER ROADMAP (updated 2026-07-26)
 
-Current build: **v0.98.6** (see `CHANGELOG.md` for the full v0.1.0 → v0.98.6 arc,
+Current build: **v0.99.34** (see `CHANGELOG.md` for the full v0.1.0 → v0.99.34 arc,
 which is the authoritative record of what has shipped). This roadmap tracks
 delivered capabilities and the forward queue; per-cycle volatile status lives in
 CHANGELOG/HANDOFF, not here. The forward queue below was re-derived from source
-on 2026-07-25 after the v0.97.82–v0.98.6 arc, item by item with file-level
-evidence.
+on 2026-07-25 after the v0.97.82–v0.98.6 arc and reconciled against the
+v0.98.7–v0.99.34 arc on 2026-07-26.
+
+> The v0.98.7–v0.99.34 arc closed five of the six NOW items and then spent most
+> of its length on the camera fleet, which grew from roughly 1,000 to 6,510.
+> Delivered inventory rather than queue:
+> **archive and pipeline** · road playback got the gauge lane's retention split,
+> so a display-scope change can no longer stop the road record (v0.98.7); the
+> whole-record playback file became a bounded seven-day view and the crest
+> summary moved onto the chunked archive (v0.98.9); the data cycle now runs
+> committed code against working-tree data (v0.98.10); each deploy stages into
+> its own directory (v0.99.19); an interrupted ops-chat recovery leaves the
+> working copy as it found it (v0.99.18).
+> **honesty** · the crest summary, the CalTopo export and the curated shelter
+> list stopped claiming more than they knew (v0.99.4, v0.99.1); the freshness
+> alert names the source that stopped answering instead of blaming the cycle
+> (v0.99.16); a camera with no published capture time says so (v0.99.28); the
+> chat-cursor check fails on a cursor moving backwards (v0.98.8).
+> **reach** · the AO reset from a finished storm to twelve standing Texas
+> regions (v0.99.0); cameras regrouped by region rather than operator (v0.99.2),
+> gained statewide and per-region switches (v0.99.12), split out-of-state
+> cameras by state (v0.99.21), and separated live video from still photos in
+> the marker set (v0.99.8); TxDOT district snapshots opened on the public board
+> at last (v0.99.26); River Sentry siren sites became a layer (v0.99.10); a
+> reported-closure crossing layer landed (v0.99.27).
+> **legibility** · the top of the board became one scrolling hazard line rather
+> than two competing rows (v0.99.13, v0.99.20, v0.99.23); the life-safety cues
+> speak Spanish and the guard against untranslated text became structural
+> (v0.99.3); degraded gauges reached the Gauges list (v0.99.15); hotlines dial
+> and shelters navigate (v0.99.17); Playback replays with no signal (v0.99.14).
 
 > The v0.97.82–v0.98.6 arc drained all but one of the previous NOW block and
 > then went well past it, because an archive-integrity emergency nobody had
@@ -67,14 +95,15 @@ CI, service worker) have all shipped, as has the 2026-07-24 assessment block
 the Recovery and Basin lenses). The v0.98 arc then closed the last of it: the
 information architecture was consolidated end to end (Views sheet, settings
 sheet, Share surface, Resources dissolved), and the archive was rebuilt so that
-what the board displays can never again decide what the board keeps.
+what the board displays can never again decide what the board keeps. The v0.99
+arc reset the area of operations from a finished storm to standing Texas regions
+and grew the camera fleet past six thousand.
 
-What remains splits three ways. **Archive integrity** is the live one: the gauge
-record is now retained wide and published narrow, but the road record is not, and
-the whole-record compatibility view still pays the git cost that chunking was
-supposed to end. **Resilience** is the two single-host feeds. **Legibility to
-outsiders** is generalization, provenance and governance content. See the
-forward queue.
+Archive integrity closed in the v0.98.7–v0.99.34 arc: both the gauge and the road
+record are retained wide and published narrow, and the whole-record file is a
+bounded view rather than a full-file delta every cycle. What remains splits two
+ways. **Resilience** is the two single-host feeds. **Legibility to outsiders** is
+generalization and the in-app provenance surface. See the forward queue.
 
 **Delivered capability clusters** (lead version in parentheses):
 
@@ -109,11 +138,17 @@ forward queue.
   recently-reopened-roads recovery signal (v0.79.0), TxGIO low-water-crossing
   location inventory (~3.7k) plus the curator-maintained crossing tracker
   (W4/#13, v0.60.0).
-- **Cameras** — road & river cameras with live HLS + snapshot + stale badging,
-  auto-linked into nearby gauge popups (T6, v0.83.0; TxDOT ITS snapshot cams
-  v0.88.x), City of Arlington network (v0.97.25), collapsible grouped camera
-  sub-sections (v0.97.36), and Hays County flood cams along the San Marcos
-  corridor (v0.97.58).
+- **Cameras** · 6,510 cameras across 19 networks with live HLS + snapshot + stale
+  badging, auto-linked into nearby gauge popups (T6, v0.83.0; TxDOT ITS snapshot
+  cams v0.88.x, opened on the public mirror v0.99.26). Grouped by Texas region
+  rather than by operator (v0.99.2), with out-of-state cameras split by state
+  (v0.99.21), a statewide switch plus one per region group (v0.99.12), and live
+  video separated from still photos in both the markers and the legend (v0.99.8).
+  Networks: TxDOT, USGS HIVIS, Houston TranStar, Austin, ATX Floods, Arlington,
+  Lubbock, Corpus Christi, El Paso bridges, Laredo, Eagle Pass, Del Rio, Hays
+  County OES, Port Houston, Port of Galveston, Saltwater Recon, WeatherBug, NMDOT
+  and NPS (v0.97.25 → v0.99.34). All stills relay through a same-origin proxy, so
+  the camera fleet costs zero additional CSP hosts.
 - **Flood inundation** — NWM model inundation-extent overlay, labelled a MODELED
   estimate, off by default (T1, v0.73.0).
 - **Field/first-responder UX** — Drive Mode big-type nearest-hazards glance
@@ -493,48 +528,26 @@ digest.
   (see the Team coordination cluster above; Phase-2 SAR remains in the team
   build queue).
 
-### NOW (active build queue, re-derived from source 2026-07-25 after v0.98.6)
+### NOW (re-derived 2026-07-25 after v0.98.6, reconciled 2026-07-26 after v0.99.34)
 
-The previous NOW block (N1 information architecture, N2 single-host feed
-failover, N3 chat-cursor monotonicity, N4 i18n renderer-guard coverage) is
-**one-for-four delivered**: N1 landed in full across v0.97.90 → v0.98.0. N2, N3
-and N4 carry forward below, verified still open in source, joined by the items the
-archive-integrity work exposed. See the delivered-inventory note at the top.
+Five of the six NOW items shipped in the v0.98.7–v0.99.34 arc. What remains is
+N5 and half of N6, both verified still open in source.
 
-- **N1. Road replay still narrows with the display box** [data-server] · the
-  capture/display split fixed the gauge lane and left the road lane behind.
-  `scripts/gen-history.py` `ROADS_PATH` still points at `data/roads-snapshot.json`,
-  which the coastal narrowing left holding zero closures, while the statewide set
-  lands in `data/roads-capture.json` and is committed every cycle. So no
-  out-of-display closure has entered `roadIndex` since the pivot, and the road
-  state playback still shows is reconstruction from the posted start/end windows
-  of records captured before it, which drains as those windows expire. Give the
-  road walk the same capture-then-snapshot fallback the gauge walk already has,
-  and apply publication scope once at publish time, as `walk()` now does for
-  gauges. Nothing is being lost while this sits (the statewide capture is in git),
-  but the replay is quietly telling a narrower story than the record supports.
-- **N2. The `data/history.json` compatibility view** [data-server] · v0.98.1 made
-  chunking a client-side win only. The whole-record view is still regenerated and
-  recommitted every cycle, as a single line, so every cycle is a full-file delta
-  and the O(n²) git growth in archive depth is exactly what it was before. Two
-  things keep it alive: `scripts/gen-crest-summary.py` reads it for the
-  src-tagged pre-archive frames, and clients cached before v0.98.1 fall back to
-  it. Retiring it means porting that read to `history/index.json` plus the day
-  files and running a deprecation window long enough to age out the old cache.
-  Decide it deliberately; the cost compounds daily either way.
-- **N3. i18n renderer-guard coverage gap** [ux/test] · `tests/i18n.test.js`
-  checks its hardcoded-English denylist across a fixed `RENDER_FILES` list of six
-  modules. `index.html` loads eleven. `js/playback.js`, `js/cameras.js` and
-  `js/team.js` are unguarded today, and the list has now fallen behind twice.
-  Derive the set from the scripts `index.html` actually loads so the next
-  extraction cannot silently drop out of coverage, and treat the derivation
-  itself as the fix rather than adding three filenames.
-- **N4. Chat-cursor monotonicity** [infra] · `scripts/cycle-check.sh`
-  `check_cursors` asserts cursor **format** and an upper bound against the inbox
-  line count, but never that a cursor moved forward, and never that
-  `.chat-ack-cursor` stays at or behind `.chat-cursor`. Cursor regression is
-  precisely the failure mode that silently re-drops or hides owner messages, so
-  it deserves a real assertion rather than a bound.
+- ~~**N1. Road replay still narrows with the display box**~~ · DELIVERED v0.98.7.
+  The road walk got the same capture-then-snapshot retention the gauge walk has,
+  with publication scope applied once at publish time.
+- ~~**N2. The `data/history.json` compatibility view**~~ · DELIVERED v0.98.9. The
+  whole-record file became a bounded `COMPAT_WINDOW_DAYS` view that names its own
+  window, and `gen-crest-summary.py` now reads the chunked archive instead, so the
+  per-cycle full-file delta is gone.
+- ~~**N3. i18n renderer-guard coverage gap**~~ · DELIVERED v0.99.3. The guard is
+  structural rather than a hand-kept file list, and every title and aria-label on
+  the page must now carry a translation.
+- ~~**N4. Chat-cursor monotonicity**~~ · DELIVERED v0.98.8. `check_cursors` fails
+  on a cursor moving backwards and records the new position. The
+  `.chat-ack-cursor <= .chat-cursor` half was deliberately **not** asserted: the
+  ack cursor legitimately runs ahead of the build cursor by design, so that
+  assertion would have false-failed a fatal data-cycle gate.
 - **N5. Single-host feed failover remainder** [infra] · the v0.97.76 radar leg
   landed (RainViewer falling back to the IEM NEXRAD archive, `js/map.js`
   `iemRadarFrames()`), but 2 of 3 single-host feeds still have no second
@@ -544,18 +557,13 @@ archive-integrity work exposed. See the delivered-inventory note at the top.
   degrade honestly rather than failing over, which is correct behavior but not
   resilience. Find and wire a real alternate for each, or document why none
   exists and keep the honest degrade as the final answer.
-- **N6. Public-artifact remainder** [ux] · two leftovers from the v0.98.5/.6
-  withdrawals, both small, both inert, neither harmless to leave undocumented.
-  (a) About forty lines of intake-form markup still ship to the mirror. The form
-  is unreachable there (`withdrawIntake()` hides it whenever `/api/ping` reports
-  no ops backend) but the markup is dead weight, and it cannot be stripped by
-  text edit because `js/boot.js` binds a submit listener to `#new-request-form`
-  at boot and `js/map.js`, `js/board.js` and `js/team.js` all read its state.
-  Remove it at the source, or make the element optional for every reader.
-  (b) `?note=<id>` deep links no longer resolve on the mirror: `js/boot.js`
-  injects `js/notes.js` on `?note`, and that file is stripped from the public
-  artifact. Harmless while `data/notes.json` is empty, but it is a published
-  contract that now silently does nothing, so either answer it or retire it.
+- **N6. Public-artifact remainder** [ux] · the intake-form half shipped v0.98.11
+  (the markup no longer reaches the mirror, and every reader tolerates the element
+  being absent). What is left: `?note=<id>` deep links no longer resolve on the
+  mirror, because `js/boot.js` injects `js/notes.js` on `?note` and `deploy.sh`
+  strips that file. Harmless while `data/notes.json` is empty, but it is a
+  published contract that now silently does nothing, so either answer it or
+  retire it.
 
 ### NEXT (after the NOW queue)
 
@@ -572,11 +580,12 @@ archive-integrity work exposed. See the delivered-inventory note at the top.
    seed, and the LSR flood-in-AO bbox test. Sequenced after the owner's naming
    decision (see OWNER-GATED), with the event-config brand hook, `aoPresets` and
    `captureBbox` as groundwork already in `data/event.json`.
-9. **Trust/governance content** [content] · about/who-runs-this, a methodology
-   and accuracy page surfacing the honesty discipline that is already a
-   strength, a privacy/terms page, a LICENSE file (there is none in the repo),
-   and a documented browser floor (Chrome/WebView 80+, iOS 13.4+ per compat-3).
-   With push alerts shipped and a public mirror carrying life-safety framing,
+9. **Trust/governance content** [content] · the repo half landed 2026-07-26
+   (`ABOUT.md` who-runs-this and methodology, the privacy statement, and a
+   `LICENSE` file). What is left is the in-app surface: an about/methodology view
+   reachable from the board itself rather than only from GitHub, a terms page, and
+   a documented browser floor (Chrome/WebView 80+, iOS 13.4+ per compat-3). With
+   push alerts shipped and a public mirror carrying life-safety framing,
    provenance now matters more than another layer.
 10. **Team Phase-2 SAR** [field] · the remaining team build-queue item.
     Breadcrumb store-and-forward already landed (v0.97.73), and v0.98.6 moved

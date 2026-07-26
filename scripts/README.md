@@ -15,10 +15,14 @@ suspended or mid-task).
 | `fetch-snapshot.py` | One NWPS request at `captureBbox` → `data/gauges-capture.json` (full statewide capture, the durable archive) **and** `data/gauges-snapshot.json` (that capture filtered to `gaugeBbox`, the display-scoped public cold-start file). Both compact `{generated, bbox, gauges:[{lid,name,latitude,longitude,status}]}`. Aborts non-zero on HTTP error or a partial response so a bad fetch never overwrites good files: a same-bbox refresh must return at least half that file's previous count, a bbox re-target only has to clear the absolute floor of 25. Both files are validated before either is written. Writes atomically (temp file + rename). |
 | `gen-roads-snapshot.py` | Archive the DriveTexas road-closure set → `data/roads-capture.json` (statewide) **and** `data/roads-snapshot.json` (filtered to `gaugeBbox`), same capture-vs-display split as the gauge fetch (best-effort; keeps prior files on fetch failure). |
 | `rescue-nwps.py` | One-shot recovery: pull the NWPS 30-day observed buffer for every lid ever seen in this repo → `archive/recovered/nwps-30d/<LID>.json.gz` + `_manifest.json`. Not part of the cycle. |
-| `gen-history.py` | Walk the committed `gauges-capture.json` history (falling back to `gauges-snapshot.json` before the capture split), merge the `archive/recovered/` blobs, reconstruct the pre-archive window → `data/history.json` (playback timeline). Retains every gauge; applies display scope once, at publish time. |
+| `gen-history.py` | Walk the committed `gauges-capture.json` history (falling back to `gauges-snapshot.json` before the capture split), merge the `archive/recovered/` blobs, reconstruct the pre-archive window → `history/index.json` + content-hashed immutable `history/day/*.json`, plus `data/history.json` as a bounded compatibility copy and `data/gauge-meta.json`. Retains every gauge; applies display scope once, at publish time. |
+| `gen-notices.py` | Merge LAN intake posts into `data/requests.json`. Runs in the cycle but its output is never committed by it. |
+| `gen-shelters.py` | Live shelter status → `data/shelters-live.json`. Publishes OPEN only where a source states it. |
+| `gen-crossings-status.py` | Jurisdiction-reported low-water-crossing status → `data/crossing-status.json`. Only non-open rows publish, because the feed timestamps a record change rather than a confirmation. |
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
-| `cycle-check.sh` | Pre-commit validation bundle (JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard). |
+| `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
+| `cycle-check.sh` | Pre-commit validation bundle, eleven checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, and the 911 footer on every lens. |
 | `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). Staging is a fresh `mktemp -d` per run, removed on every exit path, so the cron deploy and a hand-run deploy can never share a directory; set `RESPONDER_DEPLOY_DIR` to pin the path and keep the artifact for inspection (the caller then owns it, and two runs pointed at one path can still collide). |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
@@ -27,7 +31,12 @@ suspended or mid-task).
 | `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, stall-watchdog, **and** freshness-monitor system-cron entries. |
 | `gen-lan-cert.sh` | Generate the self-signed TLS cert (`cert.pem` + `key.pem` under `/root/.config/responder/tls`, **outside** the repo) that `server.py` serves for LAN HTTPS. Idempotent (skips unless `--force`); prints the fingerprint + SANs. See "LAN HTTPS (self-signed)". |
 
-`gen-cameras.py` is a separate poller and is **not** part of the 15-min cycle.
+Three generators run out of band because their inputs are near-static, and none is
+part of the 15-minute cycle: `gen-cameras.py` (the camera inventory →
+`data/cameras.json`), `gen-records.py` (the NWPS all-time crest of record per gauge
+→ `data/records.json`), and `gen-river-sentry.py` (river-sentry tower positions →
+`data/river-sentry.json`). Re-run them by hand after an AO change or when a source
+network changes.
 
 ## Shell conventions
 
@@ -67,14 +76,15 @@ Order (matches the manual per-cycle protocol):
 
 1. `fetch-snapshot.py` → fresh `data/gauges-capture.json` + `data/gauges-snapshot.json`
 2. `gen-roads-snapshot.py` → `data/roads-capture.json` + `data/roads-snapshot.json`
-3. `gen-history.py` → `data/history.json` + `data/gauge-meta.json` (reads *committed* snapshot history, so the newest frame lands next cycle and this cycle's fetch does not gate it)
+3. `gen-history.py` → `history/index.json` + `history/day/*.json` + `data/history.json` + `data/gauge-meta.json` (reads *committed* snapshot history, so the newest frame lands next cycle and this cycle's fetch does not gate it)
 4. `gen-notices.py` → `data/requests.json` (LAN intake merge; never committed by the cycle)
 5. `gen-shelters.py` → `data/shelters-live.json`
-6. `gen-crest-summary.py` → `data/crest-summary.json` (derived from the gauge snapshot)
-7. `gen-feeds.py` → `feed.xml` + `crests.ics`
-8. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
-9. `cycle-check.sh --code-from-head` → validate
-10. If any of the nine data files differ from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), `git push origin main`, then `deploy.sh`, then a best-effort push nudge.
+6. `gen-crossings-status.py` → `data/crossing-status.json`
+7. `gen-crest-summary.py` → `data/crest-summary.json` (derived from the gauge snapshot)
+8. `gen-feeds.py` → `feed.xml` + `crests.ics`
+9. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
+10. `cycle-check.sh --code-from-head` → validate
+11. If any file in `DATA_FILES` differs from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), `git push origin main`, then `deploy.sh`, then a best-effort push nudge.
 
 Properties:
 

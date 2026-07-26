@@ -78,7 +78,7 @@ check_js() {
 }
 if check_js; then pass "JS syntax (node --check, js/*.js excl. vendor)"; else failck "JS syntax (node --check, js/*.js excl. vendor)"; fi
 
-# c. Four-way version agreement
+# c. Version agreement: core.js, index.html stamps, changelog.json, CHANGELOG.md, sw.js
 check_versions() {
     local app_version stamp_version stamps stamp cl_version md_version sw_version
     app_version=$(grep -oP "APP_VERSION = '\K[^']+" "$CODE_ROOT/js/core.js") || { echo "no APP_VERSION in js/core.js" >&2; return 1; }

@@ -1,11 +1,13 @@
-# ResponderTX — Data & Operating Strategy
+# ResponderTX · Data & Operating Strategy
 
-Event: Texas Hill Country severe flooding, July 2026 (Kerr, Uvalde, Blanco,
-Gillespie, Kendall + downstream basins). This document is the operating strategy
-behind the ops board in `index.html`. It has matured from an early social-signal
-aggregator into a **production-grade single-event flood operating picture**; the
-delivered capability arc lives in `CHANGELOG.md` (v0.1.0 → v0.96.5) and the
-forward direction in `ROADMAP.md`.
+Area of operations: Texas statewide, with standing regional presets for the
+basins and metros in play. The board began on the July 2026 Hill Country flood
+(Kerr, Uvalde, Blanco, Gillespie, Kendall + downstream basins), covered the TS
+Bertha coastal pivot, and now runs as a standing instrument rather than a
+single-event page. This document is the operating strategy behind the ops board
+in `index.html`. It has matured from an early social-signal aggregator into a
+**production-grade multi-hazard flood operating picture**; the delivered
+capability arc lives in `CHANGELOG.md` and the forward direction in `ROADMAP.md`.
 
 ## 1. Objective
 
@@ -44,7 +46,7 @@ is kept clean (sweep completed v0.36.0). Filters are lifecycle-based
 
 | Tier | Source | Trust | Ingestion |
 |------|--------|-------|-----------|
-| 0 | NWS alerts, NOAA NWPS gauges + forecasts, NEXRAD/HRRR radar (IEM), MRMS, NWM inundation, USGS IV, TDEM DriveTexas roads, TxGIO crossings, TxDOT/USGS cameras | Authoritative | Automated, 3–5 min poll (keyless, CORS-open) |
+| 0 | NWS alerts, NOAA NWPS gauges + forecasts, NHC tropical + SLOSH surge, CO-OPS tides, NEXRAD/HRRR radar (IEM), MRMS, NWM inundation, USGS IV, TDEM DriveTexas roads, TxGIO crossings, city/county/port/border/coastal camera networks | Authoritative | Automated, 3–5 min poll (keyless and CORS-open, or same-origin proxied for camera stills) |
 | 0.5 | IEM Local Storm Reports (trained spotters, fire/EMS, officials) | Authoritative ground truth | Automated, flood-filtered, road mentions highlighted, aged |
 | 1 | County OEM / city / sheriff official pages; county scanner audio | Official | Manual sweep; curated into cited notices |
 | 2 | News live blogs (Tribune, KUT, KXAN, TPR) | High, lagged | Manual sweep; curated notices cite these |

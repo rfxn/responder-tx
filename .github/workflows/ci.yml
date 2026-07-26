@@ -47,6 +47,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: bash tests/cycle-check.test.sh
 
+      - name: Stall-watchdog tests
+        if: ${{ !cancelled() }}
+        run: bash tests/chat-watchdog.test.sh
+
       - name: Run-cycle partial-publish tests
         if: ${{ !cancelled() }}
         run: bash tests/run-cycle.test.sh
@@ -59,13 +63,15 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 tests/server-gate.test.py
 
-      - name: Generator tests (notices, shelters, caltopo, history)
+      - name: Generator tests (notices, shelters, caltopo, history, cameras, crossings)
         if: ${{ !cancelled() }}
         run: |
           python3 tests/gen-notices.test.py
           python3 tests/gen-shelters.test.py
           python3 tests/gen-caltopo.test.py
           python3 tests/gen-history.test.py
+          python3 tests/gen-cameras.test.py
+          python3 tests/gen-crossings-status.test.py
 
       - name: Release-cycle sanity checks
         if: ${{ !cancelled() }}

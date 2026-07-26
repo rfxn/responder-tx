@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.99.50';
+const SW_VERSION = '0.99.51';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 // version-independent: /data/ is not versioned by app release, and the last-good copies here are
 // the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
@@ -213,10 +213,19 @@ async function historyChunkCacheFirst(request) {
   return fresh;
 }
 
-const HISTORY_WARM_BYTES = 1200000; // newest-first budget, sized on the day sizes the index declares
+// HISTORY_WARM_MAX_DAYS is the one bound that decides how deep the archive warms. The byte budget is
+// read off the index at run time so archive growth cannot silently shrink that depth; the ceiling
+// only caps what a field phone is asked to store. cycle-check.sh asserts the ceiling still holds the
+// declared depth at the index's real chunk sizes.
 const HISTORY_WARM_MAX_DAYS = 8;
+const HISTORY_WARM_MAX_BYTES = 8000000;
 const HISTORY_WARM_MAX_AGE_MS = 12 * 3600000; // a warm younger than this is left alone, so a busy
                                               // release day does not re-download the archive per update
+
+const historyDayBytes = (d) => (d.bytes > 0 ? d.bytes : HISTORY_WARM_MAX_BYTES / HISTORY_WARM_MAX_DAYS);
+const historyWarmBudget = (days) => Math.min(
+  days.slice(0, HISTORY_WARM_MAX_DAYS).reduce((n, d) => n + historyDayBytes(d), 0),
+  HISTORY_WARM_MAX_BYTES);
 
 const historyChunkUrl = (d) => new URL(`history/day/${d.d}.json${d.h ? `?h=${d.h}` : ''}`, self.location.href).href;
 
@@ -246,7 +255,7 @@ async function warmHistoryCache() {
     const idx = await res.clone().json();
     const days = ((idx && idx.days) || []).slice().reverse();
     if (!days.length || !days[0].d) return;
-    let budget = HISTORY_WARM_BYTES;
+    let budget = historyWarmBudget(days);
     let newest = true;
     for (const d of days.slice(0, HISTORY_WARM_MAX_DAYS)) {
       if (!d.d) continue;
@@ -260,8 +269,8 @@ async function warmHistoryCache() {
         await pruneHistoryChunks(cache, url);
       }
       newest = false;
-      budget -= d.bytes > 0 ? d.bytes : HISTORY_WARM_BYTES / 4; // an index without sizes still stops after a few days
-      if (budget <= 0) break; // the newest day is always taken; the rest fit the budget or wait
+      budget -= historyDayBytes(d);
+      if (budget <= 0) break; // the newest day is always taken; the rest fit the ceiling or wait
     }
     await cache.put(dataCacheKey(res.url), res);
   } catch (err) { /* warm is best-effort: opening Playback online fills the same cache */ }

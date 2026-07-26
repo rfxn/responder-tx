@@ -51,7 +51,7 @@ function loadSw(caches = makeCaches(), fetchImpl = null) {
     fetch: fetchImpl || (async () => { throw new Error('offline'); }),
   };
   vm.createContext(sandbox);
-  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_PATHS, PRECACHE_UNSTAMPED, LAZY_PATHS, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, CACHE_HISTORY, PUSH_FALLBACK, dataCacheKey, adoptLegacyDataCache, historyDayOf, pruneHistoryChunks, historyIndexNetworkFirst, historyChunkCacheFirst, warmHistoryCache, HISTORY_INDEX_RE, HISTORY_DAY_RE, HISTORY_DAYS_KEPT, HISTORY_WARM_BYTES, HISTORY_WARM_MAX_DAYS, HISTORY_WARM_MAX_AGE_MS };`, sandbox);
+  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_PATHS, PRECACHE_UNSTAMPED, LAZY_PATHS, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, CACHE_HISTORY, PUSH_FALLBACK, dataCacheKey, adoptLegacyDataCache, historyDayOf, pruneHistoryChunks, historyIndexNetworkFirst, historyChunkCacheFirst, warmHistoryCache, HISTORY_INDEX_RE, HISTORY_DAY_RE, HISTORY_DAYS_KEPT, HISTORY_WARM_MAX_BYTES, HISTORY_WARM_MAX_DAYS, HISTORY_WARM_MAX_AGE_MS, historyWarmBudget, historyDayBytes };`, sandbox);
   sandbox.__exports.listeners = listeners;
   sandbox.__exports.caches = caches;
   sandbox.__exports.self = sandbox.self;
@@ -277,22 +277,45 @@ function warmSw(caches, idx, opts = {}) {
 
 const warmIdx = (days, generated) => ({ generated: generated || new Date().toISOString(), days });
 
-test('the warm takes the newest days first, inside the byte budget the index itself declares', async () => {
+// The two constants describe one bound and drifted apart silently once: a budget literal sized on
+// day sizes the index had outgrown warmed two days of a declared eight. The budget is now read off
+// the index, so growth cannot shrink the depth; only the storage ceiling can, and it says so.
+test('the declared depth warms in full whenever the ceiling can hold it', async () => {
   const caches = makeCaches();
-  const half = Math.ceil(sw.HISTORY_WARM_BYTES / 2);
+  const day = (n) => ({ d: `2026-07-${String(n).padStart(2, '0')}`, h: `h${n}`, bytes: 400000 });
+  const days = [];
+  for (let n = 10; n < 10 + sw.HISTORY_WARM_MAX_DAYS + 2; n++) days.push(day(n));
+  const s = warmSw(caches, warmIdx(days));
+  await s.warmHistoryCache();
+  assert.equal(s.chunks().length, sw.HISTORY_WARM_MAX_DAYS,
+    'a budget derived from the index delivers the depth the index declares');
+});
+
+test('the warm budget is derived from the index, never a literal that can outdate', () => {
+  const days = [{ bytes: 100 }, { bytes: 200 }, { bytes: 300 }];
+  assert.equal(sw.historyWarmBudget(days), 600, 'the declared sizes are the budget');
+  assert.equal(sw.historyWarmBudget([{ bytes: sw.HISTORY_WARM_MAX_BYTES * 9 }]), sw.HISTORY_WARM_MAX_BYTES,
+    'the ceiling is the only thing that may cap it');
+  assert.equal(sw.historyDayBytes({ bytes: 0 }), sw.HISTORY_WARM_MAX_BYTES / sw.HISTORY_WARM_MAX_DAYS,
+    'an unsized day is charged its even share, so a sizeless index still warms the declared depth');
+});
+
+test('the warm stops at the storage ceiling, so a field phone is never asked for more', async () => {
+  const caches = makeCaches();
+  const two = Math.ceil(sw.HISTORY_WARM_MAX_BYTES / 2);
   const s = warmSw(caches, warmIdx([
-    { d: '2026-07-22', h: 'a', bytes: half }, { d: '2026-07-23', h: 'b', bytes: half },
-    { d: '2026-07-24', h: 'c', bytes: half }, { d: '2026-07-25', h: 'd', bytes: half },
+    { d: '2026-07-22', h: 'a', bytes: two }, { d: '2026-07-23', h: 'b', bytes: two },
+    { d: '2026-07-24', h: 'c', bytes: two }, { d: '2026-07-25', h: 'd', bytes: two },
   ]));
   await s.warmHistoryCache();
   assert.deepEqual([...caches._store.get('respondertx-history').keys()].sort(),
     [IDX, DAY('2026-07-25', 'd'), DAY('2026-07-24', 'c')].sort(),
-    'newest-first until the declared bytes run out');
+    'newest-first until the ceiling runs out');
 });
 
 test('the warm always takes the newest day, even when that one day exceeds the whole budget', async () => {
   const caches = makeCaches();
-  const s = warmSw(caches, warmIdx([{ d: '2026-07-24', h: 'a', bytes: 10 }, { d: '2026-07-25', h: 'b', bytes: sw.HISTORY_WARM_BYTES * 4 }]));
+  const s = warmSw(caches, warmIdx([{ d: '2026-07-24', h: 'a', bytes: 10 }, { d: '2026-07-25', h: 'b', bytes: sw.HISTORY_WARM_MAX_BYTES * 4 }]));
   await s.warmHistoryCache();
   assert.deepEqual([...caches._store.get('respondertx-history').keys()].sort(), [IDX, DAY('2026-07-25', 'b')].sort());
 });

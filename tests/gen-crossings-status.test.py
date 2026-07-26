@@ -141,6 +141,21 @@ try:
         check('a closure list over the cap refuses to publish', e.code != 0)
     with open(out, encoding='utf-8') as f:
         check('the over-cap run also leaves the previous file intact', 'previous good file' in f.read())
+
+    # An HTTP 200 carrying an error object or a renamed key raises nothing, so the shape guard is
+    # the only thing between it and a published "no jurisdiction reports a closed crossing".
+    for label, body in (('an error object', {'error': {'code': 500, 'message': 'upstream fault'}}),
+                        ('a renamed row key', {'results': [row('1', 'closed')]}),
+                        ('a bare string', 'service unavailable')):
+        g.fetch_json = lambda url, b=body: b
+        try:
+            g.main()
+            check('a 200 carrying %s refuses to publish an empty closure list' % label, False,
+                  'main() returned normally')
+        except SystemExit as e:
+            check('a 200 carrying %s refuses to publish an empty closure list' % label, e.code != 0)
+        with open(out, encoding='utf-8') as f:
+            check('the %s run leaves the previous file intact' % label, 'previous good file' in f.read())
 finally:
     shutil.rmtree(root)
 

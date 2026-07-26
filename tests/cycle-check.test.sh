@@ -436,6 +436,81 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 27-32: the offline warm depth (v0.99.51) -------------------------
+# HISTORY_WARM_MAX_DAYS and HISTORY_WARM_MAX_BYTES describe one bound. They drifted apart silently
+# as the archive grew and the warm delivered two days of a declared eight, so the delivered depth is
+# measured against the index's real chunk sizes. The check must have teeth in the release lane, must
+# NOT stop a data cycle over archive growth, and must never go blind instead of failing.
+set_warm() {  # $1 declared days, $2 byte ceiling
+    printf '%s\n' "const SW_VERSION = '1.0.0';" \
+        "const HISTORY_WARM_MAX_DAYS = $1;" "const HISTORY_WARM_MAX_BYTES = $2;" > "$REPO/sw.js"
+}
+
+setup
+seed_history ok   # 15 days of ~60-byte chunks
+set_warm 8 100000
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   offline warm depth (8/8 days' "$WORK/out"; then
+    pass "27 a ceiling that holds the declared depth passes, naming the days it delivers"
+else
+    fail "27 sufficient ceiling passes (rc=${A})"; cat "$WORK/out"
+fi
+
+# MUTATION: the exact shipped defect, a ceiling that cannot hold the days it declares
+set_warm 8 100
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'FAIL: offline warm depth' "$WORK/out" && grep -q 'warms only [0-9]* day' "$WORK/out"; then
+    pass "28 MUTATION · a ceiling that cannot hold the declared depth fails, naming the depth it really delivers"
+else
+    fail "28 insufficient ceiling fails (rc=${A})"; cat "$WORK/out"
+fi
+
+# the same shortfall must NOT stop a data cycle: the archive grows on its own every day
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit the undersized ceiling' )
+run_check --code-from-head; A=$?
+if [ "$A" -eq 0 ] && grep -q 'WARN: offline warm depth' "$WORK/out"; then
+    pass "29 the same shortfall only warns in the data lane, so a growing archive cannot stop a flood publish"
+else
+    fail "29 data lane warns rather than failing (rc=${A})"; cat "$WORK/out"
+fi
+
+# MUTATION: a renamed/removed ceiling must fail, never silently skip the measurement
+printf '%s\n' "const SW_VERSION = '1.0.0';" "const HISTORY_WARM_MAX_DAYS = 8;" > "$REPO/sw.js"
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'no HISTORY_WARM_MAX_BYTES' "$WORK/out"; then
+    pass "30 MUTATION · a warm depth bounded by something this check cannot read fails, it does not skip"
+else
+    fail "30 unreadable ceiling fails (rc=${A})"; cat "$WORK/out"
+fi
+
+# MUTATION: an index that declares no byte size would blind the measurement; that must fail too
+set_warm 8 100000
+python3 - "$REPO/history/index.json" <<'PY'
+import json, sys
+idx = json.load(open(sys.argv[1]))
+idx["days"][-1].pop("bytes", None)
+json.dump(idx, open(sys.argv[1], "w"))
+PY
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'declares no byte size' "$WORK/out"; then
+    pass "31 MUTATION · an index day with no declared size fails rather than letting the check go blind"
+else
+    fail "31 sizeless index day fails (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# a board with no warm configured at all has nothing to gate, and must not fail on its absence
+setup
+set_warm_absent() { printf '%s\n' "const SW_VERSION = '1.0.0';" > "$REPO/sw.js"; }
+set_warm_absent
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'nothing to gate' "$WORK/out"; then
+    pass "32 a build with no history warm configured is not failed for its absence"
+else
+    fail "32 absent warm tolerated (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CYCLE-CHECK IMMUNITY TESTS PASSED"

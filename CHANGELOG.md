@@ -1,5 +1,27 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.51 · 2026-07-26 (an unchecked feed says so, and eight days offline)
+
+-- Bug Fixes --
+- [Fix] The RSS feed states when the flash flood emergency check could not be
+      completed. A failed check published as an all clear before, carrying no
+      emergency entries and nothing to tell it apart from a genuine quiet period
+- [Fix] The RSS feed carries the board name and its standing 911 note as its
+      title and description, in place of the text of whichever entry happened to
+      be published last
+- [Fix] The RSS feed and the crest calendar keep their previous copies when
+      river or notice data cannot be read, rather than publishing without crests
+- [Fix] Reported low-water crossing closures are kept when the source replies in
+      a form the board cannot read, instead of publishing an empty list that
+      reads as no crossing closed
+- [Fix] Saved playback covers the full eight days offline. Recent days had grown
+      past the download allowance, leaving about two
+
+-- Changes --
+- [Change] The pre-publish checks measure saved playback depth against the real
+           archive size, so the declared day count and the download allowance
+           cannot drift apart
+
 ## v0.99.50 · 2026-07-26 (the whole closure list, and crests kept in playback)
 
 -- Bug Fixes --

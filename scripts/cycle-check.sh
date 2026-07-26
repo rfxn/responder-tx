@@ -608,9 +608,67 @@ EOF
 }
 if check_usgs_bbox; then pass "USGS bbox area cap (${USGS_TILE_DETAIL}; event.json + CONFIG fallback both tile under the limit)"; else failck "USGS bbox area cap (gaugeBbox exceeds what WaterServices accepts)"; fi
 
+# m. offline warm depth. HISTORY_WARM_MAX_DAYS declares how many days of playback an offline
+# responder gets; HISTORY_WARM_MAX_BYTES only caps what a field phone stores. The two described one
+# bound and disagreed silently as the archive grew, warming two days of eight, so the delivered depth
+# is replayed here against the index's real chunk sizes. The data lane warns rather than fails: a
+# growing archive must never stop a flood publish.
+WARM_DETAIL=""
+check_history_warm() {
+    local days bytes
+    grep -q 'HISTORY_WARM_MAX_DAYS' "$CODE_ROOT/sw.js" || { WARM_DETAIL="no history warm configured; nothing to gate"; return 0; }
+    days=$(grep -m1 -oP 'HISTORY_WARM_MAX_DAYS = \K[0-9]+' "$CODE_ROOT/sw.js") \
+        || { echo "sw.js names HISTORY_WARM_MAX_DAYS but declares no readable value" >&2; return 1; }
+    bytes=$(grep -m1 -oP 'HISTORY_WARM_MAX_BYTES = \K[0-9]+' "$CODE_ROOT/sw.js") \
+        || { echo "sw.js declares HISTORY_WARM_MAX_DAYS but no HISTORY_WARM_MAX_BYTES; the warm depth is bounded by something this check cannot read" >&2; return 1; }
+    WARM_DETAIL=$(python3 - "$days" "$bytes" <<'EOF'
+import json, os, sys
+
+declared, ceiling = int(sys.argv[1]), int(sys.argv[2])
+path = os.path.join(os.environ.get("DATA_ROOT", "."), "history", "index.json")
+if not os.path.exists(path):
+    sys.stdout.write("no history/index.json to measure against")
+    raise SystemExit(0)
+with open(path) as f:
+    idx = json.load(f)
+# newest-first, exactly the order and the slice sw.js warms in
+days = list(reversed(idx.get("days") or []))[:declared]
+if not days:
+    raise SystemExit("history/index.json declares no days; the warm has nothing to size against")
+blind = [str(d.get("d")) for d in days if not isinstance(d.get("bytes"), int) or d["bytes"] <= 0]
+if blind:
+    raise SystemExit("history/index.json declares no byte size for %s; the warm depth cannot be "
+                     "verified and this check would go blind" % ",".join(blind))
+
+want = len(days)  # an archive younger than the declared depth is not a shortfall
+need = sum(d["bytes"] for d in days)
+budget = min(need, ceiling)
+warmed = 0
+for d in days:  # replay sw.js warmHistoryCache(): the newest day is always taken, then the budget bites
+    warmed += 1
+    budget -= d["bytes"]
+    if budget <= 0:
+        break
+if warmed < want:
+    raise SystemExit("HISTORY_WARM_MAX_DAYS=%d wants %d bytes at the index's real chunk sizes, but "
+                     "HISTORY_WARM_MAX_BYTES=%d warms only %d day(s); raise the ceiling or lower the "
+                     "declared depth" % (declared, need, ceiling, warmed))
+sys.stdout.write("%d/%d days, %d of %d bytes" % (warmed, declared, need, ceiling))
+EOF
+    ) || return 1
+    return 0
+}
+if check_history_warm; then
+    pass "offline warm depth (${WARM_DETAIL})"
+elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
+    echo "WARN: offline warm depth: the byte ceiling no longer holds the declared day count. The release lane fails on this; a data cycle does not, because a growing archive must not stop a flood publish."
+else
+    failck "offline warm depth (HISTORY_WARM_MAX_BYTES cannot hold HISTORY_WARM_MAX_DAYS at the index's real chunk sizes)"
+fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 12 checks passed"
+    echo "SUMMARY: all 13 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 12 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 13 checks FAILED"
 exit 1

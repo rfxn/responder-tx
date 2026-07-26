@@ -50,7 +50,9 @@ def rows(payload):
         v = payload.get(k) if isinstance(payload, dict) else None
         if isinstance(v, list):
             return v
-    return []
+    # an unrecognized 200 body (an error object, a renamed key) is an unknown, not an empty closure
+    # list; returning [] here published "no jurisdiction reports a closed crossing"
+    raise ValueError(f'closures response carries no recognizable row list (top level: {type(payload).__name__})')
 
 
 def crossings():

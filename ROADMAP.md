@@ -1,6 +1,6 @@
 # ResponderTX · MASTER ROADMAP (updated 2026-07-26)
 
-Current build: **v0.99.52** (see `CHANGELOG.md` for the full v0.1.0 → v0.99.52 arc,
+Current build: **v0.99.53** (see `CHANGELOG.md` for the full v0.1.0 → v0.99.53 arc,
 which is the authoritative record of what has shipped). This roadmap tracks
 delivered capabilities and the forward queue; per-cycle volatile status lives in
 CHANGELOG/HANDOFF, not here. The forward queue below was re-derived from source
@@ -613,11 +613,11 @@ N5 and half of N6, both verified still open in source.
    `captureBbox` as groundwork already in `data/event.json`.
 9. **Trust/governance content** [content] · the repo half landed 2026-07-26
    (`ABOUT.md` who-runs-this and methodology, the privacy statement, and a
-   `LICENSE` file). What is left is the in-app surface: an about/methodology view
-   reachable from the board itself rather than only from GitHub, a terms page, and
-   a documented browser floor (Chrome/WebView 80+, iOS 13.4+ per compat-3). With
-   push alerts shipped and a public mirror carrying life-safety framing,
-   provenance now matters more than another layer.
+   `LICENSE` file), and the in-app about/methodology view landed v0.99.46
+   (`js/boot.js` `openAbout()`), so provenance is reachable from the board itself.
+   What is left is a terms surface (no `terms` string exists anywhere in source or
+   `ABOUT.md`) and a documented browser floor (Chrome/WebView 80+, iOS 13.4+ per
+   compat-3), which the board currently states nowhere a reader can find it.
 10. **Team Phase-2 SAR** [field] · the remaining team build-queue item.
     Breadcrumb store-and-forward already landed (v0.97.73), and v0.98.6 moved
     Team off the default tab bar, so the surface is opt-in before this is built.

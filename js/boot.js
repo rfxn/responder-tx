@@ -703,9 +703,22 @@ async function boot() {
     $('#hmore-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
     $('#hmore-btn').classList.toggle('on', open);
   };
-  window.openSettingsMenu = () => hmoreSetOpen(true); // pushOpenManageFor() reaches Alerts without a tab click
+  // the header bell is the one-tap route to every way of being told: the device-alerts card, RSS,
+  // and the crest calendar. It opens the same settings sheet rather than a second surface of its
+  // own, and pushOpenManageFor() reaches the Alerts group through it too.
+  const openAlertsPanel = () => {
+    hmoreSetOpen(true);
+    const grp = $('#set-alerts');
+    if (grp && grp.scrollIntoView) grp.scrollIntoView({ block: 'nearest' }); // the panel keeps its scroll between opens
+  };
+  window.openAlertsPanel = openAlertsPanel;
+  $('#alerts-btn').addEventListener('click', () => {
+    if ($('#hmore-menu').hidden) openAlertsPanel(); else hmoreSetOpen(false);
+  });
   $('#hmore-btn').addEventListener('click', () => hmoreSetOpen($('#hmore-menu').hidden));
-  document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
+  // the bell lives outside #hmore, so it has to be spared the dismiss-on-outside-click or it
+  // would close the menu its own handler just opened
+  document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore, #alerts-btn')) hmoreSetOpen(false); });
   // only the menu's own rows dismiss it; the alerts card's toggle and tier chips live inside it
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('#hmore-menu > button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', openShareSheet);

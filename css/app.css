@@ -1942,7 +1942,15 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .controls #hmore-menu > button:hover { background: var(--surface-2); }
 #hmore-menu .ctl-lbl { display: inline; } /* menu entries keep icon + label at every width — discoverability lives here now */
 #hmore-menu #push-body { padding: 0 4px 2px; }
-#hmore-menu #push-body .section-title { display: none; } /* the Alerts group heading already names it */
+#hmore-menu #push-body:empty { display: none; } /* no card (no backend, or a browser without push): no gap either */
+/* the Alerts group holds two ways of being told, so each names itself under the group heading */
+#hmore-menu #push-body .section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-muted); margin: 4px 0 3px;
+}
+#hmore-menu #follow-body { padding: 0 4px 2px; }
+#hmore-menu #follow-body .hint { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; margin: 2px 0 5px; }
+#hmore-menu #follow-body .resource-item { border-bottom: none; padding: 4px 0; font-size: 12.5px; }
 @media (max-width: 768px) {
   /* the gear is not flush right (the clock sits after it), so right-anchoring a 300px panel
      pushes its left edge off a 390px screen; on phones it spans the viewport under the header */

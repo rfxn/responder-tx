@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.37 · 2026-07-26 (device alerts open to everyone, one tap from the header)
+
+-- New Features --
+- [New] A 🔔 button in the header opens Alerts directly: turn on notifications
+      for this device, or subscribe by RSS or the crest calendar
+- [New] Device alerts are available to every visitor whose browser supports
+      them, instead of only to devices that arrived by an alert link
+
+-- Changes --
+- [Change] The RSS feed and the crest calendar moved from Share and export into
+           the Alerts group, so every way of being told is in one place
+- [Change] Alerts now sits above the display preferences in Settings
+
+-- Bug Fixes --
+- [Fix] The alerts card no longer appears when the alert service is unreachable,
+      in any of its states
+
 ## v0.99.36 · 2026-07-26 (road reopenings follow the segment, not its condition)
 
 -- Bug Fixes --

@@ -264,11 +264,12 @@ test('i18n: every control in the feed action rows carries a data-i18n attribute'
   assert.deepEqual(missing, [], 'untranslated control in a .feed-actions row (add data-i18n / data-i18n-title)');
 });
 
-/* Placement guard (v0.97.99). Export/import, the CalTopo live URL and the RSS/ICS subscribe rows
-   are all one surface now: Share and Export are the same verb at different fidelity, and no
-   comparable product puts export in a content tab or a settings page. The listeners in js/boot.js
-   keep the same element ids, so nothing would fail loudly if the markup drifted; assert containment. */
-test('interchange and subscribe live in the Share surface, not in a content tab', () => {
+/* Placement guard (v0.97.99, narrowed in v0.99.37). Export/import and the CalTopo live URL are one
+   surface: Share and Export are the same verb at different fidelity, and no comparable product puts
+   export in a content tab or a settings page. The RSS/ICS subscribe rows left for the Alerts group
+   (tests/push-discovery.test.js) because subscribing is alert delivery, not export. The listeners in
+   js/boot.js keep the same element ids, so nothing would fail loudly if the markup drifted. */
+test('interchange lives in the Share surface, not in a content tab', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
     .replace(/<!--[\s\S]*?-->/g, '');
   for (const gone of ['id="more-toggle"', 'id="more-menu"']) {
@@ -277,16 +278,17 @@ test('interchange and subscribe live in the Share surface, not in a content tab'
   const sheet = html.slice(html.indexOf('<div id="share-sheet"'), html.indexOf('<div id="notes-flyout"'));
   assert.ok(sheet.length > 500, '#share-sheet was not found in index.html');
   for (const id of ['interchange-body', 'export-btn', 'export-geo-btn', 'caltopo-btn', 'aar-btn',
-    'import-file', 'caltopo-box', 'caltopo-url', 'caltopo-copy', 'caltopo-qr', 'follow-body',
+    'import-file', 'caltopo-box', 'caltopo-url', 'caltopo-copy', 'caltopo-qr',
     'share-url', 'share-copy', 'share-native', 'share-qr']) {
     assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `#${id} is not declared exactly once`);
     assert.ok(sheet.includes(`id="${id}"`), `#${id} is not inside the Share surface`);
   }
   // nothing interchange-shaped may remain in a tab body
   const tabs = html.slice(html.indexOf('id="tab-requests"'), html.indexOf('<div id="share-sheet"'));
-  for (const id of ['interchange-body', 'export-btn', 'caltopo-box', 'follow-body']) {
+  for (const id of ['interchange-body', 'export-btn', 'caltopo-box']) {
     assert.ok(!tabs.includes(`id="${id}"`), `#${id} is still inside a tab body`);
   }
+  assert.ok(!tabs.includes('id="follow-body"'), '#follow-body is inside a tab body');
   // subscribe left the Resources renderer with it
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
   assert.ok(!/res\.follow/.test(panels), 'renderResources() still emits the Follow / subscribe section');
@@ -393,11 +395,11 @@ test('the Team shortcut is gone from markup, wiring, and both languages', () => 
   }
 });
 
-test('the Notify me entry point opens the settings sheet, not the Resources tab', () => {
+test('the Notify me entry point opens the alerts surface, not the Resources tab', () => {
   const board = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
   const m = board.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
   assert.ok(m, 'pushOpenManageFor() not found in js/board.js');
-  assert.ok(/openSettingsMenu\(\)/.test(m[0]), 'pushOpenManageFor should open the settings sheet');
+  assert.ok(/openAlertsPanel\(\)/.test(m[0]), 'pushOpenManageFor should open the alerts surface');
   assert.ok(!/\.tabs button/.test(m[0]), 'pushOpenManageFor still clicks a tab');
   // the three resolvers of #push-body must all still find it in its new home
   for (const fn of ['renderPushCard', 'initPushCard']) {

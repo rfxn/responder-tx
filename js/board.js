@@ -1119,7 +1119,7 @@ function exportAAR() {
 }
 
 
-/* ---------- device alerts, web push P3 (FFE + AO tiers + followed gauges), behind ?push=1 ---------- */
+/* ---------- device alerts, web push P3 (FFE + AO tiers + followed gauges) ---------- */
 
 const PUSH_LS_KEY = 'respondertx.push';
 const PUSH_STALE_MS = 20 * 60 * 1000; // evaluator freshness threshold (spec §4.3)
@@ -1133,12 +1133,13 @@ function pushCardState(f) {
   return f.subscribed ? 'on' : 'off';
 }
 
-// pure visibility predicate for the alerts card. A device that actually holds a subscription
-// always gets its card, and therefore its off switch, however it arrived (a notification deep
-// link, a bookmark, the plain board). ?push stays the discovery gate for devices that never
-// opted in, so the soft launch is still soft for everyone else.
+// pure visibility predicate for the alerts card, over the same environment facts pushCardState
+// reads plus a `flagged` deep-link bit. Any device the browser could carry alerts on sees the
+// card, so alert delivery is discoverable without a deep link. 'unsupported' stays hidden for a
+// first-time visitor because there is nothing they could do about it; a subscribed device and a
+// ?push arrival still get the card in every state, so the off switch is always reachable.
 function pushCardVisible(f) {
-  return f.subscribed === true || f.flagged === true;
+  return f.subscribed === true || f.flagged === true || pushCardState(f) !== 'unsupported';
 }
 
 // the gauge picker only exists on a subscribed device, so a "Notify me" tap that arrives with
@@ -1330,8 +1331,6 @@ function pushPendingHtml(cardState, preselect) {
 function renderPushCard() {
   const host = $('#push-body');
   if (!host) return;
-  const grp = document.getElementById('set-alerts');
-  if (grp) grp.hidden = false; // the Alerts group earns its heading only once a card exists to head
   const st = pushCardState(pushEnvFacts());
   const on = st === 'on';
   const toggleable = st === 'on' || st === 'off';
@@ -1437,13 +1436,13 @@ function pushUnfollowGauge(lid) {
 // manage view expanded and that gauge pinned atop the picker. Never auto-follows: the tier tap
 // is the choice.
 function pushManageAvailable() {
-  return Boolean(state.pushVapidKey); // set only when ?push=1 + a configured backend
+  return Boolean(state.pushVapidKey); // set only for a device that can really subscribe, with a configured backend
 }
 
 function pushOpenManageFor(lid) {
   pushManageOpen = true;
   pushManagePreselect = String(lid || '').toUpperCase();
-  if (typeof openSettingsMenu === 'function') openSettingsMenu();
+  if (typeof openAlertsPanel === 'function') openAlertsPanel();
   renderPushCard();
   const row = document.querySelector(`#push-body .push-g-row[data-lid="${pushManagePreselect}"]`);
   if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center' });
@@ -1587,21 +1586,24 @@ async function initPushCard() {
   pushBootSync();
   const host = $('#push-body');
   if (!host) return;
-  if (!pushCardVisible({
-    flagged: new URLSearchParams(location.search).has('push'),
-    subscribed: pushLocal().on === true,
-  })) return;
-  const st = pushCardState(pushEnvFacts());
+  const facts = pushEnvFacts();
+  facts.flagged = new URLSearchParams(location.search).has('push');
+  facts.subscribed = pushLocal().on === true;
+  if (!pushCardVisible(facts)) return;
+  // every state is gated on the backend really being there (503/absent hides the card): an
+  // install hint or a blocked notice would otherwise advertise a channel that is not wired
+  let d = null;
+  try {
+    const r = await fetch('api/push/status');
+    if (!r.ok) return;
+    d = await r.json();
+  } catch { return; }
+  if (!d || !d.configured || !d.vapidKey) return;
+  const st = pushCardState(facts);
   if (st === 'on' || st === 'off') {
-    // capability present: the card renders only when the backend is really there (503/absent hides it)
-    let d = null;
-    try {
-      const r = await fetch('api/push/status');
-      if (!r.ok) return;
-      d = await r.json();
-    } catch { return; }
-    if (!d || !d.configured || !d.vapidKey) return;
-    state.pushVapidKey = d.vapidKey;
+    state.pushVapidKey = d.vapidKey; // only a device that can really subscribe gets the gauge bells
+    // the freshness chip describes a channel this device is on; on an install hint or a blocked
+    // notice it would read as "you are getting these", so it stays with the toggleable states
     state.pushLastEval = typeof d.lastEval === 'number' ? d.lastEval : 0;
     // browser truth wins over the local cache: a revoked subscription flips the card OFF honestly
     try {

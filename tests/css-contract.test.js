@@ -78,7 +78,7 @@ test('landscape grows the header controls to 44px, never shrinks them', () => {
    at every breakpoint no matter where it sits in the file. `#hmore-btn { min-width: 40px }` did
    exactly that, and measured at 390x844 / 844x390 / 932x430 the gear was a 40x44 box in a row of
    44x44 squares, four pixels under the tap-target floor its siblings all met. */
-const HEADER_CONTROL_IDS = ['#update-chip', '#search-btn', '#drive-btn', '#refresh-now', '#risk-btn', '#hmore-btn'];
+const HEADER_CONTROL_IDS = ['#update-chip', '#search-btn', '#drive-btn', '#refresh-now', '#alerts-btn', '#risk-btn', '#hmore-btn'];
 
 test('no ID-specificity rule undercuts the 44px floor on a header control', () => {
   const flat = CSS.replace(/\/\*[\s\S]*?\*\//g, '');

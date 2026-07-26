@@ -117,6 +117,7 @@ const EXPORTS = [
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
   'riverSlug', 'basinCrestTime', 'basinCorridor', 'basinRivers', 'basinWaveState',
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT', 'gaugeDegraded',
+  'roadId', 'roadMemory', 'updateRoadMemory', 'reopenedRoads', 'reopenIsFlood', 'ROADS_KEY', 'ROADS_KEY_LEGACY',
   'cardAged',
   'buildShareUrl', 'applyShareParams',
   'smartScore', 'shortId', 'allRequests',

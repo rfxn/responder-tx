@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.36",
+      "date": "2026-07-26",
+      "line": "The board no longer shows a road as reopened when the state only re-codes its condition, for example a flooded segment re-listed as damaged while it stays closed. A road is marked reopened only when its segment leaves the live closure feed, and a condition change updates the road in place so the closure list and the reopened card agree on how it is coded. Reopened-road history kept by earlier versions is cleared once on this upgrade and rebuilds from the live feed."
+    },
+    {
       "v": "v0.99.35",
       "date": "2026-07-26",
       "line": "A flash flood emergency that is already in effect when you open the board now raises the red banner and the red tab marker, and the banner says the emergency is in effect. It reads as new only for one that arrives while you are watching. The Feed no longer says all clear when it is empty. The Feed carries curated notices, so an empty one now says only that there are no notices and points to Alerts, Gauges and Roads for hazard status; the calm styling appears only when those feeds are quiet. The footer safety line carries the full 911 wording in both languages, and the recovery posture line sends you to Roads rather than a tab that no longer exists."

@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.36 · 2026-07-26 (road reopenings follow the segment, not its condition)
+
+-- Bug Fixes --
+- [Fix] A road is no longer shown as reopened when the state only re-codes its
+      condition, such as a flooded segment re-listed as damaged while it stays
+      closed. A road is marked reopened only when its segment leaves the live
+      closure feed
+- [Fix] A condition change now updates the road in place, so the closure list
+      and the reopened card agree on how the segment is currently coded
+
+-- Changes --
+- [Change] Reopened-road history kept by earlier versions is cleared once on
+           this upgrade; the board rebuilds it from the live feed
+
 ## v0.99.35 · 2026-07-26 (emergency banner on open, honest Feed headline)
 
 -- Bug Fixes --

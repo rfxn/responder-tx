@@ -951,10 +951,13 @@ async function fetchRoadClosures() {
 
 /* ---------- recently-reopened roads — a closure leaving the live feed IS the recovery signal ---------- */
 
-const ROADS_KEY = 'respondertx.roads.v1';
+const ROADS_KEY = 'respondertx.roads.v2';
+const ROADS_KEY_LEGACY = 'respondertx.roads.v1'; // v1 ids folded in condition; not translatable to v2, so it is discarded
 const roadHash = (s) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
-// identity from route+condition+limits only — a description edit must not read as a reopening
-const roadId = (p) => roadHash([p.route_name, p.condition, p.from_limit, p.to_limit].map((v) => String(v ?? '')).join('|'));
+// identity is the physical segment: route + limits. Condition is state, so a Flooding→Damage
+// re-code updates the remembered road instead of reading as a reopening; description stays out
+// of the id so an edit to it never reads as one either.
+const roadId = (p) => roadHash([p.route_name, p.from_limit, p.to_limit].map((v) => String(v ?? '')).join('|'));
 
 function roadVertex(geo) {
   if (!geo || !Array.isArray(geo.coordinates)) return null;
@@ -976,10 +979,17 @@ function roadSegMiles(geo) {
   return mi;
 }
 
+const roadMemMap = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+
 function roadMemory() {
   if (!state.roadMemory) {
-    try { state.roadMemory = Object.assign({ seen: {}, reopened: {} }, JSON.parse(localStorage.getItem(ROADS_KEY) || '{}')); }
-    catch { state.roadMemory = { seen: {}, reopened: {} }; }
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(ROADS_KEY) || '{}'); } catch { saved = null; }
+    state.roadMemory = { seen: roadMemMap(saved && saved.seen), reopened: roadMemMap(saved && saved.reopened) };
+    // v1 ids folded condition into the hash, so none of them match a v2 id. Translating them is
+    // impossible (limits were never stored) and keeping them would mass-mark reopenings on the
+    // first diff, so the old map is dropped: v2 rebuilds `seen` before it can report anything.
+    try { localStorage.removeItem(ROADS_KEY_LEGACY); } catch { /* storage denied: the v1 map is unread either way */ }
   }
   return state.roadMemory;
 }
@@ -994,7 +1004,9 @@ function updateRoadMemory(lines) {
     const p = f.properties || {};
     const id = roadId(p);
     live.add(id);
-    const flood = p.condition === 'Flooding' || FLOOD_ROAD_RE.test(p.description || '');
+    const prev = mem.seen[id];
+    // sticky: a segment re-coded off Flooding (water down, road still shut) stays flood recovery
+    const flood = (prev && prev.flood === true) || p.condition === 'Flooding' || FLOOD_ROAD_RE.test(p.description || '');
     mem.seen[id] = { id, route_name: p.route_name, condition: p.condition, flood, lastSeen: now, vertex: roadVertex(f.geometry) };
     delete mem.reopened[id];
   }
@@ -1013,7 +1025,7 @@ function reopenedRoads() {
   return { fresh: all.filter((r) => ageMins(r.reopenedAt) <= cut), aged: all.filter((r) => ageMins(r.reopenedAt) > cut) };
 }
 
-// flood-scoped everywhere reopenings render; legacy respondertx.roads.v1 entries lack `flood` — backfill from condition
+// flood-scoped everywhere reopenings render; an entry written before `flood` existed backfills from condition
 const reopenIsFlood = (r) => (r.flood ?? (r.condition === 'Flooding'));
 
 function reopenedPopupHtml(r) {

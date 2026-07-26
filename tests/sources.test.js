@@ -8,6 +8,7 @@ const {
   alertReach, alertSeverity, alertOpen, emergencyBannerMode, gaugeObsStale, gaugeObsCat, gaugeCat, CONFIG,
   gaugeForecastCat, gaugeRising, gaugeRecoveryState, riverOf, recordContext, recordWatchGauges, RECORD_NEAR_FT, state,
   splitGauges, gaugeState, gaugeStateCounts, gaugeHasReading, GAUGE_STATES, GAUGE_DEGRADED, CAT_RANK,
+  roadId, roadMemory, updateRoadMemory, reopenedRoads, ROADS_KEY, ROADS_KEY_LEGACY, _sandbox: sandbox,
 } = loadApp();
 
 /* ---------- alertReach: pull the specific river reach out of NWS prose ---------- */
@@ -434,4 +435,93 @@ test('gaugeRecoveryState — stale crest row or stale live sensor is excluded (n
 test('gaugeRecoveryState — never-flooded gauges have no crest row: a missing row is null, not a throw', () => {
   assert.equal(gaugeRecoveryState(null, liveGauge(), null), null);
   assert.equal(gaugeRecoveryState(undefined, null, null), null);
+});
+
+/* ---------- road identity + reopened memory: only a segment leaving the feed is a reopening ---------- */
+
+const roadFeature = ({
+  route = 'FM0481',
+  from = '1.0 Miles West of US0281 on FM0481',
+  to = '3.0 Miles West of US0281 on FM0481',
+  condition = 'Flooding',
+  description = '- Water over roadway.',
+} = {}) => ({
+  properties: { route_name: route, from_limit: from, to_limit: to, condition, description },
+  geometry: { type: 'LineString', coordinates: [[-98.5, 29.7], [-98.42, 29.74]] },
+});
+
+const otherRoad = () => roadFeature({
+  route: 'SH0016',
+  from: '2.0 Miles North of FM1283 on SH0016',
+  to: '4.0 Miles North of FM1283 on SH0016',
+  condition: 'Closure',
+  description: '- Road closed.',
+});
+
+function resetRoadMemory() {
+  state.roadMemory = null;
+  sandbox.localStorage.clear();
+}
+
+test('road memory — a Flooding→Damage re-code updates the remembered segment, it is not a reopening', () => {
+  resetRoadMemory();
+  const seg = roadFeature();
+  const id = roadId(seg.properties);
+  updateRoadMemory([seg]);
+  assert.deepEqual(Object.keys(roadMemory().seen), [id]);
+
+  updateRoadMemory([roadFeature({ condition: 'Damage', description: '- Roadway damage, travel with caution.' })]);
+  assert.deepEqual(Object.keys(roadMemory().reopened), [], 'a condition re-code must never read as a reopening');
+  assert.equal(roadMemory().seen[id].condition, 'Damage', 'the remembered segment must carry the new condition forward');
+  assert.equal(roadMemory().seen[id].flood, true, 'a segment re-coded off Flooding stays flood recovery');
+});
+
+test('road memory — a segment that genuinely leaves the feed IS reported as reopened', () => {
+  resetRoadMemory();
+  const gone = roadFeature();
+  const stays = otherRoad();
+  updateRoadMemory([gone, stays]);
+  updateRoadMemory([stays]);
+
+  const reo = Object.values(roadMemory().reopened);
+  assert.equal(reo.length, 1, 'exactly the departed segment must be reopened');
+  assert.equal(reo[0].route_name, 'FM0481');
+  assert.ok(reo[0].reopenedAt, 'a reopening must be stamped with when it cleared');
+  assert.equal(roadMemory().seen[roadId(gone.properties)], undefined, 'a reopened segment leaves the closure list');
+  assert.equal(reopenedRoads().fresh.length, 1, 'a just-cleared segment renders in the fresh recovery view');
+});
+
+test('road memory — a description-only edit is not a reopening', () => {
+  resetRoadMemory();
+  updateRoadMemory([roadFeature()]);
+  updateRoadMemory([roadFeature({ description: '- Water over roadway. Second crossing impassable.' })]);
+  assert.deepEqual(Object.keys(roadMemory().reopened), [], 'a description edit must never read as a reopening');
+});
+
+test('road memory — an empty or failed fetch is never diffed into reopenings', () => {
+  resetRoadMemory();
+  updateRoadMemory([roadFeature(), otherRoad()]);
+  updateRoadMemory([]);
+  assert.deepEqual(Object.keys(roadMemory().reopened), [], 'an empty response must not clear the board');
+  assert.equal(Object.keys(roadMemory().seen).length, 2);
+});
+
+test('road memory — the stored v1 map cannot mass-mark reopenings on the first run after upgrade', () => {
+  resetRoadMemory();
+  const stamp = new Date().toISOString();
+  const legacy = { seen: {}, reopened: {} };
+  for (let i = 0; i < 25; i++) {
+    legacy.seen[`v1id${i}`] = { id: `v1id${i}`, route_name: `FM000${i}`, condition: 'Flooding', flood: true, lastSeen: stamp, vertex: [29.7, -98.5] };
+  }
+  sandbox.localStorage.setItem(ROADS_KEY_LEGACY, JSON.stringify(legacy));
+
+  assert.equal(ROADS_KEY, 'respondertx.roads.v2', 'the id-shape change must ride a storage-key bump');
+  assert.equal(sandbox.localStorage.getItem(ROADS_KEY), null, 'the upgrade starts with no v2 memory');
+  assert.deepEqual(Object.keys(roadMemory().seen), [], 'v1 entries must not seed the v2 memory');
+
+  updateRoadMemory([roadFeature(), otherRoad()]);
+  assert.deepEqual(Object.keys(roadMemory().reopened), [], 'the first fetch after upgrade must report no reopenings');
+  assert.equal(reopenedRoads().fresh.length, 0, 'no green REOPENED row can appear from the changeover');
+  assert.equal(sandbox.localStorage.getItem(ROADS_KEY_LEGACY), null, 'the stale v1 map must be cleared');
+  assert.ok(sandbox.localStorage.getItem(ROADS_KEY), 'the v2 memory must persist for the next diff');
 });

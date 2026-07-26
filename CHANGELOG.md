@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.43 · 2026-07-26 (lighter on a weak signal)
+
+-- Changes --
+- [Change] A first visit downloads noticeably less of the board. The live camera
+           player, the QR code generator, and the live team tools are fetched
+           when you open them rather than on every visit, so the map and the
+           gauges arrive sooner on a weak connection
+- [Change] A live camera on a slow connection now shows that its player is
+           loading, and says plainly if the player cannot be reached. A browser
+           that simply cannot play live video keeps its own separate message
+- [Change] A QR code that cannot be built without a connection says so and points
+           to the link instead, rather than leaving an empty space
+- [Change] A team link opened on a connection too weak to load the team tools
+           opens the Team tab with the reason, instead of showing nothing
+
 ## v0.99.42 · 2026-07-26 (one settings door in the header)
 
 -- Changes --

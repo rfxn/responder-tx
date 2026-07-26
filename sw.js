@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.99.42';
+const SW_VERSION = '0.99.43';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 // version-independent: /data/ is not versioned by app release, and the last-good copies here are
 // the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
@@ -19,14 +19,11 @@ const CACHE_HISTORY = 'respondertx-history';
 // boot.js injects them at runtime only where they exist
 const PRECACHE_PATHS = [
   'css/app.css',
-  'css/team.css',
   'js/vendor/leaflet.css',
   'js/vendor/leaflet.js',
   'js/vendor/MarkerCluster.css',
   'js/vendor/MarkerCluster.Default.css',
   'js/vendor/leaflet.markercluster.js',
-  'js/vendor/hls.light.min.js',
-  'js/vendor/qrcode.min.js',
   'js/usng.js',
   'js/i18n.js',
   'js/core.js',
@@ -37,12 +34,22 @@ const PRECACHE_PATHS = [
   'js/panels.js',
   'js/board.js',
   'js/boot.js',
-  'js/team.js',
   'assets/brand/logo-lockup.png',
   'assets/brand/logo-lockup-dark.png',
   'assets/brand/icon.svg',
   'assets/brand/favicon-32.png',
   'manifest.webmanifest',
+];
+/* Loaded on first use, never at install: the shell must reach a usable map on a one-bar
+   connection without paying for surfaces most visits never open. They are stamped like every
+   other asset, so stampedCacheFirst keeps each one after a single fetch and later offline opens
+   are served from cache. Before that first fetch these are honestly unavailable offline, and each
+   caller says so in place rather than rendering an empty box. */
+const LAZY_PATHS = [
+  'css/team.css',
+  'js/team.js',
+  'js/vendor/hls.light.min.js',
+  'js/vendor/qrcode.min.js',
 ];
 // referenced by leaflet.css/js relative to the stylesheet, so requested unstamped
 const PRECACHE_UNSTAMPED = [
@@ -52,8 +59,10 @@ const PRECACHE_UNSTAMPED = [
   'js/vendor/images/layers.png',
   'js/vendor/images/layers-2x.png',
 ];
+// the filter is the guard, not a formality: re-listing a lazy path above must not silently put it
+// back on the install-time critical path
 const PRECACHE = ['./']
-  .concat(PRECACHE_PATHS.map((p) => `${p}?v=${SW_VERSION}`))
+  .concat(PRECACHE_PATHS.filter((p) => LAZY_PATHS.indexOf(p) < 0).map((p) => `${p}?v=${SW_VERSION}`))
   .concat(PRECACHE_UNSTAMPED);
 
 self.addEventListener('install', (event) => {

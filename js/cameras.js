@@ -227,6 +227,14 @@ const CAM_STILL_NOTES = {
 };
 const camStillNote = (kind) => (Object.prototype.hasOwnProperty.call(CAM_STILL_NOTES, kind) ? CAM_STILL_NOTES[kind] : null);
 
+/* The HLS player is the single heaviest asset the board ships and only a live stream needs it, so
+   it loads on the first live camera open. Resolves false when the library loaded but this browser
+   cannot use it, which is a different message from a fetch that failed. */
+function ensureHls() {
+  if (window.Hls) return Promise.resolve(Hls.isSupported());
+  return loadAssetOnce(assetUrl('js/vendor/hls.light.min.js')).then(() => !!window.Hls && Hls.isSupported());
+}
+
 function openCamViewer(c, kind) {
   camViewerTeardown();
   state.camGen = (state.camGen || 0) + 1; // invalidates every in-flight load from the previous camera
@@ -243,18 +251,27 @@ function openCamViewer(c, kind) {
     note.innerHTML = `${srcBadge('official')} ${esc(t(isElp ? 'cam.elp.note' : 'cam.txdot.note'))} · ${esc(CAM_ATTRIB[kind] || CAM_ATTRIB_TXDOT)}`;
     const video = document.createElement('video');
     video.muted = true; video.autoplay = true; video.playsInline = true; video.controls = true;
+    const playLive = () => {
+      stage.innerHTML = '';
+      stage.appendChild(video);
+      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
+    };
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      stage.appendChild(video);
-      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
+      playLive(); // Safari/iOS play HLS natively and never fetch the player at all
       video.src = url;
-    } else if (window.Hls && Hls.isSupported()) {
-      stage.appendChild(video);
-      meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
-      state.camHls = new Hls({ maxBufferLength: 15 });
-      state.camHls.loadSource(url);
-      state.camHls.attachMedia(video);
     } else {
-      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`;
+      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+      ensureHls().then((ok) => {
+        if (gen !== state.camGen) return; // viewer moved on — never paint into another camera's stage
+        if (!ok) { stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`; return; }
+        playLive();
+        state.camHls = new Hls({ maxBufferLength: 15 });
+        state.camHls.loadSource(url);
+        state.camHls.attachMedia(video);
+      }).catch(() => {
+        if (gen !== state.camGen) return;
+        stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.hlsfail'))}</div>`;
+      });
     }
   } else if (camStillNote(kind)) {
     // proxied still: one same-origin /api/cam/{net} fetch, the same player for every network

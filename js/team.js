@@ -1470,17 +1470,8 @@
     }
   }
 
-  // client-side QR of the team link — dark-on-light so it scans in either theme; silent if the lib is absent
-  function renderQR(container, url) {
-    if (!container) return;
-    try {
-      if (typeof qrcode !== 'function') { container.hidden = true; return; }
-      const qr = qrcode(0, 'M'); // typeNumber 0 = auto-size for the URL length
-      qr.addData(url);
-      qr.make();
-      container.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true });
-    } catch { container.hidden = true; }
-  }
+  // client-side QR of the team link, dark-on-light so it scans in either theme
+  const renderQR = (container, url) => renderQrCode(container, url, 16);
 
   /* ---------- entry ---------- */
 

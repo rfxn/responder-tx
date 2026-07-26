@@ -59,9 +59,30 @@ const ENTRY_POINTS = [
   'restoreViewState', 'loadEventConfig', 'registerServiceWorker', 'initPushCard',
 ];
 
-test('index.html lists the expected first-party classic scripts in a sane order', () => {
+/* Every eager tag is bytes on the critical path of a one-bar first load, so the set is pinned
+   exactly rather than by a floor: adding one has to be a deliberate edit here, and the lazy four
+   cannot drift back onto the shell unnoticed. tests/lazy-assets.test.js owns the other half. */
+const EAGER_SCRIPTS = [
+  'js/vendor/leaflet.js',
+  'js/vendor/leaflet.markercluster.js',
+  'js/usng.js',
+  'js/i18n.js',
+  'js/core.js',
+  'js/map.js',
+  'js/playback.js',
+  'js/sources.js',
+  'js/cameras.js',
+  'js/panels.js',
+  'js/board.js',
+  'js/boot.js',
+];
+
+test('index.html loads exactly the expected script set, in a sane order', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const all = [...html.matchAll(/<script src="(js\/[^"?]+)\?v=[^"]+"><\/script>/g)].map((m) => m[1]);
+  assert.deepEqual(all, EAGER_SCRIPTS, 'the eager script set changed; weigh the cold-load cost before pinning the new one');
+
   const files = indexScriptOrder();
-  assert.ok(files.length >= 11, `expected >=11 first-party scripts, got ${files.length}`);
   for (const f of files) assert.ok(fs.existsSync(path.join(ROOT, f)), `${f} referenced by index.html but missing on disk`);
   assert.ok(files.indexOf('js/core.js') < files.indexOf('js/map.js'), 'core.js must load before map.js');
   assert.ok(files.indexOf('js/map.js') < files.indexOf('js/playback.js'), 'playback.js loads after map.js');
@@ -69,6 +90,11 @@ test('index.html lists the expected first-party classic scripts in a sane order'
   assert.ok(!files.includes('js/chat.js') && !files.includes('js/master.js'), 'LAN-only clients must never be static tags');
   // notes.js is stripped from the public artifact, so a static tag would 404 on every mirror load
   assert.ok(!files.includes('js/notes.js'), 'js/notes.js must be injected on ?notes/?note, not a static tag');
+  // the on-demand four: heavy, and needed only behind a tap, a link, or the LAN build
+  for (const lazy of ['js/team.js', 'js/vendor/hls.light.min.js', 'js/vendor/qrcode.min.js']) {
+    assert.ok(!all.includes(lazy), `${lazy} is loaded eagerly again`);
+  }
+  assert.ok(!/<link[^>]+href="css\/team\.css/.test(html), 'css/team.css must load with the team client, not on every visit');
 });
 
 test('all scripts evaluate in index.html order with no load-time ReferenceError', () => {

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.42';
+const APP_VERSION = 'v0.99.43';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -536,6 +536,59 @@ function registerModal(el, opts = {}) {
   new MutationObserver(() => { if (el.hidden) onModalHide(el); else onModalShow(el, opts); })
     .observe(el, { attributes: true, attributeFilter: ['hidden'] });
   if (!el.hidden) onModalShow(el, opts); // registered while already open
+}
+
+/* ---------- on-demand assets ----------
+   A one-bar visit should not pay for a surface it never opens, so the heavy optional libraries
+   (hls.js, qrcode, the team client) load on first use instead of on every page load. Memoized by
+   URL so concurrent callers share one request; a rejection drops the memo so the next tap retries.
+   Stamped like every other asset, which is what lets the service worker cache it after one fetch. */
+
+const assetUrl = (path) => `${path}?v=${APP_VERSION.replace(/^v/, '')}`;
+
+const lazyAssets = Object.create(null);
+
+function loadAssetOnce(url, kind) {
+  if (lazyAssets[url]) return lazyAssets[url];
+  const pending = new Promise((resolve, reject) => {
+    const el = document.createElement(kind === 'css' ? 'link' : 'script');
+    el.onload = () => resolve(url);
+    el.onerror = () => reject(new Error(`asset failed to load: ${url}`));
+    if (kind === 'css') { el.rel = 'stylesheet'; el.href = url; document.head.appendChild(el); }
+    else { el.src = url; document.body.appendChild(el); }
+  });
+  lazyAssets[url] = pending.catch((err) => { delete lazyAssets[url]; throw err; });
+  return lazyAssets[url];
+}
+
+const ensureQrcode = () => (typeof qrcode === 'function'
+  ? Promise.resolve(true)
+  : loadAssetOnce(assetUrl('js/vendor/qrcode.min.js')).then(() => typeof qrcode === 'function'));
+
+/* Shared QR painter for the Share sheet, the CalTopo box, and the team invite. The library is
+   lazy, so an offline first use has nothing to draw with: say that in the box rather than
+   collapsing it, because a blank space reads as "this view has no QR" instead of "not loaded". */
+function renderQrCode(host, url, margin) {
+  if (!host || host.dataset.done) return;
+  host.dataset.qrurl = url;
+  const paint = () => {
+    if (host.dataset.qrurl !== url) return; // the view moved on while the library was in flight
+    try {
+      const qr = qrcode(0, 'M'); // typeNumber 0 = auto-size for the URL length
+      qr.addData(url);
+      qr.make();
+      host.innerHTML = qr.createSvgTag({ cellSize: 4, margin, scalable: true });
+      host.dataset.done = '1';
+    } catch { host.hidden = true; }
+  };
+  if (typeof qrcode === 'function') { paint(); return; }
+  const failNote = () => {
+    if (host.dataset.qrurl !== url) return;
+    host.innerHTML = `<div class="qr-note">${esc(t('qr.fail'))}</div>`;
+  };
+  host.hidden = false;
+  host.innerHTML = `<div class="qr-note">${esc(t('qr.loading'))}</div>`;
+  ensureQrcode().then((ok) => { if (ok) paint(); else failNote(); }).catch(failNote);
 }
 
 // keep Tab within the topmost modal; deliberately Tab-only — Escape is owned by boot.js

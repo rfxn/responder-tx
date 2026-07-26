@@ -70,7 +70,8 @@ function strippedSource(file) {
  * reads). js/vendor/* falls out of the tag pattern itself, since its paths carry a second slash,
  * and js/i18n.js is skipped because it IS the dictionary the guard compares against. */
 const SCRIPT_TAG_RE = /<script\s+src="js\/([^"/?]+\.js)/g;
-const INJECT_RE = /loadScript\(\s*[`'"]js\/([^`'"?]+\.js)/g;
+// both runtime injection forms: boot.js's LAN-only loadScript and core.js's stamped loadAssetOnce
+const INJECT_RE = /(?:loadScript|loadAssetOnce)\(\s*(?:assetUrl\(\s*)?[`'"]js\/([^`'"?]+\.js)/g;
 
 function derivedRenderFiles(html, readSource) {
   const queue = [...html.replace(/<!--[\s\S]*?-->/g, '').matchAll(SCRIPT_TAG_RE)].map((m) => m[1]);
@@ -81,7 +82,9 @@ function derivedRenderFiles(html, readSource) {
     if (seen.has(f)) continue;
     seen.add(f);
     if (f !== 'i18n.js') out.push(f);
-    for (const m of readSource(f).matchAll(INJECT_RE)) queue.push(m[1]);
+    // lazily-loaded vendor libraries reach the queue through INJECT_RE the same way our own
+    // surfaces do; they are third-party minified source and carry none of our strings
+    for (const m of readSource(f).matchAll(INJECT_RE)) { if (!m[1].startsWith('vendor/')) queue.push(m[1]); }
   }
   return out;
 }

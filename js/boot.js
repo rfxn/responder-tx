@@ -605,6 +605,33 @@ function relocalizeDynamic() {
   if (window.renderTeamTab) renderTeamTab();
 }
 
+/* ---------- live team: loaded on the routes that lead to it ----------
+   Mirrors team.js's own teamTabAllowed() for the two URL routes. The other two (the Settings
+   entry and the LAN operator build) are explicit taps/probes and call ensureTeamAssets directly. */
+function teamAssetsWanted(search) {
+  const q = new URLSearchParams(search || '');
+  return q.has('team') || q.get('tab') === 'team';
+}
+
+const ensureTeamAssets = () => Promise.all([
+  loadAssetOnce(assetUrl('css/team.css'), 'css'),
+  loadAssetOnce(assetUrl('js/team.js')),
+]);
+
+// team.js owns the tab's visibility, so when team.js is itself what failed the fallback has to
+// unhide the tab and say so; staying silent reads as "this board has no team feature"
+function teamLoadFailed(open) {
+  const btn = document.querySelector('.tabs button[data-tab="tab-team"]');
+  if (btn) btn.hidden = false;
+  const body = document.getElementById('team-tab-body');
+  if (body) body.innerHTML = `<div class="team-loadfail">${esc(t('team.loadfail'))}</div>`;
+  if (open && btn) btn.click();
+}
+
+// the gate and the loader, exposed for the node test harness (no DOM, no network)
+window.teamAssetsWanted = teamAssetsWanted;
+window.ensureTeamAssets = ensureTeamAssets;
+
 async function boot() {
   const rollBlob = consumeRolloverState(); // before any location.search read — may re-install the captured view params
   // whitelist both theme sources — an invalid value would wedge boot inside applyTheme's baseLayers lookup
@@ -734,7 +761,10 @@ async function boot() {
   // only the menu's own rows dismiss it; the alerts card's toggle and tier chips live inside it
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('#hmore-menu > button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', openShareSheet);
-  $('#team-open-btn').addEventListener('click', () => { if (window.showTeamTab) showTeamTab(); });
+  $('#team-open-btn').addEventListener('click', () => {
+    if (window.showTeamTab) { showTeamTab(); return; }
+    ensureTeamAssets().then(() => { initTeamTab(); showTeamTab(); }).catch(() => teamLoadFailed(true));
+  });
   $('#share-copy').addEventListener('click', copyShareUrl);
   $('#share-native').addEventListener('click', () => {
     if (navigator.share) navigator.share({ url: state.shareUrl || buildShareUrl() }).catch(() => copyShareUrl());
@@ -793,8 +823,14 @@ async function boot() {
     $('#safety-modal').hidden = true;
   });
   initOnboarding(); // after safety wiring — the ack click chains into first-run onboarding
-  if (window.initTeamTab) initTeamTab(); // paint the first-class Team tab (create/join or roster)
-  if (window.initTeam) initTeam(); // ?team= deep-link auto-opens the Team tab; chains behind the 911 ack
+  // the team client and its stylesheet load only on the routes that lead to the surface: a team
+  // link, ?tab=team, the Settings entry, or the LAN operator build
+  if (teamAssetsWanted(location.search)) {
+    ensureTeamAssets().then(() => {
+      initTeamTab(); // paint the first-class Team tab (create/join or roster)
+      initTeam(); // ?team= deep-link auto-opens the Team tab; chains behind the 911 ack
+    }).catch(() => teamLoadFailed(true)); // the link asked for the team surface, so land on the reason
+  }
   renderMovedCues(); // one-time pointer from where a moved control used to live
   initHeaderSearch();
   // the header slot names the STATE; the detail names which source. Both it and the data-age bar
@@ -981,9 +1017,14 @@ async function boot() {
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (d && d.requests) state.lanIntake = true; // LAN write endpoint present — intakes also share board-wide
     else withdrawIntake();
-    if (d && window.revealTeamTab) revealTeamTab(); // the operator build keeps Team a first-class tab
     if (d && d.chat) loadScript('js/chat.js');
-    if (d && d.master) loadScript('js/master.js'); // command-side, all-teams oversight view
+    // the operator build keeps Team a first-class tab, and master.js borrows team.js's marker
+    // icons, so it waits for the team client either way rather than painting the fallback style
+    if (!d) return;
+    ensureTeamAssets()
+      .then(() => { initTeamTab(); revealTeamTab(); })
+      .catch(() => teamLoadFailed(false))
+      .then(() => { if (d.master) loadScript('js/master.js'); }); // command-side, all-teams oversight view
   }).catch(withdrawIntake);
 
   // Field Notes is off by default and stripped from the public artifact, so it loads on demand only

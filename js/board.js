@@ -721,17 +721,7 @@ function exportGeoJSON() {
 
 const CALTOPO_EXPORT_URL = 'https://respondertx.org/data/caltopo-export.json';
 
-function renderQr(host, url) {
-  if (!host || host.dataset.done) return;
-  try {
-    if (typeof qrcode !== 'function') { host.hidden = true; return; }
-    const qr = qrcode(0, 'M'); // typeNumber 0 = auto-size for the URL length
-    qr.addData(url);
-    qr.make();
-    host.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
-    host.dataset.done = '1';
-  } catch { host.hidden = true; }
-}
+const renderQr = (host, url) => renderQrCode(host, url, 8);
 
 // the export is capped, so the surface offering it has to say what the file actually holds.
 // reads the same-origin copy (present in both builds) rather than the absolute import URL.

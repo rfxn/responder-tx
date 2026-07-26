@@ -306,10 +306,14 @@ test('CALTOPO_EXPORT_URL — https public-mirror data path (the URL CalTopo user
   assert.ok(CALTOPO_EXPORT_URL.startsWith('https://'), 'must be fetchable by caltopo.com');
 });
 
-test('renderQr — hides the host when the QR lib is absent, never throws', () => {
+/* v0.99.43: the QR library is fetched on first use, so "absent" no longer means "unavailable" and
+   hiding the box would read as "this view has no QR". It says it is loading, then either paints or
+   says it could not. tests/lazy-assets.test.js drives both outcomes of that fetch. */
+test('renderQr — asks for the lazy QR lib and says so, rather than hiding the box', () => {
   const host = { hidden: false, dataset: {}, innerHTML: '' };
   renderQr(host, CALTOPO_EXPORT_URL); // sandbox has no global qrcode
-  assert.equal(host.hidden, true, 'graceful degrade without the vendor lib');
+  assert.equal(host.hidden, false, 'a silently collapsed box reads as "no QR for this view"');
+  assert.match(host.innerHTML, /qr\.loading/, 'the box must say the code is being built');
   assert.doesNotThrow(() => renderQr(null, CALTOPO_EXPORT_URL), 'null host is a no-op');
 });
 

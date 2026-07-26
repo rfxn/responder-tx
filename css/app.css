@@ -2031,6 +2031,11 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 }
 #share-qr { width: 148px; margin: 8px 0 4px; background: #fff; border-radius: 6px; padding: 4px; }
 #share-qr svg { display: block; width: 100%; height: auto; }
+/* the QR library is fetched on first use, so the box has to be able to say why it is empty */
+.qr-note { color: var(--ink-muted); font-size: 11.5px; line-height: 1.35; padding: 6px 4px; }
+#share-qr .qr-note, #caltopo-qr .qr-note { color: #333; }
+/* team.css is lazy too, so this one lives here: it renders exactly when that stylesheet is missing */
+.team-loadfail { color: var(--ink-muted); font-size: 13px; line-height: 1.45; padding: 14px 12px; }
 #share-sheet #follow-body .resource-item { border-bottom: none; padding: 4px 2px; font-size: 12.5px; }
 
 /* migration cue: an informational pointer where a moved control used to live. Neutral accent, never

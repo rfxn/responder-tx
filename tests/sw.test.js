@@ -51,7 +51,7 @@ function loadSw(caches = makeCaches(), fetchImpl = null) {
     fetch: fetchImpl || (async () => { throw new Error('offline'); }),
   };
   vm.createContext(sandbox);
-  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_UNSTAMPED, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, CACHE_HISTORY, PUSH_FALLBACK, dataCacheKey, adoptLegacyDataCache, historyDayOf, pruneHistoryChunks, historyIndexNetworkFirst, historyChunkCacheFirst, warmHistoryCache, HISTORY_INDEX_RE, HISTORY_DAY_RE, HISTORY_DAYS_KEPT, HISTORY_WARM_BYTES, HISTORY_WARM_MAX_DAYS, HISTORY_WARM_MAX_AGE_MS };`, sandbox);
+  vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_PATHS, PRECACHE_UNSTAMPED, LAZY_PATHS, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, CACHE_HISTORY, PUSH_FALLBACK, dataCacheKey, adoptLegacyDataCache, historyDayOf, pruneHistoryChunks, historyIndexNetworkFirst, historyChunkCacheFirst, warmHistoryCache, HISTORY_INDEX_RE, HISTORY_DAY_RE, HISTORY_DAYS_KEPT, HISTORY_WARM_BYTES, HISTORY_WARM_MAX_DAYS, HISTORY_WARM_MAX_AGE_MS };`, sandbox);
   sandbox.__exports.listeners = listeners;
   sandbox.__exports.caches = caches;
   sandbox.__exports.self = sandbox.self;
@@ -343,16 +343,62 @@ test('the warm is skipped on a save-data connection and never throws when the ar
   await assert.doesNotReject(dead.warmHistoryCache(), 'an offline activate must not break activation');
 });
 
-test('precache covers every stamped local script and stylesheet in index.html', () => {
+// the app shell and the precache are the same list stated twice, so assert it both ways
+const indexStampedRefs = () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const refs = [];
-  const re = /(?:src|href)="((?:js|css)\/[^"]+\?v=[^"]+)"/g;
-  let m;
-  while ((m = re.exec(html)) !== null) refs.push(m[1]);
+  return [...html.matchAll(/(?:src|href)="((?:js|css)\/[^"]+\?v=[^"]+)"/g)].map((m) => m[1]);
+};
+
+test('precache covers every stamped local script and stylesheet in index.html', () => {
+  const refs = indexStampedRefs();
   assert.ok(refs.length >= 15, `expected stamped js/css refs in index.html, found ${refs.length}`);
   for (const ref of refs) {
     assert.ok(sw.PRECACHE.includes(ref), `index.html asset missing from precache: ${ref}`);
   }
+});
+
+test('the precache holds nothing beyond the shell index.html actually loads', () => {
+  const refs = indexStampedRefs();
+  // PRECACHE is built inside the vm realm, so compare as plain strings rather than deepEqual
+  const extra = [...sw.PRECACHE]
+    .filter((u) => /^(?:js|css)\//.test(u) && !sw.PRECACHE_UNSTAMPED.includes(u))
+    .filter((u) => !refs.includes(u));
+  assert.equal(extra.join(', '), '',
+    'precached js/css the shell never loads: it costs every install and nothing renders it');
+});
+
+/* v0.99.43: the four heaviest optional assets install-cached for every visitor, including the
+   ones who never open a camera, a QR, or a team. They are fetched on first use now, and
+   stampedCacheFirst keeps them afterwards. */
+
+test('the lazy assets are excluded from the install precache and exist on disk', () => {
+  assert.ok(sw.LAZY_PATHS.length, 'LAZY_PATHS must name the on-demand set');
+  for (const p of sw.LAZY_PATHS) {
+    assert.ok(fs.existsSync(path.join(ROOT, p)), `lazy asset missing on disk: ${p}`);
+    assert.ok(!sw.PRECACHE.some((u) => u.split('?')[0] === p), `lazy asset is still precached: ${p}`);
+  }
+  for (const p of ['css/team.css', 'js/team.js', 'js/vendor/hls.light.min.js', 'js/vendor/qrcode.min.js']) {
+    assert.ok(sw.LAZY_PATHS.includes(p), `${p} must stay in the on-demand set`);
+  }
+});
+
+test('re-listing a lazy path in PRECACHE_PATHS cannot put it back on the install path', () => {
+  // discriminating power: the guard is the filter in sw.js, not the tidiness of the list above it
+  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  assert.match(src, /PRECACHE_PATHS\s*\.filter\(\(p\) => LAZY_PATHS\.indexOf\(p\) < 0\)/,
+    'PRECACHE must filter LAZY_PATHS out rather than trusting the list to stay correct');
+  const both = [...sw.PRECACHE_PATHS].filter((p) => sw.LAZY_PATHS.includes(p));
+  assert.equal([...sw.PRECACHE].filter((u) => both.includes(u.split('?')[0])).join(', '), '');
+});
+
+test('a lazy asset is still stamped, so one fetch caches it for every later open', () => {
+  // stampedCacheFirst is keyed on the ?v= query; an unstamped lazy URL would refetch every time
+  const core = fs.readFileSync(path.join(ROOT, 'js', 'core.js'), 'utf8');
+  assert.match(core, /const assetUrl = \(path\) => `\$\{path\}\?v=\$\{APP_VERSION/,
+    'lazy URLs must carry the release stamp or the service worker will not cache-first them');
+  const swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  assert.match(swSrc, /if \(url\.searchParams\.has\('v'\)\) event\.respondWith\(stampedCacheFirst\(req\)\)/,
+    'the stamped cache-first route is what makes a lazily fetched asset survive to the next open');
 });
 
 /* ---------- web push (P1 payload-free) ---------- */

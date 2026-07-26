@@ -1055,7 +1055,12 @@ async function boot() {
     if (btn) btn.hidden = true;
     if (form) form.classList.remove('open');
   };
-  const loadScript = (src) => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s); };
+  const loadScript = (src, onFail) => {
+    const s = document.createElement('script');
+    s.src = src;
+    if (onFail) s.onerror = onFail;
+    document.body.appendChild(s);
+  };
   fetch('/api/ping').then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (d && d.requests) state.lanIntake = true; // LAN write endpoint present — intakes also share board-wide
     else withdrawIntake();
@@ -1069,7 +1074,9 @@ async function boot() {
       .then(() => { if (d.master) loadScript('js/master.js'); }); // command-side, all-teams oversight view
   }).catch(withdrawIntake);
 
-  // Field Notes is off by default and stripped from the public artifact, so it loads on demand only
+  // Field Notes is off by default and stripped from the public artifact, so it loads on demand only.
+  // The mirror has no notes.js, so the link must answer rather than do nothing: onerror is the only
+  // signal that separates "this board has no Field Notes" from a note id that simply does not exist.
   const notesParams = new URLSearchParams(location.search);
   if (notesParams.has('notes') || notesParams.has('note')) {
     const stamp = APP_VERSION.replace(/^v/, '');
@@ -1077,7 +1084,7 @@ async function boot() {
     sheet.rel = 'stylesheet';
     sheet.href = `css/notes.css?v=${stamp}`;
     document.head.appendChild(sheet);
-    loadScript(`js/notes.js?v=${stamp}`);
+    loadScript(`js/notes.js?v=${stamp}`, () => opNotice(t('note.notesunavailable')));
   }
   restoreViewState(); // saved view first, so any URL param below overrides it for this load
 

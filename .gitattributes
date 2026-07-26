@@ -14,3 +14,5 @@ data/roads-capture.json  export-ignore
 .gitattributes  export-ignore
 assets/architecture.svg export-ignore
 workers/        export-ignore
+
+INTERNAL-NOTES.md export-ignore

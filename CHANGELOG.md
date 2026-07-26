@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.48 · 2026-07-26 (the whole board, in every export)
+
+-- Changes --
+- [Change] The CalTopo import, the live KML layer and the GeoRSS feed now carry
+           the whole board rather than a 500-feature slice. Every alert, crest,
+           gauge, road closure and low-water crossing publishes, and the exports
+           are held to a size that imports cleanly in ArcGIS Online, ATAK and
+           Google Earth. When an export still has to be shortened it says so, in
+           all three formats, and drops the lowest-priority features first
+- [Change] A road closure made up of separate stretches now says how many. The
+           distance shown is the total of those stretches, not one continuous
+           barricade
+
+-- Bug Fixes --
+- [Fix] A shared note link opened on the public board now says Field Notes is not
+      published there. It used to do nothing at all
+
 ## v0.99.47 · 2026-07-26 (the view you set is the view you get back)
 
 -- New Features --

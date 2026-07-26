@@ -9,6 +9,7 @@ const {
   gaugeForecastCat, gaugeRising, gaugeRecoveryState, riverOf, recordContext, recordWatchGauges, RECORD_NEAR_FT, state,
   splitGauges, gaugeState, gaugeStateCounts, gaugeHasReading, GAUGE_STATES, GAUGE_DEGRADED, CAT_RANK,
   roadId, roadMemory, updateRoadMemory, reopenedRoads, ROADS_KEY, ROADS_KEY_LEGACY, _sandbox: sandbox,
+  roadSegMiles, roadSegParts, roadPopupHtml,
 } = loadApp();
 
 /* ---------- alertReach: pull the specific river reach out of NWS prose ---------- */
@@ -524,4 +525,54 @@ test('road memory — the stored v1 map cannot mass-mark reopenings on the first
   assert.equal(reopenedRoads().fresh.length, 0, 'no green REOPENED row can appear from the changeover');
   assert.equal(sandbox.localStorage.getItem(ROADS_KEY_LEGACY), null, 'the stale v1 map must be cleared');
   assert.ok(sandbox.localStorage.getItem(ROADS_KEY), 'the v2 memory must persist for the next diff');
+});
+
+/* ---------- disjoint closure geometry: the total is right, what it implies is not ---------- */
+
+/* One TxDOT record can arrive as a MultiLineString whose parts are miles apart. roadSegMiles is
+   correct and never bridges the gaps, but a single summed total reads as one continuous barricade,
+   so the popup has to name the parts. */
+
+const twoPartClosure = {
+  type: 'MultiLineString',
+  coordinates: [
+    [[-98.0, 30.0], [-98.0, 30.05]],   // ~3.5 mi
+    [[-98.0, 30.18], [-98.0, 30.23]],  // ~3.5 mi, starting ~9 mi north of where the first ended
+  ],
+};
+const onePartClosure = { type: 'LineString', coordinates: [[-98.0, 30.0], [-98.0, 30.15]] };
+const roadProps = { condition: 'Flooding', route_name: 'FM0481', from_limit: 'A', to_limit: 'B' };
+
+test('roadSegMiles — sums the parts of a disjoint closure without bridging the gap between them', () => {
+  const parts = twoPartClosure.coordinates.map((l) => roadSegMiles({ type: 'LineString', coordinates: l }));
+  const total = roadSegMiles(twoPartClosure);
+  assert.ok(Math.abs(total - (parts[0] + parts[1])) < 1e-9, 'the total must be exactly the parts');
+  const spanned = roadSegMiles({ type: 'LineString', coordinates: [[-98.0, 30.0], [-98.0, 30.23]] });
+  assert.ok(total < spanned - 5, `a gapped total (${total}) must stay well under the end-to-end span (${spanned})`);
+});
+
+test('roadSegParts — counts mappable parts, so a total can say what it is made of', () => {
+  assert.equal(roadSegParts(onePartClosure), 1);
+  assert.equal(roadSegParts(twoPartClosure), 2);
+  assert.equal(roadSegParts({ type: 'MultiLineString', coordinates: [[[-98, 30], [-98, 31]]] }), 1,
+    'a single-part MultiLineString is one continuous stretch and must not be labelled');
+  assert.equal(roadSegParts({ type: 'MultiLineString', coordinates: [[[-98, 30], [-98, 31]], [[-97, 30]]] }), 1,
+    'a one-vertex part draws nothing and must not be counted');
+  assert.equal(roadSegParts(null), 0);
+  assert.equal(roadSegParts({ type: 'LineString' }), 0);
+});
+
+test('road popup — a multi-part closure is labelled so its total cannot read as one stretch', () => {
+  const multi = roadPopupHtml(roadProps, twoPartClosure);
+  const single = roadPopupHtml(roadProps, onePartClosure);
+  assert.ok(multi.includes('road.seg.parts'), 'a disjoint closure must use the multi-part label');
+  assert.ok(!single.includes('road.seg.parts'), 'a continuous closure must not claim separate stretches');
+  assert.ok(/road\.seg(?!\.parts)/.test(single), 'a continuous closure still reports its length');
+});
+
+test('road popup — a stretch too short to print a total needs no part label either', () => {
+  const tiny = { type: 'MultiLineString', coordinates: [[[-98, 30], [-98, 30.002]], [[-97, 30], [-97, 30.002]]] };
+  assert.ok(roadSegMiles(tiny) < 2, 'fixture must stay under the 2 mi print threshold');
+  const html = roadPopupHtml(roadProps, tiny);
+  assert.ok(!html.includes('road.seg'), 'no total is shown, so there is nothing to misread');
 });

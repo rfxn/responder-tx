@@ -139,6 +139,13 @@ def load(tmp):
         return json.load(f)
 
 
+# the module itself, for the constants and the emitter units below. Loaded directly because the
+# file name is not an importable module name.
+_spec = importlib.util.spec_from_file_location('gen_caltopo', GEN)
+gen = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(gen)
+
+
 tmp = tempfile.mkdtemp()
 try:
     write_fixtures(tmp)
@@ -457,6 +464,73 @@ try:
 finally:
     shutil.rmtree(tmp4)
 
+# The cap decides how much of the board every downstream consumer sees, so the number itself is
+# pinned, and so is the byte ceiling that is the real import limit behind it.
+tmpc = tempfile.mkdtemp()
+try:
+    write_fixtures(tmpc)
+    check('the published feature cap is 2000, well clear of the live candidate count',
+          gen.MAX_FEATURES == 2000, str(gen.MAX_FEATURES))
+    check('the KML byte budget sits under the 10 MB ArcGIS Online hard ceiling',
+          0 < gen.MAX_KML_BYTES <= 10 * 1024 * 1024, str(gen.MAX_KML_BYTES))
+
+    # untruncated: no format may hint at a partial when nothing was dropped, and all three must
+    # agree on the count. verify_feeds enforces parity inside the generator; assert it from outside.
+    rw = run_gen(tmpc)
+    check('untruncated run exits 0', rw.returncode == 0, rw.stderr[-300:])
+    wdoc = load(tmpc)
+    wn = len(members_of(wdoc))
+    wk = xml_root(tmpc, 'board.kml')
+    wg = xml_root(tmpc, 'board-georss.xml')
+    check('an untruncated kml makes no partial claim',
+          'partial' not in wk.findtext('.//k:Document/k:name', '', NS),
+          wk.findtext('.//k:Document/k:name', '', NS))
+    check('an untruncated georss feed makes no partial claim',
+          'partial' not in wg.findtext('a:title', '', NS), wg.findtext('a:title', '', NS))
+    check('an untruncated note claims no drop in any format',
+          'were dropped' not in wdoc['properties']['note']
+          and 'were dropped' not in (wk.findtext('.//k:Document/k:description', '', NS) or '')
+          and 'were dropped' not in (wg.findtext('a:subtitle', '', NS) or ''))
+    check('json, kml and georss agree on the feature count when nothing is dropped',
+          wn == len(wk.findall('.//k:Placemark', NS)) == len(wg.findall('a:entry', NS)) == wn,
+          '%d / %d / %d' % (wn, len(wk.findall('.//k:Placemark', NS)), len(wg.findall('a:entry', NS))))
+
+    # a byte ceiling small enough to bite must truncate and say so exactly like the feature cap:
+    # a KML silently trimmed to fit an importer is the same defect as one silently trimmed to a count
+    rb = run_gen(tmpc, RESPONDER_CALTOPO_MAX_KML_BYTES='4000')
+    check('a run trimmed by the byte budget exits 0', rb.returncode == 0, rb.stderr[-400:])
+    bdoc = load(tmpc)
+    bn = len(members_of(bdoc))
+    bk = xml_root(tmpc, 'board.kml')
+    bg = xml_root(tmpc, 'board-georss.xml')
+    bp = bdoc['properties']
+    check('the byte budget actually trims the board', 0 < bn < wn, '%d of %d' % (bn, wn))
+    check('a byte-trimmed kml is inside its budget',
+          os.path.getsize(os.path.join(tmpc, 'data', 'board.kml')) <= 4000,
+          str(os.path.getsize(os.path.join(tmpc, 'data', 'board.kml'))))
+    check('a byte-trimmed export reports the drop against the full candidate total',
+          bp['truncated'] is True and bp['candidates'] == wn and bp['dropped'] == wn - bn,
+          'kept %d candidates %s dropped %s' % (bn, bp.get('candidates'), bp.get('dropped')))
+    check('a byte-trimmed title says partial, with both numbers, in all three formats',
+          all(('partial' in s and ('%d of %d' % (bn, wn)) in s) for s in
+              (bp['title'], bk.findtext('.//k:Document/k:name', '', NS), bg.findtext('a:title', '', NS))),
+          '%s | %s | %s' % (bp['title'], bk.findtext('.//k:Document/k:name', '', NS),
+                            bg.findtext('a:title', '', NS)))
+    # naming the feature cap here would be a false explanation: the cap never fired
+    check('a byte-trimmed note blames the byte ceiling, not the feature cap',
+          'MB of KML' in bp['note'] and 'were dropped' in bp['note']
+          and ('%d features' % gen.MAX_FEATURES) not in bp['note'], bp['note'][-160:])
+    check('byte-trimmed feeds still agree with the GeoJSON on how many features they carry',
+          bn == len(bk.findall('.//k:Placemark', NS)) == len(bg.findall('a:entry', NS)),
+          '%d / %d / %d' % (bn, len(bk.findall('.//k:Placemark', NS)), len(bg.findall('a:entry', NS))))
+    # the whole point of ranking: whichever bound cuts, life safety outranks ambient context
+    kept_folders = {f['properties']['folder'] for f in members_of(bdoc)}
+    check('a byte-trimmed board keeps life-safety folders before quiet gauges',
+          'NWS alerts (active)' in kept_folders and 'Gauges (NOAA NWPS)' not in kept_folders,
+          str(sorted(kept_folders)))
+finally:
+    shutil.rmtree(tmpc)
+
 # a MultiPolygon alert is the real multi-part case: NWS issues them routinely, KML represents them
 # exactly, and GeoRSS-Simple cannot. Own fixture root so the baseline alert counts stay untouched.
 tmp5 = tempfile.mkdtemp()
@@ -493,12 +567,6 @@ try:
           not feedm.findall('.//g:box', NS))
 finally:
     shutil.rmtree(tmp5)
-
-# emitter units: the geometry matrix no upstream source currently produces, plus the escaping and
-# no-geometry paths. Loaded directly because the file name is not an importable module name.
-_spec = importlib.util.spec_from_file_location('gen_caltopo', GEN)
-gen = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(gen)
 
 check('kml maps a MultiLineString to a MultiGeometry of LineStrings',
       len(gen.kml_geometry({'type': 'MultiLineString',
@@ -564,7 +632,9 @@ try:
             'title': 'Ampersand & angle <bracket>', 'source': 'unit test', 'updated': iso(NOW), 'key': 'u1'}
     kpath = os.path.join(tmp6, 'board.kml')
     gpath = os.path.join(tmp6, 'board-georss.xml')
-    unmapped = gen.write_kml([unmappable], [meta], hdr, kpath)
+    kml_text, unmapped = gen.build_kml([unmappable], [meta], hdr)
+    with open(kpath, 'w', encoding='utf-8') as fh:
+        fh.write(kml_text)
     gen.write_georss([unmappable], [meta], hdr, gpath)
     k6 = ET.parse(kpath).getroot()
     g6 = ET.parse(gpath).getroot()

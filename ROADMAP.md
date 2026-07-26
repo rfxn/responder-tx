@@ -229,8 +229,8 @@ generalization and the in-app provenance surface. See the forward queue.
 **Genuinely still open** (detail in the forward queue): device alerts built and
 deployed but undiscoverable behind `?push=1` · a still-closed road able to paint
 a reopened badge when the upstream re-codes its condition · multi-source failover
-for the two remaining single-host feeds (HRRR, DriveTexas) · a broken `?note=`
-contract on the public mirror · no in-app about/methodology/privacy surface ·
+for the two remaining single-host feeds (HRRR, DriveTexas) · no in-app
+about/methodology/privacy surface ·
 deploy-credential decoupling from the rfxn-infra vault · region/event-pack
 generalization remainder (#25) · team Phase-2 SAR · severe/tornado + wildfire
 all-hazard remainder · T5 evacuation zones (data-gated) · V4 wall view ·
@@ -560,13 +560,13 @@ N5 and half of N6, both verified still open in source.
   degrade honestly rather than failing over, which is correct behavior but not
   resilience. Find and wire a real alternate for each, or document why none
   exists and keep the honest degrade as the final answer.
-- **N6. Public-artifact remainder** [ux] · the intake-form half shipped v0.98.11
-  (the markup no longer reaches the mirror, and every reader tolerates the element
-  being absent). What is left: `?note=<id>` deep links no longer resolve on the
-  mirror, because `js/boot.js` injects `js/notes.js` on `?note` and `deploy.sh`
-  strips that file. Harmless while `data/notes.json` is empty, but it is a
-  published contract that now silently does nothing, so either answer it or
-  retire it.
+- **N6. Public-artifact remainder** [ux] · DELIVERED. The intake-form half shipped
+  v0.98.11 (the markup no longer reaches the mirror, and every reader tolerates the
+  element being absent). The `?note=<id>` half shipped v0.99.48: the parameter is
+  kept rather than retired, because it still resolves on the LAN ops board where
+  `js/notes.js` exists. On the mirror the injected script 404s and now answers with
+  a notice saying Field Notes is not published there, so the link states its outcome
+  instead of doing nothing.
 
 ### NEXT (after the NOW queue)
 

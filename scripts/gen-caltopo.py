@@ -45,7 +45,12 @@ REFRESH_SECONDS = 900  # the data cycle's own period; a shorter poll would only 
 ALERTS_URL = "https://api.weather.gov/alerts/active?area=TX"
 LSR_URL = "https://mesonet.agron.iastate.edu/geojson/lsr.geojson?hours=24&states=TX"
 
-MAX_FEATURES = int(os.environ.get("RESPONDER_CALTOPO_MAX_FEATURES", "500"))
+MAX_FEATURES = int(os.environ.get("RESPONDER_CALTOPO_MAX_FEATURES", "2000"))
+# The real import ceiling is bytes, not a feature count: ArcGIS Online refuses a KML layer over
+# 10 MB outright, the tightest documented limit across the consumer set. Trim to 80% of it so a
+# cycle full of large alert polygons cannot cross the line mid-event.
+MAX_KML_BYTES = int(os.environ.get("RESPONDER_CALTOPO_MAX_KML_BYTES", str(8 * 1024 * 1024)))
+FIT_PASSES = 8
 LSR_CAP = 100
 
 # hexes mirror css/app.css dark-theme custom properties (--cat-*, --sev-*, --good, --ink-muted, --accent)
@@ -496,7 +501,9 @@ def kml_geometry(geom):
     return None
 
 
-def write_kml(members, metas, header, path):
+def build_kml(members, metas, header):
+    """(document text, count of features with no mappable geometry). Returns text rather than
+    writing, so the caller can weigh the emitted bytes against the import ceiling before publishing."""
     root = ET.Element("kml", {"xmlns": KML_NS})
     doc = ET.SubElement(root, "Document")
     ET.SubElement(doc, "name").text = header["title"]
@@ -542,8 +549,7 @@ def write_kml(members, metas, header, path):
                     ET.SubElement(ET.SubElement(ed, "Data", {"name": k}), "value").text = str(v)
             if geom is not None:
                 pm.append(geom)
-    atomic_write(path, serialize(root))
-    return unmapped
+    return serialize(root), unmapped
 
 
 def write_kml_networklink(path):
@@ -703,6 +709,62 @@ def write_georss(members, metas, header, path):
     return simplified
 
 
+# ---------- assembly ----------
+
+def trim_ranked(ranked, keep):
+    """(kept, dropped) highest rank first. Only sorts when a bound actually bites, so the ordinary
+    cycle that publishes every candidate keeps its source order."""
+    if len(ranked) <= keep:
+        return ranked, 0
+    ordered = sorted(ranked, key=lambda rf: rf[0], reverse=True)  # stable: source order within a rank
+    return ordered[:keep], len(ranked) - keep
+
+
+def build_header(event, kept_n, total, now, bound):
+    """Header shared by all three emitters. bound names which limit did the cutting, because
+    "capped at 2000 features" is a false explanation when it was the byte ceiling that cut."""
+    dropped = total - kept_n
+    partial = (f" (partial: {kept_n} of {total} features, lowest-priority dropped first)"
+               if dropped else "")
+    note = DISCLAIMER
+    if dropped:
+        limit = (f"{MAX_KML_BYTES // 1048576} MB of KML so it stays importable"
+                 if bound == "size" else f"{MAX_FEATURES} features")
+        note += (f" This export is capped at {limit} and {dropped} lower-priority features were "
+                 "dropped; every alert, crest, closure and in-flood gauge is kept before any "
+                 "quiet gauge.")
+    name = event.get("name") or "Responder TX"
+    return {
+        "title": f"{name} · live map{partial}",
+        "geojson_title": f"{name} · CalTopo export{partial}",
+        "note": note,
+        "generated": now,
+        "features": kept_n,
+        "candidates": total,
+        "cap": MAX_FEATURES,
+        "truncated": dropped > 0,
+        "dropped": dropped,
+        "georss_url": f"{SITE}/data/board-georss.xml",
+    }
+
+
+def fit_to_ceiling(ranked, event, now):
+    """(kept, header, kml text, unmapped). Applies the feature cap, then trims by the same rank
+    order until the emitted KML fits MAX_KML_BYTES, re-stating the truncation claim each pass."""
+    kept, dropped = trim_ranked(ranked, MAX_FEATURES)
+    bound = "cap" if dropped else ""
+    for _ in range(FIT_PASSES):
+        header = build_header(event, len(kept), len(ranked), now, bound)
+        text, unmapped = build_kml([f for _, f, _ in kept], [m for _, _, m in kept], header)
+        if len(text.encode("utf-8")) <= MAX_KML_BYTES or len(kept) <= 1:
+            return kept, header, text, unmapped
+        # proportional step with a margin: converges in two or three passes rather than one at a time
+        target = max(1, int(len(kept) * MAX_KML_BYTES / len(text.encode("utf-8")) * 0.95))
+        kept, _ = trim_ranked(kept, target)
+        bound = "size"
+    return kept, header, text, unmapped
+
+
 # ---------- emitted-artifact gate ----------
 
 def verify_feeds(expected, header):
@@ -743,11 +805,13 @@ def verify_feeds(expected, header):
             if tag == "polygon" and vals[:2] != vals[-2:]:
                 raise ValueError("board-georss.xml georss:polygon does not close on its first pair")
 
-    # ArcGIS Online refuses a KML layer over 10 MB. Warn rather than fail: withholding the whole
-    # cycle over one consumer's ceiling would cost more than the layer it protects.
-    kml_mb = os.path.getsize(OUT_KML) / 1048576.0
-    if kml_mb > 10:
-        print("warn: board.kml is %.1f MB; ArcGIS Online will not add a KML layer over 10 MB" % kml_mb,
+    # fit_to_ceiling already trims to MAX_KML_BYTES, so this only fires if the passes ran out on a
+    # single oversized geometry. Warn rather than fail: withholding the whole cycle over one
+    # consumer's ceiling would cost more than the layer it protects.
+    kml_bytes = os.path.getsize(OUT_KML)
+    if kml_bytes > MAX_KML_BYTES:
+        print("warn: board.kml is %.1f MB, over the %.0f MB import budget; ArcGIS Online refuses a "
+              "KML layer over 10 MB" % (kml_bytes / 1048576.0, MAX_KML_BYTES / 1048576.0),
               file=sys.stderr)
     if header["truncated"]:
         for label, text in (("board.kml", kml.findtext(".//k:Document/k:name", "", ns)),
@@ -777,14 +841,12 @@ def main():
     ranked = (build_alerts(alerts_gj) + crest_feats + build_gauges(snapshot)
               + build_roads(roads) + build_crossings(crossings) + build_notices(reqs) + build_lsrs(lsr_gj))
 
-    dropped = 0
-    if len(ranked) > MAX_FEATURES:
-        ranked.sort(key=lambda rf: rf[0], reverse=True)  # stable: keeps source order within a rank
-        dropped = len(ranked) - MAX_FEATURES
-        ranked = ranked[:MAX_FEATURES]
+    now = now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
+    kept, header, kml_text, unmapped = fit_to_ceiling(ranked, event, now)
+    dropped = header["dropped"]
 
-    members = [f for _, f, _ in ranked]
-    metas = [m for _, _, m in ranked]
+    members = [f for _, f, _ in kept]
+    metas = [m for _, _, m in kept]
     counts = {}
     for f in members:
         counts[f["properties"]["folder"]] = counts.get(f["properties"]["folder"], 0) + 1
@@ -793,28 +855,22 @@ def main():
                      "properties": {"class": "Folder", "title": name, "labelVisible": True}}
                     for fid, name in FOLDERS if any(f["properties"]["folderId"] == fid for f in members)]
 
-    now = now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
     # a truncated export must say so in the artifact itself: whoever imports the URL into CalTopo
     # never sees our share sheet, and the title is the one string CalTopo always shows them
-    partial = (f" (partial: {len(members)} of {len(members) + dropped} features, "
-               f"lowest-priority dropped first)" if dropped else "")
-    note = (DISCLAIMER + f" This export is capped at {MAX_FEATURES} features and {dropped} "
-            "lower-priority features were dropped; every alert, crest, closure and "
-            "in-flood gauge is kept before any quiet gauge." if dropped else DISCLAIMER)
     doc = {
         "type": "FeatureCollection",
         "properties": {
-            "title": f"{event.get('name') or 'Responder TX'} · CalTopo export{partial}",
+            "title": header["geojson_title"],
             "generated": now,
-            "note": note,
+            "note": header["note"],
             "import_url": f"{SITE}/data/caltopo-export.json",
             "kml_url": f"{SITE}/data/board.kml",
             "kml_live_url": f"{SITE}/data/board-live.kml",
             "georss_url": f"{SITE}/data/board-georss.xml",
             "counts": counts,
-            "candidates": len(members) + dropped,
+            "candidates": header["candidates"],
             "cap": MAX_FEATURES,
-            "truncated": dropped > 0,
+            "truncated": header["truncated"],
             "dropped": dropped,
             "crests_unresolved": crests_unresolved,
             "sources_unavailable": unavailable,
@@ -825,18 +881,7 @@ def main():
 
     # the XML feeds re-state the same truncation claim: a KML that quietly drops 200 features is
     # the same defect the GeoJSON title was fixed to stop, only in another syntax
-    header = {
-        "title": f"{event.get('name') or 'Responder TX'} · live map{partial}",
-        "note": note,
-        "generated": now,
-        "features": len(members),
-        "candidates": len(members) + dropped,
-        "cap": MAX_FEATURES,
-        "truncated": dropped > 0,
-        "dropped": dropped,
-        "georss_url": f"{SITE}/data/board-georss.xml",
-    }
-    unmapped = write_kml(members, metas, header, OUT_KML)
+    atomic_write(OUT_KML, kml_text)
     write_kml_networklink(OUT_KML_LIVE)
     simplified = write_georss(members, metas, header, OUT_GEORSS)
     verify_feeds(len(members), header)
@@ -845,7 +890,9 @@ def main():
           f"(dropped {dropped}, crests unresolved {crests_unresolved}, "
           f"unavailable: {','.join(unavailable) or 'none'}) @ {now}")
     print(f"board.kml + board-live.kml + board-georss.xml: {len(members)} features "
-          f"(kml unmapped {unmapped}, georss simplified {simplified})")
+          f"(kml {os.path.getsize(OUT_KML) / 1048576.0:.2f} MB of a "
+          f"{MAX_KML_BYTES / 1048576.0:.0f} MB budget, unmapped {unmapped}, "
+          f"georss simplified {simplified})")
 
 
 if __name__ == "__main__":

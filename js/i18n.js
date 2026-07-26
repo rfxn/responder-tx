@@ -445,6 +445,7 @@
       'reopen.was': 'was',
       'reopen.at': 'reopened',
       'road.seg': '{mi} mi segment',
+      'road.seg.parts': '{mi} mi total across {n} separate stretches, not one continuous closure',
       'road.note.closure': 'TxDOT closes between the listed limits; the full stretch is barricaded even if water or damage is localized within it.',
       'road.note.cond': 'Condition reported between the listed limits; may be localized within this stretch.',
 
@@ -1198,6 +1199,7 @@
       'note.snapshot.detail': 'The live gauge feed did not answer; showing the published snapshot from',
       'note.refreshing': 'refreshing…',
       'note.camfail': 'camera list unavailable',
+      'note.notesunavailable': 'Field Notes is not published on this board, so that note link cannot open here. It works on the LAN ops board.',
       'note.rsentryfail': 'River Sentry siren sites unavailable',
       'note.feedtap': 'Open Live feeds for the source-by-source status',
       'note.nextrefresh': 'next refresh in',
@@ -1651,6 +1653,7 @@
       'reopen.was': 'era',
       'reopen.at': 'reabierto',
       'road.seg': 'tramo de {mi} mi',
+      'road.seg.parts': '{mi} mi en total en {n} tramos separados, no un cierre continuo',
       'road.note.closure': 'TxDOT cierra entre los límites indicados; todo el tramo queda bloqueado aunque el agua o el daño esté localizado dentro de él.',
       'road.note.cond': 'Condición reportada entre los límites indicados; puede estar localizada dentro de este tramo.',
 
@@ -2404,6 +2407,7 @@
       'note.snapshot.detail': 'La fuente de aforos en vivo no respondió; se muestra la instantánea publicada del',
       'note.refreshing': 'actualizando…',
       'note.camfail': 'lista de cámaras no disponible',
+      'note.notesunavailable': 'Notas de Campo no se publica en este tablero, así que ese enlace de nota no puede abrirse aquí. Funciona en el tablero de operaciones LAN.',
       'note.rsentryfail': 'sitios de sirenas River Sentry no disponibles',
       'note.feedtap': 'Abra Fuentes en vivo para ver el estado de cada fuente',
       'note.nextrefresh': 'próxima actualización en',

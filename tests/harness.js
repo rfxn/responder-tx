@@ -121,7 +121,7 @@ const EXPORTS = [
   'riverSlug', 'basinCrestTime', 'basinCorridor', 'basinRivers', 'basinWaveState',
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT', 'gaugeDegraded',
   'roadId', 'roadMemory', 'updateRoadMemory', 'reopenedRoads', 'reopenIsFlood', 'ROADS_KEY', 'ROADS_KEY_LEGACY',
-  'roadPointNear', 'lwcHasMore', 'LWC_PAGE', 'LWC_MAX_PAGES',
+  'roadPointNear', 'roadSegMiles', 'roadSegParts', 'roadPopupHtml', 'lwcHasMore', 'LWC_PAGE', 'LWC_MAX_PAGES',
   'cardAged',
   'buildShareUrl', 'applyShareParams', 'linkOwnsView', 'LINK_VIEW_PARAMS',
   'smartScore', 'shortId', 'allRequests',

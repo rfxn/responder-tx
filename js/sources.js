@@ -1125,6 +1125,14 @@ function roadSegMiles(geo) {
   return mi;
 }
 
+// parts of a disjoint closure: roadSegMiles sums them but never bridges the gaps between them,
+// so a multi-part total must say so or it reads as one continuous stretch of road
+function roadSegParts(geo) {
+  if (!geo || !Array.isArray(geo.coordinates)) return 0;
+  if (geo.type !== 'MultiLineString') return 1;
+  return geo.coordinates.filter((line) => Array.isArray(line) && line.length > 1).length;
+}
+
 const roadMemMap = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
 
 function roadMemory() {
@@ -1189,7 +1197,10 @@ function roadPopupHtml(p, geo) {
   const dscr = stripHtml(p.description).replace(/^[\s–—-]+/, ''); // TxDOT feeds a leading "- " artifact; display-only strip
   const detour = Number(p.detour_flag) === 1;
   const miles = Math.round(roadSegMiles(geo));
-  const seg = miles >= 2 ? t('road.seg').replace('{mi}', String(miles)) : '';
+  const parts = roadSegParts(geo);
+  const seg = miles < 2 ? ''
+    : parts > 1 ? t('road.seg.parts').replace('{mi}', String(miles)).replace('{n}', String(parts))
+      : t('road.seg').replace('{mi}', String(miles));
   const isClosure = String(p.condition || '').toLowerCase() === 'closure';
   return `<div class="popup-title" style="color:${ct.color}">${esc(roadLabel(ct))}</div>` +
     `<div class="popup-meta"><strong>${esc(road)}</strong></div>` +

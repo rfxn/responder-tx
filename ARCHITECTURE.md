@@ -147,9 +147,10 @@ See the lifecycle diagram and rules in the README:
 - `data/event.json`: per-event identity and geography (name, region, map
   center/zoom, sub-area presets, tide stations, `captureBbox` for what the pipeline
   collects, `gaugeBbox` for what the board displays, `archiveStart` for how far back
-  reconstruction may reach). It is a **data** file, not code: the cycle reads it
-  from the working tree, so re-targeting a live event takes effect on the next
-  cycle with no commit and no release.
+  reconstruction may reach). The generators read it from the working tree, but
+  `deploy.sh` ships `git archive HEAD`, so an **uncommitted** edit re-targets the
+  pipeline while the client keeps the old map centre, AO presets, USGS tiling box
+  and tide stations. That is a split brain, not a re-target: commit it.
 - `CONFIG` in `js/core.js`: endpoints, poll interval, LSR window, staleness
   thresholds, playback ranges.
 

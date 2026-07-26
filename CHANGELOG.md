@@ -1,5 +1,29 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.47 · 2026-07-26 (the view you set is the view you get back)
+
+-- New Features --
+- [New] The board keeps the view you set. The map layers you have switched on,
+      where the map is looking, the area chip, and the tab, filters and sort all
+      come back after a hard refresh or an app update
+- [New] Saving a map area offline has a detail setting: the current view on its
+      own, one zoom deeper, or two. The number of tiles is shown before the
+      download starts, so the cost is clear on a metered connection
+- [New] The area chip travels in a shared link
+
+-- Changes --
+- [Change] Tapping a rising to major item on the hazard line frames that gauge,
+           marks the rising gauges on the map, and opens them in the Gauges tab.
+           A device set to reduce motion gets a still marker instead of a pulse
+- [Change] A shared link takes precedence over the kept view for the load it
+           opens. A saved layer that no longer exists is dropped
+
+-- Bug Fixes --
+- [Fix] An offline save now says what happened. A partial save, a save stopped by
+      full device storage, and a save that fetched nothing are each reported
+      rather than reading as complete, and saved tiles the browser has since
+      reclaimed are reported too
+
 ## v0.99.46 · 2026-07-26 (who runs this board, and what it keeps)
 
 -- New Features --

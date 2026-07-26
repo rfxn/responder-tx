@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.46';
+const APP_VERSION = 'v0.99.47';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -97,12 +97,16 @@ function aoBoundsOk(b) {
 const regionLabel = (p, lang) => (p.i18nKey ? t(p.i18nKey)
   : ((lang === 'es' && typeof p.labelEs === 'string') ? p.labelEs : p.label));
 
-// [label, bounds] pill list: Full AO (always first, from CONFIG.gaugeBbox) + the Texas region AOs
+// the Full AO pill is not an event-config region, so it carries a reserved id of its own
+const AO_FULL_ID = 'full';
+
+// [label, bounds, id] pill list: Full AO (always first, from CONFIG.gaugeBbox) + the Texas region
+// AOs. The id is language-independent, so a saved or shared AO pick survives a language switch.
 function resolveAoPresets(lang) {
   const evp = (Array.isArray(CONFIG.aoPresets) ? CONFIG.aoPresets : [])
     .filter((p) => p && typeof p.label === 'string' && aoBoundsOk(p.bounds))
-    .map((p) => [regionLabel(p, lang), p.bounds]);
-  return [[t('ao.full'), aoFullBounds()]].concat(evp);
+    .map((p) => [regionLabel(p, lang), p.bounds, typeof p.id === 'string' ? p.id : '']);
+  return [[t('ao.full'), aoFullBounds(), AO_FULL_ID]].concat(evp);
 }
 
 /* ---------- region camera layers: one Leaflet group per AO region, not per source ---------- */
@@ -265,6 +269,8 @@ const state = {
 
   lsCamOpen: new Set(), // camera sub-groups expanded this session (ephemeral, not persisted)
   lsBulk: false, // a parent toggle is mid-flight: repaint once at the end, not once per child layer
+  offDepth: null, // extra zoom levels an offline save covers; read from storage on first use
+  viewReady: false, // boot restore and URL params are done: only now does a change mean the user made it
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };

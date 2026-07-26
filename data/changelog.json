@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.47",
+      "date": "2026-07-26",
+      "line": "The board keeps the view you set. The map layers you have switched on, where the map is looking, the area chip, and the tab, filters and sort all come back after a hard refresh or an app update; a shared link still takes precedence for the load it opens, and a saved layer that no longer exists is dropped. Tapping a rising to major item on the hazard line frames that gauge, marks the rising gauges on the map, and opens them in the Gauges tab, with a still marker instead of a pulse on a device set to reduce motion. Saving a map area offline now has a detail setting and states the number of tiles before the download starts, and a save that only partly completed, ran out of device storage, or fetched nothing says so instead of reading as complete."
+    },
+    {
       "v": "v0.99.46",
       "date": "2026-07-26",
       "line": "Settings, then Help, now opens About this board: who runs it, what it is and is not, how it stays honest about stale and forecast data, where each layer's data comes from, and exactly what the two opt-in relays store. It states the device alert promise plainly, best effort, not a Wireless Emergency Alert, never a replacement for 911, and links the source repository and the GNU GPL v2 license. The update check now reads a small version file instead of the whole changelog, so a board left open all shift uses far less data in the background."

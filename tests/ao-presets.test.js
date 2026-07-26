@@ -48,8 +48,23 @@ test('resolveAoPresets — event.json presets replace the fallback when present'
     const p = resolveAoPresets('en');
     assert.equal(p.length, 3);
     assert.equal(p[0][0], FULL_LABEL);
-    deq(p[1], ['Houston metro', [[29.4, -95.9], [30.2, -94.9]]]);
-    deq(p[2], ['Beaumont · Port Arthur', [[29.6, -94.5], [30.6, -93.4]]]);
+    deq(p[1], ['Houston metro', [[29.4, -95.9], [30.2, -94.9]], 'houston']);
+    deq(p[2], ['Beaumont · Port Arthur', [[29.6, -94.5], [30.6, -93.4]], 'beaumont']);
+  });
+});
+
+/* The id is what a saved or shared view names a pill by. A label cannot serve: it is translated,
+   so a saved AO would be lost the moment the user switched language. */
+test('resolveAoPresets — every pill carries a language-independent id, Full AO included', () => {
+  const evp = [
+    { id: 'galvestonbay', label: 'Galveston Bay', labelEs: 'Bahía de Galveston', bounds: [[28.9, -95.5], [29.75, -94.35]] },
+    { label: 'No id at all', bounds: [[29.4, -95.9], [30.2, -94.9]] },
+  ];
+  withConfig({ aoPresets: evp }, () => {
+    assert.equal(resolveAoPresets('en')[0][2], 'full', 'the Full AO pill needs a reserved id of its own');
+    assert.equal(resolveAoPresets('en')[1][2], 'galvestonbay');
+    assert.equal(resolveAoPresets('es')[1][2], 'galvestonbay', 'the id must not change with the language');
+    assert.equal(resolveAoPresets('en')[2][2], '', 'a preset with no id gets an empty one, never undefined');
   });
 });
 
@@ -77,7 +92,7 @@ test('resolveAoPresets: malformed entries are dropped; all-malformed leaves only
   withConfig({ aoPresets: bad.concat([good]) }, () => {
     const p = resolveAoPresets('en');
     assert.equal(p.length, 2);
-    deq(p[1], ['OK area', good.bounds]);
+    deq(p[1], ['OK area', good.bounds, 'ok']);
   });
   withConfig({ aoPresets: bad }, () => {
     deq(resolveAoPresets('en').slice(1), []);

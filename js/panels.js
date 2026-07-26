@@ -1115,9 +1115,11 @@ function tickerItems() {
   }
   const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
+  // tapping a rising item frames the tapped gauge and pulses the whole rising set, on the map and
+  // in the Gauges tab, so which gauges are in question is obvious rather than inferred
   for (const g of rising) {
     const fCat = gaugeForecastCat(g);
-    rise.push({ text: `▲ ${riverOf(g.name)} → ${catWord(fCat).toUpperCase()} ${t('wave.crest')} ${relWhen(g.status.forecast.validTime)}`, color: `var(--cat-${fCat})`, act: () => focusGauge(g) });
+    rise.push({ text: `▲ ${riverOf(g.name)} → ${catWord(fCat).toUpperCase()} ${t('wave.crest')} ${relWhen(g.status.forecast.validTime)}`, color: `var(--cat-${fCat})`, act: () => focusGauges(rising, g) });
   }
   for (const g of state.gauges.filter((x) => gaugeCat(x) === 'major' && !gaugeRising(x))) {
     const tr = gaugeTrend(g.lid);

@@ -117,70 +117,179 @@ function viewportTileCoords(z) {
   return out;
 }
 
+/* Depth is the user's, not the app's. Each extra level roughly quadruples the download, and the
+   only person who knows whether this is a metered phone in the field is the one holding it. The
+   shipped default is unchanged, so nobody's save silently grows; the choice is a way to make it
+   smaller. */
+const OFFLINE_DEPTHS = [0, 1, 2];
+const OFFLINE_DEPTH_DEFAULT = 2;
+const OFFLINE_DEPTH_KEY = 'respondertx.offdepth';
+const OFFLINE_LEDGER_KEY = 'respondertx.offline';
+
+function offlineDepth() {
+  if (!OFFLINE_DEPTHS.includes(state.offDepth)) {
+    let d = NaN;
+    try { d = parseInt(localStorage.getItem(OFFLINE_DEPTH_KEY), 10); } catch { d = NaN; }
+    state.offDepth = OFFLINE_DEPTHS.includes(d) ? d : OFFLINE_DEPTH_DEFAULT;
+  }
+  return state.offDepth;
+}
+
+function setOfflineDepth(d) {
+  if (!OFFLINE_DEPTHS.includes(d)) return;
+  state.offDepth = d;
+  try { localStorage.setItem(OFFLINE_DEPTH_KEY, String(d)); } catch { /* private mode — the choice still holds for this load */ }
+  renderLayerSheet();
+}
+
+// the zoom levels a save at this depth would cover, capped by what the active layers actually serve
+function offlineZooms(depth) {
+  const layers = activeOfflineLayers();
+  if (!layers.length || !state.map) return [];
+  const z0 = state.map.getZoom();
+  const maxZ = Math.min(...layers.map((l) => l.options.maxZoom || 19));
+  const out = [];
+  for (let i = 0; i <= depth; i++) { if (z0 + i <= maxZ) out.push(z0 + i); }
+  return out;
+}
+
+function offlineJobs(depth) {
+  const layers = activeOfflineLayers();
+  const jobs = [];
+  for (const z of offlineZooms(depth)) for (const c of viewportTileCoords(z)) for (const l of layers) jobs.push({ l, c });
+  return jobs;
+}
+
+/* What the last save left in the store. Browsers evict origin storage without telling the page, so
+   a count that has fallen since the save is the only evidence the tiles are gone, and a responder
+   who believes an area is cached and finds grey squares in the field is the failure this whole
+   feature exists to prevent. */
+function offlineLedger() {
+  let v = null;
+  try { v = JSON.parse(localStorage.getItem(OFFLINE_LEDGER_KEY) || 'null'); } catch { v = null; }
+  return v && Number.isFinite(v.n) ? v : null;
+}
+
+function setOfflineLedger(n) {
+  try { localStorage.setItem(OFFLINE_LEDGER_KEY, JSON.stringify({ n, t: Date.now() })); } catch { /* private mode — eviction simply goes unreported */ }
+}
+
 function refreshOfflineStatus() {
   return OfflineTiles.count().then((n) => {
     const s = $('#off-status');
-    if (s) { s.textContent = n > 0 ? t('off.saved').replace('{n}', n) : t('off.none'); s.classList.remove('over'); }
+    const led = offlineLedger();
+    if (s) {
+      s.classList.remove('over', 'warn');
+      if (led && n < led.n) {
+        s.textContent = t('off.evicted').replace('{n}', fmtNum(n)).replace('{m}', fmtNum(led.n));
+        s.classList.add('warn');
+      } else s.textContent = n > 0 ? t('off.saved').replace('{n}', fmtNum(n)) : t('off.none');
+    }
     const clr = $('#off-clear');
     if (clr) clr.hidden = n === 0;
     return n;
-  }).catch(() => {});
+  }).catch(() => {
+    // the count is the only claim this panel makes; unreadable means say so, not leave a stale one
+    const s = $('#off-status');
+    if (s) { s.textContent = t('off.unavail'); s.classList.add('warn'); }
+    return null;
+  });
 }
 
+// the cost of the pending save, stated before the user commits to it
+function refreshOfflineEstimate() {
+  const el = $('#off-est');
+  if (!el) return;
+  const zooms = offlineZooms(offlineDepth());
+  const n = zooms.length ? offlineJobs(offlineDepth()).length : 0;
+  el.textContent = zooms.length ? t('off.est').replace('{n}', fmtNum(n)).replace('{m}', fmtNum(zooms.length)) : '';
+  el.classList.toggle('over', n > OFFLINE_TILE_CAP);
+}
+
+/* Closing line for a finished save. The honest cases are tested first so none of them can fall
+   through to the clean one: a partial save, a quota stop, or a save that fetched nothing at all
+   must never read as "available offline". */
+function offlineResultText(r) {
+  if (r.quota) return t('off.quota').replace('{n}', fmtNum(r.saved)).replace('{m}', fmtNum(r.jobs));
+  if (!r.saved) return t('off.failed').replace('{f}', fmtNum(r.failed || r.jobs));
+  if (r.failed) return t('off.partial').replace('{n}', fmtNum(r.saved)).replace('{m}', fmtNum(r.jobs)).replace('{f}', fmtNum(r.failed));
+  return t('off.savedfull').replace('{n}', fmtNum(Number.isFinite(r.total) ? r.total : r.saved)).replace('{m}', fmtNum(r.zooms));
+}
+
+const offlineSaveClean = (r) => !r.quota && !r.failed && r.saved > 0;
+
 async function saveViewportOffline() {
-  const layers = activeOfflineLayers();
   const statusEl = $('#off-status');
-  if (!layers.length || !statusEl) return;
-  const z0 = state.map.getZoom();
-  const maxZ = Math.min(...layers.map((l) => l.options.maxZoom || 19));
-  // owner: expand offline depth — cache this zoom + up to two deeper for usable offline zoom-in
-  const zooms = [z0, z0 + 1, z0 + 2].filter((z) => z <= maxZ);
-  const jobs = [];
-  for (const z of zooms) for (const c of viewportTileCoords(z)) for (const l of layers) jobs.push({ l, c });
+  if (!statusEl) return;
+  const depth = offlineDepth();
+  const zooms = offlineZooms(depth);
+  const jobs = offlineJobs(depth);
+  statusEl.classList.remove('over', 'warn');
+  if (!jobs.length) { statusEl.textContent = t('off.nolayer'); statusEl.classList.add('warn'); return; }
   if (jobs.length > OFFLINE_TILE_CAP) {
-    statusEl.textContent = t('off.cap').replace('{n}', jobs.length).replace('{m}', OFFLINE_TILE_CAP);
+    statusEl.textContent = t('off.cap').replace('{n}', fmtNum(jobs.length)).replace('{m}', fmtNum(OFFLINE_TILE_CAP));
     statusEl.classList.add('over');
     return;
   }
   const saveBtn = document.querySelector('.off-save');
   if (saveBtn) saveBtn.disabled = true;
-  statusEl.classList.remove('over');
-  let done = 0;
-  let idx = 0;
+  let done = 0, saved = 0, failed = 0, idx = 0, quota = false;
   const worker = async () => {
-    while (idx < jobs.length) {
+    while (idx < jobs.length && !quota) { // a full store will not empty mid-run; stop rather than fail every remaining tile
       const { l, c } = jobs[idx++];
       const key = l.offlineKey(c);
       try {
-        if (!(await OfflineTiles.has(key))) {
+        if (await OfflineTiles.has(key)) saved++; // already held from an earlier save of this area
+        else {
           const r = await fetch(offlineTileUrl(l, c), { mode: 'cors' });
-          if (r.ok) await OfflineTiles.put(key, await r.blob());
+          if (!r.ok) failed++;
+          else { await OfflineTiles.put(key, await r.blob()); saved++; }
         }
-      } catch (e) { /* skip unreachable/blocked tile — partial cache is still useful offline */ }
-      statusEl.textContent = t('off.saving').replace('{n}', ++done).replace('{m}', jobs.length);
+      } catch (e) {
+        if (e && /quota/i.test(String(e.name || e))) quota = true;
+        else failed++;
+      }
+      statusEl.textContent = t('off.saving').replace('{n}', fmtNum(++done)).replace('{m}', fmtNum(jobs.length));
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
   if (saveBtn) saveBtn.disabled = false;
-  const total = await refreshOfflineStatus();
-  statusEl.textContent = t('off.savedfull').replace('{n}', total).replace('{m}', zooms.length);
+  let total = null;
+  try { total = await OfflineTiles.count(); } catch { total = null; } // count is a nicety; the run's own tally is the claim
+  if (Number.isFinite(total)) setOfflineLedger(total);
+  const result = { saved, failed, quota, jobs: jobs.length, zooms: zooms.length, total };
+  const text = offlineResultText(result);
+  statusEl.textContent = text;
+  const clean = offlineSaveClean(result);
+  statusEl.classList.toggle('warn', !clean);
+  const clr = $('#off-clear');
+  if (clr && Number.isFinite(total)) clr.hidden = total === 0;
+  // the sheet scrolls and the panel sits well down it; a failed save must reach the user anyway
+  if (!clean && typeof opNotice === 'function') opNotice(text);
 }
 
 async function clearOfflineCache() {
   try { await OfflineTiles.clear(); } catch (e) { /* ignore — nothing to clear */ }
+  setOfflineLedger(0); // an empty store is not an eviction, so the warning must not fire on it
   await refreshOfflineStatus();
   const s = $('#off-status');
-  if (s) s.textContent = t('off.cleared');
+  if (s) { s.textContent = t('off.cleared'); s.classList.remove('warn', 'over'); }
 }
 
 // caching the basemap is a choice about what the map shows with no signal, so it belongs in the
 // layer sheet, not in a fifth box along the map edge
 function offlineSheetHtml() {
   if (!OfflineTiles.available()) return '';
+  const d = offlineDepth();
+  const seg = `<div class="off-depth" role="group" aria-label="${esc(t('off.depth'))}" title="${esc(t('off.depth.title'))}">` +
+    OFFLINE_DEPTHS.map((z) =>
+      `<button class="off-depth-btn${z === d ? ' on' : ''}" data-offz="${z}">${esc(t(`off.depth.${z}`))}</button>`).join('') +
+    '</div>';
   return `<div class="ls-group">${esc(t('sheet.g.offline'))}</div>` +
-    '<div class="ls-off">' +
+    '<div class="ls-off">' + seg +
+    '<div class="off-est" id="off-est"></div>' +
     `<button class="off-save" data-act="off-save" title="${esc(t('off.save.title'))}" data-i18n="off.save" data-i18n-title="off.save.title">${esc(t('off.save'))}</button>` +
-    '<div class="off-status" id="off-status">…</div>' +
+    '<div class="off-status" id="off-status" role="status" aria-live="polite">…</div>' +
     `<div class="off-note" data-i18n="off.note">${esc(t('off.note'))}</div>` +
     `<button class="off-clear" id="off-clear" data-act="off-clear" hidden data-i18n="off.clear">${esc(t('off.clear'))}</button>` +
     '</div>';
@@ -828,6 +937,24 @@ const CTL_ICON_COMPASS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-h
 
 /* ---------- AO quick-jump — pills along the map top edge, never another stacked box ---------- */
 
+/* The picked AO is part of the view the board restores, so it lives beside the control rather than
+   inside its closure: initAoJump() publishes the handle, and aoSelectById() is how a saved or
+   shared view names a pill without synthesizing a click on it. */
+let aoCtl = null;
+
+function aoPickedId() { return aoCtl && aoCtl.picked ? aoCtl.picked[2] : null; }
+
+// select an AO pill by its event-config id; fit only when the caller has no framing of its own
+function aoSelectById(id, fit) {
+  if (!aoCtl || !id) return false;
+  const p = aoCtl.presets.find((x) => x[2] === id);
+  if (!p) return false; // a region dropped from the event config since the view was saved
+  aoCtl.picked = p;
+  aoCtl.label(p[0]);
+  if (fit) state.map.fitBounds(p[1]);
+  return true;
+}
+
 function initAoJump() {
   const AO_PRESETS = resolveAoPresets(getLang()); // event-config pills (data/event.json) or built-in fallback
   const jump = L.DomUtil.create('div', 'ao-jump', state.map.getContainer());
@@ -837,13 +964,13 @@ function initAoJump() {
   cur.title = t('ao.current.title');
   cur.setAttribute('data-i18n-title', 'ao.current.title');
   const row = L.DomUtil.create('div', 'ao-row', jump);
-  let picked = AO_PRESETS[0];
   let idleT = 0;
   const label = (txt) => { cur.innerHTML = `◎ ${esc(txt)} <span class="ao-caret">▾</span>`; };
+  aoCtl = { presets: AO_PRESETS, picked: AO_PRESETS[0], label };
   const collapse = () => { jump.classList.remove('open'); cur.setAttribute('aria-expanded', 'false'); clearTimeout(idleT); };
   const armIdle = () => { clearTimeout(idleT); idleT = setTimeout(collapse, 6000); };
   const expand = () => { jump.classList.add('open'); cur.setAttribute('aria-expanded', 'true'); armIdle(); };
-  label(picked[0]);
+  label(aoCtl.picked[0]);
   L.DomEvent.on(cur, 'click', () => (jump.classList.contains('open') ? collapse() : expand()));
   for (const preset of AO_PRESETS) {
     const b = L.DomUtil.create('button', 'ao-chip', row);
@@ -851,10 +978,11 @@ function initAoJump() {
     b.title = t('ao.chip.title');
     b.setAttribute('data-i18n-title', 'ao.chip.title');
     L.DomEvent.on(b, 'click', () => {
-      picked = preset;
+      aoCtl.picked = preset;
       state.map.fitBounds(preset[1]);
       label(preset[0]);
       collapse(); // the map jump is the feedback — a lingering open row competes with it
+      if (typeof scheduleViewSave === 'function') scheduleViewSave();
     });
   }
   jump.addEventListener('pointermove', () => { if (jump.classList.contains('open')) armIdle(); });
@@ -865,7 +993,8 @@ function initAoJump() {
     if (e.key === 'Escape' && jump.classList.contains('open')) collapse();
   });
   state.map.on('moveend', () => {
-    label(L.latLngBounds(picked[1]).contains(state.map.getCenter()) ? picked[0] : t('ao.custom'));
+    const p = aoCtl.picked;
+    label(L.latLngBounds(p[1]).contains(state.map.getCenter()) ? p[0] : t('ao.custom'));
   });
   L.DomEvent.disableClickPropagation(jump);
   L.DomEvent.disableScrollPropagation(jump);
@@ -1199,6 +1328,7 @@ function renderLayerSheet() {
   body.innerHTML = html;
   body.scrollTop = keepScroll;
   refreshOfflineStatus(); // the tile count is async and the body was just rewritten
+  refreshOfflineEstimate();
 }
 
 function layerSheetSync() { if (!state.lsBulk && layerSheetIsOpen()) renderLayerSheet(); }
@@ -1234,6 +1364,8 @@ function onLayerSheetClick(e) {
     return;
   }
   if (e.target.closest('.ls-reset')) { layerSheetReset(); return; }
+  const offz = e.target.closest('[data-offz]');
+  if (offz) { setOfflineDepth(parseInt(offz.dataset.offz, 10)); return; }
   if (e.target.closest('[data-act="off-save"]')) { saveViewportOffline(); return; }
   if (e.target.closest('[data-act="off-clear"]')) { clearOfflineCache(); return; }
   // parents first: the statewide row is also an .ls-row, and it carries no data-layer of its own
@@ -1274,8 +1406,51 @@ function layerSheetReset() {
     state.baseLayers.streets.addTo(state.map);
   }
   state.lsCamOpen.clear(); // reset returns the camera sub-groups to all-collapsed
+  aoSelectById(AO_FULL_ID, false); // framing is set below; the pill must not still name a sub-AO
   state.map.fitBounds(aoFullBounds());
   renderLayerSheet();
+}
+
+/* ---------- saved layer set: the overlays the user chose, carried across a refresh ---------- */
+
+// every user-facing row key, in sheet order: the virtual merged 'wx' row and the camera regions included
+function layerRowKeys() {
+  const out = [];
+  for (const [, rows] of SHEET_GROUPS) for (const r of rows) out.push(r[0]);
+  return out;
+}
+
+/* What the user has on right now, plus the full set of keys this build offers. Storing the known
+   set is what lets a later boot tell "the user turned this off" apart from "this layer did not
+   exist yet", so a layer added in a release still ships on by default. Null while playback owns
+   the layer set: its swap is the archive's picture, not the user's. */
+function collectLayerState() {
+  if (pbBlocksLive(state)) return null;
+  const known = layerRowKeys();
+  return { on: known.filter((k) => layerRowOn(k) === true), known };
+}
+
+function applyLayerState(on, known) {
+  if (!Array.isArray(on) || pbBlocksLive(state)) return false;
+  const wasKnown = new Set(Array.isArray(known) && known.length ? known : on);
+  const want = new Set(on);
+  state.lsBulk = true; // a whole layer set at once: the sheet and the pill row repaint after the loop
+  try {
+    for (const k of layerRowKeys()) {
+      if (!wasKnown.has(k)) continue; // shipped after this view was saved — leave it at its default
+      const cur = layerRowOn(k);
+      if (cur === null || want.has(k) === cur) continue; // retired layer, or already where it belongs
+      if (k === 'wx') { wxToggle(); continue; }
+      if (want.has(k)) state.layers[k].addTo(state.map);
+      else state.map.removeLayer(state.layers[k]);
+    }
+  } finally { state.lsBulk = false; }
+  // a restored OFF is the user's decision, exactly as a manual toggle-off is; auto-enable must not undo it
+  if (wasKnown.has('tropical') && !want.has('tropical')) state.tropicalAutoDone = true;
+  if (wasKnown.has('crossStatus') && !want.has('crossStatus')) state.xstatusAutoDone = true;
+  renderLayerPills();
+  layerSheetSync();
+  return true;
 }
 
 function initLayerSheet() {
@@ -1301,6 +1476,10 @@ function initLayerSheet() {
     y0 = null;
   }, { passive: true });
   state.map.on('overlayadd overlayremove baselayerchange', layerSheetSync);
+  // the layer set and the framing are part of the view the board restores on the next load
+  state.map.on('overlayadd overlayremove moveend', () => {
+    if (typeof scheduleViewSave === 'function') scheduleViewSave();
+  });
   registerModal(el, { focusEl: '.ls-panel' }); // trap within the panel; #layer-sheet toggles hidden
 }
 

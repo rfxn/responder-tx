@@ -804,10 +804,16 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 
 /* offline tile save — a section of the layer sheet, since it decides what the map can show with no signal */
 .ls-off { padding: 2px 4px 0; color: var(--ink-1); }
+.ls-off .off-depth { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.ls-off .off-depth-btn { flex: 1; min-height: 34px; border: 0; border-radius: 0; background: var(--surface-2); font-size: 11.5px; }
+.ls-off .off-depth-btn + .off-depth-btn { border-left: 1px solid var(--border); }
+.ls-off .off-depth-btn.on { background: var(--accent); color: #fff; font-weight: 700; }
+.ls-off .off-est { margin: 5px 0 6px; color: var(--ink-muted); font-size: 11px; }
+.ls-off .off-est.over { color: var(--sev-warning); font-weight: 650; }
 .ls-off .off-save { width: 100%; min-height: 44px; padding: 6px 8px; font-size: 12.5px; font-weight: 650; }
 .ls-off .off-save:disabled { opacity: 0.6; cursor: progress; }
 .ls-off .off-status { margin-top: 6px; color: var(--ink-2); font-size: 11.5px; line-height: 1.35; }
-.ls-off .off-status.over { color: var(--sev-warning); font-weight: 650; }
+.ls-off .off-status.over, .ls-off .off-status.warn { color: var(--sev-warning); font-weight: 650; }
 .ls-off .off-note { margin-top: 4px; color: var(--ink-muted); font-size: 11px; line-height: 1.35; }
 .ls-off .off-clear {
   margin-top: 8px; width: 100%; min-height: 36px; padding: 4px 6px; font-size: 11.5px;
@@ -2236,6 +2242,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 /* inside a clipping or tightly-packed container the ring turns inward so it is not cut off */
 #sheet-handle button:focus-visible,
 .ls-base-btn:focus-visible,
+.off-depth-btn:focus-visible,
 .rs-go:focus-visible,
 .rs-x:focus-visible,
 .tabs button:focus-visible,

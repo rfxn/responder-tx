@@ -131,15 +131,19 @@ function openInGaugesList(lid) {
   revealInList('tab-gauges', sel);
 }
 
-// threat-chip focus: frame a set of gauges, pulse their map markers, and reveal+flash
-// their rows in the Gauges tab. Degrades gracefully if the gauge layer is toggled off.
-function focusGauges(gauges) {
+/* Hazard-line focus: frame a set of gauges, pulse their map markers, and reveal + flash their rows
+   in the Gauges tab, so which gauges are in question is obvious on both surfaces. `lead` is the one
+   the user actually tapped: the map frames that gauge and the list scrolls to it, while the rest of
+   the set still pulses and flashes. Without a lead the whole set is framed together.
+   Degrades gracefully if the gauge layer is toggled off. */
+function focusGauges(gauges, lead) {
   if (!gauges || !gauges.length) return;
   const lids = gauges.map((g) => g.lid);
-  const pts = gauges.filter((g) => Number.isFinite(g.latitude) && Number.isFinite(g.longitude))
-    .map((g) => [g.latitude, g.longitude]);
-  if (pts.length === 1) state.map.setView(pts[0], Math.max(state.map.getZoom(), 11), { animate: true });
-  else fitTo(pts);
+  const ptOf = (g) => (g && Number.isFinite(g.latitude) && Number.isFinite(g.longitude) ? [g.latitude, g.longitude] : null);
+  const leadPt = ptOf(lead);
+  const pts = gauges.map(ptOf).filter(Boolean);
+  if (leadPt || pts.length === 1) state.map.setView(leadPt || pts[0], Math.max(state.map.getZoom(), 11), { animate: true });
+  else if (pts.length) fitTo(pts);
   let pulsed = false;
   const pulse = () => {
     if (pulsed) return;
@@ -156,14 +160,19 @@ function focusGauges(gauges) {
   };
   state.map.once('moveend', pulse); // pulse once the eye follows the pan…
   setTimeout(pulse, 750);           // …or right away if the view was already framed
-  const sels = lids.map((lid) => `#gauge-list .gauge-card[data-lid="${CSS.escape(lid)}"]`);
+  const rowSel = (lid) => `#gauge-list .gauge-card[data-lid="${CSS.escape(lid)}"]`;
   gaugeListUnfoldFor(lids);
+  // In view is the one filter that can hide the very rows this focus exists to surface; drop the
+  // scope rather than land the user on a list without them
+  if (state.inView && lids.some((lid) => !document.querySelector(rowSel(lid)) && gaugeAll().some((g) => g.lid === lid))) setInView(false);
+  // the tapped gauge is the one the list scrolls to; the rest of the set still flashes behind it
+  const order = lead && lids.includes(lead.lid) ? [lead.lid].concat(lids.filter((l) => l !== lead.lid)) : lids;
   const btn = document.querySelector('.tabs button[data-tab="tab-gauges"]');
   if (btn) btn.click();
   requestAnimationFrame(() => {
     let scrolled = false;
-    for (const s of sels) {
-      const el = document.querySelector(s);
+    for (const lid of order) {
+      const el = document.querySelector(rowSel(lid));
       if (!el) continue;
       if (!scrolled) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); scrolled = true; }
       flashRow(el);
@@ -921,6 +930,9 @@ function buildShareUrl() {
   // every region on travels as the statewide token, so the link still means statewide if the region set grows
   if (camOn.length && camOn.length === camRows.length) p.set('camreg', CAM_REGION_ALL);
   else if (camOn.length) p.set('camreg', camOn.join(','));
+  // Full AO is the resting pick, so a default link stays short; any sub-AO travels by its id
+  const ao = typeof aoPickedId === 'function' ? aoPickedId() : null;
+  if (ao && ao !== AO_FULL_ID) p.set('ao', ao);
   const rv = $('#recovery-view');
   if (rv && !rv.hidden) p.set('view', 'recovery');
   const bv = $('#basin-view');
@@ -989,7 +1001,10 @@ function setControl(sel, val, evt) {
 // boot-time restore: set each control the way a user would, then let its own handler re-render
 function applyShareParams(q) {
   const lat = parseFloat(q.get('mlat')), lon = parseFloat(q.get('mlon')), z = parseInt(q.get('mz'), 10);
-  if (Number.isFinite(lat) && Number.isFinite(lon)) state.map.setView([lat, lon], Number.isFinite(z) ? z : state.map.getZoom());
+  const framed = Number.isFinite(lat) && Number.isFinite(lon);
+  if (framed) state.map.setView([lat, lon], Number.isFinite(z) ? z : state.map.getZoom());
+  // a bare ?ao= has no framing of its own to honour, so that form fits the region's bounds
+  if (q.get('ao') && typeof aoSelectById === 'function') aoSelectById(q.get('ao'), !framed);
   const apply = (sel, key, evt) => setControl(sel, q.get(key), evt);
   const feedFiltered = [['#flt-type', 'ft', 'change'], ['#flt-county', 'fc', 'change'], ['#flt-window', 'fw', 'change'],
     ['#flt-dist', 'fd', 'change'], ['#flt-q', 'fq', 'input'], ['#flt-sort', 'fs', 'change']]
@@ -1059,24 +1074,70 @@ function resolveTabName(name) {
   return n;
 }
 
-// persist the user's view (feed + alert filters, sort, aged toggle, active tab) across
-// hard refreshes and app updates. URL share-params still win for their load (applied after).
+/* Persist the user's view (feed + alert filters, sort, aged toggle, active tab, map framing, AO
+   pill, and the overlay set) across hard refreshes and app updates. URL share-params still win for
+   their load: the per-control ones are applied after this, and the framing/overlay half stands
+   down entirely when a link is present, since a link is an explicit intent for the whole view. */
 const VIEW_KEY = 'respondertx.view';
+
+function readViewState() {
+  try { return JSON.parse(localStorage.getItem(VIEW_KEY) || 'null'); } catch { return null; }
+}
+
+/* Params that describe the framing/overlay half of a view. Any one of them means the load was
+   opened from a link, so the stored framing and overlay set do not compete with it: the layer
+   params only ever switch things ON, so a link showing three overlays would otherwise land on top
+   of whatever the reader already had. The per-control filter params are not listed (those override
+   control by control), and neither are ?hydro=/?cam=, which open one record and say nothing about
+   how the map should be framed. */
+const LINK_VIEW_PARAMS = ['mlat', 'mlon', 'mz', 'ao', 'rain', 'radar', 'fcst', 'usgs', 'lwc',
+  'inun', 'reopen', 'rs', 'camreg'];
+const linkOwnsView = (q) => LINK_VIEW_PARAMS.some((k) => q.has(k));
+
 function saveViewState() {
   try {
     const active = document.querySelector('.tabs button.active');
+    const prev = readViewState() || {};
+    // null while the archive owns the layers or the map is not up yet: carry the last real answer
+    // forward rather than storing the archive's picture as if the user had chosen it
+    const ls = typeof collectLayerState === 'function' ? collectLayerState() : null;
+    const frame = mapFrame();
     localStorage.setItem(VIEW_KEY, JSON.stringify({
       ft: state.filters.type || '', fc: state.filters.county || '', fq: state.filters.q || '',
       fw: state.filters.window || '', fd: state.filters.dist || '', fs: state.sort,
       aged: state.showAged ? 1 : 0,
       as: $('#flt-alert-sev').value, aq: $('#flt-alert-q').value,
       tab: active ? active.dataset.tab : 'tab-requests',
+      ly: ls ? ls.on : prev.ly, lyk: ls ? ls.known : prev.lyk,
+      ao: (typeof aoPickedId === 'function' && aoPickedId()) || prev.ao || '',
+      mlat: frame ? frame[0] : prev.mlat, mlon: frame ? frame[1] : prev.mlon,
+      mz: frame ? frame[2] : prev.mz,
     }));
   } catch { /* private-mode / quota — view persistence is best-effort */ }
 }
+
+// current centre + zoom, or null when there is no map yet or the archive is driving it
+function mapFrame() {
+  if (!state.map || typeof state.map.getCenter !== 'function' || pbBlocksLive(state)) return null;
+  const c = state.map.getCenter();
+  if (!c || !Number.isFinite(c.lat) || !Number.isFinite(c.lng)) return null;
+  return [+c.lat.toFixed(4), +c.lng.toFixed(4), state.map.getZoom()];
+}
+
+/* Layer toggles and pans arrive in bursts: a camera parent moves thirteen layers, a fitBounds
+   fires moveend more than once. Coalesce them into one write. The viewReady gate is the same one
+   the tab handler uses, so the boot-time restore never writes back over what it is restoring. */
+let viewSaveTimer = null;
+function scheduleViewSave() {
+  if (!state.viewReady) return;
+  clearTimeout(viewSaveTimer);
+  viewSaveTimer = setTimeout(saveViewState, 400);
+}
+
 function restoreViewState() {
-  let v; try { v = JSON.parse(localStorage.getItem(VIEW_KEY) || 'null'); } catch { v = null; }
+  const v = readViewState();
   if (!v) return;
+  restoreViewFraming(v);
   state.filters.type = v.ft || ''; $('#flt-type').value = v.ft || '';
   state.filters.window = v.fw || ''; $('#flt-window').value = v.fw || '';
   state.filters.dist = v.fd || ''; $('#flt-dist').value = v.fd || '';
@@ -1097,6 +1158,17 @@ function restoreViewState() {
     const btn = document.querySelector(`.tabs button[data-tab="${vtab}"]`);
     if (btn) btn.click();
   }
+}
+
+/* The framing half of the saved view: AO pill, map centre/zoom, overlay set. A link opened with
+   any framing param owns this load instead, and the archive is never restored into: a stored
+   layer set applied while playback is engaged would hide the live board behind archive layers. */
+function restoreViewFraming(v) {
+  if (!state.map || linkOwnsView(new URLSearchParams(location.search)) || pbBlocksLive(state)) return;
+  if (typeof aoSelectById === 'function' && v.ao) aoSelectById(v.ao, false); // framing is restored below, not fitted
+  const lat = parseFloat(v.mlat), lon = parseFloat(v.mlon), z = parseInt(v.mz, 10);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) state.map.setView([lat, lon], Number.isFinite(z) ? z : state.map.getZoom());
+  if (typeof applyLayerState === 'function') applyLayerState(v.ly, v.lyk);
 }
 
 function exportAAR() {

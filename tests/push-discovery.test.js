@@ -141,21 +141,34 @@ test('Notification.requestPermission is reachable from exactly one place, and on
 
 /* ---------- the promoted door ---------- */
 
-test('the header carries a one-tap alerts control that opens the Alerts group', () => {
+/* Owner report: "the duplicative alert bell icon and gear settings icon top of page". The v0.99.37
+   bell and the gear opened the identical sheet, and every phone/tablet breakpoint hides .ctl-lbl,
+   so the header read as two unlabelled icons behind one panel. The bell is gone; what replaces its
+   discoverability job is a dot on the gear, which is why these assertions guard the dot's gating
+   rather than a second button. */
+test('one header door to the Alerts group, with the call-to-action riding the gear', () => {
   const header = HTML.slice(HTML.indexOf('<div class="controls">'), HTML.indexOf('<div id="hmore-menu"'));
-  assert.ok(header.includes('id="alerts-btn"'), 'the header lost the alerts control');
-  assert.match(header, /id="alerts-btn"[^>]*data-i18n-title="ctl\.notify\.title"/, 'the control needs a localized title');
-  assert.match(header, /id="alerts-btn"[^>]*data-i18n-aria="ctl\.notify\.aria"/, 'the control needs a localized aria-label');
-  assert.ok(/id="alerts-btn"[\s\S]{0,200}?data-i18n="push\.notify"/.test(header),
-    'the control should reuse the gauge-popup bell vocabulary');
+  assert.ok(!/id="alerts-btn"/.test(HTML), 'the duplicate bell is back in the header');
+  assert.ok(!/alerts-btn/.test(BOOT + BOARD + CSS), 'the removed bell left wiring or styling behind');
+  assert.match(header, /id="hmore-dot"[^>]*hidden/, 'the alerts dot must start hidden, not asserted on load');
+  assert.ok(/id="hmore-btn"[\s\S]{0,400}?id="hmore-dot"/.test(header), 'the dot must live inside the gear');
 
   assert.match(BOOT, /const openAlertsPanel = \(\) => \{/, 'the alerts opener is gone');
-  assert.match(BOOT, /\$\('#alerts-btn'\)\.addEventListener\('click'/, 'the alerts control is not wired');
-  // the bell sits outside #hmore, so the dismiss-on-outside-click must spare it or the menu
-  // closes in the same tap that opened it
-  assert.match(BOOT, /e\.target\.closest\('#hmore, #alerts-btn'\)/,
-    'the outside-click dismissal must exempt the alerts control');
+  assert.match(BOOT, /window\.setAlertsCta = setAlertsCta/, 'the dot has no setter for the push card to call');
   assert.ok(!/openSettingsMenu/.test(BOOT + BOARD), 'openSettingsMenu was superseded by openAlertsPanel');
+
+  // the dot is a claim that this device can subscribe, so only the card that checked may raise it
+  assert.match(BOARD, /if \(window\.setAlertsCta\) setAlertsCta\(st === 'off'\)/,
+    "the dot must track the push card's own state, and only its 'off' state");
+  assert.equal((BOARD.match(/setAlertsCta\(/g) || []).length, 1, 'the dot is set from more than the card render');
+  // swapping the key attributes alone would leave the live button stale: applyI18n() scopes to
+  // descendants, so the gear itself is never re-read until a full-document pass
+  const cta = BOOT.match(/const setAlertsCta = \(on\) => \{[\s\S]*?\n  \};/)[0];
+  for (const attr of ['data-i18n-title', 'data-i18n-aria']) {
+    assert.ok(cta.includes(attr), `the CTA swap must keep ${attr} in sync for the language toggle`);
+  }
+  assert.match(cta, /btn\.title = t\(titleKey\)/, 'the swapped title must be painted immediately');
+  assert.match(cta, /btn\.setAttribute\('aria-label', t\(ariaKey\)\)/, 'the swapped aria-label must be painted immediately');
 
   // the gauge-popup bell lands on the same surface, so there is one alerts destination
   const manage = BOARD.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
@@ -215,7 +228,7 @@ test('the card still carries the best-effort framing, unweakened, on every rende
 });
 
 test('i18n: the promoted alerts surface is complete in both languages and dash-free', () => {
-  const keys = ['ctl.notify.title', 'ctl.notify.aria', 'push.notify',
+  const keys = ['ctl.settings.cta.title', 'ctl.settings.cta.aria', 'push.notify',
     'set.g.alerts', 'res.follow', 'res.follow.sub', 'res.rss', 'res.rss.note', 'res.ics', 'res.ics.note',
     'push.title', 'push.note', 'push.disclaimer', 'push.sub', 'push.about'];
   for (const k of keys) {

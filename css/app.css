@@ -1924,8 +1924,15 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .hmore { position: relative; }
 /* no min-width here: an ID rule outranks the .controls button 44px floors at every breakpoint,
    which left the gear a 40px box in a row of 44px squares on every phone width */
-#hmore-btn { font-weight: 800; }
+#hmore-btn { font-weight: 800; position: relative; }
 #hmore-btn.on { border-color: var(--accent); }
+/* the alerts call-to-action: one dot on the gear, replacing the second header button that used to
+   open this very panel. Absolute so it never widens the 44px control. */
+.ctl-dot {
+  position: absolute; top: 4px; right: 4px; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--accent); border: 1px solid var(--surface-1);
+}
+.ctl-dot[hidden] { display: none; }
 /* the panel must scroll: it carries the device-alerts card as well as the menu rows, and an
    unbounded absolute box overran a 430px-tall landscape viewport with no way to reach the rest */
 #hmore-menu {

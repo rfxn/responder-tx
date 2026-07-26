@@ -1423,6 +1423,9 @@ function renderPushCard() {
   const st = pushCardState(pushEnvFacts());
   const on = st === 'on';
   const toggleable = st === 'on' || st === 'off';
+  // the header gear wears the alerts dot only where this device could actually subscribe and has
+  // not; 'ios'/'blocked'/'unsupported' get no nudge toward a door that will not open for them
+  if (window.setAlertsCta) setAlertsCta(st === 'off');
   const prefs = pushPrefs();
   const scopeState = pushScopeState(prefs);
   const fresh = pushFreshState(state.pushLastEval, Date.now());

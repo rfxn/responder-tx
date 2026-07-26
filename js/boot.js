@@ -703,22 +703,34 @@ async function boot() {
     $('#hmore-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
     $('#hmore-btn').classList.toggle('on', open);
   };
-  // the header bell is the one-tap route to every way of being told: the device-alerts card, RSS,
-  // and the crest calendar. It opens the same settings sheet rather than a second surface of its
-  // own, and pushOpenManageFor() reaches the Alerts group through it too.
+  // the gear is the single header door to every way of being told: the device-alerts card, RSS,
+  // and the crest calendar, all in the Alerts group it opens on. pushOpenManageFor() reaches that
+  // group through here too, so a gauge bell and the header land on one surface.
   const openAlertsPanel = () => {
     hmoreSetOpen(true);
     const grp = $('#set-alerts');
     if (grp && grp.scrollIntoView) grp.scrollIntoView({ block: 'nearest' }); // the panel keeps its scroll between opens
   };
   window.openAlertsPanel = openAlertsPanel;
-  $('#alerts-btn').addEventListener('click', () => {
-    if ($('#hmore-menu').hidden) openAlertsPanel(); else hmoreSetOpen(false);
-  });
+  // the alerts call-to-action rides the gear as a dot rather than a second button beside it.
+  // Only renderPushCard() calls this, so the dot appears solely where subscribing really works.
+  const setAlertsCta = (on) => {
+    const btn = $('#hmore-btn');
+    const dot = $('#hmore-dot');
+    if (!btn || !dot) return;
+    dot.hidden = !on;
+    // the data-i18n keys carry the swap so a later language toggle re-resolves it; applyI18n()
+    // scopes to descendants and would skip the button itself, so paint the attributes here too
+    const titleKey = on ? 'ctl.settings.cta.title' : 'ctl.settings.title';
+    const ariaKey = on ? 'ctl.settings.cta.aria' : 'ctl.settings.aria';
+    btn.setAttribute('data-i18n-title', titleKey);
+    btn.setAttribute('data-i18n-aria', ariaKey);
+    btn.title = t(titleKey);
+    btn.setAttribute('aria-label', t(ariaKey));
+  };
+  window.setAlertsCta = setAlertsCta;
   $('#hmore-btn').addEventListener('click', () => hmoreSetOpen($('#hmore-menu').hidden));
-  // the bell lives outside #hmore, so it has to be spared the dismiss-on-outside-click or it
-  // would close the menu its own handler just opened
-  document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore, #alerts-btn')) hmoreSetOpen(false); });
+  document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
   // only the menu's own rows dismiss it; the alerts card's toggle and tier chips live inside it
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('#hmore-menu > button')) hmoreSetOpen(false); });
   $('#share-btn').addEventListener('click', openShareSheet);

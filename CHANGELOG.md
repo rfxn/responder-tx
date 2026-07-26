@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.42 · 2026-07-26 (one settings door in the header)
+
+-- Changes --
+- [Change] The header alerts bell is gone. It opened the same Settings panel the
+           gear does, so the two sat side by side as one door counted twice. The
+           gear is the single way in, and Alerts stays the first group inside it
+- [Change] The gear carries a small dot when alerts are off on a device that can
+           turn them on. Enabling alerts clears it. A device that cannot receive
+           them, iOS outside an installed app, a blocked permission, never shows
+           it
+
 ## v0.99.41 · 2026-07-26 (usable with gloves, in sunlight, one hand, and a screen reader)
 
 -- Changes --

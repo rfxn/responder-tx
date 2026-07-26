@@ -368,7 +368,7 @@ async function openCrestSummary() {
     '<div class="sum-head">' +
     `<div class="sum-event">${esc(t('summary.event'))} ${esc(d.event || '')} · ${esc(t('summary.generated'))} ${esc(fmtCT(d.generated))}</div>` +
     `<div class="sum-sub">${esc(t('summary.sub'))}</div>` +
-    `<div class="sum-cite">${esc(crestSourceCite(d.gauges))}${w.first ? ` · ${esc(fmtCT(w.first))} → ${esc(fmtCT(w.last))}` : ''}</div>` +
+    `<div class="sum-cite">${esc(crestSourceCite(d.gauges))}${w.first ? ` · ${esc(fmtCT(w.first))} → ${esc(fmtCT(w.last))}` : ''}${w.first_incomplete ? ` · ${esc(t('summary.window.partial'))}` : ''}</div>` +
     '</div>' +
     `<table class="sum-table"><thead><tr><th>${esc(t('summary.col.gauge'))}</th><th>${esc(t('summary.col.peak'))}</th><th>${esc(t('summary.col.when'))}</th><th>${esc(t('summary.col.window'))}</th></tr></thead>` +
     `<tbody>${d.gauges.map(crestRowHtml).join('')}</tbody></table>`;

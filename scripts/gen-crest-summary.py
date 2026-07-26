@@ -156,24 +156,34 @@ def read_chunked_record():
 
 
 def load_archive():
-    """The playback archive, whole. data/history.json is only the bounded fallback: a peak that
-    predates its window must still reach the AAR."""
+    """(archive, read_ok). data/history.json is only the bounded fallback: a peak that predates
+    its window must still reach the AAR. read_ok is False when an archive that EXISTS could not
+    be read, which is not the same fact as an archive with no pre-event window: the first leaves
+    the covered window unknown, the second establishes it."""
+    idx_path = os.path.join(ROOT, CHUNK_INDEX_PATH)
+    hist_path = os.path.join(ROOT, HISTORY_PATH)
+    if os.path.exists(idx_path):
+        try:
+            return read_chunked_record(), True
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            print(f"warn: chunked record exists but is unreadable ({e}); the pre-archive window "
+                  "is unknown, not empty", file=sys.stderr)
+            return {}, False
+    if not os.path.exists(hist_path):
+        return {}, True  # no archive at all: there is genuinely no pre-archive window to fold
     try:
-        return read_chunked_record()
-    except (OSError, ValueError, KeyError, TypeError) as e:
-        print(f"note: chunked record unreadable ({e}); falling back to {HISTORY_PATH}", file=sys.stderr)
-    try:
-        with open(os.path.join(ROOT, HISTORY_PATH), encoding="utf-8") as f:
-            return json.load(f)
+        with open(hist_path, encoding="utf-8") as f:
+            return json.load(f), True
     except (OSError, ValueError) as e:
-        print(f"warn: {HISTORY_PATH} unavailable ({e}); pre-archive peaks omitted", file=sys.stderr)
-        return {}
+        print(f"warn: {HISTORY_PATH} exists but is unreadable ({e}); the pre-archive window is "
+              "unknown, not empty", file=sys.stderr)
+        return {}, False
 
 
 def fold_backfill(gauges):
-    """Seed peaks from the archive's src-tagged pre-archive frames; returns first such
-    stamp. No scope filter here: scoping happens once, in project_display()."""
-    hist = load_archive()
+    """Seed peaks from the archive's src-tagged pre-archive frames; returns (first such stamp,
+    archive read ok). No scope filter here: scoping happens once, in project_display()."""
+    hist, read_ok = load_archive()
     index = hist.get("gaugeIndex", {})
     first_t = None
     for fr in hist.get("frames", []):
@@ -207,7 +217,7 @@ def fold_backfill(gauges):
                 rec["peak_category"] = cat
                 rec["peak_stale"] = False
                 rec["peak_src"] = src
-    return first_t
+    return first_t, read_ok
 
 
 def walk(commits, gauges):
@@ -260,13 +270,20 @@ def walk(commits, gauges):
 
 
 def published_lids():
-    """Every gauge already in the published summary. Scope is a ratchet: a peak this
-    board has reported once is never un-reported by a later display-scope change."""
+    """Every gauge already in the published summary. Scope is a ratchet: a peak this board has
+    reported once is never un-reported by a later display-scope change. A summary that EXISTS
+    and cannot be read therefore stops the run rather than defaulting to empty, which would let
+    a read failure do the un-publishing the ratchet exists to prevent."""
+    path = os.path.join(ROOT, "data", "crest-summary.json")
+    if not os.path.exists(path):
+        return set()  # nothing published yet: an empty ratchet is the truth, not a default
     try:
-        with open(os.path.join(ROOT, "data", "crest-summary.json"), encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return {g.get("lid") for g in (json.load(f).get("gauges") or [])}
-    except (OSError, ValueError):
-        return set()
+    except (OSError, ValueError) as e:
+        sys.exit(f"published crest-summary.json exists but is unreadable ({e}); refusing to "
+                 "republish, because a scope that cannot be read cannot be shown to have "
+                 "only grown")
 
 
 def project_display(gauges, boxes, sticky):
@@ -314,7 +331,7 @@ def main():
     ev = load_event()
     boxes = event_bboxes(ev)
     gauges = {}
-    backfill_from = fold_backfill(gauges)
+    backfill_from, archive_ok = fold_backfill(gauges)
     gauges, skipped, first_snap, last_snap = walk(commits, gauges)
     if not gauges:
         sys.exit("no gauges reached minor+ flood in the snapshot history")
@@ -335,10 +352,18 @@ def main():
             r["src"] = src
             n_backfill += 1
     now = datetime.datetime.now(datetime.timezone.utc)
+    window = {"first": backfill_from or first_snap, "last": last_snap}
+    if not archive_ok:
+        # the archive is where the pre-event window comes from; unread, the start below is the
+        # earliest this run could SEE, which is not the same claim as the earliest there was
+        window["first_incomplete"] = True
+        window["note"] = ("The playback archive could not be read this run, so this window "
+                          "starts where the snapshot archive does. The event may have begun "
+                          "earlier.")
     out = {
         "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "event": event_name(ev, now),
-        "window": {"first": backfill_from or first_snap, "last": last_snap},
+        "window": window,
         "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; "
                   "pre-archive window reconstructed from USGS/NWPS observed via the chunked "
                   "playback archive under history/",
@@ -362,7 +387,8 @@ def main():
     print(f"crest-summary.json: {len(commits)} commits walked ({skipped} skipped), "
           f"retained {retained} gauges, published {len(rows)} ({n_backfill} peaks from "
           f"reconstruction/recovery, {held} out of display scope, held not deleted), "
-          f"window {out['window']['first']} → {last_snap}")
+          f"window {out['window']['first']} → {last_snap}"
+          + ("" if archive_ok else " (START NOT ESTABLISHED: the archive did not read)"))
     for r in rows:
         bits = [f"{r['lid']} {r['peak']} {r['unit']} {r['peak_category']} @ {r['peak_time']}"]
         if r.get("src"):

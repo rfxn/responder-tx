@@ -5,7 +5,8 @@ data/roads-capture.json is the ONLY record of a closure: upstream keeps no histo
 gen-history.py reads a closure's absence from a snapshot as the closure having cleared. So a
 truncated capture does not just lose rows, it writes road recoveries that never happened. The
 query is paged, and a set still short at the ceiling keeps the previous file instead of
-publishing a partial one. Run: python3 tests/gen-roads-snapshot.test.py"""
+publishing a partial one, exiting non-zero so run-cycle.sh signs the cycle off DEGRADED
+rather than clean. Run: python3 tests/gen-roads-snapshot.test.py"""
 import importlib.util
 import io
 import json
@@ -112,7 +113,7 @@ check('a 200 OK ArcGIS error body is refused, never archived as an empty-roads d
 
 # MUTATION · a truncated fetch must leave the previous archive on disk untouched. Overwriting it
 # with a short set is what would tell gen-history.py the missing closures had cleared.
-def run_main(total):
+def run_main(total, dead=False):
     root = tempfile.mkdtemp(prefix='responder-roads-test.')
     os.makedirs(os.path.join(root, 'data'))
     with open(os.path.join(root, 'data', 'event.json'), 'w') as f:
@@ -126,22 +127,39 @@ def run_main(total):
     GR.ROOT = root
     GR.OUT = os.path.join(root, 'data', 'roads-snapshot.json')
     GR.CAPTURE_OUT = os.path.join(root, 'data', 'roads-capture.json')
-    _, GR.urllib.request.urlopen = serve(total)
+    if dead:
+        def boom(url, timeout=None):
+            raise OSError('upstream refused the connection')
+        GR.urllib.request.urlopen = boom
+    else:
+        _, GR.urllib.request.urlopen = serve(total)
     try:
-        GR.main()
+        rc = GR.main()
         with open(GR.CAPTURE_OUT) as f:
-            return json.load(f)
+            return json.load(f), rc
     finally:
         GR.ROOT, GR.OUT, GR.CAPTURE_OUT, GR.urllib.request.urlopen = saved
         shutil.rmtree(root, ignore_errors=True)
 
 
-kept = run_main(GR.PAGE * GR.MAX_PAGES + 1)
+kept, rc = run_main(GR.PAGE * GR.MAX_PAGES + 1)
 check('MUTATION · a truncated fetch keeps the previous archive rather than publishing a short one',
       [r['route'] for r in kept['roads']] == ['PREVIOUS'], str(len(kept['roads'])) + ' roads')
 
-wrote = run_main(3)
+wrote, ok_rc = run_main(3)
 check('a complete fetch does publish', len(wrote['roads']) == 3, str(len(wrote['roads'])) + ' roads')
+
+# The archive stays honest on its own: the previous file keeps its older stamp and the board ages
+# it. What a silent exit 0 threw away was the DEGRADED signal, which is what run-cycle.sh records
+# in STEPS_OK and what freshness-monitor.sh reads to name the source that stopped refreshing.
+check('a complete fetch signs off clean', ok_rc in (0, None), 'rc %r' % (ok_rc,))
+check('DEGRADED · a truncated fetch exits non-zero so the cycle cannot sign off clean',
+      rc not in (0, None), 'rc %r' % (rc,))
+dead_kept, dead_rc = run_main(3, dead=True)
+check('DEGRADED · a failed fetch exits non-zero so the cycle cannot sign off clean',
+      dead_rc not in (0, None), 'rc %r' % (dead_rc,))
+check('DEGRADED · the failed fetch still leaves the previous archive intact',
+      [r['route'] for r in dead_kept['roads']] == ['PREVIOUS'], str(len(dead_kept['roads'])))
 
 print('---')
 if FAILS:

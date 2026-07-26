@@ -5,7 +5,8 @@ simplestyle palette hexes, title/description/citation presence, PII exclusion,
 aged/resolved/operator notice filtering, alert filtering (non-hazard, expired,
 no-geometry), LSR type filtering, truncation drop order, offline source skip, and
 the KML + GeoRSS emitters (well-formedness, count parity with the GeoJSON,
-truncation and attribution parity, coordinate order, geometry degradation).
+truncation and attribution parity, coordinate order, geometry degradation), and the
+all-or-none unavailable-sources claim across all four published artifacts.
 Run: python3 tests/gen-caltopo.test.py"""
 import importlib.util
 import json
@@ -230,6 +231,78 @@ try:
     check('offline run keeps local folders',
           'Gauges (NOAA NWPS)' in doc3['properties']['counts']
           and 'NWS alerts (active)' not in doc3['properties']['counts'])
+
+    # --- E1 · the unavailable-sources claim is all-or-none across the published formats -----
+    # It used to reach the GeoJSON alone, so board.kml, board-live.kml and board-georss.xml
+    # published as complete boards while whole layers were missing from them.
+    KNS = {'k': 'http://www.opengis.net/kml/2.2', 'a': 'http://www.w3.org/2005/Atom'}
+    CLAIM = 'did not answer this cycle'
+
+    def claims(root_dir):
+        """The unavailable-sources claim as each published artifact states it."""
+        with open(os.path.join(root_dir, 'data', 'caltopo-export.json')) as fh:
+            props = json.load(fh)['properties']
+        kml = ET.parse(os.path.join(root_dir, 'data', 'board.kml')).getroot()
+        live = ET.parse(os.path.join(root_dir, 'data', 'board-live.kml')).getroot()
+        feed = ET.parse(os.path.join(root_dir, 'data', 'board-georss.xml')).getroot()
+        ext = {d.get('name'): (d.findtext('k:value', '', KNS) or '')
+               for d in kml.findall('.//k:Document/k:ExtendedData/k:Data', KNS)}
+        return props, ext, {
+            'caltopo-export.json': props.get('note') or '',
+            'board.kml': kml.findtext('.//k:Document/k:description', '', KNS) or '',
+            'board-live.kml': live.findtext('.//k:Document/k:description', '', KNS) or '',
+            'board-georss.xml': feed.findtext('a:subtitle', '', KNS) or '',
+        }
+
+    props3, ext3, texts3 = claims(tmp)
+    check('E1 · with sources unavailable, EVERY published format carries the claim',
+          all(CLAIM in v for v in texts3.values()),
+          str({k: CLAIM in v for k, v in texts3.items()}))
+    check('E1 · every format names the sources it is missing, not just that something is',
+          all(all(n in v for n in props3['sources_unavailable']) for v in texts3.values()))
+    check('E1 · board.kml carries the list as a field, not only as prose',
+          ext3.get('sources_unavailable') == ','.join(props3['sources_unavailable']),
+          str(ext3.get('sources_unavailable')))
+
+    # healthy run: no format may claim anything unavailable
+    r4 = run_gen(tmp, RESPONDER_CALTOPO_MAX_FEATURES='500')
+    props4, ext4, texts4 = claims(tmp)
+    check('healthy run exits 0 with nothing unavailable',
+          r4.returncode == 0 and props4['sources_unavailable'] == [], r4.stderr[-300:])
+    check('E1 · with nothing unavailable, NO published format claims otherwise',
+          not any(CLAIM in v for v in texts4.values()),
+          str({k: CLAIM in v for k, v in texts4.items()}))
+    check('E1 · the board.kml field is empty rather than absent, so the claim is positive',
+          ext4.get('sources_unavailable') == '')
+
+    # a LOCAL source that exists and will not read is unavailable too, not an empty layer
+    roads_path = os.path.join(tmp, 'data', 'roads-snapshot.json')
+    good_roads = open(roads_path).read()
+    with open(roads_path, 'w') as fh:
+        fh.write('{"roads": [ truncated mid-write')
+    r5 = run_gen(tmp, RESPONDER_CALTOPO_MAX_FEATURES='500')
+    props5, ext5, texts5 = claims(tmp)
+    check('a corrupt local source still exports the rest', r5.returncode == 0, r5.stderr[-300:])
+    check('E1 · a local source that will not read is reported unavailable, never as an '
+          'empty layer', props5['sources_unavailable'] == ['roads'], str(props5['sources_unavailable']))
+    check('E1 · a failed LOCAL read reaches every format, exactly as a failed fetch does',
+          all(CLAIM in v and 'roads' in v for v in texts5.values()),
+          str({k: CLAIM in v for k, v in texts5.items()}))
+    check('the dropped layer really is absent from the export',
+          'Road closures (TxDOT)' not in props5['counts'])
+    with open(roads_path, 'w') as fh:
+        fh.write(good_roads)
+
+    # an ABSENT source is a different fact from one that would not read: it claims nothing
+    os.unlink(os.path.join(tmp, 'data', 'crossings.json'))
+    r6 = run_gen(tmp, RESPONDER_CALTOPO_MAX_FEATURES='500')
+    props6, _, texts6 = claims(tmp)
+    check('an absent local source is tolerated the way cycle-check.sh tolerates it, and claims '
+          'nothing unavailable',
+          r6.returncode == 0 and props6['sources_unavailable'] == []
+          and not any(CLAIM in v for v in texts6.values()), str(props6['sources_unavailable']))
+    with open(os.path.join(tmp, 'data', 'crossings.json'), 'w') as fh:
+        json.dump(CROSSINGS, fh)
 finally:
     shutil.rmtree(tmp)
 

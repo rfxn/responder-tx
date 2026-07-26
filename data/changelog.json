@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.52",
+      "date": "2026-07-26",
+      "line": "Reconstructed playback leaves out a river gauge whose flood levels the board could not retrieve, in place of drawing it as not in flood for that period, and retries the retrieval on a later cycle. The map exports name every source that did not answer, in the CalTopo file, both KML files and the GeoRSS feed, so a layer that failed to load is reported as missing rather than shown as empty. The crest summary says when it cannot establish the start of the window it covers. Playback and the crest summary keep their previous copies when the already published record cannot be read, and a road closure snapshot that cannot be completed marks the update cycle degraded."
+    },
+    {
       "v": "v0.99.51",
       "date": "2026-07-26",
       "line": "The RSS feed states when the flash flood emergency check could not be completed; a failed check published as an all clear before, with nothing to tell it apart from a genuine quiet period. The feed carries the board name and its standing 911 note as its title and description, and the feed and crest calendar keep their previous copies when river or notice data cannot be read. Reported low-water crossing closures are kept when the source replies in a form the board cannot read, instead of publishing an empty list that reads as no crossing closed. Saved playback covers the full eight days offline, where recent days had grown past the download allowance and left about two."

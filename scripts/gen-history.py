@@ -29,7 +29,8 @@ A pre-archive backfill stage (skippable with --no-backfill, failures non-fatal)
 prepends hourly frames for the window between the archive floor and the earliest
 retained frame, read first from the local NWPS rescue buffer in
 archive/recovered/nwps-30d/ and then from the USGS IV and NWPS APIs, categorized
-against NWPS flood thresholds cached in data/gauge-meta.json.
+against NWPS flood thresholds cached in data/gauge-meta.json. A gauge with no
+cached flood scale is left out of those frames rather than coded as not-in-flood.
 
 Frame contract (hazard-agnostic, additive — future hazard sources add a
 parallel per-frame array + a top-level index, existing keys never rename):
@@ -107,6 +108,8 @@ USGS_IV_URL = "https://waterservices.usgs.gov/nwis/iv/"
 USGS_SITES_PER_REQ = 10
 FETCH_SPACING_S = 0.2
 THRESHOLD_KEYS = ("action", "minor", "moderate", "major")
+META_MISS_KEY = "miss"             # entry present but never answered: retried, never read as thresholds
+META_MISS_RETRY_S = 3600
 EPOCH = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)  # sort floor for an unparseable commit stamp
 
 
@@ -375,16 +378,31 @@ def read_chunked_record():
 def load_published():
     """The previously published record. Read from the chunks, NOT from data/history.json: that
     file is now a bounded tail, and the reconstruction this re-uses lives at the record's head,
-    so reading it here would re-pull the whole backfill window from upstream every cycle."""
-    try:
-        return read_chunked_record()
-    except (OSError, ValueError, KeyError, TypeError) as e:
-        print(f"note: chunked record unreadable ({e}); reading {OUT_PATH} instead", file=sys.stderr)
-    try:
-        with open(os.path.join(ROOT, OUT_PATH), encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
+    so reading it here would re-pull the whole backfill window from upstream every cycle.
+
+    This is the sticky term of the publication ratchet, so a record that EXISTS and cannot be
+    read stops the run. Defaulting it to empty would let a read failure narrow publication
+    scope and un-publish gauges, which is the v0.97.97 prune in a new disguise. Only a record
+    that is genuinely absent is an empty one."""
+    idx_path = os.path.join(ROOT, CHUNK_INDEX_PATH)
+    out_path = os.path.join(ROOT, OUT_PATH)
+    if os.path.exists(idx_path):
+        try:
+            return read_chunked_record()
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            sys.exit(f"published record {CHUNK_INDEX_PATH} exists but is unreadable ({e}); "
+                     "refusing to republish, because a scope that cannot be read cannot be "
+                     "shown to have only grown")
+    if not os.path.exists(out_path):
         return {}
+    print(f"note: no chunk index; reading {OUT_PATH} instead", file=sys.stderr)
+    try:
+        with open(out_path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        sys.exit(f"published record {OUT_PATH} exists but is unreadable ({e}); refusing to "
+                 "republish, because a scope that cannot be read cannot be shown to have "
+                 "only grown")
 
 
 def compat_view(frames):
@@ -614,13 +632,30 @@ def http_json(url, timeout=90):
         return json.loads(resp.read().decode("utf-8"))
 
 
+def meta_due(entry, now):
+    """A never-answered entry is due again once its retry window passes. An unparseable stamp
+    is due immediately, so a malformed marker can never become the permanent cache."""
+    if not isinstance(entry, dict):
+        return True
+    stamp = entry.get(META_MISS_KEY)
+    if not stamp:
+        return False
+    dt = parse_iso(stamp)
+    return not dt or (now - dt).total_seconds() >= META_MISS_RETRY_S
+
+
 def load_gauge_meta(lids):
+    """Cached NWPS flood thresholds. A fetch that never answered is recorded as a miss and
+    retried later; it is NEVER stored in the shape of a gauge with no thresholds, because
+    cat_from_stage would then read it as a published "not in flood" at any stage."""
     meta_path = os.path.join(ROOT, GAUGE_META_PATH)
     meta = {}
     if os.path.exists(meta_path):
         with open(meta_path, encoding="utf-8") as f:
             meta = json.load(f)
-    missing = [lid for lid in sorted(lids) if lid not in meta]
+    now = datetime.datetime.now(datetime.timezone.utc)
+    missing = [lid for lid in sorted(lids) if lid not in meta or meta_due(meta[lid], now)]
+    misses = 0
     for lid in missing:
         entry = {"usgs": None, "action": None, "minor": None, "moderate": None, "major": None}
         try:
@@ -632,8 +667,10 @@ def load_gauge_meta(lids):
                 stage = (cats.get(key) or {}).get("stage")
                 if isinstance(stage, (int, float)) and stage > -999:
                     entry[key] = stage
-        except Exception as e:  # noqa: BLE001 — cache the miss, keep fetching the rest
+        except Exception as e:  # noqa: BLE001 — record the miss as a miss, keep fetching the rest
             print(f"  warn: NWPS metadata fetch failed for {lid}: {e}", file=sys.stderr)
+            entry[META_MISS_KEY] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            misses += 1
         meta[lid] = entry
         time.sleep(FETCH_SPACING_S)
     if missing:
@@ -646,7 +683,8 @@ def load_gauge_meta(lids):
         except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
             os.unlink(tmp)
             raise
-        print(f"gauge-meta.json: fetched {len(missing)} lids from NWPS, {len(meta)} total cached")
+        print(f"gauge-meta.json: fetched {len(missing)} lids from NWPS ({misses} did not answer "
+              f"and are queued for retry, not cached as thresholdless), {len(meta)} total cached")
     return meta
 
 
@@ -680,6 +718,12 @@ def fetch_usgs_series(site_ids, start_iso, end_iso):
 
 
 def cat_from_stage(stage, entry):
+    """Category code, or None when this gauge has no flood scale to judge the stage against.
+    Without a single threshold the function is the constant 0, which would publish "not in
+    flood" at a record crest; the caller omits the gauge instead, exactly as frame_from does
+    for a live gauge NWPS reports as not_defined."""
+    if not isinstance(entry, dict) or all(entry.get(key) is None for key in THRESHOLD_KEYS):
+        return None
     code = 0
     for level, key in enumerate(THRESHOLD_KEYS, start=1):
         threshold = entry.get(key)
@@ -761,6 +805,7 @@ def build_backfill(lids, first_dt, start_dt):
         time.sleep(FETCH_SPACING_S)
     times = {lid: [p[0] for p in pts] for lid, pts in pts_by_lid.items()}
     frames = []
+    uncategorized = set()
     hour = datetime.timedelta(hours=1)
     t = start_dt
     while t < first_dt:
@@ -770,12 +815,24 @@ def build_backfill(lids, first_dt, start_dt):
             if idx < 0 or (t - pts[idx][0]) >= hour:
                 continue
             stage = pts[idx][1]
-            gauges[lid] = [round(stage, 2), cat_from_stage(stage, meta.get(lid) or {})]
+            code = cat_from_stage(stage, meta.get(lid))
+            if code is None:
+                uncategorized.add(lid)  # no flood scale: absent, never coded as not-in-flood
+                continue
+            gauges[lid] = [round(stage, 2), code]
             srcs.add(src_by_lid[lid])
         if gauges:
             frames.append({"t": t.strftime("%Y-%m-%dT%H:%M:%SZ"), "gauges": gauges,
                            "src": "usgs" if "usgs" in srcs else "nwps", "_dt": t})
         t += hour
+    if uncategorized:
+        for lid in uncategorized:
+            src_by_lid.pop(lid, None)  # fetched but never published: not "covered" in the report
+        retry = sorted(lid for lid in uncategorized if (meta.get(lid) or {}).get(META_MISS_KEY))
+        print(f"  note: {len(uncategorized)} reconstructed gauge(s) have no flood scale and are "
+              f"absent from those frames rather than coded not-in-flood"
+              + (f"; {len(retry)} of them are unanswered metadata fetches queued for retry "
+                 f"({','.join(retry[:10])})" if retry else ""), file=sys.stderr)
     return frames, src_by_lid
 
 

@@ -10,8 +10,9 @@ upstream for good. One request at data/event.json captureBbox (Texas-wide fallba
 produces roads-capture.json, the durable statewide archive; roads-snapshot.json is that
 capture filtered to gaugeBbox, the display-scoped file gen-history.py and gen-caltopo.py
 consume. Capture is deliberately wider than display so retargeting the AO can never again
-reduce what we collect. Failures are non-fatal to the cycle: exit 0 with the previous
-files left intact.
+reduce what we collect. Failures are non-fatal to the cycle but exit non-zero: the previous
+files are left intact, and the non-zero status is what makes run-cycle.sh sign the cycle off
+DEGRADED instead of clean, which is the signal the freshness monitor reads.
 """
 import datetime
 import json
@@ -110,13 +111,13 @@ def main():
         feats, truncated = fetch_features(bbox)
     except Exception as e:  # noqa: BLE001 — archive is best-effort; cycle must not fail on TxDOT flakes
         print(f"warn: roads snapshot fetch failed, keeping previous file: {e}", file=sys.stderr)
-        return
+        return 1
     # a short set archives live closures as absent, and this archive is the only record there is:
     # gen-history.py reads absence as cleared, so a truncated capture invents road recoveries
     if truncated:
         print(f"warn: roads snapshot still truncated after {MAX_PAGES} pages "
               f"({len(feats)} features), keeping previous file", file=sys.stderr)
-        return
+        return 1
     roads = []
     for f in feats:
         try:
@@ -145,7 +146,8 @@ def main():
     write_roads(OUT, shown, now)
     print(f"roads-capture.json: {len(roads)} closures @ {now}")
     print(f"roads-snapshot.json: {len(shown)} closures @ {now}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

@@ -14,9 +14,10 @@ GeoJSON, the KML and the GeoRSS always describe the same board:
                             layer in Google Earth, ArcGIS and ATAK.
   data/board-georss.xml     Atom + GeoRSS-Simple, one entry per feature.
 
-Local layers come from the committed data files; alerts and LSRs are fetched live
-(non-fatal: a failed source drops its folder and is listed in
-properties.sources_unavailable). Failures exit non-zero, keeping last-good.
+Local layers come from the committed data files; alerts and LSRs are fetched live.
+Either kind failing is non-fatal: the folder drops out and the source is named in
+properties.sources_unavailable, and every emitted format re-states that claim so a
+missing layer never reads as an empty one. Failures exit non-zero, keeping last-good.
 """
 import datetime
 import hashlib
@@ -87,11 +88,22 @@ def parse_iso(s):
     return dt
 
 
-def load_json(path, default):
+def load_json(path, default, unavailable=None, label=None):
+    """A local source that EXISTS and will not read is an unavailable source, not an empty one:
+    silently defaulting produced an export whose sources_unavailable list positively asserted
+    nothing was missing while a whole layer had vanished. A file that is simply not there is a
+    different fact, tolerated the same way cycle-check.sh tolerates it, and claims nothing."""
+    full = os.path.join(ROOT, path)
     try:
-        with open(os.path.join(ROOT, path), encoding="utf-8") as f:
+        with open(full, encoding="utf-8") as f:
             return json.load(f)
-    except (OSError, ValueError):
+    except FileNotFoundError:
+        print(f"note: local source {path} is absent; its layer is empty", file=sys.stderr)
+        return default
+    except (OSError, ValueError) as e:
+        print(f"warn: local source {path} exists but did not read: {e}", file=sys.stderr)
+        if unavailable is not None:
+            unavailable.append(label or os.path.basename(path).rsplit(".", 1)[0])
         return default
 
 
@@ -369,6 +381,11 @@ FOLDERS = [
 ATTRIBUTION = ("Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, "
                "Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.")
 NO_GEOM_NOTE = "No mappable geometry in the source record; this entry carries text only."
+# every format re-states this: a layer that failed to load is missing from the export, which is
+# not the same claim as that layer having nothing in it
+UNAVAILABLE_NOTE = ("Sources that did not answer this cycle are missing from this export rather "
+                    "than empty: %s.")
+UNAVAILABLE_CLAIM = "did not answer this cycle"
 UNPARSED_TIME_NOTE = ("The source published no machine-readable update time, so this entry's "
                       "timestamp is the feed's own generation time, not the observation time.")
 
@@ -520,6 +537,8 @@ def build_kml(members, metas, header):
     ext = ET.SubElement(doc, "ExtendedData")
     for k in ("generated", "features", "candidates", "cap", "truncated", "dropped"):
         ET.SubElement(ET.SubElement(ext, "Data", {"name": k}), "value").text = str(header[k])
+    ET.SubElement(ET.SubElement(ext, "Data", {"name": "sources_unavailable"}), "value").text = \
+        ",".join(header.get("unavailable") or ())
     ET.SubElement(ET.SubElement(ext, "Data", {"name": "attribution"}), "value").text = ATTRIBUTION
 
     unmapped = 0
@@ -552,14 +571,17 @@ def build_kml(members, metas, header):
     return serialize(root), unmapped
 
 
-def write_kml_networklink(path):
+def write_kml_networklink(path, header):
     root = ET.Element("kml", {"xmlns": KML_NS})
     doc = ET.SubElement(root, "Document")
     ET.SubElement(doc, "name").text = "Responder TX live map"
+    unavailable = header.get("unavailable") or ()
     ET.SubElement(doc, "description").text = (
         "Self-updating link to the Responder TX board. The linked document is re-fetched every "
         f"{REFRESH_SECONDS // 60} minutes, which is how often the board republishes. "
-        + DISCLAIMER.split(" One-shot")[0] + " " + ATTRIBUTION)
+        + DISCLAIMER.split(" One-shot")[0] + " "
+        + ((UNAVAILABLE_NOTE % ", ".join(unavailable)) + " " if unavailable else "")
+        + ATTRIBUTION)
     nl = ET.SubElement(doc, "NetworkLink")
     ET.SubElement(nl, "name").text = "Responder TX board"
     ET.SubElement(nl, "open").text = "1"
@@ -720,7 +742,7 @@ def trim_ranked(ranked, keep):
     return ordered[:keep], len(ranked) - keep
 
 
-def build_header(event, kept_n, total, now, bound):
+def build_header(event, kept_n, total, now, bound, unavailable=()):
     """Header shared by all three emitters. bound names which limit did the cutting, because
     "capped at 2000 features" is a false explanation when it was the byte ceiling that cut."""
     dropped = total - kept_n
@@ -733,8 +755,11 @@ def build_header(event, kept_n, total, now, bound):
         note += (f" This export is capped at {limit} and {dropped} lower-priority features were "
                  "dropped; every alert, crest, closure and in-flood gauge is kept before any "
                  "quiet gauge.")
+    if unavailable:
+        note += " " + UNAVAILABLE_NOTE % ", ".join(unavailable)
     name = event.get("name") or "Responder TX"
     return {
+        "unavailable": list(unavailable),
         "title": f"{name} · live map{partial}",
         "geojson_title": f"{name} · CalTopo export{partial}",
         "note": note,
@@ -748,13 +773,13 @@ def build_header(event, kept_n, total, now, bound):
     }
 
 
-def fit_to_ceiling(ranked, event, now):
+def fit_to_ceiling(ranked, event, now, unavailable=()):
     """(kept, header, kml text, unmapped). Applies the feature cap, then trims by the same rank
     order until the emitted KML fits MAX_KML_BYTES, re-stating the truncation claim each pass."""
     kept, dropped = trim_ranked(ranked, MAX_FEATURES)
     bound = "cap" if dropped else ""
     for _ in range(FIT_PASSES):
-        header = build_header(event, len(kept), len(ranked), now, bound)
+        header = build_header(event, len(kept), len(ranked), now, bound, unavailable)
         text, unmapped = build_kml([f for _, f, _ in kept], [m for _, _, m in kept], header)
         if len(text.encode("utf-8")) <= MAX_KML_BYTES or len(kept) <= 1:
             return kept, header, text, unmapped
@@ -819,17 +844,46 @@ def verify_feeds(expected, header):
             if "partial" not in (text or ""):
                 raise ValueError("%s is truncated but its title makes no partial claim" % label)
 
+    # the unavailable-sources claim is all-or-none across the formats. It reached only the GeoJSON
+    # once, so three published artifacts read as complete boards while a whole layer was missing.
+    unavailable = header.get("unavailable") or []
+    with open(OUT, encoding="utf-8") as f:
+        geo_props = (json.load(f).get("properties") or {})
+    listed = geo_props.get("sources_unavailable")
+    if listed != unavailable:
+        raise ValueError("caltopo-export.json lists sources_unavailable %r, the run found %r"
+                         % (listed, unavailable))
+    ext = {d.get("name"): (d.findtext("k:value", "", ns) or "")
+           for d in kml.findall(".//k:Document/k:ExtendedData/k:Data", ns)}
+    carried = {
+        "caltopo-export.json": geo_props.get("note") or "",
+        "board.kml": kml.findtext(".//k:Document/k:description", "", ns) or "",
+        "board-live.kml": ET.parse(OUT_KML_LIVE).getroot().findtext(".//k:Document/k:description", "", ns) or "",
+        "board-georss.xml": feed.findtext("a:subtitle", "", ns) or "",
+    }
+    for label, text in carried.items():
+        claims = UNAVAILABLE_CLAIM in text
+        if claims != bool(unavailable):
+            raise ValueError("%s %s an unavailable-sources claim; the run found %r"
+                             % (label, "makes" if claims else "makes no", unavailable))
+        if claims and not all(name in text for name in unavailable):
+            raise ValueError("%s claims sources unavailable but does not name all of %r"
+                             % (label, unavailable))
+    if ext.get("sources_unavailable") != ",".join(unavailable):
+        raise ValueError("board.kml ExtendedData sources_unavailable is %r, the run found %r"
+                         % (ext.get("sources_unavailable"), unavailable))
+
 
 def main():
-    snapshot = load_json("data/gauges-snapshot.json", {"gauges": []})
-    capture = load_json("data/gauges-capture.json", {"gauges": []})
-    crest = load_json("data/crest-summary.json", {"gauges": []})
-    roads = load_json("data/roads-snapshot.json", {"roads": []})
-    crossings = load_json("data/crossings.json", {"crossings": []})
-    reqs = load_json("data/requests.json", {"requests": []})
-    event = load_json("data/event.json", {})
-
     unavailable = []
+    snapshot = load_json("data/gauges-snapshot.json", {"gauges": []}, unavailable, "gauges")
+    capture = load_json("data/gauges-capture.json", {"gauges": []}, unavailable, "gauges-capture")
+    crest = load_json("data/crest-summary.json", {"gauges": []}, unavailable, "crest-summary")
+    roads = load_json("data/roads-snapshot.json", {"roads": []}, unavailable, "roads")
+    crossings = load_json("data/crossings.json", {"crossings": []}, unavailable, "crossings")
+    reqs = load_json("data/requests.json", {"requests": []}, unavailable, "notices")
+    event = load_json("data/event.json", {}, unavailable, "event-config")
+
     alerts_gj = fetch_json(ALERTS_URL, "RESPONDER_CALTOPO_ALERTS_FILE")
     if alerts_gj is None:
         unavailable.append("nws-alerts")
@@ -842,7 +896,7 @@ def main():
               + build_roads(roads) + build_crossings(crossings) + build_notices(reqs) + build_lsrs(lsr_gj))
 
     now = now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
-    kept, header, kml_text, unmapped = fit_to_ceiling(ranked, event, now)
+    kept, header, kml_text, unmapped = fit_to_ceiling(ranked, event, now, unavailable)
     dropped = header["dropped"]
 
     members = [f for _, f, _ in kept]
@@ -882,7 +936,7 @@ def main():
     # the XML feeds re-state the same truncation claim: a KML that quietly drops 200 features is
     # the same defect the GeoJSON title was fixed to stop, only in another syntax
     atomic_write(OUT_KML, kml_text)
-    write_kml_networklink(OUT_KML_LIVE)
+    write_kml_networklink(OUT_KML_LIVE, header)
     simplified = write_georss(members, metas, header, OUT_GEORSS)
     verify_feeds(len(members), header)
 

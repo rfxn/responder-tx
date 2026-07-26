@@ -3,9 +3,12 @@
 
 Pins the rule that the 2026-07-23 coastal pivot broke: narrowing the display bbox
 must never remove a frame or a gauge from what is retained, and must never
-un-publish something the board already published. Runs gen-history.py against a
-throwaway git repo (never the real data/), plus unit checks on the pure helpers.
-Run: python3 tests/gen-history.test.py"""
+un-publish something the board already published. Also pins the two failed-read
+rules: an unanswered NWPS threshold fetch is never encoded as "not in flood" and
+is retried rather than cached forever (E1), and an unreadable published record
+stops the run instead of narrowing publication scope (E6). Runs gen-history.py
+against a throwaway git repo (never the real data/), plus unit checks on the pure
+helpers. Run: python3 tests/gen-history.test.py"""
 import hashlib
 import importlib.util
 import json
@@ -208,6 +211,28 @@ try:
     check('an orphan day file is removed, never left to be served',
           not os.path.exists(chunk_path('1999-01-01')))
 
+    # --- E6 · a failed read of the published record must not shrink the sticky scope ---------
+    # The previously published gaugeIndex is the sticky term of the publication ratchet. It used
+    # to default to {} when the record would not read, which is a read failure quietly deciding
+    # what stays published: the v0.97.97 prune with a different trigger.
+    idx_path = os.path.join(repo, 'history', 'index.json')
+    good_index = open(idx_path, encoding='utf-8').read()
+    published_before = set(read_index()['gaugeIndex'])
+    days_before = sorted(os.listdir(os.path.join(repo, 'history', 'day')))
+    with open(idx_path, 'w', encoding='utf-8') as f:
+        f.write('{"days": [ this is not json')
+    rbad = run_gen(repo)
+    check('E6 · an unreadable published record stops the run instead of republishing a '
+          'scope it could not read', rbad.returncode != 0, 'exit %s' % rbad.returncode)
+    check('E6 · the refusal names the reason rather than failing silently',
+          'unreadable' in rbad.stderr and 'only grown' in rbad.stderr, rbad.stderr[-300:])
+    check('E6 · the refused run rewrites no day file, so the record survives intact',
+          sorted(os.listdir(os.path.join(repo, 'history', 'day'))) == days_before)
+    with open(idx_path, 'w', encoding='utf-8') as f:
+        f.write(good_index)
+    check('E6 · the record still publishes every gauge it published before the failed read',
+          run_gen(repo).returncode == 0 and published_before <= set(read_index()['gaugeIndex']))
+
     # --- roads: the same two layers the gauges get ---------------------------
     # WEST sits inside WIDE only, EAST inside both, FAR outside every declared bbox. EAST and
     # FAR carry an expired posted window, so the only signal that can surface them in a frame
@@ -358,6 +383,96 @@ check('serialize puts the declaration ahead of the frames, so a one-line file st
       and list(json.loads(GH.serialize(kept, {}, view=view)))[:2] == ['generated', 'view'])
 check('serialize emits no view key at all when the record is whole',
       'view' not in json.loads(GH.serialize(shallow, {})))
+
+# --- E1 · an unanswered threshold fetch must never publish as "not in flood" -----------------
+# cat_from_stage starts at 0 and only raises the code when a threshold exists, so an entry whose
+# NWPS metadata fetch failed used to categorize a record crest as 0. That code went into the
+# permanent playback archive and was never retried, because the miss was cached as if it were an
+# answer. gen-history.py already had the honest encoding for "we cannot judge this gauge":
+# frame_from leaves it out of the frame, which is what NWPS not_defined gauges get live.
+FULL = {'usgs': '08158000', 'action': 10.0, 'minor': 13.0, 'moderate': 16.0, 'major': 20.0}
+MISS = {'usgs': None, 'action': None, 'minor': None, 'moderate': None, 'major': None,
+        GH.META_MISS_KEY: '2026-07-26T00:00:00Z'}
+NO_SCALE = {'usgs': '08158001', 'action': None, 'minor': None, 'moderate': None, 'major': None}
+PARTIAL = {'usgs': None, 'action': None, 'minor': 13.0, 'moderate': None, 'major': 20.0}
+
+check('E1 · a cached threshold miss categorizes nothing, at any stage',
+      GH.cat_from_stage(1.0, MISS) is None and GH.cat_from_stage(999.0, MISS) is None)
+check('E1 · a gauge with a known flood scale still categorizes normally',
+      [GH.cat_from_stage(s, FULL) for s in (1.0, 10.0, 13.0, 16.0, 20.0)] == [0, 1, 2, 3, 4])
+check('a gauge whose flood scale is only partly defined still uses the levels it has',
+      [GH.cat_from_stage(s, PARTIAL) for s in (1.0, 13.0, 20.0)] == [0, 2, 4])
+check('a gauge NWPS answered for but defined no flood scale for is not judged either, which is '
+      'what frame_from does with a live not_defined gauge',
+      GH.cat_from_stage(50.0, NO_SCALE) is None)
+check('a lid absent from the cache entirely is not judged either',
+      GH.cat_from_stage(50.0, None) is None and GH.cat_from_stage(50.0, {}) is None)
+
+NOW = datetime.now(timezone.utc)
+check('RETRY · a miss inside the retry window is not re-fetched yet',
+      not GH.meta_due(dict(MISS, **{GH.META_MISS_KEY: iso(NOW)}), NOW))
+check('RETRY · a miss is re-fetched once the retry window passes, never cached forever',
+      GH.meta_due(dict(MISS, **{GH.META_MISS_KEY: iso(NOW - timedelta(seconds=GH.META_MISS_RETRY_S + 60))}), NOW))
+check('RETRY · a miss with an unparseable stamp is due immediately, so a malformed marker '
+      'cannot become the permanent cache', GH.meta_due(dict(MISS, **{GH.META_MISS_KEY: 'soon'}), NOW))
+check('RETRY · an answered entry is never re-fetched', not GH.meta_due(FULL, NOW))
+
+# the whole point: a miss must not reach a published frame as a stage with code 0
+meta_tmp = tempfile.mkdtemp(prefix='gen-history-meta.')
+try:
+    saved = (GH.ROOT, GH.http_json, GH.FETCH_SPACING_S, GH.rescue_observed, GH.load_gauge_meta)
+    os.makedirs(os.path.join(meta_tmp, 'data'))
+    GH.ROOT = meta_tmp
+    GH.FETCH_SPACING_S = 0
+
+    calls = []
+
+    def dead_nwps(url, timeout=90):
+        calls.append(url)
+        raise OSError('upstream refused')
+
+    GH.http_json = dead_nwps
+    meta = GH.load_gauge_meta(['AAAT2'])
+    check('E1 · an unanswered metadata fetch is recorded as a miss, not as a gauge with no '
+          'thresholds', meta['AAAT2'].get(GH.META_MISS_KEY), str(meta['AAAT2']))
+    on_disk = json.load(open(os.path.join(meta_tmp, 'data', 'gauge-meta.json'), encoding='utf-8'))
+    check('E1 · the miss marker is persisted, so a later run can tell it apart from an answer',
+          on_disk['AAAT2'].get(GH.META_MISS_KEY) == meta['AAAT2'][GH.META_MISS_KEY])
+    check('E1 · the recorded miss judges no stage', GH.cat_from_stage(99.0, meta['AAAT2']) is None)
+
+    # age the marker past the retry window and prove the next run really re-fetches it
+    on_disk['AAAT2'][GH.META_MISS_KEY] = iso(NOW - timedelta(seconds=GH.META_MISS_RETRY_S + 60))
+    with open(os.path.join(meta_tmp, 'data', 'gauge-meta.json'), 'w', encoding='utf-8') as f:
+        json.dump(on_disk, f)
+    GH.http_json = lambda url, timeout=90: {
+        'usgsId': '08158000',
+        'flood': {'categories': {k: {'stage': v} for k, v in
+                                 (('action', 10.0), ('minor', 13.0), ('moderate', 16.0), ('major', 20.0))}}}
+    meta2 = GH.load_gauge_meta(['AAAT2'])
+    check('RETRY · a miss is retried on a later cycle rather than cached permanently',
+          GH.META_MISS_KEY not in meta2['AAAT2'] and meta2['AAAT2']['minor'] == 13.0, str(meta2['AAAT2']))
+    check('RETRY · the recovered gauge categorizes again', GH.cat_from_stage(21.0, meta2['AAAT2']) == 4)
+    check('RETRY · an answered lid is not re-fetched on the next run',
+          GH.load_gauge_meta(['AAAT2'])['AAAT2']['minor'] == 13.0)
+
+    # frame level: the miss lid must be ABSENT, and the healthy lid alongside it unaffected
+    base = datetime(2026, 7, 5, tzinfo=timezone.utc)
+    GH.load_gauge_meta = lambda lids: {'GOODT2': dict(FULL, usgs=None), 'MISST2': dict(MISS),
+                                       'NOSCT2': dict(NO_SCALE, usgs=None)}
+    GH.rescue_observed = lambda lid, s, e: [(base, 99.0), (base + timedelta(hours=1), 99.0)]
+    frames, _ = GH.build_backfill(['GOODT2', 'MISST2', 'NOSCT2'], base + timedelta(hours=2), base)
+    coded = {lid: v for f in frames for lid, v in f['gauges'].items()}
+    check('E1 · a reconstructed frame carries the gauge whose flood scale is known',
+          coded.get('GOODT2') == [99.0, 4], str(coded))
+    check('E1 · a cached miss is ABSENT from the reconstructed frame, never [stage, 0]',
+          'MISST2' not in coded, str(coded))
+    check('E1 · a gauge with no flood scale is absent too, for the same reason',
+          'NOSCT2' not in coded, str(coded))
+    check('E1 · a frame that would hold only unjudgeable gauges is not published as a quiet one',
+          all(f['gauges'] for f in frames) and len(frames) == 2, str(len(frames)))
+finally:
+    GH.ROOT, GH.http_json, GH.FETCH_SPACING_S, GH.rescue_observed, GH.load_gauge_meta = saved
+    shutil.rmtree(meta_tmp, ignore_errors=True)
 
 peaks = [{'t': 'a', 'gauges': {'A': [1.0, 0], 'B': [9.0, 4]}},
          {'t': 'b', 'gauges': {'A': [5.0, 2]}},

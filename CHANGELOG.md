@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.52 · 2026-07-26 (what could not be read is not reported as nothing)
+
+-- Bug Fixes --
+- [Fix] Reconstructed playback leaves out a river gauge whose flood levels the
+      board could not retrieve, in place of drawing it as not in flood for that
+      period. The retrieval is retried on a later cycle
+- [Fix] The map exports name every source that did not answer, in the CalTopo
+      file, both KML files and the GeoRSS feed. A layer that failed to load is
+      reported as missing rather than shown as empty
+- [Fix] The crest summary says when it cannot establish the start of the window
+      it covers, instead of reporting a later start than the record holds
+- [Fix] Playback and the crest summary keep their previous copies when the
+      already published record cannot be read, so nothing the board has already
+      published is dropped
+- [Fix] A road closure snapshot that cannot be completed marks the update cycle
+      degraded, so the source that stopped refreshing is named
+
 ## v0.99.51 · 2026-07-26 (an unchecked feed says so, and eight days offline)
 
 -- Bug Fixes --

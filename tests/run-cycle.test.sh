@@ -377,6 +377,33 @@ else
     fail "14 generators that ignore RESPONDER_ROOT would write into the throwaway HEAD tree: ${NO_ROOT[*]}"
 fi
 
+# --- Test 16: the REAL road generator, failing, must reach a DEGRADED sign-off ----------------
+# Every degraded test above drives a stub that exits 1 on request, so none of them could see that
+# gen-roads-snapshot.py returned 0 on a dead upstream. run-cycle.sh then filed it under STEPS_OK
+# and signed the cycle off clean while the road archive had not refreshed, which is exactly the
+# signal freshness-monitor.sh reads. This drives the real module with its upstream cut.
+setup
+REAL_ROADS="$REPO_ROOT/scripts/gen-roads-snapshot.py"
+cat > "$REPO/scripts/gen-roads-snapshot.py" <<PY
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("real_roads", "$REAL_ROADS")
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+mod.urllib.request.urlopen = lambda *a, **k: (_ for _ in ()).throw(OSError("upstream refused"))
+sys.exit(mod.main() or 0)
+PY
+( cd "$REPO" && git add -A && git commit --quiet -m 'real roads generator with a dead upstream' )
+run_cycle
+if [ "$RC" -eq 3 ] \
+   && grep -q '=== cycle complete (DEGRADED) ===' "$WORK/cycle.log" \
+   && grep -q 'failed: roads' "$WORK/cycle.log" \
+   && [ "$(stamp_of data/roads-snapshot.json)" = "$OLD_STAMP" ]; then
+    pass "16 a failed road snapshot degrades the sign-off instead of passing for a clean cycle"
+else
+    fail "16 a failed road snapshot must not sign off clean (rc=$RC)"; cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL RUN-CYCLE TESTS PASSED"

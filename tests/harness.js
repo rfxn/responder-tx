@@ -118,6 +118,7 @@ const EXPORTS = [
   'riverSlug', 'basinCrestTime', 'basinCorridor', 'basinRivers', 'basinWaveState',
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT', 'gaugeDegraded',
   'roadId', 'roadMemory', 'updateRoadMemory', 'reopenedRoads', 'reopenIsFlood', 'ROADS_KEY', 'ROADS_KEY_LEGACY',
+  'roadPointNear', 'lwcHasMore', 'LWC_PAGE', 'LWC_MAX_PAGES',
   'cardAged',
   'buildShareUrl', 'applyShareParams',
   'smartScore', 'shortId', 'allRequests',
@@ -139,7 +140,9 @@ const PANEL_EXPORTS = ['quietState', 'feedCalmOk',
   'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',
   'hotlineHtml', 'hotlinesOrdered', 'hotlineIsEmergency', 'shlNavHtml',
   'curatedShelterAgeH', 'SHELTER_CURATED_STALE_H', 'shelterOpen',
-  'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H'];
+  'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H',
+  'roadsTabRows', 'roadsTxdotRows', 'roadsCuratedRows', 'roadsJurisdictionRows', 'roadsRowHtml',
+  'xstatusAgeD', 'XSTATUS_UNCONFIRMED_D'];
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
 const MAP_EXPORTS = EXPORTS.concat(['CAM_LEGACY_PARAMS', 'CAM_ROWS', 'CAM_SUBGROUPS', 'CAM_PILL_MAX',

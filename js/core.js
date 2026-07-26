@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.38';
+const APP_VERSION = 'v0.99.39';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -247,6 +247,8 @@ const state = {
   showAgedReopened: false,
   showRecovery: false,
   roadMemory: null,
+  roadsTabFp: null, // last Roads-tab render fingerprint; an unchanged list must not reset the scroll
+  lwcPartial: false, // true when the crossing inventory hit the paging ceiling with records left
   showAlertHist: false,
   showNormalGauges: false,
   showDegradedGauges: false,

@@ -919,6 +919,22 @@ const prettyRoute = (s) => { const m = String(s ?? '').trim().match(/^([A-Za-z]+
 // active = ongoing: keep when end_time is missing/unparseable/future, drop only when it parses to a past time (cleared)
 const roadCondActive = (f) => { const e = f.properties && f.properties.end_time; if (!e) return true; const t = Date.parse(e); return !(Number.isFinite(t) && t < Date.now()); };
 
+// [lat, lon] standing in for a closure line: the vertex nearest the driver, its midpoint with no fix
+function roadPointNear(geo, pos) {
+  if (!geo || !Array.isArray(geo.coordinates)) return null;
+  const verts = geo.type === 'MultiLineString' ? geo.coordinates.flat() : geo.coordinates;
+  let pt = null;
+  if (pos) {
+    let best = Infinity;
+    for (const c of verts) {
+      if (!Array.isArray(c) || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
+      const d = distMi(pos.lat, pos.lng, c[1], c[0]);
+      if (d < best) { best = d; pt = c; }
+    }
+  } else { pt = verts[Math.floor(verts.length / 2)]; }
+  return Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1]) ? [pt[1], pt[0]] : null;
+}
+
 function roadParams(outFields) {
   const b = CONFIG.gaugeBbox;
   return new URLSearchParams({
@@ -944,6 +960,7 @@ async function fetchRoadClosures() {
   markHealthy('roads');
   updateRoadMemory(state.roadClosures.lines);
   renderRoadClosures();
+  renderRoadsTab(); // live conditions are listed in Roads, not only drawn on the map
   renderReopenedMap();
   renderReopenedRoads();
   renderTiles();
@@ -1237,8 +1254,12 @@ function renderTropical(d) {
 /* ---------- TxGIO low-water-crossing location inventory (LOCATIONS, not live status) ---------- */
 
 const LWC_ATTRIB = 'Low-water crossings: TxGIO (Texas Geographic Information Office)';
+const LWC_PAGE = 2000; // the service's own maxRecordCount
+const LWC_MAX_PAGES = 15; // runaway guard; the AO holds ~8.3k points, so this leaves ~3.5x headroom
+// paging signal: top level in this service's GeoJSON, nested under properties in other ArcGIS builds
+const lwcHasMore = (d) => Boolean(d && (d.exceededTransferLimit || (d.properties && d.properties.exceededTransferLimit)));
 
-// lazy: fetched once on first overlayadd; ~3.7k points paginated (maxRecordCount 2000), canvas-rendered
+// lazy: fetched once on first overlayadd, paged until the service stops reporting more records
 async function fetchLwc() {
   if (state._lwcLoaded) return;
   state._lwcLoaded = true;
@@ -1251,17 +1272,24 @@ async function fetchLwc() {
     spatialRel: 'esriSpatialRelIntersects',
     outFields: 'lwx_type,road,county,grade,signage',
     outSR: '4326',
-    resultRecordCount: '2000',
+    resultRecordCount: String(LWC_PAGE),
     f: 'geojson',
   };
   try {
-    const pages = await Promise.all([0, 2000].map(async (off) => {
-      const qs = new URLSearchParams({ ...base, resultOffset: String(off) });
+    const pages = [];
+    let partial = false;
+    for (let page = 0; page < LWC_MAX_PAGES; page++) {
+      const qs = new URLSearchParams({ ...base, resultOffset: String(page * LWC_PAGE) });
       const r = await fetch(`${CONFIG.lwcUrl}?${qs}`);
       if (!r.ok) throw new Error(`TxGIO HTTP ${r.status}`);
       const d = await r.json();
-      return d.features || [];
-    }));
+      const got = d.features || [];
+      pages.push(got);
+      if (!got.length || !lwcHasMore(d)) { partial = false; break; }
+      partial = true; // more records remain; only survives the loop when the ceiling cuts paging short
+    }
+    state.lwcPartial = partial;
+    if (partial) opNotice(t('lwc.partial'));
     renderLwc([].concat(...pages));
   } catch (err) {
     state._lwcLoaded = false; // allow a retry the next time the layer is toggled on
@@ -1273,11 +1301,12 @@ function renderLwc(features) {
   if (!layer) return;
   layer.clearLayers();
   const canvas = L.canvas({ padding: 0.5 });
+  const attrib = state.lwcPartial ? `${LWC_ATTRIB} · ${t('lwc.partial')}` : LWC_ATTRIB;
   for (const f of features) {
     const c = f.geometry && f.geometry.coordinates;
     if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
-    const m = L.circleMarker([c[1], c[0]], { renderer: canvas, radius: 3.5, color: '#2b8ce8', weight: 1, fillColor: '#5ab0ff', fillOpacity: 0.5, attribution: LWC_ATTRIB });
-    m.bindPopup(() => lwcPopupHtml(f.properties)); // lazy — 3.7k eager popup strings stall the layer toggle
+    const m = L.circleMarker([c[1], c[0]], { renderer: canvas, radius: 3.5, color: '#2b8ce8', weight: 1, fillColor: '#5ab0ff', fillOpacity: 0.5, attribution: attrib });
+    m.bindPopup(() => lwcPopupHtml(f.properties)); // lazy: thousands of eager popup strings stall the layer toggle
     layer.addLayer(m);
   }
 }
@@ -1288,7 +1317,8 @@ function lwcPopupHtml(p) {
     .filter(([, v]) => String(v || '').trim());
   return `<div class="popup-title">${esc(road)}</div>` +
     rows.map(([k, v]) => `<div class="popup-meta">${esc(k)}: ${esc(String(v).trim())}</div>`).join('') +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(t('lwc.footer'))}</div>`;
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(t('lwc.footer'))}</div>` +
+    (state.lwcPartial ? `<div class="popup-meta"><span class="xg-stale">${esc(t('lwc.partial'))}</span></div>` : '');
 }
 
 /* ---------- River Sentry siren tower sites (REPORTED LOCATIONS, no status feed) ----------

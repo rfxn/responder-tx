@@ -678,6 +678,7 @@ function initMap() {
       state.driveRankAt = nowMs;
       renderRequests();
       renderDriveMode(); // re-rank the glance list by the new fix
+      renderRoadsTab(); // and the Roads list, which sorts nearest-first once a fix exists
     }
     startLocTrack(); // opt-in tracker begins once the first fix lands; runs in the app and Drive Mode alike
   });

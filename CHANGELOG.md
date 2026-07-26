@@ -1,5 +1,32 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.39 · 2026-07-26 (the Roads tab lists every road hazard the board holds)
+
+-- New Features --
+- [New] The Roads tab now lists live TxDOT DriveTexas closures and conditions
+      and jurisdiction-reported crossing closures alongside the curated
+      crossings, in one list. Each row names its operator and carries its own
+      provenance badge, and tapping a row focuses it on the map
+- [New] The list sorts nearest first when the device has a location, newest
+      first otherwise
+
+-- Changes --
+- [Change] The Roads count now covers everything the tab lists, not the curated
+           crossings alone. Rows the board cannot confirm right now stay listed
+           and mapped and stay out of the count, and the tab says how many those
+           are
+- [Change] A TxDOT row reads Since, a curated row reads Updated, and a
+           jurisdiction row reads Report last changed, because those three feeds
+           timestamp three different things
+- [Change] An open curated crossing no longer appears in the Roads list. It
+           stays on the map
+
+-- Bug Fixes --
+- [Fix] The crossing inventory layer now loads every low-water crossing in the
+      area instead of the first 4,000, roughly 8,300 statewide. If a load is
+      ever cut short, the layer says it is partial in its map credit and in
+      every crossing popup
+
 ## v0.99.38 · 2026-07-26 (device alerts follow an area you pick)
 
 -- New Features --

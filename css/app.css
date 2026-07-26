@@ -424,6 +424,9 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 /* a shelter row's navigate button hugs its label instead of stretching the whole list width */
 .resource-item .card-actions { margin-top: 6px; }
 .resource-item .act-btn { flex: 0 0 auto; }
+/* Roads rows carry their severity on the rail; the row's own style attribute sets the colour */
+.resource-item.road-row { border-left: 3px solid var(--hairline); padding-left: 8px; cursor: pointer; }
+.resource-item.road-row.unconfirmed { opacity: 0.72; }
 .resource-item.reopened { border-left: 3px solid var(--good); padding-left: 8px; cursor: pointer; }
 .resource-item.reopened strong { color: var(--good); }
 .resource-item.reopened.aged { opacity: 0.65; border-left-color: var(--ink-muted); }

@@ -188,20 +188,13 @@ function driveItems() {
     if (!r.vertex || !reopenIsFlood(r)) continue;
     cleared.push({ glyph: '✓', color: 'var(--good)', name: `${t('reopen.flag')} · ${prettyRoute(r.route_name) || t('ntype.road')}`, sub: `TxDOT DriveTexas · ${t('reopen.at')} ${relWhen(r.reopenedAt)}`, lat: r.vertex[0], lon: r.vertex[1], rank: 3 });
   }
-  // live TxDOT road closures/flooding/damage — representative point = line vertex nearest the driver (midpoint if no GPS)
+  // live TxDOT road closures/flooding/damage, standing at the line vertex nearest the driver
   for (const f of ((state.roadClosures && state.roadClosures.lines) || [])) {
-    const geo = f.geometry;
-    if (!geo || !geo.coordinates) continue;
-    const verts = geo.type === 'MultiLineString' ? geo.coordinates.flat() : geo.coordinates;
-    let pt = null;
-    if (p) {
-      let best = Infinity;
-      for (const c of verts) { if (!Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue; const dd = distMi(p.lat, p.lng, c[1], c[0]); if (dd < best) { best = dd; pt = c; } }
-    } else { pt = verts[Math.floor(verts.length / 2)]; }
-    if (!pt || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
+    const pt = roadPointNear(f.geometry, p);
+    if (!pt) continue;
     const ct = roadCondType(f.properties);
     const cond = f.properties.condition;
-    items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${roadLabel(ct)} · ${prettyRoute(f.properties.route_name) || t('ntype.road')}`, sub: 'TxDOT DriveTexas', lat: pt[1], lon: pt[0], rank: cond === 'Damage' ? 2 : 1 });
+    items.push({ glyph: cond === 'Flooding' ? '🌊' : cond === 'Damage' ? '⚠' : '⛔', color: ct.color, name: `${roadLabel(ct)} · ${prettyRoute(f.properties.route_name) || t('ntype.road')}`, sub: 'TxDOT DriveTexas', lat: pt[0], lon: pt[1], rank: cond === 'Damage' ? 2 : 1 });
   }
   // verify-before-routing: the 2 nearest cameras tail the list like the reopened rows — never competing with hazards
   const cams = [];
@@ -1274,27 +1267,7 @@ function renderCrossings() {
   const layer = state.layers.crossings;
   if (layer) layer.clearLayers();
   const list = state.crossings || [];
-  const el = $('#crossings-body');
-  const badge = $('#roads-count');
-  // the badge is a live-hazard count sitting beside Alerts and Gauges, both of which suppress a
-  // sensor they cannot vouch for; an unconfirmed closure gets the same treatment
-  const hazards = list.filter((c) => c.status !== 'open');
-  const unconfirmed = hazards.filter(crossingStale).length;
-  if (badge) badge.textContent = String(hazards.length - unconfirmed);
-  if (el) {
-    el.innerHTML = list.length
-      ? `<div class="section-title">${esc(t('cross.title'))}</div>` +
-        (unconfirmed ? `<div class="rcv-note">${esc(t('cross.unconfirmed').replace('{n}', unconfirmed).replace('{h}', CROSSING_STALE_H))}</div>` : '') +
-        list.map((c) => {
-          const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
-          const staleH = crossingAgeH(c);
-          const stale = crossingStale(c) ? ` · <span class="xg-stale">${esc(t('cross.stale').replace('{h}', Math.round(staleH)))}</span>` : '';
-          return `<div class="resource-item"><strong style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</strong>: ${esc(c.name)} ${srcBadge('curated')}` +
-            `<div class="addr">${esc(c.reason || '')} · ${esc(t('word.updated').toLowerCase())} ${esc(fmtWhen(c.updated_at))}${stale}${c.source && safeUrl(c.source) !== '#' ? ` <a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">src</a>` : ''}</div></div>`;
-        }).join('') +
-        `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
-      : '';
-  }
+  renderRoadsTab();
   for (const c of list) {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon) || !layer) continue;
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
@@ -1343,6 +1316,126 @@ function renderCrossStatus() {
       `<div class="popup-meta"><span class="xg-stale">${esc(old ? t('xstatus.old').replace('{d}', Math.round(ageD)) : t('xstatus.nocheck'))}</span></div>`);
     layer.addLayer(m);
   }
+}
+
+/* ---------- the Roads tab: every road hazard the board holds, in one distance-sorted list ----------
+   Three provenances with three different confirmation stories, so each row names its operator and
+   only the ones the board can vouch for reach the badge. TxDOT DriveTexas is a live machine feed.
+   A curated crossing counts while the curator's stamp is inside CROSSING_STALE_H. A jurisdiction
+   report timestamps a record change, never a confirmation, so it is listed and mapped, never counted. */
+
+const ROADS_TXDOT_GLYPH = { Flooding: '🌊', Damage: '⚠' };
+const roadsAgeChip = (h) => (Number.isFinite(h) ? t('cross.stale').replace('{h}', Math.round(h)) : t('xstatus.nocheck'));
+
+function roadsTxdotRows(pos) {
+  const rows = [];
+  for (const f of ((state.roadClosures && state.roadClosures.lines) || [])) {
+    const p = f.properties || {};
+    const pt = roadPointNear(f.geometry, pos);
+    const ct = roadCondType(p);
+    const dscr = stripHtml(p.description).replace(/^[\s–—-]+/, ''); // TxDOT feeds a leading "- " artifact
+    rows.push({
+      kind: 'txdot', live: true, color: ct.color, glyph: ROADS_TXDOT_GLYPH[p.condition] || '⛔',
+      label: roadLabel(ct), name: prettyRoute(p.route_name) || t('word.road'),
+      detail: dscr || [p.from_limit, p.to_limit].filter(Boolean).join(' → '),
+      when: p.start_time || '', whenText: p.start_time ? `${t('road.since')} ${fmtWhen(p.start_time)}` : '', age: '',
+      op: t('roads.src.txdot'), badge: 'official', href: 'https://drivetexas.org/',
+      lat: pt ? pt[0] : NaN, lon: pt ? pt[1] : NaN,
+    });
+  }
+  return rows;
+}
+
+function roadsCuratedRows() {
+  const rows = [];
+  for (const c of (state.crossings || [])) {
+    if (c.status === 'open') continue; // the tab lists hazards; an open crossing is the absence of one
+    const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
+    const stale = crossingStale(c);
+    rows.push({
+      kind: 'curated', live: !stale, color: st.color, glyph: st.glyph,
+      label: xstLabel(st), name: c.name, detail: c.reason || '',
+      when: c.updated_at || '',
+      whenText: c.updated_at ? `${t('word.updated').toLowerCase()} ${fmtWhen(c.updated_at)}` : '',
+      age: stale ? roadsAgeChip(crossingAgeH(c)) : '',
+      op: t('roads.src.curated'), badge: 'curated',
+      href: c.source && safeUrl(c.source) !== '#' ? safeUrl(c.source) : '',
+      lat: c.lat, lon: c.lon,
+    });
+  }
+  return rows;
+}
+
+function roadsJurisdictionRows() {
+  const rows = [];
+  for (const c of ((state.crossStatus && state.crossStatus.crossings) || [])) {
+    const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
+    const ageD = xstatusAgeD(c);
+    rows.push({
+      kind: 'xstatus', live: false, color: st.color, glyph: st.glyph,
+      label: xstLabel(st), name: c.name, detail: [c.address, c.comment].filter(Boolean).join(' · '),
+      when: c.changed || '',
+      // never "updated": this feed stamps the last record change, and it publishes no confirmation time
+      whenText: c.changed ? t('xstatus.changed').replace('{t}', fmtWhen(c.changed)) : t('xstatus.nocheck'),
+      age: ageD > XSTATUS_UNCONFIRMED_D && Number.isFinite(ageD) ? t('xstatus.old').replace('{d}', Math.round(ageD)) : t('xstatus.nocheck'),
+      op: [c.jurisdiction, t('roads.src.jur')].filter(Boolean).join(' · '), badge: 'official',
+      href: 'https://atxfloods.com/', lat: c.lat, lon: c.lon,
+    });
+  }
+  return rows;
+}
+
+// nearest first with a fix, newest first without; a row with no coordinates keeps its place at the tail
+function roadsTabRows() {
+  const pos = state.myPos;
+  const rows = roadsTxdotRows(pos).concat(roadsCuratedRows(), roadsJurisdictionRows());
+  for (const r of rows) {
+    r.dist = pos && Number.isFinite(r.lat) && Number.isFinite(r.lon) ? distMi(pos.lat, pos.lng, r.lat, r.lon) : Infinity;
+  }
+  if (pos) rows.sort((a, b) => a.dist - b.dist);
+  else rows.sort((a, b) => (Date.parse(b.when) || 0) - (Date.parse(a.when) || 0));
+  return rows;
+}
+
+function roadsRowHtml(r) {
+  const mapped = Number.isFinite(r.lat) && Number.isFinite(r.lon);
+  const nav = mapped ? ` data-lat="${r.lat}" data-lon="${r.lon}"` : '';
+  const meta = [r.op, r.detail, r.whenText,
+    Number.isFinite(r.dist) ? `${r.dist.toFixed(1)} mi` : ''].filter(Boolean).map(esc).join(' · ');
+  return `<div class="resource-item road-row${r.live ? '' : ' unconfirmed'}" style="border-left-color:${r.color}"${nav}>` +
+    `<strong style="color:${r.color}">${r.glyph} ${esc(r.label)}</strong>: ${esc(r.name)} ${srcBadge(r.badge)}` +
+    `<div class="addr">${meta}` +
+    (r.age ? ` · <span class="xg-stale">${esc(r.age)}</span>` : '') +
+    (r.href ? ` <a href="${esc(r.href)}" target="_blank" rel="noopener">src</a>` : '') +
+    '</div></div>';
+}
+
+function renderRoadsTab() {
+  const el = $('#crossings-body');
+  const badge = $('#roads-count');
+  const rows = roadsTabRows();
+  const live = rows.filter((r) => r.live);
+  const unconf = rows.filter((r) => !r.live);
+  // the badge sits beside Alerts and Gauges, both of which suppress a sensor they cannot vouch
+  // for; a closure with no current confirmation gets the same treatment
+  if (badge) badge.textContent = String(live.length);
+  if (!el) return;
+  // whole-mile distance buckets: a moving fix must not repaint (and reset the scroll) every tick
+  const fp = JSON.stringify(rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0]));
+  if (fp === state.roadsTabFp) return;
+  state.roadsTabFp = fp;
+  // one list, not one group per feed: a crossing shut two miles away must not sit below forty
+  // distant TxDOT rows just because a different operator reported it
+  el.innerHTML = rows.length
+    ? `<div class="section-title">${esc(t('roads.live.title'))}</div>` +
+      (unconf.length ? `<div class="rcv-note">${esc(t('cross.unconfirmed').replace('{n}', unconf.length))}</div>` : '') +
+      rows.map(roadsRowHtml).join('') +
+      `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
+    : `<div class="rcv-none">${esc(t('roads.none'))}</div>`;
+  el.querySelectorAll('.road-row[data-lat]').forEach((d) => d.addEventListener('click', (ev) => {
+    if (ev.target.closest('a')) return;
+    state.map.setView([+d.dataset.lat, +d.dataset.lon], 13);
+  }));
 }
 
 /* ---------- recently reopened roads — recovery view of the DriveTexas feed ---------- */

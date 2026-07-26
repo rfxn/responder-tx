@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.39';
+const APP_VERSION = 'v0.99.40';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -250,6 +250,7 @@ const state = {
   roadsTabFp: null, // last Roads-tab render fingerprint; an unchanged list must not reset the scroll
   lwcPartial: false, // true when the crossing inventory hit the paging ceiling with records left
   showAlertHist: false,
+  showAlertsFar: false, // the alerts outside the current proximity scope are folded, never dropped
   showNormalGauges: false,
   showDegradedGauges: false,
   gaugeGroup: 'priority',
@@ -257,6 +258,7 @@ const state = {
   lanIntake: false, // LAN server advertises POST /api/requests — intakes also share board-wide
   camGen: 0,
   tropicalAutoDone: false, // set once the tropical tracker has been auto-enabled or manually toggled off
+  xstatusAutoDone: false, // same for the jurisdiction crossing layer, which enables itself only on a confirmable change
   tides: null, // coastal water-level rows (NOAA CO-OPS); null until first Resources-tab open, then per-station
   tidesAt: 0,
   tidesLoading: false,

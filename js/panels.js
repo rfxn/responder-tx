@@ -1062,13 +1062,21 @@ function fitTo(latlngs) {
   if (latlngs.length) state.map.fitBounds(L.latLngBounds(latlngs).pad(0.25), { maxZoom: 10 });
 }
 
-// AO truly quiet: zero in-AO open alerts, zero gauges at minor+ (same stale-gated gaugeCat the
-// chips use), zero active road closures — and the gauge/road feeds must have actually loaded
+// the gauges a quiet claim is allowed to speak for: the ones inside the area it names
+const quietGauges = (scope) => state.gauges.filter((g) => ptInScope(g.latitude, g.longitude, scope));
+
+/* The all-clear is only ever claimed over the area it actually checked: the open alerts, the
+   gauges and the road closures inside the current scope, with the wording naming that same area.
+   An empty scope is not an all-clear either, so a radius holding no gauge stays silent. */
 function quietState() {
   if (!state.gauges.length || !state.roadClosures) return false;
-  const openInAO = state.alerts.filter((f) => alertInAO(f) && !(f.properties.expires && new Date(f.properties.expires) < new Date()));
-  const inFlood = state.gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
-  return !openInAO.length && !inFlood.length && !(state.roadClosures.lines || []).length;
+  const scope = alertScope();
+  const gauges = quietGauges(scope);
+  if (!gauges.length) return false;
+  const open = state.alerts.filter((f) => alertOpen(f) && alertNear(f, scope));
+  const inFlood = gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
+  const roads = (state.roadClosures.lines || []).filter((f) => geomInScope(f.geometry, scope));
+  return !open.length && !inFlood.length && !roads.length;
 }
 
 // an empty curated feed is not a hazard verdict: the reassuring treatment needs the live hazard
@@ -1086,9 +1094,12 @@ function renderThreatStrip() {
   const pbNote = pbBlocksLive(state) ? `<div class="strip-live-note">${esc(t('playback.striplive'))}</div>` : '';
   if (!state.alertsLoadedOnce || tickerItems().length) { el.innerHTML = pbNote; return; }
   if (quietState()) {
-    const normal = state.gauges.filter((g) => gaugeCat(g) === 'none' && !gaugeObsStale(g)).length;
-    const sub = t('quiet.sub').replace('{n}', state.gauges.length).replace('{m}', normal);
-    el.innerHTML = `${pbNote}<div class="strip-ok quiet"><span class="ok-line">${esc(t('quiet.line'))}</span><span class="ok-sub">${esc(sub)}</span></div>`;
+    const scope = alertScope();
+    const gauges = quietGauges(scope);
+    const normal = gauges.filter((g) => gaugeCat(g) === 'none' && !gaugeObsStale(g)).length;
+    const sub = t('quiet.sub').replace('{n}', gauges.length).replace('{m}', normal);
+    const line = t(`quiet.line.${alertScopeSrc(scope)}`).replace('{n}', String(ALERT_NEAR_MI));
+    el.innerHTML = `${pbNote}<div class="strip-ok quiet"><span class="ok-line">${esc(line)}</span><span class="ok-sub">${esc(sub)}</span></div>`;
     return;
   }
   el.innerHTML = `${pbNote}<div class="strip-ok"><span class="ok-line">${esc(t('threat.okline'))}</span>` +
@@ -1296,6 +1307,20 @@ function xstatusAgeD(c) {
   return Number.isFinite(ms) ? ms / 86400000 : Infinity;
 }
 
+/* Layer default. Every row here is a record-change stamp, never a confirmation, and the feed
+   routinely carries only changes weeks to a year old, several of them construction. Default-on
+   would paint the map with 🚨 markers none of which the board can vouch for, so the layer stays
+   off until the feed carries a change inside its own unconfirmed window and then enables itself.
+   Nothing is hidden either way: the Roads tab lists every row with its age. */
+const xstatusAutoOn = (crossings) => (crossings || []).some((c) => xstatusAgeD(c) <= XSTATUS_UNCONFIRMED_D);
+
+function maybeAutoXstatus() {
+  if (state.xstatusAutoDone || !state.map || !state.layers.crossStatus) return;
+  if (!xstatusAutoOn((state.crossStatus && state.crossStatus.crossings) || [])) return;
+  state.xstatusAutoDone = true;
+  if (!state.map.hasLayer(state.layers.crossStatus)) state.layers.crossStatus.addTo(state.map);
+}
+
 function renderCrossStatus() {
   const layer = state.layers.crossStatus;
   if (!layer) return;
@@ -1316,6 +1341,7 @@ function renderCrossStatus() {
       `<div class="popup-meta"><span class="xg-stale">${esc(old ? t('xstatus.old').replace('{d}', Math.round(ageD)) : t('xstatus.nocheck'))}</span></div>`);
     layer.addLayer(m);
   }
+  maybeAutoXstatus();
 }
 
 /* ---------- the Roads tab: every road hazard the board holds, in one distance-sorted list ----------

@@ -131,27 +131,140 @@ function alertPopupHtml(f) {
     `<div class="popup-link"><a href="#" class="alert-popup-link" data-alert-id="${esc(f.id)}">${esc(t('alert.full'))} →</a></div>`;
 }
 
-// in area-of-operations? geometry bounds must intersect the gauge bbox (padded).
-// zone alerts w/o geometry are kept in-AO (don't hide) — better a false include than a hidden warning.
-function alertInAO(f) {
-  const geom = f.geometry || (f.properties.affectedZones || []).map((z) => state.zoneGeomCache.get(z)).find(Boolean);
-  if (!geom) return true;
-  const b = CONFIG.gaugeBbox, pad = 0.3;
-  try {
-    const gb = L.geoJSON(geom).getBounds();
-    return gb.getEast() >= b.xmin - pad && gb.getWest() <= b.xmax + pad
-      && gb.getNorth() >= b.ymin - pad && gb.getSouth() <= b.ymax + pad;
-  } catch { return true; }
+/* ---------- proximity scope: the Alerts tab leads with what is near, and folds nothing away ---------- */
+
+const ALERT_NEAR_MI = 50;
+
+// GeoJSON bounds without Leaflet, so the scope math runs before the map exists and stays testable
+function mergeBounds(list) {
+  const parts = (list || []).filter(Boolean);
+  if (!parts.length) return null;
+  return parts.reduce((a, b) => ({ n: Math.max(a.n, b.n), s: Math.min(a.s, b.s), e: Math.max(a.e, b.e), w: Math.min(a.w, b.w) }));
 }
 
-function alertCardDiv(f) {
+function geoBounds(geom) {
+  if (!geom || typeof geom !== 'object') return null;
+  if (geom.type === 'Feature') return geoBounds(geom.geometry);
+  if (geom.type === 'FeatureCollection') return mergeBounds((geom.features || []).map(geoBounds));
+  if (geom.type === 'GeometryCollection') return mergeBounds((geom.geometries || []).map(geoBounds));
+  const b = { n: -Infinity, s: Infinity, e: -Infinity, w: Infinity };
+  let seen = false;
+  const walk = (c) => {
+    if (!Array.isArray(c)) return;
+    if (!Array.isArray(c[0]) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+      seen = true;
+      b.n = Math.max(b.n, c[1]); b.s = Math.min(b.s, c[1]);
+      b.e = Math.max(b.e, c[0]); b.w = Math.min(b.w, c[0]);
+      return;
+    }
+    for (const x of c) walk(x);
+  };
+  walk(geom.coordinates);
+  return seen ? b : null;
+}
+
+// miles from the nearest scope point to a footprint, 0 inside its box; NaN when there is nothing to measure
+function geoDistMi(geom, pts) {
+  const b = geoBounds(geom);
+  if (!b || !Array.isArray(pts)) return NaN;
+  let best = NaN;
+  for (const p of pts) {
+    if (!Array.isArray(p) || !Number.isFinite(p[0]) || !Number.isFinite(p[1])) continue;
+    const d = distMi(p[0], p[1], Math.min(Math.max(p[0], b.s), b.n), Math.min(Math.max(p[1], b.w), b.e));
+    if (!(best <= d)) best = d;
+  }
+  return best;
+}
+
+function geoInView(geom, view) {
+  const b = geoBounds(geom);
+  if (!b || !view) return false;
+  return b.e >= view.w && b.w <= view.e && b.n >= view.s && b.s <= view.n;
+}
+
+// unscoped, or unplaceable: either way the board cannot rule this out, so it stays in the lead group
+function geomInScope(geom, scope) {
+  if (!scope || !geom) return true;
+  if (scope.view) return geoInView(geom, scope.view);
+  const d = geoDistMi(geom, scope.pts);
+  return !Number.isFinite(d) || d <= ALERT_NEAR_MI;
+}
+
+function ptInScope(lat, lon, scope) {
+  const pt = Number.isFinite(lat) && Number.isFinite(lon) ? { type: 'Point', coordinates: [lon, lat] } : null;
+  return geomInScope(pt, scope);
+}
+
+const alertGeom = (f) => (f && f.geometry)
+  || (((f && f.properties && f.properties.affectedZones) || []).map((z) => state.zoneGeomCache.get(z)).find(Boolean))
+  || null;
+
+/* The alert-area points from the push prefs. The user named these as places they want flood alerts
+   about, so ordering this list by them serves that same purpose and never leaves the device. Saved
+   my-places are deliberately not read: copying one into the alert area is an explicit act. */
+function alertAreaPlaces() {
+  if (typeof pushPrefs !== 'function') return [];
+  const prefs = pushPrefs();
+  if (!prefs || prefs.scope !== 'places') return [];
+  return (prefs.places || []).filter((p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lon)).map((p) => [p.lat, p.lon]);
+}
+
+// points to measure a card's distance from; never prompts, only reuses what the user already gave
+function alertDistPts() {
+  const p = state.myPos;
+  if (p && Number.isFinite(p.lat) && Number.isFinite(p.lng)) return [[p.lat, p.lng]];
+  return alertAreaPlaces();
+}
+
+/* What "near" means right now, most specific first. Null = nothing to measure from, which keeps
+   the list flat and complete rather than inventing a centre the user never chose. */
+function alertScope() {
+  if (state.inView && state.map && typeof state.map.getBounds === 'function') {
+    try {
+      const b = state.map.getBounds(), sw = b.getSouthWest(), ne = b.getNorthEast();
+      const view = { s: sw.lat, w: sw.lng, n: ne.lat, e: ne.lng };
+      if (Object.values(view).every(Number.isFinite)) return { src: 'inview', view };
+    } catch { /* map not ready this tick; fall through to a point scope */ }
+  }
+  const p = state.myPos;
+  if (p && Number.isFinite(p.lat) && Number.isFinite(p.lng)) return { src: 'me', pts: [[p.lat, p.lng]] };
+  const places = alertAreaPlaces();
+  return places.length ? { src: 'place', pts: places } : null;
+}
+
+const alertScopeSrc = (scope) => (scope ? scope.src : 'all');
+
+/* A flash-flood emergency never folds: the banner carries it statewide and the list must agree. */
+const alertNear = (f, scope) => f._sev === 'emergency' || geomInScope(alertGeom(f), scope);
+
+/* Near first, the rest folded below, nothing dropped. Severity leads inside each group so an
+   emergency never sits under an advisory; distance breaks the tie. */
+function alertGroups(list, scope, pts) {
+  const rank = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
+  const origin = Array.isArray(pts) ? pts : (scope && scope.pts) || null;
+  const rows = (list || []).map((f) => ({ f, d: geoDistMi(alertGeom(f), origin), near: alertNear(f, scope) }));
+  const dv = (r) => (Number.isFinite(r.d) ? r.d : Infinity);
+  const bySev = (a, b) => (rank[a.f._sev] ?? 9) - (rank[b.f._sev] ?? 9);
+  const byDist = (a, b) => (dv(a) === dv(b) ? 0 : dv(a) - dv(b));
+  const bySent = (a, b) => (Date.parse(b.f.properties && b.f.properties.sent) || 0) - (Date.parse(a.f.properties && a.f.properties.sent) || 0);
+  return {
+    near: rows.filter((r) => r.near).sort((a, b) => bySev(a, b) || byDist(a, b) || bySent(a, b)),
+    far: rows.filter((r) => !r.near).sort((a, b) => byDist(a, b) || bySev(a, b) || bySent(a, b)),
+  };
+}
+
+// bbox distance under-reads a concave polygon, so the chip reads as approximate and never as coverage
+const alertDistChip = (d) => (Number.isFinite(d) ? t('alert.dist').replace('{n}', String(Math.round(d))) : '');
+
+function alertCardDiv(f, dist) {
   const p = f.properties;
   const reach = alertReach(p);
   const div = document.createElement('div');
   div.className = `card alert-card sev-${f._sev}`;
   div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? `<span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : ''}` +
     `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>` +
-    `<div class="areas">${esc(p.areaDesc || '')}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}</div>` +
+    `<div class="areas">${esc(p.areaDesc || '')}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}` +
+    (alertDistChip(dist) ? ` · <span class="alert-dist">${esc(alertDistChip(dist))}</span>` : '') + '</div>' +
     `<div class="alert-meta">` +
     (p.sent ? `<span class="am-when"><span class="fresh-dot ${freshClass(p.sent)}"></span>${esc(t('alert.sent'))} ${esc(fmtWhen(p.sent))}</span>` : '') +
     `<span class="am-when">${esc(t('alert.untilShort'))} ${esc(fmtWhen(p.expires))}</span></div>`;
@@ -216,23 +329,39 @@ function openAlertTextById(id) {
   if (f) openAlertText(f);
 }
 
+// mirrors the Feed and Gauges chip: one shared scope, one count, live on pan while it is on
+function syncAlertInViewChip(n) {
+  const btn = $('#flt-alert-inview');
+  if (!btn) return;
+  btn.classList.toggle('on', state.inView);
+  btn.textContent = state.inView ? `${t('sync.inview')} · ${n}` : t('sync.inview');
+}
+
 function renderAlertList() {
   const el = $('#alert-list');
-  el.innerHTML = `<div class="section-title">${esc(t('sec.alerts'))}</div>`;
+  const scope = alertScope();
+  el.innerHTML = `<div class="section-title">${esc(t(`sec.alerts.${alertScopeSrc(scope)}`).replace('{n}', String(ALERT_NEAR_MI)))}</div>`;
   const sevF = $('#flt-alert-sev').value, qF = $('#flt-alert-q').value.toLowerCase();
   const shown = state.alerts.filter((f) => (!sevF || f._sev === sevF)
     && (!qF || `${f.properties.event} ${f.properties.areaDesc} ${alertReach(f.properties)}`.toLowerCase().includes(qF)));
-  if (!shown.length) { el.innerHTML += `<div class="card">${esc(t('sec.alerts.empty'))}</div>`; return; }
-  // AO-relevant alerts first; the rest fold into "elsewhere in TX" so a Big Bend FFW can't sit on top
-  const inAO = shown.filter(alertInAO), elsewhere = shown.filter((f) => !alertInAO(f));
-  for (const f of inAO) el.appendChild(alertCardDiv(f));
-  if (elsewhere.length) {
-    const btn = document.createElement('button');
-    btn.className = 'aged-toggle';
-    btn.textContent = `${t(state.showAlertsElsewhere ? 'toggle.hide' : 'toggle.show')} ${elsewhere.length > 1 ? t('alert.elsewhere').replace('{n}', elsewhere.length) : t('alert.elsewhere1')}`;
-    btn.addEventListener('click', () => { state.showAlertsElsewhere = !state.showAlertsElsewhere; renderAlertList(); });
-    el.appendChild(btn);
-    if (state.showAlertsElsewhere) for (const f of elsewhere) el.appendChild(alertCardDiv(f));
+  const { near, far } = alertGroups(shown, scope, alertDistPts());
+  syncAlertInViewChip(near.length);
+  if (!shown.length) {
+    const empty = document.createElement('div');
+    empty.className = 'card';
+    empty.textContent = t('sec.alerts.empty');
+    el.appendChild(empty);
+  } else {
+    for (const r of near) el.appendChild(alertCardDiv(r.f, r.d));
+    // scoping folds, never drops: the rest stay one tap away and keep their own distance
+    if (far.length) {
+      const btn = document.createElement('button');
+      btn.className = 'aged-toggle';
+      btn.textContent = `${t(state.showAlertsFar ? 'toggle.hide' : 'toggle.show')} ${far.length > 1 ? t('alert.far').replace('{n}', far.length) : t('alert.far1')}`;
+      btn.addEventListener('click', () => { state.showAlertsFar = !state.showAlertsFar; renderAlertList(); });
+      el.appendChild(btn);
+      if (state.showAlertsFar) for (const r of far) el.appendChild(alertCardDiv(r.f, r.d));
+    }
   }
   const emergN = state.alerts.filter((f) => f._sev === 'emergency').length;
   const alertsBadge = $('#alerts-count');

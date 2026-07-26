@@ -886,6 +886,7 @@ async function boot() {
 
   $('#flt-aged').addEventListener('click', () => { state.showAged = !state.showAged; renderRequests(); saveViewState(); });
   $('#flt-inview').addEventListener('click', () => setInView(!state.inView));
+  $('#flt-alert-inview').addEventListener('click', () => setInView(!state.inView)); // one shared scope across the tabs
   $('#req-filters').hidden = localStorage.getItem('respondertx.filtersOpen') !== '1';
   $('#filters-toggle').addEventListener('click', () => {
     const open = $('#req-filters').hidden;

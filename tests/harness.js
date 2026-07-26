@@ -111,7 +111,10 @@ const EXPORTS = [
   'esc', 'fmtNum', 'safeUrl', 'telHref', 'ageMins', 'distMi', 'freshClass',
   'modalCycleIndex', 'modalIsFocusableVisible',
   'toUSNG',
-  'alertReach', 'alertSeverity', 'alertOpen', 'emergencyBannerMode',
+  'alertReach', 'alertSeverity', 'alertOpen', 'emergencyBannerMode', 'alertNearPoint',
+  'geoBounds', 'mergeBounds', 'geoDistMi', 'geoInView', 'geomInScope', 'ptInScope',
+  'alertGeom', 'alertAreaPlaces', 'alertDistPts', 'alertScope', 'alertScopeSrc',
+  'alertNear', 'alertGroups', 'alertDistChip', 'ALERT_NEAR_MI',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'gaugeRecoveryState', 'riverOf',
   'splitGauges', 'gaugeState', 'gaugeStateCounts', 'gaugeHasReading', 'gaugeAll', 'GAUGE_STATES', 'GAUGE_DEGRADED',
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
@@ -134,7 +137,7 @@ const EXPORTS = [
 
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay
 // out of MAP_EXPORTS or the map bundle fails to resolve them
-const PANEL_EXPORTS = ['quietState', 'feedCalmOk',
+const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn',
   'gaugeCardDiv', 'gaugeGlyphHtml', 'degradedGaugePool', 'degradedGaugeList', 'degradedStateCounts',
   'openInGaugesList', 'gaugeListUnfoldFor', 'DEG_GLYPH',
   'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',

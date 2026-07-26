@@ -1,5 +1,31 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.40 · 2026-07-26 (the Alerts tab tells you what is near you)
+
+-- New Features --
+- [New] The Alerts tab now leads with the alerts nearest you and shows each
+      one's approximate distance. It measures from your location if the board
+      already has it, otherwise from the places set as your alert area
+- [New] Alerts gained the same In view control the Feed and Gauges tabs have.
+      Turning it on anywhere scopes all three to the current map view and
+      follows it as you pan
+
+-- Changes --
+- [Change] Alerts outside that area now fold into a one-tap group at the bottom
+           of the list instead of sitting in the middle of it. Nothing is
+           removed: every active alert stays in the list, and a Flash Flood
+           Emergency is never folded no matter how far away it is
+- [Change] The alerts header names the area it is ordering by, and says most
+           severe first when it has no area to measure from
+- [Change] Jurisdiction-reported crossing closures now appear on the map on
+           their own when that feed reports a change within the last two days.
+           They stay listed in the Roads tab either way
+
+-- Bug Fixes --
+- [Fix] The all-clear line now names the area it checked and reads only that
+      area's alerts, gauges and road closures. It stays silent when there is no
+      gauge in range to read
+
 ## v0.99.39 · 2026-07-26 (the Roads tab lists every road hazard the board holds)
 
 -- New Features --

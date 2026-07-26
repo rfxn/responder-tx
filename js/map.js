@@ -426,6 +426,7 @@ function initMap() {
     if (e.layer === state.layers.mrms) updateMrmsLegend();
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
     if (e.layer === state.layers.tropical) { hideTropicalLegend(); state.tropicalAutoDone = true; } // manual toggle-off stops auto-enable
+    if (e.layer === state.layers.crossStatus) state.xstatusAutoDone = true; // same: a deliberate toggle-off is not re-opened
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = true;
     if (e.layer === state.layers.fcstRadar) fcstDisable();
     if (e.layer === state.layers.usgs) {
@@ -679,6 +680,8 @@ function initMap() {
       renderRequests();
       renderDriveMode(); // re-rank the glance list by the new fix
       renderRoadsTab(); // and the Roads list, which sorts nearest-first once a fix exists
+      renderAlertList(); // the alerts scope becomes the fix, so the list and its header re-lead on it
+      renderThreatStrip(); // and the all-clear line now speaks for that radius instead of the state
     }
     startLocTrack(); // opt-in tracker begins once the first fix lands; runs in the app and Drive Mode alike
   });
@@ -986,6 +989,7 @@ const SHEET_GROUPS = [
     ['fcstMax', '<span class="fcst-ring cat-moderate"></span>', 'layers.fcst', 'sheet.s.fcst', null, true],
     ['inundation', '🌊', 'layers.inun', 'sheet.s.inun', null, false],
     ['crossings', '⛔', 'layers.crossings', 'sheet.s.crossings', 'curated', true],
+    // off until the feed carries a confirmable change, then maybeAutoXstatus() enables it
     ['crossStatus', '🚨', 'layers.xstatus', 'sheet.s.xstatus', 'official', false],
     ['lwc', '📍', 'layers.crossall', 'sheet.s.crossall', 'official', false],
     ['riverSentry', '<span class="rsentry-icon">📢</span>', 'layers.rsentry', 'sheet.s.rsentry', null, false],

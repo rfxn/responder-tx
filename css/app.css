@@ -829,6 +829,7 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 
 /* alert card reach disambiguator + readable alert-text reader */
 .alert-card .areas .alert-reach { color: var(--ink-2); font-weight: 600; }
+.alert-card .areas .alert-dist { color: var(--ink-muted); white-space: nowrap; }
 .alert-text-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 #alert-modal { position: fixed; inset: 0; z-index: 1500; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; }
 #alert-modal[hidden] { display: none; }

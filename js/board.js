@@ -177,6 +177,7 @@ function setInView(on) {
   try { sessionStorage.setItem(IN_VIEW_KEY, on ? '1' : '0'); } catch { /* private mode — chip still works this load */ }
   renderRequests();
   renderGaugesTab();
+  renderAlertList();
 }
 
 // while the chip is ON, list re-renders on pan/zoom are the interaction; OFF keeps the seed-hash scroll guard untouched
@@ -186,7 +187,7 @@ function initInViewSync() {
   state.map.on('moveend', () => {
     if (!state.inView) return;
     clearTimeout(tmr);
-    tmr = setTimeout(() => { if (state.inView) { renderRequests(); renderGaugesTab(); } }, 300);
+    tmr = setTimeout(() => { if (state.inView) { renderRequests(); renderGaugesTab(); renderAlertList(); } }, 300);
   });
 }
 
@@ -510,16 +511,12 @@ function nearestNotice(lat, lon, maxMi) {
     .filter((x) => x.dist <= maxMi)
     .sort((a, b) => a.dist - b.dist)[0] || null;
 }
-// point-in-bbox (with small pad) against the alert polygon/zone bounds — "contains or is near"
+// point-in-bbox (with small pad) against the alert polygon/zone bounds: "contains or is near"
 function alertNearPoint(f, lat, lon) {
-  const geom = f.geometry || (f.properties.affectedZones || []).map((z) => state.zoneGeomCache.get(z)).find(Boolean);
-  if (!geom) return false;
-  try {
-    const gb = L.geoJSON(geom).getBounds();
-    const pad = 0.05;
-    return lat >= gb.getSouth() - pad && lat <= gb.getNorth() + pad
-      && lon >= gb.getWest() - pad && lon <= gb.getEast() + pad;
-  } catch { return false; }
+  const b = geoBounds(alertGeom(f));
+  if (!b) return false;
+  const pad = 0.05;
+  return lat >= b.s - pad && lat <= b.n + pad && lon >= b.w - pad && lon <= b.e + pad;
 }
 
 function riskGaugeLine(x) {

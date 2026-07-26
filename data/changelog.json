@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.40",
+      "date": "2026-07-26",
+      "line": "The Alerts tab now leads with the alerts nearest you and shows each one's approximate distance, measuring from your location if the board already has it and otherwise from the places set as your alert area. Alerts outside that area fold into a one-tap group at the bottom of the list instead of sitting in the middle of it; nothing is removed, every active alert stays in the list, and a Flash Flood Emergency is never folded no matter how far away it is. The alerts header names the area it is ordering by, and says most severe first when it has no area to measure from. Alerts also gained the same In view control the Feed and Gauges tabs have: turning it on anywhere scopes all three to the current map view and follows it as you pan. The all-clear line now names the area it checked and reads only that area's alerts, gauges and road closures, and stays silent when there is no gauge in range to read. Jurisdiction-reported crossing closures now appear on the map on their own when that feed reports a change within the last two days, and stay listed in the Roads tab either way."
+    },
+    {
       "v": "v0.99.39",
       "date": "2026-07-26",
       "line": "The Roads tab now lists every road hazard the board holds, in one list: live TxDOT DriveTexas closures and conditions, jurisdiction-reported crossing closures, and the curated crossings. Each row names its operator and carries its own provenance badge, and tapping a row focuses it on the map. The list sorts nearest first when the device has a location and newest first otherwise. The Roads count now covers everything the tab lists rather than the curated crossings alone; rows the board cannot confirm right now stay listed and mapped, stay out of the count, and the tab says how many those are. A TxDOT row reads Since, a curated row reads Updated, and a jurisdiction row reads Report last changed, because those three feeds timestamp three different things. An open curated crossing no longer appears in the list, and stays on the map. The crossing inventory layer now loads every low-water crossing in the area, roughly 8,300 statewide, instead of the first 4,000; if a load is ever cut short the layer says it is partial in its map credit and in every crossing popup."

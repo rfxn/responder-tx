@@ -1884,6 +1884,18 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .gl-txt strong { color: var(--ink-1); }
 .gl-note { font-size: 12px; color: var(--ink-2); line-height: 1.5; padding: 4px 0 2px; }
 
+#about-modal {
+  position: fixed; inset: 0; z-index: 1450;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+}
+#about-modal[hidden] { display: none; }
+.about-box { width: min(94vw, 560px); }
+#about-body { overflow-y: auto; padding: 8px 14px 14px; }
+.ab-p { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; padding: 3px 0; }
+.ab-links { font-size: 12.5px; padding: 5px 0 2px; }
+.ab-links a { color: var(--accent); }
+
 #onboard {
   position: fixed; inset: 0; z-index: 1480;
   background: rgba(0, 0, 0, 0.6);

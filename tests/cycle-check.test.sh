@@ -62,6 +62,7 @@ JS
     printf "%s\n" "const SW_VERSION = '1.0.0';" > "$REPO/sw.js"
     printf '%s\n' '## v1.0.0 (2026-07-24)' '' '- [New] fixture' > "$REPO/CHANGELOG.md"
     printf '%s\n' '{"versions":[{"v":"v1.0.0","date":"2026-07-24","line":"fixture"}]}' > "$REPO/data/changelog.json"
+    printf '%s\n' '{"version": "v1.0.0"}' > "$REPO/data/version.json"
     printf '%s\n' '{}' > "$REPO/data/event.json"
     printf '%s\n' '{"requests":[]}' > "$REPO/data/requests.json"
     python3 - "$REPO/data/gauges-snapshot.json" <<'PY'
@@ -100,6 +101,7 @@ bump_partial() {  # the exact release-lane window: some files bumped, the rest n
 bump_full() {  # a complete but not yet committed bump
     bump_partial
     printf '%s\n' '{"versions":[{"v":"v9.9.9","date":"2026-07-24","line":"fixture"}]}' > "$REPO/data/changelog.json"
+    printf '%s\n' '{"version": "v9.9.9"}' > "$REPO/data/version.json"
     printf '%s\n' '## v9.9.9 (2026-07-24)' '' '- [New] fixture' > "$REPO/CHANGELOG.md"
 }
 
@@ -348,6 +350,26 @@ if [ "$A" -ne 0 ] && grep -q 'view.full says' "$WORK/out"; then
     pass "20 a view whose pointer to the whole record understates it is rejected"
 else
     fail "20 overclaiming view rejected (rc=${A})"; cat "$WORK/out"
+fi
+# --- Test 21: the update-poll artifact is inside the version gate ------------
+# data/version.json is the only thing a long-lived tab reads to learn a new build exists, so a
+# stale one strands every open board silently. It must fail the gate exactly like the changelog.
+setup
+printf '%s\n' '{"version": "v0.0.1"}' > "$REPO/data/version.json"
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q "data/version.json 'v0.0.1' != APP_VERSION" "$WORK/out"; then
+    pass "21 a stale data/version.json fails the version gate by name"
+else
+    fail "21 stale version.json rejected (rc=${A})"; cat "$WORK/out"
+fi
+
+setup
+rm -f "$REPO/data/version.json"
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'cannot read version from data/version.json' "$WORK/out"; then
+    pass "22 a missing data/version.json fails the version gate"
+else
+    fail "22 missing version.json rejected (rc=${A})"; cat "$WORK/out"
 fi
 rm -rf "$WORK"
 

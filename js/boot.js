@@ -170,11 +170,13 @@ function renderSourceHealth() {
     `<div class="feed-status" id="feed-status">${esc(feedStatusText())}</div>`;
 }
 
-// long-lived tabs run old code forever — badge immediately, then roll to the new build once fully idle
+/* Long-lived tabs run old code forever: badge immediately, then roll to the new build once fully
+   idle. This polls data/version.json every refresh, so it must stay the tiny artifact it is; the
+   full changelog is ~145 KB and is fetched once, on demand, by openChangelog() alone. */
 async function checkAppVersion() {
   try {
-    const d = await fetch(`data/changelog.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
-    const latest = d && d.versions && d.versions[0] && d.versions[0].v;
+    const d = await fetch(`data/version.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
+    const latest = d && d.version;
     if (!latest || latest === APP_VERSION) return;
     $('#update-chip').hidden = false;
     armRollover(latest);
@@ -205,7 +207,7 @@ function rolloverBusy() {
   if (state.refreshBusy) return 'refresh';
   if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
   if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
-  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet', '#share-sheet', '#help-sheet', '#health-modal']) {
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#about-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet', '#share-sheet', '#help-sheet', '#health-modal']) {
     const el = $(id);
     if (el && !el.hidden) return id;
   }
@@ -517,6 +519,39 @@ function openGlossary() {
   $('#glossary-modal').hidden = false;
 }
 
+/* ---------- About: who runs the board, what it will not do, and what the opt-in relays keep ----
+   Every claim here is one the board's own code makes true. Do not add a line the app does not
+   already do; ABOUT.md is the long form of the same statement and the two must not diverge. */
+
+const ABOUT_REPO = 'https://github.com/rfxn/responder-tx';
+
+const ABOUT_SECTIONS = [
+  ['about.sec.who', ['about.who']],
+  ['about.sec.what', ['about.what']],
+  ['about.sec.not', ['about.not.dispatch', 'about.not.official', 'about.not.monitored']],
+  ['about.sec.honest', ['about.honest.stale', 'about.honest.suppress', 'about.honest.fcst', 'about.honest.cite']],
+  ['about.sec.data', ['about.data', 'about.data.cams', 'about.data.curated']],
+  ['about.sec.alerts', ['about.alerts']],
+  ['about.sec.privacy', ['about.privacy.local', 'about.privacy.team', 'about.privacy.push', 'about.privacy.both']],
+];
+
+function renderAbout() {
+  let html = '';
+  for (const [sec, keys] of ABOUT_SECTIONS) {
+    html += `<div class="section-title">${esc(t(sec))}</div>`;
+    html += keys.map((k) => `<div class="ab-p">${esc(t(k))}</div>`).join('');
+  }
+  html += `<div class="section-title">${esc(t('about.sec.source'))}</div>`
+    + `<div class="ab-links"><a href="${ABOUT_REPO}" target="_blank" rel="noopener">${esc(t('about.src.repo'))}</a>`
+    + ` · <a href="${ABOUT_REPO}/blob/main/LICENSE" target="_blank" rel="noopener">${esc(t('about.src.license'))}</a></div>`;
+  $('#about-body').innerHTML = html;
+}
+
+function openAbout() {
+  renderAbout(); // rebuilt each open so a live language switch localizes it
+  $('#about-modal').hidden = false;
+}
+
 /* ---------- first-run onboarding — 3 panels, once, chained AFTER the 911 safety ack ---------- */
 
 const ONBOARD_KEY = 'respondertx.onboardSeen';
@@ -656,6 +691,7 @@ async function boot() {
   registerModal($('#safety-modal'), { initialFocus: '#safety-ack' });
   registerModal($('#onboard'));
   registerModal($('#glossary-modal'));
+  registerModal($('#about-modal'));
   registerModal($('#hydro-modal'));
   registerModal($('#alert-modal'));
   registerModal($('#cam-viewer'));
@@ -850,6 +886,9 @@ async function boot() {
 
   $('#glossary-close').addEventListener('click', () => { $('#glossary-modal').hidden = true; });
   $('#glossary-modal').addEventListener('click', (e) => { if (e.target.id === 'glossary-modal') $('#glossary-modal').hidden = true; });
+  $('#about-btn').addEventListener('click', openAbout);
+  $('#about-close').addEventListener('click', () => { $('#about-modal').hidden = true; });
+  $('#about-modal').addEventListener('click', (e) => { if (e.target.id === 'about-modal') $('#about-modal').hidden = true; });
   // field intake is operator-only markup: deploy.sh strips it from the public artifact, where the
   // form is unreachable anyway, so every binding below is conditional on it being in the document
   const intakeBtn = $('#toggle-form'), intakeForm = $('#new-request-form');
@@ -981,7 +1020,7 @@ async function boot() {
     if ($('#hsearch').classList.contains('open')) { searchSetOpen(false); return; }
     // #safety-modal is intentionally absent: the 911 self-deploy gate closes only via #safety-ack (which
     // records the acknowledgment), never on Escape or a backdrop click
-    for (const id of ['#health-modal', '#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#team-drop', '#team-edit']) {
+    for (const id of ['#health-modal', '#risk-modal', '#hydro-modal', '#alert-modal', '#changelog-modal', '#glossary-modal', '#about-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#team-drop', '#team-edit']) {
       const m = $(id);
       if (m && !m.hidden) {
         m.hidden = true;

@@ -98,13 +98,18 @@ cl_version=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['ve
     || fail "cannot read versions[0].v from HEAD data/changelog.json"
 [ "$cl_version" = "$version" ] || fail "data/changelog.json versions[0].v is '${cl_version}', expected '${version}'"
 
+# the client's update poll reads only this artifact; if it ships stale, no tab ever learns of a build
+poll_version=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'])" "$SRC/data/version.json") \
+    || fail "cannot read version from HEAD data/version.json"
+[ "$poll_version" = "$version" ] || fail "data/version.json version is '${poll_version}', expected '${version}'"
+
 sw_version=$(grep -m1 -oP "SW_VERSION = '\K[^']+" "$SRC/sw.js") || fail "cannot extract SW_VERSION from HEAD sw.js"
 [ "$sw_version" = "$stamp_version" ] || fail "sw.js SW_VERSION is '${sw_version}', expected '${stamp_version}'"
 
 heading_re="^## ${version//./\\.} "
 grep -qE "$heading_re" "$SRC/CHANGELOG.md" || fail "CHANGELOG.md has no '## ${version} ' heading"
 
-echo "pre-flight OK: ${version} @ ${head_commit} (${stamp_count} index.html stamps, changelog.json, CHANGELOG.md all agree)"
+echo "pre-flight OK: ${version} @ ${head_commit} (${stamp_count} index.html stamps, changelog.json, version.json, CHANGELOG.md all agree)"
 
 # --- Pre-flight: test gate (never ship on a red suite; --skip-tests is for genuine field emergencies only) ---
 if [ "$SKIP_TESTS" -eq 1 ]; then
@@ -192,6 +197,7 @@ if grep -q 'js/chat\.js\|js/master\.js\|js/notes\.js\|css/notes\.css' "$deploy_d
 fi
 archive_version=$(grep -oP "APP_VERSION = '\K[^']+" "$deploy_dir/js/core.js") || fail "cannot extract APP_VERSION from the deploy dir"
 [ "$archive_version" = "$version" ] || fail "deploy dir APP_VERSION is '${archive_version}', expected the gated HEAD value '${version}'"
+[ -f "$deploy_dir/data/version.json" ] || fail "data/version.json missing from deploy dir (the update poll would 404 forever)"
 echo "strip-verify OK: ${version} archive, chat + master + notes + ops-scripts + field-intake markup absent from ${deploy_dir}"
 
 if [ "$PREFLIGHT_ONLY" -eq 1 ]; then

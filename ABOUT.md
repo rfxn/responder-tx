@@ -64,23 +64,33 @@ The board is *honest by construction*. These invariants are not optional:
 - **Wall-clock timestamps.** Cards are stamped from the clock at ingest, never from
   ambiguous day references in prose, a lesson learned the hard way when future-
   dated summaries slipped through.
-- **Every card cites its source.** Authoritative (federal/state API), curated
-  (human-triaged with a source link), or field (direct report), and the provenance is
-  always visible.
+- **Every card cites its source.** The board draws two provenance badges: **official**
+  for a federal or state feed, and **curated** for a human-triaged item carrying a link
+  back to where it came from. A direct field report is a curated card; there is no
+  separate field badge. The provenance is always visible.
 - **Manual triage is a feature, not a gap.** In prior events, false or stale rescue
   posts recirculated for days. A human verification gate is deliberate.
 
 ## Data provenance
 
-Live hazard layers are keyless, CORS-open public endpoints, fetched directly by
-your browser: the National Weather Service, NOAA's National Water Prediction
+Live hazard layers are keyless, CORS-open public endpoints, and the browser fetches
+most of them directly: the National Weather Service, NOAA's National Water Prediction
 Service and River Forecast Centers, the National Hurricane Center and CO-OPS Tides
 &amp; Currents, the U.S. Geological Survey, the Iowa Environmental Mesonet (Iowa State
-University), RainViewer, TxDOT DriveTexas, the Texas Geographic Information Office,
-ATX Floods, OpenStreetMap/Nominatim, and CARTO basemaps. Camera stills come from
-city, county, port, border and state networks and are relayed through a same-origin
-proxy, because that imagery is not CORS-open; each camera names its operator, and
-no camera imagery is recorded. See the
+University), RainViewer, TxDOT DriveTexas, Esri ArcGIS Online (which hosts the NHC
+tropical layers, the SLOSH surge tiles and DriveTexas), the Texas Geographic
+Information Office, ATX Floods, OpenStreetMap with Nominatim and Overpass, and CARTO
+basemaps. Two exceptions to "directly": gauge hydrographs prefer a same-origin proxy
+and fall back to NOAA, and FEMA National Shelter System data is collected server-side
+by the publishing cycle.
+
+Camera stills come from city, county, port, border, state and federal (USGS, National
+Park Service) networks, a neighboring-state DOT, and private webcam operators. The
+still-image networks are relayed through a same-origin proxy because that imagery is
+not CORS-open; USGS HIVIS river cameras and the live HLS streams are fetched from
+their own hosts. Each camera names its operator, and no camera imagery is recorded:
+the proxy holds responses in an ephemeral edge cache for a minute or two and nothing
+is ever written to disk or to git. See the
 [data-source table](README.md#data-sources) for hosts and citations.
 
 Curated content (assistance requests, shelters and hotlines, and known crossings)
@@ -91,19 +101,30 @@ so its full history is auditable.
 
 - **No accounts.** Nothing to sign up for.
 - **No analytics, no third-party trackers, no advertising cookies.**
-- **Your data stays local.** Theme, language, last-seen markers, and cached
-  last-good data live in your browser (`localStorage` / `IndexedDB`) and are never
-  transmitted.
+- **Your data stays local.** Theme, language, filters, last-seen markers, saved
+  places, and cached last-good data live in your browser (`localStorage`;
+  `IndexedDB` holds offline map tiles). Nothing leaves the browser except through
+  the two opt-in relays below: alert preferences are posted to the alert registry
+  when you subscribe or renew, and the team client queues GPS fixes locally to
+  upload when a dead zone ends.
 - **Read-only public mirror.** The public site has no chat and no board-data write
-  routes; the LAN-only operator chat is stripped from the deploy and verified each
-  release.
-- **The two opt-in exceptions, stated plainly.** Joining a team (`?team=`)
-  publishes your handle, position and breadcrumb trail to the team relay so your
-  team can see you. Enabling device alerts stores the push subscription your
-  browser mints, your alert preferences, and your language. Both live in expiring
-  Cloudflare storage, carry no name, email, account or retained IP, are never
-  written to the git archive, and stop the moment you leave the team or turn
-  alerts off.
+  routes. The deploy strips the LAN-only operator chat, the command oversight view,
+  Field Notes, the LAN server and the ops scripts, and removes the field-report
+  intake markup; every removal is asserted before upload and re-checked as a 404 on
+  the origin and the CDN edge after it.
+- **The two opt-in exceptions, stated plainly.** Joining a team (`?team=`) publishes
+  your handle, role, status and specialty, your position with its accuracy, heading
+  and speed, and your breadcrumb trail, so your team can see you. Enabling device
+  alerts stores the push subscription your browser mints, your alert preferences,
+  your language, and a small record of when this device was last notified. Both live
+  in expiring Cloudflare storage, carry no name, email, account or retained IP, are
+  never written to the git archive, and stop when you leave the team or turn alerts
+  off. One carve-out: a map marker you drop is team data rather than personal data,
+  so it keeps your handle and outlives your session by up to 12 hours.
+- **Device alerts are best effort.** They are a convenience layer over public NWS
+  data and ride your browser's push service, so they can be late, throttled by your
+  device, or missed entirely. They are not Wireless Emergency Alerts and they never
+  replace 911 or official warnings.
 - **Alert places are the one location the alert registry can hold, and only if
   you add one.** Choosing to be alerted near a place stores up to five points as
   coordinates rounded to about a kilometer, each with the radius you picked. No

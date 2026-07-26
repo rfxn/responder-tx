@@ -53,6 +53,7 @@ setup() {  # fresh scratch repo at v1.0.0 with a bare origin, a stub wrangler, a
         '</body></html>' > "$REPO/index.html"
     printf "%s\n" "const SW_VERSION = '1.0.0';" > "$REPO/sw.js"
     printf '%s\n' '{"versions":[{"v":"v1.0.0","d":"2026-07-24","items":[]}]}' > "$REPO/data/changelog.json"
+    printf '%s\n' '{"version": "v1.0.0"}' > "$REPO/data/version.json"
     printf '%s\n' '## v1.0.0 (2026-07-24)' '' '- [New] fixture release' > "$REPO/CHANGELOG.md"
     printf '%s\n' 'tests/          export-ignore' '.gitattributes  export-ignore' > "$REPO/.gitattributes"
     printf '%s\n' "export const marker = '$HEAD_MARKER';" > "$REPO/functions/api/hello.js"
@@ -112,6 +113,7 @@ bump_tree_only() {  # bump every release-lane file in the working tree WITHOUT c
     sed -i 's/?v=1\.0\.0/?v=9.9.9/g' "$REPO/index.html"
     printf "%s\n" "const SW_VERSION = '9.9.9';" > "$REPO/sw.js"
     printf '%s\n' '{"versions":[{"v":"v9.9.9","d":"2026-07-24","items":[]}]}' > "$REPO/data/changelog.json"
+    printf '%s\n' '{"version": "v9.9.9"}' > "$REPO/data/version.json"
     printf '%s\n' '## v9.9.9 (2026-07-24)' '' '- [New] uncommitted' > "$REPO/CHANGELOG.md"
 }
 

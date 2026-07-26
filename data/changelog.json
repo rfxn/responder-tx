@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.46",
+      "date": "2026-07-26",
+      "line": "Settings, then Help, now opens About this board: who runs it, what it is and is not, how it stays honest about stale and forecast data, where each layer's data comes from, and exactly what the two opt-in relays store. It states the device alert promise plainly, best effort, not a Wireless Emergency Alert, never a replacement for 911, and links the source repository and the GNU GPL v2 license. The update check now reads a small version file instead of the whole changelog, so a board left open all shift uses far less data in the background."
+    },
+    {
       "v": "v0.99.45",
       "date": "2026-07-26",
       "line": "The board publishes its curated map as a KML layer at a fixed address. Added once in ArcGIS, ATAK or Google Earth, the layer re-checks the board about every 15 minutes on its own, so it stays current without being re-imported. A GeoRSS feed of the same features is published for ArcGIS Online and feed readers. Both carry what the GeoJSON export carries: the source for every feature, its update time, the generation time, and a plain statement on the layer name when the export is capped and how many features were left out. Share now lists all three addresses, each saying what it is for."

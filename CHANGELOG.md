@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.46 · 2026-07-26 (who runs this board, and what it keeps)
+
+-- New Features --
+- [New] Settings, then Help, now opens "About this board": who builds and
+      maintains it, what it is and is not, how it stays honest about stale and
+      forecast data, where each layer's data comes from, and exactly what the two
+      opt-in relays store. English and Spanish
+- [New] The about surface states the device-alert promise plainly, best effort,
+      not a Wireless Emergency Alert, and never a replacement for 911, and links
+      the source repository and the GNU GPL v2 license
+
+-- Changes --
+- [Change] The update check reads a small version file instead of the whole
+           changelog, so a board left open all shift uses far less data in the
+           background. What's new still shows the complete history
+
 ## v0.99.45 · 2026-07-26 (a live layer in the tools you already run)
 
 -- New Features --

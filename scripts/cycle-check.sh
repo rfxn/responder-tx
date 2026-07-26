@@ -40,8 +40,8 @@ if [ "$CODE_FROM_HEAD" -eq 1 ]; then
     command mkdir -p "$CODE_ROOT/js" "$CODE_ROOT/data"
     while IFS= read -r f; do
         git show "HEAD:$f" > "$CODE_ROOT/$f" || { echo "FAIL: cannot read ${f} from HEAD" >&2; exit 1; }
-    done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/event.json \
-        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|event)\.json$')
+    done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/event.json data/version.json \
+        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|event|version)\.json$')
     echo "note: code-lane checks read HEAD ($(git rev-parse --short HEAD)); data-lane checks read the working tree"
 fi
 export CODE_ROOT
@@ -80,7 +80,7 @@ if check_js; then pass "JS syntax (node --check, js/*.js excl. vendor)"; else fa
 
 # c. Version agreement: core.js, index.html stamps, changelog.json, CHANGELOG.md, sw.js
 check_versions() {
-    local app_version stamp_version stamps stamp cl_version md_version sw_version
+    local app_version stamp_version stamps stamp cl_version md_version sw_version poll_version
     app_version=$(grep -oP "APP_VERSION = '\K[^']+" "$CODE_ROOT/js/core.js") || { echo "no APP_VERSION in js/core.js" >&2; return 1; }
     stamp_version="${app_version#v}"
     stamps=$(grep -o '?v=[^"]*' "$CODE_ROOT/index.html") || { echo "no ?v= stamps in index.html" >&2; return 1; }
@@ -106,11 +106,19 @@ check_versions() {
         echo "sw.js SW_VERSION '${sw_version}' != stamp version '${stamp_version}'" >&2
         return 1
     fi
+    # the update poll reads this artifact and nothing else, so a stale one silently strands every
+    # long-lived tab on an old build with no signal that a new one exists
+    poll_version=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'])" "$CODE_ROOT/data/version.json") \
+        || { echo "cannot read version from data/version.json" >&2; return 1; }
+    if [ "$poll_version" != "$app_version" ]; then
+        echo "data/version.json '${poll_version}' != APP_VERSION '${app_version}'" >&2
+        return 1
+    fi
     VERSION_DETAIL="$app_version"
     return 0
 }
 VERSION_DETAIL=""
-if check_versions; then pass "version agreement (${VERSION_DETAIL}: core.js, index.html, changelog.json, CHANGELOG.md, sw.js)"; else failck "version agreement (core.js, index.html, changelog.json, CHANGELOG.md, sw.js)"; fi
+if check_versions; then pass "version agreement (${VERSION_DETAIL}: core.js, index.html, changelog.json, CHANGELOG.md, sw.js, version.json)"; else failck "version agreement (core.js, index.html, changelog.json, CHANGELOG.md, sw.js, version.json)"; fi
 
 # d. Feed freshness sanity
 check_feeds() {

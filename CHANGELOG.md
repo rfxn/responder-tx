@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.35 · 2026-07-26 (emergency banner on open, honest Feed headline)
+
+-- Bug Fixes --
+- [Fix] A flash flood emergency already in effect when the board is opened now
+      raises the red banner and the red tab marker. The banner says the
+      emergency is in effect, and reads as new only for one that arrives while
+      you are watching
+- [Fix] An empty Feed no longer reads as "all clear". It says the Feed has no
+      notices and points to Alerts, Gauges and Roads for hazard status, and its
+      calm styling appears only when those feeds are quiet
+- [Fix] The footer safety line now carries the full 911 wording in both
+      languages instead of a shortened version
+
+-- Changes --
+- [Change] The recovery posture line sends you to Roads rather than to a tab
+           that no longer exists
+
 ## v0.99.34 · 2026-07-25 (border bridge and Port of Galveston cameras)
 
 -- New Features --

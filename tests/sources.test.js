@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { loadApp } = require('./harness.js');
 
 const {
-  alertReach, alertSeverity, gaugeObsStale, gaugeObsCat, gaugeCat, CONFIG,
+  alertReach, alertSeverity, alertOpen, emergencyBannerMode, gaugeObsStale, gaugeObsCat, gaugeCat, CONFIG,
   gaugeForecastCat, gaugeRising, gaugeRecoveryState, riverOf, recordContext, recordWatchGauges, RECORD_NEAR_FT, state,
   splitGauges, gaugeState, gaugeStateCounts, gaugeHasReading, GAUGE_STATES, GAUGE_DEGRADED, CAT_RANK,
 } = loadApp();
@@ -71,6 +71,32 @@ test('alertSeverity — Warning/Watch/Advisory events classify by keyword', () =
 
 test('alertSeverity — no parameters object does not throw (defaults to advisory)', () => {
   assert.equal(alertSeverity({ event: 'Flood Advisory' }), 'advisory');
+});
+
+/* ---------- emergency banner: opening the board mid-emergency must surface it ---------- */
+
+test('alertOpen — a future or missing expires is open, a past one is not', () => {
+  const at = (min) => ({ properties: { expires: new Date(Date.now() + min * 60000).toISOString() } });
+  assert.equal(alertOpen(at(60)), true);
+  assert.equal(alertOpen(at(-60)), false);
+  assert.equal(alertOpen({ properties: {} }), true);
+});
+
+/* The board is most often opened BECAUSE something is happening. A cold load carries no arrival to
+   report, so an already-open emergency must still raise the banner and the title flag. */
+test('emergencyBannerMode — a cold load with an emergency already open reads as active, not new', () => {
+  assert.equal(emergencyBannerMode(2, 2, false), 'active');
+  assert.equal(emergencyBannerMode(1, 0, false), 'active'); // seeded ids must not suppress the cold load
+});
+
+test('emergencyBannerMode — a quiet cold load raises nothing', () => {
+  assert.equal(emergencyBannerMode(0, 0, false), null);
+});
+
+test('emergencyBannerMode — after the first load only newly arrived emergencies raise the banner', () => {
+  assert.equal(emergencyBannerMode(2, 1, true), 'new');
+  assert.equal(emergencyBannerMode(2, 0, true), null); // already seen, already banner-ed
+  assert.equal(emergencyBannerMode(0, 0, true), null);
 });
 
 /* ---------- stale-sensor gating: a dead gauge must never count as in-flood ---------- */

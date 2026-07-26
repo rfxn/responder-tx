@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.35",
+      "date": "2026-07-26",
+      "line": "A flash flood emergency that is already in effect when you open the board now raises the red banner and the red tab marker, and the banner says the emergency is in effect. It reads as new only for one that arrives while you are watching. The Feed no longer says all clear when it is empty. The Feed carries curated notices, so an empty one now says only that there are no notices and points to Alerts, Gauges and Roads for hazard status; the calm styling appears only when those feeds are quiet. The footer safety line carries the full 911 wording in both languages, and the recovery posture line sends you to Roads rather than a tab that no longer exists."
+    },
+    {
       "v": "v0.99.34",
       "date": "2026-07-25",
       "line": "Sixteen international bridge cameras and the Port of Galveston cruise Terminal 16 view join the camera layer. Laredo contributes eight, covering both sides of Gateway to the Americas, Juarez-Lincoln, Colombia Solidarity and World Trade. Eagle Pass contributes six across Bridge I and the Camino Real bridge, and Del Rio two. These sit on the Rio Grande where the board had road cameras but nothing looking at the river crossings themselves. No operator publishes where its camera stands, so each is placed on the bridge structure it watches and the viewer says that plainly. One more change you may notice: the international bridge label no longer says live, because the chip next to it already tells you whether you are getting moving video or a single frame."

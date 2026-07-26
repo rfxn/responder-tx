@@ -381,3 +381,40 @@ test('caltopo status strings carry the counts they promise, in both languages', 
     assert.ok(I18N[lang]['caltopo.partial'].includes('{total}'), `${lang} caltopo.partial lost {total}`);
   }
 });
+
+/* ---------- feedCalmOk: an empty curated Feed is not a hazard verdict ---------- */
+
+const { feedCalmOk } = loadApp();
+
+const catGauge = (floodCategory) => ({ status: { observed: { floodCategory, validTime: isoMinAgo(30) } } });
+const openAlert = () => ({ id: 'urn:test:1', properties: { event: 'Flood Warning', areaDesc: 'Kerr, TX' } });
+
+// quiet baseline: feeds loaded, nothing running. Each case perturbs one hazard source.
+function withHazards(patch, fn) {
+  const prev = { alerts: state.alerts, gauges: state.gauges, roadClosures: state.roadClosures };
+  Object.assign(state, { alerts: [], gauges: [catGauge('no_flooding')], roadClosures: { lines: [] } }, patch);
+  try { return fn(); } finally { Object.assign(state, prev); }
+}
+
+test('feedCalmOk — quiet hazard feeds allow the calm treatment on an empty Feed', () => {
+  withHazards({}, () => assert.equal(feedCalmOk(), true));
+});
+
+/* The Feed lists CURATED notices. Their absence says nothing about the river, the roads or the
+   NWS, so the reassuring treatment must never outrank a live hazard on another tab. */
+test('REGRESSION — no calm treatment while any hazard source is live', () => {
+  withHazards({ alerts: [openAlert()] }, () => assert.equal(feedCalmOk(), false, 'open alert'));
+  withHazards({ gauges: [catGauge('minor')] }, () => assert.equal(feedCalmOk(), false, 'gauge at minor'));
+  withHazards({ gauges: [catGauge('major')] }, () => assert.equal(feedCalmOk(), false, 'gauge at major'));
+  withHazards({ roadClosures: { lines: [{ id: 'r1' }] } }, () => assert.equal(feedCalmOk(), false, 'road closure'));
+});
+
+test('feedCalmOk — hazard feeds that have not loaded yet cannot support a calm claim', () => {
+  withHazards({ gauges: [] }, () => assert.equal(feedCalmOk(), false, 'no gauges loaded'));
+  withHazards({ roadClosures: undefined }, () => assert.equal(feedCalmOk(), false, 'no road data loaded'));
+});
+
+test('the empty-Feed headline claims only that the Feed is empty, in both languages', () => {
+  assert.ok(!/all clear/i.test(I18N.en['feed.allclear']), 'en feed.allclear claims a hazard verdict');
+  assert.ok(!/todo despejado/i.test(I18N.es['feed.allclear']), 'es feed.allclear claims a hazard verdict');
+});

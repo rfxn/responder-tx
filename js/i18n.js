@@ -88,7 +88,7 @@
       'health.board': 'Board',
       'health.nodata': 'no data yet',
 
-      'disc.short': '<strong>⚠ 911 emergencies</strong> · not a dispatch system · tap for full notice',
+      'disc.short': '<strong>⚠ Life-threatening emergency → call 911.</strong> Not a dispatch system · tap for full notice',
 
       'safety.head': '⚠ Life-threatening emergency → call 911',
       'safety.p1': 'This board coordinates volunteer monitoring and situational awareness. It is <strong>not a dispatch system</strong> and is not monitored by emergency services. Verify before acting.',
@@ -170,7 +170,7 @@
       'threat.shelters.live': 'shelters open (live feed only)',
       'threat.shelters.unconf': 'shelters listed, none confirmed open',
       'threat.okline': '✓ NO ACTIVE LIFE-SAFETY SIGNALS',
-      'threat.oksub': 'recovery posture: verify before re-entry; monitor and verify in Resources',
+      'threat.oksub': 'recovery posture: verify before re-entry; check Roads before you travel',
       'quiet.line': '✓ No active flood threat in the AO',
       'quiet.sub': 'monitoring {n} gauges · {m} normal · live feeds updating',
 
@@ -354,6 +354,7 @@
       'alert.raw': 'View raw NWS data',
       'alert.flag.emerg': 'EMERGENCY',
       'banner.ffe': '⚠ NEW FLASH FLOOD EMERGENCY: {areas}',
+      'banner.ffe.active': '⚠ FLASH FLOOD EMERGENCY IN EFFECT: {areas}',
       'banner.dismiss': 'Dismiss',
       'banner.dismiss.aria': 'Dismiss the flash flood emergency banner',
       'sec.wave': '🌊 Crest wave: when the crest reaches each point',
@@ -365,7 +366,7 @@
       'sec.gauge.empty': 'No monitored gauges in or forecast to flood.',
       'sec.gauge.noload': 'Gauge data not loaded yet.',
       'feed.empty': 'No notices match the current filters.',
-      'feed.allclear': '✓ All clear: no active notices right now. Quiet is good; stay ready.',
+      'feed.allclear': 'No notices in the Feed right now. Hazard status is in Alerts, Gauges and Roads.',
       'feed.allcounties': 'All counties',
 
       'sync.openfeed': 'Open in feed →',
@@ -1221,7 +1222,7 @@
       'health.board': 'Panel',
       'health.nodata': 'sin datos aún',
 
-      'disc.short': '<strong>⚠ Emergencias al 911</strong> · no es un sistema de despacho · toque para ver el aviso completo',
+      'disc.short': '<strong>⚠ Emergencia potencialmente mortal → llame al 911.</strong> No es un sistema de despacho · toque para ver el aviso completo',
 
       'safety.head': '⚠ Emergencia potencialmente mortal → llame al 911',
       'safety.p1': 'Este panel coordina el monitoreo voluntario y la conciencia situacional. <strong>No es un sistema de despacho</strong> y no está supervisado por los servicios de emergencia. Verifique antes de actuar.',
@@ -1303,7 +1304,7 @@
       'threat.shelters.live': 'refugios abiertos (solo fuente en vivo)',
       'threat.shelters.unconf': 'refugios listados, ninguno confirmado abierto',
       'threat.okline': '✓ SIN SEÑALES ACTIVAS DE PELIGRO PARA LA VIDA',
-      'threat.oksub': 'postura de recuperación: verifique antes de reingresar; monitoree y verifique en Recursos',
+      'threat.oksub': 'postura de recuperación: verifique antes de reingresar; consulte Caminos antes de viajar',
       'quiet.line': '✓ Sin amenaza activa de inundación en el área de operaciones',
       'quiet.sub': 'monitoreando {n} medidores · {m} normales · datos en vivo actualizándose',
 
@@ -1486,6 +1487,7 @@
       'alert.instruction': 'Qué hacer',
       'alert.flag.emerg': 'EMERGENCIA',
       'banner.ffe': '⚠ NUEVA EMERGENCIA DE INUNDACIÓN REPENTINA: {areas}',
+      'banner.ffe.active': '⚠ EMERGENCIA DE INUNDACIÓN REPENTINA VIGENTE: {areas}',
       'banner.dismiss': 'Descartar',
       'banner.dismiss.aria': 'Descartar el aviso de emergencia de inundación repentina',
       'alert.raw': 'Ver datos NWS sin procesar',
@@ -1498,7 +1500,7 @@
       'sec.gauge.empty': 'Ningún medidor monitoreado en inundación o con pronóstico de inundarse.',
       'sec.gauge.noload': 'Datos de medidores aún no cargados.',
       'feed.empty': 'Ningún reporte coincide con los filtros actuales.',
-      'feed.allclear': '✓ Todo despejado: no hay avisos activos ahora. La calma es buena; mantente listo.',
+      'feed.allclear': 'No hay avisos en el Canal en este momento. El estado de peligros está en Alertas, Medidores y Caminos.',
       'feed.allcounties': 'Todos los condados',
 
       'sync.openfeed': 'Abrir en el feed →',

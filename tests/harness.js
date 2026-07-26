@@ -111,7 +111,7 @@ const EXPORTS = [
   'esc', 'fmtNum', 'safeUrl', 'telHref', 'ageMins', 'distMi', 'freshClass',
   'modalCycleIndex', 'modalIsFocusableVisible',
   'toUSNG',
-  'alertReach', 'alertSeverity',
+  'alertReach', 'alertSeverity', 'alertOpen', 'emergencyBannerMode',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'gaugeRecoveryState', 'riverOf',
   'splitGauges', 'gaugeState', 'gaugeStateCounts', 'gaugeHasReading', 'gaugeAll', 'GAUGE_STATES', 'GAUGE_DEGRADED',
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
@@ -131,7 +131,8 @@ const EXPORTS = [
 
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay
 // out of MAP_EXPORTS or the map bundle fails to resolve them
-const PANEL_EXPORTS = ['gaugeCardDiv', 'gaugeGlyphHtml', 'degradedGaugePool', 'degradedGaugeList', 'degradedStateCounts',
+const PANEL_EXPORTS = ['quietState', 'feedCalmOk',
+  'gaugeCardDiv', 'gaugeGlyphHtml', 'degradedGaugePool', 'degradedGaugeList', 'degradedStateCounts',
   'openInGaugesList', 'gaugeListUnfoldFor', 'DEG_GLYPH',
   'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',
   'hotlineHtml', 'hotlinesOrdered', 'hotlineIsEmergency', 'shlNavHtml',

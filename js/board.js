@@ -291,9 +291,10 @@ function renderRequests() {
     el.appendChild(div);
   }
   if (!listed.length) {
-    // an empty board is good news on a flood feed — say so, unless a restricting filter is what's hiding notices
     const restricted = ['type', 'county', 'q', 'window'].some((k) => state.filters[k]) || (state.filters.dist && state.myPos) || state.inView;
-    el.innerHTML = `<div class="card${restricted ? '' : ' feed-allclear'}">${esc(t(restricted ? 'feed.empty' : 'feed.allclear'))}</div>`;
+    // the calm treatment is a claim about hazards, so it renders only when the hazard feeds agree
+    const calm = !restricted && feedCalmOk();
+    el.innerHTML = `<div class="card${calm ? ' feed-allclear' : ''}">${esc(t(restricted ? 'feed.empty' : 'feed.allclear'))}</div>`;
   }
 
   state.layers.requests.clearLayers();
@@ -954,8 +955,8 @@ function closeShareSheet() {
   if (el) el.hidden = true;
 }
 
-/* Shelters and hotlines are the public's entire job on this board. They render from one host, reached
-   from the threat strip chip the resident already reads and from a permanent Settings row. */
+/* Shelters and hotlines are the public's entire job on this board. They render from one host,
+   reached from a permanent Settings row. */
 function openHelpSheet() {
   const el = $('#help-sheet');
   if (el) el.hidden = false;

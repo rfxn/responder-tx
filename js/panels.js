@@ -1078,6 +1078,12 @@ function quietState() {
   return !openInAO.length && !inFlood.length && !(state.roadClosures.lines || []).length;
 }
 
+// an empty curated feed is not a hazard verdict: the reassuring treatment needs the live hazard
+// feeds loaded and quiet, and no open alert anywhere in the feed, not just in the AO
+function feedCalmOk() {
+  return !(state.alerts || []).length && quietState();
+}
+
 /* The hazard line carries the ranked live items now, so the strip no longer repeats them as
    counts. What is left is the reassurance that line cannot give: it renders only when the line
    has nothing to carry, so the two are never stacked. */

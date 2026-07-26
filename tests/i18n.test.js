@@ -631,6 +631,17 @@ test('renderer guard: the structural detector actually fires on the v0.99.3 regr
     'an acronym run, a t() call and a quote-bearing regex are not shouting');
 });
 
+/* 911-gate alignment. The footer ships hardcoded markup that applyI18n overwrites at boot, so a
+ * divergence means the pre-boot and post-boot disclaimers make different promises. Both must be
+ * the complete one, and both languages must name 911. */
+test('index.html: the footer disclaimer fallback is exactly the en string it is replaced by', () => {
+  const html = indexHtml();
+  const m = html.match(/<span class="disc-short" data-i18n-html="disc\.short">([\s\S]*?)<\/span>/);
+  assert.ok(m, '.disc-short fallback span not found in index.html');
+  assert.equal(m[1], I18N.en['disc.short'], 'index.html fallback and i18n en disc.short have diverged');
+  for (const lang of ['en', 'es']) assert.match(I18N[lang]['disc.short'], /911/, `${lang} disc.short lost the 911 line`);
+});
+
 /* Attribute guard. A title= or aria-label= with no data-i18n-* is a tooltip that only ever renders
  * in English; applyI18n cannot reach it. The banner dismiss control shipped that way. */
 test('index.html: every title and aria-label is routed through i18n', () => {

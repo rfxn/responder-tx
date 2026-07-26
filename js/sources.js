@@ -23,11 +23,13 @@ function alertReach(p) {
 // (storm surge, tropical storm, hurricane, high wind); 2-letter VTEC lives in properties.parameters.VTEC
 const HAZARD_ALERT_RE = /flood|storm surge|tropical|hurricane|high wind|wind advisory|beach hazard/i;
 
+// still listed as open: a missing expires reads as active (new Date(null) is epoch)
+const alertOpen = (f) => !(f.properties.expires && new Date(f.properties.expires) < new Date());
+
 // active hurricane/tropical threat to the TX mainland = an unexpired storm surge / tropical storm / hurricane warning or watch
 const TROPICAL_THREAT_RE = /storm surge (warning|watch)|tropical storm (warning|watch)|hurricane (warning|watch)/i;
 function hasActiveTropicalThreat() {
-  return (state.alerts || []).some((f) => TROPICAL_THREAT_RE.test(f.properties.event || '')
-    && !(f.properties.expires && new Date(f.properties.expires) < new Date()));
+  return (state.alerts || []).some((f) => TROPICAL_THREAT_RE.test(f.properties.event || '') && alertOpen(f));
 }
 // default the tropical tracker ON the first time TX has an active tropical/hurricane threat; a manual toggle-off (overlayremove) stops auto-enable
 function maybeAutoTropical() {
@@ -46,9 +48,11 @@ async function fetchAlerts() {
   const rank = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
   hazards.sort((a, b) => rank[a._sev] - rank[b._sev] || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
   const emergencies = hazards.filter((f) => f._sev === 'emergency');
+  const openEmerg = emergencies.filter(alertOpen);
   const fresh = emergencies.filter((f) => !state.knownEmergencyIds.has(f.id));
   emergencies.forEach((f) => state.knownEmergencyIds.add(f.id));
-  if (state.alertsLoadedOnce && fresh.length) showEmergencyBanner(fresh);
+  const mode = emergencyBannerMode(openEmerg.length, fresh.length, state.alertsLoadedOnce);
+  if (mode) showEmergencyBanner(mode === 'active' ? openEmerg : fresh, mode);
   if (!emergencies.length && !$('#emergency-banner').hidden) dismissEmergencyBanner(); // banner ages out with its alert
   state.alertsLoadedOnce = true;
   state.alerts = hazards;
@@ -75,8 +79,7 @@ async function renderAlertPolys() {
   let zoneFetchBudget = CONFIG.maxZoneGeomFetches;
   // reverse severity order: least-severe drawn first, emergencies land on top
   for (const f of state.alerts.slice().reverse()) {
-    // recency: never draw an alert the NWS no longer lists as open — expired drops off, open (expires in future, any age) stays; missing expires = still active (new Date(null) is epoch)
-    if (f.properties.expires && new Date(f.properties.expires) < new Date()) continue;
+    if (!alertOpen(f)) continue; // never draw an alert the NWS no longer lists as open
     let geom = f.geometry;
     if (!geom && f._sev !== 'advisory' && zoneFetchBudget > 0) {
       const zones = f.properties.affectedZones || [];
@@ -100,9 +103,16 @@ async function renderAlertPolys() {
   }
 }
 
-function showEmergencyBanner(freshAlerts) {
-  const areas = freshAlerts.map((f) => f.properties.areaDesc).join(' | ');
-  $('#banner-text').textContent = t('banner.ffe').replace('{areas}', areas);
+/* Opening the board during an emergency must surface it. A first fetch has no arrival to report,
+   so it states the standing emergency ("active"); later fetches report only new ids ("new"). */
+function emergencyBannerMode(openCount, freshCount, loadedOnce) {
+  if (!loadedOnce) return openCount ? 'active' : null;
+  return freshCount ? 'new' : null;
+}
+
+function showEmergencyBanner(alerts, mode) {
+  const areas = alerts.map((f) => f.properties.areaDesc).join(' | ');
+  $('#banner-text').textContent = t(mode === 'active' ? 'banner.ffe.active' : 'banner.ffe').replace('{areas}', areas);
   $('#emergency-banner').hidden = false;
   if (!document.title.startsWith('🔴')) document.title = `🔴 ${document.title}`;
 }

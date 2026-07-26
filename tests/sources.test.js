@@ -507,6 +507,41 @@ test('road memory — an empty or failed fetch is never diffed into reopenings',
   assert.equal(Object.keys(roadMemory().seen).length, 2);
 });
 
+/* A truncated ArcGIS response is NOT empty: it carries records, just not all of them. Every
+   segment past the server's cut is missing from the live set, so diffing it marks those roads
+   reopened and paints a green recovery check on a road that is still under water. */
+test('road memory — a truncated response is refused the same way an empty one is', () => {
+  resetRoadMemory();
+  updateRoadMemory([roadFeature(), otherRoad()]);
+  updateRoadMemory([roadFeature()], true);
+  assert.deepEqual(Object.keys(roadMemory().reopened), [],
+    'a truncated response must not report the segments it cut as reopened');
+  assert.equal(reopenedRoads().fresh.length, 0, 'no green REOPENED row can come from a short fetch');
+  assert.equal(Object.keys(roadMemory().seen).length, 2, 'both closures stay remembered as closed');
+
+  // and the next complete fetch still reports a real disappearance: the guard suppresses the
+  // truncated diff, it does not disable the feature
+  updateRoadMemory([roadFeature()], false);
+  const reo = Object.values(roadMemory().reopened);
+  assert.equal(reo.length, 1, 'the departed segment is reported once the set is complete again');
+  assert.equal(reo[0].route_name, 'SH0016');
+});
+
+test('road memory — a partial fetch keeps the last good reopened set rather than rewriting it', () => {
+  resetRoadMemory();
+  const third = roadFeature({ route: 'US0290', from: '5.0 Miles East of RM0012 on US0290', to: '7.0 Miles East of RM0012 on US0290' });
+  updateRoadMemory([roadFeature(), otherRoad(), third]);
+  updateRoadMemory([roadFeature(), otherRoad()]);
+  assert.deepEqual(Object.values(roadMemory().reopened).map((r) => r.route_name), ['US0290'],
+    'baseline: one genuine reopening is on the board');
+
+  // the truncation cuts SH0016, which is still closed; the earned US0290 reopening must survive
+  updateRoadMemory([roadFeature()], true);
+  assert.deepEqual(Object.values(roadMemory().reopened).map((r) => r.route_name), ['US0290'],
+    'a truncated fetch must neither invent a reopening nor erase the one already earned');
+  assert.equal(reopenedRoads().fresh.length, 1);
+});
+
 test('road memory — the stored v1 map cannot mass-mark reopenings on the first run after upgrade', () => {
   resetRoadMemory();
   const stamp = new Date().toISOString();

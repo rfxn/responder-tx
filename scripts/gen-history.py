@@ -780,7 +780,9 @@ def build_backfill(lids, first_dt, start_dt):
 
 
 def thin_backfill(frames):
-    return [f for f in frames if not f.get("src") or f["_dt"].hour % 2 == 0]
+    protect = peak_frame_indices(frames)
+    return [f for i, f in enumerate(frames)
+            if not f.get("src") or f["_dt"].hour % 2 == 0 or i in protect]
 
 
 def report_backfill(backfill, src_by_lid, lid_count):

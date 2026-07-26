@@ -365,6 +365,28 @@ peaks = [{'t': 'a', 'gauges': {'A': [1.0, 0], 'B': [9.0, 4]}},
 check('thinning protects the frame holding each gauge\'s crest',
       GH.peak_frame_indices(peaks) == {0, 1}, str(GH.peak_frame_indices(peaks)))
 
+# Backfill thinning drops reconstructed frames to 2-hour spacing. It used to keep even hours and
+# nothing else, so a crest that happened on an odd hour inside the reconstructed window was simply
+# not in the record: the one moment playback exists to show.
+recon_base = datetime(2026, 7, 5, tzinfo=timezone.utc)
+recon = []
+for h in range(6):
+    dt = recon_base + timedelta(hours=h)
+    stage = 42.0 if h == 3 else 2.0 + h * 0.01  # the crest sits on an ODD hour
+    recon.append({'t': iso(dt), 'gauges': {'A': [stage, 4 if h == 3 else 0]}, 'src': 'usgs', '_dt': dt})
+native_tail = {'t': iso(recon_base + timedelta(hours=7)), 'gauges': {'A': [1.0, 0]},
+               '_dt': recon_base + timedelta(hours=7)}
+thinned_backfill = GH.thin_backfill(recon + [native_tail])
+kept_hours = [f['_dt'].hour for f in thinned_backfill]
+check('backfill thinning keeps the reconstructed frame holding the crest, odd hour and all',
+      3 in kept_hours, str(kept_hours))
+check('backfill thinning still coarsens the rest of the reconstruction to even hours',
+      [h for h in kept_hours if h != 3 and h != 7] == [0, 2, 4], str(kept_hours))
+check('backfill thinning never touches a natively captured frame',
+      native_tail in thinned_backfill)
+check('the crest survives with its stage and category intact, not just its timestamp',
+      [f['gauges']['A'] for f in thinned_backfill if f['_dt'].hour == 3] == [[42.0, 4]])
+
 print('---')
 if FAILS:
     print('%d FAILURE(S)' % FAILS)

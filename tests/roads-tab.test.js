@@ -406,13 +406,13 @@ test('the empty tab says so instead of rendering nothing at all', () => {
    Two fixed pages of 2000 capped the layer at 4000 of the 8339 crossings the service holds for
    the AO, with nothing on screen saying the layer was partial. */
 
-test('lwcHasMore reads the service signal wherever the response carries it', () => {
-  const { lwcHasMore } = app;
-  assert.equal(lwcHasMore({ exceededTransferLimit: true }), true, 'top-level GeoJSON flag');
-  assert.equal(lwcHasMore({ properties: { exceededTransferLimit: true } }), true, 'nested ArcGIS flag');
-  assert.equal(lwcHasMore({ features: [] }), false, 'no flag means no more records');
-  assert.equal(lwcHasMore({ exceededTransferLimit: false, properties: {} }), false);
-  assert.equal(lwcHasMore(null), false, 'a missing body must not loop forever');
+test('arcgisHasMore reads the service signal wherever the response carries it', () => {
+  const { arcgisHasMore } = app;
+  assert.equal(arcgisHasMore({ exceededTransferLimit: true }), true, 'top-level GeoJSON flag');
+  assert.equal(arcgisHasMore({ properties: { exceededTransferLimit: true } }), true, 'nested ArcGIS flag');
+  assert.equal(arcgisHasMore({ features: [] }), false, 'no flag means no more records');
+  assert.equal(arcgisHasMore({ exceededTransferLimit: false, properties: {} }), false);
+  assert.equal(arcgisHasMore(null), false, 'a missing body must not loop forever');
 });
 
 // drive fetchLwc against a scripted service: `total` records served LWC_PAGE at a time
@@ -470,6 +470,72 @@ test('a load that hits the ceiling says it is partial instead of under-reporting
     assert.ok(I18N[lang]['lwc.partial'] && !I18N[lang]['lwc.partial'].includes('—'), `${lang} lwc.partial`);
   }
   assert.notEqual(I18N.en['lwc.partial'], I18N.es['lwc.partial']);
+});
+
+/* ---------- DriveTexas closure paging (v0.99.50) ----------
+   The closure query was unpaged, so the service's maxRecordCount silently cut the set. Every
+   segment past the cut vanished from the map AND from the live set the reopened diff is built
+   from, which painted a green "recently reopened" check on roads that were still shut. */
+
+// drive fetchRoadClosures against a scripted service: `total` closures served ROAD_PAGE at a time
+async function runRoads(total) {
+  const urls = [];
+  const notices = [];
+  const saved = {};
+  for (const k of ['fetch', 'renderRoadClosures', 'renderRoadsTab', 'renderReopenedMap',
+    'renderReopenedRoads', 'renderTiles', 'opNotice', 'markHealthy']) saved[k] = SB[k];
+  SB.fetch = (url) => {
+    urls.push(String(url));
+    const off = +new URL(String(url), 'https://x.test').searchParams.get('resultOffset');
+    const n = Math.max(0, Math.min(app.ROAD_PAGE, total - off));
+    const body = {
+      features: Array.from({ length: n }, (_, i) => ({
+        properties: { route_name: `FM${off + i}`, from_limit: 'a', to_limit: 'b', condition: 'Flooding' },
+        geometry: { type: 'LineString', coordinates: [[-98.5, 29.7], [-98.4, 29.75]] },
+      })),
+    };
+    if (off + n < total) body.exceededTransferLimit = true;
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+  };
+  for (const k of ['renderRoadClosures', 'renderRoadsTab', 'renderReopenedMap', 'renderReopenedRoads',
+    'renderTiles', 'markHealthy']) SB[k] = () => {};
+  SB.opNotice = (m) => notices.push(m);
+  ST.roadsPartial = false;
+  try { await SB.fetchRoadClosures(); } finally { Object.assign(SB, saved); }
+  return { urls, notices, partial: ST.roadsPartial, lines: ST.roadClosures.lines };
+}
+
+test('the closure query pages past maxRecordCount and stops when the service reports no more', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  const r = await runRoads(app.ROAD_PAGE * 2 + 7);
+  assert.equal(r.urls.length, 3, 'three pages cover the set');
+  assert.equal(r.lines.length, app.ROAD_PAGE * 2 + 7, 'every closure the service holds reaches the map');
+  assert.deepEqual(r.urls.map((u) => +new URL(u, 'https://x.test').searchParams.get('resultOffset')),
+    [0, app.ROAD_PAGE, app.ROAD_PAGE * 2], 'each page asks for the next offset');
+  assert.equal(r.partial, false, 'a complete load is not partial');
+  assert.deepEqual(r.notices, [], 'a complete load raises no notice');
+});
+
+test('a truncated closure set is declared partial and never diffed into reopenings', async () => {
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  const r = await runRoads(app.ROAD_PAGE * app.ROAD_MAX_PAGES + 1);
+  assert.equal(r.urls.length, app.ROAD_MAX_PAGES, 'the ceiling stops a runaway loop');
+  assert.equal(r.partial, true, 'the layer must know it is incomplete');
+  assert.deepEqual(r.notices, ['road.partial'], 'and must say so');
+  assert.deepEqual(Object.keys(app.roadMemory().seen), [],
+    'a truncated set must not seed the memory the reopened diff is built from');
+
+  const src = read('js/sources.js');
+  assert.match(src, /state\.roadsPartial \? `\$\{ROAD_ATTRIB\} · \$\{t\('road\.partial'\)\}` : ROAD_ATTRIB/,
+    'the map attribution must carry the partial claim, not just a dismissable toast');
+  assert.match(read('js/panels.js'), /state\.roadsPartial \? `<div class="rcv-note">\$\{esc\(t\('road\.partial'\)\)\}/,
+    'the Roads tab must repeat that the closure list is partial');
+  for (const lang of ['en', 'es']) {
+    assert.ok(I18N[lang]['road.partial'] && !I18N[lang]['road.partial'].includes('—'), `${lang} road.partial`);
+  }
+  assert.notEqual(I18N.en['road.partial'], I18N.es['road.partial']);
 });
 
 test('a failed page leaves the layer retryable rather than half loaded', async () => {

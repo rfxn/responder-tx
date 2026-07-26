@@ -13,6 +13,8 @@
 #   6 the 911-gate Escape check still has teeth when read from HEAD
 #   7 the data lane still reads the working tree under --code-from-head
 #   8 run-cycle.sh actually passes the flag
+#   9 data/event.json is data: both lanes read the working tree, so an uncommitted re-target
+#     is what gets validated (the copy the generators and the client actually load)
 # Runs against a scratch git repo, never the real one. Run: bash tests/cycle-check.test.sh
 set -uo pipefail
 
@@ -370,6 +372,67 @@ if [ "$A" -ne 0 ] && grep -q 'cannot read version from data/version.json' "$WORK
     pass "22 a missing data/version.json fails the version gate"
 else
     fail "22 missing version.json rejected (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 23-26: event.json is DATA, so both lanes must read the working tree ---
+# The generators and the client read data/event.json from the working tree with no commit — that is
+# the deliberate design that lets an AO re-target take effect immediately. A code-lane check that
+# read HEAD's copy would validate the previous config and never see the change it exists to catch.
+usgs_fixture() {  # core.js exposing the bbox gate's contract, plus a committed in-budget gaugeBbox
+    cat > "$REPO/js/core.js" <<'JS'
+const APP_VERSION = 'v1.0.0';
+const USGS_BBOX_LIMIT = 25;
+const USGS_BBOX_BUDGET = 20;
+const USGS_BBOX_MAX_TILES = 4;
+const CONFIG = {
+  usgsIvBase: 'https://example.test/iv',
+  gaugeBbox: { xmin: -98.0, ymin: 29.0, xmax: -97.0, ymax: 30.0 },
+};
+const usgsBboxCost = (b) => (b.xmax - b.xmin) * (b.ymax - b.ymin);
+const usgsBboxTiles = (b) => [b];
+JS
+    printf '%s\n' '{"gaugeBbox":{"xmin":-98.0,"ymin":29.0,"xmax":-97.0,"ymax":30.0}}' > "$REPO/data/event.json"
+    ( cd "$REPO" && git add -A && git commit --quiet -m 'commit an in-budget gaugeBbox' )
+}
+
+setup
+usgs_fixture
+run_check --code-from-head; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   USGS bbox area cap' "$WORK/out"; then
+    pass "23 the committed in-budget gaugeBbox passes the bbox gate"
+else
+    fail "23 in-budget gaugeBbox passes (rc=${A})"; cat "$WORK/out"
+fi
+
+# MUTATION: re-target the AO in the working tree only, exactly as an operator does
+printf '%s\n' '{"gaugeBbox":{"xmin":-106.0,"ymin":25.0,"xmax":-93.0,"ymax":37.0}}' > "$REPO/data/event.json"
+run_check --code-from-head; A=$?
+if [ "$A" -ne 0 ] && grep -q 'FAIL: USGS bbox area cap' "$WORK/out"; then
+    pass "24 MUTATION · an UNCOMMITTED oversized gaugeBbox is caught (the gate reads the config the pipeline uses)"
+else
+    fail "24 uncommitted oversized gaugeBbox caught (rc=${A})"; cat "$WORK/out"
+fi
+
+# and the converse: a bad box at HEAD that the tree has already fixed must not fail the cycle
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit the oversized gaugeBbox' )
+printf '%s\n' '{"gaugeBbox":{"xmin":-98.0,"ymin":29.0,"xmax":-97.0,"ymax":30.0}}' > "$REPO/data/event.json"
+run_check --code-from-head; A=$?
+if [ "$A" -eq 0 ]; then
+    pass "25 a bbox already fixed in the working tree passes, even though HEAD still carries the bad one"
+else
+    fail "25 working-tree fix passes (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# the brand hook reads event.json too, and had the same confusion
+setup
+printf '%s\n' '{"name":"Fixture Flood"}' > "$REPO/data/event.json"  # uncommitted: boot.js at HEAD sets no baseTitle
+run_check --code-from-head; A=$?
+if [ "$A" -ne 0 ] && grep -q 'FAIL: event-config brand hook' "$WORK/out"; then
+    pass "26 the brand hook also reads the working-tree event.json, not HEAD's"
+else
+    fail "26 brand hook reads the working tree (rc=${A})"; cat "$WORK/out"
 fi
 rm -rf "$WORK"
 

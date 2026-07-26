@@ -1062,6 +1062,11 @@ function renderUsgsIv() {
 /* ---------- TDEM DriveTexas live road conditions (closed / high-water / damage) ---------- */
 
 const ROAD_ATTRIB = 'Road conditions: TxDOT DriveTexas / TDEM (drivetexas.org)';
+// ArcGIS truncation signal, shared by the DriveTexas and TxGIO queries below: top level in
+// GeoJSON output, nested under properties in other builds of the service
+const arcgisHasMore = (d) => Boolean(d && (d.exceededTransferLimit || (d.properties && d.properties.exceededTransferLimit)));
+const ROAD_PAGE = 2000; // the service's own maxRecordCount
+const ROAD_MAX_PAGES = 8; // runaway guard; the statewide set runs in the tens even in a major event
 // Closure + Flooding are prominent reds; Damage a distinct amber. Construction/Accident excluded server-side.
 const ROAD_COND = {
   Closure: { key: 'road.cond.closure', color: '#e5342f' },
@@ -1108,15 +1113,30 @@ function roadParams(outFields) {
   });
 }
 
+// paged: an unpaged query stops at the service's maxRecordCount, and every closure past that cut
+// would be missing from the map and read as cleared by the reopened diff
 async function fetchRoadClosures() {
   const fields = 'condition,route_name,travel_direction,from_limit,to_limit,description,start_time,end_time,detour_flag,delay_flag';
-  const res = await fetch(`${CONFIG.roadCondUrl}?${roadParams(fields)}`);
-  if (!res.ok) throw new Error(`DriveTexas HTTP ${res.status}`);
-  const data = await res.json();
+  const pages = [];
+  let partial = false;
+  for (let page = 0; page < ROAD_MAX_PAGES; page++) {
+    const qs = roadParams(fields);
+    qs.set('resultRecordCount', String(ROAD_PAGE));
+    qs.set('resultOffset', String(page * ROAD_PAGE));
+    const res = await fetch(`${CONFIG.roadCondUrl}?${qs}`);
+    if (!res.ok) throw new Error(`DriveTexas HTTP ${res.status}`);
+    const data = await res.json();
+    const got = data.features || [];
+    pages.push(got);
+    if (!got.length || !arcgisHasMore(data)) { partial = false; break; }
+    partial = true; // more records remain; only survives the loop when the ceiling cuts paging short
+  }
+  state.roadsPartial = partial;
+  if (partial) opNotice(t('road.partial'));
   // keep points: [] so renderRoadClosures's points loop stays safe (DriveTexas API is lines-only)
-  state.roadClosures = { lines: (data.features || []).filter(roadCondActive), points: [] };
+  state.roadClosures = { lines: [].concat(...pages).filter(roadCondActive), points: [] };
   markHealthy('roads');
-  updateRoadMemory(state.roadClosures.lines);
+  updateRoadMemory(state.roadClosures.lines, partial);
   renderRoadClosures();
   renderRoadsTab(); // live conditions are listed in Roads, not only drawn on the map
   renderReopenedMap();
@@ -1177,9 +1197,11 @@ function roadMemory() {
   return state.roadMemory;
 }
 
-// diff only a non-empty successful fetch — a failed or empty response must never mark everything reopened
-function updateRoadMemory(lines) {
-  if (!lines.length) return;
+// diff only a complete, non-empty, successful fetch. An empty response and a truncated one both
+// hide live closures, so either would mark the missing segments reopened: a green recovery check
+// on a road that is still under water. A partial fetch keeps the last good reopened set instead.
+function updateRoadMemory(lines, partial) {
+  if (!lines.length || partial) return;
   const mem = roadMemory();
   const now = new Date().toISOString();
   const live = new Set();
@@ -1246,10 +1268,11 @@ function renderRoadClosures() {
   if (!layer) return;
   layer.clearLayers();
   const rc = state.roadClosures || { lines: [], points: [] };
+  const attrib = state.roadsPartial ? `${ROAD_ATTRIB} · ${t('road.partial')}` : ROAD_ATTRIB;
   for (const f of rc.lines) {
     if (!f.geometry) continue;
     const ct = roadCondType(f.properties);
-    const gj = L.geoJSON(f, { style: { color: ct.color, weight: 5, opacity: 0.9 }, attribution: ROAD_ATTRIB });
+    const gj = L.geoJSON(f, { style: { color: ct.color, weight: 5, opacity: 0.9 }, attribution: attrib });
     gj.bindPopup(roadPopupHtml(f.properties, f.geometry));
     layer.addLayer(gj);
   }
@@ -1257,7 +1280,7 @@ function renderRoadClosures() {
     const c = f.geometry && f.geometry.coordinates;
     if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
     const ct = roadCondType(f.properties);
-    const m = L.circleMarker([c[1], c[0]], { radius: 7, color: '#fff', weight: 1.5, fillColor: ct.color, fillOpacity: 0.95, attribution: ROAD_ATTRIB });
+    const m = L.circleMarker([c[1], c[0]], { radius: 7, color: '#fff', weight: 1.5, fillColor: ct.color, fillOpacity: 0.95, attribution: attrib });
     m.bindPopup(roadPopupHtml(f.properties));
     layer.addLayer(m);
   }
@@ -1425,8 +1448,6 @@ function renderTropical(d) {
 const LWC_ATTRIB = 'Low-water crossings: TxGIO (Texas Geographic Information Office)';
 const LWC_PAGE = 2000; // the service's own maxRecordCount
 const LWC_MAX_PAGES = 15; // runaway guard; the AO holds ~8.3k points, so this leaves ~3.5x headroom
-// paging signal: top level in this service's GeoJSON, nested under properties in other ArcGIS builds
-const lwcHasMore = (d) => Boolean(d && (d.exceededTransferLimit || (d.properties && d.properties.exceededTransferLimit)));
 
 // lazy: fetched once on first overlayadd, paged until the service stops reporting more records
 async function fetchLwc() {
@@ -1454,7 +1475,7 @@ async function fetchLwc() {
       const d = await r.json();
       const got = d.features || [];
       pages.push(got);
-      if (!got.length || !lwcHasMore(d)) { partial = false; break; }
+      if (!got.length || !arcgisHasMore(d)) { partial = false; break; }
       partial = true; // more records remain; only survives the loop when the ceiling cuts paging short
     }
     state.lwcPartial = partial;

@@ -1,5 +1,26 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.50 · 2026-07-26 (the whole closure list, and crests kept in playback)
+
+-- Bug Fixes --
+- [Fix] The road closure layer loads every closure in the area. A large closure
+      list used to stop short, leaving closures off the map and out of the Roads
+      tab
+- [Fix] A partial closure load no longer marks the missing roads as recently
+      reopened. The board keeps the last confirmed recovery list and says on the
+      map and in the Roads tab that the closure list is incomplete
+- [Fix] The road closure archive keeps its last complete capture rather than
+      recording a short one, so a closure missing from a reply is no longer
+      written into playback as having cleared
+- [Fix] Reconstructed playback history keeps the frame holding each river's
+      crest. This applies to reconstruction from here on; crest frames already
+      thinned out of the record are not restored
+
+-- Changes --
+- [Change] The pre-publish checks validate the live area-of-operations settings
+           rather than the last committed copy, so a retarget is checked before
+           it goes out
+
 ## v0.99.49 · 2026-07-26 (the USGS layer reports again)
 
 -- Bug Fixes --

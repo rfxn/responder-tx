@@ -24,7 +24,13 @@ failck() { echo "FAIL: $*"; FAILURES=$((FAILURES + 1)); }
 # so a release agent's half-finished version bump cannot fail a data cycle and strand the public
 # board on stale flood data. Without the flag the code lane reads the tree at full strength, which
 # is what a release agent needs before committing a bump.
+#
+# data/event.json is a DATA file that two code-lane checks read, so it follows the data lane in both
+# modes: the generators read it from the working tree with no commit, so that is the config the
+# pipeline actually runs on. Gating HEAD's copy validates a box nothing is using yet, and a bad box
+# already at HEAD must not stop the data cycle from publishing fresh flood data either.
 CODE_ROOT="."
+DATA_ROOT="."
 CODE_TMP=""
 # shellcheck disable=SC2317  # reached only via the EXIT trap below
 cleanup_code_snapshot() {
@@ -40,11 +46,11 @@ if [ "$CODE_FROM_HEAD" -eq 1 ]; then
     command mkdir -p "$CODE_ROOT/js" "$CODE_ROOT/data"
     while IFS= read -r f; do
         git show "HEAD:$f" > "$CODE_ROOT/$f" || { echo "FAIL: cannot read ${f} from HEAD" >&2; exit 1; }
-    done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/event.json data/version.json \
-        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|event|version)\.json$')
+    done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/version.json \
+        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|version)\.json$')
     echo "note: code-lane checks read HEAD ($(git rev-parse --short HEAD)); data-lane checks read the working tree"
 fi
-export CODE_ROOT
+export CODE_ROOT DATA_ROOT
 
 # a. JSON validity
 check_json() {
@@ -180,7 +186,7 @@ const fail = (m) => { console.error(`event-brand gate: ${m}`); process.exit(1); 
 const root = process.env.CODE_ROOT || '.';
 const boot = fs.readFileSync(`${root}/js/boot.js`, 'utf8');
 const html = fs.readFileSync(`${root}/index.html`, 'utf8');
-const ev = JSON.parse(fs.readFileSync(`${root}/data/event.json`, 'utf8'));
+const ev = JSON.parse(fs.readFileSync(`${process.env.DATA_ROOT || '.'}/data/event.json`, 'utf8'));
 const m = boot.match(/async function loadEventConfig\(\)[\s\S]*?\n\}/);
 if (!m) fail('loadEventConfig() not found in js/boot.js');
 const fn = m[0];
@@ -574,7 +580,7 @@ for (const k of ['usgsBboxTiles', 'usgsBboxCost']) {
 if (!(G.USGS_BBOX_BUDGET < G.USGS_BBOX_LIMIT)) fail('USGS_BBOX_BUDGET must sit under USGS_BBOX_LIMIT');
 
 let ev = {};
-try { ev = JSON.parse(fs.readFileSync(`${root}/data/event.json`, 'utf8')); } catch { /* absent event.json: CONFIG's built-in bbox is what ships */ }
+try { ev = JSON.parse(fs.readFileSync(`${process.env.DATA_ROOT || '.'}/data/event.json`, 'utf8')); } catch { /* absent event.json: CONFIG's built-in bbox is what ships */ }
 // event.json without a gaugeBbox is legal; loadEventConfig then leaves CONFIG's own bbox in place
 const boxes = [['CONFIG.gaugeBbox fallback', G.CONFIG.gaugeBbox]];
 if (ev.gaugeBbox) boxes.unshift(['data/event.json gaugeBbox', ev.gaugeBbox]);

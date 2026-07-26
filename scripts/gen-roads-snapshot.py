@@ -30,6 +30,45 @@ DEFAULT_BBOX = (-106.65, 25.83, -93.4, 36.5)
 # mirror js/sources.js roadParams — construction-coded closures excluded
 WHERE = ("condition IN ('Flooding','Closure','Damage') AND "
          "(description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')")
+PAGE = 2000        # the service's own maxRecordCount
+MAX_PAGES = 8      # runaway guard; the statewide set runs in the tens even in a major event
+
+
+def arcgis_has_more(doc):
+    """ArcGIS truncation signal: top level in GeoJSON output, nested under properties elsewhere."""
+    if not isinstance(doc, dict):
+        return False
+    props = doc.get("properties")
+    return bool(doc.get("exceededTransferLimit")
+                or (isinstance(props, dict) and props.get("exceededTransferLimit")))
+
+
+def fetch_features(bbox):
+    """Every closure in the bbox, paged. Returns (features, truncated); truncated means the
+    ceiling cut paging short, so the set is short of what the service holds."""
+    feats = []
+    for page in range(MAX_PAGES):
+        params = urllib.parse.urlencode({
+            "where": WHERE,
+            "geometry": f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}",
+            "geometryType": "esriGeometryEnvelope",
+            "inSR": "4326",
+            "spatialRel": "esriSpatialRelIntersects",
+            "outSR": "4326",
+            "outFields": "OBJECTID,condition,route_name,description,start_time,end_time",
+            "resultRecordCount": str(PAGE),
+            "resultOffset": str(page * PAGE),
+            "f": "geojson",
+        })
+        with urllib.request.urlopen(f"{URL}?{params}", timeout=30) as r:
+            doc = json.load(r)
+        # ArcGIS returns 200 OK with an {"error":...} body; never archive that as an empty-roads day
+        if not isinstance(doc, dict) or "error" in doc or not isinstance(doc.get("features"), list):
+            raise ValueError(f"response is not a FeatureCollection: {str(doc)[:200]}")
+        feats += doc["features"]
+        if not doc["features"] or not arcgis_has_more(doc):
+            return feats, False
+    return feats, True
 
 
 def event_bbox(key):
@@ -67,28 +106,17 @@ def main():
     bbox = event_bbox("captureBbox")
     display = event_bbox("gaugeBbox")
     print(f"gen-roads-snapshot: capture bbox {bbox} | display bbox {display}")
-    params = urllib.parse.urlencode({
-        "where": WHERE,
-        "geometry": f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}",
-        "geometryType": "esriGeometryEnvelope",
-        "inSR": "4326",
-        "spatialRel": "esriSpatialRelIntersects",
-        "outSR": "4326",
-        "outFields": "OBJECTID,condition,route_name,description,start_time,end_time",
-        "f": "geojson",
-    })
     try:
-        with urllib.request.urlopen(f"{URL}?{params}", timeout=30) as r:
-            gj = json.load(r)
+        feats, truncated = fetch_features(bbox)
     except Exception as e:  # noqa: BLE001 — archive is best-effort; cycle must not fail on TxDOT flakes
         print(f"warn: roads snapshot fetch failed, keeping previous file: {e}", file=sys.stderr)
         return
-    # ArcGIS returns 200 OK with an {"error":...} body; never archive that as an empty-roads day
-    if not isinstance(gj, dict) or "error" in gj or not isinstance(gj.get("features"), list):
-        print(f"warn: roads snapshot response is not a FeatureCollection, "
-              f"keeping previous file: {str(gj)[:200]}", file=sys.stderr)
+    # a short set archives live closures as absent, and this archive is the only record there is:
+    # gen-history.py reads absence as cleared, so a truncated capture invents road recoveries
+    if truncated:
+        print(f"warn: roads snapshot still truncated after {MAX_PAGES} pages "
+              f"({len(feats)} features), keeping previous file", file=sys.stderr)
         return
-    feats = gj["features"]
     roads = []
     for f in feats:
         try:

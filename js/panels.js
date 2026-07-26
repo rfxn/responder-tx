@@ -1443,13 +1443,14 @@ function renderRoadsTab() {
   if (badge) badge.textContent = String(live.length);
   if (!el) return;
   // whole-mile distance buckets: a moving fix must not repaint (and reset the scroll) every tick
-  const fp = JSON.stringify(rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0]));
+  const fp = JSON.stringify([state.roadsPartial === true, rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
   if (fp === state.roadsTabFp) return;
   state.roadsTabFp = fp;
   // one list, not one group per feed: a crossing shut two miles away must not sit below forty
   // distant TxDOT rows just because a different operator reported it
   el.innerHTML = rows.length
     ? `<div class="section-title">${esc(t('roads.live.title'))}</div>` +
+      (state.roadsPartial ? `<div class="rcv-note">${esc(t('road.partial'))}</div>` : '') +
       (unconf.length ? `<div class="rcv-note">${esc(t('cross.unconfirmed').replace('{n}', unconf.length))}</div>` : '') +
       rows.map(roadsRowHtml).join('') +
       `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`

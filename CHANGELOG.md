@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.63 · 2026-07-27 (a glance summary above the board tabs)
+
+-- New Features --
+- [New] A row of summary cards now sits above the board tabs whenever hazards
+      are active: hazards in effect, gauges in flood, gauges rising, roads
+      closed, and crossings closed or on caution
+- [New] Each card opens what it counts. A lone hazard frames itself on the map,
+      the gauge cards frame the gauges they speak for, and the road and crossing
+      cards open their tab
+- [New] A card whose source could not be read shows a question mark instead of a
+      count, so an unreadable feed never reads as none
+
 ## v0.99.62 · 2026-07-27 (a slow source can no longer stall the refresh)
 
 -- Changes --

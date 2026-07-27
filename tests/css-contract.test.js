@@ -311,22 +311,60 @@ test('the header stays one row at every width and the tiles are gone', () => {
   assert.ok(/document\.title\s*=/.test(fn[0]), 'renderTiles() no longer updates document.title');
 });
 
-/* The scrolling hazard line cycles every ranked item, so the count chips above it said the same
-   thing twice. The strip now stands down while the line has anything to carry, and keeps only the
-   all-clear the line cannot express, because an empty line and a calm board look identical. */
-test('the strip stands down while the hazard line is carrying, and never repeats it as counts', () => {
+/* The count chips were retired because they restated the scrolling line item for item. The hero
+   cards replace them on the opposite principle: the line enumerates, the cards aggregate, and the
+   two things the line can never carry are a total and a source it could not read. The all-clear
+   still renders only when the line is empty, so a green claim cannot sit over a live hazard. */
+test('the hero cards aggregate what the hazard line enumerates, and never restate it item for item', () => {
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
   const fn = panels.match(/function renderThreatStrip\(\)[\s\S]*?\n\}/);
   assert.ok(fn, 'renderThreatStrip() not found');
   assert.ok(/tickerItems\(\)\.length/.test(fn[0]),
-    'the strip must stand down while the hazard line has items, or the two are stacked again');
+    'the strip must still branch on the hazard line, or the all-clear can render over a live hazard');
+  assert.ok(/heroCardsHtml\(/.test(fn[0]),
+    'the strip renders nothing while the line is carrying; the hero cards are gone again');
   for (const gone of ['threat-grid', 'stat-row', 'ffe-row', 'threat-headline', 'appendChipGrid', 'headlineParts']) {
     assert.ok(!panels.includes(gone), `js/panels.js still builds the retired ${gone}`);
   }
-  // the all-clear states are the strip's whole remaining job: losing them leaves a calm board blank
+  const cards = panels.match(/function heroCards\(\)[\s\S]*?\n\}\n/);
+  assert.ok(cards, 'heroCards() not found');
+  // the two counts the scrolling line has never carried are the cards' reason to exist
+  assert.ok(/roadFeatures\(\)/.test(cards[0]), 'the cards dropped the road-closure count the line cannot carry');
+  assert.ok(/state\.crossings/.test(cards[0]), 'the cards dropped the crossing count the line cannot carry');
+  /* E1: an unreadable source is not a zero. Counted, not merely matched: the same flags also pick
+     the tone and the subtitle, so an `includes` passes with the count guard deleted, and two cards
+     share gaugesUnknown, so a presence test survives losing one of them. Four of the five counts
+     carry a guard; the hazard count needs none because the render gates on alertsLoadedOnce. */
+  const nFields = (cards[0].match(/^\s*n:/gm) || []).length;
+  assert.equal(nFields, 5, 'expected one count per hero card');
+  const guarded = (cards[0].match(/^\s*n:\s*[A-Za-z.]*[Uu]nknown \? null :/gm) || []).length;
+  assert.equal(guarded, 4,
+    'every count but the alert count must render null (?) when its source is unread, never 0');
+  assert.ok(/c\.n === null \? '\?' : c\.n/.test(panels),
+    'the null count must render as ? rather than falling back to a number');
+  assert.ok(/!state\.alertsLoadedOnce/.test(fn[0]),
+    'counts must not render before the first alert load, or the board asserts a zero it never checked');
+  // the all-clear states are what the line cannot express: losing them leaves a calm board blank
   assert.ok(/quiet\.line/.test(fn[0]), 'the strip lost the quiet all-clear line');
   assert.ok(/threat\.okline/.test(fn[0]), 'the strip lost the no-active-threats line');
   assert.ok(/playback\.striplive/.test(fn[0]), 'the strip lost the playback live-data note');
+});
+
+/* Every card is a button that must reach a real surface, and the tone must survive a hover: the
+   global `button:hover { border-color }` rule would otherwise repaint the left edge that carries it. */
+test('every hero card is actionable and keeps its tone under hover', () => {
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  const cards = panels.match(/function heroCards\(\)[\s\S]*?\n\}\n/)[0];
+  const acts = (cards.match(/act:/g) || []).length;
+  assert.equal(acts, 5, 'expected five hero cards, each with an action');
+  assert.ok(!/act:\s*(null|undefined)/.test(cards), 'a hero card has no action; every card must reach a surface');
+  const hover = CSS.match(/\.hero-card:hover[^{]*\{[^}]*\}/);
+  assert.ok(hover, '.hero-card hover rule not found');
+  assert.ok(!/border-color/.test(hover[0]),
+    'the hover repaints border-color, which erases the tone the left border carries');
+  for (const tone of ['emergency', 'major', 'warn', 'ok']) {
+    assert.ok(CSS.includes(`.hero-card.tone-${tone}`), `css lost the ${tone} hero-card tone`);
+  }
 });
 
 /* The open-shelter count briefly rode in the header. The owner removed it: the settings menu

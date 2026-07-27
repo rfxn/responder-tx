@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.63",
+      "date": "2026-07-27",
+      "line": "A row of summary cards now sits above the board tabs whenever hazards are active: hazards in effect, gauges in flood, gauges rising, roads closed, and crossings closed or on caution. Each card opens what it counts, framing the gauges or the hazard it speaks for on the map. A card whose source could not be read shows a question mark instead of a count, so an unreadable feed never reads as none."
+    },
+    {
       "v": "v0.99.62",
       "date": "2026-07-27",
       "line": "Each source in the 15-minute refresh now has a time limit, and the refresh as a whole has one. A source that runs past its limit is stopped and keeps its previous data with its own timestamp, and the refresh record names it as timed out separately from a source that is unreachable. Everything that finished in time still publishes, so a single slow source no longer delays the following refresh. The archive rebuild limits how long it spends fetching from upstream and resumes where it stopped on the next refresh, without dropping anything already recorded. The public feeds are written so an interrupted refresh leaves the previous feed in place rather than a partial one."

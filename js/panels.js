@@ -1121,14 +1121,104 @@ function feedCalmOk() {
   return !(state.alerts || []).length && quietState();
 }
 
-/* The hazard line carries the ranked live items now, so the strip no longer repeats them as
-   counts. What is left is the reassurance that line cannot give: it renders only when the line
-   has nothing to carry, so the two are never stacked. */
+/* Hero cards answer the questions asked before moving: am I in danger, is water high, is it getting
+   worse, can I drive, can I cross. They aggregate where the hazard line enumerates, so the two are
+   complementary rather than the same claim twice. Every count reuses the predicate the tab it points
+   at renders from, so a card cannot drift from the surface behind it. A card whose source could not
+   be read shows "?" and never a zero. */
+function heroCards() {
+  const acute = alertDedupe(state.alerts.filter((f) => alertOpen(f) && hazardGlance(f)));
+  const life = acute.filter((f) => f._sev === 'emergency');
+  const flood = state.gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
+  const major = flood.filter((g) => gaugeCat(g) === 'major');
+  const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
+    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
+  const roads = roadFeatures();
+  const xings = (state.crossings || []).filter((c) => c.status && c.status !== 'open');
+  // no gauge loaded at all is an unreadable source, not a river running normal
+  const gaugesUnknown = !state.gauges.length;
+  const pts = (list) => list.map((g) => [g.latitude, g.longitude]).filter((p) => Number.isFinite(p[0]));
+  const frame = (latlngs) => () => { fitTo(latlngs); revealMapOnPhone(); };
+  const openTab = (tab) => () => document.querySelector(`.tabs button[data-tab="${tab}"]`).click();
+
+  return [
+    {
+      key: 'haz',
+      glyph: '⚠',
+      n: acute.length,
+      tone: life.length ? 'emergency' : (acute.length ? 'warn' : 'ok'),
+      label: t('hero.haz'),
+      sub: life.length ? t('hero.haz.life').replace('{n}', String(life.length)) : t('hero.haz.sub'),
+      act: acute.length === 1 ? () => focusAlert(acute[0], true) : openTab('tab-alerts'),
+    },
+    {
+      key: 'flood',
+      glyph: '●',
+      n: gaugesUnknown ? null : flood.length,
+      tone: major.length ? 'major' : (flood.length ? 'warn' : 'ok'),
+      label: t('hero.flood'),
+      sub: gaugesUnknown ? t('hero.unknown')
+        : (major.length ? t('hero.flood.major').replace('{n}', String(major.length)) : t('hero.flood.sub')),
+      act: flood.length ? frame(pts(flood)) : openTab('tab-gauges'),
+    },
+    {
+      key: 'rise',
+      glyph: '▲',
+      n: gaugesUnknown ? null : rising.length,
+      tone: rising.length ? 'warn' : 'ok',
+      label: t('hero.rise'),
+      sub: gaugesUnknown ? t('hero.unknown')
+        : (rising.length ? t('hero.rise.crest').replace('{t}', relWhen(rising[0].status.forecast.validTime)) : t('hero.rise.sub')),
+      act: rising.length ? () => focusGauges(rising, rising[0]) : openTab('tab-gauges'),
+    },
+    {
+      key: 'roads',
+      glyph: '🚧',
+      n: state.roadsUnknown ? null : roads.length,
+      tone: roads.length && !state.roadsUnknown ? 'warn' : 'ok',
+      label: t('hero.roads'),
+      sub: state.roadsUnknown ? t('hero.unknown') : t('hero.roads.sub'),
+      act: openTab('tab-roads'),
+    },
+    {
+      key: 'xing',
+      glyph: '⛔',
+      n: state.crossingsUnknown ? null : xings.length,
+      tone: xings.length && !state.crossingsUnknown ? 'warn' : 'ok',
+      label: t('hero.xing'),
+      sub: state.crossingsUnknown ? t('hero.unknown') : t('hero.xing.sub'),
+      act: xings.length
+        ? frame(xings.filter((c) => Number.isFinite(c.lat)).map((c) => [c.lat, c.lon]))
+        : openTab('tab-roads'),
+    },
+  ];
+}
+
+const heroCardsHtml = (cards) => `<div class="hero-cards">${cards.map((c) => (
+  `<button class="hero-card tone-${c.tone}" data-hero="${esc(c.key)}" title="${esc(c.label)}: ${esc(c.sub)}">`
+  + `<span class="hc-n">${c.n === null ? '?' : c.n}</span>`
+  + `<span class="hc-label">${esc(c.glyph)} ${esc(c.label)}</span>`
+  + `<span class="hc-sub">${esc(c.sub)}</span></button>`
+)).join('')}</div>`;
+
+/* The hazard line carries the ranked live items, and the hero cards carry the shape of the
+   situation as counts. The reassurance below is what neither can give: it renders only when the
+   line has nothing to carry, so a green all-clear can never sit over a live hazard. */
 function renderThreatStrip() {
   const el = $('#threat-strip');
   // playback engaged: the dimmed strip stays LIVE data, say so, never let it read as the frame
   const pbNote = pbBlocksLive(state) ? `<div class="strip-live-note">${esc(t('playback.striplive'))}</div>` : '';
-  if (!state.alertsLoadedOnce || tickerItems().length) { el.innerHTML = pbNote; return; }
+  // counts before the first alert load would assert a zero the board has not checked
+  if (!state.alertsLoadedOnce) { el.innerHTML = pbNote; return; }
+  if (tickerItems().length) {
+    const cards = heroCards();
+    el.innerHTML = pbNote + heroCardsHtml(cards);
+    for (const b of el.querySelectorAll('[data-hero]')) {
+      const card = cards.find((c) => c.key === b.getAttribute('data-hero'));
+      if (card) b.addEventListener('click', card.act);
+    }
+    return;
+  }
   if (quietState()) {
     const scope = alertScope();
     const gauges = quietGauges(scope);

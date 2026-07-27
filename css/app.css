@@ -291,6 +291,33 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
   background: color-mix(in srgb, var(--good) 6%, transparent);
 }
 
+/* the five cards hold their slots whether or not they carry a count, so the eye learns positions
+   and a zero reads as "checked and clear" rather than as an absence */
+/* auto-fit rather than a fixed count: the 420px sidebar lands on 3 across, a widened one or a
+   landscape tablet takes 4-5, and the phone sheet keeps 3 without a breakpoint to maintain */
+.hero-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 6px; }
+.hero-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 6px 8px; min-height: 0; text-align: left; cursor: pointer;
+  background: var(--surface-1); border: 1px solid var(--hairline);
+  border-left: 3px solid var(--hairline); border-radius: 5px;
+}
+/* background, not border-color: the tone lives in the left border and a hover must not repaint it */
+.hero-card:hover, .hero-card:focus-visible { background: var(--surface-2); }
+.hero-card .hc-n { font-size: 19px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.hero-card .hc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; }
+.hero-card .hc-sub {
+  font-size: 10px; color: var(--ink-2); line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+.hero-card.tone-emergency { border-left-color: var(--sev-emergency); }
+.hero-card.tone-emergency .hc-n { color: var(--sev-emergency); }
+.hero-card.tone-major { border-left-color: var(--cat-major); }
+.hero-card.tone-major .hc-n { color: var(--cat-major); }
+.hero-card.tone-warn { border-left-color: var(--sev-warning); }
+.hero-card.tone-warn .hc-n { color: var(--sev-warning); }
+.hero-card.tone-ok .hc-n { color: var(--ink-2); }
+
 .cutoff-circle {
   stroke: var(--sev-emergency); fill: var(--sev-emergency);
   stroke-dasharray: 8 6;

@@ -426,7 +426,6 @@ function intakeToast(msg) {
 const PLACES_KEY = 'respondertx.places';
 const RISK_GAUGE_MI = 15; // nearest-gauge search radius
 const RISK_NEAR_MI = 6;   // "within a few mi" for road/cutoff notices
-const SEV_ORDER = ['emergency', 'warning', 'watch', 'advisory'];
 
 function loadPlaces() {
   try { return JSON.parse(localStorage.getItem(PLACES_KEY)) || []; } catch { return []; }
@@ -552,7 +551,7 @@ function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
   const mi = t('risk.mi');
   const parts = [];
   if (nearAlerts.length) {
-    const worst = nearAlerts.slice().sort((a, b) => SEV_ORDER.indexOf(a._sev) - SEV_ORDER.indexOf(b._sev))[0];
+    const worst = nearAlerts.slice().sort(alertSevCmp)[0];
     parts.push(`${worst.properties.event}${worst._sev === 'emergency' ? `: ${t('risk.read.emerg')}` : ''} ${t('risk.read.covers')}`);
   }
   if (gauges.length) {
@@ -573,7 +572,7 @@ function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
 // shared computation — the address modal and the map point inspector both consume this
 function riskAssess(lat, lon) {
   const gauges = nearestGauges(lat, lon, RISK_GAUGE_MI, 3);
-  const nearAlerts = state.alerts.filter((f) => alertNearPoint(f, lat, lon));
+  const nearAlerts = state.alerts.filter((f) => alertOpen(f) && alertNearPoint(f, lat, lon));
   const xCross = nearestCrossing(lat, lon, 12);
   const nNotice = nearestNotice(lat, lon, RISK_NEAR_MI);
   return { gauges, nearAlerts, xCross, nNotice, read: riskOverallRead(nearAlerts, gauges, xCross, nNotice) };
@@ -593,8 +592,8 @@ function runRiskCheck(lat, lon, label) {
     html += `<div class="risk-sec"><div class="risk-sec-t">${esc(nearAlerts.length > 1 ? t('risk.sec.alertsN') : t('risk.sec.alerts1'))}</div>`;
     for (const f of nearAlerts.slice(0, 3)) {
       html += `<div class="risk-alert sev-${f._sev}"><strong>${esc(f.properties.event)}</strong>` +
-        `<div class="ra-area">${esc(f.properties.areaDesc || '')}</div>` +
-        `<div class="ra-meta">${esc(t('risk.until'))} ${esc(fmtWhen(f.properties.expires))}</div></div>`;
+        `<div class="ra-area">${esc(alertAreaText(f.properties))}</div>` +
+        `<div class="ra-meta">${esc(t('risk.until'))} ${esc(alertUntilText(f))}</div></div>`;
     }
     html += '</div>';
   } else {
@@ -649,8 +648,8 @@ function inspectContent(lat, lon) {
   html += `<button class="inspect-usng" title="${esc(t('inspect.copy'))}">${esc(usngLbl)}</button>`;
   html += `<div class="inspect-read">${esc(read)}</div>`;
   if (nearAlerts.length) {
-    const worst = nearAlerts.slice().sort((a, b) => SEV_ORDER.indexOf(a._sev) - SEV_ORDER.indexOf(b._sev))[0];
-    html += `<div class="inspect-line sev-${worst._sev}">⚠ ${esc(worst.properties.event)} · ${esc(t('risk.until'))} ${esc(fmtWhen(worst.properties.expires).split(' · ')[0])}</div>`;
+    const worst = nearAlerts.slice().sort(alertSevCmp)[0];
+    html += `<div class="inspect-line sev-${worst._sev}">⚠ ${esc(worst.properties.event)} · ${esc(t('risk.until'))} ${esc(alertUntilText(worst).split(' · ')[0])}</div>`;
   } else {
     html += `<div class="inspect-line quiet">${esc(t('inspect.noalert'))}</div>`;
   }
@@ -824,8 +823,8 @@ function sitrepFallingGauges() {
 
 function buildSitrep() {
   const now = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  const emerg = state.alerts.filter((a) => a._sev === 'emergency');
-  const warnings = state.alerts.filter((a) => a._sev === 'warning').length;
+  const emerg = state.alerts.filter((a) => a._sev === 'emergency' && alertOpen(a));
+  const warnings = state.alerts.filter((a) => a._sev === 'warning' && alertOpen(a)).length;
   const majors = state.gauges.filter((g) => gaugeCat(g) === 'major');
   const toMajor = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major');
   const reqs = activeRequests().filter((r) => r.status !== 'resolved');
@@ -833,7 +832,7 @@ function buildSitrep() {
   const cutoffs = reqs.filter((r) => r.type === 'cutoff');
   const L = [];
   L.push(`RESPONDER TX SITREP - ${now} CT`);
-  L.push(`THREAT: ${emerg.length} flash flood emergencies${emerg.length ? ` (${emerg.map((a) => a.properties.areaDesc).join(' | ')})` : ''}; ${warnings} flood warnings statewide (official)`);
+  L.push(`THREAT: ${emerg.length} flash flood emergencies${emerg.length ? ` (${emerg.map((a) => alertAreaText(a.properties)).join(' | ')})` : ''}; ${warnings} flood warnings statewide (official)`);
   L.push(`GAUGES: ${majors.length} at MAJOR, ${toMajor.length} forecast to reach major (official)`);
   for (const g of majors) {
     const tr = gaugeTrend(g.lid);

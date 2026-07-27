@@ -224,12 +224,13 @@ function renderDriveMode() {
   if ($('#drive-mode').hidden) return;
   // camera rows need the inventory — fetch once, re-render when it lands
   if (!state.cameras) loadCameras().then(() => renderDriveMode()).catch(() => { /* no cams — hazard rows unaffected */ });
-  const emerg = state.alerts.filter((a) => a._sev === 'emergency');
+  const emerg = state.alerts.filter((a) => a._sev === 'emergency' && alertOpen(a));
   const soonest = state.gauges
     .filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.moderate && new Date(g.status.forecast.validTime) > new Date())
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime))[0];
   $('#drive-threat').innerHTML =
-    (emerg.length ? `<div class="dt-emerg">⚠ ${emerg.length} ${esc(t('drive.emerg'))}: ${esc(emerg.map((a) => a.properties.areaDesc).join('; '))}</div>` : '') +
+    // a gloved ten-second read: the two nearest AO counties per alert, the rest counted, never a 430-char line
+    (emerg.length ? `<div class="dt-emerg">⚠ ${emerg.length} ${esc(t('drive.emerg'))}: ${esc(emerg.map((a) => alertAreaText(a.properties, 2)).join('; '))}</div>` : '') +
     (soonest ? `<div class="dt-crest">${esc(t('drive.nextcrest'))} ${esc(riverOf(soonest.name))} ${esc(fmtWhen(soonest.status.forecast.validTime))}</div>` : '') +
     (state.myPos ? '' : `<div class="dt-nogps">${esc(t('drive.nogps'))}</div>`);
   const items = driveItems();
@@ -1110,9 +1111,12 @@ const relWhen = (iso) => fmtWhen(iso).split(' · ')[0];
 function tickerItems() {
   const emerg = [], rise = [], majors = [];
   const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
-  for (const a of state.alerts.filter((x) => x._sev === 'emergency' && new Date(x.properties.expires) > new Date())) {
-    const where = (a.properties.areaDesc || '?').split(';')[0].replace(/, TX$/, '');
-    const until = new Date(a.properties.expires).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
+  for (const a of state.alerts.filter((x) => x._sev === 'emergency' && alertOpen(x))) {
+    const where = alertAreaLead(a.properties);
+    const end = alertEndsAt(a);
+    const until = end
+      ? new Date(end).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })
+      : t('alert.further');
     emerg.push({ text: t('ticker.ffe').replace('{where}', where).replace('{t}', until), color: 'var(--sev-emergency)', act: goAlerts });
   }
   const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)

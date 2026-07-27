@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.55",
+      "date": "2026-07-27",
+      "line": "An alert now stays on the board until the hazard ends rather than until its next update is due, so a flood warning whose update is due tonight but which runs through Wednesday stays on the map, in the ticker, in the risk answer and in the all-clear check for its full length. A warning issued until further notice is shown as in effect until further notice instead of counting down to an update deadline. The Alerts tab, its count badge, Drive Mode, the SITREP and the map point check all agree on which alerts are still in effect, and an alert past its end folds into the expired list rather than leaving the tab. The ticker no longer hides a flash flood emergency that carries no end time. An alert of an unrecognised severity no longer outranks a flash flood emergency. Alert cards, popups and the SITREP name the counties inside the area of operations and state the number outside it, and Drive Mode leads with the two nearest counties and counts the rest."
+    },
+    {
       "v": "v0.99.54",
       "date": "2026-07-26",
       "line": "Road closures stay on the board when the live TxDOT feed is unreachable: the most recent saved closure set is served instead, labelled as a snapshot and timed from when it was taken. Snapshot closures are listed and mapped but left out of the Roads count, and the closure feed still reads as down while one is serving. Road reopenings are detected from the live feed only, so a snapshot can never report a road as reopened. When neither the live feed nor a saved snapshot can be read, the Roads tab reports the closure set as unknown rather than reporting no closures, and the all-clear is withheld."

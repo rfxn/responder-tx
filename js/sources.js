@@ -10,6 +10,14 @@ function alertSeverity(p) {
   return 'advisory';
 }
 
+/* The one severity ladder. Read the rank through alertSevRank, never through indexOf() on a list:
+   indexOf returns -1 for a value it does not know, and -1 sorts ABOVE emergency, so an unrecognised
+   severity would outrank a flash flood emergency in the answer given to a resident. Unknown sorts last. */
+const ALERT_SEV_RANK = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
+const ALERT_SEV_UNKNOWN = 9;
+const alertSevRank = (sev) => (Object.prototype.hasOwnProperty.call(ALERT_SEV_RANK, sev) ? ALERT_SEV_RANK[sev] : ALERT_SEV_UNKNOWN);
+const alertSevCmp = (a, b) => alertSevRank(a && a._sev) - alertSevRank(b && b._sev);
+
 // Riverine Flood Warnings in one county share an areaDesc ("Val Verde, TX"); the
 // specific reach that tells them apart lives in the description text.
 function alertReach(p) {
@@ -19,12 +27,71 @@ function alertReach(p) {
   return m[1].replace(/\bAt\b/g, 'at').replace(/\bOf\b/g, 'of').replace(/\b(?:Nr|Near)\b/gi, 'near').trim();
 }
 
+/* area= returns every product that TOUCHES the area of operations, and each one carries its full
+   multi-state county list, so a Texas board prints Oklahoma counties. geocode.UGC is index-aligned
+   with the areaDesc segments, so the ones outside the AO are counted instead of named. Nothing is
+   ever dropped: the alert stays in the list either way, and an unreadable alignment names them all. */
+function aoStates() {
+  const m = /[?&]area=([A-Za-z,]+)/.exec(CONFIG.alertsUrl || '');
+  return m ? m[1].toUpperCase().split(',').filter(Boolean) : [];
+}
+
+function alertAreaParts(p) {
+  const segs = String((p && p.areaDesc) || '').split(';').map((s) => s.trim()).filter(Boolean);
+  const ugc = (p && p.geocode && p.geocode.UGC) || [];
+  const states = aoStates();
+  if (!states.length || ugc.length !== segs.length) return { inAo: segs, out: 0 };
+  const inAo = segs.filter((s, i) => states.includes(String(ugc[i]).slice(0, 2).toUpperCase()));
+  return inAo.length ? { inAo, out: segs.length - inAo.length } : { inAo: segs, out: 0 };
+}
+
+// area line for a card, popup or glance row: AO counties named, the rest counted, never silently cut
+function alertAreaText(p, max) {
+  const { inAo, out } = alertAreaParts(p);
+  const shown = max > 0 ? inAo.slice(0, max) : inAo;
+  const more = inAo.length - shown.length;
+  return [shown.join('; '),
+    more ? t('alert.areaMore').replace('{n}', String(more)) : '',
+    out ? t('alert.areaOut').replace('{n}', String(out)) : ''].filter(Boolean).join(' · ');
+}
+
+// the one AO county a glance surface has room for
+const alertAreaLead = (p) => (alertAreaParts(p).inAo[0] || '?').replace(/,\s*[A-Z]{2}$/, '');
+
 // alert-feed allowlist: river flood plus the coastal/tropical/wind hazards the old /flood/ filter dropped
 // (storm surge, tropical storm, hurricane, high wind); 2-letter VTEC lives in properties.parameters.VTEC
 const HAZARD_ALERT_RE = /flood|storm surge|tropical|hurricane|high wind|wind advisory|beach hazard/i;
 
-// still listed as open: a missing expires reads as active (new Date(null) is epoch)
-const alertOpen = (f) => !(f.properties.expires && new Date(f.properties.expires) < new Date());
+/* A zeroed VTEC end slot means "until further notice". Riverine Flood Warnings use it routinely and
+   it declares no end at all, so no clock may retire the product. */
+const VTEC_NO_END = '000000T0000Z';
+
+// the end half of each VTEC string on the product: /O.CON.KCRP.FL.W.0025.000000T0000Z-260730T0230Z/
+function alertVtecEnds(p) {
+  const vtec = ((p && p.parameters && p.parameters.VTEC) || []).join(' ');
+  return (vtec.match(/-\d{6}T\d{4}Z/g) || []).map((s) => s.slice(1));
+}
+
+/* When the HAZARD ends, which is not properties.expires: that is the deadline for the next message,
+   and on riverine warnings it runs days short of the hazard itself. Null = no declared end. */
+function alertEndsAt(f) {
+  const p = (f && f.properties) || {};
+  if (alertVtecEnds(p).includes(VTEC_NO_END)) return null;
+  return p.ends || ((p.parameters && p.parameters.eventEndingTime) || [])[0] || p.expires || null;
+}
+
+/* The single clock test behind every open/expired decision on the board. A product that declared no
+   end never expires, and an unreadable end is not treated as past: this errs toward showing. */
+function alertEnded(endsAt, at) {
+  if (!endsAt) return false;
+  const e = new Date(endsAt).getTime();
+  return Number.isFinite(e) && e < (at == null ? Date.now() : new Date(at).getTime());
+}
+
+const alertOpen = (f) => !alertEnded(alertEndsAt(f));
+
+// what the product says about its own end; a product with no declared end says so rather than lying
+const alertUntilText = (f) => { const e = alertEndsAt(f); return e ? fmtWhen(e) : t('alert.further'); };
 
 // active hurricane/tropical threat to the TX mainland = an unexpired storm surge / tropical storm / hurricane warning or watch
 const TROPICAL_THREAT_RE = /storm surge (warning|watch)|tropical storm (warning|watch)|hurricane (warning|watch)/i;
@@ -45,8 +112,7 @@ async function fetchAlerts() {
   const data = await res.json();
   const hazards = (data.features || []).filter((f) => HAZARD_ALERT_RE.test(f.properties.event || ''));
   hazards.forEach((f) => { f._sev = alertSeverity(f.properties); });
-  const rank = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
-  hazards.sort((a, b) => rank[a._sev] - rank[b._sev] || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
+  hazards.sort((a, b) => alertSevCmp(a, b) || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
   const emergencies = hazards.filter((f) => f._sev === 'emergency');
   const openEmerg = emergencies.filter(alertOpen);
   const fresh = emergencies.filter((f) => !state.knownEmergencyIds.has(f.id));
@@ -111,7 +177,7 @@ function emergencyBannerMode(openCount, freshCount, loadedOnce) {
 }
 
 function showEmergencyBanner(alerts, mode) {
-  const areas = alerts.map((f) => f.properties.areaDesc).join(' | ');
+  const areas = alerts.map((f) => alertAreaText(f.properties)).join(' | ');
   $('#banner-text').textContent = t(mode === 'active' ? 'banner.ffe.active' : 'banner.ffe').replace('{areas}', areas);
   $('#emergency-banner').hidden = false;
   if (!document.title.startsWith('🔴')) document.title = `🔴 ${document.title}`;
@@ -126,8 +192,8 @@ function alertPopupHtml(f) {
   const p = f.properties;
   const reach = alertReach(p);
   return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? `: <span style="color:var(--sev-emergency);font-weight:700">${esc(t('drive.emerg'))}</span>` : ''}</div>` +
-    `<div class="popup-meta">${esc(p.areaDesc || '')}${reach ? ` · ${esc(reach)}` : ''}</div>` +
-    `<div class="popup-meta">${esc(t('alert.expires'))}: ${esc(fmtWhen(p.expires))}</div>` +
+    `<div class="popup-meta">${esc(alertAreaText(p))}${reach ? ` · ${esc(reach)}` : ''}</div>` +
+    `<div class="popup-meta">${esc(t('alert.until'))} ${esc(alertUntilText(f))}</div>` +
     `<div class="popup-link"><a href="#" class="alert-popup-link" data-alert-id="${esc(f.id)}">${esc(t('alert.full'))} →</a></div>`;
 }
 
@@ -240,11 +306,10 @@ const alertNear = (f, scope) => f._sev === 'emergency' || geomInScope(alertGeom(
 /* Near first, the rest folded below, nothing dropped. Severity leads inside each group so an
    emergency never sits under an advisory; distance breaks the tie. */
 function alertGroups(list, scope, pts) {
-  const rank = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
   const origin = Array.isArray(pts) ? pts : (scope && scope.pts) || null;
   const rows = (list || []).map((f) => ({ f, d: geoDistMi(alertGeom(f), origin), near: alertNear(f, scope) }));
   const dv = (r) => (Number.isFinite(r.d) ? r.d : Infinity);
-  const bySev = (a, b) => (rank[a.f._sev] ?? 9) - (rank[b.f._sev] ?? 9);
+  const bySev = (a, b) => alertSevCmp(a.f, b.f);
   const byDist = (a, b) => (dv(a) === dv(b) ? 0 : dv(a) - dv(b));
   const bySent = (a, b) => (Date.parse(b.f.properties && b.f.properties.sent) || 0) - (Date.parse(a.f.properties && a.f.properties.sent) || 0);
   return {
@@ -263,11 +328,11 @@ function alertCardDiv(f, dist) {
   div.className = `card alert-card sev-${f._sev}`;
   div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? `<span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : ''}` +
     `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>` +
-    `<div class="areas">${esc(p.areaDesc || '')}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}` +
+    `<div class="areas">${esc(alertAreaText(p))}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}` +
     (alertDistChip(dist) ? ` · <span class="alert-dist">${esc(alertDistChip(dist))}</span>` : '') + '</div>' +
     `<div class="alert-meta">` +
     (p.sent ? `<span class="am-when"><span class="fresh-dot ${freshClass(p.sent)}"></span>${esc(t('alert.sent'))} ${esc(fmtWhen(p.sent))}</span>` : '') +
-    `<span class="am-when">${esc(t('alert.untilShort'))} ${esc(fmtWhen(p.expires))}</span></div>`;
+    `<span class="am-when">${esc(t('alert.untilShort'))} ${esc(alertUntilText(f))}</span></div>`;
   const link = div.querySelector('.alert-text-link');
   link.addEventListener('click', (e) => { e.stopPropagation(); openAlertText(f); });
   link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAlertText(f); } });
@@ -314,9 +379,9 @@ function flashAlert(f) {
 function openAlertText(f) {
   const p = f.properties, reach = alertReach(p);
   $('#alert-title').textContent = p.event + (f._sev === 'emergency' ? ` · ${t('drive.emerg')}` : '');
-  const parts = [`<div class="alert-doc-area">${esc(p.areaDesc || '')}${reach ? ` · ${esc(reach)}` : ''}</div>`];
+  const parts = [`<div class="alert-doc-area">${esc(alertAreaText(p))}${reach ? ` · ${esc(reach)}` : ''}</div>`];
   if (p.headline) parts.push(`<div class="alert-doc-headline">${esc(p.headline)}</div>`);
-  parts.push(`<div class="alert-doc-when">${esc(t('alert.until'))} ${esc(fmtWhen(p.expires))}</div>`);
+  parts.push(`<div class="alert-doc-when">${esc(t('alert.until'))} ${esc(alertUntilText(f))}</div>`);
   if (p.description) parts.push(`<pre class="alert-doc-text">${esc(p.description.trim())}</pre>`);
   if (p.instruction) parts.push(`<div class="alert-doc-instr-h">${esc(t('alert.instruction'))}</div><pre class="alert-doc-text">${esc(p.instruction.trim())}</pre>`);
   parts.push(`<div class="alert-doc-src">${esc(p.senderName || 'NWS')} · <a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener">${esc(t('alert.raw'))} →</a></div>`);
@@ -342,7 +407,9 @@ function renderAlertList() {
   const scope = alertScope();
   el.innerHTML = `<div class="section-title">${esc(t(`sec.alerts.${alertScopeSrc(scope)}`).replace('{n}', String(ALERT_NEAR_MI)))}</div>`;
   const sevF = $('#flt-alert-sev').value, qF = $('#flt-alert-q').value.toLowerCase();
-  const shown = state.alerts.filter((f) => (!sevF || f._sev === sevF)
+  // an alert past its hazard end folds into the expired drawer below, never out of the tab entirely.
+  // the search still reads the full areaDesc, so an out-of-AO county name finds its alert.
+  const shown = state.alerts.filter((f) => alertOpen(f) && (!sevF || f._sev === sevF)
     && (!qF || `${f.properties.event} ${f.properties.areaDesc} ${alertReach(f.properties)}`.toLowerCase().includes(qF)));
   const { near, far } = alertGroups(shown, scope, alertDistPts());
   syncAlertInViewChip(near.length);
@@ -363,17 +430,21 @@ function renderAlertList() {
       if (state.showAlertsFar) for (const r of far) el.appendChild(alertCardDiv(r.f, r.d));
     }
   }
-  const emergN = state.alerts.filter((f) => f._sev === 'emergency').length;
+  const open = state.alerts.filter(alertOpen);
+  const emergN = open.filter((f) => f._sev === 'emergency').length;
   const alertsBadge = $('#alerts-count');
-  alertsBadge.textContent = emergN ? `⚠ ${emergN}` : state.alerts.length;
+  alertsBadge.textContent = emergN ? `⚠ ${emergN}` : open.length;
   alertsBadge.classList.toggle('sev', emergN > 0);
   renderAlertHistory(el);
 }
 
+// pre-v0.99.55 rows stored only the message deadline, which is why the stored end is read this way
+const histAlertEnd = (a) => (a && Object.prototype.hasOwnProperty.call(a, 'endsAt') ? a.endsAt : (a || {}).expires);
+
 function renderAlertHistory(el) {
   const liveIds = new Set(state.alerts.map((f) => f.id));
   const expired = Object.entries(state.hist.alerts)
-    .filter(([id, a]) => !liveIds.has(id) || (a.expires && new Date(a.expires) < new Date()))
+    .filter(([id, a]) => !liveIds.has(id) || alertEnded(histAlertEnd(a)))
     .map(([, a]) => a)
     .sort((a, b) => new Date(b.t) - new Date(a.t));
   if (!expired.length) return;
@@ -387,7 +458,8 @@ function renderAlertHistory(el) {
     const div = document.createElement('div');
     div.className = `card alert-card aged sev-${a.sev}`;
     div.innerHTML = `<div class="event">${esc(a.event)}</div><div class="areas">${esc(a.areaDesc || '')}</div>` +
-      `<div class="meta" style="margin-top:3px;font-size:11px;color:var(--ink-muted)">sent ${esc(fmtWhen(a.t))} · expired ${esc(fmtWhen(a.expires))}</div>`;
+      `<div class="meta" style="margin-top:3px;font-size:11px;color:var(--ink-muted)">sent ${esc(fmtWhen(a.t))}` +
+      (histAlertEnd(a) ? ` · expired ${esc(fmtWhen(histAlertEnd(a)))}` : '') + '</div>';
     el.appendChild(div);
   }
 }

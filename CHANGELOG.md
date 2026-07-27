@@ -1,5 +1,32 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.55 · 2026-07-27 (alerts run to the end of the hazard)
+
+-- Bug Fixes --
+- [Fix] An alert now stays on the board until the hazard ends rather than until
+      its next update is due. A flood warning whose update was due tonight but
+      which runs through Wednesday stays on the map, in the ticker, in the risk
+      answer and in the all-clear check for its full length
+- [Fix] A warning issued until further notice no longer expires on its own. The
+      board shows it as in effect until further notice instead of counting down
+      to an update deadline
+- [Fix] The ticker no longer hides a flash flood emergency that carries no end
+      time, which every other surface was showing
+- [Fix] The Alerts tab, its count badge, Drive Mode, the SITREP and the map point
+      check now all agree on which alerts are still in effect. An alert past its
+      end folds into the expired list rather than leaving the tab
+- [Fix] An alert of an unrecognised severity no longer outranks a flash flood
+      emergency in the risk answer or the map point check
+
+-- Changes --
+- [Change] Alert cards, popups and the SITREP name the counties inside the area
+           of operations and state the number outside it, in place of printing a
+           neighbouring state's counties as if they were ours
+- [Change] Drive Mode leads with the two nearest counties and counts the rest,
+           in place of one line of every county an alert names
+- [Change] Alert cards, popups and the reader show the time the hazard ends
+           rather than the time the next update is due
+
 ## v0.99.54 · 2026-07-26 (road closures survive an upstream outage)
 
 -- New Features --

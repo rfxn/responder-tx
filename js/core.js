@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.54';
+const APP_VERSION = 'v0.99.55';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -517,7 +517,8 @@ function recordLsrHist() {
 function recordAlertHist() {
   for (const f of state.alerts) {
     const p = f.properties;
-    state.hist.alerts[f.id] = { t: p.sent || p.effective || new Date().toISOString(), sev: f._sev, event: p.event, areaDesc: p.areaDesc, expires: p.expires };
+    // endsAt is the hazard's end, always written (null = declared no end) so a stored row is readable without the VTEC
+    state.hist.alerts[f.id] = { t: p.sent || p.effective || new Date().toISOString(), sev: f._sev, event: p.event, areaDesc: p.areaDesc, expires: p.expires, endsAt: alertEndsAt(f) };
   }
   saveHist();
 }

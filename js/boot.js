@@ -7,7 +7,21 @@ function saveCache() {
       ts: Date.now(),
       gauges: state.gauges,
       gaugesDegraded: state.gaugesDegraded,
-      alertsSlim: state.alerts.map((f) => ({ id: f.id, _sev: f._sev, properties: { event: f.properties.event, areaDesc: f.properties.areaDesc, expires: f.properties.expires }, geometry: null })),
+      // VTEC and UGC ride along: without them the rehydrated card cannot tell the hazard's end from the
+      // message deadline, nor its own counties from a neighbouring state's
+      alertsSlim: state.alerts.map((f) => ({
+        id: f.id,
+        _sev: f._sev,
+        properties: {
+          event: f.properties.event,
+          areaDesc: f.properties.areaDesc,
+          expires: f.properties.expires,
+          ends: f.properties.ends || null,
+          geocode: { UGC: (f.properties.geocode || {}).UGC || [] },
+          parameters: { VTEC: (f.properties.parameters || {}).VTEC || [] },
+        },
+        geometry: null,
+      })),
     }));
   } catch { /* quota exceeded — cache is best-effort */ }
 }

@@ -1314,10 +1314,8 @@ function updatePlaybackNote() {
   }
   if (!pb.live) {
     const ft = state.pbData.frames[pb.idx]._t;
-    const n = Object.values(state.hist.alerts || {}).filter((a) => {
-      const s = new Date(a.t).getTime(), e = a.expires ? new Date(a.expires).getTime() : 0;
-      return s <= ft && e >= ft;
-    }).length;
+    // in effect at the frame, on the hazard's own clock: a product that declared no end was still in effect
+    const n = Object.values(state.hist.alerts || {}).filter((a) => new Date(a.t).getTime() <= ft && !alertEnded(histAlertEnd(a), ft)).length;
     if (n) note += ` · ${t('playback.note.alerthist').replace('{n}', n)}`;
     const thin = state.pbData.thinned;
     if (thin && thin.olderGapMinutes && ft < new Date(thin.fullFrom).getTime()) {

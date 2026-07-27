@@ -1208,11 +1208,15 @@ function renderThreatStrip() {
   const el = $('#threat-strip');
   // playback engaged: the dimmed strip stays LIVE data, say so, never let it read as the frame
   const pbNote = pbBlocksLive(state) ? `<div class="strip-live-note">${esc(t('playback.striplive'))}</div>` : '';
+  el.classList.remove('hero-only');
   // counts before the first alert load would assert a zero the board has not checked
   if (!state.alertsLoadedOnce) { el.innerHTML = pbNote; return; }
   if (tickerItems().length) {
     const cards = heroCards();
     el.innerHTML = pbNote + heroCardsHtml(cards);
+    /* a portrait phone hides the cards in css; this says the strip holds nothing else, so it can
+       collapse its own padding with them rather than leaving an empty bar above the tabs */
+    if (!pbNote) el.classList.add('hero-only');
     for (const b of el.querySelectorAll('[data-hero]')) {
       const card = cards.find((c) => c.key === b.getAttribute('data-hero'));
       if (card) b.addEventListener('click', card.act);

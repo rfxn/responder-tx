@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.64 · 2026-07-27 (the summary row steps aside on a phone held upright)
+
+-- Changes --
+- [Change] The summary cards no longer appear on a phone held upright, where the
+           map and the list are already sharing the screen. They stay on desktop,
+           on landscape tablets, and on a phone turned sideways
+- [Change] The row leaves no empty band behind it above the tabs when it steps
+           aside
+
 ## v0.99.63 · 2026-07-27 (a glance summary above the board tabs)
 
 -- New Features --

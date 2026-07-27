@@ -317,6 +317,13 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .hero-card.tone-warn { border-left-color: var(--sev-warning); }
 .hero-card.tone-warn .hc-n { color: var(--sev-warning); }
 .hero-card.tone-ok .hc-n { color: var(--ink-2); }
+/* a portrait phone cannot spare the height: the map is already sharing it with the sheet, and the
+   scrolling hazard line carries the same event there. The cards are a desktop and landscape surface.
+   The strip collapses with them when they are all it holds, so no empty bar is left above the tabs. */
+@media (max-width: 768px) and (orientation: portrait) {
+  .hero-cards { display: none; }
+  #threat-strip.hero-only:not(:empty) { padding: 0; border-bottom: 0; }
+}
 
 .cutoff-circle {
   stroke: var(--sev-emergency); fill: var(--sev-emergency);

@@ -350,6 +350,24 @@ test('the hero cards aggregate what the hazard line enumerates, and never restat
   assert.ok(/playback\.striplive/.test(fn[0]), 'the strip lost the playback live-data note');
 });
 
+/* The cards are a desktop and landscape surface. A portrait phone is already splitting its height
+   between the map and the sheet, and the scrolling line carries the same event there, so the row is
+   real estate the board cannot spare. Hiding the grid alone would leave the strip's padding and
+   border behind as an empty bar, which is why the collapse is guarded with it. */
+test('the hero cards stay off a portrait phone, and take the strip padding with them', () => {
+  const block = CSS.match(/@media \(max-width: 768px\) and \(orientation: portrait\) \{[\s\S]*?\n\}/);
+  assert.ok(block, 'no portrait-phone media block for the hero cards');
+  assert.match(block[0], /\.hero-cards \{ display: none/, 'the cards still render on a portrait phone');
+  assert.match(block[0], /#threat-strip\.hero-only:not\(:empty\) \{ padding: 0/,
+    'the strip would keep its padding and border as an empty bar above the tabs');
+  const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
+  const fn = panels.match(/function renderThreatStrip\(\)[\s\S]*?\n\}/)[0];
+  assert.match(fn, /classList\.remove\('hero-only'\)/,
+    'the hero-only class must be cleared, or it survives into the all-clear states and collapses them');
+  assert.match(fn, /if \(!pbNote\) el\.classList\.add\('hero-only'\)/,
+    'the collapse must not apply while the playback note shares the strip; it would lose its padding');
+});
+
 /* Every card is a button that must reach a real surface, and the tone must survive a hover: the
    global `button:hover { border-color }` rule would otherwise repaint the left edge that carries it. */
 test('every hero card is actionable and keeps its tone under hover', () => {

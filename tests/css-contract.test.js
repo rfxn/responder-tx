@@ -350,6 +350,17 @@ test('the hero cards aggregate what the hazard line enumerates, and never restat
   assert.ok(/playback\.striplive/.test(fn[0]), 'the strip lost the playback live-data note');
 });
 
+/* A subscribed device whose settings can deliver nothing gets its own tone. The whole point is that
+   it is not the green that means "you are covered", so the colour is the assertion. */
+test('the undeliverable push state never wears the good colour', () => {
+  const rule = CSS.match(/#push-body \.push-silent \{[^}]*\}/);
+  assert.ok(rule, '#push-body .push-silent rule not found');
+  assert.ok(!/--good/.test(rule[0]), 'the silent tone must never be the good colour');
+  assert.match(rule[0], /--sev-warning/, 'the silent tone should read as a warning');
+  const good = CSS.match(/#push-body \.push-on \{[^}]*\}/);
+  assert.ok(good && /--good/.test(good[0]), 'the genuinely-on state should keep the good colour');
+});
+
 /* The cards are a desktop and landscape surface. A portrait phone is already splitting its height
    between the map and the sheet, and the scrolling line carries the same event there, so the row is
    real estate the board cannot spare. Hiding the grid alone would leave the strip's padding and

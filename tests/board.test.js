@@ -210,9 +210,13 @@ test('the honesty text survives: compact line always plain, full paragraphs one 
   assert.ok(det.includes("t('push.sub')") && det.includes("t('push.disclaimer')"),
     'the full paragraphs must still be emitted, inside the disclosure');
   assert.ok(det.includes('<summary>'), 'the disclosure must carry a visible summary');
-  // the state line is emitted for every card state, never gated
-  assert.match(PUSH_CARD_SRC, /class="push-status push-\$\{st\}">\$\{esc\(t\(`push\.state\.\$\{st\}`\)\)\}/,
-    'the state must always render plainly, one key per state');
+  /* The state line is emitted for every card state, never gated. The one branch is honesty, not a
+     gate: a subscribed device whose settings can deliver nothing must not wear the green ON, so it
+     takes push.state.silent and the push-silent tone instead. Everything else renders plainly. */
+  assert.match(PUSH_CARD_SRC, /class="push-status push-\$\{on && !delivers\.any \? 'silent' : st\}">/,
+    'the state line must fall back to the silent tone when nothing can be delivered');
+  assert.match(PUSH_CARD_SRC, /esc\(t\(on && !delivers\.any \? 'push\.state\.silent' : `push\.state\.\$\{st\}`\)\)/,
+    'the state must still render one key per state, with the silent claim as the only exception');
 });
 
 const { pushFixKey } = loadApp();

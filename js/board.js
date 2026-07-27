@@ -1321,6 +1321,17 @@ function pushNormalizePrefs(p) {
   };
 }
 
+/* What this subscription can actually deliver, which is not the same fact as being subscribed.
+   The area path needs a scope that covers something AND a type selected; a followed gauge fires on
+   its own threshold wherever it is, so it is independent of the area. A fresh subscribe defaults
+   scope 'none', so without this the card headlines a green ON over a device that receives silence. */
+function pushDelivers(prefs, scopeState) {
+  const p = prefs || {};
+  const area = scopeState === 'ok' && !!(p.ffe || p.tier);
+  const gauges = Array.isArray(p.gauges) && p.gauges.length > 0;
+  return { area, gauges, any: area || gauges };
+}
+
 // what the card must say about area coverage: 'ok' when area alerts can really fire,
 // 'unset' when no area was chosen, 'empty' when places is chosen with nothing in it
 function pushScopeState(prefs) {
@@ -1530,6 +1541,13 @@ function pushPendingHtml(cardState, preselect) {
   return `<div class="push-m-note">${esc(t('push.manage.pending').replace('{g}', pushGaugeName(preselect)))}</div>`;
 }
 
+// the board could not reach its own status endpoint: say that, rather than rendering nothing and
+// letting #push-body:empty read as "this board has no device alerts"
+function pushRenderUnreachable(host) {
+  host.innerHTML = `<div class="section-title">${esc(t('push.title'))}</div>`
+    + `<div class="resource-item push-card"><div class="push-fix">${esc(t('push.unreachable'))}</div></div>`;
+}
+
 function renderPushCard() {
   const host = $('#push-body');
   if (!host) return;
@@ -1541,6 +1559,7 @@ function renderPushCard() {
   if (window.setAlertsCta) setAlertsCta(st === 'off');
   const prefs = pushPrefs();
   const scopeState = pushScopeState(prefs);
+  const delivers = pushDelivers(prefs, scopeState);
   const fresh = pushFreshState(state.pushLastEval, Date.now());
   const freshTxt = fresh === 'ok'
     ? t('push.fresh.ok').replace('{m}', String(Math.max(0, Math.round((Date.now() - state.pushLastEval) / 60000))))
@@ -1556,7 +1575,7 @@ function renderPushCard() {
     '<div class="resource-item push-card">' +
       // state and switch first: the glanceable truth and the one control, before any prose
       '<div class="push-head">' +
-        `<div class="push-status push-${st}">${esc(t(`push.state.${st}`))}</div>` +
+        `<div class="push-status push-${on && !delivers.any ? 'silent' : st}">${esc(t(on && !delivers.any ? 'push.state.silent' : `push.state.${st}`))}</div>` +
         (toggleable ? `<button type="button" class="act-btn push-toggle" id="push-toggle">${esc(t(on ? 'push.toggle.off' : 'push.toggle.on'))}</button>` : '') +
       '</div>' +
       (fixKey ? `<div class="push-fix">${esc(t(fixKey))}</div>` : '') +
@@ -1575,6 +1594,8 @@ function renderPushCard() {
       // an area that cannot cover anything says so where the choice is made: the card never
       // shows alert types as live when nothing they describe can reach this device
       (on && scopeState !== 'ok' ? `<div class="push-fix">${esc(t(`push.scope.${scopeState}`))}</div>` : '') +
+      // a covering area with every type switched off is the one silent case the scope note misses
+      (on && scopeState === 'ok' && !delivers.any ? `<div class="push-fix">${esc(t('push.silent.types'))}</div>` : '') +
       (on && prefs.scope === 'places' ? pushPlacesHtml(prefs) : '') +
       (on
         ? `<button type="button" class="push-manage-btn" id="push-manage-btn" aria-expanded="${pushManageOpen}">${esc(t(pushManageOpen ? 'push.manage.hide' : 'push.manage.show'))}</button>`
@@ -1876,12 +1897,15 @@ async function initPushCard() {
   if (!pushCardVisible(facts)) return;
   // every state is gated on the backend really being there (503/absent hides the card): an
   // install hint or a blocked notice would otherwise advertise a channel that is not wired
+  /* An absent backend and an unreachable one are different facts (E1). A 503 is how this board
+     says "not wired", and hiding the card for it is deliberate. A transport failure or any other
+     bad status means we do not know, and silence would publish "this board has no device alerts". */
   let d = null;
   try {
     const r = await fetch('api/push/status');
-    if (!r.ok) return;
-    d = await r.json();
-  } catch { return; }
+    if (r.ok) d = await r.json();
+    else if (r.status !== 503) return pushRenderUnreachable(host);
+  } catch { return pushRenderUnreachable(host); }
   if (!d || !d.configured || !d.vapidKey) return;
   const st = pushCardState(facts);
   if (st === 'on' || st === 'off') {

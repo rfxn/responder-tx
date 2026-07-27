@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.65",
+      "date": "2026-07-27",
+      "line": "Turning device alerts on no longer reads as covered when nothing has been selected to send. A new subscription starts with no alert area, and the status line now says so plainly instead of showing the green on state. An alert area that is set but has every alert type switched off now says nothing will be sent. When the board cannot reach its own alert service it says the check failed, rather than showing nothing, which read as this board having no device alerts at all."
+    },
+    {
       "v": "v0.99.64",
       "date": "2026-07-27",
       "line": "The summary cards no longer appear on a phone held upright, where the map and the list are already sharing the screen. They stay on desktop, on landscape tablets, and on a phone turned sideways, and the row leaves no empty band behind it above the tabs when it steps aside."

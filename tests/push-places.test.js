@@ -435,6 +435,50 @@ test('pushScopeState tells the card when area alerts cannot fire', () => {
   assert.equal(pushScopeState(null), 'unset');
 });
 
+/* Being subscribed and being reachable are different facts. A fresh subscribe defaults scope 'none'
+   (pushNormalizePrefs), and the worker's ffeReachesSub and scopeCoversPoint both refuse anything but
+   statewide or places, so the device receives silence. The card used to headline that in green as
+   "Alerts ON for this device". A followed gauge fires on its own threshold regardless of the area,
+   so it alone is enough to make the ON claim true. */
+test('pushDelivers separates a subscription that can be reached from one that cannot', () => {
+  const { pushDelivers, pushScopeState } = loadApp();
+  // field-wise, not deepEqual: the harness returns cross-realm objects
+  const d = (prefs) => { const r = pushDelivers(prefs, pushScopeState(prefs)); return [r.area, r.gauges, r.any]; };
+  // the exact default a fresh subscribe writes: ffe on, but no area to apply it to
+  assert.deepEqual(d({ ffe: true, tier: null, gauges: [], scope: 'none', places: [] }), [false, false, false]);
+  assert.deepEqual(d({ ffe: true, scope: 'statewide' }), [true, false, true]);
+  assert.deepEqual(d({ ffe: false, tier: 'major', scope: 'statewide' }), [true, false, true]);
+  // a covering area with every type off delivers nothing
+  assert.deepEqual(d({ ffe: false, tier: null, gauges: [], scope: 'statewide', places: [] }), [false, false, false]);
+  // places chosen but empty is not coverage
+  assert.deepEqual(d({ ffe: true, scope: 'places', places: [] }), [false, false, false]);
+  // a followed gauge is independent of the area, and is enough on its own
+  assert.deepEqual(d({ ffe: false, tier: null, gauges: [{ lid: 'SRRT2', tier: 'major' }], scope: 'none', places: [] }),
+    [false, true, true]);
+  assert.deepEqual(d(null), [false, false, false]);
+});
+
+test('the card never headlines a green ON over a subscription that can deliver nothing', () => {
+  const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
+  assert.match(render, /push-status push-\$\{on && !delivers\.any \? 'silent' : st\}/,
+    'an undeliverable subscription must not wear the on tone');
+  assert.match(render, /'push\.state\.silent'/, 'an undeliverable subscription must not claim it is on');
+  assert.match(render, /scopeState === 'ok' && !delivers\.any \? `<div class="push-fix">\$\{esc\(t\('push\.silent\.types'\)\)\}/,
+    'a covering area with every type off is the silent case the scope note does not reach');
+});
+
+test('a status probe that fails is reported, not published as "no device alerts here"', () => {
+  const init = BOARD.match(/async function initPushCard\(\)[\s\S]*?\n\}/)[0];
+  // 503 is how this board says "not wired", and hiding for it stays deliberate
+  assert.match(init, /r\.status !== 503/, 'a 503 must still hide the card, and only a 503');
+  assert.match(init, /catch \{ return pushRenderUnreachable\(host\); \}/,
+    'a transport failure must say so rather than rendering nothing');
+  assert.match(init, /if \(!d \|\| !d\.configured \|\| !d\.vapidKey\) return;/,
+    'an absent backend must still hide the card entirely');
+  assert.match(BOARD, /function pushRenderUnreachable\(host\)[\s\S]*?push\.unreachable/,
+    'the unreachable notice must actually render the unreachable string');
+});
+
 test('the card offers the area choice ahead of the alert types, and explains an area that cannot fire', () => {
   const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
   const scopeRow = render.indexOf("typeRow('scope'");

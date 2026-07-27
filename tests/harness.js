@@ -147,7 +147,7 @@ const EXPORTS = [
   'CAM_STATE_REGIONS', 'camOutsideId', 'inCamBbox',
   'camIsLive', 'CAM_NETS', 'CAM_STALE_MINS',
   'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges', 'pushFixKey',
-  'pushNormalizePlaces', 'pushScopeState', 'pushPlacesHtml', 'pushRadiusLabel', 'pushPlaceLabel', 'PUSH_PLACE_KM', 'PUSH_MAX_PLACES',
+  'pushNormalizePlaces', 'pushScopeState', 'pushDelivers', 'pushPlacesHtml', 'pushRadiusLabel', 'pushPlaceLabel', 'PUSH_PLACE_KM', 'PUSH_MAX_PLACES',
 ];
 
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay

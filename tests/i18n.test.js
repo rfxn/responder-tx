@@ -185,7 +185,8 @@ test('i18n: device-alerts (push) keys exist in both languages, 911 framing intac
     'push.fix.blocked', 'push.fix.unsupported', 'push.fix.ios',
     'push.note', 'push.about', 'push.types.label', 'push.type.ffe', 'push.type.gauges',
     'push.opt.off', 'push.opt.on',
-    'push.toggle.on', 'push.toggle.off', 'push.err'];
+    'push.toggle.on', 'push.toggle.off', 'push.err',
+    'push.state.silent', 'push.silent.types', 'push.unreachable'];
   for (const k of keys) {
     assert.ok(typeof I18N.en[k] === 'string' && I18N.en[k].length, `en missing ${k}`);
     assert.ok(typeof I18N.es[k] === 'string' && I18N.es[k].length, `es missing ${k}`);

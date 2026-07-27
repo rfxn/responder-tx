@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.65 · 2026-07-27 (device alerts say what they will actually send)
+
+-- Bug Fixes --
+- [Fix] Turning device alerts on no longer reads as covered when nothing has
+      been selected to send. A new subscription starts with no alert area, and
+      the status line now says so plainly instead of showing the green on state
+- [Fix] An alert area that is set but has every alert type switched off now says
+      nothing will be sent
+- [Fix] When the board cannot reach its own alert service, it now says the check
+      failed. Showing nothing read as this board having no device alerts at all
+
 ## v0.99.64 · 2026-07-27 (the summary row steps aside on a phone held upright)
 
 -- Changes --

@@ -221,7 +221,7 @@ function rolloverBusy() {
   if (state.refreshBusy) return 'refresh';
   if (Date.now() - (state.lastInteract || 0) < ROLL_IDLE_MS) return 'input';
   if (Date.now() < (state.rollPostponedUntil || 0)) return 'postponed';
-  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#about-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet', '#share-sheet', '#help-sheet', '#health-modal']) {
+  for (const id of ['#safety-modal', '#onboard', '#hydro-modal', '#alert-modal', '#risk-modal', '#changelog-modal', '#glossary-modal', '#about-modal', '#summary-view', '#recovery-view', '#basin-view', '#drive-mode', '#cam-viewer', '#layer-sheet', '#share-sheet', '#help-sheet', '#notify-sheet', '#health-modal']) {
     const el = $(id);
     if (el && !el.hidden) return id;
   }
@@ -650,6 +650,9 @@ function relocalizeDynamic() {
   renderTides();
   renderSourceHealth();
   renderMovedCues();
+  // the card bakes esc(t(...)) at render time, so applyI18n(document) cannot reach it and a
+  // language switch used to leave it in the old language beside relocalized headings
+  pushRerender();
   renderLayerPills();
   renderDriveMode();
   if (state.legendEl) state.legendEl.innerHTML = mapLegendHtml();
@@ -716,6 +719,7 @@ async function boot() {
   registerModal($('#sitrep-modal'), { initialFocus: '#sitrep-copy' });
   registerModal($('#share-sheet'), { focusEl: '.ls-panel' }); // same sheet family as the layer/views pickers
   registerModal($('#help-sheet'), { focusEl: '.ls-panel' });
+  registerModal($('#notify-sheet'), { focusEl: '.ls-panel' });
   registerModal($('#health-modal'));
   registerModal($('#drive-mode')); // eyes-off-road by design: it SHOULD cover the map and trap focus
   // the three docked lenses are deliberately NOT modals. registerModal marks the rest of the page
@@ -782,15 +786,6 @@ async function boot() {
     $('#hmore-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
     $('#hmore-btn').classList.toggle('on', open);
   };
-  // the gear is the single header door to every way of being told: the device-alerts card, RSS,
-  // and the crest calendar, all in the Alerts group it opens on. pushOpenManageFor() reaches that
-  // group through here too, so a gauge bell and the header land on one surface.
-  const openAlertsPanel = () => {
-    hmoreSetOpen(true);
-    const grp = $('#set-alerts');
-    if (grp && grp.scrollIntoView) grp.scrollIntoView({ block: 'nearest' }); // the panel keeps its scroll between opens
-  };
-  window.openAlertsPanel = openAlertsPanel;
   // the alerts call-to-action rides the gear as a dot rather than a second button beside it.
   // Only renderPushCard() calls this, so the dot appears solely where subscribing really works.
   const setAlertsCta = (on) => {
@@ -810,8 +805,15 @@ async function boot() {
   window.setAlertsCta = setAlertsCta;
   $('#hmore-btn').addEventListener('click', () => hmoreSetOpen($('#hmore-menu').hidden));
   document.addEventListener('click', (e) => { if (!$('#hmore-menu').hidden && !e.target.closest('#hmore')) hmoreSetOpen(false); });
-  // only the menu's own rows dismiss it; the alerts card's toggle and tier chips live inside it
+  // direct-child rows only: anything nested (a card's own controls) must not dismiss the panel
   $('#hmore-menu').addEventListener('click', (e) => { if (e.target.closest('#hmore-menu > button')) hmoreSetOpen(false); });
+  // the gear row, the Alerts-tab row and the gauge bell all land on the one notify sheet, so alert
+  // setup has a single destination no matter which door the reader found. A direct child of
+  // #hmore-menu, so the handler above closes the panel behind it.
+  $('#notify-btn').addEventListener('click', () => openNotifySheet());
+  $('#alerts-notify-row').addEventListener('click', () => openNotifySheet());
+  $('#notify-sheet-close').addEventListener('click', closeNotifySheet);
+  $('#notify-sheet .ls-backdrop').addEventListener('click', closeNotifySheet);
   $('#share-btn').addEventListener('click', openShareSheet);
   $('#team-open-btn').addEventListener('click', () => {
     if (window.showTeamTab) { showTeamTab(); return; }
@@ -1030,6 +1032,7 @@ async function boot() {
     if (!$('#sitrep-modal').hidden) { closeSitrepModal(); return; } // routes through close() so focus is restored
     if (window.closeNotesFlyout && !$('#notes-flyout').hidden) { window.closeNotesFlyout(); return; } // keeps N.open in sync
     if (!$('#onboard').hidden) { obDismiss(); return; } // dismissal counts as seen — it never re-nags
+    if (!$('#notify-sheet').hidden) { closeNotifySheet(); return; }
     if (!$('#share-sheet').hidden) { closeShareSheet(); return; }
     if (!$('#help-sheet').hidden) { closeHelpSheet(); return; }
     if (!$('#hmore-menu').hidden) { hmoreSetOpen(false); return; }

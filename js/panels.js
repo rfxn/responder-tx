@@ -825,6 +825,7 @@ function renderGaugesTab() {
    threads; this points at the new home from where the control used to live. Deliberately not a fifth
    bottom toast: that stack is the data/update channel and a layout note must never impersonate it. */
 const MOVED_CUES = [
+  ['notify', 'moved.notify', () => { if (typeof openNotifySheet === 'function') openNotifySheet(); }],
   ['exports', 'moved.exports', () => { if (typeof openShareSheet === 'function') openShareSheet(); }],
   ['resources', 'moved.resources', () => { if (typeof openHelpSheet === 'function') openHelpSheet(); }],
 ];

@@ -121,7 +121,7 @@ so its full history is auditable.
   never written to the git archive, and stop when you leave the team or turn alerts
   off. One carve-out: a map marker you drop is team data rather than personal data,
   so it keeps your handle and outlives your session by up to 12 hours.
-- **Device alerts are best effort.** They are a convenience layer over public NWS
+- **Notifications are best effort.** They are a convenience layer over public NWS
   data and ride your browser's push service, so they can be late, throttled by your
   device, or missed entirely. They are not Wireless Emergency Alerts and they never
   replace 911 or official warnings.

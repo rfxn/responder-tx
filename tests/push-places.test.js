@@ -426,6 +426,40 @@ test('the client prefs normalizer mirrors the registry: unstated area is none, p
   assert.equal(pushNormalizePlaces(Array.from({ length: 9 }, (_, i) => ({ lat: 30 + i, lon: -97 }))).length, 5);
 });
 
+/* Turning alerts off deletes the SERVER row. If the local record is wiped with it, the device's
+   followed gauges and alert places are gone with no recovery path anywhere: pushEnable() restores
+   from exactly this cache. Three of the four turn-off paths wrote a bare {on:false} and shipped
+   that way (pushSetPrefs's no-subscription branch, pushDisable, and initPushCard's browser-truth
+   reconciliation); only pushBootSync's revoked-permission branch was right. An off/on cycle lost
+   everything, silently. */
+test('every turn-off path keeps this device\'s prefs, so re-enabling restores them', () => {
+  const offWrites = [...BOARD.matchAll(/pushLocalSet\(\{\s*on:\s*false[^}]*\}\)/g)].map((m) => m[0]);
+  assert.ok(offWrites.length >= 4, `expected every turn-off path to be seen, found ${offWrites.length}`);
+  for (const w of offWrites) {
+    assert.match(w, /prefs:\s*pushPrefs\(\)/,
+      `a turn-off path wipes this device's followed gauges and places: ${w}`);
+  }
+});
+
+test('pushDisable leaves the followed gauges and places on the device', async () => {
+  const app = loadApp();
+  const ls = app._sandbox.localStorage;
+  const seeded = {
+    on: true,
+    prefs: { ffe: true, tier: 'major', gauges: [{ lid: 'SRRT2', tier: 'major' }], scope: 'places', places: [{ lat: 29.76, lon: -95.37, km: 16 }] },
+  };
+  ls.setItem('respondertx.push', JSON.stringify(seeded));
+  await app.pushDisable();
+  const after = JSON.parse(ls.getItem('respondertx.push'));
+  ls.removeItem('respondertx.push'); // the bundle is cached across tests in this file
+  assert.equal(after.on, false, 'the device must really be off');
+  assert.ok(after.prefs, 'turning off wiped the whole prefs record; pushEnable has nothing to restore');
+  assert.deepEqual(J(after.prefs.gauges), [{ lid: 'SRRT2', tier: 'major' }], 'followed gauges were wiped');
+  assert.deepEqual(J(after.prefs.places), [{ lat: 29.76, lon: -95.37, km: 16 }], 'alert places were wiped');
+  assert.equal(after.prefs.scope, 'places');
+  assert.equal(after.prefs.tier, 'major');
+});
+
 test('pushScopeState tells the card when area alerts cannot fire', () => {
   assert.equal(pushScopeState({ scope: 'statewide' }), 'ok');
   assert.equal(pushScopeState({ scope: 'places', places: [{ lat: 29.76, lon: -95.37, km: 16 }] }), 'ok');
@@ -467,6 +501,24 @@ test('the card never headlines a green ON over a subscription that can deliver n
     'a covering area with every type off is the silent case the scope note does not reach');
 });
 
+/* The gear row is unconditional markup, so it is present on a board with no push worker behind it.
+   initPushCard() is the only thing that ever proves a backend exists, and it proves it by leaving
+   #push-body empty when there is none. Opening the sheet must therefore repaint through
+   pushRerender(), which paints only an already-admitted card; calling renderPushCard() directly
+   would paint a switch that cannot subscribe onto a board that has no alert delivery at all. */
+test('opening the notify sheet cannot paint a card the backend check never admitted', () => {
+  const open = BOARD.match(/function openNotifySheet\(section\)[\s\S]*?\n\}/);
+  assert.ok(open, 'openNotifySheet() not found');
+  assert.match(open[0], /pushRerender\(\)/, 'the sheet must repaint through the admitted-card path');
+  assert.ok(!/renderPushCard\(\)/.test(open[0]),
+    'openNotifySheet calls renderPushCard directly; that paints a card on a board with no backend');
+  const rerender = BOARD.match(/function pushRerender\(\)[\s\S]*?\n\}/)[0];
+  assert.match(rerender, /host && host\.firstChild/, 'pushRerender lost the empty-host guard it exists for');
+  // and the row into the sheet only ever appears from a render that got that far
+  const syncCalls = [...BOARD.matchAll(/pushSyncEntries\(/g)];
+  assert.equal(syncCalls.length, 3, 'the entry rows must be published from the render paths only (1 def + 2 calls)');
+});
+
 test('a status probe that fails is reported, not published as "no device alerts here"', () => {
   const init = BOARD.match(/async function initPushCard\(\)[\s\S]*?\n\}/)[0];
   // 503 is how this board says "not wired", and hiding for it stays deliberate
@@ -481,9 +533,13 @@ test('a status probe that fails is reported, not published as "no device alerts 
 
 test('the card offers the area choice ahead of the alert types, and explains an area that cannot fire', () => {
   const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
-  const scopeRow = render.indexOf("typeRow('scope'");
-  const ffeRow = render.indexOf("typeRow('ffe'");
-  assert.ok(scopeRow !== -1 && ffeRow !== -1 && scopeRow < ffeRow, 'where you want alerts comes before which alerts');
+  // the accordion replaced the flat chip rows, so the ordering is now which PANE comes first
+  const where = render.indexOf("sec('where'");
+  const what = render.indexOf("sec('what'");
+  assert.ok(where !== -1 && what !== -1 && where < what, 'where you want alerts comes before which alerts');
+  const scopeCtl = render.indexOf("baseGroup(t('push.type.scope')");
+  assert.ok(scopeCtl > where && scopeCtl < what, 'the area control must live inside the Where pane');
+  assert.ok(render.indexOf('ffeRow()') > what, 'the Flash Flood Emergency switch must live inside the What pane');
   assert.match(render, /push\.scope\.statewide/, 'statewide must stay an explicit, reachable choice');
   assert.match(render, /push\.scope\.places/);
   assert.match(render, /scopeState !== 'ok' \? `<div class="push-fix">\$\{esc\(t\(`push\.scope\.\$\{scopeState\}`\)\)\}<\/div>`/,

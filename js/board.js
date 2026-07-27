@@ -1016,6 +1016,27 @@ function closeHelpSheet() {
   if (el) el.hidden = true;
 }
 
+/* Alert setup is one sheet with one accordion, reached from the gear row, the Alerts tab row and
+   every gauge bell. `section` preselects a pane for an entry point that already knows what the
+   reader asked for; without one the sheet opens with all three closed.
+   Repaints through pushRerender, never renderPushCard: the gear row is always present, so a board
+   whose backend check never admitted a card must open on the subscribe links alone rather than on
+   a switch that cannot subscribe. */
+function openNotifySheet(section) {
+  const el = $('#notify-sheet');
+  if (!el) return;
+  if (section) pushSection = section;
+  el.hidden = false;
+  pushRerender();
+  const focus = $('#push-toggle') || $('#notify-sheet-close');
+  if (focus && focus.focus) focus.focus();
+}
+
+function closeNotifySheet() {
+  const el = $('#notify-sheet');
+  if (el) el.hidden = true;
+}
+
 function copyShareUrl() {
   const btn = $('#share-copy');
   const url = state.shareUrl || buildShareUrl();
@@ -1424,10 +1445,14 @@ function pushNearbyGauges(gauges, followed, lat, lon, n) {
     .slice(0, n);
 }
 
-let pushManageOpen = false;      // in-card manage view (followed gauges) expanded
+/* Single-open accordion: '' | 'where' | 'what' | 'gauges'. One open pane bounds the sheet's height
+   and keeps push.note and the disclosure on screen in every state, which a routed sub-view would
+   not. Render-time only, never persisted: rotation must not mutate it mid-interaction. */
+let pushSection = '';
 let pushManagePreselect = null;  // lid pinned atop the picker by a "Notify me" entry point
 let pushAboutOpen = false;       // the full honesty paragraphs, expanded; survives a re-render
 let pushPlaceMsg = '';           // one-shot place-editor message (geolocation refusal)
+let pushNearbyMore = false;      // the nearby picker's overflow disclosure, past the first four
 
 // the one-sentence fix for a state the user cannot toggle out of ('' when the toggle is the fix)
 function pushFixKey(cardState) {
@@ -1440,7 +1465,9 @@ function pushGaugeName(lid) {
   return g ? g.name : lid;
 }
 
-// in-card manage view: each followed gauge with its tier + remove, a nearby-gauges picker
+const PUSH_NEARBY_SHOWN = 4; // the picker's visible depth; the rest sit behind one disclosure
+
+// the followed-gauges pane: each followed gauge with its tier + remove, a nearby-gauges picker
 // seeded from the current map view, and the everything-off action
 function pushManageHtml(prefs) {
   const tierBtns = (lid, current, cls) => ['moderate', 'major'].map((tier) =>
@@ -1467,13 +1494,22 @@ function pushManageHtml(prefs) {
         nearby = nearby.slice(0, 8);
       }
     }
-    pickerRows = nearby.map(({ g, dist }) => {
+    const row = ({ g, dist }) => {
       const lid = String(g.lid).toUpperCase();
       return `<div class="push-g-row push-nearby-row${pushManagePreselect === lid ? ' preselect' : ''}" data-lid="${esc(lid)}">` +
         `<span class="push-g-name">${esc(g.name)}${Number.isFinite(dist) ? ` <span class="push-g-dist">${dist.toFixed(1)} mi</span>` : ''}</span>` +
         `<span class="push-g-tiers" role="group">${tierBtns(lid, null, 'push-g-follow')}</span>` +
       '</div>';
-    }).join('');
+    };
+    // four is what fits beside the honesty text on a landscape phone; the rest stay one tap away
+    pickerRows = nearby.slice(0, PUSH_NEARBY_SHOWN).map(row).join('');
+    const rest = nearby.slice(PUSH_NEARBY_SHOWN);
+    if (rest.length) {
+      pickerRows += `<details class="push-more" id="push-nearby-more"${pushNearbyMore ? ' open' : ''}>` +
+        `<summary>${esc(t('push.manage.more').replace('{n}', String(rest.length)))}</summary>` +
+        rest.map(row).join('') +
+      '</details>';
+    }
   }
   return '<div class="push-manage">' +
     `<div class="push-m-title">${esc(t('push.manage.followed'))}</div>` +
@@ -1544,14 +1580,55 @@ function pushPendingHtml(cardState, preselect) {
 // the board could not reach its own status endpoint: say that, rather than rendering nothing and
 // letting #push-body:empty read as "this board has no device alerts"
 function pushRenderUnreachable(host) {
-  host.innerHTML = `<div class="section-title">${esc(t('push.title'))}</div>`
-    + `<div class="resource-item push-card"><div class="push-fix">${esc(t('push.unreachable'))}</div></div>`;
+  host.innerHTML = `<div class="push-fix">${esc(t('push.unreachable'))}</div>`;
+  pushSyncEntries('unreachable', false);
+}
+
+/* The gear row and the Alerts-tab row both publish the card's own state, so neither can claim
+   coverage the card is refusing to claim. `silent` carries the v0.99.65 rule outward: a
+   subscription that can deliver nothing never reads as ON anywhere on the board. */
+function pushEntryStateKey(cardState, deliversAny) {
+  if (cardState === 'unreachable') return 'push.unreachable';
+  return cardState === 'on' && !deliversAny ? 'push.state.silent' : `push.state.${cardState}`;
+}
+
+// Only the two render paths call this, and both run behind initPushCard's backend check, so the
+// Alerts-tab row appears only on a board that really has alert delivery wired.
+function pushSyncEntries(cardState, deliversAny) {
+  const txt = t(pushEntryStateKey(cardState, deliversAny));
+  const chip = $('#notify-state');
+  if (chip) chip.textContent = ` · ${txt}`;
+  const sub = $('#alerts-notify-sub');
+  if (sub) sub.textContent = txt;
+  const row = $('#alerts-notify-row');
+  if (row) row.hidden = false;
+}
+
+/* Collapsed-pane summaries. Each says what is really set, so a closed accordion never hides a
+   degraded setting behind a reassuring label. */
+function pushWhereSummary(prefs, scopeState) {
+  if (prefs.scope === 'statewide') return t('push.scope.statewide');
+  if (prefs.scope === 'places' && scopeState === 'ok') return t('push.scope.places');
+  return t('push.sum.unset');
+}
+
+function pushWhatSummary(prefs) {
+  const parts = [];
+  if (prefs.ffe) parts.push(t('push.sum.ffe'));
+  if (prefs.tier) parts.push(t('push.sum.gauges').replace('{t}', t(`push.tier.${prefs.tier}`)));
+  return parts.length ? parts.join(' · ') : t('push.sum.nothing');
+}
+
+function pushGaugesSummary(prefs) {
+  const n = prefs.gauges.length;
+  return n ? t('push.sum.followed').replace('{n}', String(n)) : t('push.sum.none');
 }
 
 function renderPushCard() {
   const host = $('#push-body');
   if (!host) return;
-  const st = pushCardState(pushEnvFacts());
+  const facts = pushEnvFacts();
+  const st = pushCardState(facts);
   const on = st === 'on';
   const toggleable = st === 'on' || st === 'off';
   // the header gear wears the alerts dot only where this device could actually subscribe and has
@@ -1565,42 +1642,71 @@ function renderPushCard() {
     ? t('push.fresh.ok').replace('{m}', String(Math.max(0, Math.round((Date.now() - state.pushLastEval) / 60000))))
     : t('push.fresh.stale');
   const fixKey = pushFixKey(st);
+  const kept = prefs.gauges.length > 0 || prefs.places.length > 0 || prefs.scope !== 'none';
+  // segmented option: one exclusive choice per row, .ls-base-btn so it clears 44px and wraps in
+  // Spanish. .push-opt stays the behaviour hook every tap handler below binds on.
   const opt = (group, val, active, label) =>
-    `<button type="button" class="push-chip push-opt${active ? ' active' : ''}" data-pref="${group}:${val}" aria-pressed="${active}">${esc(label)}</button>`;
+    `<button type="button" class="ls-base-btn push-opt${active ? ' on' : ''}" data-pref="${group}:${val}" aria-pressed="${active}">${esc(label)}</button>`;
   const typeRow = (key, opts) =>
     `<div class="push-type-row"><span class="push-type-lbl" id="push-t-${key}">${esc(t(`push.type.${key}`))}</span>` +
-      `<span class="push-type-opts" role="group" aria-labelledby="push-t-${key}">${opts}</span></div>`;
+      `<div class="ls-base push-type-opts" role="group" aria-labelledby="push-t-${key}">${opts}</div></div>`;
+  // the pane header already names this one, so a visible label would read "Where / Where"
+  const baseGroup = (label, opts) =>
+    `<div class="ls-base push-type-opts" role="group" aria-label="${esc(label)}">${opts}</div>`;
+  // a boolean deserves a switch, and push.type.ffe is the longest Spanish string here: a chip pair
+  // would overflow the row where a full-width .ls-row does not
+  const ffeRow = () =>
+    `<button type="button" class="ls-row push-opt${prefs.ffe ? ' on' : ''}" data-pref="ffe:${prefs.ffe ? 'off' : 'on'}" role="switch" aria-checked="${prefs.ffe}">` +
+      '<span class="ls-icon" aria-hidden="true">⚠️</span>' +
+      `<span class="ls-txt"><span class="ls-name">${esc(t('push.type.ffe'))}</span></span>` +
+      '<span class="ls-knob"></span>' +
+    '</button>';
+  const sec = (key, icon, label, summary, body) =>
+    `<button type="button" class="ls-row push-sec" data-sec="${key}" aria-expanded="${pushSection === key}">` +
+      `<span class="ls-icon" aria-hidden="true">${icon}</span>` +
+      `<span class="ls-txt"><span class="ls-name">${esc(label)}</span><span class="ls-sub">${esc(summary)}</span></span>` +
+      `<span class="ls-knob ls-go" aria-hidden="true">${pushSection === key ? '⌄' : '›'}</span>` +
+    '</button>' +
+    (pushSection === key ? `<div class="push-sec-body">${body()}</div>` : '');
   host.innerHTML =
-    `<div class="section-title">${esc(t('push.title'))}</div>` +
-    '<div class="resource-item push-card">' +
+    '<div class="push-card">' +
       // state and switch first: the glanceable truth and the one control, before any prose
       '<div class="push-head">' +
         `<div class="push-status push-${on && !delivers.any ? 'silent' : st}">${esc(t(on && !delivers.any ? 'push.state.silent' : `push.state.${st}`))}</div>` +
         (toggleable ? `<button type="button" class="act-btn push-toggle" id="push-toggle">${esc(t(on ? 'push.toggle.off' : 'push.toggle.on'))}</button>` : '') +
       '</div>' +
       (fixKey ? `<div class="push-fix">${esc(t(fixKey))}</div>` : '') +
+      (st === 'ios' ? `<div class="push-fix">${esc(t('push.fix.ios.steps'))}</div>` : '') +
       pushPendingHtml(st, pushManagePreselect) +
+      // never asked yet: the pitch and the switch, nothing else. Settings are meaningless without a
+      // subscription and they were the bulk of the wall this rework exists to remove.
+      (st === 'off' ? `<div class="push-pitch">${esc(t('push.pitch'))}</div>` : '') +
+      // only where the browser has never been asked: after a grant the prompt does not return
+      (st === 'off' && facts.permission === 'default' ? `<div class="push-fix">${esc(t('push.pitch.next'))}</div>` : '') +
+      (st === 'off' && kept ? `<div class="push-fix">${esc(t('push.off.kept'))}</div>` : '') +
+      // single-open accordion. Where before What, because where you want alerts decides whether
+      // any of the types can fire at all.
       (on
-        ? `<div class="push-types" role="group" aria-label="${esc(t('push.types.label'))}">` +
-            typeRow('scope', opt('scope', 'none', prefs.scope !== 'statewide' && prefs.scope !== 'places', t('push.opt.off')) +
-              opt('scope', 'statewide', prefs.scope === 'statewide', t('push.scope.statewide')) +
-              opt('scope', 'places', prefs.scope === 'places', t('push.scope.places'))) +
-            typeRow('ffe', opt('ffe', 'off', !prefs.ffe, t('push.opt.off')) + opt('ffe', 'on', prefs.ffe, t('push.opt.on'))) +
-            typeRow('gauges', opt('tier', 'off', !prefs.tier, t('push.opt.off')) +
-              opt('tier', 'moderate', prefs.tier === 'moderate', t('push.tier.moderate')) +
-              opt('tier', 'major', prefs.tier === 'major', t('push.tier.major'))) +
+        ? '<div class="push-types" role="group" aria-label="' + esc(t('push.types.label')) + '">' +
+            sec('where', '📍', t('push.type.scope'), pushWhereSummary(prefs, scopeState), () =>
+              baseGroup(t('push.type.scope'),
+                opt('scope', 'none', prefs.scope !== 'statewide' && prefs.scope !== 'places', t('push.opt.off')) +
+                opt('scope', 'statewide', prefs.scope === 'statewide', t('push.scope.statewide')) +
+                opt('scope', 'places', prefs.scope === 'places', t('push.scope.places'))) +
+              // an area that cannot cover anything says so where the choice is made: the card never
+              // shows alert types as live when nothing they describe can reach this device
+              (scopeState !== 'ok' ? `<div class="push-fix">${esc(t(`push.scope.${scopeState}`))}</div>` : '') +
+              (prefs.scope === 'places' ? pushPlacesHtml(prefs) : '')) +
+            sec('what', '⚠️', t('push.sec.what'), pushWhatSummary(prefs), () =>
+              ffeRow() +
+              typeRow('gauges', opt('tier', 'off', !prefs.tier, t('push.opt.off')) +
+                opt('tier', 'moderate', prefs.tier === 'moderate', t('push.tier.moderate')) +
+                opt('tier', 'major', prefs.tier === 'major', t('push.tier.major'))) +
+              // a covering area with every type off is the one silent case the scope note misses
+              (scopeState === 'ok' && !delivers.any ? `<div class="push-fix">${esc(t('push.silent.types'))}</div>` : '')) +
+            sec('gauges', '🔔', t('push.manage.followed'), pushGaugesSummary(prefs), () => pushManageHtml(prefs)) +
           '</div>'
         : '') +
-      // an area that cannot cover anything says so where the choice is made: the card never
-      // shows alert types as live when nothing they describe can reach this device
-      (on && scopeState !== 'ok' ? `<div class="push-fix">${esc(t(`push.scope.${scopeState}`))}</div>` : '') +
-      // a covering area with every type switched off is the one silent case the scope note misses
-      (on && scopeState === 'ok' && !delivers.any ? `<div class="push-fix">${esc(t('push.silent.types'))}</div>` : '') +
-      (on && prefs.scope === 'places' ? pushPlacesHtml(prefs) : '') +
-      (on
-        ? `<button type="button" class="push-manage-btn" id="push-manage-btn" aria-expanded="${pushManageOpen}">${esc(t(pushManageOpen ? 'push.manage.hide' : 'push.manage.show'))}</button>`
-        : '') +
-      (on && pushManageOpen ? pushManageHtml(prefs) : '') +
       (fresh ? `<div class="push-fresh push-fresh-${fresh}">${esc(freshTxt)}</div>` : '') +
       `<div class="push-note">${esc(t('push.note'))}</div>` +
       `<details class="push-about" id="push-about"${pushAboutOpen ? ' open' : ''}>` +
@@ -1609,6 +1715,24 @@ function renderPushCard() {
         `<div class="push-disclaimer">${esc(t('push.disclaimer'))}</div>` +
       '</details>' +
     '</div>';
+  pushSyncEntries(st, delivers.any);
+  host.querySelectorAll('.push-sec[data-sec]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const key = el.getAttribute('data-sec');
+      pushSection = pushSection === key ? '' : key;
+      if (pushSection !== 'gauges') pushManagePreselect = null;
+      renderPushCard();
+    });
+  });
+  const more = $('#push-nearby-more');
+  if (more) {
+    let seen = pushNearbyMore;
+    more.addEventListener('toggle', () => {
+      if (more.open === seen) return;
+      seen = more.open;
+      pushNearbyMore = more.open;
+    });
+  }
   const btn = $('#push-toggle');
   if (btn) btn.addEventListener('click', on ? pushDisable : pushEnable);
   const about = $('#push-about');
@@ -1625,14 +1749,6 @@ function renderPushCard() {
     const [group, val] = String(el.getAttribute('data-pref')).split(':');
     el.addEventListener('click', () => pushOptTap(group, val));
   });
-  const mbtn = $('#push-manage-btn');
-  if (mbtn) {
-    mbtn.addEventListener('click', () => {
-      pushManageOpen = !pushManageOpen;
-      if (!pushManageOpen) pushManagePreselect = null;
-      renderPushCard();
-    });
-  }
   host.querySelectorAll('.push-g-tier, .push-g-follow').forEach((el) => {
     el.addEventListener('click', () => pushFollowGauge(el.getAttribute('data-lid'), el.getAttribute('data-tier')));
   });
@@ -1721,18 +1837,16 @@ function pushUnfollowGauge(lid) {
   pushSetPrefs(p);
 }
 
-// "Notify me" entry point (gauge popup / hydrograph modal): open the settings sheet with the
-// manage view expanded and that gauge pinned atop the picker. Never auto-follows: the tier tap
-// is the choice.
+// "Notify me" entry point (gauge popup / hydrograph modal): open the notify sheet on the followed
+// gauges pane with that gauge pinned atop the picker. Never auto-follows: the tier tap is the
+// choice, and it is the one intent-based exception to the all-panes-closed default.
 function pushManageAvailable() {
   return Boolean(state.pushVapidKey); // set only for a device that can really subscribe, with a configured backend
 }
 
 function pushOpenManageFor(lid) {
-  pushManageOpen = true;
   pushManagePreselect = String(lid || '').toUpperCase();
-  if (typeof openAlertsPanel === 'function') openAlertsPanel();
-  renderPushCard();
+  openNotifySheet('gauges');
   const row = document.querySelector(`#push-body .push-g-row[data-lid="${pushManagePreselect}"]`);
   if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center' });
 }
@@ -1757,7 +1871,9 @@ async function pushSetPrefs(prefs) {
   try {
     const reg = state.swReg || await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
-    if (!sub) { pushLocalSet({ on: false }); renderPushCard(); return; }
+    // prefs are the device's own record and survive every turn-off path, so re-enabling restores
+    // them; a bare {on:false} here wiped followed gauges and alert places with no way back
+    if (!sub) { pushLocalSet({ on: false, prefs: pushPrefs() }); renderPushCard(); return; }
     const r = await fetch('api/push/subscribe', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub.toJSON(), prefs: next, lang: getLang() }),
@@ -1810,7 +1926,8 @@ async function pushDisable() {
       try { await sub.unsubscribe(); } catch (err) { /* browser refusal — server row already gone */ }
     }
   } catch (err) { /* no registration — nothing to tear down */ }
-  pushLocalSet({ on: false });
+  // the server row is gone, but this device keeps its own settings so re-enabling restores them
+  pushLocalSet({ on: false, prefs: pushPrefs() });
   renderPushCard();
 }
 
@@ -1917,7 +2034,7 @@ async function initPushCard() {
     try {
       const reg = state.swReg || await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
-      if (!sub && pushLocal().on) pushLocalSet({ on: false });
+      if (!sub && pushLocal().on) pushLocalSet({ on: false, prefs: pushPrefs() });
       if (sub && !pushLocal().on) pushLocalSet({ on: true, prefs: pushPrefs() });
     } catch (err) { /* registration unavailable — local cache stands */ }
   }

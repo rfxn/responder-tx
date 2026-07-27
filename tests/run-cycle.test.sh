@@ -390,6 +390,7 @@ spec = importlib.util.spec_from_file_location("real_roads", "$REAL_ROADS")
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 mod.urllib.request.urlopen = lambda *a, **k: (_ for _ in ()).throw(OSError("upstream refused"))
+mod.time.sleep = lambda _s: None  # the retry backoff is real; paying it here would only slow the suite
 sys.exit(mod.main() or 0)
 PY
 ( cd "$REPO" && git add -A && git commit --quiet -m 'real roads generator with a dead upstream' )
@@ -401,6 +402,34 @@ if [ "$RC" -eq 3 ] \
     pass "16 a failed road snapshot degrades the sign-off instead of passing for a clean cycle"
 else
     fail "16 a failed road snapshot must not sign off clean (rc=$RC)"; cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# --- Test 17: retrying a flaky NSS host must not soften what a genuinely dead one does ---------
+# gen-shelters.py retries now, because a single attempt against an intermittently hanging FEMA host
+# signed four cycles off DEGRADED in one hour. When the host is really down the contract is
+# unchanged: abort, leave the previous file at its older stamp so it ages honestly, and name
+# shelters in the degraded sign-off. Drives the real module with its upstream cut.
+setup
+REAL_SHELTERS="$REPO_ROOT/scripts/gen-shelters.py"
+cat > "$REPO/scripts/gen-shelters.py" <<PY
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("real_shelters", "$REAL_SHELTERS")
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+mod.urllib.request.urlopen = lambda *a, **k: (_ for _ in ()).throw(OSError("upstream refused"))
+mod.time.sleep = lambda _s: None  # the retry backoff is real; paying it here would only slow the suite
+sys.exit(mod.main() or 0)
+PY
+( cd "$REPO" && git add -A && git commit --quiet -m 'real shelter generator with a dead upstream' )
+run_cycle
+if [ "$RC" -eq 3 ] \
+   && grep -q '=== cycle complete (DEGRADED) ===' "$WORK/cycle.log" \
+   && grep -q 'failed: shelters' "$WORK/cycle.log" \
+   && [ "$(stamp_of data/shelters-live.json)" = "$OLD_STAMP" ]; then
+    pass "17 a persistently dead NSS host still degrades the sign-off and keeps the previous file"
+else
+    fail "17 a dead shelter upstream must degrade, not sign off clean (rc=$RC)"; cat "$WORK/cycle.log"
 fi
 rm -rf "$WORK"
 

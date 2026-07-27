@@ -36,6 +36,7 @@ def load_module():
 
 
 GR = load_module()
+GR.time.sleep = lambda _s: None  # the retry backoff is real; paying it here would only slow the suite
 BBOX = (-100.0, 29.0, -97.0, 31.0)
 
 

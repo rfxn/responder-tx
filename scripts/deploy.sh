@@ -36,6 +36,13 @@ case "$DEPLOY_DIR_PINNED" in
     *) fail "RESPONDER_DEPLOY_DIR must be an absolute path, got '${DEPLOY_DIR_PINNED}'" ;;
 esac
 deploy_dir=''  # set at build time; the EXIT trap removes it only when this run created it
+bundle_probe=''  # scratch file for the post-deploy bundle read; the EXIT trap drops it
+
+# Post-deploy bundle-coherence window. A Pages swap can leave one edge entry briefly holding the
+# previous build's bytes under the new ?v= key; the v0.99.60 case cleared on revalidation in about
+# two minutes, so tolerate 3 before calling it a failed release.
+BUNDLE_TRIES=13
+BUNDLE_WAIT=15
 
 # --- Materialize HEAD. The version gate, the test gate, and the Functions tree wrangler compiles
 # all read from here, so a working-tree edit can neither block a deploy nor contaminate one. ---
@@ -49,6 +56,7 @@ cleanup() {
     if [ -z "$DEPLOY_DIR_PINNED" ] && [ -n "$deploy_dir" ]; then
         command rm -rf "$deploy_dir"
     fi
+    if [ -n "$bundle_probe" ]; then command rm -f "$bundle_probe"; fi
     exit "$rc"
 }
 trap cleanup EXIT INT TERM
@@ -245,6 +253,53 @@ else
         fi
     done
     [ "$live_ok" -eq 1 ] || fail "live changelog.json versions[0].v never reached ${version} after ~2min (CDN propagation lag or deploy failure)"
+
+    # --- Bundle coherence. changelog.json agreeing proves the deploy landed, not that the scripts
+    # the browser executes all come from this build. After v0.99.60 the edge served the new core.js
+    # beside the previous sources.js under one ?v= key, so the release's fix was absent from a page
+    # that reported the new version; a stale core.js under a fresh boot.js is a failed start, not a
+    # cosmetic diff. Read the URLs a browser actually requests and compare against the bytes just
+    # uploaded, which is exact and needs no version marker inside each file. The window exists
+    # because a freshly-swapped edge entry can be briefly inconsistent and self-corrects; only a
+    # bundle that never converges is a release defect.
+    bundle_assets=()
+    while IFS= read -r asset; do
+        if [ -n "$asset" ]; then bundle_assets+=("$asset"); fi
+    done < <(grep -oP 'src="\K[^"?]+\.js(?=\?v=)' "$deploy_dir/index.html" | sort -u)
+    [ "${#bundle_assets[@]}" -gt 0 ] || fail "no ?v= stamped <script src> assets in the deploy index.html to verify"
+    bundle_assets+=("sw.js")  # registered unstamped by boot.js; a stale one is a stale precache manifest
+
+    bundle_probe=$(command mktemp "${TMPDIR:-/tmp}/responder-bundle.XXXXXX") || fail "mktemp for the bundle probe failed"
+    pending=("${bundle_assets[@]}")
+    for attempt in $(command seq 1 "$BUNDLE_TRIES"); do
+        stale=()
+        for asset in ${pending[@]+"${pending[@]}"}; do
+            built=$(sha256sum "$deploy_dir/$asset" | cut -d' ' -f1) || fail "cannot hash ${asset} in the deploy dir"
+            url="https://respondertx.org/${asset}"
+            case "$asset" in
+                sw.js) ;;  # _headers marks it no-cache and boot.js requests it unstamped
+                *) url="${url}?v=${stamp_version}" ;;
+            esac
+            if curl -sf -m 20 "$url" > "$bundle_probe"; then
+                served=$(sha256sum "$bundle_probe" | cut -d' ' -f1) || fail "cannot hash the served ${asset}"
+            else
+                served='unreachable'
+            fi
+            [ "$served" = "$built" ] || stale+=("${asset} (served ${served:0:12}, built ${built:0:12})")
+        done
+        pending=()
+        for entry in ${stale[@]+"${stale[@]}"}; do
+            pending+=("${entry%% *}")
+        done
+        if [ "${#pending[@]}" -eq 0 ]; then break; fi
+        if [ "$attempt" -lt "$BUNDLE_TRIES" ]; then
+            echo "live bundle not yet coherent at ${version} (attempt ${attempt}/${BUNDLE_TRIES}): ${stale[*]}; waiting ${BUNDLE_WAIT}s for edge revalidation"
+            command sleep "$BUNDLE_WAIT"
+        fi
+    done
+    [ "${#pending[@]}" -eq 0 ] \
+        || fail "live JS bundle never became coherent at ${version} after ~$(((BUNDLE_TRIES - 1) * BUNDLE_WAIT / 60))min: ${stale[*]}"
+    echo "bundle gate OK: ${#bundle_assets[@]} served assets byte-identical to the ${version} artifact"
 
     # Two URLs per stripped path, because they answer two different questions. The cache-busted
     # one reaches the origin and is the only one this deploy controls, so it stays the pass/fail

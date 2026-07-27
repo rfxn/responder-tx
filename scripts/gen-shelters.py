@@ -4,13 +4,15 @@
 Queries the FEMA Open Shelters layer for the event AO bbox (data/event.json
 gaugeBbox + margin). An empty result from a healthy API is real data (no
 shelters open in the AO) and writes an empty-but-valid file; a fetch/parse
-failure exits non-zero and leaves the previous file intact.
+failure exits non-zero after a bounded retry and leaves the previous file intact.
 """
 import datetime
 import json
 import os
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -26,6 +28,9 @@ UA = "responder-tx-ops/gen-shelters (rfxnryan@gmail.com)"
 # event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
 DEFAULT_BBOX = {"xmin": -106.65, "ymin": 25.83, "xmax": -93.4, "ymax": 36.5}
 MARGIN = 0.5
+# NSS answers healthy in ~0.5s and otherwise hangs, so a short deadline plus retries beats one long wait
+TIMEOUT = 12
+BACKOFFS = [2, 5]
 
 
 def ao_bbox():
@@ -37,6 +42,26 @@ def ao_bbox():
     except Exception as e:  # noqa: BLE001 — a broken event.json must not kill the poller; CONFIG default matches core.js
         print(f"warn: event.json bbox unreadable, using default: {e}", file=sys.stderr)
     return DEFAULT_BBOX
+
+
+def fetch_nss(req):
+    """The NSS FeatureCollection, retried through BACKOFFS. ArcGIS reports overload as an
+    {"error":...} body inside HTTP 200, so that retries too; a hard 4xx is a bad query and aborts."""
+    for attempt in range(len(BACKOFFS) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                gj = json.load(r)
+            if not isinstance(gj, dict) or "error" in gj or not isinstance(gj.get("features"), list):
+                raise ValueError(f"response is not a FeatureCollection: {str(gj)[:200]}")
+            return gj
+        except Exception as e:  # noqa: BLE001 — every path here retries or aborts; none writes
+            hard_4xx = isinstance(e, urllib.error.HTTPError) and e.code != 429 and e.code < 500
+            if attempt == len(BACKOFFS) or hard_4xx:
+                sys.exit(f"gen-shelters: NSS fetch failed after {attempt + 1} attempt(s), "
+                         f"keeping previous file: {e}")
+            print(f"warn: NSS attempt {attempt + 1} failed ({e}); retry in {BACKOFFS[attempt]}s",
+                  file=sys.stderr)
+            time.sleep(BACKOFFS[attempt])
 
 
 def main():
@@ -53,14 +78,7 @@ def main():
         "f": "geojson",
     })
     req = urllib.request.Request(f"{URL}?{params}", headers={"User-Agent": UA, "Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            gj = json.load(r)
-    except Exception as e:  # noqa: BLE001 — any fetch/parse failure keeps last-good; cycle treats this step as optional
-        sys.exit(f"gen-shelters: NSS fetch failed, keeping previous file: {e}")
-    # ArcGIS returns 200 OK with an {"error":...} body; never mistake that for zero shelters
-    if not isinstance(gj, dict) or "error" in gj or not isinstance(gj.get("features"), list):
-        sys.exit(f"gen-shelters: response is not a FeatureCollection, keeping previous file: {str(gj)[:200]}")
+    gj = fetch_nss(req)
 
     shelters = []
     for f in gj["features"]:

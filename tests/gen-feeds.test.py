@@ -95,6 +95,7 @@ def run(alerts, gauges=(), requests_=(), tornado=None):
     try:
         seed(root, gauges, requests_)
         g = load_gen(root)
+        g.time.sleep = lambda _s: None  # the retry backoff is real; paying it here would only slow the suite
 
         class Resp:
             def __init__(self_inner, payload):

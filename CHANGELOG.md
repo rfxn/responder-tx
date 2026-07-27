@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.61 · 2026-07-27 (a source that times out gets another try)
+
+-- Changes --
+- [Change] The shelter list, road closures, low water crossing status, the public
+           feeds and the CalTopo export now retry a source that times out before
+           giving up. A brief upstream outage no longer costs a refresh, and a
+           source that stays unreachable still keeps its previous data with its
+           own timestamp rather than publishing anything new
+- [Change] A release now confirms the site is serving every part of the new
+           version before reporting success
+
 ## v0.99.60 · 2026-07-27 (a source that did not answer no longer reads as zero)
 
 -- Bug Fixes --

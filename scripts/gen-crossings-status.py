@@ -14,6 +14,8 @@ import json
 import os
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
@@ -23,13 +25,27 @@ OUT = os.path.join(ROOT, 'data', 'crossing-status.json')
 UA = 'responder-board-gen-crossings-status'
 KEEP = ('closed', 'caution')  # 'open' is never published: see the module docstring
 MAX_ROWS = 2000  # the whole inventory is ~2.5k crossings; a closure list near that is a shape change
+# healthy answers measure ~0.2s, so a short deadline plus retries beats one long wait on a hang
+TIMEOUT = 12
+BACKOFFS = [2, 5]
 TX_MIN_LAT, TX_MAX_LAT, TX_MIN_LON, TX_MAX_LON = 25.0, 37.0, -107.5, -93.0
 
 
 def fetch_json(url):
+    """One closures read, retried through BACKOFFS; a hard 4xx raises at once and main() keeps
+    the previous file."""
     req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/json'})
-    with urllib.request.urlopen(req, timeout=45) as r:
-        return json.loads(r.read())
+    for attempt in range(len(BACKOFFS) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                return json.loads(r.read())
+        except Exception as e:  # noqa: BLE001 — the caller keeps the previous file on the final raise
+            hard_4xx = isinstance(e, urllib.error.HTTPError) and e.code != 429 and e.code < 500
+            if attempt == len(BACKOFFS) or hard_4xx:
+                raise
+            print(f'warn: closures attempt {attempt + 1} failed ({e}); '
+                  f'retry in {BACKOFFS[attempt]}s', file=sys.stderr)
+            time.sleep(BACKOFFS[attempt])
 
 
 def iso_utc(stamp):

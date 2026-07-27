@@ -27,6 +27,8 @@ import os
 import re
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -53,6 +55,9 @@ MAX_FEATURES = int(os.environ.get("RESPONDER_CALTOPO_MAX_FEATURES", "2000"))
 MAX_KML_BYTES = int(os.environ.get("RESPONDER_CALTOPO_MAX_KML_BYTES", str(8 * 1024 * 1024)))
 FIT_PASSES = 8
 LSR_CAP = 100
+# healthy answers measure ~0.2s, so a short deadline plus retries beats one long wait on a hang
+TIMEOUT = 12
+BACKOFFS = [2, 5]
 
 # hexes mirror css/app.css dark-theme custom properties (--cat-*, --sev-*, --good, --ink-muted, --accent)
 CAT_COLOR = {"action": "#fab219", "minor": "#ec835a", "moderate": "#d03b3b", "major": "#a855f7"}
@@ -166,12 +171,18 @@ def fetch_json(url, fixture_env):
     if os.environ.get("RESPONDER_CALTOPO_OFFLINE"):
         return None
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/geo+json"})
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return json.load(r)
-    except (OSError, ValueError) as e:
-        print(f"warn: fetch failed {url}: {e}", file=sys.stderr)
-        return None
+    for attempt in range(len(BACKOFFS) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                return json.load(r)
+        except (OSError, ValueError) as e:
+            hard_4xx = isinstance(e, urllib.error.HTTPError) and e.code != 429 and e.code < 500
+            if attempt == len(BACKOFFS) or hard_4xx:
+                print(f"warn: fetch failed {url}: {e}", file=sys.stderr)
+                return None
+            print(f"warn: fetch attempt {attempt + 1} failed {url}: {e}; "
+                  f"retry in {BACKOFFS[attempt]}s", file=sys.stderr)
+            time.sleep(BACKOFFS[attempt])
 
 
 def strip_html(s):

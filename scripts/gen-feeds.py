@@ -10,12 +10,18 @@ NWPS validTime; nothing is invented.
 import datetime
 import json
 import os
+import sys
+import time
+import urllib.error
 import urllib.request
 import xml.sax.saxutils as sx
 
 ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = "https://respondertx.org"
 UA = "responder-tx-ops (rfxnryan@gmail.com)"
+# healthy answers measure ~0.1s, so a short deadline plus retries beats one long wait on a hang
+TIMEOUT = 12
+BACKOFFS = [2, 5]
 
 
 def now_utc():
@@ -67,13 +73,20 @@ def event_branding():
 
 def fetch_alerts(url):
     """(features, unreachable_reason). A failed check reports a reason and never a bare empty list:
-    an empty feed reads as an all clear, which a request that failed never said."""
+    an empty feed reads as an all clear, which a request that failed never said. Retried through
+    BACKOFFS so one slow answer does not drop live warnings for a whole cycle."""
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/geo+json"})
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return json.load(r).get("features", []), None
-    except (OSError, ValueError) as exc:
-        return [], f"{type(exc).__name__}: {exc}"
+    for attempt in range(len(BACKOFFS) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                return json.load(r).get("features", []), None
+        except (OSError, ValueError) as exc:
+            hard_4xx = isinstance(exc, urllib.error.HTTPError) and exc.code != 429 and exc.code < 500
+            if attempt == len(BACKOFFS) or hard_4xx:
+                return [], f"{type(exc).__name__}: {exc}"
+            print(f"warn: NWS attempt {attempt + 1} failed ({exc}); "
+                  f"retry in {BACKOFFS[attempt]}s", file=sys.stderr)
+            time.sleep(BACKOFFS[attempt])
 
 
 def item_of(f, threat):

@@ -244,9 +244,32 @@ stub_network() {  # PATH stubs for the live-smoke step: curl answers per test, s
     cat > "$WORK/bin/curl" <<'SH'
 #!/bin/bash
 url="${!#}"  # last argument is the URL
-case "$url" in
-    *changelog.json*) printf '{"versions":[{"v":"%s"}]}\n' "${STUB_LIVE_VERSION:-v1.0.0}"; exit 0 ;;
-esac
+# The strip gate asks for a status code; the version poll and the bundle gate want a body. Keying
+# on -w rather than on the URL keeps a js/ path from being answered by the wrong half.
+wants_code=0
+for a in "$@"; do
+    if [ "$a" = '%{http_code}' ]; then wants_code=1; fi
+done
+if [ "$wants_code" -eq 0 ]; then
+    case "$url" in
+        *changelog.json*) printf '{"versions":[{"v":"%s"}]}\n' "${STUB_LIVE_VERSION:-v1.0.0}"; exit 0 ;;
+    esac
+    asset="${url#https://respondertx.org/}"
+    asset="${asset%%\?*}"
+    # an asset named in STUB_BUNDLE_STALE answers with the PREVIOUS build's bytes until it has done
+    # so STUB_BUNDLE_HEAL times, which is how an edge entry behaves until it revalidates
+    for p in ${STUB_BUNDLE_STALE:-}; do
+        if [ "$p" = "$asset" ]; then
+            n_file="$STUB_COUNT_DIR/${asset//\//_}"
+            n=$(cat "$n_file" 2>/dev/null || echo 0)  # first request for this asset has no counter yet
+            n=$((n + 1))
+            echo "$n" > "$n_file"
+            if [ "$n" -le "${STUB_BUNDLE_HEAL:-9999}" ]; then printf 'STALE-PREVIOUS-BUILD\n'; exit 0; fi
+        fi
+    done
+    if [ -f "$STUB_DEPLOY_DIR/$asset" ]; then cat "$STUB_DEPLOY_DIR/$asset"; exit 0; fi
+    exit 22
+fi
 path="${url#https://respondertx.org/}"
 if [ "$path" = "${path%%\?*}" ]; then   # no cache-buster: this request reaches the CDN edge
     for p in ${STUB_EDGE_200:-}; do
@@ -267,9 +290,14 @@ SH
 # $1 = paths the EDGE still serves, $2 = paths the ORIGIN still serves. Passed as arguments, not
 # as an env prefix: bash leaves a prefix assignment on a shell function set in the caller, and a
 # leaked STUB_EDGE_200 would silently make the clean-run test pass for the wrong reason.
+# $3 = assets the edge serves from the PREVIOUS build, $4 = how many such answers before it heals
 run_live_deploy() {
     local old_path=$PATH rc
     export STUB_EDGE_200="${1:-}" STUB_ORIGIN_200="${2:-}"
+    export STUB_BUNDLE_STALE="${3:-}" STUB_BUNDLE_HEAL="${4:-9999}"
+    export STUB_DEPLOY_DIR="$WORK/deploy" STUB_COUNT_DIR="$WORK/bundle-counts"
+    rm -rf "$STUB_COUNT_DIR"
+    mkdir -p "$STUB_COUNT_DIR"
     PATH="$WORK/bin:$PATH"
     run_deploy --skip-tests
     rc=$?
@@ -308,6 +336,56 @@ if [ "$RC" -eq 0 ] \
     pass "11 a clean edge and origin report one line and no warning"
 else
     fail "11 clean strip gate reports both halves (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+# --- Tests 18-21: success must mean the served JS bundle is coherent, not that one JSON updated ---
+# Immediately after the v0.99.60 upload the site served the new core.js beside the previous
+# sources.js under one ?v=0.99.60 key, so the release's fix was absent from a page that reported
+# the new version. deploy.sh still printed "OK: v0.99.60 live" because it judged the release on
+# changelog.json, which was already correct. A stale core.js under a fresh boot.js is a failed
+# start, so the gate reads the URLs a browser requests and compares them to the uploaded bytes.
+run_live_deploy "" ""
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && grep -q 'bundle gate OK: 2 served assets byte-identical to the v1\.0\.0 artifact' "$WORK/run.out"; then
+    pass "18 a coherent bundle passes, and the gate reports how many assets it actually read"
+else
+    fail "18 a coherent bundle passes the gate (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+# MUTATION · changelog.json answers v1.0.0 throughout, so this can fail only because a served
+# SCRIPT disagrees. That is exactly the state the old gate reported as a successful release.
+run_live_deploy "" "" "js/core.js"
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q 'live JS bundle never became coherent at v1\.0\.0' "$WORK/run.out" \
+   && grep -q 'js/core.js (served' "$WORK/run.out" \
+   && ! grep -q 'OK: v1\.0\.0 live' "$WORK/run.out"; then
+    pass "19 MUTATION · a served script that disagrees fails the deploy, though changelog.json is right"
+else
+    fail "19 a stale served script must fail the deploy (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+# MUTATION · the asset list is not merely index.html's scripts; sw.js carries the precache manifest
+run_live_deploy "" "" "sw.js"
+RC=$?
+if [ "$RC" -ne 0 ] && grep -q 'sw.js (served' "$WORK/run.out"; then
+    pass "20 MUTATION · a stale served sw.js fails the deploy too, so the gate covers the worker"
+else
+    fail "20 a stale sw.js must fail the deploy (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+# A brief edge inconsistency is expected under the zone cache rule and clears on revalidation. It
+# must not fail a deploy that actually succeeded, and the wait must be reported rather than hidden.
+run_live_deploy "" "" "js/core.js" 2
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && grep -q 'live bundle not yet coherent at v1\.0\.0 (attempt 1/13)' "$WORK/run.out" \
+   && grep -q 'bundle gate OK' "$WORK/run.out" \
+   && grep -q 'OK: v1\.0\.0 live' "$WORK/run.out"; then
+    pass "21 a bundle that heals inside the window still passes, and the wait is logged"
+else
+    fail "21 a brief edge inconsistency must not fail a good deploy (rc=${RC})"; cat "$WORK/run.out"
 fi
 rm -rf "$WORK"
 

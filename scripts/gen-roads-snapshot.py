@@ -19,6 +19,8 @@ import json
 import os
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -33,6 +35,9 @@ WHERE = ("condition IN ('Flooding','Closure','Damage') AND "
          "(description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')")
 PAGE = 2000        # the service's own maxRecordCount
 MAX_PAGES = 8      # runaway guard; the statewide set runs in the tens even in a major event
+# healthy answers measure ~0.3s, so a short deadline plus retries beats one long wait on a hang
+TIMEOUT = 12
+BACKOFFS = [2, 5]
 
 
 def arcgis_has_more(doc):
@@ -42,6 +47,26 @@ def arcgis_has_more(doc):
     props = doc.get("properties")
     return bool(doc.get("exceededTransferLimit")
                 or (isinstance(props, dict) and props.get("exceededTransferLimit")))
+
+
+def fetch_page(url):
+    """One paged ArcGIS read, retried through BACKOFFS. An {"error":...} body inside HTTP 200 is
+    how ArcGIS reports overload, so that retries too; a hard 4xx raises at once."""
+    for attempt in range(len(BACKOFFS) + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=TIMEOUT) as r:
+                doc = json.load(r)
+            # ArcGIS returns 200 OK with an {"error":...} body; never archive that as an empty-roads day
+            if not isinstance(doc, dict) or "error" in doc or not isinstance(doc.get("features"), list):
+                raise ValueError(f"response is not a FeatureCollection: {str(doc)[:200]}")
+            return doc
+        except Exception as e:  # noqa: BLE001 — the caller keeps the previous file on the final raise
+            hard_4xx = isinstance(e, urllib.error.HTTPError) and e.code != 429 and e.code < 500
+            if attempt == len(BACKOFFS) or hard_4xx:
+                raise
+            print(f"warn: DriveTexas attempt {attempt + 1} failed ({e}); "
+                  f"retry in {BACKOFFS[attempt]}s", file=sys.stderr)
+            time.sleep(BACKOFFS[attempt])
 
 
 def fetch_features(bbox):
@@ -61,11 +86,7 @@ def fetch_features(bbox):
             "resultOffset": str(page * PAGE),
             "f": "geojson",
         })
-        with urllib.request.urlopen(f"{URL}?{params}", timeout=30) as r:
-            doc = json.load(r)
-        # ArcGIS returns 200 OK with an {"error":...} body; never archive that as an empty-roads day
-        if not isinstance(doc, dict) or "error" in doc or not isinstance(doc.get("features"), list):
-            raise ValueError(f"response is not a FeatureCollection: {str(doc)[:200]}")
+        doc = fetch_page(f"{URL}?{params}")
         feats += doc["features"]
         if not doc["features"] or not arcgis_has_more(doc):
             return feats, False

@@ -107,8 +107,10 @@ LSRS = {'features': [
     {'properties': {'typetext': 'FLASH FLOOD', 'city': 'Testville', 'county': 'Harris', 'source': 'trained spotter',
      'remark': 'Road covered', 'valid': iso(NOW - timedelta(minutes=30))},
      'geometry': {'type': 'Point', 'coordinates': [-95.05, 30.05]}},
-    {'properties': {'typetext': 'HAIL', 'city': 'Elsewhere', 'county': 'Harris', 'source': 'public',
-     'remark': 'Not flood-relevant', 'valid': iso(NOW)},
+    # v0.99.56 carries hail and tornado reports, so the excluded fixture is a type still outside
+    # the hazard set; the filter is asserted directly below as well as through this count
+    {'properties': {'typetext': 'EXTREME HEAT', 'city': 'Elsewhere', 'county': 'Harris', 'source': 'public',
+     'remark': 'Not a mapped hazard', 'valid': iso(NOW)},
      'geometry': {'type': 'Point', 'coordinates': [-95.06, 30.06]}},
 ]}
 
@@ -174,7 +176,11 @@ try:
     check('per-folder counts: crossings 2', len(by_folder.get('Low-water crossings', [])) == 2)
     check('per-folder counts: notices 1 (aged/resolved/operator/no-coords excluded)',
           len(by_folder.get('Curated notices', [])) == 1)
-    check('per-folder counts: LSRs 1 (non-flood type filtered)', len(by_folder.get('Storm reports (NWS LSR)', [])) == 1)
+    check('per-folder counts: LSRs 1 (out-of-scope type filtered)', len(by_folder.get('Storm reports (NWS LSR)', [])) == 1)
+    # the storm-based tier's ground truth reaches the export, and the filter is still a filter
+    for kept in ('TORNADO', 'FUNNEL CLOUD', 'HAIL', 'DUST STORM', 'SNOW SQUALL', 'FLASH FLOOD'):
+        check('LSR filter carries %s' % kept, bool(gen.LSR_HAZARD_RE.search(kept)))
+    check('LSR filter still excludes EXTREME HEAT', not gen.LSR_HAZARD_RE.search("EXTREME HEAT"))
     check('collection counts property matches member tally',
           doc['properties']['counts'] == {k: len(v) for k, v in by_folder.items()})
 

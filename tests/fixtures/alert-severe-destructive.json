@@ -1,0 +1,150 @@
+{
+ "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.51896231a41744326b502748566fcffb5756905b.001.1",
+ "type": "Feature",
+ "geometry": {
+  "type": "Polygon",
+  "coordinates": [
+   [
+    [
+     -87.93,
+     37.37
+    ],
+    [
+     -88.49,
+     37.3
+    ],
+    [
+     -88.51,
+     37.71
+    ],
+    [
+     -88.36,
+     37.86
+    ],
+    [
+     -88.07,
+     37.78
+    ],
+    [
+     -87.93,
+     37.37
+    ]
+   ]
+  ]
+ },
+ "properties": {
+  "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.51896231a41744326b502748566fcffb5756905b.001.1",
+  "@type": "wx:Alert",
+  "id": "urn:oid:2.49.0.1.840.0.51896231a41744326b502748566fcffb5756905b.001.1",
+  "areaDesc": "Gallatin, IL; Hardin, IL; Pope, IL; Saline, IL; Crittenden, KY; Livingston, KY; Union, KY",
+  "geocode": {
+   "SAME": [
+    "017059",
+    "017069",
+    "017151",
+    "017165",
+    "021055",
+    "021139",
+    "021225"
+   ],
+   "UGC": [
+    "ILC059",
+    "ILC069",
+    "ILC151",
+    "ILC165",
+    "KYC055",
+    "KYC139",
+    "KYC225"
+   ]
+  },
+  "affectedZones": [
+   "https://api.weather.gov/zones/county/ILC059",
+   "https://api.weather.gov/zones/county/ILC069",
+   "https://api.weather.gov/zones/county/ILC151",
+   "https://api.weather.gov/zones/county/ILC165",
+   "https://api.weather.gov/zones/county/KYC055",
+   "https://api.weather.gov/zones/county/KYC139",
+   "https://api.weather.gov/zones/county/KYC225"
+  ],
+  "references": [],
+  "sent": "2026-07-26T19:19:00-05:00",
+  "effective": "2026-07-26T19:19:00-05:00",
+  "onset": "2026-07-26T19:19:00-05:00",
+  "expires": "2026-07-26T20:00:00-05:00",
+  "ends": "2026-07-26T20:00:00-05:00",
+  "status": "Actual",
+  "messageType": "Alert",
+  "category": "Met",
+  "severity": "Severe",
+  "certainty": "Observed",
+  "urgency": "Immediate",
+  "event": "Severe Thunderstorm Warning",
+  "sender": "w-nws.webmaster@noaa.gov",
+  "senderName": "NWS Paducah KY",
+  "headline": "Severe Thunderstorm Warning issued July 26 at 7:19PM CDT until July 26 at 8:00PM CDT by NWS Paducah KY",
+  "description": "SVRPAH\n\nThe National Weather Service in Paducah has issued a\n\n* Severe Thunderstorm Warning for...\nHardin County in southern Illinois...\nNortheastern Pope County in southern Illinois...\nSoutheastern Saline County in southern Illinois...\nGallatin County in southern Illinois...\nNorthern Crittenden County in western Kentucky...\nNorthwestern Livingston County in western Kentucky...\nSouthwestern Union County in northwestern Kentucky...\n\n* Until 800 PM CDT.\n\n* At 717 PM CDT, severe thunderstorms were located along a line\nextending from 6 miles northeast of Shawneetown to near Harrisburg,\nmoving south at 45 mph.\n\nTHESE ARE DESTRUCTIVE STORMS FOR EQUALITY, SHAWNEETOWN, AND THE\nGARDEN OF THE GODS RECREATION AREA.\n\nHAZARD...80 mph wind gusts.\n\nSOURCE...Radar indicated.\n\nIMPACT...Flying debris will be dangerous to those caught without\nshelter. Mobile homes will be heavily damaged. Expect\nconsiderable damage to roofs, windows, and vehicles.\nExtensive tree damage and power outages are likely.\n\n* Locations impacted include...\nEldorado, Sturgis, Shawneetown, Rosiclare, Ridgway, Golconda,\nEquality, Joy, Cave-in-Rock, Elizabethtown, Old Shawneetown,\nJunction, Carrsville, Karbers Ridge, and Gross.",
+  "instruction": "This is an EXTREMELY DANGEROUS SITUATION with tornado like wind\nspeeds expected. Mobile homes and high profile vehicles are\nespecially susceptible to winds of this magnitude and may be\noverturned. For your protection move to an interior room on the\nlowest floor of a building. These storms have the potential to cause\nserious injury and significant property damage.",
+  "response": "Shelter",
+  "note": null,
+  "parameters": {
+   "AWIPSidentifier": [
+    "SVRPAH"
+   ],
+   "WMOidentifier": [
+    "WUUS53 KPAH 270019"
+   ],
+   "eventMotionDescription": [
+    "2026-07-27T00:17:00-00:00...storm...347DEG...40KT...37.78,-88.1 37.73,-88.5"
+   ],
+   "windThreat": [
+    "RADAR INDICATED"
+   ],
+   "maxWindGust": [
+    "80 MPH"
+   ],
+   "hailThreat": [
+    "RADAR INDICATED"
+   ],
+   "maxHailSize": [
+    "Up to .75"
+   ],
+   "thunderstormDamageThreat": [
+    "DESTRUCTIVE"
+   ],
+   "BLOCKCHANNEL": [
+    "EAS",
+    "NWEM"
+   ],
+   "EAS-ORG": [
+    "WXR"
+   ],
+   "VTEC": [
+    "/O.NEW.KPAH.SV.W.0296.260727T0019Z-260727T0100Z/"
+   ],
+   "eventEndingTime": [
+    "2026-07-26T20:00:00-05:00"
+   ],
+   "WEAHandling": [
+    "Imminent Threat"
+   ],
+   "CMAMtext": [
+    "NWS:DESTRUCTIVE WIND STORM in this area til 800 PM CDT. Take shelter now. Check media."
+   ],
+   "CMAMlongtext": [
+    "National Weather Service: SEVERE THUNDERSTORM WARNING in effect for this area until 8:00 PM CDT for DESTRUCTIVE 80 mph winds. Take shelter in a sturdy building, away from windows. Flying debris may be deadly to those caught without shelter."
+   ]
+  },
+  "scope": "Public",
+  "code": "IPAWSv1.0",
+  "language": "en-US",
+  "web": "http://www.weather.gov",
+  "eventCode": {
+   "SAME": [
+    "SVR"
+   ],
+   "NationalWeatherService": [
+    "SVW"
+   ]
+  }
+ }
+}

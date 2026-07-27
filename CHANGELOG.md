@@ -1,5 +1,41 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.56 · 2026-07-27 (tornado and severe storm warnings on the live board)
+
+-- New Features --
+- [New] The board now carries tornado, severe thunderstorm, dust storm, snow
+      squall and extreme wind warnings alongside flood products, on the same
+      hazard layer and in the Alerts tab
+- [New] Drive Mode leads each warning with the action to take rather than the
+      hazard's name: take shelter for a tornado, pull off the road for a dust
+      storm, do not cross for flooding. A warning covering your current position
+      sits at the top of the list regardless of distance
+- [New] Warnings carry the issuing office's impact tags: damage threat,
+      particularly dangerous situation, whether a tornado was observed or radar
+      indicated, peak gust and hail size
+- [New] Storm-based warnings show which way the storm is moving and how fast, on
+      the card, in the map popup, in the hazard line and in Drive Mode
+- [New] Tornado, hail, funnel cloud, wildfire, dust storm and snow squall ground
+      reports now reach the board's storm report layer
+
+-- Changes --
+- [Change] Each hazard type has its own colour and draws as a dashed outline for
+           storm-based warnings, so a tornado polygon is no longer a flood
+           polygon in a different shade
+- [Change] The hazard line admits warnings only, never watches or advisories,
+           collapses repeat messages about one warning into a single item, caps a
+           full pass at a glance and re-checks expiry between refreshes
+- [Change] The Alerts tab groups by warnings, watches and standing conditions,
+           and what counts as near is now set per hazard: about an hour of storm
+           travel for a moving warning, coverage for the rest
+- [Change] A warning is judged fresh or stale against its own declared lifetime,
+           so a tornado warning with a 20-minute life ages far faster than a
+           multi-day flood warning
+- [Change] The alerts feed refreshes every 60 seconds while a moving storm
+           warning is open nearby, and returns to the normal interval when none is
+- [Change] The map layer and its Alerts tab heading are named for hazards rather
+           than floods
+
 ## v0.99.55 · 2026-07-27 (alerts run to the end of the hazard)
 
 -- Bug Fixes --

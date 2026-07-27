@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.55';
+const APP_VERSION = 'v0.99.56';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -23,6 +23,8 @@ const CONFIG = {
   usgsTileStaggerMs: 120,
   usgsRetryMs: 1500,
   refreshMs: 180000,
+  // alerts-only cadence while a moving storm-based warning is open in scope; see syncAcutePoll
+  acuteRefreshMs: 60000,
   // throttle window for the heavy hazard re-rank; a continuous watch feeds the marker + follow glide every fix
   driveLocateMs: 10000,
   // zoom a deliberate locate (⌖ / re-center / follow engage) snaps to, if not already closer
@@ -180,7 +182,10 @@ function camRegionId(lat, lon, regions) {
 const camRegionsAll = () => camRegions().concat(CAM_STATE_REGIONS, [CAM_REGION_OTHER]);
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
-const LSR_FLOOD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE/i;
+/* Ground-truth report types the board carries. A confirmed tornado touchdown is the single
+   highest-value observation the feed offers and the flood-shaped list dropped it. Mirrored in
+   scripts/gen-caltopo.py and asserted equal by tests/hazard-table.test.js. */
+const LSR_HAZARD_RE = /FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE|TORNADO|FUNNEL CLOUD|HAIL|WILDFIRE|DUST STORM|SNOW SQUALL/i;
 // flood-relatedness of a road closure from its description; condition==='Flooding' is handled separately
 const FLOOD_ROAD_RE = /flood|high\s*water|water\s*over|low\s*water|washed?\s*out|overtopp|inundat|swept/i;
 const ROAD_RE = /\b(?:FM|RM|RR|CR|SH|US|IH?|LOOP|HWY)[-\s]?\d+\b/gi;
@@ -266,6 +271,8 @@ const state = {
   lwcPartial: false, // true when the crossing inventory hit the paging ceiling with records left
   showAlertHist: false,
   showAlertsFar: false, // the alerts outside the current proximity scope are folded, never dropped
+  tickerExpiryTimer: null, // fires at the soonest acute end so a 23-minute warning is not asserted for 3 more
+  acuteAlertTimer: null, // 60s alerts-only poll, armed only while an acute product is open in scope
   showNormalGauges: false,
   showDegradedGauges: false,
   gaugeGroup: 'priority',
@@ -372,6 +379,8 @@ function chipHealth(ts, now) {
   const age = (now - ts) / 60000;
   return { cls: age < 10 ? 'fresh' : age < 30 ? 'aging' : 'stale', txt: ` ${Math.round(age)}m` };
 }
+// shared by bearing() and by the storm-motion read in sources.js, which loads before panels.js
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 function distMi(lat1, lon1, lat2, lon2) {
   const R = 3958.8, toR = Math.PI / 180;
   const dLat = (lat2 - lat1) * toR, dLon = (lon2 - lon1) * toR;

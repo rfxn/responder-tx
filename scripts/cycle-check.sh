@@ -43,11 +43,14 @@ if [ "$CODE_FROM_HEAD" -eq 1 ]; then
     CODE_TMP=$(command mktemp -d "${TMPDIR:-/tmp}/responder-codecheck.XXXXXX") || { echo "FAIL: mktemp for the HEAD code snapshot failed" >&2; exit 1; }
     trap cleanup_code_snapshot EXIT
     CODE_ROOT="$CODE_TMP"
-    command mkdir -p "$CODE_ROOT/js" "$CODE_ROOT/data"
+    command mkdir -p "$CODE_ROOT/js" "$CODE_ROOT/data" "$CODE_ROOT/scripts" "$CODE_ROOT/tests"
+    # the hazard-mirror check reads js/sources.js AND scripts/gen-caltopo.py; both must come from the
+    # same lane, or it would report on a pairing that exists nowhere
     while IFS= read -r f; do
         git show "HEAD:$f" > "$CODE_ROOT/$f" || { echo "FAIL: cannot read ${f} from HEAD" >&2; exit 1; }
     done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/version.json \
-        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|version)\.json$')
+            scripts/gen-caltopo.py tests/harness.js tests/hazard-mirror.js \
+        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|version)\.json$|^scripts/gen-caltopo\.py$|^tests/(harness|hazard-mirror)\.js$')
     echo "note: code-lane checks read HEAD ($(git rev-parse --short HEAD)); data-lane checks read the working tree"
 fi
 export CODE_ROOT DATA_ROOT
@@ -716,9 +719,27 @@ else
     failck "out-of-cycle artifact age (data/cameras.json or data/records.json past its limit; re-run the generator)"
 fi
 
+# o. hazard allowlist agreement. The list of NWS products the board carries exists twice, in
+# js/sources.js and in the scripts/gen-caltopo.py mirror, and nothing at runtime compares them: they
+# would simply describe different hazard sets and each would look right alone. The upstream half is
+# the sharper edge. An unknown event= string returns HTTP 200 with zero features rather than an
+# error, so a typo or a product NWS retires publishes "no tornado warnings" instead of failing,
+# which is the E1 shape. Both halves read the same lane, so --code-from-head compares HEAD's
+# js/sources.js against HEAD's gen-caltopo.py rather than one of each.
+HAZARD_DETAIL=""
+check_hazard_table() {
+    HAZARD_DETAIL=$(node "$CODE_ROOT/tests/hazard-mirror.js") || return 1
+    return 0
+}
+if check_hazard_table; then
+    pass "hazard allowlist agreement (${HAZARD_DETAIL})"
+else
+    failck "hazard allowlist agreement (js/sources.js, scripts/gen-caltopo.py and the live NWS catalogue disagree)"
+fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 14 checks passed"
+    echo "SUMMARY: all 15 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 14 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 15 checks FAILED"
 exit 1

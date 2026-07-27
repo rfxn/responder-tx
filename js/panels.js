@@ -154,7 +154,6 @@ function renderWave() {
 
 /* ---------- Drive Mode: big-type nearest-hazards glance list ---------- */
 
-const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 function bearing(fromLat, fromLon, toLat, toLon) {
   const toR = Math.PI / 180;
   const dLon = (toLon - fromLon) * toR;
@@ -166,6 +165,27 @@ function bearing(fromLat, fromLon, toLat, toLon) {
 // hazards a driver cares about: closed/caution crossings, life-safety + road/cutoff notices, major/rising gauges, live TxDOT road closures
 function driveItems() {
   const items = [];
+  const p = state.myPos;
+  const fix = p && Number.isFinite(p.lat) && Number.isFinite(p.lng) ? [[p.lat, p.lng]] : null;
+  /* Until now a tornado warning directly over the truck appeared nowhere in the surface built for
+     the person in the truck. These rows lead with the action and sit above every crossing: a
+     crossing is a point you might drive to, a warning is a polygon you may be standing inside. */
+  for (const f of alertDedupe((state.alerts || []).filter((x) => alertOpen(x) && hazardClass(x) === 'acute'))) {
+    const act = alertActionKey(f);
+    if (!act) continue;
+    const geom = alertGeom(f);
+    const b = geoBounds(geom);
+    const d = fix ? geoDistMi(geom, fix) : NaN;
+    const motion = alertMotionText(f);
+    items.push({
+      glyph: hazardGlyph(f),
+      color: f._sev === 'emergency' ? 'var(--sev-emergency)' : `var(--haz-${hazardStyleKey(f)}, var(--sev-warning))`,
+      name: t(act),
+      sub: [f.properties.event, `${t('alert.untilShort')} ${tickerUntil(f)}`, motion, alertAreaText(f.properties, 2)].filter(Boolean).join(' · '),
+      lat: b ? (b.n + b.s) / 2 : null, lon: b ? (b.e + b.w) / 2 : null,
+      rank: 0, pin: d === 0, // standing inside the polygon outranks anything a distance sort could say
+    });
+  }
   for (const c of (state.crossings || [])) {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) continue;
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
@@ -180,7 +200,6 @@ function driveItems() {
   for (const g of state.gauges.filter((x) => gaugeCat(x) === 'major' || (gaugeRising(x) && gaugeForecastCat(x) === 'major'))) {
     items.push({ glyph: '●', color: 'var(--cat-major)', name: g.name, sub: t(gaugeCat(g) === 'major' ? 'drive.majnow' : 'drive.majrise'), lat: g.latitude, lon: g.longitude, rank: 1 });
   }
-  const p = state.myPos;
   // recovery: recently reopened roads tail the list as low-priority ✓ entries — never competing with hazards for slots
   const cleared = [];
   for (const r of reopenedRoads().fresh) {
@@ -211,9 +230,15 @@ function driveItems() {
     }
   }
   if (p) {
-    for (const it of items.concat(cleared, cams)) { it.dist = distMi(p.lat, p.lng, it.lat, it.lon); it.brng = bearing(p.lat, p.lng, it.lat, it.lon); }
-    items.sort((a, b) => a.dist - b.dist);
-    cleared.sort((a, b) => a.dist - b.dist);
+    for (const it of items.concat(cleared, cams)) {
+      if (!Number.isFinite(it.lat) || !Number.isFinite(it.lon)) continue; // a zone-only warning has no centre to measure to
+      it.dist = distMi(p.lat, p.lng, it.lat, it.lon);
+      it.brng = bearing(p.lat, p.lng, it.lat, it.lon);
+    }
+    const dv = (x) => (x.dist == null ? Infinity : x.dist);
+    const byDist = (a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || dv(a) - dv(b);
+    items.sort(byDist);
+    cleared.sort(byDist);
   } else {
     items.sort((a, b) => a.rank - b.rank);
   }
@@ -237,16 +262,18 @@ function renderDriveMode() {
   state.driveCams = items.map((it) => (it.cam ? { cam: it.cam, kind: it.camKind } : null));
   $('#drive-list').innerHTML = items.length ? items.map((it, i) => {
     const distBit = it.dist != null ? `<span class="d-dist">${it.dist.toFixed(1)} ${esc(t('risk.mi'))} ${it.brng}</span>` : '';
-    return `<button class="drive-row" data-lat="${it.lat}" data-lon="${it.lon}"${it.cam ? ` data-cam="${i}"` : ''}>` +
+    return `<button class="drive-row${it.pin ? ' d-here' : ''}" data-lat="${it.lat}" data-lon="${it.lon}"${it.cam ? ` data-cam="${i}"` : ''}>` +
       `<span class="d-glyph" style="color:${it.color}">${it.glyph}</span>` +
       `<span class="d-body"><span class="d-name">${esc(it.name)}</span><span class="d-sub">${esc(it.sub)}</span></span>${distBit}</button>`;
   }).join('') : `<div class="dt-nogps">${esc(t('drive.nohaz'))}</div>`;
   $('#drive-list').querySelectorAll('.drive-row').forEach((b) => b.addEventListener('click', () => {
     const dc = b.dataset.cam != null && state.driveCams[+b.dataset.cam];
     if (dc) { openCamViewer(dc.cam, dc.kind); return; } // viewer overlays Drive Mode — stays one-handed
+    const lat = +b.dataset.lat, lon = +b.dataset.lon;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return; // zone-only warning: nothing to fly to, stay in Drive Mode
     $('#drive-mode').hidden = true;
     keepAwake(false, 'drive'); // tapping a hazard exits Drive Mode; drop the screen-awake hold
-    state.map.setView([+b.dataset.lat, +b.dataset.lon], 13);
+    state.map.setView([lat, lon], 13);
   }));
   updateDriveFreshness();
 }
@@ -1108,17 +1135,34 @@ function renderThreatStrip() {
 const relWhen = (iso) => fmtWhen(iso).split(' · ')[0];
 
 // aging invariant: only active alerts, rising/in-flood gauges, fresh LSRs, and non-aged critical notices qualify
-function tickerItems() {
-  const emerg = [], rise = [], majors = [];
+const tickerUntil = (f) => {
+  const end = alertEndsAt(f);
+  return end
+    ? new Date(end).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })
+    : t('alert.further');
+};
+
+/* Only acute products enter the line. This is the decision that determines whether the ticker
+   survives going all-hazard: admit the standing tier and a Texas summer afternoon is thirteen heat
+   advisories and nothing actionable, the responder learns the line is heat and stops reading it,
+   and the tornado warning that lands there next week is not seen. */
+function tickerAlertItems() {
   const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
-  for (const a of state.alerts.filter((x) => x._sev === 'emergency' && alertOpen(x))) {
+  const open = alertDedupe(state.alerts.filter((x) => alertOpen(x) && hazardClass(x) === 'acute'));
+  return open.sort((a, b) => alertHazCmp(a, b)).map((a) => {
     const where = alertAreaLead(a.properties);
-    const end = alertEndsAt(a);
-    const until = end
-      ? new Date(end).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })
-      : t('alert.further');
-    emerg.push({ text: t('ticker.ffe').replace('{where}', where).replace('{t}', until), color: 'var(--sev-emergency)', act: goAlerts });
-  }
+    const emerg = a._sev === 'emergency';
+    const motion = alertMotionText(a);
+    const text = emerg
+      ? t('ticker.ffe').replace('{where}', where).replace('{t}', tickerUntil(a))
+      : `${hazardGlyph(a)} ${a.properties.event} ${where} · ${t('alert.untilShort')} ${tickerUntil(a)}${motion ? ` · ${motion}` : ''}`;
+    return { text, color: emerg ? 'var(--sev-emergency)' : `var(--haz-${hazardStyleKey(a)}, var(--sev-warning))`, act: goAlerts };
+  });
+}
+
+function tickerItems() {
+  const rise = [], majors = [];
+  const emerg = tickerAlertItems();
   const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
   // tapping a rising item frames the tapped gauge and pulses the whole rising set, on the map and
@@ -1154,7 +1198,23 @@ function tickerItems() {
   }
   // ~12-item budget: emergencies, majors, and the ground-truth tail keep their slots; the rising block absorbs the trim
   const riseSlots = Math.max(0, 12 - tail.length - emerg.length - majors.length);
-  return emerg.concat(rise.slice(0, riseSlots), majors, tail);
+  return tickerCap(emerg.concat(rise.slice(0, riseSlots), majors, tail), emerg.length > 0);
+}
+
+/* A full pass of the moving lane has to finish inside a glance. At five seconds an item, twelve
+   items is a sixty-second loop and the driver gets about ten, so once an acute product is open the
+   lane is capped to a pass under thirty seconds. Nothing is dropped: the overflow collapses into
+   one item that says how many are behind it and opens the Alerts tab. */
+const TICKER_ACUTE_MAX = 6;
+
+function tickerCap(items, acute) {
+  if (!acute || items.length <= TICKER_ACUTE_MAX) return items;
+  const kept = items.slice(0, TICKER_ACUTE_MAX - 1);
+  kept.push({
+    text: t('ticker.more').replace('{n}', String(items.length - kept.length)),
+    act: () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click(),
+  });
+  return kept;
 }
 
 /* The hazard line scrolls, and the worst item never has to come round for you to read it.
@@ -1206,6 +1266,24 @@ function renderTicker() {
     $('#ticker-rest').innerHTML = restHtml;
   }
   syncHazlineAnchor();
+  armTickerExpiry();
+}
+
+/* The line is rendered from a fetch, every 180 s. Three minutes of staleness is nothing on a flood
+   warning and a tenth of a tornado warning's life spent asserting a warning that has already ended,
+   so one timer tracks the soonest end on screen and re-renders the line alone when it passes. No
+   extra network, and nothing to arm when the next fetch would beat it there. */
+function armTickerExpiry() {
+  if (state.tickerExpiryTimer) clearTimeout(state.tickerExpiryTimer);
+  state.tickerExpiryTimer = null;
+  const ends = (state.alerts || [])
+    .filter((f) => alertOpen(f) && hazardClass(f) === 'acute')
+    .map((f) => Date.parse(alertEndsAt(f) || ''))
+    .filter((ms) => Number.isFinite(ms));
+  if (!ends.length) return;
+  const wait = Math.min(...ends) - Date.now() + 1000;
+  if (wait <= 0 || wait > CONFIG.refreshMs) return;
+  state.tickerExpiryTimer = setTimeout(() => { renderTicker(); renderDriveMode(); }, wait);
 }
 
 /* ---------- header ---------- */

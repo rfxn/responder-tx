@@ -48,6 +48,13 @@
   --sev-warning: #ec835a;
   --sev-watch: #fab219;
   --sev-advisory: #898781;
+  /* hazard identity, not severity: a tornado polygon and a flood polygon that share a colour can
+     only be told apart by reading the label. tornado/severe are the tokens playback already draws. */
+  --haz-tornado: #c04ae2;
+  --haz-severe: #e0b13f;
+  --haz-dust: #c98a4b;
+  --haz-winter: #5ec8e8;
+  --haz-wind: #7fb3a0;
   --good: #0ca30c;
   --tile-value: #ffffff;
   /* aged/suppressed text. Must hold 4.5:1 on --surface-2 in BOTH themes: aging is an honesty
@@ -78,6 +85,11 @@
   --sev-warning: #c9531f;
   --sev-watch: #a97800;
   --sev-advisory: #6d6b64;
+  --haz-tornado: #8b2fd6;
+  --haz-severe: #9a6f00;
+  --haz-dust: #8f5c22;
+  --haz-winter: #1f7d99;
+  --haz-wind: #3f7a63;
   --cat-major: #8b2fd6;
   --good: #006300;
   --tile-value: #0d1b2a;
@@ -387,10 +399,30 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .section-title:first-child { margin-top: 0; }
 
 .alert-card { border-left-width: 4px; }
+.alert-class-head {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-muted); margin: 10px 0 4px;
+}
+.haz-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.haz-tag {
+  font-size: 10.5px; font-weight: 700; line-height: 1.5; white-space: nowrap;
+  border: 1px solid var(--ink-muted); border-radius: 4px; padding: 0 5px; color: var(--ink-muted);
+}
+.haz-tag.ht-hi { border-color: var(--sev-warning); color: var(--sev-warning); }
+.haz-tag.ht-pds { border-color: var(--sev-emergency); color: var(--sev-emergency); font-weight: 800; }
+/* standing inside the polygon: the row that is not about a place you might drive to */
+.drive-row.d-here { border-left: 4px solid var(--sev-emergency); }
 .alert-card.sev-emergency { border-left-color: var(--sev-emergency); }
 .alert-card.sev-warning { border-left-color: var(--sev-warning); }
 .alert-card.sev-watch { border-left-color: var(--sev-watch); }
 .alert-card.sev-advisory { border-left-color: var(--sev-advisory); }
+/* after the severity ramp on purpose: a storm-based card is identified by its hazard, not its tier.
+   flood products carry no haz-* rule and keep the severity colour, emergencies included. */
+.alert-card.haz-tornado { border-left-color: var(--haz-tornado); }
+.alert-card.haz-severe { border-left-color: var(--haz-severe); }
+.alert-card.haz-dust { border-left-color: var(--haz-dust); }
+.alert-card.haz-winter { border-left-color: var(--haz-winter); }
+.alert-card.haz-wind { border-left-color: var(--haz-wind); }
 .alert-card .event { font-weight: 650; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .alert-card .event .ev-name { min-width: 0; }
 .alert-card .event .emergency-flag {
@@ -536,6 +568,12 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .alert-poly.sev-warning { stroke: var(--sev-warning); fill: var(--sev-warning); }
 .alert-poly.sev-watch { stroke: var(--sev-watch); fill: var(--sev-watch); }
 .alert-poly.sev-advisory { stroke: var(--sev-advisory); fill: var(--sev-advisory); }
+/* hazard type wins over severity shade for the storm-based products; flood keeps the severity ramp */
+.alert-poly.haz-tornado { stroke: var(--haz-tornado); fill: var(--haz-tornado); }
+.alert-poly.haz-severe { stroke: var(--haz-severe); fill: var(--haz-severe); }
+.alert-poly.haz-dust { stroke: var(--haz-dust); fill: var(--haz-dust); }
+.alert-poly.haz-winter { stroke: var(--haz-winter); fill: var(--haz-winter); }
+.alert-poly.haz-wind { stroke: var(--haz-wind); fill: var(--haz-wind); }
 
 /* punch the label-boost tiles up so place names stay readable under radar/alert washes */
 .leaflet-labels-pane.boost-dark { filter: brightness(1.35) contrast(1.1); }

@@ -28,7 +28,7 @@ fail() { printf 'FAIL: %s\n' "$1"; FAILS=$((FAILS + 1)); }
 setup() {  # scratch repo at v1.0.0 that satisfies all ten checks
     WORK=$(mktemp -d)
     REPO="$WORK/repo"
-    mkdir -p "$REPO"/{js,data,scripts}
+    mkdir -p "$REPO"/{js,data,scripts,tests}
 
     printf "%s\n" "const APP_VERSION = 'v1.0.0';" > "$REPO/js/core.js"
     cat > "$REPO/js/boot.js" <<'JS'
@@ -74,6 +74,16 @@ json.dump({"generated": "2026-07-24T00:00:00Z", "gauges": gauges}, open(sys.argv
 PY
     printf '%s\n' '<?xml version="1.0"?><rss version="2.0"><channel><title>fixture</title></channel></rss>' > "$REPO/feed.xml"
     printf '%s\n' 'BEGIN:VCALENDAR' 'END:VCALENDAR' > "$REPO/crests.ics"
+
+    # The hazard-allowlist check shells out to tests/hazard-mirror.js. The fixture stands in for it:
+    # this file proves the WIRING (the check runs, its detail is reported, and a non-zero exit fails
+    # the lane), while tests/hazard-table.test.js proves the substance against the real tables.
+    cat > "$REPO/tests/hazard-mirror.js" <<'JS'
+'use strict';
+process.stdout.write('35 events mirrored (fixture)');
+JS
+    printf '%s\n' '# fixture stand-in for the real generator' 'HAZARD_EVENTS = {}' > "$REPO/scripts/gen-caltopo.py"
+    printf '%s\n' "module.exports = { loadApp: () => ({}) };" > "$REPO/tests/harness.js"
 
     cp "$CHECK_SRC" "$REPO/scripts/cycle-check.sh"
     (
@@ -592,6 +602,45 @@ if [ "$A" -eq 0 ] && grep -q 'cameras.json absent, records.json absent' "$WORK/o
     pass "38 absent hand-run artifacts are tolerated, not failed"
 else
     fail "38 absent artifacts tolerated (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# The hazard-allowlist check gates on a helper that can be absent or can fail. Both directions
+# matter: a check that silently does not run is worse than no check, and one that cannot fail is
+# a guard that passes vacuously.
+setup
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'hazard allowlist agreement (35 events mirrored' "$WORK/out"; then
+    pass "39 the hazard allowlist check runs and reports what it compared"
+else
+    fail "39 hazard allowlist check runs (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# MUTATION: a disagreeing mirror must fail the lane, not be reported as an OK line.
+setup
+cat > "$REPO/tests/hazard-mirror.js" <<'JS'
+'use strict';
+process.stderr.write('hazard mirror disagreement:\n  Tornado Warning: js says acute/3, python says standing/18\n');
+process.exit(1);
+JS
+( cd "$REPO" && git add -A && git commit --quiet -m 'drifted mirror' )
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'FAIL: hazard allowlist agreement' "$WORK/out"; then
+    pass "40 MUTATION · a disagreeing hazard mirror fails the lane"
+else
+    fail "40 disagreeing mirror fails (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# MUTATION: the helper going missing must fail loudly rather than skip the check.
+setup
+( cd "$REPO" && git rm --quiet tests/hazard-mirror.js && git commit --quiet -m 'drop the mirror check' )
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'FAIL: hazard allowlist agreement' "$WORK/out"; then
+    pass "41 MUTATION · a missing hazard-mirror helper fails rather than silently skipping"
+else
+    fail "41 missing mirror helper fails (rc=${A})"; cat "$WORK/out"
 fi
 rm -rf "$WORK"
 

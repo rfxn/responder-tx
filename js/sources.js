@@ -58,9 +58,161 @@ function alertAreaText(p, max) {
 // the one AO county a glance surface has room for
 const alertAreaLead = (p) => (alertAreaParts(p).inAo[0] || '?').replace(/,\s*[A-Z]{2}$/, '');
 
-// alert-feed allowlist: river flood plus the coastal/tropical/wind hazards the old /flood/ filter dropped
-// (storm surge, tropical storm, hurricane, high wind); 2-letter VTEC lives in properties.parameters.VTEC
-const HAZARD_ALERT_RE = /flood|storm surge|tropical|hurricane|high wind|wind advisory|beach hazard/i;
+/* The one hazard allowlist, and the one place a hazard's class and rank are decided.
+   Exact event strings, never a pattern: "Dust Storm Warning" is a storm-based polygon product and
+   "Blowing Dust Warning" is a zone product, and /dust/i cannot tell them apart. An unrecognised
+   string returns HTTP 200 with zero features rather than an error, so a typo here would publish
+   "no tornado warnings" instead of failing; tests/hazard-table.test.js checks every string against
+   the live /alerts/types list and against the scripts/gen-caltopo.py mirror.
+   class routes the surface: acute reaches every glance surface, watch and standing do not. */
+const HAZARD_EVENTS = {
+  'Tornado Warning': { cls: 'acute', rank: 3 },
+  'Extreme Wind Warning': { cls: 'acute', rank: 8 },
+  'Dust Storm Warning': { cls: 'acute', rank: 8 },
+  'Snow Squall Warning': { cls: 'acute', rank: 8 },
+  'Severe Thunderstorm Warning': { cls: 'acute', rank: 11 },
+  'Flash Flood Warning': { cls: 'acute', rank: 7 },
+  'Flash Flood Statement': { cls: 'acute', rank: 7 },
+  'Flood Warning': { cls: 'acute', rank: 10 },
+  'Flood Statement': { cls: 'acute', rank: 10 },
+  'Coastal Flood Warning': { cls: 'acute', rank: 10 },
+  'Coastal Flood Statement': { cls: 'acute', rank: 10 },
+  'Lakeshore Flood Warning': { cls: 'acute', rank: 10 },
+  'Lakeshore Flood Statement': { cls: 'acute', rank: 10 },
+  'Storm Surge Warning': { cls: 'acute', rank: 10 },
+  'Hurricane Warning': { cls: 'acute', rank: 10 },
+  'Hurricane Force Wind Warning': { cls: 'acute', rank: 10 },
+  'Tropical Storm Warning': { cls: 'acute', rank: 10 },
+  'Flash Flood Watch': { cls: 'watch', rank: 13 },
+  'Flood Watch': { cls: 'watch', rank: 13 },
+  'Coastal Flood Watch': { cls: 'watch', rank: 13 },
+  'Lakeshore Flood Watch': { cls: 'watch', rank: 13 },
+  'Storm Surge Watch': { cls: 'watch', rank: 13 },
+  'Hurricane Watch': { cls: 'watch', rank: 13 },
+  'Hurricane Force Wind Watch': { cls: 'watch', rank: 13 },
+  'Tropical Storm Watch': { cls: 'watch', rank: 13 },
+  'High Wind Watch': { cls: 'watch', rank: 14 },
+  'High Wind Warning': { cls: 'standing', rank: 17 },
+  'Flood Advisory': { cls: 'standing', rank: 18 },
+  'Coastal Flood Advisory': { cls: 'standing', rank: 18 },
+  'Lakeshore Flood Advisory': { cls: 'standing', rank: 18 },
+  'Wind Advisory': { cls: 'standing', rank: 18 },
+  'Lake Wind Advisory': { cls: 'standing', rank: 18 },
+  'Brisk Wind Advisory': { cls: 'standing', rank: 18 },
+  'Beach Hazards Statement': { cls: 'standing', rank: 18 },
+  'Tropical Cyclone Local Statement': { cls: 'standing', rank: 18 },
+};
+
+const HAZARD_EVENT_LIST = Object.keys(HAZARD_EVENTS);
+const hazardAdmits = (event) => Object.prototype.hasOwnProperty.call(HAZARD_EVENTS, String(event || ''));
+
+/* An unrecognised product still shows, because hiding a hazard the board does not know is the worse
+   error, but it never outranks one the board does know. Same shape as ALERT_SEV_UNKNOWN. */
+const HAZARD_RANK_UNKNOWN = 99;
+
+const alertParam = (p, k) => (((p && p.parameters) || {})[k] || []).join(' ').trim();
+
+/* Impact-based warning tags. Every parameters value is an array of strings, maxWindGust carries its
+   unit ("60 MPH") and maxHailSize has no fixed format ("Up to .75", "1.00", "0.00") where 0.00 is
+   a measured absence of hail rather than a missing reading. The PDS sentence is appended to the
+   warning text and is not a parameter; on tornado products it tracks CONSIDERABLE 1:1, so both are
+   read and either one is enough. */
+function alertTags(f) {
+  const p = (f && f.properties) || {};
+  const damageThreat = (alertParam(p, 'tornadoDamageThreat') || alertParam(p, 'thunderstormDamageThreat')
+    || alertParam(p, 'flashFloodDamageThreat')).toUpperCase() || null;
+  const gust = /(\d+(?:\.\d+)?)/.exec(alertParam(p, 'maxWindGust'));
+  const hail = /(\d*\.?\d+)/.exec(alertParam(p, 'maxHailSize').replace(/^up to\s*/i, ''));
+  const hailIn = hail ? parseFloat(hail[1]) : null;
+  const tornado = String(p.event || '') === 'Tornado Warning';
+  return {
+    damageThreat,
+    detection: (alertParam(p, 'tornadoDetection') || alertParam(p, 'flashFloodDetection')).toUpperCase() || null,
+    maxWindGustMph: gust ? Math.round(parseFloat(gust[1])) : null,
+    maxHailIn: Number.isFinite(hailIn) ? hailIn : null,
+    pds: /PARTICULARLY DANGEROUS SITUATION/i.test(p.description || '')
+      || (tornado && (damageThreat === 'CONSIDERABLE' || damageThreat === 'CATASTROPHIC')),
+  };
+}
+
+/* A flash flood emergency can arrive on a follow-up statement rather than the warning, so the
+   severity read decides the class in that one case; the table decides every other. */
+function hazardClass(f) {
+  if (f && f._sev === 'emergency') return 'acute';
+  const row = HAZARD_EVENTS[String(((f && f.properties) || {}).event || '')];
+  return row ? row.cls : 'acute';
+}
+
+/* Rank across hazard types, not within one. Time-to-harm and whether movement helps, so a tornado
+   warning outranks a flash flood warning: the driver can decline to enter water, he cannot outdrive
+   a tornado. Tag promotions come first so a tornado emergency reads as rank 0 rather than as the
+   flash-flood-emergency rank its severity would give it. */
+function hazardRank(f) {
+  const ev = String(((f && f.properties) || {}).event || '');
+  const tags = alertTags(f);
+  if (ev === 'Tornado Warning') return tags.damageThreat === 'CATASTROPHIC' ? 0 : (tags.pds ? 2 : 3);
+  if (f && f._sev === 'emergency') return 1;
+  if (ev === 'Severe Thunderstorm Warning') {
+    if (tags.damageThreat === 'DESTRUCTIVE') return 5;
+    return tags.damageThreat === 'CONSIDERABLE' ? 9 : 11;
+  }
+  if (ev === 'Flash Flood Warning' || ev === 'Flash Flood Statement') return tags.damageThreat === 'CONSIDERABLE' ? 6 : 7;
+  const row = HAZARD_EVENTS[ev];
+  return row ? row.rank : HAZARD_RANK_UNKNOWN;
+}
+
+// CAP urgency breaks a rank tie and costs nothing; Extreme Heat Watch ships urgency Past, so it is a tiebreak only
+const URGENCY_RANK = { Immediate: 0, Expected: 1, Future: 2, Past: 3 };
+const urgencyRank = (f) => {
+  const u = ((f && f.properties) || {}).urgency;
+  return Object.prototype.hasOwnProperty.call(URGENCY_RANK, u) ? URGENCY_RANK[u] : 4;
+};
+
+const alertHazCmp = (a, b) => hazardRank(a) - hazardRank(b) || urgencyRank(a) - urgencyRank(b);
+
+/* One warning's identity across every reissue and follow-up: the VTEC tuple
+   (office, phenomenon, significance, ETN) out of /O.CON.KCRP.FL.W.0025.…/. f.id changes on every
+   message, and (event, areaDesc) collides between two unrelated warnings in the same county. 200
+   archived tornado records carry 63 distinct tuples. No VTEC (non-NWS products) falls back to the id. */
+const VTEC_TUPLE_RE = /\/[A-Z]\.[A-Z]{3}\.([A-Z]{4})\.([A-Z]{2})\.([A-Z])\.(\d{4})\./;
+function alertVtecKey(f) {
+  const p = (f && f.properties) || {};
+  const m = VTEC_TUPLE_RE.exec(((p.parameters && p.parameters.VTEC) || []).join(' '));
+  return m ? `${m[1]}.${m[2]}.${m[3]}.${m[4]}` : String((f && f.id) || p.id || '');
+}
+
+/* Collapse a lifecycle to one row per warning, keeping the message that runs latest. Used wherever
+   a surface counts warnings rather than messages: the ticker, the glance rows, history. */
+function alertDedupe(list) {
+  const best = new Map();
+  for (const f of list || []) {
+    const k = alertVtecKey(f);
+    const cur = best.get(k);
+    if (!cur) { best.set(k, f); continue; }
+    const a = alertEndsAt(f), b = alertEndsAt(cur);
+    if (!b) continue; // a product with no declared end already outlives any dated one
+    if (!a || new Date(a) > new Date(b)) best.set(k, f);
+  }
+  return [...best.values()];
+}
+
+/* eventMotionDescription: "…T00:46:00-00:00...storm...359DEG...42KT...37.33,-87.96".
+   DEG is the direction the storm comes FROM, per the meteorological convention: verified against
+   the "moving southeast at 60 mph" sentence in 195 live warnings, where deg+180 matched 193 and
+   deg matched none. Rendering the raw bearing would send a driver the wrong way. */
+function alertMotion(f) {
+  const p = (f && f.properties) || {};
+  const m = /\.\.\.(\d{1,3})DEG\.\.\.(\d{1,3})KT/.exec(alertParam(p, 'eventMotionDescription'));
+  if (!m) return null;
+  const from = Number(m[1]), kt = Number(m[2]);
+  if (!Number.isFinite(from) || !Number.isFinite(kt)) return null;
+  return { dir: COMPASS[Math.round(((from + 180) % 360) / 45) % 8], mph: Math.round(kt * 1.151) };
+}
+
+const alertMotionText = (f) => {
+  const mo = alertMotion(f);
+  return mo ? t('alert.motion').replace('{dir}', mo.dir).replace('{n}', String(mo.mph)) : '';
+};
 
 /* A zeroed VTEC end slot means "until further notice". Riverine Flood Warnings use it routinely and
    it declares no end at all, so no clock may retire the product. */
@@ -93,6 +245,31 @@ const alertOpen = (f) => !alertEnded(alertEndsAt(f));
 // what the product says about its own end; a product with no declared end says so rather than lying
 const alertUntilText = (f) => { const e = alertEndsAt(f); return e ? fmtWhen(e) : t('alert.further'); };
 
+/* Each product declares its own lifetime, so nothing here needs a per-hazard table of aging
+   thresholds to drift out of date: onset→ends runs 23 minutes for the median tornado warning and
+   22 hours for the median extreme heat warning, a 58-fold spread that no single constant survives.
+   A product with no computable lifetime falls back to the floor, which errs toward calling it old. */
+const ALERT_STALE_FLOOR_MS = 15 * 60000;
+
+function alertLifetimeMs(f) {
+  const p = (f && f.properties) || {};
+  const end = alertEndsAt(f), start = p.onset || p.sent || p.effective;
+  if (!end || !start) return null;
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  return Number.isFinite(ms) && ms > 0 ? ms : null;
+}
+
+const alertStaleAfterMs = (f) => Math.max(ALERT_STALE_FLOOR_MS, 0.25 * (alertLifetimeMs(f) || 0));
+
+// a tornado warning with no update for eight minutes is stale; a three-day heat warning is not
+function alertFreshClass(f, at) {
+  const sent = ((f && f.properties) || {}).sent;
+  const age = (at == null ? Date.now() : new Date(at).getTime()) - new Date(sent).getTime();
+  if (!sent || !Number.isFinite(age)) return 'stale';
+  const limit = alertStaleAfterMs(f);
+  return age < limit / 2 ? 'fresh' : (age < limit ? 'aging' : 'stale');
+}
+
 // active hurricane/tropical threat to the TX mainland = an unexpired storm surge / tropical storm / hurricane warning or watch
 const TROPICAL_THREAT_RE = /storm surge (warning|watch)|tropical storm (warning|watch)|hurricane (warning|watch)/i;
 function hasActiveTropicalThreat() {
@@ -110,9 +287,9 @@ async function fetchAlerts() {
   const res = await fetch(CONFIG.alertsUrl, { headers: { Accept: 'application/geo+json' } });
   if (!res.ok) throw new Error(`NWS alerts HTTP ${res.status}`);
   const data = await res.json();
-  const hazards = (data.features || []).filter((f) => HAZARD_ALERT_RE.test(f.properties.event || ''));
+  const hazards = (data.features || []).filter((f) => hazardAdmits(f.properties.event));
   hazards.forEach((f) => { f._sev = alertSeverity(f.properties); });
-  hazards.sort((a, b) => alertSevCmp(a, b) || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
+  hazards.sort((a, b) => alertHazCmp(a, b) || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
   const emergencies = hazards.filter((f) => f._sev === 'emergency');
   const openEmerg = emergencies.filter(alertOpen);
   const fresh = emergencies.filter((f) => !state.knownEmergencyIds.has(f.id));
@@ -128,6 +305,32 @@ async function fetchAlerts() {
   await renderAlertPolys();
   renderTiles();
   maybeAutoTropical(); // auto-enable the tracker when TX has an active tropical/hurricane threat
+  syncAcutePoll();
+}
+
+/* Three minutes is nothing for a river and up to two miles of storm travel for a tornado. Shortening
+   the global refresh would multiply load across ten feeds to serve one hazard class, and the phone
+   on a weak signal would pay for it, so the alerts endpoint alone polls faster and only while a
+   moving product is open.
+   The gate is the product's own storm motion, not a list of event names and not a lifetime constant:
+   measured live, eventMotionDescription is present on 100% of tornado and severe thunderstorm
+   warnings and 0% of flood warnings, so it separates the swath that travels from the river that does
+   not, and it keeps a Texas summer of standing flood warnings off the fast path. */
+const alertMoves = (f) => hazardClass(f) === 'acute' && !!alertMotion(f);
+
+function syncAcutePoll() {
+  const scope = alertScope();
+  const fast = (state.alerts || []).some((f) => alertOpen(f) && alertMoves(f) && alertNear(f, scope));
+  if (!fast) {
+    if (state.acuteAlertTimer) clearInterval(state.acuteAlertTimer);
+    state.acuteAlertTimer = null;
+    return;
+  }
+  if (state.acuteAlertTimer) return;
+  state.acuteAlertTimer = setInterval(() => {
+    if (document.visibilityState === 'hidden') return; // battery: the visibility handler catches up on return
+    fetchAlerts().catch(() => { /* transient; the 180 s cycle owns feed-health reporting */ });
+  }, CONFIG.acuteRefreshMs);
 }
 
 async function zoneGeometry(zoneUrl) {
@@ -140,10 +343,73 @@ async function zoneGeometry(zoneUrl) {
   } catch { state.zoneGeomCache.set(zoneUrl, null); return null; }
 }
 
+/* Hazard type is a visual dimension in its own right, not a shade of severity: a tornado polygon and
+   a flood polygon that share a colour can only be told apart by reading the label. These are the
+   tokens playback has drawn storm-based products with since v0.91, promoted to the live map. */
+const HAZARD_STYLE = {
+  'Tornado Warning': 'tornado',
+  'Severe Thunderstorm Warning': 'severe',
+  'Dust Storm Warning': 'dust',
+  'Snow Squall Warning': 'winter',
+  'Extreme Wind Warning': 'wind',
+};
+const hazardStyleKey = (f) => HAZARD_STYLE[String(((f && f.properties) || {}).event || '')] || 'flood';
+
+const HAZARD_GLYPH = { tornado: '🌪', severe: '⛈', dust: '🌫', winter: '❄', wind: '🌬', flood: '🌊' };
+const hazardGlyph = (f) => HAZARD_GLYPH[hazardStyleKey(f)] || '⚠';
+
+/* The verb, not the hazard name. A driver has ten seconds and gloves, and "Tornado Warning" is a
+   noun: the answer to a tornado is shelter, and the answer to a dust storm is the opposite of the
+   answer to a flood. A product with no correct ten-second driving action gets no row in Drive Mode
+   at all, because a row a driver cannot act on is what teaches him to stop reading the list.
+   Snow squall reads "avoid travel" rather than "take shelter": the hazard is the whiteout on the
+   roadway, and stopping on the shoulder in one is how the pile-up happens. */
+const HAZARD_ACTION = {
+  'Tornado Warning': 'drive.act.shelter',
+  'Extreme Wind Warning': 'drive.act.shelter',
+  'Dust Storm Warning': 'drive.act.pulloff',
+  'Snow Squall Warning': 'drive.act.notravel',
+  'Storm Surge Warning': 'drive.act.highground',
+  'Flash Flood Warning': 'drive.act.nocross',
+  'Flash Flood Statement': 'drive.act.nocross',
+  'Flood Warning': 'drive.act.nocross',
+  'Flood Statement': 'drive.act.nocross',
+  'Coastal Flood Warning': 'drive.act.nocross',
+  'Coastal Flood Statement': 'drive.act.nocross',
+  'Lakeshore Flood Warning': 'drive.act.nocross',
+  'Lakeshore Flood Statement': 'drive.act.nocross',
+};
+
+function alertActionKey(f) {
+  const ev = String(((f && f.properties) || {}).event || '');
+  // a destructive severe thunderstorm carries tornado-strength wind, which is why it is the one WEA-carried severe tag
+  if (ev === 'Severe Thunderstorm Warning') return alertTags(f).damageThreat === 'DESTRUCTIVE' ? 'drive.act.shelter' : 'drive.act.inside';
+  const key = HAZARD_ACTION[ev];
+  if (key === 'drive.act.nocross' && f && f._sev === 'emergency') return 'drive.act.highground';
+  return key || null;
+}
+
+/* A storm-based warning is a swath the storm will travel, not an area that is flooded, so it draws
+   as a dashed outline: the edge carries the information and a filled area buries the gauge and road
+   layers the board is built on. */
+const HAZARD_SWATH = ['tornado', 'severe', 'dust', 'winter', 'wind'];
+function hazardPolyStyle(f) {
+  const hz = hazardStyleKey(f);
+  const swath = HAZARD_SWATH.includes(hz);
+  const emerg = f && f._sev === 'emergency';
+  return {
+    className: `alert-poly sev-${f && f._sev} haz-${hz}`,
+    weight: emerg ? 2.5 : (swath ? 2 : 1.5),
+    fillOpacity: swath ? 0.06 : (emerg ? 0.22 : 0.10),
+    dashArray: swath ? '6 4' : null,
+    opacity: 0.9,
+  };
+}
+
 async function renderAlertPolys() {
   state.layers.alerts.clearLayers();
   let zoneFetchBudget = CONFIG.maxZoneGeomFetches;
-  // reverse severity order: least-severe drawn first, emergencies land on top
+  // reverse rank order: least-severe drawn first, the worst hazard lands on top
   for (const f of state.alerts.slice().reverse()) {
     if (!alertOpen(f)) continue; // never draw an alert the NWS no longer lists as open
     let geom = f.geometry;
@@ -160,9 +426,7 @@ async function renderAlertPolys() {
       else if (geoms.length > 1) geom = { type: 'GeometryCollection', geometries: geoms };
     }
     if (!geom) continue;
-    const layer = L.geoJSON({ type: 'Feature', geometry: geom }, {
-      style: { className: `alert-poly sev-${f._sev}`, weight: f._sev === 'emergency' ? 2.5 : 1.5, fillOpacity: f._sev === 'emergency' ? 0.22 : 0.10, opacity: 0.9 },
-    });
+    const layer = L.geoJSON({ type: 'Feature', geometry: geom }, { style: hazardPolyStyle(f) });
     layer._alertId = f.id; // lets a card click find and flash its polygon
     layer.bindPopup(alertPopupHtml(f));
     state.layers.alerts.addLayer(layer);
@@ -193,7 +457,7 @@ function alertPopupHtml(f) {
   const reach = alertReach(p);
   return `<div class="popup-title">${esc(p.event)}${f._sev === 'emergency' ? `: <span style="color:var(--sev-emergency);font-weight:700">${esc(t('drive.emerg'))}</span>` : ''}</div>` +
     `<div class="popup-meta">${esc(alertAreaText(p))}${reach ? ` · ${esc(reach)}` : ''}</div>` +
-    `<div class="popup-meta">${esc(t('alert.until'))} ${esc(alertUntilText(f))}</div>` +
+    `<div class="popup-meta">${esc(t('alert.until'))} ${esc(alertUntilText(f))}${alertMotionText(f) ? ` · ${esc(alertMotionText(f))}` : ''}</div>` +
     `<div class="popup-link"><a href="#" class="alert-popup-link" data-alert-id="${esc(f.id)}">${esc(t('alert.full'))} →</a></div>`;
 }
 
@@ -300,16 +564,32 @@ function alertScope() {
 
 const alertScopeSrc = (scope) => (scope ? scope.src : 'all');
 
-/* A flash-flood emergency never folds: the banner carries it statewide and the list must agree. */
-const alertNear = (f, scope) => f._sev === 'emergency' || geomInScope(alertGeom(f), scope);
+/* What "near" means is a property of the hazard, not one radius for all of them. An hour of storm
+   travel at 45 kt is about 60 miles, so that is the acute radius. A watch box is 20,000 sq mi and a
+   heat advisory 50 miles away is meteorologically identical to one overhead: for those, distance
+   conveys nothing and only containment does, which is what a radius of 0 means here. */
+const ALERT_NEAR_MI_ACUTE = 60;
+const alertNearMi = (cls) => (cls === 'acute' ? ALERT_NEAR_MI_ACUTE : 0);
 
-/* Near first, the rest folded below, nothing dropped. Severity leads inside each group so an
-   emergency never sits under an advisory; distance breaks the tie. */
+/* A flash-flood emergency never folds: the banner carries it statewide and the list must agree.
+   Deliberately not extended to every acute product: a tornado warning in Amarillo is genuinely
+   irrelevant to a Hill Country responder, and storm-based polygons are precise enough to say so. */
+function alertNear(f, scope) {
+  if (f && f._sev === 'emergency') return true;
+  const geom = alertGeom(f);
+  if (!scope || !geom) return true; // unscoped, or unplaceable: the board cannot rule this out
+  if (scope.view) return geoInView(geom, scope.view);
+  const d = geoDistMi(geom, scope.pts);
+  return !Number.isFinite(d) || d <= alertNearMi(hazardClass(f));
+}
+
+/* Near first, the rest folded below, nothing dropped. Hazard rank leads inside each group, so a
+   tornado warning never sits under a flood advisory; distance breaks the tie. */
 function alertGroups(list, scope, pts) {
   const origin = Array.isArray(pts) ? pts : (scope && scope.pts) || null;
   const rows = (list || []).map((f) => ({ f, d: geoDistMi(alertGeom(f), origin), near: alertNear(f, scope) }));
   const dv = (r) => (Number.isFinite(r.d) ? r.d : Infinity);
-  const bySev = (a, b) => alertSevCmp(a.f, b.f);
+  const bySev = (a, b) => alertHazCmp(a.f, b.f) || alertSevCmp(a.f, b.f);
   const byDist = (a, b) => (dv(a) === dv(b) ? 0 : dv(a) - dv(b));
   const bySent = (a, b) => (Date.parse(b.f.properties && b.f.properties.sent) || 0) - (Date.parse(a.f.properties && a.f.properties.sent) || 0);
   return {
@@ -321,17 +601,37 @@ function alertGroups(list, scope, pts) {
 // bbox distance under-reads a concave polygon, so the chip reads as approximate and never as coverage
 const alertDistChip = (d) => (Number.isFinite(d) ? t('alert.dist').replace('{n}', String(Math.round(d))) : '');
 
+/* What the warning office measured, in its own words: the damage threat that decides whether a
+   phone screamed, whether the tornado was seen or only radar-inferred, and the gust and hail it
+   carries. A storm-based product is a moving swath, so the motion line runs with them. */
+function alertTagChips(f) {
+  const tags = alertTags(f);
+  const chips = [];
+  if (tags.pds) chips.push({ key: 'alert.tag.pds', cls: 'ht-pds' });
+  else if (tags.damageThreat === 'DESTRUCTIVE') chips.push({ key: 'alert.tag.destructive', cls: 'ht-pds' });
+  else if (tags.damageThreat === 'CONSIDERABLE') chips.push({ key: 'alert.tag.considerable', cls: 'ht-hi' });
+  if (tags.detection === 'OBSERVED') chips.push({ key: 'alert.tag.observed', cls: 'ht-hi' });
+  else if (tags.detection === 'RADAR INDICATED') chips.push({ key: 'alert.tag.radar', cls: '' });
+  const out = chips.map((c) => `<span class="haz-tag ${c.cls}">${esc(t(c.key))}</span>`);
+  if (tags.maxWindGustMph) out.push(`<span class="haz-tag">${esc(t('alert.tag.gust').replace('{n}', String(tags.maxWindGustMph)))}</span>`);
+  if (tags.maxHailIn > 0) out.push(`<span class="haz-tag">${esc(t('alert.tag.hail').replace('{n}', tags.maxHailIn.toFixed(2)))}</span>`);
+  const motion = alertMotionText(f);
+  if (motion) out.push(`<span class="haz-tag">${esc(motion)}</span>`);
+  return out.length ? `<div class="haz-tags">${out.join('')}</div>` : '';
+}
+
 function alertCardDiv(f, dist) {
   const p = f.properties;
   const reach = alertReach(p);
   const div = document.createElement('div');
-  div.className = `card alert-card sev-${f._sev}`;
+  div.className = `card alert-card sev-${f._sev} haz-${hazardStyleKey(f)}`;
   div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? `<span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : ''}` +
     `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>` +
     `<div class="areas">${esc(alertAreaText(p))}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}` +
     (alertDistChip(dist) ? ` · <span class="alert-dist">${esc(alertDistChip(dist))}</span>` : '') + '</div>' +
+    alertTagChips(f) +
     `<div class="alert-meta">` +
-    (p.sent ? `<span class="am-when"><span class="fresh-dot ${freshClass(p.sent)}"></span>${esc(t('alert.sent'))} ${esc(fmtWhen(p.sent))}</span>` : '') +
+    (p.sent ? `<span class="am-when"><span class="fresh-dot ${alertFreshClass(f)}"></span>${esc(t('alert.sent'))} ${esc(fmtWhen(p.sent))}</span>` : '') +
     `<span class="am-when">${esc(t('alert.untilShort'))} ${esc(alertUntilText(f))}</span></div>`;
   const link = div.querySelector('.alert-text-link');
   link.addEventListener('click', (e) => { e.stopPropagation(); openAlertText(f); });
@@ -402,10 +702,31 @@ function syncAlertInViewChip(n) {
   btn.textContent = state.inView ? `${t('sync.inview')} · ${n}` : t('sync.inview');
 }
 
+/* Rows arrive ranked, so the classes already come out in order; the header names the boundary the
+   reader is crossing. Each header is emitted once, so an unrecognised product landing last under
+   the acute class cannot open a second copy of the heading it already sat under. */
+const HAZARD_CLASS_LABEL = { acute: 'alert.cls.acute', watch: 'alert.cls.watch', standing: 'alert.cls.standing' };
+
+function appendAlertRows(el, rows) {
+  const seen = new Set();
+  for (const r of rows) {
+    const cls = hazardClass(r.f);
+    if (!seen.has(cls) && HAZARD_CLASS_LABEL[cls]) {
+      seen.add(cls);
+      const h = document.createElement('div');
+      h.className = `alert-class-head cls-${cls}`;
+      h.textContent = t(HAZARD_CLASS_LABEL[cls]);
+      el.appendChild(h);
+    }
+    el.appendChild(alertCardDiv(r.f, r.d));
+  }
+}
+
 function renderAlertList() {
   const el = $('#alert-list');
   const scope = alertScope();
-  el.innerHTML = `<div class="section-title">${esc(t(`sec.alerts.${alertScopeSrc(scope)}`).replace('{n}', String(ALERT_NEAR_MI)))}</div>`;
+  // no radius in the heading: "near" is now per hazard class, so one number there would be a false claim
+  el.innerHTML = `<div class="section-title">${esc(t(`sec.alerts.${alertScopeSrc(scope)}`))}</div>`;
   const sevF = $('#flt-alert-sev').value, qF = $('#flt-alert-q').value.toLowerCase();
   // an alert past its hazard end folds into the expired drawer below, never out of the tab entirely.
   // the search still reads the full areaDesc, so an out-of-AO county name finds its alert.
@@ -419,7 +740,7 @@ function renderAlertList() {
     empty.textContent = t('sec.alerts.empty');
     el.appendChild(empty);
   } else {
-    for (const r of near) el.appendChild(alertCardDiv(r.f, r.d));
+    appendAlertRows(el, near);
     // scoping folds, never drops: the rest stay one tap away and keep their own distance
     if (far.length) {
       const btn = document.createElement('button');
@@ -427,7 +748,7 @@ function renderAlertList() {
       btn.textContent = `${t(state.showAlertsFar ? 'toggle.hide' : 'toggle.show')} ${far.length > 1 ? t('alert.far').replace('{n}', far.length) : t('alert.far1')}`;
       btn.addEventListener('click', () => { state.showAlertsFar = !state.showAlertsFar; renderAlertList(); });
       el.appendChild(btn);
-      if (state.showAlertsFar) for (const r of far) el.appendChild(alertCardDiv(r.f, r.d));
+      if (state.showAlertsFar) appendAlertRows(el, far);
     }
   }
   const open = state.alerts.filter(alertOpen);
@@ -1731,7 +2052,7 @@ async function fetchLsrs() {
   if (!res.ok) throw new Error(`LSR HTTP ${res.status}`);
   const data = await res.json();
   state.lsrs = (data.features || [])
-    .filter((f) => LSR_FLOOD_RE.test(f.properties.typetext || ''))
+    .filter((f) => LSR_HAZARD_RE.test(f.properties.typetext || ''))
     .sort((a, b) => new Date(b.properties.valid) - new Date(a.properties.valid));
   markHealthy('lsrs');
   recordLsrHist();

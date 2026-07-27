@@ -227,8 +227,12 @@ test('renderAlertList folds the far group behind a toggle and never drops it fro
   const fn = src.match(/function renderAlertList\(\)[\s\S]*?\n\}/);
   assert.ok(fn, 'renderAlertList() not found');
   assert.match(fn[0], /const \{ near, far \} = alertGroups\(/, 'the list must render from the grouped rows');
-  assert.match(fn[0], /if \(state\.showAlertsFar\) for \(const r of far\) el\.appendChild\(alertCardDiv\(r\.f, r\.d\)\)/,
-    'the folded alerts must still render as real cards when the toggle is open');
+  assert.match(fn[0], /if \(state\.showAlertsFar\) appendAlertRows\(el, far\)/,
+    'the folded alerts must still render when the toggle is open');
+  const rows = src.match(/function appendAlertRows\(el, rows\)[\s\S]*?\n\}/);
+  assert.ok(rows, 'appendAlertRows() not found');
+  assert.match(rows[0], /el\.appendChild\(alertCardDiv\(r\.f, r\.d\)\)/,
+    'both groups must render as real cards, not as a count');
   assert.match(fn[0], /btn\.addEventListener\('click', \(\) => \{ state\.showAlertsFar = !state\.showAlertsFar/,
     'the fold must be a user-reversible toggle');
   assert.ok(!/\.filter\(alertInAO\)/.test(src), 'the statewide AO test is gone');
@@ -261,7 +265,10 @@ test('the section header names the scope in use, in both languages, and no longe
       assert.ok(I18N[lang][`sec.alerts.${src}`], `${lang} is missing sec.alerts.${src}`);
     }
     assert.equal(I18N[lang]['sec.alerts'], undefined, `${lang} still carries the retired flat header`);
-    assert.match(I18N[lang]['sec.alerts.me'], /\{n\}/, `${lang} sec.alerts.me must state the radius it orders by`);
+    /* v0.99.56: "near" became a per-class rule (60 mi for a moving storm, containment for a watch or
+       a standing advisory), so one radius in the heading would be a claim the grouping does not make. */
+    assert.ok(!/\{n\}/.test(I18N[lang]['sec.alerts.me']),
+      `${lang} sec.alerts.me must not claim a single radius now that near is per hazard class`);
     assert.ok(!/\bAO\b/.test(I18N[lang]['sec.alerts.all']), `${lang} still describes an AO ordering`);
     assert.equal(I18N[lang]['alert.elsewhere'], undefined, `${lang} still carries the retired elsewhere fold`);
     for (const k of ['alert.far', 'alert.far1']) assert.ok(I18N[lang][k], `${lang} is missing ${k}`);
@@ -269,7 +276,14 @@ test('the section header names the scope in use, in both languages, and no longe
   const src = read('js/sources.js');
   const fn = src.match(/function renderAlertList\(\)[\s\S]*?\n\}/)[0];
   assert.match(fn, /sec\.alerts\.\$\{alertScopeSrc\(scope\)\}/, 'the header must be derived from the scope actually applied');
-  assert.match(fn, /\.replace\('\{n\}', String\(ALERT_NEAR_MI\)\)/, 'the stated radius must come from the constant that groups the rows');
+  const header = fn.match(/section-title[^\n]*/)[0];
+  assert.ok(!/\.replace\(/.test(header), 'the header must not substitute a radius it no longer orders by');
+  for (const lang of ['en', 'es']) {
+    for (const key of ['me', 'place', 'inview', 'all']) {
+      assert.ok(!/\{[a-z]+\}/.test(I18N[lang][`sec.alerts.${key}`]),
+        `${lang} sec.alerts.${key} would render an unsubstituted placeholder`);
+    }
+  }
 });
 
 /* ---------- the quiet line can only claim the area it read ---------- */

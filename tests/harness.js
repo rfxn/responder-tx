@@ -119,7 +119,12 @@ const EXPORTS = [
   'aoStates', 'alertAreaParts', 'alertAreaText', 'alertAreaLead',
   'geoBounds', 'mergeBounds', 'geoDistMi', 'geoInView', 'geomInScope', 'ptInScope',
   'alertGeom', 'alertAreaPlaces', 'alertDistPts', 'alertScope', 'alertScopeSrc',
-  'alertNear', 'alertGroups', 'alertDistChip', 'ALERT_NEAR_MI',
+  'alertNear', 'alertGroups', 'alertDistChip', 'ALERT_NEAR_MI', 'ALERT_NEAR_MI_ACUTE', 'alertNearMi',
+  'HAZARD_EVENTS', 'HAZARD_EVENT_LIST', 'hazardAdmits', 'hazardClass', 'hazardRank', 'HAZARD_RANK_UNKNOWN',
+  'alertTags', 'alertParam', 'alertHazCmp', 'urgencyRank', 'URGENCY_RANK',
+  'alertVtecKey', 'alertDedupe', 'alertMotion', 'alertMotionText', 'alertMoves',
+  'alertLifetimeMs', 'alertStaleAfterMs', 'alertFreshClass', 'ALERT_STALE_FLOOR_MS',
+  'hazardStyleKey', 'hazardGlyph', 'hazardPolyStyle', 'alertActionKey', 'HAZARD_ACTION', 'LSR_HAZARD_RE',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'gaugeRecoveryState', 'riverOf',
   'splitGauges', 'gaugeState', 'gaugeStateCounts', 'gaugeHasReading', 'gaugeAll', 'GAUGE_STATES', 'GAUGE_DEGRADED',
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
@@ -144,6 +149,7 @@ const EXPORTS = [
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay
 // out of MAP_EXPORTS or the map bundle fails to resolve them
 const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn',
+  'tickerItems', 'tickerAlertItems', 'tickerCap', 'TICKER_ACUTE_MAX', 'tickerUntil', 'driveItems',
   'gaugeCardDiv', 'gaugeGlyphHtml', 'degradedGaugePool', 'degradedGaugeList', 'degradedStateCounts',
   'openInGaugesList', 'gaugeListUnfoldFor', 'DEG_GLYPH',
   'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',

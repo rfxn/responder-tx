@@ -62,9 +62,49 @@ CROSSING_COLOR = {"closed": "#d03b3b", "caution": "#fab219", "longterm": "#9ba3b
 PRI_COLOR = {"critical": "#d03b3b", "high": "#ec835a", "medium": "#fab219", "low": "#9ba3b8"}
 LSR_COLOR = "#3f7ac4"
 
-# mirror js/sources.js HAZARD_ALERT_RE and js/core.js LSR_FLOOD_RE
-HAZARD_ALERT_RE = re.compile(r"flood|storm surge|tropical|hurricane|high wind|wind advisory|beach hazard", re.I)
-LSR_FLOOD_RE = re.compile(r"FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE", re.I)
+# mirror js/sources.js HAZARD_EVENTS and js/core.js LSR_HAZARD_RE.
+# tests/hazard-table.test.js asserts both sides match and that every event string still exists
+# upstream; an unknown event string returns HTTP 200 with zero features rather than an error, so a
+# typo on either side would publish an empty hazard set instead of failing.
+HAZARD_EVENTS = {
+    "Tornado Warning": ("acute", 3),
+    "Extreme Wind Warning": ("acute", 8),
+    "Dust Storm Warning": ("acute", 8),
+    "Snow Squall Warning": ("acute", 8),
+    "Severe Thunderstorm Warning": ("acute", 11),
+    "Flash Flood Warning": ("acute", 7),
+    "Flash Flood Statement": ("acute", 7),
+    "Flood Warning": ("acute", 10),
+    "Flood Statement": ("acute", 10),
+    "Coastal Flood Warning": ("acute", 10),
+    "Coastal Flood Statement": ("acute", 10),
+    "Lakeshore Flood Warning": ("acute", 10),
+    "Lakeshore Flood Statement": ("acute", 10),
+    "Storm Surge Warning": ("acute", 10),
+    "Hurricane Warning": ("acute", 10),
+    "Hurricane Force Wind Warning": ("acute", 10),
+    "Tropical Storm Warning": ("acute", 10),
+    "Flash Flood Watch": ("watch", 13),
+    "Flood Watch": ("watch", 13),
+    "Coastal Flood Watch": ("watch", 13),
+    "Lakeshore Flood Watch": ("watch", 13),
+    "Storm Surge Watch": ("watch", 13),
+    "Hurricane Watch": ("watch", 13),
+    "Hurricane Force Wind Watch": ("watch", 13),
+    "Tropical Storm Watch": ("watch", 13),
+    "High Wind Watch": ("watch", 14),
+    "High Wind Warning": ("standing", 17),
+    "Flood Advisory": ("standing", 18),
+    "Coastal Flood Advisory": ("standing", 18),
+    "Lakeshore Flood Advisory": ("standing", 18),
+    "Wind Advisory": ("standing", 18),
+    "Lake Wind Advisory": ("standing", 18),
+    "Brisk Wind Advisory": ("standing", 18),
+    "Beach Hazards Statement": ("standing", 18),
+    "Tropical Cyclone Local Statement": ("standing", 18),
+}
+LSR_HAZARD_RE = re.compile(r"FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE"
+                           r"|TORNADO|FUNNEL CLOUD|HAIL|WILDFIRE|DUST STORM|SNOW SQUALL", re.I)
 
 # mirror js/core.js cardAged: resolved, or older than the per-type aging window
 AGED_CARD_MINS = 1440
@@ -255,7 +295,7 @@ def build_alerts(gj):
     now = now_utc()
     for f in (gj or {}).get("features", []):
         p = f.get("properties") or {}
-        if not HAZARD_ALERT_RE.search(p.get("event") or ""):
+        if (p.get("event") or "") not in HAZARD_EVENTS:
             continue
         exp = parse_iso(p.get("expires"))
         if exp and exp < now:
@@ -345,7 +385,7 @@ def build_notices(reqs):
 def build_lsrs(gj):
     out = []
     feats = [f for f in (gj or {}).get("features", [])
-             if LSR_FLOOD_RE.search((f.get("properties") or {}).get("typetext") or "")]
+             if LSR_HAZARD_RE.search((f.get("properties") or {}).get("typetext") or "")]
 
     def valid_key(f):
         return str((f.get("properties") or {}).get("valid") or "")

@@ -616,7 +616,7 @@ function initMap() {
     'Flood inundation: NWM model (est.)': state.layers.inundation,
     'Tropical cyclone tracker (NHC)': state.layers.tropical,
     'Storm surge risk (NHC SLOSH)': state.layers.surge,
-    'Flood alerts (NWS)': state.layers.alerts,
+    'Hazard alerts (NWS)': state.layers.alerts,
     'River gauges (NOAA)': state.layers.gauges,
     'Forecast crests (RFC max)': state.layers.fcstMax,
     'USGS gauges (raw stage)': state.layers.usgs,

@@ -575,6 +575,7 @@ const EXEMPT_RUNS = new Map([
   ['NOT IN', 'ArcGIS/NWPS where= predicate sent upstream, never rendered'],
   ['NOT LIKE', 'ArcGIS/NWPS where= predicate sent upstream, never rendered'],
   ['IS NULL OR UPPER', 'ArcGIS/NWPS where= predicate sent upstream, never rendered'],
+  ['RADAR INDICATED', 'CAP parameters.tornadoDetection value compared against upstream, never rendered'],
 ]);
 const WARN_LITERAL = new RegExp('⚠[ \t]*[A-Za-zÀ-ɏ]');
 const CAPS_RUN = /\b[A-Z][A-Z0-9]+(?:['’-][A-Z]+)?(?:[ ,:;.]+[A-Z][A-Z0-9]+(?:['’-][A-Z]+)?)+\b/g;

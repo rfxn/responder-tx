@@ -373,7 +373,9 @@ function renderRequests() {
 // the browser; nothing is logged.
 async function nominatimSearchN(q, n) {
   const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=${n}&countrycodes=us&q=${encodeURIComponent(q)}`);
-  const hits = await res.json();
+  // E1: Nominatim answers an error envelope with HTTP 200; only a real result array is a result
+  const hits = await okJson(res, 'Nominatim');
+  if (!Array.isArray(hits)) throw new Error('Nominatim: body is not a result list');
   return hits.map((h) => ({ lat: +h.lat, lon: +h.lon, label: h.display_name || '' }));
 }
 async function nominatimSearch(q) {
@@ -829,7 +831,8 @@ function importRequests(file) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      const incoming = data.requests || [];
+      // a file with no requests list is not an export, so fail visibly instead of reporting "0 new"
+      const incoming = okList(data, 'requests', 'not a Responder export');
       const known = new Set(allRequests(true).map((r) => r.id));
       let added = 0, updated = 0;
       for (const r of incoming) {

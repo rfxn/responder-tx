@@ -95,9 +95,11 @@
   async function loadChat() {
     const bust = `?_=${Date.now()}`;
     const msgs = [];
+    let read = false;
     try {
-      const out = await fetch(`data/chat-outbox.json${bust}`).then((r) => (r.ok ? r.json() : null));
-      if (out) msgs.push(...(out.messages || []));
+      const out = await fetch(`data/chat-outbox.json${bust}`).then((r) => okJson(r, 'chat outbox'));
+      msgs.push(...okList(out, 'messages', 'chat outbox'));
+      read = true;
     } catch { /* outbox missing — session has not written yet */ }
     try {
       const res = await fetch(`data/chat-inbox.jsonl${bust}`);
@@ -106,8 +108,12 @@
           if (!line.trim()) continue;
           try { msgs.push(JSON.parse(line)); } catch { /* skip malformed line */ }
         }
+        read = true;
       }
     } catch { /* inbox unreadable — panel just shows outbox */ }
+    // E1: with neither file readable we know nothing, so keep the last-good thread rather than
+    // wiping the panel to "no messages" and clearing the unread badge on a pending message
+    if (!read && chat.msgs && chat.msgs.length) { renderChat(); return; }
     msgs.sort((a, b) => new Date(a.ts) - new Date(b.ts));
     chat.msgs = msgs;
     if (!chat.seeded) {

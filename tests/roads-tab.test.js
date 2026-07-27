@@ -401,8 +401,19 @@ test('the empty tab says so instead of rendering nothing at all', () => {
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
   assert.equal(I18N.en['roads.src.txdot'], I18N.es['roads.src.txdot']);
-  assert.match(read('js/panels.js'), /t\(state\.roadsUnknown \? 'roads\.unknown' : 'roads\.none'\)/,
-    'the empty state must render the string, and only claim "none" when the feed was actually read');
+  // "none" is only reachable when BOTH feeds were actually read: a TxDOT outage and an unreadable
+  // crossing list each get their own empty state naming the feed that failed
+  assert.match(read('js/panels.js'),
+    /t\(state\.roadsUnknown \? 'roads\.unknown' : state\.crossingsUnknown \? 'roads\.xunknown' : 'roads\.none'\)/,
+    'the empty state must render the string, and only claim "none" when both feeds were read');
+  for (const lang of ['en', 'es']) {
+    const s = I18N[lang]['roads.xunknown'];
+    assert.ok(typeof s === 'string' && s.length, `${lang} missing roads.xunknown`);
+    assert.ok(!s.includes('—'), `em-dash in ${lang} roads.xunknown`);
+  }
+  assert.notEqual(I18N.en['roads.xunknown'], I18N.es['roads.xunknown'], 'roads.xunknown was never translated');
+  // the unknown states must refuse the reading the "none" state invites
+  assert.match(I18N.en['roads.xunknown'], /not a report that crossings are clear/i);
 });
 
 /* ---------- TxGIO crossing inventory paging (v0.99.39) ----------
@@ -544,13 +555,38 @@ test('a truncated closure set is declared partial and never diffed into reopenin
 test('a failed page leaves the layer retryable rather than half loaded', async () => {
   const prevFetch = SB.fetch;
   const prevRender = SB.renderLwc;
+  const prevNotice = SB.opNotice;
   let rendered = false;
+  const notices = [];
   SB.renderLwc = () => { rendered = true; };
+  SB.opNotice = (m) => notices.push(m);
   SB.fetch = () => Promise.resolve({ ok: false, status: 503 });
   ST._lwcLoaded = false;
-  try { await SB.fetchLwc(); } finally { SB.fetch = prevFetch; SB.renderLwc = prevRender; }
+  try { await SB.fetchLwc(); } finally { SB.fetch = prevFetch; SB.renderLwc = prevRender; SB.opNotice = prevNotice; }
   assert.equal(rendered, false, 'nothing may be drawn from a failed page');
   assert.equal(ST._lwcLoaded, false, 'the layer must be retryable on the next toggle');
+  assert.deepEqual(notices, ['note.lwcfail'], 'an empty crossings layer must say it failed, not read as no crossings');
+});
+
+// TxGIO is ArcGIS: a rejected query arrives as HTTP 200 carrying {"error":...}, which res.ok admits
+test('an ArcGIS error body on the crossing query fails the layer instead of drawing zero crossings', async () => {
+  const prevFetch = SB.fetch;
+  const prevRender = SB.renderLwc;
+  const prevNotice = SB.opNotice;
+  let rendered = null;
+  const notices = [];
+  SB.renderLwc = (f) => { rendered = f; };
+  SB.opNotice = (m) => notices.push(m);
+  SB.fetch = () => Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({ error: { code: 400, message: '', details: ["'Invalid field: x' parameter is invalid"] } }),
+  });
+  ST._lwcLoaded = false;
+  try { await SB.fetchLwc(); } finally { SB.fetch = prevFetch; SB.renderLwc = prevRender; SB.opNotice = prevNotice; }
+  assert.equal(rendered, null, 'an error body must never reach the renderer as an empty crossing set');
+  assert.equal(ST._lwcLoaded, false, 'the layer stays retryable');
+  assert.deepEqual(notices, ['note.lwcfail'], 'and the operator is told the list is unavailable');
 });
 
 /* ---------- DriveTexas outage fallback (v0.99.54) ----------

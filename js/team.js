@@ -1383,9 +1383,13 @@
     const q = `[out:json][timeout:20];(nwr["amenity"="hospital"](around:50000,${c.lat},${c.lon});nwr["amenity"="veterinary"](around:50000,${c.lat},${c.lon}););out center 60;`;
     try {
       const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: `data=${encodeURIComponent(q)}` });
-      const d = await r.json();
+      const d = await okJson(r, 'Overpass');
+      // Overpass reports a timed-out query as HTTP 200 with a `remark` and no elements. Publishing
+      // that as "no hospital found within 50 km" to a crew in the field is the one thing this
+      // must never do, so both shapes fail into the visible error branch.
+      if (d.remark) throw new Error(`Overpass: ${d.remark}`);
       const hosp = [], vet = [];
-      for (const e of (d.elements || [])) {
+      for (const e of okList(d, 'elements', 'Overpass')) {
         const ll = elLatLon(e); if (!ll) continue;
         const item = { name: (e.tags && e.tags.name) || tt('team.fac.unnamed', 'unnamed'), emergency: !!(e.tags && e.tags.emergency === 'yes'), dist: distMi(c.lat, c.lon, ll.lat, ll.lon), lat: ll.lat, lon: ll.lon };
         if (e.tags && e.tags.amenity === 'hospital') hosp.push(item); else vet.push(item);

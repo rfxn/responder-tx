@@ -386,7 +386,7 @@ async function openCrestSummary() {
   const el = $('#summary-body');
   el.innerHTML = `<div class="sum-quiet">${esc(t('changelog.loading'))}</div>`;
   let d = null;
-  try { d = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null)); }
+  try { d = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => okJson(r, 'crest summary')); }
   catch { d = null; } // absent on older deploys or offline — quiet line below, never a crash
   if (!d || !Array.isArray(d.gauges) || !d.gauges.length) {
     el.innerHTML = `<div class="sum-quiet">${esc(t('summary.none'))}</div>`;
@@ -445,7 +445,9 @@ const recoverySection = (title, sub, itemsHtml, emptyKey, citeHtml) =>
 
 function renderRecoveryBody(crest) {
   const el = $('#recovery-body');
-  const rows = (crest && Array.isArray(crest.gauges)) ? crest.gauges : [];
+  // E1: with no readable crest artifact the recovery counts are unknown, not zero
+  const crestOk = !!(crest && Array.isArray(crest.gauges));
+  const rows = crestOk ? crest.gauges : [];
   const byLid = {};
   for (const g of state.gauges) byLid[g.lid] = g;
   const classified = rows
@@ -458,7 +460,9 @@ function renderRecoveryBody(crest) {
   const stillFlood = state.gauges.filter((g) => gaugeCat(g) !== 'none').length;
 
   const sitFalling = sitrepFallingGauges();
-  const counts = t('recovery.counts').replace('{a}', receded.length).replace('{b}', falling.length).replace('{c}', stillFlood);
+  const counts = crestOk
+    ? t('recovery.counts').replace('{a}', receded.length).replace('{b}', falling.length).replace('{c}', stillFlood)
+    : t('recovery.counts.unknown').replace('{c}', stillFlood); // {c} is live gauges, still measured
   const head =
     '<div class="sum-head">' +
     `<div class="sum-event">${esc(t('recovery.event'))} ${esc((crest && crest.event) || state.baseTitle || '')}${crest && crest.generated ? ` · ${esc(t('summary.generated'))} ${esc(fmtCT(crest.generated))}` : ''}</div>` +
@@ -478,7 +482,8 @@ function renderRecoveryBody(crest) {
   const roadCite = `<div class="sum-cite">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · ${esc(t('reopen.cleared'))}</div>`;
 
   const res = state.resources || {};
-  const shelters = mergeShelters(res.shelters || [], state.sheltersLive && state.sheltersLive.shelters);
+  // a curated resources file may legitimately carry no shelter list; the fetch itself is guarded in loadSeeds
+  const shelters = mergeShelters(Array.isArray(res.shelters) ? res.shelters : [], state.sheltersLive && state.sheltersLive.shelters);
   const shlSrcUrl = shlLiveSrcUrl();
   const shelterItems = shelterListHtml(shelters, shlSrcUrl);
 
@@ -513,7 +518,7 @@ async function openRecoveryView() {
   const el = $('#recovery-body');
   el.innerHTML = `<div class="sum-quiet">${esc(t('changelog.loading'))}</div>`;
   let crest = null;
-  try { crest = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null)); }
+  try { crest = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => okJson(r, 'crest summary')); }
   catch { crest = null; } // absent on older deploys or offline — the gauges section shows its honest empty line
   state.recoveryCrest = crest;
   renderRecoveryBody(crest);
@@ -614,9 +619,14 @@ function renderBasinBody() {
   const nComing = infos.filter((x) => x.wave === 'coming').length;
   const nFlood = sel.gauges.filter((g) => gaugeCat(g) !== 'none').length;
 
+  // E1: without a readable crest artifact every wave state is 'none', so "no active crest signal"
+  // would be a missing input published as a measurement
+  const crestOk = !!(state.basinCrest && Array.isArray(state.basinCrest.gauges));
   let headline;
   const nxt = infos.find((x) => x.wave === 'coming');
-  if (nxt) {
+  if (!crestOk) {
+    headline = nFlood ? t('basin.inflood').replace('{k}', nFlood) : t('basin.crestunknown');
+  } else if (nxt) {
     const site = nxt.g.name.slice(riverOf(nxt.g.name).length).trim() || nxt.g.name;
     headline = t('basin.next').replace('{site}', site).replace('{t}', fmtWhen(new Date(nxt.crestT).toISOString()));
   } else if (nPassed) headline = t('basin.allpassed');
@@ -641,7 +651,9 @@ function renderBasinBody() {
     `<div class="basin-chips">${chips}</div>` +
     `<div class="basin-pickrow"><label for="basin-select">${esc(t('basin.pick'))}</label>` +
     `<select id="basin-select">${opts}</select></div>` +
-    `<div class="rcv-headline">${esc(sel.river)} · ${esc(t('basin.counts').replace('{n}', infos.length).replace('{p}', nPassed).replace('{c}', nComing))}</div>` +
+    `<div class="rcv-headline">${esc(sel.river)} · ${esc(crestOk
+      ? t('basin.counts').replace('{n}', infos.length).replace('{p}', nPassed).replace('{c}', nComing)
+      : t('basin.counts.unknown').replace('{n}', infos.length))}</div>` +
     `<div class="basin-headline">${esc(headline)}</div>` +
     (sel.coastal ? '' : `<div class="basin-dir">${esc(t('basin.updown'))}</div>`) +
     infos.map((x, i) => basinGaugeRowHtml(x, i === frontIdx)).join('') +
@@ -682,7 +694,7 @@ async function openBasinView(slug) {
   $('#basin-view').hidden = false;
   renderBasinBody();
   let crest = null;
-  try { crest = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null)); }
+  try { crest = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => okJson(r, 'crest summary')); }
   catch { crest = null; } // absent on older deploys or offline — the corridor still renders from live gauges
   state.basinCrest = crest;
   renderBasinBody();
@@ -903,7 +915,7 @@ const shlLiveUpdatedHtml = () => {
   const live = state.sheltersLive;
   if (!live || !live.generated) return '';
   const when = fmtWhen(live.generated);
-  return (live.shelters || []).length
+  return (Array.isArray(live.shelters) ? live.shelters : []).length
     ? shlNoteHtml(`${esc(t('shl.livefeed'))} · ${esc(t('word.updated').toLowerCase())} ${esc(when)}`)
     : shlNoteHtml(esc(t('shl.live.none').replace('{t}', when)));
 };
@@ -1014,7 +1026,7 @@ function openShelterCount() {
 function unconfirmedShelterCount() {
   const r = state.resources;
   if (!r || !curatedSheltersStale()) return 0;
-  return (r.shelters || []).filter(shelterOpen).length;
+  return (Array.isArray(r.shelters) ? r.shelters : []).filter(shelterOpen).length;
 }
 
 /* ---------- coastal water levels (NOAA CO-OPS): observed-vs-predicted surge residual ---------- */
@@ -1345,26 +1357,30 @@ async function loadSeeds() {
   try {
     const bust = `?_=${Date.now()}`;
     const [reqs, res] = await Promise.all([
-      fetch(`data/requests.json${bust}`).then((r) => r.json()),
-      fetch(`data/resources.json${bust}`).then((r) => r.json()),
+      fetch(`data/requests.json${bust}`).then((r) => okJson(r, 'requests')),
+      fetch(`data/resources.json${bust}`).then((r) => okJson(r, 'resources')),
     ]);
+    // E1: validate before publishing. A body without .requests is a failed load, not zero requests.
+    const seedRequests = okList(reqs, 'requests', 'requests');
     // crest-of-record context — absence-tolerant (older deploys shipped no records.json)
     if (!state.records) {
       state.records = (await fetch(`data/records.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) || {}).records || {};
     }
     // low-water crossings — absence-tolerant; refetched each cycle for status changes; transient failure keeps last-good, never wipes to []
     const xing = await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    if (xing && Array.isArray(xing.crossings)) state.crossings = xing.crossings;
-    else state.crossings = state.crossings || [];
+    if (xing && Array.isArray(xing.crossings)) { state.crossings = xing.crossings; state.crossingsUnknown = false; }
+    // E1: on a cold client there is no last-good to keep, so the crossing set is unknown and the
+    // Roads tab must say so instead of reporting that no crossing hazards exist
+    else { state.crossingsUnknown = !state.crossings; state.crossings = state.crossings || []; }
     // jurisdiction-reported crossing closures — absence-tolerant; transient failure keeps last-good
     const xst = await fetch(`data/crossing-status.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (xst && Array.isArray(xst.crossings)) state.crossStatus = xst;
     // live NSS shelters — absence-tolerant (poller may never have run); transient failure keeps last-good
     const shl = await fetch(`data/shelters-live.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (shl && Array.isArray(shl.shelters)) state.sheltersLive = shl;
-    markHealthy('seeds');
-    state.seedRequests = reqs.requests || [];
+    state.seedRequests = seedRequests;
     state.resources = res;
+    markHealthy('seeds'); // only once every body above parsed and validated
     // hash = content + per-card aging fingerprint: identical seeds skip the re-render (scroll guard),
     // but aged/stale/fresh-bucket transitions on idle clients still repaint list, tiles, and crossings
     const agingFp = allRequests().map((r) => [r.id, cardAged(r) ? 1 : 0, r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins ? 1 : 0, freshClass(r.ts)]);
@@ -1573,6 +1589,7 @@ function renderRoadsTab() {
   if (!el) return;
   // whole-mile distance buckets: a moving fix must not repaint (and reset the scroll) every tick
   const fp = JSON.stringify([state.roadsPartial === true, state.roadsFallbackAt || 0, state.roadsUnknown === true,
+    state.crossingsUnknown === true,
     rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
   if (fp === state.roadsTabFp) return;
   state.roadsTabFp = fp;
@@ -1589,8 +1606,9 @@ function renderRoadsTab() {
       (unconf.length ? `<div class="rcv-note">${esc(t('cross.unconfirmed').replace('{n}', unconf.length))}</div>` : '') +
       rows.map(roadsRowHtml).join('') +
       `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
-    // E1: with the feed down and no snapshot, "none reported" would be a failed fetch published as a value
-    : `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : 'roads.none'))}</div>`;
+    // E1: with a feed down and nothing cached, "none reported" would be a failed fetch published as
+    // a value. Each empty state names the feed that actually failed rather than a generic outage.
+    : `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : state.crossingsUnknown ? 'roads.xunknown' : 'roads.none'))}</div>`;
   el.querySelectorAll('.road-row[data-lat]').forEach((d) => d.addEventListener('click', (ev) => {
     if (ev.target.closest('a')) return;
     state.map.setView([+d.dataset.lat, +d.dataset.lon], 13);

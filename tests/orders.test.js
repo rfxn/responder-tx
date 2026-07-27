@@ -48,7 +48,20 @@ function withCopy(lang, fn) {
 const FIX = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'alerts-orders.json'), 'utf8'));
 const withSev = (f) => Object.assign({}, f, { _sev: alertSeverity(f.properties) });
 const REAL = FIX.real.map(withSev);
-const SHAPED = FIX.shaped.map(withSev);
+
+/* The shaped half carries one fixed five-hour window, so on 2026-07-27T04:04Z it aged past
+   alertOpen() and silently took the two admission tests below with it. Its absolute timestamps
+   carry no evidentiary weight (unlike the real half, which is captured verbatim and stays byte
+   faithful), so rebase that window onto the run clock instead of re-arming the same bomb with a
+   fresh date. Field shapes, offset format and the five-hour duration are unchanged. */
+const isoCdt = (msFromNow) =>
+  new Date(Date.now() + msFromNow - 5 * 3600000).toISOString().replace(/\.\d{3}Z$/, '-05:00');
+const rebase = (f) => Object.assign({}, f, {
+  properties: Object.assign({}, f.properties, {
+    sent: isoCdt(-3600000), effective: isoCdt(-3600000), expires: isoCdt(4 * 3600000),
+  }),
+});
+const SHAPED = FIX.shaped.map(rebase).map(withSev);
 const byId = (id) => {
   const f = REAL.concat(SHAPED).find((x) => x.properties.id === id);
   assert.ok(f, `fixture ${id} is missing; the suite below would pass vacuously without it`);

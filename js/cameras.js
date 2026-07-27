@@ -32,8 +32,11 @@ const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
 function loadCameras() {
   if (state.camerasP) return state.camerasP;
   state.camerasP = fetch(`data/cameras.json?_=${Math.floor(Date.now() / 3600000)}`)
-    .then((r) => { if (!r.ok) throw new Error(`cameras HTTP ${r.status}`); return r.json(); })
+    .then((r) => okJson(r, 'cameras'))
     .then((d) => {
+      // E1: a body carrying none of the networks is an unreadable inventory, not an empty one;
+      // rejecting sends it to the camfail notice instead of drawing a camera-free map
+      if (!CAM_NETS.some(([arr]) => Array.isArray(d[arr]))) throw new Error('cameras: no network arrays in body');
       state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [], swrecon: d.swrecon || [], corpus: d.corpus || [], lubbock: d.lubbock || [], weatherbug: d.weatherbug || [], nmdot: d.nmdot || [], nps: d.nps || [], laredo: d.laredo || [], eaglepass: d.eaglepass || [], delrio: d.delrio || [], galveston: d.galveston || [] };
       renderCameras();
       return state.cameras;

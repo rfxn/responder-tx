@@ -1,5 +1,41 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.60 · 2026-07-27 (a source that did not answer no longer reads as zero)
+
+-- Bug Fixes --
+- [Fix] The tropical cyclone tracker reported no active storms, with the source
+      marked healthy, when its query to the hurricane service had actually
+      failed. A failed query now reads as unavailable, and the tracker only
+      reports a clear Gulf when the service really said so
+- [Fix] The same correction is applied across every live source on the board.
+      Flood warnings, river gauges, road closures, forecast flood points, storm
+      reports, low water crossings, water levels and the camera list each now
+      tell a failed request apart from a genuine zero, and none of them reports
+      an empty result it did not receive
+- [Fix] A road closure feed that answers with an unreadable list no longer
+      contributes to the recently reopened list, which could show roads as
+      reopened when the feed had simply failed
+- [Fix] The Roads tab said no closures or crossing hazards were reported when the
+      crossing list had failed to load. It now says the crossing hazards are
+      unknown and states plainly that this is not a report that crossings are
+      clear
+- [Fix] The recovery and basin views showed zero gauges past crest and zero
+      crest ahead when the crest data was unavailable. Both now say the crest
+      position is unknown instead of showing counts of zero
+- [Fix] Playback showed zero warnings in effect for a moment whose archive
+      request failed. That moment now reads as unknown
+- [Fix] The team panel could report no hospital or veterinary within 50 km when
+      the facility lookup had timed out. A lookup that did not answer now says so
+- [Fix] Place search reported no match when the geocoder had not answered. The
+      two are now told apart
+- [Fix] Importing a file that is not a board export now reports the failure
+      instead of reporting zero records added
+
+-- Changes --
+- [Change] A source is marked healthy only after the board has checked that the
+           response is the shape it asked for. A partly answered tropical fetch
+           leaves the source ageing rather than showing as fresh
+
 ## v0.99.59 · 2026-07-27 (hazards in the exports and the archive)
 
 -- New Features --

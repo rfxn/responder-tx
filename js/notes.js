@@ -107,13 +107,16 @@
   async function loadNotes() {
     const bust = `?_=${Date.now()}`;
     const seen = new Map();
+    let read = false;
     try {
-      const pub = await fetch(`data/notes.json${bust}`).then((r) => (r.ok ? r.json() : null));
-      if (pub) (pub.notes || []).forEach((x) => { if (x && x.id && x.text) seen.set(x.id, x); });
+      const pub = await fetch(`data/notes.json${bust}`).then((r) => okJson(r, 'notes'));
+      okList(pub, 'notes', 'notes').forEach((x) => { if (x && x.id && x.text) seen.set(x.id, x); });
+      read = true;
     } catch { /* curated file absent — fine, inbox may still exist */ }
     try {
       const res = await fetch(`data/notes-inbox.jsonl${bust}`);
       if (res.ok) {
+        read = true;
         const txt = await res.text();
         if (!/^\s*</.test(txt)) { // static hosts answer missing files with an HTML 404 page
           for (const line of txt.split('\n')) {
@@ -123,6 +126,9 @@
         }
       }
     } catch { /* inbox missing on the mirror — curated notes only */ }
+    // E1: neither file readable means unknown, so keep the last-good list rather than publishing
+    // "no field notes yet" and blanking the badge on a transient failure
+    if (!read && N.notes && N.notes.length) { render(); renderMarkers(); return; }
     N.notes = [...seen.values()].sort((a, b) => new Date(b.ts) - new Date(a.ts));
     render();
     renderMarkers();

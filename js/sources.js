@@ -334,9 +334,9 @@ function maybeAutoTropical() {
 
 async function fetchAlerts() {
   const res = await fetch(CONFIG.alertsUrl, { headers: { Accept: 'application/geo+json' } });
-  if (!res.ok) throw new Error(`NWS alerts HTTP ${res.status}`);
-  const data = await res.json();
-  const hazards = (data.features || []).filter((f) => hazardAdmits(f.properties.event));
+  const data = await okJson(res, 'NWS alerts');
+  // E1: a body without features is a failed request, never "no warnings are in effect"
+  const hazards = okList(data, 'features', 'NWS alerts').filter((f) => hazardAdmits(f.properties.event));
   hazards.forEach((f) => { f._sev = alertSeverity(f.properties); });
   hazards.sort((a, b) => alertHazCmp(a, b) || new Date(b.properties.sent || 0) - new Date(a.properties.sent || 0));
   const emergencies = hazards.filter((f) => f._sev === 'emergency');
@@ -386,10 +386,11 @@ async function zoneGeometry(zoneUrl) {
   if (state.zoneGeomCache.has(zoneUrl)) return state.zoneGeomCache.get(zoneUrl);
   try {
     const res = await fetch(zoneUrl, { headers: { Accept: 'application/geo+json' } });
-    const gj = res.ok ? (await res.json()).geometry : null;
+    const gj = (await okJson(res, 'NWS zone')).geometry;
+    if (!gj || typeof gj !== 'object') throw new Error('NWS zone: no geometry');
     state.zoneGeomCache.set(zoneUrl, gj);
     return gj;
-  } catch { state.zoneGeomCache.set(zoneUrl, null); return null; }
+  } catch { return null; } // not cached: a transient failure must not pin this zone shapeless for the session
 }
 
 /* Hazard type is a visual dimension in its own right, not a shade of severity: a tornado polygon and
@@ -551,7 +552,7 @@ function mergeBounds(list) {
 function geoBounds(geom) {
   if (!geom || typeof geom !== 'object') return null;
   if (geom.type === 'Feature') return geoBounds(geom.geometry);
-  if (geom.type === 'FeatureCollection') return mergeBounds((geom.features || []).map(geoBounds));
+  if (geom.type === 'FeatureCollection') return mergeBounds((Array.isArray(geom.features) ? geom.features : []).map(geoBounds));
   if (geom.type === 'GeometryCollection') return mergeBounds((geom.geometries || []).map(geoBounds));
   const b = { n: -Infinity, s: Infinity, e: -Infinity, w: Infinity };
   let seen = false;
@@ -924,9 +925,9 @@ async function fetchGauges() {
   const b = CONFIG.gaugeBbox;
   const url = `${CONFIG.nwpsBase}/gauges?bbox.xmin=${b.xmin}&bbox.ymin=${b.ymin}&bbox.xmax=${b.xmax}&bbox.ymax=${b.ymax}&srid=EPSG_4326`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`NWPS HTTP ${res.status}`);
-  const data = await res.json();
-  const split = splitGauges(data.gauges);
+  const data = await okJson(res, 'NWPS');
+  // E1: an unreadable body must not wipe the board to zero gauges and stand the snapshot down
+  const split = splitGauges(okList(data, 'gauges', 'NWPS'));
   state.gauges = split.live;
   state.gaugesDegraded = split.degraded;
   markHealthy('gauges');
@@ -1381,7 +1382,7 @@ const sparkCache = new Map();
 function cachedJson(url, ttlMs = 180000) {
   const hit = sparkCache.get(url);
   if (hit && Date.now() - hit.t < ttlMs) return hit.p;
-  const p = fetch(url).then((r) => { if (!r.ok) throw new Error(`http ${r.status}`); return r.json(); });
+  const p = fetch(url).then((r) => okJson(r, 'gauge json'));
   sparkCache.set(url, { t: Date.now(), p });
   p.catch(() => sparkCache.delete(url));
   return p;
@@ -1399,7 +1400,9 @@ async function drawSparkline(g, canvas, note) {
       gaugeJson(g.lid, 'series', `${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/observed`),
     ]);
     const cutoff = Date.now() - CONFIG.sparkHours * 3600000;
-    let pts = (series.data || []).filter((p) => new Date(p.validTime).getTime() >= cutoff && p.primary > -999);
+    // E1: a body with no series did not answer, so it must reach the catch as "unavailable"
+    // rather than fall through to "no recent readings" for a gauge that may well have them
+    let pts = okList(series, 'data', 'gauge series').filter((p) => new Date(p.validTime).getTime() >= cutoff && p.primary > -999);
     if (pts.length < 2) { note.textContent = t('spark.nodata'); return; }
     const step = Math.max(1, Math.floor(pts.length / 220));
     pts = pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
@@ -1466,11 +1469,11 @@ async function fetchFcstMax() {
     f: 'geojson',
   });
   const res = await fetch(`${CONFIG.fcstMaxUrl}?${params}`);
-  if (!res.ok) throw new Error(`RFC fcst HTTP ${res.status}`);
-  const data = await res.json();
+  const data = await okJson(res, 'RFC fcst');
   // NWPS gauges already show their own forecast — keep only lids this board lacks
   const nwpsLids = new Set(state.gauges.map((g) => g.lid));
-  state.fcstMax = (data.features || []).filter((f) => {
+  // E1: an ArcGIS error body must not publish as zero forecast flood points
+  state.fcstMax = okList(data, 'features', 'RFC fcst').filter((f) => {
     if (!f.geometry || !Array.isArray(f.geometry.coordinates)) return false;
     const [lon, lat] = f.geometry.coordinates;
     return inGaugeBbox(lat, lon) && !nwpsLids.has(f.properties.nws_lid);
@@ -1508,10 +1511,11 @@ async function fetchUsgsTile(tile) {
   const url = `${CONFIG.usgsIvBase}?format=json&parameterCd=00065&modifiedSince=PT2H`
     + `&bBox=${tile.xmin},${tile.ymin},${tile.xmax},${tile.ymax}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`USGS IV HTTP ${res.status}`);
-  const data = await res.json();
+  const data = await okJson(res, 'USGS IV');
   const sites = [];
-  for (const ts of (data.value && data.value.timeSeries) || []) {
+  // E1: a tile whose body has no timeSeries did not answer, so it must fail rather than
+  // count as a tile that legitimately holds no sites
+  for (const ts of okList(data, 'value.timeSeries', 'USGS IV')) {
     const si = ts.sourceInfo;
     const vals = ts.values && ts.values[0] && ts.values[0].value;
     const last = vals && vals[vals.length - 1];
@@ -1653,9 +1657,10 @@ async function fetchRoadClosuresLive() {
     qs.set('resultRecordCount', String(ROAD_PAGE));
     qs.set('resultOffset', String(page * ROAD_PAGE));
     const res = await fetch(`${CONFIG.roadCondUrl}?${qs}`);
-    if (!res.ok) throw new Error(`DriveTexas HTTP ${res.status}`);
-    const data = await res.json();
-    const got = data.features || [];
+    const data = await okJson(res, 'DriveTexas');
+    // E1: an ArcGIS error body must not read as zero closures, which the reopened diff would
+    // then publish as every remembered road having reopened
+    const got = okList(data, 'features', 'DriveTexas');
     pages.push(got);
     if (!got.length || !arcgisHasMore(data)) { partial = false; break; }
     partial = true; // more records remain; only survives the loop when the ceiling cuts paging short
@@ -1970,24 +1975,28 @@ function tcPopupFcst(p) {
     tcSrcLine();
 }
 
-// lazy: fetched on first overlayadd and refreshed on the data cycle while the layer is on. All sublayers
-// are optional — any that fails or returns empty simply renders nothing; total network failure degrades quietly.
+/* lazy: fetched on first overlayadd and refreshed on the data cycle while the layer is on.
+   A sublayer that answers with no features means no active storms of that kind; a sublayer that
+   fails means we do not know. Those are different facts (E1), and the source chip may only go
+   green when every sublayer actually answered. */
 async function fetchTropical() {
   const group = state.layers.tropical;
   if (!group) return;
   const grab = async (n) => {
     try {
       const r = await fetch(`${CONFIG.tropicalBase}/${n}/query?where=1%3D1&outFields=*&f=geojson`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return (await r.json()).features || [];
+      const d = await okJson(r, `tropical ${n}`);
+      return okList(d, 'features', `tropical ${n}`);
     } catch { return null; } // null = this sublayer failed (distinct from [] = no active storms)
   };
   const [cone, ftrack, otrack, ww, fpos, opos] = await Promise.all([grab(4), grab(2), grab(3), grab(5), grab(0), grab(1)]);
-  if ([cone, ftrack, otrack, ww, fpos, opos].every((x) => x === null)) {
+  const subs = [cone, ftrack, otrack, ww, fpos, opos];
+  if (subs.every((x) => x === null)) {
     opNotice(t('note.tropfail'));
-    return; // every sublayer failed → network down; keep whatever was last drawn
+    return; // every sublayer failed, so keep whatever was last drawn
   }
-  markHealthy('tropical');
+  if (subs.some((x) => x === null)) opNotice(t('note.troppartial'));
+  else markHealthy('tropical'); // a partial answer leaves the chip ageing rather than claiming fresh
   renderTropical({ cone, ftrack, otrack, ww, fpos, opos });
 }
 
@@ -2052,9 +2061,9 @@ async function fetchLwc() {
     for (let page = 0; page < LWC_MAX_PAGES; page++) {
       const qs = new URLSearchParams({ ...base, resultOffset: String(page * LWC_PAGE) });
       const r = await fetch(`${CONFIG.lwcUrl}?${qs}`);
-      if (!r.ok) throw new Error(`TxGIO HTTP ${r.status}`);
-      const d = await r.json();
-      const got = d.features || [];
+      const d = await okJson(r, 'TxGIO');
+      // E1: an ArcGIS error body must not draw an empty layer that reads as "no crossings here"
+      const got = okList(d, 'features', 'TxGIO');
       pages.push(got);
       if (!got.length || !arcgisHasMore(d)) { partial = false; break; }
       partial = true; // more records remain; only survives the loop when the ceiling cuts paging short
@@ -2064,6 +2073,7 @@ async function fetchLwc() {
     renderLwc([].concat(...pages));
   } catch (err) {
     state._lwcLoaded = false; // allow a retry the next time the layer is toggled on
+    opNotice(t('note.lwcfail')); // an empty layer would otherwise read as "no crossings here"
   }
 }
 
@@ -2128,7 +2138,7 @@ function renderRiverSentry() {
   if (!layer || !data) return;
   layer.clearLayers();
   const lbl = esc(t('layers.rsentry'));
-  for (const tw of data.towers || []) {
+  for (const tw of (Array.isArray(data.towers) ? data.towers : [])) {
     if (!Number.isFinite(tw.lat) || !Number.isFinite(tw.lon)) continue;
     const icon = L.divIcon({
       className: '',
@@ -2165,9 +2175,9 @@ function rsentryPopupHtml(tw) {
 async function fetchLsrs() {
   const hours = state.filters.window ? Math.max(2, Math.ceil(+state.filters.window / 60)) : CONFIG.lsrHours;
   const res = await fetch(`${CONFIG.lsrUrl}?hours=${hours}&states=TX`);
-  if (!res.ok) throw new Error(`LSR HTTP ${res.status}`);
-  const data = await res.json();
-  state.lsrs = (data.features || [])
+  const data = await okJson(res, 'LSR');
+  // E1: an unreadable body must not publish as zero storm reports on the ground
+  state.lsrs = okList(data, 'features', 'LSR')
     .filter((f) => LSR_HAZARD_RE.test(f.properties.typetext || ''))
     .sort((a, b) => new Date(b.properties.valid) - new Date(a.properties.valid));
   markHealthy('lsrs');
@@ -2274,11 +2284,12 @@ async function fetchTideStation(s) {
       fetch(url('range=3&product=water_level')),
       fetch(url('date=today&product=predictions&interval=6')),
     ]);
-    if (!obsR.ok || !predR.ok) throw new Error('http');
-    const obs = await obsR.json();
-    const pred = await predR.json();
-    const data = (obs && obs.data) || [];
-    const preds = (pred && pred.predictions) || [];
+    // CO-OPS reports a rejected request as an {"error":...} body, so ok:false must come from the
+    // guard rather than from an absent .data reading as a station with no water level
+    const obs = await okJson(obsR, 'CO-OPS obs');
+    const pred = await okJson(predR, 'CO-OPS pred');
+    const data = okList(obs, 'data', 'CO-OPS obs');
+    const preds = okList(pred, 'predictions', 'CO-OPS pred');
     if (!data.length) return { id: s.id, name: s.name, ok: false };
     const last = data[data.length - 1];
     const obv = +last.v;

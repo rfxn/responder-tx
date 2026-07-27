@@ -392,8 +392,9 @@ async function openChangelog() {
   const body = $('#changelog-body');
   if (body.dataset.loaded) return;
   try {
-    const data = await fetch(`data/changelog.json?_=${Date.now()}`).then((r) => r.json());
-    body.innerHTML = (data.versions || []).map((v) =>
+    const data = await fetch(`data/changelog.json?_=${Date.now()}`).then((r) => okJson(r, 'changelog'));
+    // E1: an unreadable body must reach the error line, not latch an empty history as loaded
+    body.innerHTML = okList(data, 'versions', 'changelog').map((v) =>
       `<div class="chg-row"><span class="chg-v">${esc(v.v)}</span><span class="chg-line">${esc(v.line)}</span></div>`).join('');
     body.dataset.loaded = '1';
   } catch { body.textContent = t('changelog.err'); }
@@ -465,8 +466,9 @@ async function runHeaderSearch() {
   searchNote(t('search.looking'));
   // bias to the board's AO when no state is named; the query is never stored or transmitted beyond this geocode
   const q = /\b(tx|texas)\b/i.test(raw) ? raw : `${raw}, Texas`;
-  let hits = [];
-  try { hits = await nominatimSearchN(q, 5); } catch { hits = []; }
+  // E1: a geocoder that did not answer is not the same fact as a place that does not exist
+  let hits;
+  try { hits = await nominatimSearchN(q, 5); } catch { searchNote(t('search.lookupfail')); return; }
   if (!hits.length) { searchNote(t('search.noresult')); return; }
   if (hits.length === 1) { searchSetOpen(false); searchGoPoint(hits[0].lat, hits[0].lon); return; }
   searchShowResults(hits.map((h) => ({ kind: t('search.place'), label: h.label, act: () => searchGoPoint(h.lat, h.lon) })));

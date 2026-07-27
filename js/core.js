@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.59';
+const APP_VERSION = 'v0.99.60';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -268,6 +268,7 @@ const state = {
   roadsTabFp: null, // last Roads-tab render fingerprint; an unchanged list must not reset the scroll
   roadsFallbackAt: null, // snapshot `generated` epoch while the committed fallback is serving, else null
   roadsUnknown: false, // live feed failed AND no snapshot: the closure set is unknown, never "none"
+  crossingsUnknown: false, // crossings.json unreadable on a cold client: hazards unknown, never "none"
   lwcPartial: false, // true when the crossing inventory hit the paging ceiling with records left
   showAlertHist: false,
   showAlertsFar: false, // the alerts outside the current proximity scope are folded, never dropped
@@ -311,6 +312,26 @@ const telHref = (v) => {
 // compact citation label — bare domain for the source link, never the full raw URL
 const hostOf = (u) => { try { return new URL(String(u)).hostname.replace(/^www\./, ''); } catch { return ''; } };
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+/* E1: a failed fetch must never become a published value. ArcGIS answers a rejected query with
+   HTTP 200 and an {"error":...} body, so res.ok cannot be the only check; this mirrors the guard
+   in scripts/gen-roads-snapshot.py. Callers must throw rather than substitute an empty result. */
+async function okJson(res, label) {
+  if (!res || !res.ok) throw new Error(`${label} HTTP ${res ? res.status : 'no response'}`);
+  const d = await res.json();
+  if (d === null || typeof d !== 'object') throw new Error(`${label}: body is not a JSON object`);
+  if (!Array.isArray(d) && d.error != null) throw new Error(`${label}: upstream error body`);
+  return d;
+}
+
+// The array the caller asked for, or a throw. An absent key means the response is not the shape we
+// requested, which is a failed fetch and not an empty result, so it must never become [].
+function okList(d, path, label) {
+  let v = d;
+  for (const k of String(path).split('.')) v = (v === null || v === undefined) ? undefined : v[k];
+  if (!Array.isArray(v)) throw new Error(`${label}: '${path}' is not an array`);
+  return v;
+}
 
 // provenance badge: OFFICIAL = machine-fed authoritative feed, CURATED = operator-maintained
 const srcBadge = (kind, extraCls) =>

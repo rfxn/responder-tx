@@ -89,8 +89,10 @@ function pbSbwFetch(bucket) {
   if (pbSbw.inflight.has(bucket)) return pbSbw.inflight.get(bucket);
   const iso = new Date(bucket).toISOString().replace(/\.\d{3}Z$/, 'Z');
   const p = fetch(PB_SBW_URL(iso))
-    .then((r) => { if (!r.ok) throw new Error(`sbw HTTP ${r.status}`); return r.json(); })
-    .then((d) => pbSbwStore(bucket, d.features || []))
+    .then((r) => okJson(r, 'sbw'))
+    // E1: storing an empty bucket for an unreadable body would make the HUD publish a hard
+    // "0 warnings in effect" for this moment; a rejection leaves it at the unknown dash
+    .then((d) => pbSbwStore(bucket, okList(d, 'features', 'sbw')))
     .finally(() => pbSbw.inflight.delete(bucket));
   pbSbw.inflight.set(bucket, p);
   return p;

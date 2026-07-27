@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.60",
+      "date": "2026-07-27",
+      "line": "The tropical cyclone tracker reported no active storms, with its source marked healthy, when the query to the hurricane service had actually failed. A failed query now reads as unavailable, and the tracker reports a clear Gulf only when the service really said so. The same correction is applied across every live source: flood warnings, river gauges, road closures, forecast flood points, storm reports, low water crossings, water levels and the camera list each tell a failed request apart from a genuine zero, and none reports an empty result it did not receive. The Roads tab now says crossing hazards are unknown when the crossing list fails to load, and states that this is not a report that crossings are clear. The recovery and basin views say the crest position is unknown rather than showing counts of zero. Playback reads an unreachable archive moment as unknown. The team panel no longer reports no hospital or veterinary nearby when the facility lookup timed out, and place search tells a geocoder outage apart from no match. A source is marked healthy only after the board has checked the response is the shape it asked for."
+    },
+    {
       "v": "v0.99.59",
       "date": "2026-07-27",
       "line": "The CalTopo export, the KML layer, the self-refreshing KML link and the GeoRSS feed now carry tornado, severe thunderstorm and the other storm-based warnings, plus local emergency and evacuation orders, at the top of the priority order. All four say when a product is in effect whose area is published as county and zone codes rather than as a polygon, so its absence from the map no longer reads as the board seeing none. An exported order now credits the agency that issued it rather than the National Weather Service, which only relays them. The public feed carries tornado emergencies and particularly dangerous situation tornado warnings, and says so plainly when that check cannot reach the National Weather Service. Playback captions severe and tornado warnings in the event story, and a tornado emergency there now reads as an emergency instead of an ordinary tornado warning."

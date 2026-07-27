@@ -1,0 +1,583 @@
+{
+ "_note": [
+  "One 15-minute bucket of NWS storm-based warnings captured verbatim from the IEM sbw archive",
+  "(geojson/sbw.geojson?ts=2021-12-11T03:30:00Z), the night of the Mayfield KY tornado. It holds a",
+  "real tornado emergency (phenomena TO, is_emergency true, damagetag CATASTROPHIC), real PDS and",
+  "ordinary tornado warnings, and severe thunderstorm warnings. Nothing is edited: this is the",
+  "product shape playback replays, including the is_emergency and is_pds flags the live board's CAP",
+  "feed spells out in parameters instead. The geometry is in Kentucky, so tests widen CONFIG.gaugeBbox",
+  "rather than move the polygons."
+ ],
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "id": "LZK.FF.W.0131.2021-12-11T02:12:00Z",
+   "properties": {
+    "status": "NEW",
+    "phenomena": "FF",
+    "significance": "W",
+    "ps": "Flash Flood Warning",
+    "wfo": "LZK",
+    "eventid": 131,
+    "polygon_begin": "2021-12-11T02:12:00Z",
+    "polygon_end": "2021-12-11T04:45:00Z",
+    "expire": "2021-12-11T04:45:00Z",
+    "hvtec_nwsli": "00000",
+    "year": 2021,
+    "product_id": "202112110212-KLZK-WGUS54-FFWLZK",
+    "issue": "2021-12-11T02:12:00Z",
+    "expire_utc": "2021-12-11T04:45:00Z",
+    "href": "https://mesonet.agron.iastate.edu/vtec/?year=2021&wfo=KLZK&phenomena=FF&significance=W&eventid=0131",
+    "windtag": null,
+    "hailtag": null,
+    "tornadotag": null,
+    "damagetag": null,
+    "waterspouttag": null,
+    "is_emergency": false,
+    "is_pds": false,
+    "windthreat": null,
+    "hailthreat": null,
+    "product_signature": "70",
+    "floodtag_damage": null,
+    "squalltag": null,
+    "max_windtag": null,
+    "max_hailtag": null,
+    "max_is_pds": false,
+    "max_is_emergency": false,
+    "max_floodtag_damage": null
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -92.99,
+        34.77
+       ],
+       [
+        -92.6,
+        35.01
+       ],
+       [
+        -91.66,
+        35.4
+       ],
+       [
+        -91.28,
+        35.36
+       ],
+       [
+        -91.69,
+        35.06
+       ],
+       [
+        -91.8,
+        35.04
+       ],
+       [
+        -91.8,
+        34.98
+       ],
+       [
+        -91.97,
+        34.86
+       ],
+       [
+        -92.46,
+        34.62
+       ],
+       [
+        -93.16,
+        34.41
+       ],
+       [
+        -92.99,
+        34.77
+       ]
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "LZK.SV.W.0283.2021-12-11T03:21:00Z",
+   "properties": {
+    "status": "CON",
+    "phenomena": "SV",
+    "significance": "W",
+    "ps": "Severe Thunderstorm Warning",
+    "wfo": "LZK",
+    "eventid": 283,
+    "polygon_begin": "2021-12-11T03:21:00Z",
+    "polygon_end": "2021-12-11T03:45:00Z",
+    "expire": "2021-12-11T03:45:00Z",
+    "hvtec_nwsli": null,
+    "year": 2021,
+    "product_id": "202112110321-KLZK-WWUS54-SVSLZK",
+    "issue": "2021-12-11T02:53:00Z",
+    "expire_utc": "2021-12-11T03:45:00Z",
+    "href": "https://mesonet.agron.iastate.edu/vtec/?year=2021&wfo=KLZK&phenomena=SV&significance=W&eventid=0283",
+    "windtag": 70.0,
+    "hailtag": 1.0,
+    "tornadotag": null,
+    "damagetag": "CONSIDERABLE",
+    "waterspouttag": null,
+    "is_emergency": false,
+    "is_pds": false,
+    "windthreat": "RADAR INDICATED",
+    "hailthreat": "RADAR INDICATED",
+    "product_signature": "46",
+    "floodtag_damage": null,
+    "squalltag": null,
+    "max_windtag": 70.0,
+    "max_hailtag": 1.0,
+    "max_is_pds": false,
+    "max_is_emergency": false,
+    "max_floodtag_damage": null
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -93.77,
+        35.13
+       ],
+       [
+        -93.86,
+        35.14
+       ],
+       [
+        -93.83,
+        35.2
+       ],
+       [
+        -93.8,
+        35.29
+       ],
+       [
+        -93.77,
+        35.32
+       ],
+       [
+        -93.72,
+        35.34
+       ],
+       [
+        -93.69,
+        35.44
+       ],
+       [
+        -93.61,
+        35.57
+       ],
+       [
+        -93.21,
+        35.63
+       ],
+       [
+        -93.34,
+        35.37
+       ],
+       [
+        -93.61,
+        35.15
+       ],
+       [
+        -93.71,
+        35.14
+       ],
+       [
+        -93.77,
+        35.13
+       ]
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "LZK.SV.W.0284.2021-12-11T03:24:00Z",
+   "properties": {
+    "status": "CON",
+    "phenomena": "SV",
+    "significance": "W",
+    "ps": "Severe Thunderstorm Warning",
+    "wfo": "LZK",
+    "eventid": 284,
+    "polygon_begin": "2021-12-11T03:24:00Z",
+    "polygon_end": "2021-12-11T03:56:00Z",
+    "expire": "2021-12-11T04:00:00Z",
+    "hvtec_nwsli": null,
+    "year": 2021,
+    "product_id": "202112110324-KLZK-WWUS54-SVSLZK",
+    "issue": "2021-12-11T03:13:00Z",
+    "expire_utc": "2021-12-11T04:00:00Z",
+    "href": "https://mesonet.agron.iastate.edu/vtec/?year=2021&wfo=KLZK&phenomena=SV&significance=W&eventid=0284",
+    "windtag": 60.0,
+    "hailtag": 1.0,
+    "tornadotag": null,
+    "damagetag": null,
+    "waterspouttag": null,
+    "is_emergency": false,
+    "is_pds": false,
+    "windthreat": "RADAR INDICATED",
+    "hailthreat": "RADAR INDICATED",
+    "product_signature": "DTC",
+    "floodtag_damage": null,
+    "squalltag": null,
+    "max_windtag": 60.0,
+    "max_hailtag": 1.0,
+    "max_is_pds": false,
+    "max_is_emergency": false,
+    "max_floodtag_damage": null
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -91.04,
+        35.24
+       ],
+       [
+        -91.16,
+        35.39
+       ],
+       [
+        -91.04,
+        35.44
+       ],
+       [
+        -91.04,
+        35.24
+       ]
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "ILX.TO.W.0051.2021-12-11T03:23:00Z",
+   "properties": {
+    "status": "NEW",
+    "phenomena": "TO",
+    "significance": "W",
+    "ps": "Tornado Warning",
+    "wfo": "ILX",
+    "eventid": 51,
+    "polygon_begin": "2021-12-11T03:23:00Z",
+    "polygon_end": "2021-12-11T03:34:00Z",
+    "expire": "2021-12-11T03:59:00Z",
+    "hvtec_nwsli": null,
+    "year": 2021,
+    "product_id": "202112110323-KILX-WFUS53-TORILX",
+    "issue": "2021-12-11T03:23:00Z",
+    "expire_utc": "2021-12-11T03:59:00Z",
+    "href": "https://mesonet.agron.iastate.edu/vtec/?year=2021&wfo=KILX&phenomena=TO&significance=W&eventid=0051",
+    "windtag": null,
+    "hailtag": 1.0,
+    "tornadotag": "OBSERVED",
+    "damagetag": null,
+    "waterspouttag": null,
+    "is_emergency": false,
+    "is_pds": false,
+    "windthreat": null,
+    "hailthreat": null,
+    "product_signature": "Shimon",
+    "floodtag_damage": null,
+    "squalltag": null,
+    "max_windtag": null,
+    "max_hailtag": 1.0,
+    "max_is_pds": true,
+    "max_is_emergency": false,
+    "max_floodtag_damage": null
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -89.14,
+        39.22
+       ],
+       [
+        -89.14,
+        39.3
+       ],
+       [
+        -88.6,
+        39.49
+       ],
+       [
+        -88.58,
+        39.47
+       ],
+       [
+        -88.58,
+        39.45
+       ],
+       [
+        -88.48,
+        39.45
+       ],
+       [
+        -88.48,
+        39.25
+       ],
+       [
+        -88.62,
+        39.21
+       ],
+       [
+        -89.01,
+        39.21
+       ],
+       [
+        -89.14,
+        39.22
+       ]
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "PAH.TO.W.0036.2021-12-11T03:05:00Z",
+   "properties": {
+    "status": "NEW",
+    "phenomena": "TO",
+    "significance": "W",
+    "ps": "Tornado Warning",
+    "wfo": "PAH",
+    "eventid": 36,
+    "polygon_begin": "2021-12-11T03:05:00Z",
+    "polygon_end": "2021-12-11T03:45:00Z",
+    "expire": "2021-12-11T03:45:00Z",
+    "hvtec_nwsli": null,
+    "year": 2021,
+    "product_id": "202112110305-KPAH-WFUS53-TORPAH",
+    "issue": "2021-12-11T03:05:00Z",
+    "expire_utc": "2021-12-11T03:45:00Z",
+    "href": "https://mesonet.agron.iastate.edu/vtec/?year=2021&wfo=KPAH&phenomena=TO&significance=W&eventid=0036",
+    "windtag": null,
+    "hailtag": 2.5,
+    "tornadotag": "OBSERVED",
+    "damagetag": "CONSIDERABLE",
+    "waterspouttag": null,
+    "is_emergency": false,
+    "is_pds": true,
+    "windthreat": null,
+    "hailthreat": null,
+    "product_signature": "PS",
+    "floodtag_damage": null,
+    "squalltag": null,
+    "max_windtag": null,
+    "max_hailtag": 2.5,
+    "max_is_pds": true,
+    "max_is_emergency": false,
+    "max_floodtag_damage": null
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -88.81,
+        36.79
+       ],
+       [
+        -88.57,
+        36.94
+       ],
+       [
+        -88.49,
+        36.94
+       ],
+       [
+        -88.49,
+        36.99
+       ],
+       [
+        -88.39,
+        37.05
+       ],
+       [
+        -88.2,
+        36.82
+       ],
+       [
+        -88.35,
+        36.75
+       ],
+       [
+        -88.48,
+        36.75
+       ],
+       [
+        -88.49,
+        36.69
+       ],
+       [
+        -88.81,
+        36.54
+       ],
+       [
+        -88.81,
+        36.79
+       ]
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "PAH.SV.W.0115.2021-12-11T03:21:00Z",
+   "properties": {
+    "status": "NEW",
+    "phenomena": "SV",
+    "significance": "W",
+    "ps": "Severe Thunderstorm Warning",
+    "wfo": "PAH",
+    "eventid": 115,
+    "polygon_begin": "2021-12-11T03:21:00Z",
+    "polygon_end": "2021-12-11T03:38:00Z",
+    "expire": "2021-12-11T04:00:00Z",
+    "hvtec_nwsli": null,
+    "year": 2021,
+    "product_id": "202112110321-KPAH-WUUS53-SVRPAH",
+    "issue": "2021-12-11T03:21:00Z",
+    "expire_utc": "2021-12-11T04:00:00Z",
+    "href": "https://mesonet.agron.iastate.edu/vtec/?year=2021&wfo=KPAH&phenomena=SV&significance=W&eventid=0115",
+    "windtag": 60.0,
+    "hailtag": 0.75,
+    "tornadotag": null,
+    "damagetag": null,
+    "waterspouttag": null,
+    "is_emergency": false,
+    "is_pds": false,
+    "windthreat": "RADAR INDICATED",
+    "hailthreat": "RADAR INDICATED",
+    "product_signature": "RJP",
+    "floodtag_damage": null,
+    "squalltag": null,
+    "max_windtag": 60.0,
+    "max_hailtag": 0.75,
+    "max_is_pds": false,
+    "max_is_emergency": false,
+    "max_floodtag_damage": null
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -89.7,
+        36.94
+       ],
+       [
+        -89.49,
+        37.41
+       ],
+       [
+        -88.82,
+        37.59
+       ],
+       [
+        -89.16,
+        36.98
+       ],
+       [
+        -89.69,
+        36.92
+       ],
+       [
+        -89.7,
+        36.94
+       ]
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "PAH.TO.W.0038.2021-12-11T03:26:00Z",
+   "properties": {
+    "status": "NEW",
+    "phenomena": "TO",
+    "significance": "W",
+    "ps": "Tornado Warning",
+    "wfo": "PAH",
+    "eventid": 38,
+    "polygon_begin": "2021-12-11T03:26:00Z",
+    "polygon_end": "2021-12-11T03:35:00Z",
+    "expire": "2021-12-11T03:35:00Z",
+    "hvtec_nwsli": null,
+    "year": 2021,
+    "product_id": "202112110326-KPAH-WFUS53-TORPAH",
+    "issue": "2021-12-11T03:26:00Z",
+    "expire_utc": "2021-12-11T03:35:00Z",
+    "href": "https://mesonet.agron.iastate.edu/vtec/?year=2021&wfo=KPAH&phenomena=TO&significance=W&eventid=0038",
+    "windtag": null,
+    "hailtag": 2.5,
+    "tornadotag": "OBSERVED",
+    "damagetag": "CATASTROPHIC",
+    "waterspouttag": null,
+    "is_emergency": true,
+    "is_pds": true,
+    "windthreat": null,
+    "hailthreat": null,
+    "product_signature": "PS",
+    "floodtag_damage": null,
+    "squalltag": null,
+    "max_windtag": null,
+    "max_hailtag": 2.5,
+    "max_is_pds": true,
+    "max_is_emergency": true,
+    "max_floodtag_damage": null
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -88.69,
+        36.67
+       ],
+       [
+        -88.75,
+        36.72
+       ],
+       [
+        -88.65,
+        36.79
+       ],
+       [
+        -88.57,
+        36.72
+       ],
+       [
+        -88.69,
+        36.67
+       ]
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

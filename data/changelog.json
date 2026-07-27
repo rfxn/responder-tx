@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.59",
+      "date": "2026-07-27",
+      "line": "The CalTopo export, the KML layer, the self-refreshing KML link and the GeoRSS feed now carry tornado, severe thunderstorm and the other storm-based warnings, plus local emergency and evacuation orders, at the top of the priority order. All four say when a product is in effect whose area is published as county and zone codes rather than as a polygon, so its absence from the map no longer reads as the board seeing none. An exported order now credits the agency that issued it rather than the National Weather Service, which only relays them. The public feed carries tornado emergencies and particularly dangerous situation tornado warnings, and says so plainly when that check cannot reach the National Weather Service. Playback captions severe and tornado warnings in the event story, and a tornado emergency there now reads as an emergency instead of an ordinary tornado warning."
+    },
+    {
       "v": "v0.99.58",
       "date": "2026-07-27",
       "line": "Tapping a warning in the hazard line at the top of the board now frames that warning on the map, flashes its outline, and opens its card in the Alerts tab. It previously only switched to the Alerts tab, which showed nothing about the hazard that was tapped. A hazard with no mapped extent opens its readable text instead, matching what its card already does. Tapping a storm report or a critical request in the line brings the map into view on a phone, and a critical request now scrolls to that request and marks it rather than opening the feed at the top."

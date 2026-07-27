@@ -115,6 +115,7 @@ HAZARD_EVENTS = {
 }
 LSR_HAZARD_RE = re.compile(r"FLOOD|HEAVY RAIN|DEBRIS|DAM |LANDSLIDE|RESCUE|TSTM WND|HIGH WIND|SURGE|WATERSPOUT|MARINE"
                            r"|TORNADO|FUNNEL CLOUD|HAIL|WILDFIRE|DUST STORM|SNOW SQUALL", re.I)
+ORDER_EVENTS = frozenset(ev for ev, (cls, _rank) in HAZARD_EVENTS.items() if cls == "order")
 
 # mirror js/core.js cardAged: resolved, or older than the per-type aging window
 AGED_CARD_MINS = 1440
@@ -293,6 +294,10 @@ def alert_severity(p):
     threat = " ".join((p.get("parameters") or {}).get("flashFloodDamageThreat") or [])
     if re.search(r"FLASH FLOOD EMERGENCY", p.get("description") or "", re.I) or re.search(r"CATASTROPHIC", threat, re.I):
         return "emergency"
+    # mirror js/sources.js alertSeverity: four order products carry no "Warning" in their name, and
+    # the word test below would export a county evacuation order in the advisory style
+    if (p.get("event") or "") in ORDER_EVENTS:
+        return "warning"
     if re.search(r"Warning", p.get("event") or "", re.I):
         return "warning"
     if re.search(r"Watch", p.get("event") or "", re.I):
@@ -300,19 +305,49 @@ def alert_severity(p):
     return "advisory"
 
 
+def alert_agency(p):
+    """mirror js/sources.js alertAgency: senderName carries an IPAWS COG number prefix and repeats
+    its own segments, and empty means the product did not say, not that NWS wrote it."""
+    segs = []
+    for part in str(p.get("senderName") or "").split(","):
+        seg = part.strip()
+        if not seg or seg.isdigit():
+            continue
+        if not any(s.lower() == seg.lower() for s in segs):
+            segs.append(seg)
+    return ", ".join(segs)
+
+
+def alert_source(p):
+    """Orders are state and local event codes under 47 CFR 11.31, authored by a county or a state
+    agency and only relayed down the NWS path; crediting NWS for one states something false."""
+    url = p.get("@id") or p.get("id") or "https://api.weather.gov/alerts"
+    if (p.get("event") or "") in ORDER_EVENTS:
+        agency = alert_agency(p)
+        who = f"{agency} (relayed by NWS)" if agency else "issuing agency not named in the product (relayed by NWS)"
+        return f"{who} · {url}"
+    return f"NWS · {url}"
+
+
 def build_alerts(gj):
+    """(features, zone-only counts by event). A product whose extent is published as county or zone
+    codes has a real area this export cannot draw, so it is counted and named in the header rather
+    than dropped silently: an importer would otherwise read its absence as the board seeing none."""
     out = []
+    zone_only = {}
     now = now_utc()
     for f in (gj or {}).get("features", []):
         p = f.get("properties") or {}
-        if (p.get("event") or "") not in HAZARD_EVENTS:
+        event = p.get("event") or ""
+        if event not in HAZARD_EVENTS:
             continue
         exp = parse_iso(p.get("expires"))
         if exp and exp < now:
             continue
         geom = f.get("geometry")
         if not geom or geom.get("type") not in ("Polygon", "MultiPolygon"):
-            continue  # zone-referenced alerts carry no inline geometry; dropped (lowest-value: watches/advisories)
+            zone_only[event] = zone_only.get(event, 0) + 1
+            continue
         sev = alert_severity(p)
         out.append(feature(
             "folder-alerts", "NWS alerts (active)", geom,
@@ -320,9 +355,8 @@ def build_alerts(gj):
             [p.get("headline"), f"Severity: {sev}", f"Expires: {p.get('expires')}"],
             {"stroke": SEV_COLOR[sev], "stroke-width": 2, "stroke-opacity": 0.9,
              "fill": SEV_COLOR[sev], "fill-opacity": 0.15},
-            rank=9, source=f"NWS · {p.get('@id') or p.get('id') or 'https://api.weather.gov/alerts'}",
-            updated=p.get("sent")))
-    return out
+            rank=9, source=alert_source(p), updated=p.get("sent")))
+    return out, zone_only
 
 
 def build_roads(roads):
@@ -438,6 +472,17 @@ UNAVAILABLE_NOTE = ("Sources that did not answer this cycle are missing from thi
 UNAVAILABLE_CLAIM = "did not answer this cycle"
 UNPARSED_TIME_NOTE = ("The source published no machine-readable update time, so this entry's "
                       "timestamp is the feed's own generation time, not the observation time.")
+# same discipline as the unavailable note, one step further out: these products ARE in effect and
+# their extent is real, it is simply published as zone codes this export cannot draw
+ZONE_ONLY_NOTE = ("%d zone-based product(s) are in effect and are not mapped in this export (%s); "
+                  "their area is published as county and zone codes, not as a polygon. "
+                  "See weather.gov for the extent.")
+ZONE_ONLY_CLAIM = "are not mapped in this export"
+
+
+def zone_only_text(zone_only):
+    named = ", ".join(f"{ev} ×{n}" for ev, n in sorted(zone_only.items()))
+    return ZONE_ONLY_NOTE % (sum(zone_only.values()), named)
 
 
 def atomic_write(path, text):
@@ -589,6 +634,8 @@ def build_kml(members, metas, header):
         ET.SubElement(ET.SubElement(ext, "Data", {"name": k}), "value").text = str(header[k])
     ET.SubElement(ET.SubElement(ext, "Data", {"name": "sources_unavailable"}), "value").text = \
         ",".join(header.get("unavailable") or ())
+    ET.SubElement(ET.SubElement(ext, "Data", {"name": "zone_only_products"}), "value").text = \
+        str(sum((header.get("zone_only") or {}).values()))
     ET.SubElement(ET.SubElement(ext, "Data", {"name": "attribution"}), "value").text = ATTRIBUTION
 
     unmapped = 0
@@ -626,10 +673,12 @@ def write_kml_networklink(path, header):
     doc = ET.SubElement(root, "Document")
     ET.SubElement(doc, "name").text = "Responder TX live map"
     unavailable = header.get("unavailable") or ()
+    zone_only = header.get("zone_only") or {}
     ET.SubElement(doc, "description").text = (
         "Self-updating link to the Responder TX board. The linked document is re-fetched every "
         f"{REFRESH_SECONDS // 60} minutes, which is how often the board republishes. "
         + DISCLAIMER.split(" One-shot")[0] + " "
+        + (zone_only_text(zone_only) + " " if zone_only else "")
         + ((UNAVAILABLE_NOTE % ", ".join(unavailable)) + " " if unavailable else "")
         + ATTRIBUTION)
     nl = ET.SubElement(doc, "NetworkLink")
@@ -792,7 +841,7 @@ def trim_ranked(ranked, keep):
     return ordered[:keep], len(ranked) - keep
 
 
-def build_header(event, kept_n, total, now, bound, unavailable=()):
+def build_header(event, kept_n, total, now, bound, unavailable=(), zone_only=None):
     """Header shared by all three emitters. bound names which limit did the cutting, because
     "capped at 2000 features" is a false explanation when it was the byte ceiling that cut."""
     dropped = total - kept_n
@@ -805,11 +854,14 @@ def build_header(event, kept_n, total, now, bound, unavailable=()):
         note += (f" This export is capped at {limit} and {dropped} lower-priority features were "
                  "dropped; every alert, crest, closure and in-flood gauge is kept before any "
                  "quiet gauge.")
+    if zone_only:
+        note += " " + zone_only_text(zone_only)
     if unavailable:
         note += " " + UNAVAILABLE_NOTE % ", ".join(unavailable)
     name = event.get("name") or "Responder TX"
     return {
         "unavailable": list(unavailable),
+        "zone_only": dict(zone_only or {}),
         "title": f"{name} · live map{partial}",
         "geojson_title": f"{name} · CalTopo export{partial}",
         "note": note,
@@ -823,13 +875,13 @@ def build_header(event, kept_n, total, now, bound, unavailable=()):
     }
 
 
-def fit_to_ceiling(ranked, event, now, unavailable=()):
+def fit_to_ceiling(ranked, event, now, unavailable=(), zone_only=None):
     """(kept, header, kml text, unmapped). Applies the feature cap, then trims by the same rank
     order until the emitted KML fits MAX_KML_BYTES, re-stating the truncation claim each pass."""
     kept, dropped = trim_ranked(ranked, MAX_FEATURES)
     bound = "cap" if dropped else ""
     for _ in range(FIT_PASSES):
-        header = build_header(event, len(kept), len(ranked), now, bound, unavailable)
+        header = build_header(event, len(kept), len(ranked), now, bound, unavailable, zone_only)
         text, unmapped = build_kml([f for _, f, _ in kept], [m for _, _, m in kept], header)
         if len(text.encode("utf-8")) <= MAX_KML_BYTES or len(kept) <= 1:
             return kept, header, text, unmapped
@@ -923,6 +975,24 @@ def verify_feeds(expected, header):
         raise ValueError("board.kml ExtendedData sources_unavailable is %r, the run found %r"
                          % (ext.get("sources_unavailable"), unavailable))
 
+    # the zone-based-products claim is all-or-none across the same four artifacts, for the same
+    # reason: a subscriber reading three of them would take the absence of watches as none in effect
+    zone_only = header.get("zone_only") or {}
+    for label, text in carried.items():
+        claims = ZONE_ONLY_CLAIM in text
+        if claims != bool(zone_only):
+            raise ValueError("%s %s a zone-based-products claim; the run found %r"
+                             % (label, "makes" if claims else "makes no", zone_only))
+        if claims and not all(ev in text for ev in zone_only):
+            raise ValueError("%s claims zone-based products but does not name all of %r"
+                             % (label, sorted(zone_only)))
+    if geo_props.get("zone_only_products") != zone_only:
+        raise ValueError("caltopo-export.json lists zone_only_products %r, the run found %r"
+                         % (geo_props.get("zone_only_products"), zone_only))
+    if ext.get("zone_only_products") != str(sum(zone_only.values())):
+        raise ValueError("board.kml ExtendedData zone_only_products is %r, the run found %d"
+                         % (ext.get("zone_only_products"), sum(zone_only.values())))
+
 
 def main():
     unavailable = []
@@ -942,11 +1012,12 @@ def main():
         unavailable.append("iem-lsr")
 
     crest_feats, crests_unresolved = build_crests(crest, snapshot, capture)
-    ranked = (build_alerts(alerts_gj) + crest_feats + build_gauges(snapshot)
+    alert_feats, zone_only = build_alerts(alerts_gj)
+    ranked = (alert_feats + crest_feats + build_gauges(snapshot)
               + build_roads(roads) + build_crossings(crossings) + build_notices(reqs) + build_lsrs(lsr_gj))
 
     now = now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
-    kept, header, kml_text, unmapped = fit_to_ceiling(ranked, event, now, unavailable)
+    kept, header, kml_text, unmapped = fit_to_ceiling(ranked, event, now, unavailable, zone_only)
     dropped = header["dropped"]
 
     members = [f for _, f, _ in kept]
@@ -978,6 +1049,7 @@ def main():
             "dropped": dropped,
             "crests_unresolved": crests_unresolved,
             "sources_unavailable": unavailable,
+            "zone_only_products": zone_only,
         },
         "features": folder_feats + members,
     }
@@ -992,6 +1064,7 @@ def main():
 
     print(f"caltopo-export.json: {len(members)} features in {len(folder_feats)} folders "
           f"(dropped {dropped}, crests unresolved {crests_unresolved}, "
+          f"zone-only products {sum(zone_only.values())}, "
           f"unavailable: {','.join(unavailable) or 'none'}) @ {now}")
     print(f"board.kml + board-live.kml + board-georss.xml: {len(members)} features "
           f"(kml {os.path.getsize(OUT_KML) / 1048576.0:.2f} MB of a "

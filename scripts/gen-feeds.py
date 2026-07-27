@@ -31,6 +31,8 @@ def ics_stamp(dt):
 
 
 EMERGENCY_UNKNOWN_TITLE = "Flash flood emergency check unavailable"
+TORNADO_UNKNOWN_TITLE = "Tornado emergency check unavailable"
+MAX_ITEMS = 40
 
 
 def load_json(path, default):
@@ -63,31 +65,56 @@ def event_branding():
     return title, desc
 
 
-def fetch_emergencies():
-    """Return (emergencies, unreachable_reason). A failed check reports a reason and never a bare
-    empty list: an empty feed reads as an all clear, which a request that failed never said."""
-    url = "https://api.weather.gov/alerts/active?event=Flash%20Flood%20Warning&area=TX"
+def fetch_alerts(url):
+    """(features, unreachable_reason). A failed check reports a reason and never a bare empty list:
+    an empty feed reads as an all clear, which a request that failed never said."""
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/geo+json"})
-    out = []
     try:
         with urllib.request.urlopen(req, timeout=15) as r:
-            d = json.load(r)
+            return json.load(r).get("features", []), None
     except (OSError, ValueError) as exc:
-        return out, f"{type(exc).__name__}: {exc}"
-    for f in d.get("features", []):
-        p = f.get("properties", {})
-        threat = (p.get("parameters", {}).get("flashFloodDamageThreat") or [""])[0]
+        return [], f"{type(exc).__name__}: {exc}"
+
+
+def item_of(f, threat):
+    p = f.get("properties", {})
+    return {
+        "id": p.get("id") or f.get("id"),
+        "threat": threat,
+        "area": p.get("areaDesc", ""),
+        "headline": p.get("headline") or p.get("event"),
+        "sent": p.get("sent"),
+        "expires": p.get("expires"),
+        "url": f.get("id"),
+    }
+
+
+def fetch_emergencies():
+    feats, reason = fetch_alerts("https://api.weather.gov/alerts/active?event=Flash%20Flood%20Warning&area=TX")
+    out = []
+    for f in feats:
+        threat = (f.get("properties", {}).get("parameters", {}).get("flashFloodDamageThreat") or [""])[0]
         if threat in ("CATASTROPHIC", "CONSIDERABLE"):
-            out.append({
-                "id": p.get("id") or f.get("id"),
-                "threat": threat,
-                "area": p.get("areaDesc", ""),
-                "headline": p.get("headline") or p.get("event"),
-                "sent": p.get("sent"),
-                "expires": p.get("expires"),
-                "url": f.get("id"),
-            })
-    return out, None
+            out.append(item_of(f, threat))
+    return out, reason
+
+
+def fetch_tornado_emergencies():
+    """Tornado emergencies (damage threat CATASTROPHIC) and PDS tornado warnings. Mirrors
+    js/sources.js alertTags: the PDS sentence rides in the warning text and is not a parameter, so
+    both are read and either is enough."""
+    feats, reason = fetch_alerts("https://api.weather.gov/alerts/active?event=Tornado%20Warning&area=TX")
+    out = []
+    for f in feats:
+        p = f.get("properties", {})
+        threat = (p.get("parameters", {}).get("tornadoDamageThreat") or [""])[0].upper()
+        pds = threat in ("CATASTROPHIC", "CONSIDERABLE") \
+            or "PARTICULARLY DANGEROUS SITUATION" in (p.get("description") or "").upper()
+        if threat == "CATASTROPHIC":
+            out.append(item_of(f, "TORNADO EMERGENCY"))
+        elif pds:
+            out.append(item_of(f, "PARTICULARLY DANGEROUS SITUATION"))
+    return out, reason
 
 
 def rising_crests(snapshot):
@@ -125,24 +152,42 @@ def parse_iso(s):
     return dt
 
 
-def build_rss(emergencies, crests, notices, built, title, desc, unreachable=None):
+def unknown_item(built, title, what, guid_slug):
+    return (built, title,
+            "This feed could not reach the National Weather Service active-alerts "
+            f"service at {rfc822(built)}, so it cannot say whether {what} "
+            "is in effect. Treat that as unknown, not as an all clear. "
+            "Check weather.gov for alerts covering your area. "
+            "Call 911 for life-threatening emergencies.",
+            "https://www.weather.gov/",
+            f"{guid_slug}-{built.strftime('%Y-%m-%dT%H')}")
+
+
+def build_rss(emergencies, tornadoes, crests, notices, built, title, desc,
+              unreachable=None, tornado_unreachable=None):
+    # life-safety items and the two unknown notices are held apart from the volume cap below: the
+    # cap sorts by time, and a busy notice day would otherwise push a tornado emergency out
+    lead = []
     items = []
     # the absence of emergency items is what a subscriber reads as an all clear, so a check that
     # never completed has to say so in the feed itself; nothing else the subscriber sees can
     if unreachable:
-        items.append((built, EMERGENCY_UNKNOWN_TITLE,
-                      "This feed could not reach the National Weather Service active-alerts "
-                      f"service at {rfc822(built)}, so it cannot say whether a flash flood "
-                      "emergency is in effect. Treat that as unknown, not as an all clear. "
-                      "Check weather.gov for alerts covering your area. "
-                      "Call 911 for life-threatening emergencies.",
-                      "https://www.weather.gov/",
-                      f"nws-check-unavailable-{built.strftime('%Y-%m-%dT%H')}"))
+        lead.append(unknown_item(built, EMERGENCY_UNKNOWN_TITLE, "a flash flood emergency",
+                                 "nws-check-unavailable"))
+    if tornado_unreachable:
+        lead.append(unknown_item(built, TORNADO_UNKNOWN_TITLE,
+                                 "a tornado emergency or a particularly dangerous situation",
+                                 "nws-tornado-check-unavailable"))
     for e in emergencies:
         pub = parse_iso(e.get("sent")) or built
         it_title = f"{e['threat']} flash flood · {e['area']}"
         it_desc = f"{e.get('headline','')} Expires {e.get('expires','')}. Life-threatening emergency: call 911."
-        items.append((pub, it_title, it_desc, e.get("url") or SITE, e.get("id") or it_title))
+        lead.append((pub, it_title, it_desc, e.get("url") or SITE, e.get("id") or it_title))
+    for e in tornadoes:
+        pub = parse_iso(e.get("sent")) or built
+        it_title = f"{e['threat']} · tornado warning · {e['area']}"
+        it_desc = f"{e.get('headline','')} Expires {e.get('expires','')}. Take shelter now; call 911 only for life-threatening emergencies."
+        lead.append((pub, it_title, it_desc, e.get("url") or SITE, e.get("id") or it_title))
     for c in crests:
         pub = built
         it_title = f"MAJOR crest forecast · {c['name']} ({c['crest']} ft)"
@@ -156,7 +201,9 @@ def build_rss(emergencies, crests, notices, built, title, desc, unreachable=None
         it_desc = f"{n.get('details','')} · {place}".strip(" ·")
         link = (n.get("source") or {}).get("url") or SITE
         items.append((pub, it_title, it_desc, link, n.get("id") or it_title))
+    lead.sort(key=lambda x: x[0], reverse=True)
     items.sort(key=lambda x: x[0], reverse=True)
+    items = lead + items[:max(0, MAX_ITEMS - len(lead))]
 
     parts = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<rss version="2.0"><channel>',
@@ -165,7 +212,7 @@ def build_rss(emergencies, crests, notices, built, title, desc, unreachable=None
              f"<description>{sx.escape(desc)}</description>",
              "<language>en-us</language>",
              f"<lastBuildDate>{rfc822(built)}</lastBuildDate>"]
-    for pub, it_title, it_desc, link, guid in items[:40]:
+    for pub, it_title, it_desc, link, guid in items:
         parts.append("<item>"
                      f"<title>{sx.escape(it_title)}</title>"
                      f"<link>{sx.escape(link)}</link>"
@@ -218,15 +265,18 @@ def main():
                and fresh(r)]
     notices.sort(key=lambda r: r.get("ts", ""), reverse=True)
     emergencies, unreachable = fetch_emergencies()
+    tornadoes, tornado_unreachable = fetch_tornado_emergencies()
     crests = rising_crests(snapshot)
     title, desc = event_branding()
 
     with open(os.path.join(ROOT, "feed.xml"), "w", encoding="utf-8") as f:
-        f.write(build_rss(emergencies, crests, notices[:20], built, title, desc, unreachable))
+        f.write(build_rss(emergencies, tornadoes, crests, notices[:20], built, title, desc,
+                          unreachable, tornado_unreachable))
     with open(os.path.join(ROOT, "crests.ics"), "w", encoding="utf-8") as f:
         f.write(build_ics(crests, built))
     state = f"{len(emergencies)} emergencies" if unreachable is None else f"emergency check UNREACHABLE ({unreachable})"
-    print(f"feed.xml + crests.ics: {state}, {len(crests)} crests, {len(notices)} notices")
+    tstate = f"{len(tornadoes)} tornado" if tornado_unreachable is None else f"tornado check UNREACHABLE ({tornado_unreachable})"
+    print(f"feed.xml + crests.ics: {state}, {tstate}, {len(crests)} crests, {len(notices)} notices")
 
 
 if __name__ == "__main__":

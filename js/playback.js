@@ -33,11 +33,17 @@ const PB_SBW_LRU = 40;
 const PB_SBW_FLOOD = ['FF', 'FA', 'FL'];
 const pbSbw = { buckets: new Map(), inflight: new Map(), warnEvents: new Map(), renderKey: '', visibleN: null };
 
+/* The emergency flag is read BEFORE the SV/TO passthrough: an emergency is a declaration NWS makes
+   on top of a warning, so reading the phenomena first flattened a tornado emergency into an
+   ordinary tornado warning in the archive while the live board ranked it first. */
 function pbSbwSev(p) {
-  if (p.phenomena === 'SV' || p.phenomena === 'TO') return p.phenomena.toLowerCase();
   if (p.is_emergency) return 'emergency';
+  if (p.phenomena === 'SV' || p.phenomena === 'TO') return p.phenomena.toLowerCase();
   return p.significance === 'Y' ? 'advisory' : 'warning';
 }
+
+// which emergency it is; the archive carries both kinds and they are not the same instruction
+const pbEmergencyKey = (p) => (p && p.phenomena === 'TO' ? 'playback.emerg.tornado' : 'playback.emerg.flood');
 
 function pbSbwInAO(geom) {
   const b = CONFIG.gaugeBbox, pad = 0.3;
@@ -62,13 +68,16 @@ function pbSbwStore(bucket, features) {
     f._b0 = new Date(p.polygon_begin || p.issue).getTime();
     f._b1 = new Date(p.polygon_end || p.expire).getTime();
     keep.push(f);
-    if (flood) {
-      const k = pbSbwKey(p);
-      const ev = pbSbw.warnEvents.get(k) || { issue: Infinity, expire: -Infinity, ps: p.ps, wfo: p.wfo };
-      ev.issue = Math.min(ev.issue, new Date(p.issue).getTime());
-      ev.expire = Math.max(ev.expire, new Date(p.expire).getTime());
-      pbSbw.warnEvents.set(k, ev);
-    }
+    // every warning the archive draws also earns a caption, flood or storm: a tornado warning that
+    // painted on the map but never entered the story was the live-versus-archive gap from the
+    // archive side. is_emergency is OR-accumulated because NWS can declare one on a later update.
+    const k = pbSbwKey(p);
+    const ev = pbSbw.warnEvents.get(k)
+      || { issue: Infinity, expire: -Infinity, ps: p.ps, wfo: p.wfo, phenomena: p.phenomena, emergency: false };
+    ev.issue = Math.min(ev.issue, new Date(p.issue).getTime());
+    ev.expire = Math.max(ev.expire, new Date(p.expire).getTime());
+    ev.emergency = ev.emergency || !!p.is_emergency;
+    pbSbw.warnEvents.set(k, ev);
   }
   pbSbw.buckets.set(bucket, keep);
   while (pbSbw.buckets.size > PB_SBW_LRU) pbSbw.buckets.delete(pbSbw.buckets.keys().next().value);
@@ -148,7 +157,7 @@ function pbSbwRender() {
 
 function pbSbwPopup(p) {
   const sev = pbSbwSev(p);
-  return `<div class="popup-title">${esc(p.ps || 'NWS warning')}${sev === 'emergency' ? ': <span style="color:var(--sev-emergency);font-weight:700">FLASH FLOOD EMERGENCY</span>' : ''}</div>` +
+  return `<div class="popup-title">${esc(p.ps || 'NWS warning')}${sev === 'emergency' ? `: <span style="color:var(--sev-emergency);font-weight:700">${esc(t(pbEmergencyKey(p)))}</span>` : ''}</div>` +
     `<div class="popup-meta">NWS ${esc(p.wfo || '')} · ${esc(fmtCT(p.polygon_begin || p.issue))} → ${esc(fmtCT(p.polygon_end || p.expire))}</div>` +
     `<div class="popup-meta">${srcBadge('official')} ${esc(t('playback.warnarchive'))}</div>` +
     `<div class="popup-meta" style="color:var(--sev-warning);font-weight:700">⏮ ${esc(t('playback.pill'))} · ${esc(fmtCT(state.pbData.frames[state.pb.idx].t))}</div>` +
@@ -563,8 +572,12 @@ function pbStoryRebuild() {
   if (!pb || !state.pbStoryBase) return;
   const ev = state.pbStoryBase.slice();
   for (const w of pbSbw.warnEvents.values()) {
+    // equal-time ties keep the highest pri last, so an emergency outranks the tornado warning it
+    // was declared on, and both outrank an ordinary warning issued in the same minute
+    const pri = w.emergency ? 7 : (w.phenomena === 'TO' ? 6 : 5);
+    const issuedKey = w.emergency ? 'playback.story.emergissued' : 'playback.story.warnissued';
     if (w.issue >= pb.loT && w.issue <= pb.hiT) {
-      ev.push({ t: w.issue, iso: new Date(w.issue).toISOString(), pri: 5, text: t('playback.story.warnissued').replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'AO') });
+      ev.push({ t: w.issue, iso: new Date(w.issue).toISOString(), pri, text: t(issuedKey).replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'AO') });
     }
     if (w.expire >= pb.loT && w.expire <= pb.hiT) {
       ev.push({ t: w.expire, iso: new Date(w.expire).toISOString(), pri: 2, text: t('playback.story.warnexpired').replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'AO') });

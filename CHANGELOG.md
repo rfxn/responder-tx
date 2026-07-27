@@ -1,5 +1,39 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.59 · 2026-07-27 (hazards in the exports and the archive)
+
+-- New Features --
+- [New] The CalTopo export, the KML layer, the self-refreshing KML link and the
+      GeoRSS feed now carry tornado, severe thunderstorm and the other
+      storm-based warnings, plus local emergency and evacuation orders, at the
+      top of the priority order. Anyone subscribed from ArcGIS, Field Maps, ATAK
+      or Google Earth sees them alongside the flood layers
+- [New] All four exports now say when a product is in effect whose area is
+      published as county and zone codes rather than as a polygon, naming the
+      products and counting them. Their absence from the map no longer reads as
+      the board seeing none
+- [New] The public feed now carries tornado emergencies and particularly
+      dangerous situation tornado warnings. If that check cannot reach the
+      National Weather Service, the feed says so in its own item rather than
+      staying silent
+- [New] Playback captions severe thunderstorm and tornado warnings in the event
+      story, not only flood warnings
+
+-- Bug Fixes --
+- [Fix] A tornado emergency in playback now reads as an emergency, with the same
+      emphasis the live board gives it, instead of looking like an ordinary
+      tornado warning. Its popup names the right emergency
+- [Fix] Evacuation orders, civil emergency messages, 911 telephone outages and
+      local area emergencies exported in the lowest style the board has. They now
+      export as directives
+- [Fix] An exported order credits the county or state agency that issued it. It
+      previously credited the National Weather Service, which only relays them.
+      An order that names no issuing agency says so
+
+-- Changes --
+- [Change] Emergency and tornado items are held ahead of the public feed's item
+           limit, so a busy day cannot push them out
+
 ## v0.99.58 · 2026-07-27 (tapping a hazard focuses it)
 
 -- Bug Fixes --

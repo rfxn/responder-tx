@@ -170,6 +170,7 @@ const MAP_EXPORTS = EXPORTS.concat(['CAM_LEGACY_PARAMS', 'CAM_ROWS', 'CAM_SUBGRO
   'layerRowKeys', 'layerRowOn', 'collectLayerState', 'applyLayerState', 'aoPickedId', 'aoSelectById',
   'offlineResultText', 'offlineSaveClean', 'offlineDepth', 'OFFLINE_DEPTHS', 'OFFLINE_DEPTH_DEFAULT',
   'pbLiveHideAll', 'pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'pbGaugeNoteKey', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded',
+  'pbSbw', 'pbSbwSev', 'pbSbwKey', 'pbSbwStore', 'pbSbwInAO', 'pbEmergencyKey', 'pbStoryRebuild', 'PB_SBW_FLOOD',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
   'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey']);
 

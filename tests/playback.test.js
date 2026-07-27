@@ -442,3 +442,170 @@ test('no range chip is ever disabled: the archive grows and a dead chip cannot a
   assert.ok(!/\.pb-chip[^\n]*disabled/.test(src), 'chips must stay reachable, marked rather than dead');
   assert.match(src, /classList\.toggle\('part'/);
 });
+
+/* ---------------------------------------------------------------------------
+   Archive parity for storm-based hazards (v0.99.59). Playback has drawn tornado and severe
+   thunderstorm polygons since before the live board did, but from the archive side it did not
+   match what the live board now shows: those warnings never reached the story caption, and a
+   tornado emergency classified as an ordinary tornado warning.
+
+   Every product below is captured verbatim from the IEM sbw archive for the night of the Mayfield
+   KY tornado: a real tornado emergency, a real PDS tornado warning, ordinary tornado warnings,
+   severe thunderstorm warnings and a flash flood warning. The geometry is in Kentucky, Illinois
+   and Arkansas, so CONFIG.gaugeBbox is widened rather than the polygons moved.
+   --------------------------------------------------------------------------- */
+
+const {
+  pbSbw, pbSbwSev, pbSbwKey, pbSbwStore, pbEmergencyKey, pbStoryRebuild, PB_SBW_FLOOD, CONFIG,
+} = loadMapApp();
+
+const SBW = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'sbw-tornado-emergency.json'), 'utf8'));
+const sbwOf = (pred) => SBW.features.filter((f) => pred(f.properties));
+const oneOf = (pred) => {
+  const hit = sbwOf(pred)[0];
+  assert.ok(hit, 'the archive fixture must carry this product shape');
+  return hit;
+};
+
+const TOR_EMERGENCY = oneOf((p) => p.phenomena === 'TO' && p.is_emergency);
+const TOR_PDS = oneOf((p) => p.phenomena === 'TO' && p.is_pds && !p.is_emergency);
+const TOR_PLAIN = oneOf((p) => p.phenomena === 'TO' && !p.is_pds && !p.is_emergency);
+const SVR = oneOf((p) => p.phenomena === 'SV');
+const FFW = oneOf((p) => p.phenomena === 'FF');
+
+const BUCKET = Date.UTC(2021, 11, 11, 3, 30, 0);
+
+function seedSbw(features) {
+  CONFIG.gaugeBbox = { xmin: -95, xmax: -84, ymin: 33, ymax: 42 }; // the fixture's real footprint
+  pbSbw.buckets.clear();
+  pbSbw.warnEvents.clear();
+  pbSbw.renderKey = '';
+  state.pb = { live: true, loT: Date.UTC(2021, 11, 11, 0, 0, 0), hiT: Date.UTC(2021, 11, 11, 12, 0, 0) };
+  state.pbStoryBase = [];
+  state.pbStory = null;
+  return pbSbwStore(BUCKET, features.map((f) => JSON.parse(JSON.stringify(f))));
+}
+
+test('pbSbwSev — a tornado emergency reads as an emergency, not as an ordinary tornado warning', () => {
+  assert.equal(pbSbwSev(TOR_EMERGENCY.properties), 'emergency');
+  assert.equal(pbSbwSev(TOR_PLAIN.properties), 'to');
+  assert.notEqual(pbSbwSev(TOR_EMERGENCY.properties), pbSbwSev(TOR_PLAIN.properties),
+    'the archive must keep the two distinguishable; flattening them is the defect');
+});
+
+test('pbSbwSev — the emergency flag is consulted before the SV/TO passthrough', () => {
+  // same product, emergency flag cleared: it must fall back to the phenomena, proving the flag and
+  // not something incidental to this record is what promotes it
+  const cleared = Object.assign({}, TOR_EMERGENCY.properties, { is_emergency: false });
+  assert.equal(pbSbwSev(cleared), 'to');
+  assert.equal(pbSbwSev(TOR_EMERGENCY.properties), 'emergency');
+});
+
+test('pbSbwSev — a flash flood emergency still reads as an emergency, and PDS is not one', () => {
+  assert.equal(pbSbwSev(Object.assign({}, FFW.properties, { is_emergency: true })), 'emergency');
+  assert.equal(pbSbwSev(FFW.properties), 'warning');
+  assert.equal(pbSbwSev(TOR_PDS.properties), 'to',
+    'PDS is a tornado warning NWS has escalated in wording, not an emergency declaration');
+  assert.equal(pbSbwSev(Object.assign({}, FFW.properties, { significance: 'Y' })), 'advisory');
+});
+
+test('pbEmergencyKey — the popup names the emergency it actually is', () => {
+  assert.equal(pbEmergencyKey(TOR_EMERGENCY.properties), 'playback.emerg.tornado');
+  assert.equal(pbEmergencyKey(FFW.properties), 'playback.emerg.flood');
+});
+
+test('the archive popup no longer hardcodes one emergency label for both kinds', () => {
+  const fn = SRC('playback.js').match(/function pbSbwPopup\([\s\S]*?\n\}/);
+  assert.ok(fn, 'pbSbwPopup not found');
+  assert.ok(!/FLASH FLOOD EMERGENCY/.test(fn[0]),
+    'a tornado emergency captioned FLASH FLOOD EMERGENCY is a false statement about the product');
+  assert.match(fn[0], /pbEmergencyKey\(p\)/);
+});
+
+test('both archive emergency labels exist in BOTH locales', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
+  for (const key of ['playback.emerg.tornado', 'playback.emerg.flood', 'playback.story.emergissued']) {
+    assert.equal(src.split(`'${key}':`).length - 1, 2, `${key} must appear once in en and once in es`);
+  }
+});
+
+test('the story timeline carries severe and tornado warnings, not only flood ones', () => {
+  seedSbw(SBW.features);
+  const kinds = new Set(Array.from(pbSbw.warnEvents.values()).map((w) => w.phenomena));
+  assert.ok(kinds.has('TO') && kinds.has('SV') && kinds.has('FF'),
+    `the archive must build story events for every warning it draws, got ${[...kinds]}`);
+  const names = Array.from(pbSbw.warnEvents.values()).map((w) => w.ps);
+  for (const ps of ['Tornado Warning', 'Severe Thunderstorm Warning', 'Flash Flood Warning']) {
+    assert.ok(names.includes(ps), `${ps} must reach the story track, got ${names}`);
+  }
+  pbStoryRebuild();
+  // t() is a key-echo stub here, so the caption text is the i18n key: count the captions instead
+  const issued = state.pbStory.filter((e) => /story\.(warn|emerg)issued/.test(e.text));
+  assert.equal(issued.length, pbSbw.warnEvents.size,
+    'every drawn warning earns exactly one issue caption, whatever its phenomena');
+  assert.ok(issued.length > sbwOf((p) => PB_SBW_FLOOD.includes(p.phenomena)).length,
+    'more captions than flood products, which is the whole point of this release');
+});
+
+test('the story timeline is not built from a flood-only allowlist', () => {
+  seedSbw([SVR, TOR_PLAIN]);
+  assert.equal(pbSbw.warnEvents.size, 2, 'a flood-only gate would leave this empty');
+  assert.ok(PB_SBW_FLOOD.every((ph) => ph !== 'SV' && ph !== 'TO'),
+    'PB_SBW_FLOOD still names only flood phenomena, so the story cannot be riding on it');
+});
+
+test('a tornado emergency keeps its emphasis in the story, distinct from an ordinary warning', () => {
+  seedSbw([TOR_EMERGENCY, TOR_PLAIN]);
+  pbStoryRebuild();
+  const byKey = new Map(Array.from(pbSbw.warnEvents.entries()));
+  assert.equal(byKey.get(pbSbwKey(TOR_EMERGENCY.properties)).emergency, true);
+  assert.equal(byKey.get(pbSbwKey(TOR_PLAIN.properties)).emergency, false);
+  const issued = state.pbStory.filter((e) => e.text.includes('issued') || e.text.includes('emergissued')
+    || e.text.includes('EMERGENCY'));
+  const emerg = state.pbStory.filter((e) => e.text.startsWith('playback.story.emergissued'));
+  const plain = state.pbStory.filter((e) => e.text.startsWith('playback.story.warnissued'));
+  assert.equal(emerg.length, 1, `exactly one emergency caption expected, got ${state.pbStory.map((e) => e.text)}`);
+  assert.ok(plain.length >= 1, 'the ordinary tornado warning must still get its own caption');
+  assert.ok(issued.length >= 2);
+  assert.ok(emerg[0].pri > plain[0].pri,
+    'at an equal timestamp the emergency caption has to win; equal priority would make it a coin toss');
+});
+
+test('an emergency declared mid-event survives whichever bucket lands last', () => {
+  /* NWS upgrades mid-event: an early polygon carries no flag and a later one does. Buckets do not
+     arrive in time order, because the viewer scrubs and the LRU fetches whatever the frame needs,
+     so the flag must accumulate rather than be overwritten by whichever copy landed last. */
+  const key = pbSbwKey(TOR_EMERGENCY.properties);
+  const early = JSON.parse(JSON.stringify(TOR_EMERGENCY));
+  early.properties.is_emergency = false;
+  early.properties.is_pds = false;
+
+  seedSbw([early]);
+  assert.equal(pbSbw.warnEvents.get(key).emergency, false, 'the pre-upgrade polygon alone is not an emergency');
+  pbSbwStore(BUCKET + 900000, [JSON.parse(JSON.stringify(TOR_EMERGENCY))]);
+  assert.equal(pbSbw.warnEvents.get(key).emergency, true, 'the upgrade must promote the event');
+
+  // the order that actually breaks a last-write-wins implementation
+  seedSbw([JSON.parse(JSON.stringify(TOR_EMERGENCY))]);
+  assert.equal(pbSbw.warnEvents.get(key).emergency, true);
+  pbSbwStore(BUCKET - 900000, [JSON.parse(JSON.stringify(early))]);
+  assert.equal(pbSbw.warnEvents.get(key).emergency, true,
+    'a pre-upgrade polygon arriving late must not demote a declared emergency back to a warning');
+});
+
+test('a story caption outside the chosen window is not invented', () => {
+  seedSbw(SBW.features);
+  state.pb.loT = Date.UTC(2021, 11, 12, 0, 0, 0); // window entirely after the fixture
+  state.pb.hiT = Date.UTC(2021, 11, 13, 0, 0, 0);
+  pbStoryRebuild();
+  assert.equal(state.pbStory.length, 0, `out-of-window warnings must not caption: ${state.pbStory.map((e) => e.text)}`);
+});
+
+test('the archive still draws a tornado emergency on top of everything else', () => {
+  const order = SRC('playback.js').match(/const order = \{[^}]*\}/);
+  assert.ok(order, 'the paint order map not found');
+  const m = /emergency:\s*(\d+)/.exec(order[0]);
+  const others = [...order[0].matchAll(/\b(advisory|sv|to|warning):\s*(\d+)/g)].map((x) => Number(x[2]));
+  assert.ok(m && others.length === 4 && others.every((n) => n < Number(m[1])),
+    `emergency must sort last so it lands on top: ${order[0]}`);
+});

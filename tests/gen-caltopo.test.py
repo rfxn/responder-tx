@@ -746,6 +746,209 @@ try:
 finally:
     shutil.rmtree(tmp6)
 
+# ---------------------------------------------------------------------------
+# Storm-based and order-class hazards in every published artifact (v0.99.59), plus the note that
+# keeps a zone-referenced product from reading as one the board never saw.
+#
+# Every alert below is a product captured verbatim from api.weather.gov: a real tornado warning
+# polygon, a real evacuation order with a real dirty senderName, and real zone-referenced products
+# that carry geometry: null because their extent is published as UGC zone codes. Only sent/expires
+# are re-stamped, so the generator's freshness gate does not drop a record captured last week.
+# ---------------------------------------------------------------------------
+
+
+def fixture(name):
+    with open(os.path.join(HERE, 'fixtures', name), encoding='utf-8') as fh:
+        return json.load(fh)
+
+
+def retimed(f, ident):
+    f = json.loads(json.dumps(f))
+    f['id'] = ident
+    f['properties']['id'] = ident
+    f['properties']['sent'] = iso(NOW - timedelta(minutes=10))
+    f['properties']['expires'] = iso(NOW + timedelta(hours=2))
+    return f
+
+
+TORNADO = retimed(fixture('alert-tornado-pds.json'), 'hz-tornado')
+ORDERS_FX = fixture('alerts-orders.json')
+EVAC = retimed([f for f in ORDERS_FX['shaped'] if f['properties']['event'] == 'Evacuation Immediate'][0], 'hz-evac')
+# 'Boone County WV,Boone County WV,Boone County WV': a real senderName that repeats itself
+LAE = retimed([f for f in ORDERS_FX['real']
+               if f['properties']['event'] == 'Local Area Emergency' and f.get('geometry')][0], 'hz-lae')
+# a real order that names no sender at all: "did not say" is a different fact from "NWS wrote it"
+ANON = retimed([f for f in ORDERS_FX['shaped']
+                if f['properties']['event'] == '911 Telephone Outage'
+                and not f['properties'].get('senderName') and f.get('geometry')][0], 'hz-anon')
+ZONE_ONLY_FX = [retimed(f, 'hz-zone-%d' % i) for i, f in enumerate(fixture('alerts-zone-only.json')['features'])]
+HAZARD_ALERTS = {'features': [TORNADO, EVAC, LAE]}
+
+
+def run_hazards(tmp, alerts, **env_extra):
+    with open(os.path.join(tmp, 'alerts.json'), 'w') as fh:
+        json.dump({'features': alerts}, fh)
+    return run_gen(tmp, **env_extra)
+
+
+def artifact_notes(tmp):
+    """The one header claim as each of the four artifacts states it. A claim that reaches three of
+    them is the defect: the fourth reads as a complete board."""
+    return {
+        'caltopo-export.json': load(tmp)['properties']['note'],
+        'board.kml': xml_root(tmp, 'board.kml').findtext('.//k:Document/k:description', '', NS),
+        'board-live.kml': xml_root(tmp, 'board-live.kml').findtext('.//k:Document/k:description', '', NS),
+        'board-georss.xml': xml_root(tmp, 'board-georss.xml').findtext('a:subtitle', '', NS),
+    }
+
+
+def artifact_titles(tmp):
+    doc = load(tmp)
+    kml = xml_root(tmp, 'board.kml')
+    feed = xml_root(tmp, 'board-georss.xml')
+    return {
+        'caltopo-export.json': [f['properties']['title'] for f in members_of(doc)],
+        'board.kml': [e.text or '' for e in kml.findall('.//k:Placemark/k:name', NS)],
+        'board-georss.xml': [e.text or '' for e in feed.findall('a:entry/a:title', NS)],
+    }
+
+
+tmp7 = tempfile.mkdtemp()
+try:
+    write_fixtures(tmp7)
+    rh = run_hazards(tmp7, HAZARD_ALERTS['features'] + ZONE_ONLY_FX)
+    check('a run carrying storm and order hazards exits 0', rh.returncode == 0, rh.stderr[-500:])
+
+    titles7 = artifact_titles(tmp7)
+    for label, names in titles7.items():
+        check('a tornado warning reaches %s' % label,
+              any(t.startswith('Tornado Warning · ') for t in names), str(names)[:200])
+        check('an evacuation order reaches %s' % label,
+              any(t.startswith('Evacuation Immediate · ') for t in names), str(names)[:200])
+        check('a local area emergency reaches %s' % label,
+              any(t.startswith('Local Area Emergency · ') for t in names), str(names)[:200])
+    # board-live.kml is a NetworkLink onto board.kml, so it carries the hazards by reference; that
+    # reference is what has to be intact
+    live7 = xml_root(tmp7, 'board-live.kml')
+    check('board-live.kml still points at the document carrying them',
+          live7.findtext('.//k:Link/k:href', '', NS).endswith('/data/board.kml')
+          and live7.findtext('.//k:Link/k:refreshMode', '', NS) == 'onInterval')
+
+    doc7 = load(tmp7)
+    hz = {f['properties']['title'].split(' · ')[0]: f for f in members_of(doc7)
+          if f['properties']['folder'] == 'NWS alerts (active)'}
+    check('every mapped hazard exports in the alerts folder at the top rank',
+          all(k in hz for k in ('Tornado Warning', 'Evacuation Immediate', 'Local Area Emergency')), str(sorted(hz)))
+    # rank is not written into the artifact; truncating to one feature is what proves it is highest
+    r_one = run_hazards(tmp7, HAZARD_ALERTS['features'] + ZONE_ONLY_FX, RESPONDER_CALTOPO_MAX_FEATURES='3')
+    kept_one = members_of(load(tmp7))
+    check('the cap keeps hazards ahead of every other layer', r_one.returncode == 0
+          and all(f['properties']['folder'] == 'NWS alerts (active)' for f in kept_one),
+          str([f['properties']['folder'] for f in kept_one]))
+    run_hazards(tmp7, HAZARD_ALERTS['features'] + ZONE_ONLY_FX)  # restore the untruncated run
+
+    # an order is a directive, never the board's lowest tier: four of the eight order products
+    # carry no "Warning" in their name and a word test would style them as advisories
+    doc7 = load(tmp7)
+    hz = {f['properties']['title'].split(' · ')[0]: f for f in members_of(doc7)
+          if f['properties']['folder'] == 'NWS alerts (active)'}
+    for ev in ('Evacuation Immediate', 'Local Area Emergency'):
+        check('%s exports above the advisory tier' % ev,
+              'Severity: advisory' not in hz[ev]['properties']['description'],
+              hz[ev]['properties']['description'][:120])
+        check('%s exports in the warning style, not the advisory grey' % ev,
+              hz[ev]['properties']['stroke'] == gen.SEV_COLOR['warning'], hz[ev]['properties']['stroke'])
+    # attribution: an order is authored by a county or state agency under 47 CFR 11.31 and only
+    # relayed by NWS, so crediting the National Weather Service for one states something false
+    check('an evacuation order credits the agency that wrote it',
+          'Kerr County' in hz['Evacuation Immediate']['properties']['description'],
+          hz['Evacuation Immediate']['properties']['description'][-200:])
+    check('an evacuation order does not credit NWS as its author',
+          not re.search(r'Source: NWS ', hz['Evacuation Immediate']['properties']['description']),
+          hz['Evacuation Immediate']['properties']['description'][-200:])
+    check('a repeated senderName is not repeated back to the reader',
+          hz['Local Area Emergency']['properties']['description'].count('Boone County WV') == 1,
+          hz['Local Area Emergency']['properties']['description'][-200:])
+    check('a tornado warning still credits NWS, which does write it',
+          re.search(r'Source: NWS ', hz['Tornado Warning']['properties']['description']) is not None,
+          hz['Tornado Warning']['properties']['description'][-160:])
+
+    # an order that names no sender: the export must say the product did not say, because falling
+    # back to NWS would credit an agency that did not write it
+    ra = run_hazards(tmp7, [ANON])
+    anon_desc = members_of(load(tmp7))[0]['properties']['description']
+    check('an order with no senderName exits 0', ra.returncode == 0, ra.stderr[-300:])
+    check('an order with no senderName is not credited to NWS',
+          not re.search(r'Source: NWS ', anon_desc), anon_desc[-200:])
+    check('an order with no senderName says the product did not name one',
+          'not named in the product' in anon_desc, anon_desc[-200:])
+    run_hazards(tmp7, HAZARD_ALERTS['features'] + ZONE_ONLY_FX)
+    doc7 = load(tmp7)
+    hz = {f['properties']['title'].split(' · ')[0]: f for f in members_of(doc7)
+          if f['properties']['folder'] == 'NWS alerts (active)'}
+
+    # the zone-based-products note: present, counted, named, in all four artifacts
+    zone_counts = doc7['properties']['zone_only_products']
+    check('the zone-only fixture is not vacuous', len(ZONE_ONLY_FX) >= 2, str(len(ZONE_ONLY_FX)))
+    check('every zone-referenced product is counted, none dropped silently',
+          sum(zone_counts.values()) == len(ZONE_ONLY_FX), '%r vs %d' % (zone_counts, len(ZONE_ONLY_FX)))
+    check('a zone-referenced product is not exported as a mapped feature',
+          not any(t.startswith(ev + ' · ') for ev in zone_counts
+                  for t in titles7['caltopo-export.json']), str(sorted(zone_counts)))
+    for label, note in artifact_notes(tmp7).items():
+        check('%s says zone-based products are in effect and unmapped' % label,
+              gen.ZONE_ONLY_CLAIM in note, note[-220:])
+        check('%s counts them' % label, '%d zone-based' % len(ZONE_ONLY_FX) in note, note[-220:])
+        check('%s names them' % label, all(ev in note for ev in zone_counts), note[-220:])
+    kext = {d.get('name'): d.findtext('k:value', '', NS)
+            for d in xml_root(tmp7, 'board.kml').findall('.//k:Document/k:ExtendedData/k:Data', NS)}
+    check('board.kml carries the zone-only count as a field, not only as prose',
+          kext.get('zone_only_products') == str(len(ZONE_ONLY_FX)), repr(kext.get('zone_only_products')))
+
+    # the other direction, and the reason the claim is worth anything: with no zone-referenced
+    # product in effect, no artifact may hint at one
+    rn = run_hazards(tmp7, HAZARD_ALERTS['features'])
+    check('a run with no zone-referenced product exits 0', rn.returncode == 0, rn.stderr[-400:])
+    check('no zone-referenced product means an empty count',
+          load(tmp7)['properties']['zone_only_products'] == {}, str(load(tmp7)['properties']['zone_only_products']))
+    for label, note in artifact_notes(tmp7).items():
+        check('%s makes no zone-based claim when none is in effect' % label,
+              gen.ZONE_ONLY_CLAIM not in note and 'zone-based' not in note, note[-200:])
+    check('the mapped hazards are still there when the note is not',
+          len([f for f in members_of(load(tmp7)) if f['properties']['folder'] == 'NWS alerts (active)']) == 3)
+
+    # a product outside the board's allowlist is not a zone-based product the board is tracking
+    rx = run_hazards(tmp7, HAZARD_ALERTS['features'] + [retimed(dict(ZONE_ONLY_FX[0], properties=dict(
+        ZONE_ONLY_FX[0]['properties'], event='Heat Advisory')), 'hz-heat')])
+    check('an unlisted zone product is not counted as one the board tracks',
+          rx.returncode == 0 and load(tmp7)['properties']['zone_only_products'] == {},
+          str(load(tmp7)['properties']['zone_only_products']))
+
+    # the byte ceiling: whichever bound cut has to be the one the note names, and an acute hazard
+    # survives either bound
+    rb7 = run_hazards(tmp7, HAZARD_ALERTS['features'] + ZONE_ONLY_FX, RESPONDER_CALTOPO_MAX_KML_BYTES='6000')
+    check('a byte-trimmed run carrying hazards exits 0', rb7.returncode == 0, rb7.stderr[-400:])
+    docb = load(tmp7)
+    noteb = docb['properties']['note']
+    check('the byte ceiling actually bit', docb['properties']['truncated'] is True, str(docb['properties']))
+    check('a byte-trimmed kml is inside its budget',
+          os.path.getsize(os.path.join(tmp7, 'data', 'board.kml')) <= 6000,
+          str(os.path.getsize(os.path.join(tmp7, 'data', 'board.kml'))))
+    check('the note blames the byte ceiling, not the feature cap',
+          'of KML so it stays importable' in noteb and '2000 features' not in noteb, noteb[:260])
+    check('a byte-trimmed export still carries the zone-based note',
+          gen.ZONE_ONLY_CLAIM in noteb, noteb[-200:])
+    check('a tornado warning survives the byte ceiling',
+          any(t.startswith('Tornado Warning · ') for t in artifact_titles(tmp7)['board.kml']),
+          str(artifact_titles(tmp7)['board.kml'])[:200])
+    rc7 = run_hazards(tmp7, HAZARD_ALERTS['features'] + ZONE_ONLY_FX, RESPONDER_CALTOPO_MAX_FEATURES='4')
+    notec = load(tmp7)['properties']['note']
+    check('a feature-capped run blames the feature cap, not the byte ceiling',
+          rc7.returncode == 0 and '4 features' in notec and 'of KML so it stays importable' not in notec,
+          notec[:260])
+finally:
+    shutil.rmtree(tmp7)
+
 print('---')
 if FAILS:
     print('%d FAILURE(S)' % FAILS)

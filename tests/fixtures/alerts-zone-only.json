@@ -1,0 +1,256 @@
+{
+ "_note": [
+  "Zone-referenced hazard products captured verbatim from api.weather.gov/alerts on 2026-07-26.",
+  "Every record is allowlisted in HAZARD_EVENTS and carries geometry: null, because its extent is",
+  "published as county/zone codes in geocode.UGC rather than as an inline polygon. They are the",
+  "real shape behind the export's zone-based-products note: a product in effect whose area the",
+  "export cannot draw. Tests re-stamp sent/expires so the freshness gate does not drop them;",
+  "nothing else is edited."
+ ],
+ "features": [
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.5bce79b630436c7ebbcd204ac36e944bab70caf4.002.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.5bce79b630436c7ebbcd204ac36e944bab70caf4.002.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.5bce79b630436c7ebbcd204ac36e944bab70caf4.002.1",
+    "areaDesc": "Santa Barbara County Southwestern Coast",
+    "geocode": {
+     "SAME": [
+      "006083"
+     ],
+     "UGC": [
+      "CAZ349"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/CAZ349"
+    ],
+    "references": [],
+    "sent": "2026-07-26T11:26:00-07:00",
+    "effective": "2026-07-26T11:26:00-07:00",
+    "onset": "2026-07-26T15:00:00-07:00",
+    "expires": "2026-07-27T03:00:00-07:00",
+    "ends": "2026-07-27T03:00:00-07:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Moderate",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Wind Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Los Angeles/Oxnard CA",
+    "headline": "Wind Advisory issued July 26 at 11:26AM PDT until July 27 at 3:00AM PDT by NWS Los Angeles/Oxnard CA",
+    "description": "* WHAT...For the Heat Advisory, temperatures up to 84. For the Wind\nAdvisory, northwest winds 20 to 30 mph with gusts up to 45 mph\nexpected.\n\n* WHERE...Santa Barbara County Southwestern Coast.\n\n* WHEN...For the Heat Advisory, until 8 PM PDT Monday. For the Wind\nAdvisory, from 3 PM this afternoon to 3 AM PDT Monday.\n\n* IMPACTS...Gusty winds will blow around unsecured objects. Tree\nlimbs could be blown down and a few power outages may result.\nThere is a high risk for heat illness for sensitive populations\nincluding the very young, the very old, those without air\nconditioning, and those active outdoors.",
+    "instruction": "Winds this strong can make driving difficult, especially for high\nprofile vehicles. Use extra caution.\n\nDrink plenty of fluids, stay in an air-conditioned room, stay out of\nthe sun, and check up on relatives and neighbors.",
+    "response": "Execute",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "NPWLOX"
+     ],
+     "WMOidentifier": [
+      "WWUS76 KLOX 261826"
+     ],
+     "NWSheadline": [
+      "HEAT ADVISORY REMAINS IN EFFECT UNTIL 8 PM PDT MONDAY... ...WIND ADVISORY IN EFFECT FROM 3 PM THIS AFTERNOON TO 3 AM PDT MONDAY"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.NEW.KLOX.WI.Y.0053.260726T2200Z-260727T1000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-07-27T03:00:00-07:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "WIY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.66be257b9378af7b362ff5dede07cefb7608eec0.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.66be257b9378af7b362ff5dede07cefb7608eec0.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.66be257b9378af7b362ff5dede07cefb7608eec0.001.1",
+    "areaDesc": "Anne Arundel",
+    "geocode": {
+     "SAME": [
+      "024003"
+     ],
+     "UGC": [
+      "MDZ014"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/MDZ014"
+    ],
+    "references": [],
+    "sent": "2026-07-26T14:53:00-04:00",
+    "effective": "2026-07-26T14:53:00-04:00",
+    "onset": "2026-07-27T02:00:00-04:00",
+    "expires": "2026-07-26T23:00:00-04:00",
+    "ends": "2026-07-27T08:00:00-04:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Coastal Flood Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Baltimore MD/Washington DC",
+    "headline": "Coastal Flood Advisory issued July 26 at 2:53PM EDT until July 27 at 8:00AM EDT by NWS Baltimore MD/Washington DC",
+    "description": "* WHAT...Up to one and a half feet of inundation above ground\nlevel expected in low lying areas due to tidal flooding.\n\n* WHERE...Shoreline in Anne Arundel County.\n\n* WHEN...From 2 AM to 8 AM EDT Monday, especially around the\ntime of high tide.\n\n* IMPACTS...At 2.6 feet, water may begin to pond in the parking\nlot at Annapolis City Dock, and surround the Alex Haley\nMemorial.\n\n* ADDITIONAL DETAILS...Tides one to one and a half feet above\nnormal. The next high tide at Annapolis U.S. Naval Academy is at\n3:25 PM and 4:54 AM.",
+    "instruction": "If travel is required, allow extra time as some roads may be\nclosed. Do not drive around barricades or through water of\nunknown depth. Take the necessary actions to protect flood-prone\nproperty.",
+    "response": "Monitor",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "CFWLWX"
+     ],
+     "WMOidentifier": [
+      "WHUS41 KLWX 261853"
+     ],
+     "NWSheadline": [
+      "COASTAL FLOOD ADVISORY IN EFFECT FROM 2 AM TO 8 AM EDT MONDAY"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.NEW.KLWX.CF.Y.0027.260727T0600Z-260727T1200Z/"
+     ],
+     "eventEndingTime": [
+      "2026-07-27T08:00:00-04:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "CFY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.35add3f9d968b670964a7377a92adff76c66deda.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.35add3f9d968b670964a7377a92adff76c66deda.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.35add3f9d968b670964a7377a92adff76c66deda.001.1",
+    "areaDesc": "San Francisco; Coastal North Bay Including Point Reyes National Seashore; San Francisco Peninsula Coast; Northern Monterey Bay; Southern Monterey Bay and Big Sur Coast",
+    "geocode": {
+     "SAME": [
+      "006075",
+      "006041",
+      "006097",
+      "006081",
+      "006087",
+      "006053"
+     ],
+     "UGC": [
+      "CAZ006",
+      "CAZ505",
+      "CAZ509",
+      "CAZ529",
+      "CAZ530"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/CAZ006",
+     "https://api.weather.gov/zones/forecast/CAZ505",
+     "https://api.weather.gov/zones/forecast/CAZ509",
+     "https://api.weather.gov/zones/forecast/CAZ529",
+     "https://api.weather.gov/zones/forecast/CAZ530"
+    ],
+    "references": [],
+    "sent": "2026-07-26T14:17:00-07:00",
+    "effective": "2026-07-26T14:17:00-07:00",
+    "onset": "2026-07-26T14:17:00-07:00",
+    "expires": "2026-07-27T15:00:00-07:00",
+    "ends": "2026-07-29T18:00:00-07:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Moderate",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Beach Hazards Statement",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS San Francisco CA",
+    "headline": "Beach Hazards Statement issued July 26 at 2:17PM PDT until July 29 at 6:00PM PDT by NWS San Francisco CA",
+    "description": "* WHAT...Long-period southerly swell will bring an increased\nrisk of sneaker waves and strong rip currents. Breaking waves\nwill reach up to 10 feet along some south and southwest facing\nbeaches and break points.\n\n* WHERE...Pacific Coast beaches.\n\n* WHEN...Through 6 PM PDT Wednesday.\n\n* IMPACTS...Dangerous conditions are forecast along the shoreline.\nHazards include sneaker waves, strong rip currents, and large\nbreaking waves.",
+    "instruction": "Stay off of jetties, piers, rocks, and other waterside\ninfrastructure. Remain out of the water to avoid hazardous surf\nand NEVER turn your back on the ocean. Monitor local weather,\nsurf and tide forecasts at www.weather.gov/mtr.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "CFWMTR"
+     ],
+     "WMOidentifier": [
+      "WHUS46 KMTR 262117"
+     ],
+     "NWSheadline": [
+      "BEACH HAZARDS STATEMENT REMAINS IN EFFECT THROUGH WEDNESDAY AFTERNOON"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.CON.KMTR.BH.S.0018.000000T0000Z-260730T0100Z/"
+     ],
+     "eventEndingTime": [
+      "2026-07-29T18:00:00-07:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.b2b52b4fa134c47a199be9892a493a2144e9d3c0.001.1,2026-07-26T05:07:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.62407664aa558641249fe9dbc9c3242d82bacead.001.1,2026-07-25T12:50:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ac64ca667ffa388972837ba721ccce0324880b43.001.1,2026-07-25T05:59:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.a73af1f57a8830c5ef33c00f6ac642d48216da7e.001.1,2026-07-24T05:12:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.7e3e2915e6983a3c5c49236e779e541b370bc08d.001.1,2026-07-23T10:53:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.d79f66dcb05c544d69bb80d4d7ebce0a2b80c91a.001.1,2026-07-23T03:08:00-07:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "BHS"
+     ]
+    }
+   }
+  }
+ ]
+}

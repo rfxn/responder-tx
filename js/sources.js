@@ -746,6 +746,7 @@ function alertCardDiv(f, dist) {
   const unmapped = isOrder && !alertGeom(f);
   const div = document.createElement('div');
   div.className = `card alert-card sev-${f._sev} haz-${hazardStyleKey(f)}${unmapped ? ' alert-unmapped' : ''}`;
+  div.dataset.alertId = f.id || ''; // the handle the hazard line reveals this row by
   div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? `<span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : ''}` +
     `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>` +
     `<div class="areas">${esc(alertAreaText(p))}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}` +
@@ -760,17 +761,7 @@ function alertCardDiv(f, dist) {
   const link = div.querySelector('.alert-text-link');
   link.addEventListener('click', (e) => { e.stopPropagation(); openAlertText(f); });
   link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAlertText(f); } });
-  div.addEventListener('click', () => {
-    let b = null;
-    if (f.geometry) { const bb = L.geoJSON(f.geometry).getBounds(); if (bb.isValid()) b = bb; }
-    if (!b) {
-      const z = (f.properties.affectedZones || [])[0];
-      const g = z && state.zoneGeomCache.get(z);
-      if (g) { const bb = L.geoJSON(g).getBounds(); if (bb.isValid()) b = bb; }
-    }
-    if (b) { state.map.fitBounds(b, { maxZoom: 10 }); flashAlert(f); return; }
-    openAlertText(f); // no geometry to fly to → open the readable alert text instead of raw JSON
-  });
+  div.addEventListener('click', () => focusAlert(f));
   return div;
 }
 

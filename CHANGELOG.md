@@ -1,5 +1,22 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.58 · 2026-07-27 (tapping a hazard focuses it)
+
+-- Bug Fixes --
+- [Fix] Tapping a warning in the hazard line at the top of the board now frames
+      that warning on the map, flashes its outline, and opens its card in the
+      Alerts tab. It previously only switched to the Alerts tab, which showed
+      nothing about the hazard that was tapped
+- [Fix] A hazard with no mapped extent opens its readable text when tapped in
+      the hazard line, matching what its card already does
+
+-- Changes --
+- [Change] Tapping a storm report or a critical request in the hazard line now
+           brings the map into view on a phone, so the jump is visible instead of
+           happening behind a full-height panel
+- [Change] Tapping a critical request in the hazard line scrolls to that request
+           and marks it, rather than opening the feed at the top
+
 ## v0.99.57 · 2026-07-27 (local emergency and evacuation orders)
 
 -- New Features --

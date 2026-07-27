@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.58",
+      "date": "2026-07-27",
+      "line": "Tapping a warning in the hazard line at the top of the board now frames that warning on the map, flashes its outline, and opens its card in the Alerts tab. It previously only switched to the Alerts tab, which showed nothing about the hazard that was tapped. A hazard with no mapped extent opens its readable text instead, matching what its card already does. Tapping a storm report or a critical request in the line brings the map into view on a phone, and a critical request now scrolls to that request and marks it rather than opening the feed at the top."
+    },
+    {
       "v": "v0.99.57",
       "date": "2026-07-27",
       "line": "The board now carries local emergency and evacuation orders: civil danger, evacuation immediate, shelter in place, hazardous materials, civil emergency messages, law enforcement warnings, 911 telephone outages and local area emergencies. Orders never fold out of the alert list at any distance, carry their own colour, and reach the hazard line and Drive Mode with an action taken from the order's own declared response. An order whose area is given only in words says its extent is not mapped rather than showing nothing without explanation. A 911 telephone outage covering your position adds a notice above the disclaimer naming the agency, the affected area and the alternate number the alert published, or saying plainly that none was published; it still says to try 911 first, and the 911 guidance everywhere else on the board is unchanged. Orders are credited to the county or state agency that issued them rather than to the National Weather Service, an alert that names no sender is no longer attributed to the National Weather Service, and orders with no \"warning\" in their product name are no longer ranked and styled as advisories."

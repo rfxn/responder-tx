@@ -128,6 +128,7 @@ const EXPORTS = [
   'hazardIsOrder', 'hazardGlance', 'alertAgency', 'alertAgencyText',
   'ORDER_EVENT_ACTION', 'ORDER_RESPONSE_ACTION',
   'nine11Alt', 'nine11Outages', 'NINE11_EVENT', 'alertCardDiv',
+  'focusAlert', 'openInAlertsList', 'flashAlert', 'openAlertText', 'openInFeed', 'revealInList',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'gaugeRecoveryState', 'riverOf',
   'splitGauges', 'gaugeState', 'gaugeStateCounts', 'gaugeHasReading', 'gaugeAll', 'GAUGE_STATES', 'GAUGE_DEGRADED',
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',

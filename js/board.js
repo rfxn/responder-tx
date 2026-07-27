@@ -104,6 +104,42 @@ function openInFeed(id) {
   revealInList('tab-requests', `#request-list .card[data-rid="${CSS.escape(id)}"]`);
 }
 
+/* The one focus path for a single named hazard, shared by the Alerts-tab card and the hazard line
+   so neither surface can drift into doing less than the other. Frame the product's own extent,
+   flash it, and let a phone actually see the map move. `reveal` also lands the reader on the card,
+   which the hazard line needs because it starts nowhere near the list, and a card click does not.
+   The extent is resolved with alertGeom, the same predicate that decides the card's unmapped badge,
+   so what the card says about its extent and what a tap does with it can no longer disagree. */
+function focusAlert(f, reveal) {
+  let b = null;
+  const geom = alertGeom(f);
+  if (geom) {
+    try { const bb = L.geoJSON(geom).getBounds(); if (bb.isValid()) b = bb; } catch { b = null; } // malformed cached zone geometry reads as no extent
+  }
+  if (!b) { openAlertText(f); return false; } // nothing to frame: open the readable text, never a bare tab switch
+  state.map.fitBounds(b, { maxZoom: 10 });
+  flashAlert(f);
+  revealMapOnPhone();
+  if (reveal) openInAlertsList(f);
+  return true;
+}
+
+/* The hazard line can name an alert the Alerts tab is currently filtering out. Clear only what
+   actually hides it, then reveal the row, so a tap never lands on a list without the alert it named. */
+function openInAlertsList(f) {
+  const sel = `#alert-list .alert-card[data-alert-id="${CSS.escape((f && f.id) || '')}"]`;
+  if (!document.querySelector(sel)) {
+    let changed = false;
+    for (const id of ['#flt-alert-sev', '#flt-alert-q']) {
+      const el = $(id);
+      if (el && el.value) { el.value = ''; changed = true; }
+    }
+    if (!state.showAlertsFar) { state.showAlertsFar = true; changed = true; }
+    if (changed) renderAlertList();
+  }
+  revealInList('tab-alerts', sel);
+}
+
 /* Two folds can hide a gauge row: the normal-category fold and the degraded fold. Which one holds
    a gauge is a fact about the gauge, so read it from the data. Deciding from the row simply being
    absent used to unfold the normal set for a degraded gauge, which changed a filter the user never

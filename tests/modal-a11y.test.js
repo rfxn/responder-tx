@@ -199,7 +199,7 @@ test('a card tap drops the sheet instead of scrolling a page that does not scrol
   const sites = ['board.js', 'panels.js', 'boot.js']
     .map((f) => (fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').match(/revealMapOnPhone\(\)/g) || []).length)
     .reduce((a, b) => a + b, 0);
-  assert.equal(sites, 6, 'expected five call sites plus the declaration to route through revealMapOnPhone()');
+  assert.equal(sites, 9, 'expected eight call sites plus the declaration to route through revealMapOnPhone()');
 });
 
 /* The ✕ on every modal and every bottom sheet was roughly a 22px target: `.modal-head button` and

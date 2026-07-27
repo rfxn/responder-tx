@@ -1183,7 +1183,6 @@ const tickerUntil = (f) => {
    advisories and nothing actionable, the responder learns the line is heat and stops reading it,
    and the tornado warning that lands there next week is not seen. */
 function tickerAlertItems() {
-  const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
   const open = alertDedupe(state.alerts.filter((x) => alertOpen(x) && hazardGlance(x)));
   return open.sort((a, b) => alertHazCmp(a, b)).map((a) => {
     const where = alertAreaLead(a.properties);
@@ -1192,7 +1191,9 @@ function tickerAlertItems() {
     const text = emerg
       ? t('ticker.ffe').replace('{where}', where).replace('{t}', tickerUntil(a))
       : `${hazardGlyph(a)} ${a.properties.event} ${where} · ${t('alert.untilShort')} ${tickerUntil(a)}${motion ? ` · ${motion}` : ''}`;
-    return { text, color: emerg ? 'var(--sev-emergency)' : `var(--haz-${hazardStyleKey(a)}, var(--sev-warning))`, act: goAlerts };
+    // tapping a hazard frames that hazard, flashes it, and opens its card: the same focus path the
+    // Alerts-tab card uses, so the two surfaces cannot drift apart again
+    return { text, color: emerg ? 'var(--sev-emergency)' : `var(--haz-${hazardStyleKey(a)}, var(--sev-warning))`, act: () => focusAlert(a, true) };
   });
 }
 
@@ -1217,7 +1218,8 @@ function tickerItems() {
   for (const f of freshLsrs) {
     const p = f.properties;
     const [lon, lat] = f.geometry.coordinates;
-    tail.push({ text: `💧 ${p.typetext} ${p.city} · ${relWhen(p.valid)}`, act: () => state.map.setView([lat, lon], 12) });
+    // the map jump is the whole action, so a phone sheet covering the map has to come down with it
+    tail.push({ text: `💧 ${p.typetext} ${p.city} · ${relWhen(p.valid)}`, act: () => { state.map.setView([lat, lon], 12); revealMapOnPhone(); } });
   }
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical')
     .sort((a, b) => new Date(b.ts) - new Date(a.ts))[0];
@@ -1226,9 +1228,11 @@ function tickerItems() {
     tail.push({
       text: `${TYPE_GLYPH[crit.type] || '📍'} ${head} · ${relWhen(crit.ts)}`,
       color: 'var(--sev-emergency)',
+      // land on the request itself, not the top of the feed: openInFeed scrolls to its card and
+      // flashes it, the same reveal the map popup's own open-in-feed button uses
       act: () => {
-        document.querySelector('.tabs button[data-tab="tab-requests"]').click();
-        if (Number.isFinite(crit.lat)) state.map.setView([crit.lat, crit.lon], 12);
+        if (Number.isFinite(crit.lat)) { state.map.setView([crit.lat, crit.lon], 12); revealMapOnPhone(); }
+        openInFeed(crit.id);
       },
     });
   }

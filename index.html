@@ -54,18 +54,9 @@
         <div id="hmore-menu" role="group" aria-labelledby="hmore-btn" hidden>
           <div class="hm-group" data-i18n="set.g.public">Public help</div>
           <button id="shelters-btn" title="Open shelters and hotlines" aria-label="Open shelters and hotlines" data-i18n-title="set.shelters.title" data-i18n-aria="set.shelters.title">🏠 <span class="ctl-lbl" data-i18n="set.shelters">Shelters &amp; hotlines</span></button>
-          <!-- Alerts is the board's stated reason for existing, so it sits above the display
-               preferences and holds every way of being told, on-device and off. -->
-          <div id="set-alerts" role="group">
-            <div class="hm-group" data-i18n="set.g.alerts">Alerts</div>
-            <div id="push-body"></div>
-            <div class="hm-group" data-i18n="res.follow">Follow / subscribe</div>
-            <div id="follow-body">
-              <div class="hint" data-i18n="res.follow.sub">No account and no app. New notices and forecast crests arrive where you already read things.</div>
-              <div class="resource-item"><a href="feed.xml" target="_blank" rel="noopener" data-i18n="res.rss">📡 RSS feed</a> · <span data-i18n="res.rss.note">emergencies, forecast crests, active notices in any reader</span></div>
-              <div class="resource-item"><a href="crests.ics" target="_blank" rel="noopener" data-i18n="res.ics">📅 Crest calendar (.ics)</a> · <span data-i18n="res.ics.note">subscribe to add forecast MAJOR crests to your calendar</span></div>
-            </div>
-          </div>
+          <!-- one row, not a group: every way of being told now lives in #notify-sheet, which has
+               the height the card never had inside this 418px scroll window -->
+          <button id="notify-btn" title="Notify me: alerts on this device, RSS, crest calendar" aria-label="Notify me" data-i18n-title="push.notify.title" data-i18n-aria="push.notify">🔔 <span class="ctl-lbl" data-i18n="push.notify">Notify me</span><span class="notify-state" id="notify-state"></span></button>
           <div class="hm-group" data-i18n="set.g.display">Display</div>
           <button id="theme-toggle" aria-label="Toggle light/dark theme" data-i18n-aria="ctl.theme.aria">☀️ <span class="ctl-lbl">Light</span></button>
           <button id="lang-toggle" title="Español" aria-label="Switch language to Spanish" data-i18n-title="ctl.lang.title" data-i18n-aria="ctl.lang.aria">🌐 <span class="ctl-lbl" id="lang-lbl">ES</span></button>
@@ -211,6 +202,13 @@
       </div>
 
       <div class="tab-body" id="tab-alerts">
+        <!-- discovery by context: a reader of this tab is by definition the reader who wants to be
+             told about the next one. Above .filters so renderAlertList() never moves it. -->
+        <button type="button" class="ls-row" id="alerts-notify-row" hidden>
+          <span class="ls-icon" aria-hidden="true">🔔</span>
+          <span class="ls-txt"><span class="ls-name" data-i18n="push.notify">Notify me</span><span class="ls-sub" id="alerts-notify-sub"></span></span>
+          <span class="ls-knob ls-go" aria-hidden="true">›</span>
+        </button>
         <div class="filters">
           <select id="flt-alert-sev">
             <option value="">All severities</option>
@@ -360,6 +358,31 @@
       <div class="ls-grab"></div>
       <div class="ls-head"><strong id="help-sheet-title" data-i18n="help.sheet.title">🏠 Shelters &amp; hotlines</strong><button class="ls-close" id="help-sheet-close" title="Close" data-i18n-title="risk.close">✕</button></div>
       <div class="ls-body"><div id="resources-body"></div></div>
+    </div>
+  </div>
+
+  <!-- alert setup is a sheet, not a card in the settings panel: .ls-panel gives it a 660px desktop
+       panel, a phone bottom sheet, a focus trap and a place in the Escape ladder. -->
+  <div id="notify-sheet" hidden>
+    <div class="ls-backdrop"></div>
+    <div class="ls-panel" role="dialog" aria-modal="true" aria-labelledby="notify-sheet-title">
+      <div class="ls-grab"></div>
+      <div class="ls-head"><strong id="notify-sheet-title">🔔 <span data-i18n="push.title">Notify me</span></strong><button class="ls-close" id="notify-sheet-close" title="Close" data-i18n-title="risk.close">✕</button></div>
+      <div class="ls-body">
+        <div id="push-body"></div>
+        <div class="ls-group" data-i18n="push.g.other">Other ways to be told</div>
+        <div id="follow-body">
+          <div class="hint" data-i18n="res.follow.sub">No account and no app. New notices and forecast crests arrive where you already read things.</div>
+          <a class="ls-row" href="feed.xml" target="_blank" rel="noopener">
+            <span class="ls-icon" aria-hidden="true">📡</span>
+            <span class="ls-txt"><span class="ls-name" data-i18n="res.rss">RSS feed</span><span class="ls-sub" data-i18n="res.rss.note">emergencies, forecast crests, active notices in any reader</span></span>
+          </a>
+          <a class="ls-row" href="crests.ics" target="_blank" rel="noopener">
+            <span class="ls-icon" aria-hidden="true">📅</span>
+            <span class="ls-txt"><span class="ls-name" data-i18n="res.ics">Crest calendar (.ics)</span><span class="ls-sub" data-i18n="res.ics.note">subscribe to add forecast MAJOR crests to your calendar</span></span>
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 

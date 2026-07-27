@@ -2056,16 +2056,9 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 }
 .controls #hmore-menu > button:hover { background: var(--surface-2); }
 #hmore-menu .ctl-lbl { display: inline; } /* menu entries keep icon + label at every width — discoverability lives here now */
-#hmore-menu #push-body { padding: 0 4px 2px; }
-#hmore-menu #push-body:empty { display: none; } /* no card (no backend, or a browser without push): no gap either */
-/* the Alerts group holds two ways of being told, so each names itself under the group heading */
-#hmore-menu #push-body .section-title {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink-muted); margin: 4px 0 3px;
-}
-#hmore-menu #follow-body { padding: 0 4px 2px; }
-#hmore-menu #follow-body .hint { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; margin: 2px 0 5px; }
-#hmore-menu #follow-body .resource-item { border-bottom: none; padding: 4px 0; font-size: 12.5px; }
+/* the gear's one alerts row publishes the card's own state beside the label */
+#hmore-menu .notify-state { margin-left: auto; font-size: 11.5px; color: var(--ink-muted); text-align: right; }
+#hmore-menu .notify-state:empty { display: none; }
 @media (max-width: 768px) {
   /* the gear is not flush right (the clock sits after it), so right-anchoring a 300px panel
      pushes its left edge off a 390px screen; on phones it spans the viewport under the header */
@@ -2110,8 +2103,8 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .leaflet-bar.views-trigger a { min-width: 44px; }
   .views-tag { font-size: 12.5px; }
 }
-#layer-sheet, #views-sheet, #share-sheet, #help-sheet { position: fixed; inset: 0; z-index: 1460; }
-#layer-sheet[hidden], #views-sheet[hidden], #share-sheet[hidden], #help-sheet[hidden] { display: none; }
+#layer-sheet, #views-sheet, #share-sheet, #help-sheet, #notify-sheet { position: fixed; inset: 0; z-index: 1460; }
+#layer-sheet[hidden], #views-sheet[hidden], #share-sheet[hidden], #help-sheet[hidden], #notify-sheet[hidden] { display: none; }
 #help-sheet .ls-body .resource-item:last-child { border-bottom: none; }
 #help-sheet .ls-body .section-title:first-child { margin-top: 2px; }
 /* the share surface is the same sheet family, so 48px rows and the phone bottom-sheet come for free */
@@ -2135,7 +2128,6 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 #share-qr .qr-note, #caltopo-qr .qr-note { color: #333; }
 /* team.css is lazy too, so this one lives here: it renders exactly when that stylesheet is missing */
 .team-loadfail { color: var(--ink-muted); font-size: 13px; line-height: 1.45; padding: 14px 12px; }
-#share-sheet #follow-body .resource-item { border-bottom: none; padding: 4px 2px; font-size: 12.5px; }
 
 /* migration cue: an informational pointer where a moved control used to live. Neutral accent, never
    the amber/red of a data warning, and never in the bottom toast lane the update channel owns. */
@@ -2245,8 +2237,30 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .ls-grab { display: block; flex: 0 0 auto; width: 44px; height: 4px; border-radius: 2px; background: var(--ink-muted); margin: 8px auto 0; }
 }
 
-/* device alerts (web push) card in Resources */
-#push-body .push-card { border-bottom: none; }
+/* ---- the Notify me sheet ---- */
+/* The alert card rendered up to 2,335px inside the settings panel's 418px scroll window, shared
+   with five other feature groups. It gets its own .ls-panel, and .ls-panel finally gets the
+   landscape-phone posture the rest of the board has had since v0.89. */
+#notify-sheet #push-body:empty { display: none; } /* no backend, no card: no gap either */
+#notify-sheet #follow-body .hint { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; margin: 4px 2px 6px; }
+#notify-sheet #follow-body .ls-row { text-decoration: none; color: var(--ink-1); }
+#notify-sheet .ls-base { margin: 4px 0 2px; }
+/* .ls-base-btn ships at 36px, under the touch floor, and must hold Spanish, 26% longer here */
+#notify-sheet .ls-base-btn { min-height: 44px; white-space: normal; line-height: 1.15; padding: 4px 6px; }
+@media (min-width: 769px) { #notify-sheet .ls-panel { width: 380px; } }
+/* Declared after the max-width:768px .ls-panel block above: a 667x375 phone matches both, and a
+   dash-mounted landscape phone needs the full-height right dock, not a 304px floating panel. */
+@media (max-height: 500px) and (orientation: landscape) {
+  #notify-sheet .ls-panel {
+    top: 0; bottom: 0; right: 0; left: auto;
+    width: min(460px, 58vw); max-height: none;
+    border-radius: 10px 0 0 10px; border-top: 0; border-right: 0; border-bottom: 0;
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* device alerts (web push) card, hosted by #notify-sheet */
+#push-body .push-card { padding: 2px 2px 0; font-size: 13px; }
 #push-body .push-sub { font-size: 13px; line-height: 1.35; }
 #push-body .push-disclaimer {
   font-size: 11.5px; color: var(--ink-2); line-height: 1.4;
@@ -2260,12 +2274,19 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 /* subscribed but undeliverable: never the green that means "you are covered" */
 #push-body .push-silent { color: var(--sev-warning); }
 #push-body .push-blocked { color: var(--sev-emergency); }
-#push-body .push-fix { font-size: 11.5px; color: var(--ink-2); line-height: 1.4; margin: 2px 0 4px; }
+/* a degraded state takes the sheet's own warning tone (.ls-note), so "this cannot fire" reads the
+   same here as everywhere else in the sheet family rather than as ordinary body text */
+#push-body .push-fix {
+  font-size: 12px; font-weight: 600; line-height: 1.4; margin: 6px 0 4px; padding: 6px 10px;
+  color: var(--sev-warning); border: 1px solid var(--sev-warning); border-radius: 6px;
+}
 #push-body .push-toggle { flex: 0 0 auto; min-height: 44px; padding: 5px 18px; }
 #push-body .push-types { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; }
-#push-body .push-type-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-#push-body .push-type-lbl { font-size: 12.5px; flex: 1 1 auto; min-width: 0; }
-#push-body .push-type-opts { display: flex; gap: 4px; flex: 0 0 auto; }
+/* the label sits above its control: a three-segment .ls-base has no width to share with a label,
+   and push.type.scope / push.type.gauges are 26% longer in Spanish */
+#push-body .push-type-row { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+#push-body .push-type-lbl { font-size: 12.5px; min-width: 0; }
+#push-body .push-type-opts { flex: 1 1 auto; }
 #push-body .push-chip {
   min-height: 44px; padding: 4px 12px; font-size: 12px; font-weight: 600;
   color: var(--ink-2); background: var(--surface-1);
@@ -2276,9 +2297,12 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 }
 #push-body .push-fresh { font-size: 11.5px; color: var(--ink-2); margin: 4px 0 2px; }
 #push-body .push-fresh-stale { color: var(--sev-emergency); font-weight: 650; }
-/* the compact half of the honesty text, always on screen; the full paragraphs live one tap away
-   in .push-about, which opens by default on every state that has not opted in yet */
+/* The compact half of the honesty text; the full paragraphs live one tap away in .push-about.
+   Pinned at EVERY breakpoint by the mechanism .drive-911 already uses in Drive Mode, so the 911
+   and not-a-WEA claim is on screen whatever the reader has scrolled to, including the consent
+   button. Scoped to #push-body so it releases once they scroll into Other ways to be told. */
 #push-body .push-note {
+  position: sticky; bottom: 0; z-index: 1; background: var(--surface-1);
   font-size: 11.5px; color: var(--ink-2); line-height: 1.4;
   border-left: 3px solid var(--sev-emergency); padding: 3px 0 3px 8px; margin: 8px 0 2px;
 }
@@ -2293,10 +2317,18 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 #push-body .push-about[open] > summary::before { content: '▾'; }
 #push-body .push-about .push-sub { margin-top: 2px; }
 #push-body .push-about .push-disclaimer { margin-bottom: 2px; }
-#push-body .push-manage-btn {
-  display: block; background: none; border: none; padding: 8px 0; min-height: 44px;
-  color: var(--accent); font-size: 12.5px; font-weight: 650; cursor: pointer; text-align: left;
+/* single-open accordion: one pane's controls, indented under the row that opened it */
+#push-body .push-sec[aria-expanded="true"] { border-color: var(--accent); }
+#push-body .push-sec-body { padding: 2px 4px 6px; }
+/* the nearby picker shows four; the rest are one tap away on every device */
+#push-body .push-more > summary {
+  display: flex; align-items: center; min-height: 44px; cursor: pointer; list-style: none;
+  font-size: 12.5px; font-weight: 650; color: var(--accent);
 }
+#push-body .push-more > summary::-webkit-details-marker { display: none; }
+#push-body .push-more > summary::before { content: '▸'; margin-right: 6px; font-size: 11px; }
+#push-body .push-more[open] > summary::before { content: '▾'; }
+#push-body .push-pitch { font-size: 13px; line-height: 1.35; margin: 4px 0 2px; }
 #push-body .push-m-title { font-size: 12px; font-weight: 650; margin: 8px 0 2px; color: var(--ink-2); }
 #push-body .push-m-note { font-size: 11.5px; color: var(--ink-2); margin: 4px 0 2px; }
 #push-body .push-g-row {

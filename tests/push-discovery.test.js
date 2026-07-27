@@ -22,7 +22,7 @@ const BOOT = read('js/boot.js');
 const HTML = read('index.html');
 const CSS = read('css/app.css');
 
-const { pushCardVisible, pushCardState } = loadApp();
+const { pushCardVisible, pushCardState, pushEntryStateKey } = loadApp();
 
 // the same environment facts pushEnvFacts() reports, for a capable browser that never opted in
 const facts = (over = {}) => ({
@@ -146,16 +146,17 @@ test('Notification.requestPermission is reachable from exactly one place, and on
    so the header read as two unlabelled icons behind one panel. The bell is gone; what replaces its
    discoverability job is a dot on the gear, which is why these assertions guard the dot's gating
    rather than a second button. */
-test('one header door to the Alerts group, with the call-to-action riding the gear', () => {
+test('one header door to the notify sheet, with the call-to-action riding the gear', () => {
   const header = HTML.slice(HTML.indexOf('<div class="controls">'), HTML.indexOf('<div id="hmore-menu"'));
   assert.ok(!/id="alerts-btn"/.test(HTML), 'the duplicate bell is back in the header');
   assert.ok(!/alerts-btn/.test(BOOT + BOARD + CSS), 'the removed bell left wiring or styling behind');
   assert.match(header, /id="hmore-dot"[^>]*hidden/, 'the alerts dot must start hidden, not asserted on load');
   assert.ok(/id="hmore-btn"[\s\S]{0,400}?id="hmore-dot"/.test(header), 'the dot must live inside the gear');
 
-  assert.match(BOOT, /const openAlertsPanel = \(\) => \{/, 'the alerts opener is gone');
+  assert.match(BOARD, /function openNotifySheet\(section\) \{/, 'the one alert-setup opener is gone');
   assert.match(BOOT, /window\.setAlertsCta = setAlertsCta/, 'the dot has no setter for the push card to call');
-  assert.ok(!/openSettingsMenu/.test(BOOT + BOARD), 'openSettingsMenu was superseded by openAlertsPanel');
+  assert.ok(!/openSettingsMenu|openAlertsPanel/.test(BOOT + BOARD),
+    'a second alert-setup opener is back; openNotifySheet is the only one');
 
   // the dot is a claim that this device can subscribe, so only the card that checked may raise it
   assert.match(BOARD, /if \(window\.setAlertsCta\) setAlertsCta\(st === 'off'\)/,
@@ -170,40 +171,101 @@ test('one header door to the Alerts group, with the call-to-action riding the ge
   assert.match(cta, /btn\.title = t\(titleKey\)/, 'the swapped title must be painted immediately');
   assert.match(cta, /btn\.setAttribute\('aria-label', t\(ariaKey\)\)/, 'the swapped aria-label must be painted immediately');
 
-  // the gauge-popup bell lands on the same surface, so there is one alerts destination
+  // every door lands on the same sheet, so alert setup has one destination
   const manage = BOARD.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
   assert.ok(manage, 'pushOpenManageFor() not found');
-  assert.match(manage[0], /openAlertsPanel\(\)/, 'the Notify me bell must open the alerts surface');
+  assert.match(manage[0], /openNotifySheet\('gauges'\)/, 'the Notify me bell must open the notify sheet');
+  for (const wiring of [/\$\('#notify-btn'\)\.addEventListener\('click', \(\) => openNotifySheet\(\)\)/,
+    /\$\('#alerts-notify-row'\)\.addEventListener\('click', \(\) => openNotifySheet\(\)\)/]) {
+    assert.match(BOOT, wiring, 'an entry point lost its opener');
+  }
 });
 
-test('the Alerts group leads the settings sheet and owns every way of being told', () => {
+/* The card was the largest thing in a 300px-wide, 418px-tall settings panel it shared with five
+   other feature groups. It moved to its own .ls-panel, keeping the id #push-body so ~30 CSS rules
+   and every $('#push-body') resolver still find it. What must not regress: the sheet owns EVERY way
+   of being told, each host is declared exactly once, and it joins the modal machinery the rest of
+   the .ls-panel family already has. */
+test('the notify sheet owns every way of being told, and is a real sheet', () => {
   const html = HTML.replace(/<!--[\s\S]*?-->/g, '');
-  const menu = html.slice(html.indexOf('<div id="hmore-menu"'), html.indexOf('<div class="refresh-meta">'));
-  assert.ok(menu.includes('id="set-alerts"'), 'the Alerts group wrapper is missing');
-  assert.ok(!/id="set-alerts" role="group" hidden/.test(menu),
-    'the group holds RSS and the calendar now, so it can no longer start hidden');
-  assert.ok(menu.indexOf('id="set-alerts"') < menu.indexOf('data-i18n="set.g.display"'),
-    'Alerts must sit above the display preferences');
-  assert.ok(menu.indexOf('id="shelters-btn"') < menu.indexOf('id="set-alerts"'),
-    'Public help keeps the lead row');
-
-  // the subscribe rows moved here from the export drawer, and moved rather than duplicated
-  const group = menu.slice(menu.indexOf('id="set-alerts"'), menu.indexOf('data-i18n="set.g.display"'));
-  assert.ok(group.includes('id="push-body"'), 'the device-alerts card left the Alerts group');
-  assert.ok(group.includes('id="follow-body"'), 'the subscribe rows did not land in the Alerts group');
-  assert.ok(group.includes('href="feed.xml"') && group.includes('href="crests.ics"'),
-    'RSS and the crest calendar must be in the Alerts group');
+  const sheet = html.slice(html.indexOf('<div id="notify-sheet"'), html.indexOf('<div id="share-sheet"'));
+  assert.ok(sheet.length > 500, '#notify-sheet was not found in index.html');
+  assert.ok(sheet.includes('id="push-body"'), 'the device-alerts card left the notify sheet');
+  assert.ok(sheet.includes('id="follow-body"'), 'the subscribe rows did not land in the notify sheet');
+  assert.ok(sheet.includes('href="feed.xml"') && sheet.includes('href="crests.ics"'),
+    'RSS and the crest calendar must be in the notify sheet');
   for (const id of ['push-body', 'follow-body']) {
     assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `#${id} is not declared exactly once`);
   }
+  // the settings panel keeps exactly one row to it, and that row must be a DIRECT child button:
+  // js/boot.js dismisses the panel on `#hmore-menu > button` only, so a nested control would
+  // leave the panel open on top of the sheet it just opened
+  const menu = html.slice(html.indexOf('<div id="hmore-menu"'), html.indexOf('<div class="refresh-meta">'));
+  assert.match(menu, /<div id="hmore-menu"[\s\S]*?\n\s*<button id="notify-btn"/,
+    '#notify-btn must be a direct child button of #hmore-menu');
+  assert.ok(menu.indexOf('id="notify-btn"') < menu.indexOf('data-i18n="set.g.display"'),
+    'being told must sit above the display preferences');
+  assert.ok(menu.indexOf('id="shelters-btn"') < menu.indexOf('id="notify-btn"'),
+    'Public help keeps the lead row');
+
+  // same sheet family as share/help, so it must inherit the same guarantees
+  assert.match(sheet, /class="ls-panel" role="dialog" aria-modal="true" aria-labelledby="notify-sheet-title"/,
+    'the notify panel must be a labelled modal dialog like every other .ls-panel');
+  assert.ok(sheet.includes('class="ls-backdrop"') && sheet.includes('class="ls-grab"'),
+    'the backdrop and the phone grab handle are what make it a bottom sheet');
+  assert.match(BOOT, /registerModal\(\$\('#notify-sheet'\), \{ focusEl: '\.ls-panel' \}\)/,
+    'the notify sheet must trap focus like the rest of the family');
+  assert.match(BOOT, /if \(!\$\('#notify-sheet'\)\.hidden\) \{ closeNotifySheet\(\); return; \}/,
+    'Escape must close the notify sheet');
+  assert.ok(/rolloverBusy[\s\S]*?'#notify-sheet'/.test(BOOT),
+    'an open notify sheet must postpone the update rollover, like every other overlay');
+
   const share = html.slice(html.indexOf('<div id="share-sheet"'), html.indexOf('<div id="notes-flyout"'));
   assert.ok(!/res\.follow|feed\.xml|crests\.ics/.test(share),
     'the export drawer still owns subscribe; the promotion was a move, not a copy');
 
-  // the card's own heading is no longer redundant now that the group holds two sub-sections
-  assert.ok(!/#hmore-menu #push-body \.section-title \{ display: none/.test(CSS),
-    'the device-alerts sub-heading must be visible beside Follow / subscribe');
-  assert.match(CSS, /#hmore-menu #follow-body \.resource-item \{/, 'the menu-side subscribe rows are unstyled');
+  // the two feed links were 15px .resource-item rows; in the sheet they are real 48px targets
+  const follow = sheet.slice(sheet.indexOf('id="follow-body"'));
+  assert.equal((follow.match(/class="ls-row"/g) || []).length, 2,
+    'both subscribe rows must be .ls-row (48px), not .resource-item (15px)');
+  assert.match(CSS, /#notify-sheet #follow-body \.ls-row \{/, 'the sheet-side subscribe rows are unstyled');
+  assert.ok(!/#share-sheet #follow-body/.test(CSS), 'dead CSS for a #follow-body the share sheet never had');
+});
+
+/* Discovery by context rather than by interruption: a reader of the Alerts tab is by definition the
+   reader who wants to be told about the next one. It must sit ABOVE .filters so renderAlertList()
+   repainting #alert-list can never move it, and it publishes the card's own state rather than a
+   standing invitation. */
+test('the Alerts tab carries a persistent row that cannot be repainted away', () => {
+  const html = HTML.replace(/<!--[\s\S]*?-->/g, '');
+  const tab = html.slice(html.indexOf('<div class="tab-body" id="tab-alerts">'), html.indexOf('id="tab-gauges"'));
+  assert.ok(tab.includes('id="alerts-notify-row"'), 'the Alerts tab lost its notify row');
+  assert.ok(tab.indexOf('id="alerts-notify-row"') < tab.indexOf('class="filters"'),
+    'the row must sit above .filters, outside anything a render replaces');
+  assert.ok(tab.indexOf('id="alerts-notify-row"') < tab.indexOf('id="alert-list"'),
+    'the row must sit above the list its own renderer replaces wholesale');
+  // hidden until the card proves a backend exists: a row into an empty sheet is a dead end
+  assert.match(tab, /id="alerts-notify-row"[^>]*hidden/, 'the row must start hidden, not asserted on load');
+  assert.match(BOARD, /function pushSyncEntries\(cardState, deliversAny\)/, 'the entry-row updater is gone');
+  assert.match(BOARD, /pushSyncEntries\(st, delivers\.any\)/,
+    'renderPushCard must publish its own state to the entry rows');
+});
+
+/* v0.99.65: a subscription that can deliver nothing must never wear the green ON. The rework
+   repeated that claim on two more surfaces (the gear row and the Alerts-tab row), and a surface
+   that repeats a claim has to repeat the honesty branch with it. */
+test('no entry point claims ON for a subscription that can deliver nothing', () => {
+  const fn = BOARD.match(/function pushEntryStateKey\(cardState, deliversAny\)[\s\S]*?\n\}/);
+  assert.ok(fn, 'pushEntryStateKey() not found');
+  assert.match(fn[0], /cardState === 'on' && !deliversAny \? 'push\.state\.silent'/,
+    'the entry rows must take the silent claim, exactly as the card does');
+  assert.match(fn[0], /cardState === 'unreachable'/,
+    'an unreachable backend must not leave the entry rows reading as OFF');
+  assert.equal(pushEntryStateKey('on', true), 'push.state.on');
+  assert.equal(pushEntryStateKey('on', false), 'push.state.silent', 'a silent subscription must not read as on');
+  assert.equal(pushEntryStateKey('off', false), 'push.state.off');
+  assert.equal(pushEntryStateKey('blocked', false), 'push.state.blocked');
+  assert.equal(pushEntryStateKey('unreachable', false), 'push.unreachable');
 });
 
 /* ---------- the promise stays honest ---------- */
@@ -228,15 +290,32 @@ test('the card still carries the best-effort framing, unweakened, on every rende
 });
 
 test('i18n: the promoted alerts surface is complete in both languages and dash-free', () => {
-  const keys = ['ctl.settings.cta.title', 'ctl.settings.cta.aria', 'push.notify',
-    'set.g.alerts', 'res.follow', 'res.follow.sub', 'res.rss', 'res.rss.note', 'res.ics', 'res.ics.note',
-    'push.title', 'push.note', 'push.disclaimer', 'push.sub', 'push.about'];
+  const keys = ['ctl.settings.cta.title', 'ctl.settings.cta.aria', 'push.notify', 'push.notify.title',
+    'res.follow.sub', 'res.rss', 'res.rss.note', 'res.ics', 'res.ics.note',
+    'push.title', 'push.note', 'push.disclaimer', 'push.sub', 'push.about', 'push.g.other',
+    'push.pitch', 'push.pitch.next', 'push.off.kept', 'push.sec.what', 'push.sum.unset',
+    'push.sum.nothing', 'push.sum.none', 'push.sum.ffe', 'push.sum.gauges', 'push.sum.followed',
+    'push.fix.ios.steps', 'push.manage.more', 'moved.notify'];
   for (const k of keys) {
     for (const lang of ['en', 'es']) {
       assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
       assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
     }
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+    for (const ph of I18N.en[k].match(/\{[a-z]+\}/g) || []) {
+      assert.ok(I18N.es[k].includes(ph), `es ${k} lost placeholder ${ph}`);
+    }
+  }
+  /* Retired with the rework. set.g.alerts and tab.alerts were the byte-identical string "Alerts"
+     on two surfaces; the tab keeps the noun (it names NWS products and is deep-linked via
+     ?tab=alerts), the settings surface became the verb phrase "Notify me". The manage
+     show/hide pair died with the button the accordion replaced. */
+  for (const dead of ['set.g.alerts', 'push.manage.show', 'push.manage.hide', 'res.follow']) {
+    for (const lang of ['en', 'es']) {
+      assert.equal(I18N[lang][dead], undefined, `${lang} still carries retired key ${dead}`);
+    }
+    assert.ok(!HTML.includes(`data-i18n="${dead}"`), `index.html still references retired key ${dead}`);
+    assert.ok(!(BOARD + BOOT).includes(`'${dead}'`), `a script still resolves retired key ${dead}`);
   }
   // the subscribe blurb described itself as an export while it lived in the export drawer
   assert.ok(!/export|exportaci/i.test(I18N.en['res.follow.sub'] + I18N.es['res.follow.sub']),

@@ -288,7 +288,7 @@ test('interchange lives in the Share surface, not in a content tab', () => {
     assert.ok(sheet.includes(`id="${id}"`), `#${id} is not inside the Share surface`);
   }
   // nothing interchange-shaped may remain in a tab body
-  const tabs = html.slice(html.indexOf('id="tab-requests"'), html.indexOf('<div id="share-sheet"'));
+  const tabs = html.slice(html.indexOf('id="tab-requests"'), html.indexOf('</main>'));
   for (const id of ['interchange-body', 'export-btn', 'caltopo-box']) {
     assert.ok(!tabs.includes(`id="${id}"`), `#${id} is still inside a tab body`);
   }
@@ -369,7 +369,7 @@ test('the migration cue is a dismissible in-place pointer, not a fifth toast', (
 
 test('i18n: the Share surface and migration cue keys exist in both languages', () => {
   const keys = ['share.sheet.title', 'share.sheet.sub', 'share.g.view', 'share.copy', 'share.native',
-    'share.native.title', 'share.qr', 'res.follow', 'res.follow.sub', 'moved.exports', 'moved.go'];
+    'share.native.title', 'share.qr', 'res.follow.sub', 'moved.exports', 'moved.go'];
   for (const k of keys) {
     for (const lang of ['en', 'es']) {
       assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);
@@ -388,23 +388,28 @@ function indexHtml() {
 }
 
 /* v0.99.41 replaced role="menu"/"menuitem" here with a labelled disclosure group: the panel holds
-   group headings, the device-alerts card and RSS links, so it could never satisfy the keyboard
-   contract the menu roles promised. The container semantics are pinned in modal-a11y.test.js; what
-   this guards is the panel's contents. */
-test('the settings sheet owns every entry point and holds the alerts card', () => {
+   group headings and feature rows, so it could never satisfy the keyboard contract the menu roles
+   promised. The container semantics are pinned in modal-a11y.test.js; what this guards is the
+   panel's contents. The alert card left for #notify-sheet in the Notify me rework, so what the
+   panel must still own is the one ROW that reaches it. */
+test('the settings sheet owns every entry point and keeps one row to the notify sheet', () => {
   const html = indexHtml();
   const menu = html.slice(html.indexOf('<div id="hmore-menu"'), html.indexOf('<div class="refresh-meta">'));
-  for (const id of ['shelters-btn', 'theme-toggle', 'lang-toggle', 'share-btn', 'help-btn', 'whatsnew-btn', 'safety-btn']) {
+  for (const id of ['shelters-btn', 'notify-btn', 'theme-toggle', 'lang-toggle', 'share-btn', 'help-btn', 'whatsnew-btn', 'safety-btn']) {
     assert.ok(new RegExp(`id="${id}"`).test(menu), `#${id} left the settings sheet`);
   }
-  for (const g of ['set.g.public', 'set.g.display', 'set.g.alerts', 'set.g.actions', 'set.g.help']) {
+  for (const g of ['set.g.public', 'set.g.display', 'set.g.actions', 'set.g.help']) {
     assert.ok(menu.includes(`data-i18n="${g}"`), `settings sheet is missing the ${g} heading`);
   }
   assert.equal((html.match(/id="push-body"/g) || []).length, 1, '#push-body is not declared exactly once');
-  assert.ok(menu.includes('id="push-body"'), '#push-body did not move into the settings sheet');
-  assert.ok(menu.includes('id="set-alerts"'), 'the Alerts group wrapper is missing');
+  const sheet = html.slice(html.indexOf('<div id="notify-sheet"'), html.indexOf('<div id="share-sheet"'));
+  assert.ok(sheet.includes('id="push-body"'), '#push-body did not move into the notify sheet');
   const tabs = html.slice(html.indexOf('id="tab-requests"'), html.indexOf('</main>'));
   assert.ok(!tabs.includes('id="push-body"'), '#push-body is back inside a tab body');
+  // the row is a DIRECT child of the panel, which is what makes the panel close behind it
+  // (js/boot.js: `#hmore-menu > button`). A nested control would leave the panel open over the sheet.
+  assert.match(menu, /<div id="hmore-menu"[\s\S]*?\n\s*<button id="notify-btn"/,
+    '#notify-btn must be a direct child button of #hmore-menu');
 });
 
 test('the Team shortcut is gone from markup, wiring, and both languages', () => {
@@ -423,7 +428,8 @@ test('the Notify me entry point opens the alerts surface, not the Resources tab'
   const board = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
   const m = board.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
   assert.ok(m, 'pushOpenManageFor() not found in js/board.js');
-  assert.ok(/openAlertsPanel\(\)/.test(m[0]), 'pushOpenManageFor should open the alerts surface');
+  assert.ok(/openNotifySheet\('gauges'\)/.test(m[0]),
+    'the gauge bell must open the notify sheet on the followed-gauges pane');
   assert.ok(!/\.tabs button/.test(m[0]), 'pushOpenManageFor still clicks a tab');
   // the three resolvers of #push-body must all still find it in its new home
   for (const fn of ['renderPushCard', 'initPushCard']) {
@@ -436,7 +442,7 @@ test('the Notify me entry point opens the alerts surface, not the Resources tab'
 
 test('i18n: the settings sheet keys exist in both languages', () => {
   const keys = ['ctl.settings', 'ctl.settings.title', 'ctl.settings.aria',
-    'set.g.display', 'set.g.alerts', 'set.g.actions', 'set.g.help', 'set.safety'];
+    'set.g.display', 'set.g.actions', 'set.g.help', 'set.safety'];
   for (const k of keys) {
     for (const lang of ['en', 'es']) {
       assert.ok(typeof I18N[lang][k] === 'string' && I18N[lang][k].length, `${lang} missing ${k}`);

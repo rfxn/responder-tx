@@ -279,6 +279,44 @@ test('the alerts disclosure keeps a visible affordance and a real tap target', (
   assert.ok(/#push-body \.push-blocked \{[^}]*color:/.test(CSS), 'blocked needs its own colour, distinct from off');
 });
 
+/* The 911 / not-a-WEA line is the one claim that has to be readable at the moment the reader taps
+   the consent button, and the card is taller than every viewport it renders in. It is pinned by
+   the same mechanism .drive-911 uses in Drive Mode, unconditionally: a sticky rule that only holds
+   at one breakpoint is a rule that fails on the device most likely to be in the field. */
+test('the honesty line is pinned in the scroll window at every breakpoint', () => {
+  const at = CSS.indexOf('#push-body .push-note {');
+  assert.notEqual(at, -1, 'the .push-note rule is gone');
+  const rule = CSS.slice(at, CSS.indexOf('}', at));
+  assert.ok(/position:\s*sticky/.test(rule), 'push.note must be sticky, not scroll away above the switch');
+  assert.ok(/bottom:\s*0/.test(rule), 'a sticky note with no offset never pins');
+  assert.ok(/background:\s*var\(--/.test(rule), 'a transparent sticky line renders over the text it overlaps');
+  // declared in the base cascade, so no media query has to opt in and none can opt out
+  const media = CSS.lastIndexOf('@media', at);
+  const closeOfThatMedia = media === -1 ? -1 : CSS.indexOf('\n}\n', media);
+  assert.ok(media === -1 || closeOfThatMedia < at,
+    'the sticky rule sits inside a media block; it must hold at every breakpoint');
+});
+
+/* .ls-base-btn ships at 36px and is missing from the touch-floor block, so the layer sheet's
+   basemap picker is under 44px on every touch device (separate ticket). Inside #notify-sheet it
+   carries the alert-area and gauge-tier choices, and it has to hold Spanish, 26% longer here. */
+test('the notify sheet raises the segmented control to a real tap target that wraps', () => {
+  const at = CSS.indexOf('#notify-sheet .ls-base-btn {');
+  assert.notEqual(at, -1, 'the notify-sheet .ls-base-btn rule is gone');
+  const rule = CSS.slice(at, CSS.indexOf('}', at));
+  assert.ok(/min-height:\s*44px/.test(rule), 'the segmented control must clear the 44px touch floor');
+  assert.ok(/white-space:\s*normal/.test(rule), 'nowrap truncates "Todo el estado" in the Spanish render');
+  // the landscape phone is a dash mount on this board, and .ls-panel never joined that breakpoint
+  const land = CSS.indexOf('@media (max-height: 500px) and (orientation: landscape) {', CSS.indexOf('#notify-sheet'));
+  assert.notEqual(land, -1, 'the notify sheet has no landscape-phone posture');
+  const block = CSS.slice(land, CSS.indexOf('\n}\n', land));
+  assert.ok(block.includes('#notify-sheet .ls-panel'), 'the landscape block does not reach the notify panel');
+  assert.ok(/max-height:\s*none/.test(block), 'a 390px-tall landscape viewport cannot afford min(78vh, 660px)');
+  // declared after the phone block, because a 667x375 phone matches both
+  assert.ok(land > CSS.indexOf('@media (max-width: 768px) {\n  .ls-panel {'),
+    'the landscape rule must be declared after the max-width:768px .ls-panel block, or it loses');
+});
+
 test('the settings sheet is scrollable rather than unbounded', () => {
   // it now carries the device-alerts card; without a cap it ran off a short landscape viewport
   const at = CSS.indexOf('#hmore-menu {');

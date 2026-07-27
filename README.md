@@ -109,7 +109,7 @@ Cloudflare Durable Object that stays dormant unless someone joins a team.
 - Search by place, address, gauge, lat/lon, or card ID
 - Handoff: export JSON (merge by id), **GeoJSON** (drops into CalTopo / SARTopo), Markdown AAR, and a plain-text SITREP for radio/SMS
 - A ready-made CalTopo / SARTopo layer at a fixed URL, refreshed each cycle, importable by link or QR
-- Device alerts (opt-in): a notification for new Flash Flood Emergencies, for an area-wide gauge tier, and for specific gauges you follow, in English or Spanish
+- Notify me (opt-in device alerts): a notification for new Flash Flood Emergencies, for an area-wide gauge tier, and for specific gauges you follow, in English or Spanish. Set up from the Alerts tab, the Settings gear, or any gauge popup
 - Field Notes: responder annotations (writable on the LAN host, read-only on the public mirror)
 
 **Team coordination (opt-in)**

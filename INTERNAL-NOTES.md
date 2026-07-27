@@ -276,3 +276,36 @@ the same source, but the fixes are opposite: an unreachable upstream is somebody
 else's outage, while a step that times out every cycle means the budget is too
 tight and the board would otherwise sit DEGRADED forever with nobody able to tell
 the two apart from the log.
+
+## Houston / Rice-area camera sources: what was checked and ruled out (2026-07-27)
+
+An owner question about municipal or community cameras near Rice University
+prompted a source sweep. Recording the negatives so the same dead ends are not
+re-researched: none of these are integration gaps on our side, they simply do not
+publish imagery.
+
+| Source | Finding |
+|--------|---------|
+| Harris County FWS (`harriscountyfws.org`) | **No cameras.** 702 KB of map JS, zero camera tokens. Rain/stream gauges only, data behind `/MultiGauge` |
+| Rice SSPEED / TMC Flood Alert System (FAS5) | No cameras. The Brays Bayou alert system for the Medical Center is gauge and radar driven |
+| WeatherSTEM Harris County | Login-gated, "requires you to be logged into WeatherSTEM" |
+| HCTRA | `/roadway-cameras` returns the generic site shell, no feed |
+| KHOU / Click2Houston / FOX26 | Hard 404 on camera pages |
+| ABC13 | HTTP 200 carrying a "Page Not Found" body, a soft-404 |
+| Houston Zoo | 8 real public cams ~1.5 km from Rice, animal habitats only. No hazard value and no capture time, so the aging badge could never fire |
+| Windy Webcams API v3 | The one remaining live option. Needs a free `x-windy-api-key`; coverage unmeasured |
+
+The point worth remembering: **Harris County Flood Control owns Brays Bayou flood
+warning and runs no cameras.** Brays is what floods Rice and the Medical Center,
+and the only water-facing view we carry within 5 km is TranStar's SH288 @ MacGregor
+(Brays Bayou). That bayou is instrumented with gauges, not eyes. Any future "add
+more bayou cameras" idea has no upstream to draw from.
+
+### TranStar and TxDOT co-locate near Rice
+
+Of 34 TxDOT cameras within 5 km of Rice, 33 sit at coordinates *identical* to a
+Houston TranStar camera: same pole, TxDOT serving HLS and TranStar serving a still.
+`near_streamable()` in `gen-cameras.py` dedupes ITS **snapshot** cams against the
+streamable set but does not dedupe **TranStar** against it, so raw marker counts in
+Houston roughly double-count viewpoints. Whether to collapse the pair or keep it as
+stream-plus-still redundancy is an open owner decision, not a defect.

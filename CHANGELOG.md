@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.62 · 2026-07-27 (a slow source can no longer stall the refresh)
+
+-- Changes --
+- [Change] Each source in the 15-minute refresh now has a time limit, and the
+           refresh as a whole has one. A source that runs past its limit is
+           stopped and keeps its previous data with its own timestamp
+- [Change] A source that was stopped for running too long is named as timed out
+           in the refresh record, separately from one that is unreachable
+- [Change] Everything that finished in time still publishes, so a single slow
+           source no longer delays the following refresh
+- [Change] The archive rebuild limits how long it spends fetching from upstream
+           and resumes where it stopped on the next refresh. Nothing already
+           recorded is dropped
+- [Change] The public feeds are written so an interrupted refresh leaves the
+           previous feed in place rather than a partial one
+
 ## v0.99.61 · 2026-07-27 (a source that times out gets another try)
 
 -- Changes --

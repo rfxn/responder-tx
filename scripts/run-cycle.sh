@@ -10,6 +10,8 @@
 #
 # One failing source does not stop the publish: generators are non-fatal and
 # the cycle ships whatever refreshed. See scripts/README.md "Partial publish".
+# Each generator runs under a time budget, under an aggregate budget over all of
+# them; a step that outruns its budget is killed and counts as a failed one.
 # Exit: 0 clean or lock-skip, 1 nothing refreshed / fatal, 2 bad argument,
 #       3 published but degraded, or deploy.sh's own code if deploy failed.
 set -euo pipefail
@@ -49,20 +51,67 @@ trap 'log "ERROR: cycle failed (exit $?) near line ${LINENO}"' ERR
 STEPS_OK=()
 STEPS_FAILED=()
 STEPS_SKIPPED=()
+STEPS_TIMEOUT=()
+
+# --- step budgets: a hung generator must not eat the 15-minute window -------------------------
+# The cycle holds a non-blocking flock, so a run that outlives its window makes the NEXT cycle
+# log SKIP: an overrun stops the board publishing for as long as it lasts. Numbers are sized from
+# the logged per-step distribution, not guessed; tests/run-cycle.test.sh asserts the headroom and
+# the window arithmetic so a future edit cannot quietly tighten a budget onto a legitimate run.
+BUDGET_SNAPSHOT_S=150
+BUDGET_ROADS_S=150
+BUDGET_HISTORY_S=600
+BUDGET_NOTICES_S=60
+BUDGET_SHELTERS_S=150
+BUDGET_CROSSSTATUS_S=120
+BUDGET_CREST_S=120
+BUDGET_FEEDS_S=120
+BUDGET_CALTOPO_S=120
+# Per-step budgets alone cannot bound the cycle: they sum past the window. This is the aggregate
+# guard, and it leaves room for the publish path (cycle-check, commit, push, deploy) to finish.
+CYCLE_BUDGET_S="${RESPONDER_CYCLE_BUDGET_S:-660}"
+STEP_BUDGET_OVERRIDE="${RESPONDER_STEP_BUDGET_S:-}"  # operational escape hatch; also how the suite forces a timeout
+KILL_GRACE_S=20   # SIGTERM, then SIGKILL: long enough for a generator to drop its temp file
+MIN_STEP_S=5      # never hand `timeout` a budget of 0 — GNU timeout reads 0 as "no timeout"
 
 # PIPE_ROOT is the tree the cycle's own code is read from; the data always lives in REPO_ROOT
 PIPE_ROOT="$REPO_ROOT"
 CODE_TMP=""
 
-# gen LABEL SCRIPT KEEP — run one generator, record the outcome, return its real status.
-# A failed generator leaves its previous output untouched, so that file keeps its own older
-# "generated" stamp and the board's freshness/aging/suppression machinery marks it stale by itself.
+# gen LABEL SCRIPT KEEP BUDGET_S — run one generator under a time budget, record the outcome,
+# return its real status. A failed OR timed-out generator leaves its previous output untouched, so
+# that file keeps its own older "generated" stamp and the board's freshness/aging/suppression
+# machinery marks it stale by itself. Every generator writes its output atomically, which is what
+# makes "killed" and "failed" the same fact on disk rather than a half-written file.
+# A timeout is bucketed apart from a failure on purpose: an upstream being down and a budget being
+# too tight both stale the same source, and only the log tells them apart.
 gen() {
-    local label=$1 script=$2 keep=$3
-    log "step: ${script}"
-    if python3 "${PIPE_ROOT}/scripts/${script}"; then
+    local label=$1 script=$2 keep=$3 budget=$4
+    local now remaining effective rc=0
+    if [ -n "$STEP_BUDGET_OVERRIDE" ]; then budget="$STEP_BUDGET_OVERRIDE"; fi
+    now=$(command date +%s)
+    remaining=$(( GEN_DEADLINE - now ))
+    if [ "$remaining" -lt "$MIN_STEP_S" ]; then
+        STEPS_TIMEOUT+=("$label")
+        log "TIMEOUT: ${script} not started; the ${CYCLE_BUDGET_S}s cycle generator budget is spent. Keeping previous ${keep} and its older stamp"
+        return 1
+    fi
+    effective="$budget"
+    if [ "$remaining" -lt "$effective" ]; then
+        effective="$remaining"
+        log "step: ${script} (budget ${effective}s, squeezed from ${budget}s by the cycle deadline)"
+    else
+        log "step: ${script} (budget ${effective}s)"
+    fi
+    command timeout -k "$KILL_GRACE_S" "$effective" python3 "${PIPE_ROOT}/scripts/${script}" || rc=$?
+    if [ "$rc" -eq 0 ]; then
         STEPS_OK+=("$label")
         return 0
+    fi
+    if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then  # timeout's own code, and SIGKILL after the grace period
+        STEPS_TIMEOUT+=("$label")
+        log "TIMEOUT: ${script} exceeded ${effective}s and was killed; keeping previous ${keep} and its older stamp"
+        return 1
     fi
     STEPS_FAILED+=("$label")
     log "WARN: ${script} failed (non-fatal); keeping previous ${keep} and its older stamp"
@@ -138,29 +187,34 @@ fi
 # event stays an edit to a data file, never a release.
 export RESPONDER_ROOT="$REPO_ROOT"
 
-if gen snapshot fetch-snapshot.py data/gauges-snapshot.json; then SNAPSHOT_FRESH=1; else SNAPSHOT_FRESH=0; fi
+# the aggregate clock starts at the first generator, not at cycle start: materializing the HEAD
+# worktree is bounded work that must not eat a data source's budget
+GEN_DEADLINE=$(( $(command date +%s) + CYCLE_BUDGET_S ))
+log "generator budget: ${CYCLE_BUDGET_S}s total"
 
-gen roads gen-roads-snapshot.py data/roads-snapshot.json || :  # independent source; outcome already recorded in gen()
-gen history gen-history.py data/history.json || :  # reads COMMITTED snapshot history, so this cycle's fetch does not gate it
-gen notices gen-notices.py data/requests.json || :  # LAN intake merge, never committed by the cycle
-gen shelters gen-shelters.py data/shelters-live.json || :  # independent optional feed
-gen crossstatus gen-crossings-status.py data/crossing-status.json || :  # independent optional feed; live jurisdiction-reported closures
+if gen snapshot fetch-snapshot.py data/gauges-snapshot.json "$BUDGET_SNAPSHOT_S"; then SNAPSHOT_FRESH=1; else SNAPSHOT_FRESH=0; fi
+
+gen roads gen-roads-snapshot.py data/roads-snapshot.json "$BUDGET_ROADS_S" || :  # independent source; outcome already recorded in gen()
+gen history gen-history.py data/history.json "$BUDGET_HISTORY_S" || :  # reads COMMITTED snapshot history, so this cycle's fetch does not gate it
+gen notices gen-notices.py data/requests.json "$BUDGET_NOTICES_S" || :  # LAN intake merge, never committed by the cycle
+gen shelters gen-shelters.py data/shelters-live.json "$BUDGET_SHELTERS_S" || :  # independent optional feed
+gen crossstatus gen-crossings-status.py data/crossing-status.json "$BUDGET_CROSSSTATUS_S" || :  # independent optional feed; live jurisdiction-reported closures
 
 # crest-summary is purely derived from the gauge snapshot; feeds is not (it also carries live NWS
 # flash-flood alerts, and its lastBuildDate is a document build stamp, not a data-currency claim),
 # so withholding it over a gauge-API outage would hide fresh warnings from a flood board.
 if [ "$SNAPSHOT_FRESH" -eq 1 ]; then
-    gen crest gen-crest-summary.py data/crest-summary.json || :  # outcome recorded in gen()
+    gen crest gen-crest-summary.py data/crest-summary.json "$BUDGET_CREST_S" || :  # outcome recorded in gen()
 else
     skip crest gen-crest-summary.py "the gauge snapshot did not refresh"
 fi
 
-gen feeds gen-feeds.py "feed.xml + crests.ics" || :  # outcome recorded in gen()
+gen feeds gen-feeds.py "feed.xml + crests.ics" "$BUDGET_FEEDS_S" || :  # outcome recorded in gen()
 
 # the CalTopo export is a snapshot of published gauge/crest state; restamping it over stale gauges
 # would hand a field team a fresh-looking export of old numbers
 if [ "$SNAPSHOT_FRESH" -eq 1 ]; then
-    gen caltopo gen-caltopo.py "caltopo-export.json + board.kml + board-georss.xml" || :  # outcome recorded in gen()
+    gen caltopo gen-caltopo.py "caltopo-export.json + board.kml + board-georss.xml" "$BUDGET_CALTOPO_S" || :  # outcome recorded in gen()
 else
     skip caltopo gen-caltopo.py "the gauge snapshot did not refresh"
 fi
@@ -168,12 +222,12 @@ fi
 # a cycle where NOTHING refreshed is a hard failure: there is nothing to publish and the fault is
 # upstream-wide, not a single flaky source
 if [ "${#STEPS_OK[@]}" -eq 0 ]; then
-    log "ERROR: cycle failed (no source refreshed; failed: ${STEPS_FAILED[*]:-none}, skipped: ${STEPS_SKIPPED[*]:-none})"
+    log "ERROR: cycle failed (no source refreshed; failed: ${STEPS_FAILED[*]:-none}, timed out: ${STEPS_TIMEOUT[*]:-none}, skipped: ${STEPS_SKIPPED[*]:-none})"
     exit 1
 fi
 
 DEGRADED=0
-if [ "${#STEPS_FAILED[@]}" -gt 0 ] || [ "${#STEPS_SKIPPED[@]}" -gt 0 ]; then
+if [ "${#STEPS_FAILED[@]}" -gt 0 ] || [ "${#STEPS_SKIPPED[@]}" -gt 0 ] || [ "${#STEPS_TIMEOUT[@]}" -gt 0 ]; then
     DEGRADED=1
 fi
 
@@ -181,7 +235,7 @@ fi
 # never sign off as a clean success. Exit 3 = published what refreshed, some sources did not.
 cycle_end() {
     if [ "$DEGRADED" -eq 1 ]; then
-        log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}"
+        log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | timed out: ${STEPS_TIMEOUT[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}"
         exit 3
     fi
     log "=== $1 ==="
@@ -245,7 +299,7 @@ STAMP=$(command date -u '+%Y-%m-%dT%H:%MZ')
 # on a cycle that only published some of its sources
 COMMIT_MSG="Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + roads/history/crest/feeds/shelters/caltopo regen"
 if [ "$DEGRADED" -eq 1 ]; then
-    COMMIT_MSG="Data refresh ${STAMP} (auto-cron, partial): refreshed ${STEPS_OK[*]}; stale: ${STEPS_FAILED[*]:-none} ${STEPS_SKIPPED[*]:-}"
+    COMMIT_MSG="Data refresh ${STAMP} (auto-cron, partial): refreshed ${STEPS_OK[*]}; stale: ${STEPS_FAILED[*]:-none} ${STEPS_TIMEOUT[*]:-} ${STEPS_SKIPPED[*]:-}"
 fi
 git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' commit -m "$COMMIT_MSG"
 log "committed: $(git log --oneline -1)"

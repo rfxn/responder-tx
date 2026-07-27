@@ -11,12 +11,14 @@ against a throwaway git repo (never the real data/), plus unit checks on the pur
 helpers. Run: python3 tests/gen-history.test.py"""
 import hashlib
 import importlib.util
+import inspect
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -501,6 +503,61 @@ check('backfill thinning never touches a natively captured frame',
       native_tail in thinned_backfill)
 check('the crest survives with its stage and category intact, not just its timestamp',
       [f['gauges']['A'] for f in thinned_backfill if f['_dt'].hour == 3] == [[42.0, 4]])
+
+# --- the reconstruction budget bounds the NETWORK stage, and only that ------------------------
+# Reconstruction walks one upstream request per uncovered lid at 90-180s each, so at a thousand
+# gauges the stage can outrun the whole 15-minute cycle and stop the board publishing. Bounding it
+# is safe only because retention is untouched and because reconstructed frames are re-merged from
+# the published record next cycle, so a truncated window resumes instead of restarting.
+budget_tmp = tempfile.mkdtemp(prefix='gen-history-budget.')
+try:
+    saved = (GH.ROOT, GH.http_json, GH.FETCH_SPACING_S, GH.BACKFILL_BUDGET_S, GH._backfill_deadline)
+    os.makedirs(os.path.join(budget_tmp, 'data'))
+    GH.ROOT = budget_tmp
+    GH.FETCH_SPACING_S = 0
+    meta_file = os.path.join(budget_tmp, 'data', 'gauge-meta.json')
+    lids = ['L%03dT2' % i for i in range(40)]
+    fetched = []
+
+    def counting_nwps(url, timeout=90):
+        fetched.append(url)
+        return {'usgsId': None, 'flood': {'categories': {'minor': {'stage': 5.0}}}}
+
+    GH.http_json = counting_nwps
+
+    GH._backfill_deadline = time.monotonic() + 3600
+    GH.load_gauge_meta(lids)
+    check('BUDGET · a reconstruction budget with time left still fetches every lid',
+          len(fetched) == len(lids), '%d of %d' % (len(fetched), len(lids)))
+
+    os.unlink(meta_file)
+    del fetched[:]
+    GH._backfill_deadline = time.monotonic() - 1
+    GH.load_gauge_meta(lids)
+    check('BUDGET · a spent budget stops the per-lid metadata walk instead of running it to the end',
+          not fetched, '%d fetched' % len(fetched))
+    check('BUDGET · a deferred lid is left uncached, so the next cycle retries it rather than '
+          'reading it as a gauge with no thresholds', not os.path.exists(meta_file))
+
+    GH._backfill_deadline = None
+    del fetched[:]
+    GH.load_gauge_meta(lids)
+    check('BUDGET · with no budget in force the walk is unbounded, as it is outside backfill',
+          len(fetched) == len(lids), '%d of %d' % (len(fetched), len(lids)))
+finally:
+    GH.ROOT, GH.http_json, GH.FETCH_SPACING_S, GH.BACKFILL_BUDGET_S, GH._backfill_deadline = saved
+    shutil.rmtree(budget_tmp, ignore_errors=True)
+
+# E6: retention scope may only grow. A clock must never be able to truncate the archive walk, so
+# the bound is asserted to be absent from the retention path rather than merely believed to be.
+RETENTION_FNS = ('walk', 'snapshot_commits', 'road_snapshots', 'merge_recovered',
+                 'merge_gap_frames', 'project_display', 'write_chunks', 'load_published')
+timed_retention = [n for n in RETENTION_FNS
+                   if 'backfill_spent' in inspect.getsource(getattr(GH, n))]
+check('E6 · no retention or publication function is time-bounded; only the network stage is',
+      not timed_retention, str(timed_retention))
+check('BUDGET · the reconstruction budget is a real bound, not an unset default',
+      GH.BACKFILL_BUDGET_S > 0)
 
 print('---')
 if FAILS:

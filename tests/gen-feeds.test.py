@@ -323,6 +323,13 @@ for name, args in (('fetch_emergencies', ()), ('fetch_tornado_emergencies', ()),
 check('the fetch helpers are the only network path in the generator',
       len(re.findall(r'urlopen\(', inspect.getsource(g))) == 1, inspect.getsource(g.fetch_alerts))
 
+# The cycle now kills a generator that outruns its time budget, and commits whatever is on disk.
+# A truncated feed.xml would be published as the real one, so both outputs rename into place.
+main_src = inspect.getsource(g.main)
+check('feed.xml and crests.ics are written by rename, so a killed run leaves the previous feed '
+      'intact rather than a truncated one', "open(" not in main_src.replace("write_atomic(", "")
+      and main_src.count('write_atomic(') == 2, main_src[-400:])
+
 print('----')
 print('ALL PASS' if FAILS == 0 else '%d TEST(S) FAILED' % FAILS)
 raise SystemExit(1 if FAILS else 0)

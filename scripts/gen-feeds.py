@@ -11,6 +11,7 @@ import datetime
 import json
 import os
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -262,6 +263,20 @@ def build_ics(crests, built):
     return "\r\n".join(lines) + "\r\n"
 
 
+def write_atomic(path, payload):
+    """Rename into place, so a run killed at its time budget leaves the previous feed intact
+    rather than a truncated one the cycle would then commit."""
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix="." + os.path.basename(path) + ".",
+                               suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(payload)
+        os.replace(tmp, path)
+    except BaseException:  # BaseException, not Exception: SystemExit from a SIGTERM must clean up too
+        os.unlink(tmp)
+        raise
+
+
 def main():
     built = now_utc()
     snapshot = load_required("data/gauges-snapshot.json")
@@ -282,11 +297,10 @@ def main():
     crests = rising_crests(snapshot)
     title, desc = event_branding()
 
-    with open(os.path.join(ROOT, "feed.xml"), "w", encoding="utf-8") as f:
-        f.write(build_rss(emergencies, tornadoes, crests, notices[:20], built, title, desc,
-                          unreachable, tornado_unreachable))
-    with open(os.path.join(ROOT, "crests.ics"), "w", encoding="utf-8") as f:
-        f.write(build_ics(crests, built))
+    write_atomic(os.path.join(ROOT, "feed.xml"),
+                 build_rss(emergencies, tornadoes, crests, notices[:20], built, title, desc,
+                           unreachable, tornado_unreachable))
+    write_atomic(os.path.join(ROOT, "crests.ics"), build_ics(crests, built))
     state = f"{len(emergencies)} emergencies" if unreachable is None else f"emergency check UNREACHABLE ({unreachable})"
     tstate = f"{len(tornadoes)} tornado" if tornado_unreachable is None else f"tornado check UNREACHABLE ({tornado_unreachable})"
     print(f"feed.xml + crests.ics: {state}, {tstate}, {len(crests)} crests, {len(notices)} notices")

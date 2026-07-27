@@ -69,6 +69,7 @@ import gzip
 import hashlib
 import json
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -111,6 +112,25 @@ THRESHOLD_KEYS = ("action", "minor", "moderate", "major")
 META_MISS_KEY = "miss"             # entry present but never answered: retried, never read as thresholds
 META_MISS_RETRY_S = 3600
 EPOCH = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)  # sort floor for an unparseable commit stamp
+
+# Reconstruction walks one upstream request per uncovered lid, each with its own 90-180s timeout,
+# so at network scale the stage has no aggregate bound of its own and can outrun the whole data
+# cycle. This bounds the NETWORK stage only. The archive walk and the retention ratchet above are
+# never bounded: they are what v0.97.97 made load-bearing.
+BACKFILL_BUDGET_S = float(os.environ.get("RESPONDER_BACKFILL_BUDGET_S") or 300)
+_backfill_deadline = None          # set per build_backfill() call; None means no budget in force
+
+
+def backfill_spent():
+    """True once the reconstruction budget is gone. Truncation is safe: reconstructed frames are
+    re-merged from the published record next cycle, so the window resumes rather than restarts."""
+    return _backfill_deadline is not None and time.monotonic() >= _backfill_deadline
+
+
+def _on_terminate(_sig, _frame):
+    # timeout(1) sends SIGTERM before SIGKILL; turning it into SystemExit is what lets write_atomic
+    # unlink its temp file, so a killed run leaves no .chunk.*.tmp for `git add history/day`
+    sys.exit("gen-history: terminated; leaving the previously published record in place")
 
 
 def git(*args):
@@ -575,7 +595,7 @@ def write_atomic(path, payload):
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(payload)
         os.replace(tmp, path)
-    except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
+    except BaseException:  # BaseException, not Exception: SystemExit from a SIGTERM must clean up too
         os.unlink(tmp)
         raise
 
@@ -615,7 +635,10 @@ def write_chunks(frames, index_meta):
                      "bytes": len(payload),
                      "h": hashlib.sha256(payload.encode("utf-8")).hexdigest()[:CHUNK_HASH_LEN]})
     keep = {day + ".json" for day in by_day}
-    stale = [n for n in os.listdir(day_dir) if n.endswith(".json") and n not in keep]
+    # .chunk.*.tmp too: history/day is staged as a directory pathspec, so a temp left by a killed
+    # run would otherwise be committed as a data file
+    stale = [n for n in os.listdir(day_dir)
+             if n not in keep and (n.endswith(".json") or (n.startswith(".chunk.") and n.endswith(".tmp")))]
     for name in stale:
         os.unlink(os.path.join(day_dir, name))
     index = {"generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -655,8 +678,10 @@ def load_gauge_meta(lids):
             meta = json.load(f)
     now = datetime.datetime.now(datetime.timezone.utc)
     missing = [lid for lid in sorted(lids) if lid not in meta or meta_due(meta[lid], now)]
-    misses = 0
+    misses = fetched = 0
     for lid in missing:
+        if backfill_spent():
+            break  # the rest stay uncached and are retried next cycle, exactly like an unanswered fetch
         entry = {"usgs": None, "action": None, "minor": None, "moderate": None, "major": None}
         try:
             g = http_json(NWPS_GAUGE_URL + lid)
@@ -672,8 +697,10 @@ def load_gauge_meta(lids):
             entry[META_MISS_KEY] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
             misses += 1
         meta[lid] = entry
+        fetched += 1
         time.sleep(FETCH_SPACING_S)
-    if missing:
+    deferred = len(missing) - fetched
+    if fetched:
         fd, tmp = tempfile.mkstemp(dir=os.path.dirname(meta_path), prefix=".gauge-meta.", suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -683,8 +710,11 @@ def load_gauge_meta(lids):
         except Exception:  # noqa: BLE001, cleanup: drop the temp file, then re-raise
             os.unlink(tmp)
             raise
-        print(f"gauge-meta.json: fetched {len(missing)} lids from NWPS ({misses} did not answer "
+        print(f"gauge-meta.json: fetched {fetched} lids from NWPS ({misses} did not answer "
               f"and are queued for retry, not cached as thresholdless), {len(meta)} total cached")
+    if deferred:
+        print(f"  note: {deferred} metadata fetch(es) deferred to the next cycle; the "
+              f"{BACKFILL_BUDGET_S:.0f}s reconstruction budget was spent", file=sys.stderr)
     return meta
 
 
@@ -692,6 +722,10 @@ def fetch_usgs_series(site_ids, start_iso, end_iso):
     series = {}
     site_ids = sorted(site_ids)
     for i in range(0, len(site_ids), USGS_SITES_PER_REQ):
+        if backfill_spent():
+            print(f"  note: USGS reconstruction stopped at the {BACKFILL_BUDGET_S:.0f}s budget with "
+                  f"{len(site_ids) - i} site(s) unfetched; they resume next cycle", file=sys.stderr)
+            break
         chunk = site_ids[i:i + USGS_SITES_PER_REQ]
         url = (f"{USGS_IV_URL}?format=json&sites={','.join(chunk)}"
                f"&parameterCd=00065&startDT={start_iso}&endDT={end_iso}")
@@ -770,8 +804,10 @@ def build_backfill(lids, first_dt, start_dt):
     then the live NWPS observed endpoint for whatever is still uncovered. Callers pass
     only the lids in publication scope, so a Texas-wide capture cannot turn a one-hour
     gap into a thousand upstream requests."""
+    global _backfill_deadline
     if first_dt <= start_dt or not lids:
         return [], {}
+    _backfill_deadline = time.monotonic() + BACKFILL_BUDGET_S
     meta = load_gauge_meta(lids)
     pts_by_lid, src_by_lid = {}, {}
     for lid in sorted(lids):
@@ -791,8 +827,12 @@ def build_backfill(lids, first_dt, start_dt):
             if pts:
                 pts_by_lid[lid] = pts
                 src_by_lid[lid] = "usgs"
+    deferred = 0
     for lid in sorted(lids):
         if lid in pts_by_lid:
+            continue
+        if backfill_spent():
+            deferred += 1  # an unfetched lid is an honest gap, the same as one whose fetch missed
             continue
         try:
             pts = fetch_nwps_observed(lid, start_dt, first_dt)
@@ -803,6 +843,9 @@ def build_backfill(lids, first_dt, start_dt):
             pts_by_lid[lid] = pts
             src_by_lid[lid] = "nwps"
         time.sleep(FETCH_SPACING_S)
+    if deferred:
+        print(f"  note: NWPS reconstruction stopped at the {BACKFILL_BUDGET_S:.0f}s budget with "
+              f"{deferred} lid(s) unfetched; they resume next cycle", file=sys.stderr)
     times = {lid: [p[0] for p in pts] for lid, pts in pts_by_lid.items()}
     frames = []
     uncategorized = set()
@@ -860,6 +903,7 @@ def report_backfill(backfill, src_by_lid, lid_count):
 
 
 def main():
+    signal.signal(signal.SIGTERM, _on_terminate)
     no_backfill = "--no-backfill" in sys.argv[1:]
     commits = snapshot_commits()
     if not commits:

@@ -173,9 +173,39 @@ It stays honest about what did not:
   hide fresh warnings.
 - **Nothing refreshed is still a hard failure** (`exit 1`, no commit, no deploy).
 - **A degraded cycle cannot sign off as a clean one.** It logs
-  `=== cycle complete (DEGRADED) === refreshed: ... | failed: ... | skipped: ...`
+  `=== cycle complete (DEGRADED) === refreshed: ... | failed: ... | timed out: ... | skipped: ...`
   and exits `3`, and its commit subject reads `(auto-cron, partial)` naming the
   stale sources instead of claiming a full regen.
+
+### Step and cycle time budgets
+
+The cycle holds a **non-blocking** `flock`, so a generator that hangs past the
+15-minute window makes the *next* scheduled cycle log `SKIP` and exit. One hung
+upstream therefore stops the board publishing for as long as it lasts. Every
+generator runs under `timeout -k 20 <budget>`, and the generator phase as a whole
+runs under an aggregate budget (`RESPONDER_CYCLE_BUDGET_S`, default 660s).
+
+- **A timed-out step is treated exactly like a failed one**: killed, previous
+  output untouched, the cycle publishes everything else and signs off DEGRADED.
+  Every generator writes its output by rename, which is what makes "killed" and
+  "failed" the same fact on disk instead of a half-written file.
+- **Timeouts are reported in their own bucket**, apart from failures. Both stale
+  the same source, but an unreachable upstream is somebody else's outage while a
+  step that times out every cycle means the budget is too tight, and only the log
+  tells them apart.
+- **When the aggregate budget runs short, a step's budget is squeezed** to what is
+  left, and a step with under 5s left is not started at all (GNU `timeout` reads
+  a budget of `0` as *no* timeout).
+- `gen-history.py` is the long pole and additionally bounds its own **network**
+  stage (`RESPONDER_BACKFILL_BUDGET_S`, default 300s). The archive walk and the
+  retention ratchet are never time-bounded. Truncated reconstruction resumes next
+  cycle, because previously reconstructed frames are re-merged from the published
+  record before backfill runs.
+
+Budgets are sized from the logged per-step distribution; see `INTERNAL-NOTES.md`
+"Data-cycle step budgets". `tests/run-cycle.test.sh` asserts that the aggregate
+budget plus a publish reserve still fits the cron interval, so making the cron
+more frequent or raising the budget fails a test rather than disarming the guard.
 - The **partial-response guard in `fetch-snapshot.py` is unchanged**: a same-bbox
   refresh must still return at least half the previous gauge count, and a bbox
   re-target still only has to clear the absolute floor.

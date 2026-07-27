@@ -22,6 +22,12 @@
 #  13 data/event.json stays DATA: an uncommitted edit takes effect on the next cycle
 #  14 every generator the cycle runs honors RESPONDER_ROOT, so HEAD code writes real data
 #  15 the throwaway pipeline worktree is not leaked
+# The cycle holds a non-blocking flock, so a generator that hangs past the window makes the NEXT
+# cycle log SKIP: one hung upstream stops the board publishing for as long as it lasts (v0.99.62).
+#  18 a step over its budget is killed, named as timed out, and does not block the publish
+#  19 a killed step and a dead upstream are separate buckets, so a too-tight budget is findable
+#  20 the aggregate guard bounds the cycle even when several steps run long
+#  21 the budgets still fit the cron interval they exist to protect
 # A scratch repo with stub generators and a bare origin keeps the real repo, the real Pages
 # project and the network untouched. Every lock, log and state path this suite touches is
 # redirected into $WORK: on 2026-07-25T01:23Z a hand-held flock on the production
@@ -55,8 +61,11 @@ OLD_STAMP='2026-07-24T20:00:00Z'
 # writes its own "generated" and leaves the previous file intact on failure.
 mk_gen() {
     cat > "$REPO/scripts/$1" <<PY
-import datetime, json, os, sys
+import datetime, json, os, sys, time
 name = "${1%.py}"
+# the hang comes BEFORE the write on purpose: a killed step must leave the previous file alone
+if name in os.environ.get("RESPONDER_TEST_SLOW", "").split(","):
+    time.sleep(45)
 if name in os.environ.get("RESPONDER_TEST_FAIL", "").split(","):
     sys.exit(name + ": stub failure")
 out = "$2"
@@ -124,6 +133,9 @@ run_cycle() {  # sets RC and writes $WORK/cycle.log; RESPONDER_TEST_FAIL names t
     RESPONDER_CYCLE_LOCK="$WORK/cycle.lock" \
     RESPONDER_TEST_FAIL="${FAILING:-}" \
     RESPONDER_TEST_CHECK_RC="${CHECK_RC:-0}" \
+    RESPONDER_TEST_SLOW="${SLOW:-}" \
+    RESPONDER_STEP_BUDGET_S="${STEP_BUDGET:-}" \
+    RESPONDER_CYCLE_BUDGET_S="${CYCLE_BUDGET:-}" \
     bash "$REPO/scripts/run-cycle.sh" "$@" > "$WORK/run.out" 2>&1
     RC=$?
 }
@@ -432,6 +444,99 @@ else
     fail "17 a dead shelter upstream must degrade, not sign off clean (rc=$RC)"; cat "$WORK/cycle.log"
 fi
 rm -rf "$WORK"
+
+# --- Tests 18-21: step and cycle time budgets -------------------------------------------------
+# The cycle holds a non-blocking flock, so a generator that hangs past the 15-minute window makes
+# the NEXT cycle log SKIP and exit: one hung upstream stops the board publishing for as long as it
+# lasts. gen-history.py was the long pole, walking hundreds of lids at 90-180s per request with no
+# aggregate bound. A timed-out step must land on the EXISTING partial-publish path rather than
+# opening a new failure mode, so these pin that it behaves exactly like a failed one.
+hash_of() { sha256sum "$REPO/$1" | awk '{print $1}'; }
+
+# --- Test 18: a step over its budget is killed, reported as timed out, and publishes nothing new
+setup
+SHELTERS_BEFORE=$(hash_of data/shelters-live.json)
+FAILING="" SLOW="gen-shelters" STEP_BUDGET=5 CYCLE_BUDGET="" run_cycle
+if [ "$RC" -eq 3 ] \
+   && grep -q 'TIMEOUT: gen-shelters.py exceeded 5s and was killed' "$WORK/cycle.log" \
+   && ! grep -q 'WARN: gen-shelters.py failed' "$WORK/cycle.log" \
+   && grep -q '=== cycle complete (DEGRADED) ===' "$WORK/cycle.log" \
+   && grep -q 'timed out: shelters' "$WORK/cycle.log" \
+   && [ "$(hash_of data/shelters-live.json)" = "$SHELTERS_BEFORE" ] \
+   && [ "$(stamp_of data/roads-snapshot.json)" != "$OLD_STAMP" ] \
+   && [ "$(stamp_of data/gauges-snapshot.json)" != "$OLD_STAMP" ] \
+   && [ "$(stamp_of feed.xml)" != "$OLD_STAMP" ] \
+   && grep -q 'stub deploy' "$WORK/run.out"; then
+    pass "18 a step over its budget is killed and named as timed out; the rest still publish"
+else
+    fail "18 a timed-out step must degrade, not succeed and not block the publish (rc=$RC)"
+    cat "$WORK/cycle.log"
+fi
+
+# --- Test 18b: the killed step's previous output is byte-identical, not merely same-stamped ------
+if [ "$(hash_of data/shelters-live.json)" = "$SHELTERS_BEFORE" ] \
+   && [ "$(stamp_of data/shelters-live.json)" = "$OLD_STAMP" ]; then
+    pass "18b the timed-out step's previous file is byte-identical, so it keeps aging honestly"
+else
+    fail "18b a killed generator must not touch its output file"
+fi
+rm -rf "$WORK"
+
+# --- Test 19: a timeout is distinguishable from an upstream that is simply down -----------------
+# Both stale the same source. If they share one bucket, a budget that is slightly too tight reads
+# as a permanent upstream outage and nobody ever fixes the budget.
+setup
+FAILING="gen-crossings-status" SLOW="gen-shelters" STEP_BUDGET=5 CYCLE_BUDGET="" run_cycle
+SIGNOFF=$(grep -F '=== cycle complete (DEGRADED) ===' "$WORK/cycle.log" | command tail -1)
+case "$SIGNOFF" in
+    *"failed: crossstatus"*"timed out: shelters"*)
+        pass "19 a killed step and a dead upstream are reported in separate buckets" ;;
+    *)
+        fail "19 timeout and failure must not share a bucket (got: $SIGNOFF)" ;;
+esac
+rm -rf "$WORK"
+
+# --- Test 20: the aggregate guard bounds the cycle even when several steps run long -------------
+# Per-step budgets alone cannot do this: they sum to more than the window.
+setup
+T0=$(date +%s)
+FAILING="" SLOW="gen-roads-snapshot,gen-history,gen-shelters,gen-notices" \
+    STEP_BUDGET=30 CYCLE_BUDGET=12 run_cycle
+ELAPSED=$(( $(date +%s) - T0 ))
+# unguarded, four 30s steps would run 120s; the aggregate guard has to cut that to about 12s
+if [ "$ELAPSED" -lt 45 ] \
+   && grep -q 'squeezed from 30s by the cycle deadline' "$WORK/cycle.log" \
+   && grep -q 'not started; the 12s cycle generator budget is spent' "$WORK/cycle.log" \
+   && [ "$RC" -eq 3 ] \
+   && grep -q 'stub deploy' "$WORK/run.out"; then
+    pass "20 the aggregate guard bounds the cycle with several slow steps (${ELAPSED}s, not 120s)"
+else
+    fail "20 the cycle budget must bound the total (elapsed=${ELAPSED}s rc=$RC)"
+    cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# --- Test 21: the budgets have to fit the window they exist to protect -------------------------
+# Static arithmetic over the real constants, per the "assert the bound in code" edict: a budget
+# raised past the cron interval, or a cron made more frequent, silently makes the guard useless.
+# Both numbers are read from source so neither can drift alone.
+CYCLE_BUDGET_DEFAULT=$(grep -oP 'CYCLE_BUDGET_S="\$\{RESPONDER_CYCLE_BUDGET_S:-\K[0-9]+' "$CYCLE_SRC")
+BIGGEST_STEP=$(grep -oP '^BUDGET_[A-Z]+_S=\K[0-9]+' "$CYCLE_SRC" | sort -n | command tail -1)
+INTERVAL_S=$(python3 -c '
+import re, sys
+line = re.search(r"^DATA_LINE=\"([0-9,]+) ", open(sys.argv[1]).read(), re.M).group(1)
+m = sorted(int(x) for x in line.split(","))
+print(min(min((b - a) for a, b in zip(m, m[1:])), 60 - m[-1] + m[0]) * 60)
+' "$REPO_ROOT/scripts/install-cron.sh")
+# worst observed publish phase (cycle-check, commit, push, deploy, nudge) is ~135s; reserve 180s
+PUBLISH_RESERVE_S=180
+if [ -n "$CYCLE_BUDGET_DEFAULT" ] && [ -n "$BIGGEST_STEP" ] && [ -n "$INTERVAL_S" ] \
+   && [ "$(( CYCLE_BUDGET_DEFAULT + PUBLISH_RESERVE_S ))" -le "$INTERVAL_S" ] \
+   && [ "$BIGGEST_STEP" -le "$CYCLE_BUDGET_DEFAULT" ]; then
+    pass "21 budgets fit the cron window (${CYCLE_BUDGET_DEFAULT}s + ${PUBLISH_RESERVE_S}s reserve <= ${INTERVAL_S}s; biggest step ${BIGGEST_STEP}s)"
+else
+    fail "21 the generator budget plus the publish reserve must fit the cron interval (budget=${CYCLE_BUDGET_DEFAULT} step=${BIGGEST_STEP} interval=${INTERVAL_S})"
+fi
 
 echo "----"
 if [ "$FAILS" -eq 0 ]; then

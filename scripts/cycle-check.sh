@@ -737,9 +737,48 @@ else
     failck "hazard allowlist agreement (js/sources.js, scripts/gen-caltopo.py and the live NWS catalogue disagree)"
 fi
 
+# p. Cron bootstrap sanity
+# These four run straight from the WORKING TREE on the system crontab, so unlike every other script
+# they are live the moment they are saved. run-cycle.sh is the one that materializes HEAD's pipeline,
+# which is exactly why it cannot itself come from HEAD. This check therefore reads the tree in both
+# modes (E3: check the copy the code actually uses). A half-saved bootstrap skips a flood publish.
+check_bootstrap() {
+    local src="$DATA_ROOT/scripts/run-cycle.sh" f line declared used seen=0
+    # An entrypoint that is absent is a different fact from one that is broken, and only the second
+    # can strand a publish. Absent ones are skipped rather than failed, so this can never turn a
+    # partial checkout into a stopped data cycle; the count below makes a vacuous pass visible.
+    for f in run-cycle.sh chat-poll.sh chat-watchdog.sh freshness-monitor.sh; do
+        [ -f "$DATA_ROOT/scripts/$f" ] || continue
+        bash -n "$DATA_ROOT/scripts/$f" || { echo "cron entrypoint scripts/${f} does not parse" >&2; return 1; }
+        seen=$((seen + 1))
+    done
+    BOOTSTRAP_DETAIL="${seen} cron entrypoint(s) parse"
+    [ -f "$src" ] || return 0
+    # bash -n cannot see an unbound $4, which is how a mid-edit gen() signature once killed a live
+    # cycle under set -u. Every call site must pass a budget, and every budget must have a call site.
+    while IFS= read -r line; do
+        printf '%s\n' "$line" | grep -qE 'BUDGET_[A-Z]+_S' \
+            || { echo "run-cycle.sh gen() call site passes no budget argument: ${line}" >&2; return 1; }
+    done < <(grep -E '^[[:space:]]*(if )?gen [a-z]+ [a-z-]+\.py' "$src")
+    declared=$(grep -cE '^BUDGET_[A-Z]+_S=[0-9]+' "$src") || declared=0
+    used=$(grep -oE '\$\{?BUDGET_[A-Z]+_S\}?' "$src" | sort -u | wc -l)
+    if [ "$declared" -eq 0 ] || [ "$declared" -ne "$used" ]; then
+        echo "run-cycle.sh declares ${declared} step budgets but references ${used}" >&2
+        return 1
+    fi
+    BOOTSTRAP_DETAIL="${seen} cron entrypoint(s) parse, ${declared} step budgets all wired"
+    return 0
+}
+BOOTSTRAP_DETAIL=""
+if check_bootstrap; then
+    pass "cron bootstrap sanity (${BOOTSTRAP_DETAIL})"
+else
+    failck "cron bootstrap sanity (a working-tree cron entrypoint is unrunnable)"
+fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 15 checks passed"
+    echo "SUMMARY: all 16 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 15 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 16 checks FAILED"
 exit 1

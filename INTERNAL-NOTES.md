@@ -199,3 +199,80 @@ while carrying the least operational value.
 The 500 was never a consumer limit. It predates the gauge network's expansion
 from roughly 290 to 1018 stations, at which point the whole board fit under the
 cap and the truncation never fired. It first bit on 2026-07-25.
+
+## Data-cycle step budgets — how the v0.99.62 numbers were sized
+
+`run-cycle.sh` had no per-step and no overall timeout. Because it holds a
+non-blocking `flock`, a single overrunning generator makes the *next* scheduled
+cycle log `SKIP` and exit, so a hang stops the board publishing for as long as
+it lasts. That is the failure the budgets exist to bound.
+
+The numbers are not guesses. They come from 687 completed cycles logged between
+2026-07-19 and 2026-07-27 (`/var/log/responder-cycle.log` plus its rotations),
+parsed by taking each `step: X` line and the next timestamped line. Seconds:
+
+| step | n | p50 | p90 | p99 | max | budget |
+|---|---|---|---|---|---|---|
+| gen-history | 714 | 46 | 66 | 189 | **275** | 600 |
+| deploy.sh | 703 | 11 | 16 | 29 | 116 | (publish path, unbounded) |
+| fetch-snapshot | 717 | 2 | 6 | 10 | 32 | 150 |
+| gen-shelters | 212 | 0 | 1 | 30 | 31 | 150 |
+| gen-crest-summary | 713 | 2 | 5 | 6 | 15 | 120 |
+| cycle-check | 714 | 2 | 2 | 4 | 6 | (publish path) |
+| gen-roads-snapshot | 714 | 1 | 1 | 1 | 3 | 150 |
+| gen-caltopo | 211 | 1 | 1 | 1 | 3 | 120 |
+| gen-feeds | 714 | 0 | 1 | 1 | 2 | 120 |
+| gen-notices | 212 | 0 | 0 | 0 | 1 | 60 |
+| gen-crossings-status | 133 | 0 | 0 | 1 | 1 | 120 |
+
+Whole cycle: p50 64, p90 85, p99 209, max 303. Generator phase alone: p50 50,
+p90 71, max 280. Publish phase (cycle-check to sign-off): p50 14, max 41.
+
+Two things this measurement changed:
+
+**A three-day sample would have produced a dangerous budget.** By day, gen-history
+runs p50 46s on 07-19..22 and p50 0-3s on 07-25..27, because once the
+reconstruction window is in the published record `merge_recovered` re-uses it and
+`build_backfill` returns immediately. Sizing on the recent window alone suggests
+a 60s budget, which would kill every legitimate backfill run. The 275s maximum is
+a *clean* cycle, not a degraded one. A budget that kills a legitimate slow run is
+worse than no budget: it converts a slow publish into no publish, permanently.
+
+**The per-step budgets sum to 1500s, well past the 900s cron interval**, so they
+cannot bound the cycle on their own. Hence the separate aggregate budget of 660s,
+sized as 900 - 180 (worst publish path, rounded up from ~135s) - 60 (margin).
+`tests/run-cycle.test.sh` test 21 asserts that arithmetic against the cron line in
+`install-cron.sh`, so making the cron more frequent or raising the budget fails a
+test rather than silently disarming the guard.
+
+### Why gen-history also bounds itself
+
+The external `timeout` is a backstop that hard-kills. gen-history is the long pole
+because reconstruction walks one upstream request per uncovered lid at 90-180s
+each; at 1018 gauges even the 0.2s inter-request spacing alone is 204s. So it
+bounds its own **network stage** (`BACKFILL_BUDGET_S`, 300s) and stops fetching
+gracefully, which keeps the external kill for genuine hangs.
+
+Truncating reconstruction is safe for one specific reason: `merge_recovered` runs
+*before* `build_backfill` and re-merges the reconstructed frames already in the
+published record, so a budget-truncated window **resumes** next cycle rather than
+restarting. The retention walk is never bounded, and a test asserts `backfill_spent`
+appears in no retention or publication function. Bounding retention by a clock would
+be the v0.97.97 prune in a new disguise.
+
+### What a kill must not do
+
+`timeout` sends SIGTERM then SIGKILL. Every generator the cycle can kill writes
+its output by rename, so a killed step leaves its previous file byte-identical and
+ages honestly on its own stamp. gen-feeds was the exception and was converted in
+v0.99.62. gen-history additionally traps SIGTERM so `write_atomic` unlinks its temp
+file: `history/day` is staged as a *directory* pathspec, so a leaked `.chunk.*.tmp`
+would otherwise be committed as a data file.
+
+### Timeout is a separate bucket from failure, on purpose
+
+`STEPS_TIMEOUT` is reported apart from `STEPS_FAILED` in the sign-off. Both stale
+the same source, but the fixes are opposite: an unreachable upstream is somebody
+else's outage, while a step that times out every cycle means the budget is too
+tight and the board would otherwise sit DEGRADED forever with nobody able to tell
+the two apart from the log.

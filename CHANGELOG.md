@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.66 · 2026-07-27 (Notify me: alert setup gets its own place)
+
+-- Changes --
+- [Change] Alert setup has moved out of the settings menu into its own panel,
+           called Notify me. Settings now carries a single row that opens it, and
+           the Alerts tab carries one at the top
+- [Change] The panel opens with one line per choice, where alerts go, what to
+           send, and which gauges you follow, each opening in place. The full
+           form is no longer stacked in a small scrolling menu
+- [Change] The RSS feed and crest calendar moved into the same panel and are now
+           full-size rows
+- [Change] On a phone held sideways the panel now uses the full height of the
+           screen, and the 911 notice stays visible while you scroll
+
+-- Bug Fixes --
+- [Fix] Turning alerts off no longer discards the gauges you follow and the
+      places you added. Turning them back on restores what you had
+- [Fix] Switching language now updates the alert panel instead of leaving it in
+      the previous language
+
 ## v0.99.65 · 2026-07-27 (device alerts say what they will actually send)
 
 -- Bug Fixes --

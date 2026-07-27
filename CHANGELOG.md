@@ -1,5 +1,34 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.57 · 2026-07-27 (local emergency and evacuation orders)
+
+-- New Features --
+- [New] The board now carries local emergency and evacuation orders: civil
+      danger, evacuation immediate, shelter in place, hazardous materials, civil
+      emergency messages, law enforcement warnings, 911 telephone outages and
+      local area emergencies
+- [New] Orders never fold out of the alert list at any distance, carry their own
+      colour on the map and cards, and reach the hazard line and Drive Mode with
+      an action taken from the order's own declared response: evacuate, shelter
+      in place, avoid the area, be ready to move, or read the order
+- [New] An order whose area is given only in words now says its extent is not
+      mapped, instead of showing nothing on the map without explanation
+- [New] A 911 telephone outage covering your position adds a notice above the
+      disclaimer strip naming the agency, the affected area and the alternate
+      number the alert published, or saying plainly that no alternate number was
+      published. It still says to try 911 first, because an outage can be partial
+      and service can return without a new alert. The 911 guidance everywhere
+      else on the board is unchanged
+
+-- Bug Fixes --
+- [Fix] An order is credited to the county or state agency that issued it rather
+      than to the National Weather Service, which relays these products but does
+      not write them
+- [Fix] An alert that names no sender is no longer attributed to the National
+      Weather Service
+- [Fix] Orders with no "warning" in their product name are no longer ranked and
+      styled as advisories, the board's lowest tier
+
 ## v0.99.56 · 2026-07-27 (tornado and severe storm warnings on the live board)
 
 -- New Features --

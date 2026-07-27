@@ -107,7 +107,7 @@ function buildSandbox() {
 // Symbols exercised by the tests. Some are `const`/arrow (lexical, not on the
 // global object), so the epilogue must name them explicitly to export them.
 const EXPORTS = [
-  'CONFIG', 'state', 'FLOOD_CATS', 'CAT_RANK', 'PRI_WEIGHT',
+  'CONFIG', 'state', 'FLOOD_CATS', 'CAT_RANK', 'PRI_WEIGHT', 't',
   'esc', 'fmtNum', 'safeUrl', 'telHref', 'ageMins', 'distMi', 'freshClass',
   'usgsBboxCost', 'usgsBboxTiles', 'usgsMergeSites', 'fetchUsgsIv',
   'USGS_BBOX_LIMIT', 'USGS_BBOX_BUDGET', 'USGS_BBOX_MAX_TILES',
@@ -125,6 +125,9 @@ const EXPORTS = [
   'alertVtecKey', 'alertDedupe', 'alertMotion', 'alertMotionText', 'alertMoves',
   'alertLifetimeMs', 'alertStaleAfterMs', 'alertFreshClass', 'ALERT_STALE_FLOOR_MS',
   'hazardStyleKey', 'hazardGlyph', 'hazardPolyStyle', 'alertActionKey', 'HAZARD_ACTION', 'LSR_HAZARD_RE',
+  'hazardIsOrder', 'hazardGlance', 'alertAgency', 'alertAgencyText',
+  'ORDER_EVENT_ACTION', 'ORDER_RESPONSE_ACTION',
+  'nine11Alt', 'nine11Outages', 'NINE11_EVENT', 'alertCardDiv',
   'gaugeObsStale', 'gaugeObsCat', 'gaugeCat', 'gaugeForecastCat', 'gaugeRising', 'gaugeRecoveryState', 'riverOf',
   'splitGauges', 'gaugeState', 'gaugeStateCounts', 'gaugeHasReading', 'gaugeAll', 'GAUGE_STATES', 'GAUGE_DEGRADED',
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
@@ -150,6 +153,7 @@ const EXPORTS = [
 // out of MAP_EXPORTS or the map bundle fails to resolve them
 const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn',
   'tickerItems', 'tickerAlertItems', 'tickerCap', 'TICKER_ACUTE_MAX', 'tickerUntil', 'driveItems',
+  'renderNine11Notice', 'nine11NoticeHtml',
   'gaugeCardDiv', 'gaugeGlyphHtml', 'degradedGaugePool', 'degradedGaugeList', 'degradedStateCounts',
   'openInGaugesList', 'gaugeListUnfoldFor', 'DEG_GLYPH',
   'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',

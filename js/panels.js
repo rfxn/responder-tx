@@ -170,7 +170,7 @@ function driveItems() {
   /* Until now a tornado warning directly over the truck appeared nowhere in the surface built for
      the person in the truck. These rows lead with the action and sit above every crossing: a
      crossing is a point you might drive to, a warning is a polygon you may be standing inside. */
-  for (const f of alertDedupe((state.alerts || []).filter((x) => alertOpen(x) && hazardClass(x) === 'acute'))) {
+  for (const f of alertDedupe((state.alerts || []).filter((x) => alertOpen(x) && hazardGlance(x)))) {
     const act = alertActionKey(f);
     if (!act) continue;
     const geom = alertGeom(f);
@@ -1130,6 +1130,42 @@ function renderThreatStrip() {
     `<span class="ok-sub">${esc(t('threat.oksub'))}</span></div>`;
 }
 
+/* The board's most repeated instruction is call 911, and a 911 Telephone Outage says that
+   instruction is currently wrong where the reader is. This is a line above the disclaimer strip,
+   never an edit to it: the guidance is right everywhere else, so the strip, the lens footers and the
+   safety modal stay exactly as written, and this does not tell anyone to stop calling 911 either.
+   Outages are often partial, service returns without a new product, and the board's picture is three
+   minutes old at best. The number is quoted and attributed, or its absence stated. */
+const nine11NoticeHtml = (outages) => (outages || []).map((f) => {
+  const num = nine11Alt(f);
+  const href = num ? telHref(num) : '';
+  const body = t('nine11.body')
+    .replace('{a}', alertAgency(f) || t('alert.agency.unknown'))
+    .replace('{areas}', alertAreaText(f.properties, 3));
+  return '<div class="n11-item">'
+    + `<div class="n11-head">${esc(t('nine11.head'))}</div>`
+    + `<div class="n11-body">${esc(body)} · ${esc(t('alert.untilShort'))} ${esc(alertUntilText(f))}</div>`
+    + (href
+      ? `<div class="n11-alt">${esc(t('nine11.alt'))} <a class="n11-num" href="${esc(href)}">${esc(num)}</a></div>`
+      : `<div class="n11-alt n11-noalt">${esc(t('nine11.noalt'))}</div>`)
+    + `<div class="n11-keep">${esc(t('nine11.keep'))}</div>`
+    + `<a class="n11-text" role="button" tabindex="0" data-n11="${esc(f.id)}">${esc(t('alert.text'))} ↗</a>`
+    + '</div>';
+}).join('');
+
+function renderNine11Notice() {
+  const el = $('#nine11-notice');
+  if (!el) return;
+  const outages = nine11Outages();
+  el.hidden = !outages.length;
+  el.innerHTML = nine11NoticeHtml(outages);
+  for (const a of el.querySelectorAll('[data-n11]')) {
+    const open = () => openAlertTextById(a.getAttribute('data-n11'));
+    a.addEventListener('click', open);
+    a.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  }
+}
+
 /* ---------- actionable ticker — recency-biased glance line ---------- */
 
 const relWhen = (iso) => fmtWhen(iso).split(' · ')[0];
@@ -1148,7 +1184,7 @@ const tickerUntil = (f) => {
    and the tornado warning that lands there next week is not seen. */
 function tickerAlertItems() {
   const goAlerts = () => document.querySelector('.tabs button[data-tab="tab-alerts"]').click();
-  const open = alertDedupe(state.alerts.filter((x) => alertOpen(x) && hazardClass(x) === 'acute'));
+  const open = alertDedupe(state.alerts.filter((x) => alertOpen(x) && hazardGlance(x)));
   return open.sort((a, b) => alertHazCmp(a, b)).map((a) => {
     const where = alertAreaLead(a.properties);
     const emerg = a._sev === 'emergency';
@@ -1277,7 +1313,7 @@ function armTickerExpiry() {
   if (state.tickerExpiryTimer) clearTimeout(state.tickerExpiryTimer);
   state.tickerExpiryTimer = null;
   const ends = (state.alerts || [])
-    .filter((f) => alertOpen(f) && hazardClass(f) === 'acute')
+    .filter((f) => alertOpen(f) && hazardGlance(f))
     .map((f) => Date.parse(alertEndsAt(f) || ''))
     .filter((ms) => Number.isFinite(ms));
   if (!ends.length) return;
@@ -1292,6 +1328,7 @@ function armTickerExpiry() {
 // v0.97.93 (they duplicated the richer, tappable threat strip and were hidden on every phone)
 function renderTiles() {
   renderThreatStrip();
+  renderNine11Notice();
   renderTicker();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical').length;

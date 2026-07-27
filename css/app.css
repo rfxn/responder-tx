@@ -55,6 +55,7 @@
   --haz-dust: #c98a4b;
   --haz-winter: #5ec8e8;
   --haz-wind: #7fb3a0;
+  --haz-order: #e8593f;
   --good: #0ca30c;
   --tile-value: #ffffff;
   /* aged/suppressed text. Must hold 4.5:1 on --surface-2 in BOTH themes: aging is an honesty
@@ -90,6 +91,7 @@
   --haz-dust: #8f5c22;
   --haz-winter: #1f7d99;
   --haz-wind: #3f7a63;
+  --haz-order: #b6301a;
   --cat-major: #8b2fd6;
   --good: #006300;
   --tile-value: #0d1b2a;
@@ -423,6 +425,7 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .alert-card.haz-dust { border-left-color: var(--haz-dust); }
 .alert-card.haz-winter { border-left-color: var(--haz-winter); }
 .alert-card.haz-wind { border-left-color: var(--haz-wind); }
+.alert-card.haz-order { border-left-color: var(--haz-order); }
 .alert-card .event { font-weight: 650; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .alert-card .event .ev-name { min-width: 0; }
 .alert-card .event .emergency-flag {
@@ -574,6 +577,7 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .alert-poly.haz-dust { stroke: var(--haz-dust); fill: var(--haz-dust); }
 .alert-poly.haz-winter { stroke: var(--haz-winter); fill: var(--haz-winter); }
 .alert-poly.haz-wind { stroke: var(--haz-wind); fill: var(--haz-wind); }
+.alert-poly.haz-order { stroke: var(--haz-order); fill: var(--haz-order); }
 
 /* punch the label-boost tiles up so place names stay readable under radar/alert washes */
 .leaflet-labels-pane.boost-dark { filter: brightness(1.35) contrast(1.1); }
@@ -2342,3 +2346,27 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 @media (max-width: 768px), (max-height: 500px) and (orientation: landscape) {
   main.sheet-peek #ov-legend-stack { right: 60px; }
 }
+
+/* Order-class alerts: a directive from a peer agency, credited to whoever wrote it, and honest
+   about an extent the board was never given a boundary for. */
+.alert-card .alert-agency { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+.alert-card .areas .alert-noextent { color: var(--aged); font-style: italic; }
+
+/* 911 outage notice. Sits above #disclaimer and qualifies it; never replaces it. */
+#nine11-notice { margin: 6px 0 0; }
+#nine11-notice[hidden] { display: none; }
+.n11-item {
+  border: 1px solid var(--haz-order);
+  border-left-width: 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.n11-head { font-weight: 700; color: var(--haz-order); font-size: .9rem; }
+.n11-body { font-size: .84rem; margin-top: 3px; }
+.n11-alt { font-size: .9rem; margin-top: 5px; font-weight: 600; }
+.n11-alt.n11-noalt { font-weight: 400; color: var(--aged); font-style: italic; }
+.n11-num { color: var(--haz-order); text-decoration: underline; }
+.n11-keep { font-size: .78rem; color: var(--muted); margin-top: 5px; }
+.n11-text { display: inline-block; margin-top: 5px; font-size: .78rem; cursor: pointer; text-decoration: underline; }

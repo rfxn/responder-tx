@@ -5,6 +5,10 @@
 function alertSeverity(p) {
   const threat = (p.parameters && p.parameters.flashFloodDamageThreat || []).join(' ');
   if (/FLASH FLOOD EMERGENCY/i.test(p.description || '') || /CATASTROPHIC/i.test(threat)) return 'emergency';
+  /* Four of the eight order products carry no "Warning" in their name, so the word test below would
+     read an evacuation order as an advisory: the lowest tier the board has, and the one tier
+     renderAlertPolys declines to resolve zone geometry for. A directive is never an advisory. */
+  if (hazardIsOrder(p.event)) return 'warning';
   if (/Warning/i.test(p.event)) return 'warning';
   if (/Watch/i.test(p.event)) return 'watch';
   return 'advisory';
@@ -17,6 +21,29 @@ const ALERT_SEV_RANK = { emergency: 0, warning: 1, watch: 2, advisory: 3 };
 const ALERT_SEV_UNKNOWN = 9;
 const alertSevRank = (sev) => (Object.prototype.hasOwnProperty.call(ALERT_SEV_RANK, sev) ? ALERT_SEV_RANK[sev] : ALERT_SEV_UNKNOWN);
 const alertSevCmp = (a, b) => alertSevRank(a && a._sev) - alertSevRank(b && b._sev);
+
+/* Who actually wrote the product. An order is authored by a county or a state agency and only
+   relayed by NWS, so crediting the National Weather Service for a county judge's evacuation order
+   states something false. senderName carries the author and arrives dirty: an IPAWS COG number is
+   prefixed ("200033, Idaho State Communications Center, ..."), and the same name is often repeated
+   two or three times ("Boone County WV,Boone County WV,Boone County WV"). Both shapes are verbatim
+   in tests/fixtures/alerts-orders.json. Empty means the product did not say, which is a different
+   fact from "NWS" and has to stay different all the way to the card. */
+function alertAgency(f) {
+  const raw = String(((f && f.properties) || {}).senderName || '').trim();
+  const segs = [];
+  for (const part of raw.split(',')) {
+    const seg = part.trim();
+    if (!seg || /^\d+$/.test(seg)) continue; // a bare number is IPAWS routing, not a name
+    if (!segs.some((s) => s.toLowerCase() === seg.toLowerCase())) segs.push(seg);
+  }
+  return segs.join(', ');
+}
+
+const alertAgencyText = (f) => {
+  const a = alertAgency(f);
+  return a ? t('alert.agency').replace('{a}', a) : t('alert.agency.unknown');
+};
 
 // Riverine Flood Warnings in one county share an areaDesc ("Val Verde, TX"); the
 // specific reach that tells them apart lives in the description text.
@@ -92,6 +119,19 @@ const HAZARD_EVENTS = {
   'Hurricane Force Wind Watch': { cls: 'watch', rank: 13 },
   'Tropical Storm Watch': { cls: 'watch', rank: 13 },
   'High Wind Watch': { cls: 'watch', rank: 14 },
+  /* Orders. Not NWS products: under 47 CFR 11.31 these are state and local event codes with
+     originator CIV, written by a county or a state agency and relayed down the NWS path, which is
+     why they carry their author in senderName and why alertAgency reads it. They rank above every
+     severe product and below the life-immediate meteorological ones: nothing the board carries
+     should sit over a peer agency's evacuation order except a threat measured in minutes. */
+  'Civil Danger Warning': { cls: 'order', rank: 4 },
+  'Evacuation Immediate': { cls: 'order', rank: 4 },
+  'Shelter In Place Warning': { cls: 'order', rank: 4 },
+  'Hazardous Materials Warning': { cls: 'order', rank: 4 },
+  'Civil Emergency Message': { cls: 'order', rank: 4 },
+  'Law Enforcement Warning': { cls: 'order', rank: 4 },
+  '911 Telephone Outage': { cls: 'order', rank: 4 },
+  'Local Area Emergency': { cls: 'order', rank: 4 },
   'High Wind Warning': { cls: 'standing', rank: 17 },
   'Flood Advisory': { cls: 'standing', rank: 18 },
   'Coastal Flood Advisory': { cls: 'standing', rank: 18 },
@@ -105,6 +145,7 @@ const HAZARD_EVENTS = {
 
 const HAZARD_EVENT_LIST = Object.keys(HAZARD_EVENTS);
 const hazardAdmits = (event) => Object.prototype.hasOwnProperty.call(HAZARD_EVENTS, String(event || ''));
+const hazardIsOrder = (event) => (HAZARD_EVENTS[String(event || '')] || {}).cls === 'order';
 
 /* An unrecognised product still shows, because hiding a hazard the board does not know is the worse
    error, but it never outranks one the board does know. Same shape as ALERT_SEV_UNKNOWN. */
@@ -136,12 +177,20 @@ function alertTags(f) {
 }
 
 /* A flash flood emergency can arrive on a follow-up statement rather than the warning, so the
-   severity read decides the class in that one case; the table decides every other. */
+   severity read decides the class in that one case; the table decides every other, and the order
+   class decides ahead of both. */
 function hazardClass(f) {
-  if (f && f._sev === 'emergency') return 'acute';
   const row = HAZARD_EVENTS[String(((f && f.properties) || {}).event || '')];
+  // an order stays an order whatever its prose says: the class carries the attribution and the
+  // never-fold rule, and a county relaying flash-flood-emergency wording must not shed either
+  if (row && row.cls === 'order') return 'order';
+  if (f && f._sev === 'emergency') return 'acute';
   return row ? row.cls : 'acute';
 }
+
+// the two classes that reach every glance surface; a directive and an immediate threat both change
+// what someone does in the next ten minutes, and watch and standing do not
+const hazardGlance = (f) => { const c = hazardClass(f); return c === 'acute' || c === 'order'; };
 
 /* Rank across hazard types, not within one. Time-to-harm and whether movement helps, so a tornado
    warning outranks a flash flood warning: the driver can decline to enter water, he cannot outdrive
@@ -353,9 +402,12 @@ const HAZARD_STYLE = {
   'Snow Squall Warning': 'winter',
   'Extreme Wind Warning': 'wind',
 };
-const hazardStyleKey = (f) => HAZARD_STYLE[String(((f && f.properties) || {}).event || '')] || 'flood';
+// an order is a directive rather than a forecast, so it reads as one colour of its own whatever
+// hazard prompted it: the wildfire behind an evacuation order is not what the reader has to act on
+const hazardStyleKey = (f) => HAZARD_STYLE[String(((f && f.properties) || {}).event || '')]
+  || (hazardClass(f) === 'order' ? 'order' : 'flood');
 
-const HAZARD_GLYPH = { tornado: '🌪', severe: '⛈', dust: '🌫', winter: '❄', wind: '🌬', flood: '🌊' };
+const HAZARD_GLYPH = { tornado: '🌪', severe: '⛈', dust: '🌫', winter: '❄', wind: '🌬', flood: '🌊', order: '⛔' };
 const hazardGlyph = (f) => HAZARD_GLYPH[hazardStyleKey(f)] || '⚠';
 
 /* The verb, not the hazard name. A driver has ten seconds and gloves, and "Tornado Warning" is a
@@ -380,8 +432,32 @@ const HAZARD_ACTION = {
   'Lakeshore Flood Statement': 'drive.act.nocross',
 };
 
+/* An order's verb comes from the order, not from a table here. CAP carries responseType on the
+   product, so the county that wrote "Evacuate" has already said what to do more authoritatively
+   than any mapping of ours could, and it stays right when a Civil Danger Warning means shelter one
+   day and leave the next. The event string overrides only where it is itself the directive. */
+const ORDER_RESPONSE_ACTION = {
+  Evacuate: 'drive.act.evacuate',
+  Shelter: 'drive.act.shelterplace',
+  Avoid: 'drive.act.avoidarea',
+  Prepare: 'drive.act.readymove',
+};
+const ORDER_EVENT_ACTION = {
+  '911 Telephone Outage': 'drive.act.nine11',
+  'Evacuation Immediate': 'drive.act.evacuate',
+  'Shelter In Place Warning': 'drive.act.shelterplace',
+  'Hazardous Materials Warning': 'drive.act.hazmat',
+};
+
 function alertActionKey(f) {
   const ev = String(((f && f.properties) || {}).event || '');
+  /* Unlike a hazard, an order never falls through to no row: it is a directive addressed to the
+     person reading it, and "read it" is a correct ten-second action even when nothing narrower is. */
+  if (hazardClass(f) === 'order') {
+    return ORDER_EVENT_ACTION[ev]
+      || ORDER_RESPONSE_ACTION[String(((f && f.properties) || {}).response || '')]
+      || 'drive.act.order';
+  }
   // a destructive severe thunderstorm carries tornado-strength wind, which is why it is the one WEA-carried severe tag
   if (ev === 'Severe Thunderstorm Warning') return alertTags(f).damageThreat === 'DESTRUCTIVE' ? 'drive.act.shelter' : 'drive.act.inside';
   const key = HAZARD_ACTION[ev];
@@ -576,6 +652,10 @@ const alertNearMi = (cls) => (cls === 'acute' ? ALERT_NEAR_MI_ACUTE : 0);
    irrelevant to a Hill Country responder, and storm-based polygons are precise enough to say so. */
 function alertNear(f, scope) {
   if (f && f._sev === 'emergency') return true;
+  /* An order never folds. It is a directive from a peer agency, and folding the next county's
+     evacuation behind a "show more" button is wrong for the team lead moving people across that
+     boundary. Distance is the wrong question about a directive. */
+  if (hazardClass(f) === 'order') return true;
   const geom = alertGeom(f);
   if (!scope || !geom) return true; // unscoped, or unplaceable: the board cannot rule this out
   if (scope.view) return geoInView(geom, scope.view);
@@ -601,6 +681,42 @@ function alertGroups(list, scope, pts) {
 // bbox distance under-reads a concave polygon, so the chip reads as approximate and never as coverage
 const alertDistChip = (d) => (Number.isFinite(d) ? t('alert.dist').replace('{n}', String(Math.round(d))) : '');
 
+const NINE11_EVENT = '911 Telephone Outage';
+
+/* The alternate number the outage product itself published, quoted rather than composed. Civil
+   authorities write it two ways and both shapes are verbatim in tests/fixtures/alerts-orders.json:
+   830-896-1216, and 8 3 0 2 4 9 9 5 4 6 spaced one digit at a time so the text-to-speech relay
+   reads it correctly. Only ever run on an outage product, where a ten-digit number in the text is
+   the callback and nothing else. No match returns empty: "the alert published no number" is true
+   and a guessed number on this particular card could send someone nowhere. */
+const NINE11_SPACED_RE = /(?:\d[  ]+){9}\d/;
+const NINE11_PLAIN_RE = /\(?([2-9]\d{2})\)?[\s.-]*([2-9]\d{2})[\s.-]*(\d{4})(?!\d)/;
+
+function nine11Alt(f) {
+  const p = (f && f.properties) || {};
+  if (String(p.event || '') !== NINE11_EVENT) return '';
+  const text = [p.instruction, p.description, ((p.parameters || {}).CMAMlongtext || []).join(' ')]
+    .filter(Boolean).join('\n');
+  const spaced = (text.match(NINE11_SPACED_RE) || [''])[0].replace(/\D/g, '');
+  if (spaced.length === 10) return `${spaced.slice(0, 3)}-${spaced.slice(3, 6)}-${spaced.slice(6)}`;
+  const plain = text.match(NINE11_PLAIN_RE);
+  return plain ? `${plain[1]}-${plain[2]}-${plain[3]}` : '';
+}
+
+/* Open outages covering a point the reader actually gave the board. Deliberately not the map view:
+   panning across a county does not put anyone in it, and this qualifies the board's own "call 911"
+   line, which is a claim about where the reader stands. No fix, or an unmappable extent, returns
+   nothing: neither can be confirmed, and the order still carries in the list, the hazard line and
+   Drive Mode, so it is never hidden, only never asserted about someone the board cannot place.
+   geoDistMi measures to the bounding box, so containment errs wide, which is why the notice names
+   the areas it read. */
+function nine11Outages(pts) {
+  const at = Array.isArray(pts) ? pts : alertDistPts();
+  if (!at.length) return [];
+  return (state.alerts || []).filter((f) => String((f.properties || {}).event || '') === NINE11_EVENT
+    && alertOpen(f) && geoDistMi(alertGeom(f), at) === 0);
+}
+
 /* What the warning office measured, in its own words: the damage threat that decides whether a
    phone screamed, whether the tornado was seen or only radar-inferred, and the gust and hail it
    carries. A storm-based product is a moving swath, so the motion line runs with them. */
@@ -623,12 +739,20 @@ function alertTagChips(f) {
 function alertCardDiv(f, dist) {
   const p = f.properties;
   const reach = alertReach(p);
+  const isOrder = hazardClass(f) === 'order';
+  /* An order's extent is often prose, with no polygon and no zone to resolve: two of the six
+     archived products carry neither. The card says so rather than leaving a reader to read a
+     silent absence as "nowhere near me", and the board never estimates a boundary it was not given. */
+  const unmapped = isOrder && !alertGeom(f);
   const div = document.createElement('div');
-  div.className = `card alert-card sev-${f._sev} haz-${hazardStyleKey(f)}`;
+  div.className = `card alert-card sev-${f._sev} haz-${hazardStyleKey(f)}${unmapped ? ' alert-unmapped' : ''}`;
   div.innerHTML = `<div class="event"><span class="ev-name">${esc(p.event)}</span>${f._sev === 'emergency' ? `<span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : ''}` +
     `<a class="alert-text-link" role="button" tabindex="0">${esc(t('alert.text'))} ↗</a></div>` +
     `<div class="areas">${esc(alertAreaText(p))}${reach ? ` · <span class="alert-reach">${esc(reach)}</span>` : ''}` +
-    (alertDistChip(dist) ? ` · <span class="alert-dist">${esc(alertDistChip(dist))}</span>` : '') + '</div>' +
+    (alertDistChip(dist) ? ` · <span class="alert-dist">${esc(alertDistChip(dist))}</span>` : '') +
+    (unmapped ? ` · <span class="alert-noextent" title="${esc(t('alert.extent.unmapped.title'))}">${esc(t('alert.extent.unmapped'))}</span>` : '') + '</div>' +
+    // these are not NWS products; the badge credits whoever senderName says wrote it
+    (isOrder ? `<div class="alert-agency">${esc(alertAgencyText(f))}</div>` : '') +
     alertTagChips(f) +
     `<div class="alert-meta">` +
     (p.sent ? `<span class="am-when"><span class="fresh-dot ${alertFreshClass(f)}"></span>${esc(t('alert.sent'))} ${esc(fmtWhen(p.sent))}</span>` : '') +
@@ -684,7 +808,8 @@ function openAlertText(f) {
   parts.push(`<div class="alert-doc-when">${esc(t('alert.until'))} ${esc(alertUntilText(f))}</div>`);
   if (p.description) parts.push(`<pre class="alert-doc-text">${esc(p.description.trim())}</pre>`);
   if (p.instruction) parts.push(`<div class="alert-doc-instr-h">${esc(t('alert.instruction'))}</div><pre class="alert-doc-text">${esc(p.instruction.trim())}</pre>`);
-  parts.push(`<div class="alert-doc-src">${esc(p.senderName || 'NWS')} · <a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener">${esc(t('alert.raw'))} →</a></div>`);
+  // a product that did not say who wrote it is not an NWS product; the old 'NWS' default asserted one
+  parts.push(`<div class="alert-doc-src">${esc(alertAgency(f) || t('alert.agency.unknown'))} · <a href="${esc(safeUrl(f.id))}" target="_blank" rel="noopener">${esc(t('alert.raw'))} →</a></div>`);
   $('#alert-body').innerHTML = parts.join('');
   $('#alert-modal').hidden = false;
 }
@@ -705,7 +830,7 @@ function syncAlertInViewChip(n) {
 /* Rows arrive ranked, so the classes already come out in order; the header names the boundary the
    reader is crossing. Each header is emitted once, so an unrecognised product landing last under
    the acute class cannot open a second copy of the heading it already sat under. */
-const HAZARD_CLASS_LABEL = { acute: 'alert.cls.acute', watch: 'alert.cls.watch', standing: 'alert.cls.standing' };
+const HAZARD_CLASS_LABEL = { acute: 'alert.cls.acute', order: 'alert.cls.order', watch: 'alert.cls.watch', standing: 'alert.cls.standing' };
 
 function appendAlertRows(el, rows) {
   const seen = new Set();

@@ -1,0 +1,1219 @@
+{
+  "_note": [
+    "Fixtures for the local-emergency and evacuation-order family (R5).",
+    "'real' holds products captured verbatim from api.weather.gov/alerts on 2026-07-26. Nothing",
+    "in them is edited: they are the source of truth for what senderName, geometry, affectedZones",
+    "and parameters actually contain on a CIV-originated product. They cover every senderName",
+    "shape observed nationally: a COG number prefix, a segment repeated three times, a plain",
+    "agency name, and an NWS office as the genuine sender.",
+    "'shaped' holds 911 Telephone Outage and Evacuation Immediate records. These are NOT",
+    "archived products. api.weather.gov/alerts carries roughly seven days and held zero records",
+    "for either string, nationally, on 2026-07-26. Every field name, field set and value shape",
+    "here is copied from the real CIV products above (EAS-ORG CIV, no VTEC, null ends, prose",
+    "areaDesc); only the county, the polygon and the alternate-number text differ, and the two",
+    "phone formats are the two that appear verbatim in the real Idaho products."
+  ],
+  "real": [
+    {
+      "id": "https://api.weather.gov/alerts/AS-ID-dd078a49-fe9f-49a3-ba18-a430613392a4",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -117.0234,
+              42.6966
+            ],
+            [
+              -117.0254,
+              42.9806
+            ],
+            [
+              -116.6079,
+              42.9725
+            ],
+            [
+              -116.5201,
+              42.6956
+            ],
+            [
+              -117.0234,
+              42.6966
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/AS-ID-dd078a49-fe9f-49a3-ba18-a430613392a4",
+        "@type": "wx:Alert",
+        "id": "AS-ID-dd078a49-fe9f-49a3-ba18-a430613392a4",
+        "areaDesc": "Pleasant Valley, Flink Creek Road including the town of Triangle and Triangle Reservoir in Owyhee County",
+        "geocode": {
+          "SAME": [
+            "016073"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T17:09:07-06:00",
+        "effective": "2026-07-26T17:09:07-06:00",
+        "onset": null,
+        "expires": "2026-07-26T19:09:07-06:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Civil Emergency Message",
+        "sender": "elbert.wright@dhw.idaho.gov",
+        "senderName": "200033, Idaho State Communications Center, Idaho Office of Emergency Management",
+        "headline": "Prepare to Evacuate",
+        "description": "The Owyhee County has issued a civil emergency alert for the Jordan Valley Area in Idaho. Big Grass Fire is uncontained and moving rapidly to the south and southwest direction. Pleasant Valley Flink Creek Road including the town of Triangle and Triangle Reservoir is in a Ready Stage 1. Be prepared to evacuate. Contact Owyhee County at 2 0 8 4 9 5 1 2 0 5 for additional information. This message was sent by the Idaho State Communications Center and is now concluded.",
+        "instruction": "If evacuation occurs directions: Take Bachman Grade Road to Oreana.",
+        "response": "Prepare",
+        "note": null,
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Imminent Threat"
+          ],
+          "CMAMtext": [
+            "Pleasant Valley, Flink Creek Road, town of Triangle and Triangle Res. in Ready Stage 1"
+          ],
+          "CMAMlongtext": [
+            "Pleasant Valley, Flink Creek Road including the town of Triangle and Triangle Reservoir is in a Ready Stage 1. Be prepared to evacuate. Big Grass Fire is uncontained and moving rapidly to the south and southwest direction."
+          ],
+          "timezone": [
+            "MDT"
+          ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": null,
+        "eventCode": {
+          "SAME": [
+            "CEM"
+          ]
+        }
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/200049.eed2c2d8d7b840a5f018b622e33579",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -80.2998,
+              39.1043
+            ],
+            [
+              -80.3931,
+              38.7228
+            ],
+            [
+              -80.4385,
+              38.7024
+            ],
+            [
+              -80.7172,
+              39.0008
+            ],
+            [
+              -80.7378,
+              39.0904
+            ],
+            [
+              -80.5895,
+              39.1692
+            ],
+            [
+              -80.2998,
+              39.1043
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/200049.eed2c2d8d7b840a5f018b622e33579",
+        "@type": "wx:Alert",
+        "id": "200049.eed2c2d8d7b840a5f018b622e33579",
+        "areaDesc": "Lewis, WV",
+        "geocode": {
+          "SAME": [
+            "054041"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-22T01:18:49-04:00",
+        "effective": "2026-07-22T01:18:49-04:00",
+        "onset": null,
+        "expires": "2026-07-22T02:18:49-04:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Civil Emergency Message",
+        "sender": "WVEMD",
+        "senderName": "WVEMD, South Charleston, WV",
+        "headline": "FOR ALL RESIDENCE AFFECTED BY THE FLOODING, THERE IS A SHELTER OPEN AT THE LEWIS COUNTY HIGH SCHOOL. USE EXIT 96 FROM I-79 TO MAKE ACCESS TO THE SHELTER. IF IN NEED OF EMERGENCY ASSISTANCE, CALL 911. DO NOT DRIVE THROUGH FLOOD WATERS. TURN AROUND, DON",
+        "description": "FOR ALL RESIDENCE AFFECTED BY THE FLOODING, THERE IS A SHELTER OPEN AT THE LEWIS COUNTY HIGH SCHOOL. USE EXIT 96 FROM I-79 TO MAKE ACCESS TO THE SHELTER. IF IN NEED OF EMERGENCY ASSISTANCE, CALL 911. DO NOT DRIVE THROUGH FLOOD WATERS. TURN AROUND, DON'T DROWN.",
+        "instruction": "FOR ALL RESIDENCE AFFECTED BY THE FLOODING, THERE IS A SHELTER OPEN AT THE LEWIS COUNTY HIGH SCHOOL. USE EXIT 96 FROM I-79 TO MAKE ACCESS TO THE SHELTER. IF IN NEED OF EMERGENCY ASSISTANCE, CALL 911. DO NOT DRIVE THROUGH FLOOD WATERS. TURN AROUND, DON'T DROWN.",
+        "response": "Prepare",
+        "note": null,
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "timezone": [
+            "EDT"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "CMAMtext": [
+            "SHELTER OPEN AT THE LEWIS COUNTY HIGH SCHOOL. USE EXIT 96 FROM I-79 TO ACCESS SHELTER."
+          ],
+          "CMAMlongtext": [
+            "FOR ALL RESIDENCE AFFECTED BY THE FLOODING, THERE IS A SHELTER OPEN AT THE LEWIS COUNTY HIGH SCHOOL. USE EXIT 96 FROM I-79 TO MAKE ACCESS TO THE SHELTER. IF IN NEED OF EMERGENCY ASSISTANCE, CALL 911. DO NOT DRIVE THROUGH FLOOD WATERS. TURN AROUND, DON'T DROWN."
+          ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": null,
+        "eventCode": {
+          "SAME": [
+            "CEM"
+          ]
+        }
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f27bfabd753026aa6c9ea2260357f0414e27e487.001.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f27bfabd753026aa6c9ea2260357f0414e27e487.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.f27bfabd753026aa6c9ea2260357f0414e27e487.001.1",
+        "areaDesc": "Siskiyou, CA",
+        "geocode": {
+          "SAME": [
+            "006093"
+          ],
+          "UGC": [
+            "CAC093"
+          ]
+        },
+        "affectedZones": [
+          "https://api.weather.gov/zones/county/CAC093"
+        ],
+        "references": [],
+        "sent": "2026-07-25T18:21:00-07:00",
+        "effective": "2026-07-25T18:21:00-07:00",
+        "onset": "2026-07-25T18:21:00-07:00",
+        "expires": "2026-07-25T21:30:00-07:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Unknown",
+        "certainty": "Unknown",
+        "urgency": "Unknown",
+        "event": "Local Area Emergency",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS Medford OR",
+        "headline": "Local Area Emergency issued July 25 at 6:21PM PDT by NWS Medford OR",
+        "description": "LAEMFR\n\nSiskiyou County Sheriffs Office is searching for a missing\nbackpacker... James Roger Carol...\n\nThe following message is transmitted at the request of Siskiyou\nCounty.\n\nSiskiyou County Sheriffs Office is searching for a missing\nbackpacker... James Roger Carol... 77 years old... white male... 5\nft 8 inches tall... 160 pounds... white beard and dark clothing.\nCarol is last known to be in the area of Duck Lakes or High Lake\narea of the Russian Wilderness. If seen... call SCSO at\n530-841-2900\n\nFor the latest information regarding this or any other emergency\nimpacting Siskiyou County go to the ReadySiskiyou Website at\nwww.readysiskiyou.gov\n\nSiskiyou County Sheriffs Office is searching for a missing\nbackpacker... James Roger Carol... 77 years old... white male... 5\nft 8 inches tall... 160 pounds... white beard and dark clothing.\nCarol is last known to be in the area of Duck Lakes or High Lake\narea of the Russian Wilderness. If seen... call SCSO at\n530-841-2900\n\nFor the latest information regarding this or any other emergency\nimpacting Siskiyou County go to the ReadySiskiyou Website at\nwww.readysiskiyou.gov",
+        "instruction": null,
+        "response": "Monitor",
+        "note": "Non-Weather Emergency Message. Not sent to IPAWS.",
+        "parameters": {
+          "AWIPSidentifier": [
+            "LAEMFR"
+          ],
+          "WMOidentifier": [
+            "WOUS46 KMFR 260121"
+          ],
+          "NWSheadline": [
+            "MISSING PERSON ALERT"
+          ],
+          "BLOCKCHANNEL": [
+            "EAS",
+            "NWEM",
+            "CMAS"
+          ],
+          "EAS-ORG": [
+            "CIV"
+          ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+          "SAME": [
+            "LAE"
+          ],
+          "NationalWeatherService": [
+            "LAE"
+          ]
+        }
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/ASHERGROUP-1738024-post-1784591163",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.7395,
+              38.1459
+            ],
+            [
+              -81.8063,
+              38.2265
+            ],
+            [
+              -81.8948,
+              38.2206
+            ],
+            [
+              -81.969,
+              38.1542
+            ],
+            [
+              -81.9841,
+              38.0829
+            ],
+            [
+              -81.982,
+              38.0564
+            ],
+            [
+              -81.894,
+              38.0107
+            ],
+            [
+              -81.8061,
+              38.0156
+            ],
+            [
+              -81.7368,
+              38.0524
+            ],
+            [
+              -81.7395,
+              38.1459
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/ASHERGROUP-1738024-post-1784591163",
+        "@type": "wx:Alert",
+        "id": "ASHERGROUP-1738024-post-1784591163",
+        "areaDesc": "In this area",
+        "geocode": {
+          "SAME": [
+            "054005"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-20T19:46:03-04:00",
+        "effective": "2026-07-20T19:46:03-04:00",
+        "onset": null,
+        "expires": "2026-07-21T01:46:03-04:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Other",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Local Area Emergency",
+        "sender": "ASHERGROUP",
+        "senderName": "Boone County WV,Boone County WV,Boone County WV",
+        "headline": "Missing Juvenile - Danville",
+        "description": "MISSING JUVENILE Siara Dotson  11-year-old female  5 0   80 lbs  brown hair  brown eyes  dark complexion. Last seen near Lick Creek along Little Coal River at approximately 4 30 PM. If seen  call 911 immediately.",
+        "instruction": "If seen please dial 911",
+        "response": "Execute",
+        "note": null,
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "CMAMtext": [
+            "Missing Juvenile: Siara Dotson, 11. Last seen Lick Creek Rd/Little Coal River. Call 911"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "CMAMlongtext": [
+            "MISSING JUVENILE: Siara Dotson, 11-year-old female, 5'0\", 80 lbs, brown hair, brown eyes, dark complexion. Last seen near Lick Creek along Little Coal River at approximately 4:30 PM. If seen, call 911 immediately."
+          ],
+          "timezone": [
+            "EST"
+          ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": null,
+        "eventCode": {
+          "SAME": [
+            "LAE"
+          ]
+        }
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/AS-NM-33f0f7cb-632f-483a-a0bb-819df95af537",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -105.6412,
+              33.3052
+            ],
+            [
+              -105.6436,
+              33.3052
+            ],
+            [
+              -105.6448,
+              33.3062
+            ],
+            [
+              -105.6455,
+              33.3069
+            ],
+            [
+              -105.6461,
+              33.3074
+            ],
+            [
+              -105.6439,
+              33.3099
+            ],
+            [
+              -105.6428,
+              33.3115
+            ],
+            [
+              -105.6407,
+              33.312
+            ],
+            [
+              -105.6384,
+              33.3127
+            ],
+            [
+              -105.6366,
+              33.3135
+            ],
+            [
+              -105.6339,
+              33.3165
+            ],
+            [
+              -105.6324,
+              33.3189
+            ],
+            [
+              -105.6295,
+              33.3215
+            ],
+            [
+              -105.6285,
+              33.323
+            ],
+            [
+              -105.6272,
+              33.3242
+            ],
+            [
+              -105.6238,
+              33.3255
+            ],
+            [
+              -105.6235,
+              33.3265
+            ],
+            [
+              -105.622,
+              33.327
+            ],
+            [
+              -105.6194,
+              33.3272
+            ],
+            [
+              -105.6195,
+              33.3257
+            ],
+            [
+              -105.6201,
+              33.3246
+            ],
+            [
+              -105.6231,
+              33.324
+            ],
+            [
+              -105.6255,
+              33.3233
+            ],
+            [
+              -105.6264,
+              33.3223
+            ],
+            [
+              -105.6271,
+              33.321
+            ],
+            [
+              -105.6274,
+              33.3198
+            ],
+            [
+              -105.6292,
+              33.3181
+            ],
+            [
+              -105.6309,
+              33.3166
+            ],
+            [
+              -105.6323,
+              33.3143
+            ],
+            [
+              -105.6329,
+              33.3126
+            ],
+            [
+              -105.6333,
+              33.3117
+            ],
+            [
+              -105.635,
+              33.3103
+            ],
+            [
+              -105.6365,
+              33.3093
+            ],
+            [
+              -105.6388,
+              33.3084
+            ],
+            [
+              -105.64,
+              33.3078
+            ],
+            [
+              -105.6406,
+              33.3061
+            ],
+            [
+              -105.6406,
+              33.3052
+            ],
+            [
+              -105.6412,
+              33.3052
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/AS-NM-33f0f7cb-632f-483a-a0bb-819df95af537",
+        "@type": "wx:Alert",
+        "id": "AS-NM-33f0f7cb-632f-483a-a0bb-819df95af537",
+        "areaDesc": "US 70",
+        "geocode": {
+          "SAME": [
+            "035027"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-20T14:59:55-06:00",
+        "effective": "2026-07-20T14:59:55-06:00",
+        "onset": null,
+        "expires": "2026-07-20T18:59:55-06:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Local Area Emergency",
+        "sender": "ericqueller@ruidoso-nm.gov",
+        "senderName": "202405, Village of Ruidoso, Village of Ruidoso",
+        "headline": "Ongoing Flash Flooding",
+        "description": "Ruidoso Emergency Management: Flash Flooding is OBSERVED along US 70.",
+        "instruction": "Rapidly rising floodwaters have been reported in the US 70 Area including Cherokee Mobile Home Park and nearby businesses. Rapidly rising floodwaters may impact roadways and low-lying areas. For your safety avoid travel and move immediately to higher ground! Do not delay leaving to gather any belongings or make efforts to protect your home. You can find more information by tuning into 1490 AM or VOR social media channels.",
+        "response": "Execute",
+        "note": null,
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "CMAMtext": [
+            "Ruidoso OEM. Flash Flooding is OBSERVED near US Hwy 70. MOVE to higher ground."
+          ],
+          "CMAMlongtext": [
+            "Ruidoso Emergency Management: Flash Flood Alert for US 70, including Cherokee Mobile Home Park and nearby businesses. Rapidly rising floodwaters may impact roadways and low-lying areas. Avoid travel and move to higher ground if threatened. Do NOT drive through flooded roads. Updates: 1490 AM, 99.1 FM, or Village of Ruidoso social media"
+          ],
+          "timezone": [
+            "PDT"
+          ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": null,
+        "eventCode": {
+          "SAME": [
+            "LAE"
+          ]
+        }
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/AS-UT-2ca261be-de9c-43ff-8994-b0f1a11c9d94",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/AS-UT-2ca261be-de9c-43ff-8994-b0f1a11c9d94",
+        "@type": "wx:Alert",
+        "id": "AS-UT-2ca261be-de9c-43ff-8994-b0f1a11c9d94",
+        "areaDesc": "Southeastern Utah",
+        "geocode": {
+          "SAME": [
+            "049019"
+          ]
+        },
+        "affectedZones": [],
+        "references": [
+          {
+            "@id": "https://api.weather.gov/alerts/AS-UT-21ab98db-fda7-4ab3-99dd-1d6ccc1fec60",
+            "identifier": "AS-UT-21ab98db-fda7-4ab3-99dd-1d6ccc1fec60",
+            "sender": "cphillips@grandcountysheriff.org",
+            "sent": "2026-07-19T20:49:09-06:00"
+          }
+        ],
+        "sent": "2026-07-19T20:51:24-06:00",
+        "effective": "2026-07-19T20:51:24-06:00",
+        "onset": null,
+        "expires": "2026-07-20T00:51:24-06:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Local Area Emergency",
+        "sender": "cphillips@grandcountysheriff.org",
+        "senderName": "201621, Grand County, Grand County",
+        "headline": "FLASH FLOOD WARNING",
+        "description": "Flash flood warning",
+        "instruction": "Get to high ground now. Do not enter flood waters. Turn around. Don't drown.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "CMAMtext": [
+            "Flash flood warning. Get to high ground now. Do not enter flood waters."
+          ],
+          "CMAMlongtext": [
+            "Flash flood warning for Southeastern Utah including Grand County until 11:30 PM. Heavy rain between .5-1 inch of rain has fallen. Flash flooded expected shortly. Some locations that will experience flash flooding include Castle Valley, Steans Creek, Onion Creek, Placer Creek, Colorado River, and Castle Creek."
+          ],
+          "timezone": [
+            "MDT"
+          ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": null,
+        "eventCode": {
+          "SAME": [
+            "LAE"
+          ]
+        }
+      }
+    }
+  ],
+  "shaped": [
+    {
+      "id": "FIXTURE-911-DASHED",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -99.4,
+              29.9
+            ],
+            [
+              -98.9,
+              29.9
+            ],
+            [
+              -98.9,
+              30.2
+            ],
+            [
+              -99.4,
+              30.2
+            ],
+            [
+              -99.4,
+              29.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/FIXTURE-911-DASHED",
+        "id": "FIXTURE-911-DASHED",
+        "areaDesc": "Kerr, TX",
+        "geocode": {
+          "UGC": [
+            "TXC265"
+          ],
+          "SAME": [
+            "048265"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T18:04:00-05:00",
+        "effective": "2026-07-26T18:04:00-05:00",
+        "onset": null,
+        "expires": "2026-07-26T23:04:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "911 Telephone Outage",
+        "sender": "responder-fixture@example.invalid",
+        "senderName": "201621, Kerr County, Kerr County",
+        "headline": "911 service interruption",
+        "description": "Kerr County reports that 911 telephone service is out of service countywide following a fiber cut. Callers needing emergency assistance should dial 830-896-1216 until service is restored. This message was sent by the Kerr County Sheriff's Office.",
+        "instruction": "Dial 830-896-1216 for emergency assistance until 911 service is restored.",
+        "response": "Execute",
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "timezone": [
+            "America/Chicago"
+          ],
+          "CMAMtext": [
+            "911 is out of service in this area."
+          ],
+          "CMAMlongtext": [
+            "Kerr County reports that 911 telephone service is out of service countywide following a fiber cut. Callers needing emergency assistance should dial 830-896-1216 until service is restored. This message was sent by the Kerr County Sheriff's Office."
+          ]
+        }
+      }
+    },
+    {
+      "id": "FIXTURE-911-SPACED",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -99.4,
+              29.9
+            ],
+            [
+              -98.9,
+              29.9
+            ],
+            [
+              -98.9,
+              30.2
+            ],
+            [
+              -99.4,
+              30.2
+            ],
+            [
+              -99.4,
+              29.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/FIXTURE-911-SPACED",
+        "id": "FIXTURE-911-SPACED",
+        "areaDesc": "Kendall, TX",
+        "geocode": {
+          "UGC": [
+            "TXC265"
+          ],
+          "SAME": [
+            "048265"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T18:04:00-05:00",
+        "effective": "2026-07-26T18:04:00-05:00",
+        "onset": null,
+        "expires": "2026-07-26T23:04:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "911 Telephone Outage",
+        "sender": "responder-fixture@example.invalid",
+        "senderName": "202405, Kendall County, Kendall County",
+        "headline": "911 service interruption",
+        "description": "Kendall County 911 is out of service. For emergencies contact the sheriff's office at 8 3 0 2 4 9 9 5 4 6 . This message was sent by Kendall County Emergency Management.",
+        "instruction": "",
+        "response": "Execute",
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "timezone": [
+            "America/Chicago"
+          ],
+          "CMAMtext": [
+            "911 is out of service in this area."
+          ],
+          "CMAMlongtext": [
+            "Kendall County 911 is out of service. For emergencies contact the sheriff's office at 8 3 0 2 4 9 9 5 4 6 . This message was sent by Kendall County Emergency Management."
+          ]
+        }
+      }
+    },
+    {
+      "id": "FIXTURE-911-NOALT",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -99.4,
+              29.9
+            ],
+            [
+              -98.9,
+              29.9
+            ],
+            [
+              -98.9,
+              30.2
+            ],
+            [
+              -99.4,
+              30.2
+            ],
+            [
+              -99.4,
+              29.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/FIXTURE-911-NOALT",
+        "id": "FIXTURE-911-NOALT",
+        "areaDesc": "Bandera, TX",
+        "geocode": {
+          "UGC": [
+            "TXC265"
+          ],
+          "SAME": [
+            "048265"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T18:04:00-05:00",
+        "effective": "2026-07-26T18:04:00-05:00",
+        "onset": null,
+        "expires": "2026-07-26T23:04:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "911 Telephone Outage",
+        "sender": "responder-fixture@example.invalid",
+        "senderName": "Bandera County EMA",
+        "headline": "911 service interruption",
+        "description": "911 telephone service is interrupted in Bandera County. Emergency callers should proceed to the nearest fire station or sheriff substation until service is restored.",
+        "instruction": "",
+        "response": "Execute",
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "timezone": [
+            "America/Chicago"
+          ],
+          "CMAMtext": [
+            "911 is out of service in this area."
+          ],
+          "CMAMlongtext": [
+            "911 telephone service is interrupted in Bandera County. Emergency callers should proceed to the nearest fire station or sheriff substation until service is restored."
+          ]
+        }
+      }
+    },
+    {
+      "id": "FIXTURE-911-NOSENDER",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -99.4,
+              29.9
+            ],
+            [
+              -98.9,
+              29.9
+            ],
+            [
+              -98.9,
+              30.2
+            ],
+            [
+              -99.4,
+              30.2
+            ],
+            [
+              -99.4,
+              29.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/FIXTURE-911-NOSENDER",
+        "id": "FIXTURE-911-NOSENDER",
+        "areaDesc": "Real, TX",
+        "geocode": {
+          "UGC": [
+            "TXC265"
+          ],
+          "SAME": [
+            "048265"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T18:04:00-05:00",
+        "effective": "2026-07-26T18:04:00-05:00",
+        "onset": null,
+        "expires": "2026-07-26T23:04:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "911 Telephone Outage",
+        "sender": "responder-fixture@example.invalid",
+        "headline": "911 service interruption",
+        "description": "911 telephone service is out in this area. Contact your local sheriff's office directly.",
+        "instruction": "",
+        "response": "Execute",
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "timezone": [
+            "America/Chicago"
+          ],
+          "CMAMtext": [
+            "911 is out of service in this area."
+          ],
+          "CMAMlongtext": [
+            "911 telephone service is out in this area. Contact your local sheriff's office directly."
+          ]
+        }
+      }
+    },
+    {
+      "id": "FIXTURE-911-FAR",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -106.6,
+              31.6
+            ],
+            [
+              -106.2,
+              31.6
+            ],
+            [
+              -106.2,
+              31.9
+            ],
+            [
+              -106.6,
+              31.9
+            ],
+            [
+              -106.6,
+              31.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/FIXTURE-911-FAR",
+        "id": "FIXTURE-911-FAR",
+        "areaDesc": "El Paso, TX",
+        "geocode": {
+          "UGC": [
+            "TXC265"
+          ],
+          "SAME": [
+            "048265"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T18:04:00-05:00",
+        "effective": "2026-07-26T18:04:00-05:00",
+        "onset": null,
+        "expires": "2026-07-26T23:04:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "911 Telephone Outage",
+        "sender": "responder-fixture@example.invalid",
+        "senderName": "201621, El Paso County, El Paso County",
+        "headline": "911 service interruption",
+        "description": "El Paso County reports 911 telephone service out of service. Callers should dial 915-832-4400 until service is restored.",
+        "instruction": "",
+        "response": "Execute",
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "timezone": [
+            "America/Chicago"
+          ],
+          "CMAMtext": [
+            "911 is out of service in this area."
+          ],
+          "CMAMlongtext": [
+            "El Paso County reports 911 telephone service out of service. Callers should dial 915-832-4400 until service is restored."
+          ]
+        }
+      }
+    },
+    {
+      "id": "FIXTURE-911-UNMAPPED",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/FIXTURE-911-UNMAPPED",
+        "id": "FIXTURE-911-UNMAPPED",
+        "areaDesc": "Northern Edwards County and the Nueces River corridor",
+        "geocode": {
+          "UGC": [
+            "TXC265"
+          ],
+          "SAME": [
+            "048265"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T18:04:00-05:00",
+        "effective": "2026-07-26T18:04:00-05:00",
+        "onset": null,
+        "expires": "2026-07-26T23:04:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "911 Telephone Outage",
+        "sender": "responder-fixture@example.invalid",
+        "senderName": "Edwards County Sheriff",
+        "headline": "911 service interruption",
+        "description": "911 telephone service is out of service in northern Edwards County. Dial 830-683-4104 for emergency assistance.",
+        "instruction": "",
+        "response": "Execute",
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "timezone": [
+            "America/Chicago"
+          ],
+          "CMAMtext": [
+            "911 is out of service in this area."
+          ],
+          "CMAMlongtext": [
+            "911 telephone service is out of service in northern Edwards County. Dial 830-683-4104 for emergency assistance."
+          ]
+        }
+      }
+    },
+    {
+      "id": "FIXTURE-EVI",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -99.4,
+              29.9
+            ],
+            [
+              -98.9,
+              29.9
+            ],
+            [
+              -98.9,
+              30.2
+            ],
+            [
+              -99.4,
+              30.2
+            ],
+            [
+              -99.4,
+              29.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/FIXTURE-EVI",
+        "id": "FIXTURE-EVI",
+        "areaDesc": "Kerr, TX",
+        "geocode": {
+          "UGC": [
+            "TXC265"
+          ],
+          "SAME": [
+            "048265"
+          ]
+        },
+        "affectedZones": [],
+        "references": [],
+        "sent": "2026-07-26T18:04:00-05:00",
+        "effective": "2026-07-26T18:04:00-05:00",
+        "onset": null,
+        "expires": "2026-07-26T23:04:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Safety",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Evacuation Immediate",
+        "sender": "responder-fixture@example.invalid",
+        "senderName": "201621, Kerr County, Kerr County",
+        "headline": "911 service interruption",
+        "description": "Kerr County has ordered immediate evacuation of the Guadalupe River corridor.",
+        "instruction": "Leave now via Highway 39 east.",
+        "response": "Evacuate",
+        "parameters": {
+          "EAS-ORG": [
+            "CIV"
+          ],
+          "WEAHandling": [
+            "Public Safety"
+          ],
+          "timezone": [
+            "America/Chicago"
+          ],
+          "CMAMtext": [
+            "911 is out of service in this area."
+          ],
+          "CMAMlongtext": [
+            "Kerr County has ordered immediate evacuation of the Guadalupe River corridor."
+          ]
+        }
+      }
+    }
+  ]
+}

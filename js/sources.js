@@ -1288,13 +1288,15 @@ async function openHydro(g) {
     const [detail, obs, fcst] = await Promise.all([
       gaugeJson(g.lid, 'detail', `${CONFIG.nwpsBase}/gauges/${g.lid}`),
       gaugeJson(g.lid, 'series', `${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/observed`),
-      cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/forecast`).catch(() => ({ data: [] })),
+      cachedJson(`${CONFIG.nwpsBase}/gauges/${g.lid}/stageflow/forecast`).catch(() => null), // E1: null = unanswered, not an empty forecast
     ]);
-    drawHydro(g, detail, obs.data || [], fcst.data || []);
+    drawHydro(g, detail, obs.data || [], fcst);
   } catch { note.textContent = t('hydro.unavail'); }
 }
 
-function drawHydro(g, detail, obsData, fcstData) {
+function drawHydro(g, detail, obsData, fcstRes) {
+  const fcstFailed = !fcstRes; // the forecast request did not answer; its absence is not a flat river
+  const fcstData = fcstRes && Array.isArray(fcstRes.data) ? fcstRes.data : [];
   const now = Date.now();
   const back = now - 24 * 3600000; // 24h observed history
   const obs = obsData.filter((p) => new Date(p.validTime).getTime() >= back && p.primary > -999)
@@ -1356,7 +1358,9 @@ function drawHydro(g, detail, obsData, fcstData) {
 
   $('#hydro-legend').innerHTML =
     `<span class="hl"><i style="background:var(--accent)"></i>${esc(t('hydro.obs'))}</span>` +
-    `<span class="hl"><i style="background:var(--cat-major)"></i>${esc(t('word.forecast').toLowerCase())}</span>` +
+    // the legend names a trace only when one was drawn, and says so when the forecast never answered
+    (fcst.length ? `<span class="hl"><i style="background:var(--cat-major)"></i>${esc(t('word.forecast').toLowerCase())}</span>` : '') +
+    (fcstFailed ? `<span class="hl stale-note">${esc(t('hydro.fcstfail'))}</span>` : '') +
     (rec ? `<span class="hl"><i class="dashed"></i>${esc(t('hydro.recline'))}</span>` : '') +
     // only claim bands when bands were actually drawn
     (stages.length ? `<span class="hl">${esc(t('hydro.shaded'))}</span>` : `<span class="hl">${esc(t('hydro.nobands'))}</span>`);

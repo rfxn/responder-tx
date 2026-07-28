@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.66';
+const APP_VERSION = 'v0.99.67';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -290,6 +290,114 @@ const state = {
   lsBulk: false, // a parent toggle is mid-flight: repaint once at the end, not once per child layer
   offDepth: null, // extra zoom levels an offline save covers; read from storage on first use
   viewReady: false, // boot restore and URL params are done: only now does a change mean the user made it
+
+  /* Everything below was created ad hoc by its first writer. An undeclared key is invisible until
+     something reads it, and three published-zero defects lived in exactly that gap, so every key
+     the client touches is declared here with the value that means "not answered yet".
+     tests/bundle.test.js fails on the next one that is not. */
+  seedsLoadedOnce: false, // curated seeds have answered at least once; before that the Feed badge is unknown
+  records: null, // crest-of-record map; null = unread (the next cycle retries), {} = this deploy ships none
+  crossings: null, // curated crossings; null is what makes crossingsUnknown true on a cold client
+  crossStatus: null,
+  crossStatusUnknown: false, // jurisdiction report unreadable and no last-good: unknown, never "none"
+  sheltersUnknown: false, // live NSS feed unreadable and no last-good
+  roadClosures: null,
+  roadsPartial: false,
+  riverSentry: null,
+  snapshotAt: null, // epoch of the gauge snapshot currently on screen, else null
+  seedHash: null,
+  gaugeMarkers: null,
+  reqMarkers: null,
+  riskMarker: null,
+  shareUrl: null,
+  showAllLsrs: false,
+  _lwcLoaded: false,
+  _rsentryLoaded: false,
+
+  bootAt: 0,
+  lastInteract: 0,
+  refreshBusy: false,
+  refreshQueued: false,
+  refreshRadar: null, // map.js publishes the radar re-fetch here for refresh() to call
+  pendingRefresh: false,
+  pendingCam: null,
+  pendingHydro: null,
+  feedNoteDetail: '',
+  tickerActs: null,
+  tickerHash: '',
+  driveCams: null,
+  obIdx: 0,
+  basinHiLids: null,
+  basinFramedSlug: null,
+  legendEl: null,
+  viewsEl: null,
+  tropicalLegend: null,
+  surgeErr: false,
+
+  updateTarget: null,
+  rollTimer: null,
+  rollToastTimer: null,
+  rollPostponedUntil: 0,
+  swReg: null,
+  swWaitingReg: null,
+  swApplying: false,
+  swReloaded: false,
+
+  usgsAutoOn: false,
+  usgsAutoRemoving: false,
+  usgsFallbackDismissed: false,
+  usgsFeedStale: false,
+
+  radar: null, // active frame set; carries its own source and tile-verification verdict
+  rtl: null, // radar timeline cursor, built by initMap
+  fcst: null, // HRRR forecast-radar layer set, built by initMap
+  rainWindow: null,
+  inunBucket: 0,
+
+  cameras: null,
+  camerasP: null, // in-flight inventory fetch, shared by every trigger; cleared on failure to allow retry
+  camCounts: null, // null = the inventory has not been counted yet, which the pills read as unknown
+  camLive: null,
+  camLayerList: null,
+  camNoCoords: null,
+  camHls: null,
+  camObjUrl: null,
+
+  compassEl: null,
+  compassRose: null,
+  compassAnchor: null,
+  compassEvName: null,
+  compassHandler: null,
+  compassLive: false,
+  compassGotFix: false,
+  compassHeading: 0,
+  compassApplied: null,
+  compassRaf: 0,
+  compassProbeT: null,
+
+  pb: null,
+  pbData: null,
+  pbCrests: null,
+  pbChapters: null,
+  pbRecordPct: null,
+  pbFlows: null,
+  pbFlowKey: '',
+  pbCuratedMarks: null,
+  pbMarkers: null, // null = markers not built yet; the builder is a no-op once they are
+  pbRoadMarkers: null,
+  pbRoadsFromT: Infinity, // no archive window known yet, so no frame counts as archived
+  pbLabeled: null,
+  pbPrevCodes: null,
+  pbPrevSheet: null,
+  pbPulse: null,
+  pbStory: null,
+  pbStoryBase: null,
+  pbtApplied: false,
+  pbArchNoted: null,
+  pbArchNoteTimer: null,
+
+  pushVapidKey: null,
+  pushLastEval: 0,
 };
 
 const PRI_WEIGHT = { critical: 8, high: 4, medium: 2, low: 1 };

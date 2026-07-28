@@ -153,10 +153,6 @@
     {
       "label": "Damage.TDEM.Texas.gov · report damage / start claims (official)",
       "url": "https://damage.tdem.texas.gov/"
-    },
-    {
-      "label": "CrowdSource Rescue · ACTIVATED for Hill Country (credentialed SAR only)",
-      "url": "https://crowdsourcerescue.org/hill-country"
     }
   ],
   "recoveryLinks": [
@@ -165,7 +161,7 @@
       "url": "https://rebuildtx.org/"
     },
     {
-      "label": "Hill Country Flood Relief Fund (CFHC, for this event)",
+      "label": "Hill Country Flood Relief Fund (CFHC)",
       "url": "https://cftexashillcountry.fcsuite.com/erp/donate/create/fund?funit_id=4255"
     },
     {

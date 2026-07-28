@@ -23,7 +23,7 @@ suspended or mid-task).
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
 | `cycle-check.sh` | Pre-commit validation bundle, fourteen checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, and out-of-cycle artifact age. |
-| `deploy.sh` | Version-agreement pre-flight → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). Staging is a fresh `mktemp -d` per run, removed on every exit path, so the cron deploy and a hand-run deploy can never share a directory; set `RESPONDER_DEPLOY_DIR` to pin the path and keep the artifact for inspection (the caller then owns it, and two runs pointed at one path can still collide). |
+| `deploy.sh` | Version-agreement pre-flight → test gate at HEAD (`node --test`, the python suites, the shell suites, `cycle-check.sh`) → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). Staging is a fresh `mktemp -d` per run, removed on every exit path, so the cron deploy and a hand-run deploy can never share a directory; set `RESPONDER_DEPLOY_DIR` to pin the path and keep the artifact for inspection (the caller then owns it, and two runs pointed at one path can still collide). |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `chat-watchdog.sh` | **The stall watchdog** — build-capable auto-recovery when the in-session revival goes dark. See "Stall watchdog". |
@@ -99,7 +99,7 @@ Order (matches the manual per-cycle protocol):
 8. `gen-feeds.py` → `feed.xml` + `crests.ics`
 9. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
 10. `cycle-check.sh --code-from-head` → validate
-11. If any file in `DATA_FILES` differs from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), `git push origin main`, then `deploy.sh`, then a best-effort push nudge.
+11. If any file in `DATA_FILES` differs from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), then `deploy.sh`, then a best-effort push nudge. The cycle does **not** push: `deploy.sh` gates HEAD first and pushes on the far side of that gate, so a red suite reaches neither origin nor the mirror. The commit still precedes the gate because the artifact is `git archive HEAD`; a local commit is not a publish.
 
 Properties:
 
@@ -183,7 +183,7 @@ The cycle holds a **non-blocking** `flock`, so a generator that hangs past the
 15-minute window makes the *next* scheduled cycle log `SKIP` and exit. One hung
 upstream therefore stops the board publishing for as long as it lasts. Every
 generator runs under `timeout -k 20 <budget>`, and the generator phase as a whole
-runs under an aggregate budget (`RESPONDER_CYCLE_BUDGET_S`, default 660s).
+runs under an aggregate budget (`RESPONDER_CYCLE_BUDGET_S`, default 600s).
 
 - **A timed-out step is treated exactly like a failed one**: killed, previous
   output untouched, the cycle publishes everything else and signs off DEGRADED.

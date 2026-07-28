@@ -49,16 +49,31 @@ if [ "$SUITE" = node ] || [ "$SUITE" = all ]; then
     run_one "node unit suite" node --test tests/
 fi
 
-if [ "$SUITE" = shell ] || [ "$SUITE" = all ]; then
-    for f in chat-poll chat-watchdog deploy cycle-check run-cycle freshness-monitor; do
-        run_one "tests/${f}.test.sh" bash "tests/${f}.test.sh"
+# The shell and python suites are enumerated from disk, never from a list kept here. A hand-kept
+# list is how four python suites ended up running nowhere in CI: they existed, and nothing named
+# them. An empty match is a failure, not a green suite, for the same reason.
+run_glob() {
+    local label=$1 pattern=$2
+    shift 2
+    local found=0 f
+    # shellcheck disable=SC2086  # $pattern must stay unquoted: it is the glob; a no-match yields the literal, caught below
+    for f in $pattern; do
+        [ -e "$f" ] || continue
+        found=1
+        run_one "$f" "$@" "$f"
     done
+    if [ "$found" -eq 0 ]; then
+        echo "FAIL: no ${pattern} found; an empty ${label} suite is not a passing one" | tee -a "$LOG"
+        FAILED+=("${label} suite: no files matched ${pattern}")
+    fi
+}
+
+if [ "$SUITE" = shell ] || [ "$SUITE" = all ]; then
+    run_glob shell 'tests/*.test.sh' bash
 fi
 
 if [ "$SUITE" = py ] || [ "$SUITE" = all ]; then
-    for f in server-gate gen-notices gen-shelters gen-caltopo gen-feeds gen-history gen-crest-summary gen-roads-snapshot gen-cameras gen-records gen-crossings-status; do
-        run_one "tests/${f}.test.py" python3 "tests/${f}.test.py"
-    done
+    run_glob py 'tests/*.test.py' python3
 fi
 
 {

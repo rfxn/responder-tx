@@ -110,6 +110,40 @@ test('every cross-module entry point resolves to a function after load', () => {
   }
 });
 
+/* Undeclared state keys are how three published-zero defects hid: the load-bearing fact was the
+   INITIAL value of a key nothing declared, so nobody could see what it was until a reader found
+   `undefined` and treated it as a measurement. Every key the client touches is declared in the one
+   literal with the value that means "not answered yet". */
+function declaredStateKeys() {
+  const src = fs.readFileSync(path.join(ROOT, 'js/core.js'), 'utf8');
+  const i = src.indexOf('const state = {');
+  assert.ok(i >= 0, 'the state literal moved');
+  const j = src.indexOf('\n};', i);
+  return new Set([...src.slice(i, j).matchAll(/^ {2}([A-Za-z_$][\w$]*):/gm)].map((m) => m[1]));
+}
+
+// a leading `.`, quote or backtick means it is a longer property path or an i18n key, not our state
+const STATE_USE_RE = new RegExp("(?<![\\w.$'\"`])state\\.([A-Za-z_$][\\w$]*)", 'g');
+
+test('every state key the client uses is declared in the one state literal', () => {
+  const declared = declaredStateKeys();
+  assert.ok(declared.size > 150, `only ${declared.size} keys declared; the literal lost its tail`);
+  const undeclared = new Map();
+  for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter((n) => n.endsWith('.js'))) {
+    for (const m of fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').matchAll(STATE_USE_RE)) {
+      if (!declared.has(m[1])) undeclared.set(m[1], f);
+    }
+  }
+  assert.deepEqual([...undeclared], [],
+    'declare the key in core.js with the value that means "not answered yet"; an ad hoc key hides its own initial value');
+
+  // the runtime object must not grow one at load time either
+  const context = loadInOrder(indexScriptOrder());
+  const live = vm.runInContext('Object.keys(state)', context);
+  assert.deepEqual(live.filter((k) => !declared.has(k)), [], 'a script added a state key while loading');
+  assert.deepEqual([...declared].filter((k) => !live.includes(k)), [], 'a declared key never reached the loaded object');
+});
+
 // discriminating-power proof: the check must FAIL when load order breaks. map.js builds
 // PILL_LAYERS from CONFIG at top level, so evaluating it before core.js throws ReferenceError.
 test('mutation: loading map.js before core.js throws (the check catches order regressions)', () => {

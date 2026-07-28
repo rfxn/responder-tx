@@ -644,6 +644,84 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 42-46: the export completeness claim (check q) -------------------
+# caltopo-export.json's counters are what js/board.js renders as "this export carries all N features
+# in scope". A bound applied before the count is taken makes that sentence true-looking and false, so
+# the counters are checked against the features carried, against board.kml's copy of them, and
+# against the storm-report cap the generator applies before assembly.
+seed_export() {  # $1 carried LSRs, $2 candidates, $3 dropped, $4 truncated, $5 lsr_dropped ("none" omits it)
+    python3 - "$REPO" "$@" <<'PY'
+import json, os, sys
+repo, lsrs, cand, dropped, trunc, cut = sys.argv[1:7]
+lsrs, cand, dropped, truncated = int(lsrs), int(cand), int(dropped), trunc == "true"
+partial = " (partial: %d of %d features)" % (lsrs, cand) if truncated else ""
+props = {"title": "Fixture · CalTopo export" + partial, "counts": {"Storm reports (NWS LSR)": lsrs},
+         "candidates": cand, "cap": 2000, "truncated": truncated, "dropped": dropped}
+if cut != "none":
+    props["lsr_dropped"] = int(cut)
+json.dump({"type": "FeatureCollection", "properties": props, "features": [
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-95.0, 30.0]},
+     "properties": {"class": "Marker", "folder": "Storm reports (NWS LSR)",
+                    "folderId": "folder-lsrs", "title": "LSR %d" % i}} for i in range(lsrs)]},
+    open(os.path.join(repo, "data", "caltopo-export.json"), "w"))
+ext = "".join('<Data name="%s"><value>%s</value></Data>' % kv for kv in
+              (("features", lsrs), ("candidates", cand), ("dropped", dropped), ("truncated", truncated)))
+open(os.path.join(repo, "data", "board.kml"), "w").write(
+    '<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+    "<name>Fixture · live map%s</name><ExtendedData>%s</ExtendedData>%s</Document></kml>"
+    % (partial, ext, "".join("<Placemark><name>LSR %d</name></Placemark>" % i for i in range(lsrs))))
+PY
+    printf '%s\n' '# fixture stand-in for the real generator' 'HAZARD_EVENTS = {}' 'LSR_CAP = 100' \
+        'PUBLISHED = "lsr_dropped"' > "$REPO/scripts/gen-caltopo.py"
+}
+
+setup
+seed_export 100 160 60 true 60
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   export completeness claim (100 carried, 60 of 160 candidates dropped)' "$WORK/out"; then
+    pass "42 an export whose counters agree with what it carries passes, reporting the numbers it checked"
+else
+    fail "42 consistent export passes (rc=${A})"; cat "$WORK/out"
+fi
+
+# MUTATION: the shipped defect. The cap cut 60 storm reports and the header still reads as whole.
+seed_export 100 100 0 false 60
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'cap cut 60 reports and the export still claims nothing was dropped' "$WORK/out"; then
+    pass "43 MUTATION · a cap that cut reports while the export claims completeness fails"
+else
+    fail "43 silent cap fails (rc=${A})"; cat "$WORK/out"
+fi
+
+# MUTATION: counters that cannot all be true of one board
+seed_export 100 200 60 true 60
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'do not describe one board' "$WORK/out"; then
+    pass "44 MUTATION · a candidate total that does not equal what is carried plus what was dropped fails"
+else
+    fail "44 arithmetic mismatch fails (rc=${A})"; cat "$WORK/out"
+fi
+
+# MUTATION: the generator caps but counts nothing, so no artifact could ever carry the overflow
+seed_export 100 160 60 true 60
+printf '%s\n' '# fixture stand-in' 'HAZARD_EVENTS = {}' 'LSR_CAP = 100' > "$REPO/scripts/gen-caltopo.py"
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'publishes no lsr_dropped counter' "$WORK/out"; then
+    pass "45 MUTATION · a cap the generator never counts fails, before any export can look whole"
+else
+    fail "45 uncounted cap fails (rc=${A})"; cat "$WORK/out"
+fi
+
+# an export written before the counter existed is an upgrade path, not a fault: reported, not failed
+seed_export 100 160 60 true none
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'export predates the storm-report counter' "$WORK/out"; then
+    pass "46 an export from before the counter is tolerated and says so, rather than failing a cycle"
+else
+    fail "46 pre-counter export tolerated (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CYCLE-CHECK IMMUNITY TESTS PASSED"

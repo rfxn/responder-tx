@@ -776,9 +776,113 @@ else
     failck "cron bootstrap sanity (a working-tree cron entrypoint is unrunnable)"
 fi
 
+# q. export completeness claim. caltopo-export.json publishes candidates/truncated/dropped, and
+# js/board.js turns them into "this export carries all N features in scope". A bound applied before
+# that count is taken makes the sentence false with nothing to see: the storm-report cap cut the
+# oldest reports of an outbreak and the header counted only what survived it. The counters are read
+# back against the features the file really carries, against the same numbers in board.kml, and
+# against the cap the generator applies before assembly. The cap comes from the code lane, like the
+# hazard mirror, because that is the copy of the generator the cycle ran; the export itself is data.
+EXPORT_DETAIL=""
+check_export_claim() {
+    if [ ! -f "$DATA_ROOT/data/caltopo-export.json" ]; then
+        EXPORT_DETAIL="no caltopo-export.json to gate"
+        return 0
+    fi
+    EXPORT_DETAIL=$(python3 - "$CODE_ROOT/scripts/gen-caltopo.py" <<'EOF'
+import json, os, re, sys
+import xml.etree.ElementTree as ET
+
+root = os.environ.get("DATA_ROOT", ".")
+with open(os.path.join(root, "data", "caltopo-export.json"), encoding="utf-8") as f:
+    doc = json.load(f)
+p = doc.get("properties") or {}
+carried = len([f for f in doc.get("features") or [] if (f.get("properties") or {}).get("class") != "Folder"])
+
+
+def counter(key):
+    v = p.get(key)
+    if not isinstance(v, int) or isinstance(v, bool) or v < 0:
+        raise SystemExit("caltopo-export.json properties.%s is %r, not a count" % (key, v))
+    return v
+
+
+candidates, dropped = counter("candidates"), counter("dropped")
+truncated = p.get("truncated")
+if not isinstance(truncated, bool):
+    raise SystemExit("caltopo-export.json properties.truncated is %r, not a boolean" % (truncated,))
+if carried + dropped != candidates:
+    raise SystemExit("caltopo-export.json carries %d features and claims %d dropped of %d candidates; "
+                     "its own counters do not describe one board" % (carried, dropped, candidates))
+if truncated != (dropped > 0):
+    raise SystemExit("caltopo-export.json claims truncated=%s with %d dropped" % (truncated, dropped))
+if ("partial" in (p.get("title") or "")) != truncated:
+    raise SystemExit("caltopo-export.json title %r does not match truncated=%s" % (p.get("title"), truncated))
+
+# board.kml republishes the same counters as fields: a format carrying different ones tells a
+# subscriber a different story about the same flood
+kml_path = os.path.join(root, "data", "board.kml")
+if os.path.exists(kml_path):
+    ns = {"k": "http://www.opengis.net/kml/2.2"}
+    try:
+        ext = {d.get("name"): (d.findtext("k:value", "", ns) or "")
+               for d in ET.parse(kml_path).getroot().findall(".//k:Document/k:ExtendedData/k:Data", ns)}
+    except ET.ParseError as exc:
+        raise SystemExit("board.kml is not well-formed XML: %s" % exc)
+    for key, want in (("features", carried), ("candidates", candidates), ("dropped", dropped),
+                      ("truncated", truncated)):
+        if ext.get(key) != str(want):
+            raise SystemExit("board.kml publishes %s=%r where caltopo-export.json says %r"
+                             % (key, ext.get(key), str(want)))
+
+# the storm-report cap cuts before the ranked list is assembled, so its overflow reaches the counters
+# above only by being counted into them
+with open(sys.argv[1], encoding="utf-8") as f:
+    src = f.read()
+cap_decl = re.search(r"^LSR_CAP\s*=\s*(\d+)", src, re.M)
+lsrs = int((p.get("counts") or {}).get("Storm reports (NWS LSR)") or 0)
+notes = []
+if cap_decl is None:
+    if lsrs:
+        raise SystemExit("the export carries %d storm reports but scripts/gen-caltopo.py declares no "
+                         "readable LSR_CAP; the bound this check reads is gone" % lsrs)
+    notes.append("no storm-report cap to gate")
+else:
+    cap = int(cap_decl.group(1))
+    if '"lsr_dropped"' not in src:
+        raise SystemExit("scripts/gen-caltopo.py caps storm reports at %d and publishes no "
+                         "lsr_dropped counter; what the cap cuts would reach no artifact and the "
+                         "export would read as whole" % cap)
+    cut = p.get("lsr_dropped")
+    if lsrs > cap:
+        raise SystemExit("the export carries %d storm reports, over the cap of %d" % (lsrs, cap))
+    if cut is None:
+        notes.append("export predates the storm-report counter")
+    elif not isinstance(cut, int) or isinstance(cut, bool) or cut < 0:
+        raise SystemExit("caltopo-export.json properties.lsr_dropped is %r, not a count" % (cut,))
+    elif cut and not truncated:
+        raise SystemExit("the storm-report cap cut %d reports and the export still claims nothing "
+                         "was dropped" % cut)
+    elif cut > dropped:
+        raise SystemExit("the storm-report cap cut %d reports, more than the %d dropped in total"
+                         % (cut, dropped))
+    elif lsrs == cap and not cut:
+        notes.append("storm reports sit exactly at the %d cap with none reported cut" % cap)
+sys.stdout.write("%d carried, %d of %d candidates dropped%s"
+                 % (carried, dropped, candidates, ("; " + "; ".join(notes)) if notes else ""))
+EOF
+    ) || return 1
+    return 0
+}
+if check_export_claim; then
+    pass "export completeness claim (${EXPORT_DETAIL})"
+else
+    failck "export completeness claim (caltopo-export.json counters contradict what it carries)"
+fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 16 checks passed"
+    echo "SUMMARY: all 17 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 16 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 17 checks FAILED"
 exit 1

@@ -14,6 +14,12 @@
 #  10 a stripped path still live at the ORIGIN is a release defect and still fails
 #  12 the field-intake markup is stripped from the artifact and kept whole at HEAD (v0.98.11),
 #     and markup left unmarked fails the deploy rather than shipping
+#  22 the gate covers the python suites, not just node: a red one at HEAD blocks
+#  23 the gate covers the shell suites too, and a red one at HEAD blocks
+#  24 the shell suites are re-run exactly when scripts/ or tests/ change, and a red run
+#     records no green key
+#  25 an uncommitted data/event.json warns loudly and still deploys HEAD's copy
+#  26 --skip-tests taints the sign-off line and leaves a durable record
 # A scratch git repo, a stub wrangler, and a local bare remote keep the real repo
 # and the real Pages project untouched. Run: bash tests/deploy.test.sh
 set -uo pipefail
@@ -58,12 +64,20 @@ setup() {  # fresh scratch repo at v1.0.0 with a bare origin, a stub wrangler, a
     printf '%s\n' 'tests/          export-ignore' '.gitattributes  export-ignore' > "$REPO/.gitattributes"
     printf '%s\n' "export const marker = '$HEAD_MARKER';" > "$REPO/functions/api/hello.js"
 
-    # green stubs for the two halves of the test gate
+    # the AO config the client reads; deploy.sh warns when the tree copy diverges from HEAD's
+    printf '%s\n' '{"name":"Fixture Event","center":[30.0,-98.0],"zoom":9}' > "$REPO/data/event.json"
+
+    # green stubs for every half of the test gate. tests/run.sh is the real one: the gate reads its
+    # suite set from that file, so a fixture with a hand-written substitute would gate on different
+    # code than production does.
     printf '%s\n' '#!/bin/bash' 'echo "SUMMARY: all checks passed"' > "$REPO/scripts/cycle-check.sh"
+    cp "$REPO_ROOT/tests/run.sh" "$REPO/tests/run.sh"
     printf '%s\n' \
         "const { test } = require('node:test');" \
         "const assert = require('node:assert/strict');" \
         "test('fixture suite is green', () => { assert.equal(1, 1); });" > "$REPO/tests/ok.test.js"
+    printf '%s\n' 'print("PASS: fixture python suite is green")' > "$REPO/tests/ok.test.py"
+    printf '%s\n' '#!/bin/bash' 'echo "PASS: fixture shell suite is green"' > "$REPO/tests/ok.test.sh"
 
     cp "$DEPLOY_SRC" "$REPO/scripts/deploy.sh"
     chmod +x "$REPO/scripts/deploy.sh"
@@ -101,6 +115,8 @@ run_deploy() {  # runs the fixture's deploy.sh against the fixture repo; args pa
     STUB_FN_LS="$WORK/wrangler-functions-ls" \
     RESPONDER_DEPLOY_WRANGLER="$WORK/bin/wrangler" \
     RESPONDER_DEPLOY_DIR="$WORK/deploy" \
+    RESPONDER_DEPLOY_SHELL_MARKER="$WORK/shell-gate.key" \
+    RESPONDER_DEPLOY_BYPASS_LOG="$WORK/bypass.log" \
     CLOUDFLARE_API_TOKEN='stub-token-not-a-real-credential' \
     bash "$REPO/scripts/deploy.sh" "$@" > "$WORK/run.out" 2>&1
     RC=$?
@@ -200,10 +216,12 @@ printf '%s\n' \
     "const { test } = require('node:test');" \
     "const assert = require('node:assert/strict');" \
     "test('working-tree suite is red', () => { assert.equal(1, 2); });" > "$REPO/tests/ok.test.js"
+printf '%s\n' 'raise SystemExit("FAIL: working-tree python suite is red")' > "$REPO/tests/ok.test.py"
+printf '%s\n' '#!/bin/bash' 'echo "FAIL: working-tree shell suite is red"' 'exit 1' > "$REPO/tests/ok.test.sh"
 run_deploy --skip-live
 RC=$?
 if [ "$RC" -eq 0 ] && grep -q 'test gate OK' "$WORK/run.out" && [ -s "$WORK/wrangler-args" ]; then
-    pass "6 the test gate runs at HEAD: a red uncommitted suite does not block a green HEAD"
+    pass "6 the test gate runs at HEAD: a red uncommitted node/python/shell suite does not block a green HEAD"
 else
     fail "6 test gate runs at HEAD (rc=${RC})"; cat "$WORK/run.out"
 fi
@@ -442,10 +460,15 @@ echo "stub wrangler: deployed $*"
 SH
 chmod +x "$WORK/bin/wrangler"
 
-run_unpinned() {  # deploy.sh with NO RESPONDER_DEPLOY_DIR: the default per-run staging path
+# deploy.sh with NO RESPONDER_DEPLOY_DIR: the default per-run staging path. `env -u` enforces that
+# rather than assuming it, because this suite now runs inside deploy.sh's own test gate, where an
+# ambient RESPONDER_DEPLOY_DIR from the outer run would pin every "unpinned" deploy to one path.
+run_unpinned() {
     RESPONDER_DEPLOY_WRANGLER="$WORK/bin/wrangler" \
+    RESPONDER_DEPLOY_BYPASS_LOG="$WORK/bypass.log" \
     CLOUDFLARE_API_TOKEN='stub-token-not-a-real-credential' \
-    bash "$REPO/scripts/deploy.sh" --skip-live --skip-tests > "$1" 2>&1
+    env -u RESPONDER_DEPLOY_DIR -u RESPONDER_DEPLOY_SHELL_MARKER \
+        bash "$REPO/scripts/deploy.sh" --skip-live --skip-tests > "$1" 2>&1
 }
 
 run_unpinned "$WORK/conc-a.out" & A=$!
@@ -486,6 +509,147 @@ if [ "$RC" -ne 0 ] && [ -n "$DIR_F" ] && [ ! -e "$DIR_F" ] \
 else
     fail "17 failed deploy left staging behind (rc=${RC}, dir='${DIR_F}')"
     cat "$WORK/conc-fail.out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 22-26: the gate covers every suite, not just node --------------------------------------
+# It ran node --test and cycle-check.sh only, so the python suites never gated a release at all:
+# gen-feeds.test.py, which guards the failed-fetch-is-not-a-zero rule, was among them.
+setup
+printf '%s\n' 'raise SystemExit("gen-feeds: a failed fetch became a published zero")' > "$REPO/tests/ok.test.py"
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit a red python suite' )
+run_deploy --skip-live
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q 'test gate: the python suites failed at HEAD' "$WORK/run.out" \
+   && [ ! -s "$WORK/wrangler-args" ]; then
+    pass "22 MUTATION · a red python suite at HEAD blocks the deploy (wrangler never runs)"
+else
+    fail "22 a red python suite must block (rc=${RC})"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup
+printf '%s\n' '#!/bin/bash' 'echo "FAIL: committed shell suite is red"' 'exit 1' > "$REPO/tests/ok.test.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit a red shell suite' )
+run_deploy --skip-live
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q 'test gate: the shell suites failed at HEAD' "$WORK/run.out" \
+   && [ ! -s "$WORK/wrangler-args" ]; then
+    pass "23 MUTATION · a red shell suite at HEAD blocks the deploy (wrangler never runs)"
+else
+    fail "23 a red shell suite must block (rc=${RC})"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Test 24: the shell suites cost ~95s and read nothing but scripts/ and tests/, so the gate
+# re-runs them exactly when that pair changes. A cached verdict that survived a code change would
+# be the same silent-invalidation shape the gate exists to close, so both halves are asserted.
+setup
+run_deploy --skip-live
+RC=$?
+FIRST_KEY=$(cat "$WORK/shell-gate.key" 2>/dev/null)
+if [ "$RC" -eq 0 ] && grep -q 'shell suites green at scripts+tests' "$WORK/run.out" && [ -n "$FIRST_KEY" ]; then
+    pass "24 the first deploy at a given scripts+tests pair runs the shell suites and records the key"
+else
+    fail "24 first deploy must run the shell suites (rc=${RC})"; cat "$WORK/run.out"
+fi
+
+run_deploy --skip-live
+if grep -q 'shell suites already green at scripts+tests' "$WORK/run.out" \
+   && ! grep -q 'shell suites green at scripts+tests' "$WORK/run.out"; then
+    pass "24b an unchanged scripts+tests pair does not pay for the shell suites twice"
+else
+    fail "24b an unchanged code pair must skip the shell suites"; cat "$WORK/run.out"
+fi
+
+run_deploy --skip-live --full-tests
+if grep -q 'shell suites green at scripts+tests' "$WORK/run.out"; then
+    pass "24c --full-tests forces the shell suites even on a recorded-green pair"
+else
+    fail "24c --full-tests must force the shell suites"; cat "$WORK/run.out"
+fi
+
+# MUTATION · commit a RED shell suite over the recorded-green key. If the cached verdict were keyed
+# on anything but the content of scripts/ and tests/, this deploy would sail through.
+printf '%s\n' '#!/bin/bash' 'echo "FAIL: committed shell suite is red"' 'exit 1' > "$REPO/tests/ok.test.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit a red shell suite over a green key' )
+run_deploy --skip-live
+RC=$?
+SECOND_KEY=$(cat "$WORK/shell-gate.key" 2>/dev/null)
+if [ "$RC" -ne 0 ] \
+   && grep -q 'test gate: the shell suites failed at HEAD' "$WORK/run.out" \
+   && [ "$SECOND_KEY" = "$FIRST_KEY" ]; then
+    pass "24d MUTATION · changing tests/ invalidates the recorded key, and a red run never records one"
+else
+    fail "24d a changed scripts+tests pair must re-run and must not record a red verdict (rc=${RC})"
+    cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Test 24e: the key covers scripts/ and tests/, and that is only sound while no shell suite
+# reads anything else. Asserted, not assumed: a suite that grew a dependency on js/ or data/ would
+# let a recorded key read green after the tree it actually depends on changed, which is the exact
+# silent-invalidation shape the gate exists to close. Static, like the RESPONDER_ROOT check in
+# tests/run-cycle.test.sh, because the failure it catches is a read that never announces itself.
+OUTSIDE=()
+while IFS= read -r ref; do
+    case "$ref" in
+        */scripts|*/scripts/*|*/tests|*/tests/*) ;;
+        *) OUTSIDE+=("$ref") ;;
+    esac
+done < <(grep -hoE '\$\{?REPO_ROOT\}?/[A-Za-z0-9_./-]*' "$REPO_ROOT"/tests/*.test.sh | sort -u)
+if [ "${#OUTSIDE[@]}" -eq 0 ]; then
+    pass "24e every shell suite reads only scripts/ and tests/, which is what the gate key covers"
+else
+    fail "24e a shell suite reads outside the gate key's scripts+tests pair: ${OUTSIDE[*]}"
+fi
+
+# --- Test 25: an uncommitted data/event.json is a split brain, warned about, never fatal ----------
+# The generators read the working-tree copy; this artifact is `git archive HEAD`. A killed recovery
+# session left exactly this state and widened the AO with nobody seeing it (CLAUDE.md E2/E3).
+setup
+run_deploy --skip-live --skip-tests
+if ! grep -q 'data/event.json does not match HEAD' "$WORK/run.out"; then
+    pass "25 a committed data/event.json produces no divergence warning"
+else
+    fail "25 a clean event.json must not warn"; cat "$WORK/run.out"
+fi
+
+printf '%s\n' '{"name":"Re-targeted Basin","center":[31.5,-97.1],"zoom":11}' > "$REPO/data/event.json"
+run_deploy --skip-live --skip-tests
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && grep -q 'data/event.json does not match HEAD' "$WORK/run.out" \
+   && grep -q 'map centre, AO pills' "$WORK/run.out" \
+   && grep -q 'Re-targeted Basin' "$WORK/run.out" \
+   && grep -q 'Fixture Event' "$WORK/deploy/data/event.json" \
+   && [ -s "$WORK/wrangler-args" ]; then
+    pass "25b MUTATION · an uncommitted event.json warns loudly, names the diff, and still deploys HEAD's"
+else
+    fail "25b the event.json divergence must warn without failing the deploy (rc=${RC})"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Test 26: a bypassed gate may not sign off like a gated one -----------------------------------
+setup
+run_deploy --skip-live --skip-tests
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && grep -q 'TEST GATE BYPASSED via --skip-tests' "$WORK/run.out" \
+   && grep -q -- '--skip-tests v1.0.0 @' "$WORK/bypass.log"; then
+    pass "26 --skip-tests taints the sign-off line and leaves a durable record of the bypass"
+else
+    fail "26 a bypass must be visible in the sign-off and recorded (rc=${RC})"
+    cat "$WORK/run.out"; cat "$WORK/bypass.log" 2>/dev/null
+fi
+
+run_deploy --skip-live
+if grep -q 'test gate OK' "$WORK/run.out" && ! grep -q 'TEST GATE BYPASSED' "$WORK/run.out"; then
+    pass "26b a gated deploy signs off without the bypass marker"
+else
+    fail "26b a gated deploy must not claim a bypass"; cat "$WORK/run.out"
 fi
 rm -rf "$WORK"
 

@@ -541,8 +541,10 @@ function nearestGauges(lat, lon, maxMi, n) {
     .sort((a, b) => a.dist - b.dist)
     .slice(0, n);
 }
+// crossingList() attaches the confirmation verdict, so every caller below can name a stale closure
+// as one instead of reading it out as a current status
 function nearestCrossing(lat, lon, maxMi) {
-  return (state.crossings || [])
+  return crossingList()
     .filter((c) => c.status !== 'open' && Number.isFinite(c.lat) && Number.isFinite(c.lon))
     .map((c) => ({ c, dist: distMi(lat, lon, c.lat, c.lon) }))
     .filter((x) => x.dist <= maxMi)
@@ -601,7 +603,7 @@ function riskOverallRead(nearAlerts, gauges, xCross, nNotice) {
   } else {
     parts.push(`${t('risk.read.nogauge')} ${RISK_GAUGE_MI} ${mi}`);
   }
-  if (xCross) parts.push(`${t('risk.read.crosspre')} ${t('xword.' + xCross.c.status)} ${t('risk.read.crosspost')} ${xCross.dist.toFixed(1)} ${mi}`);
+  if (xCross) parts.push(`${t('risk.read.crosspre')} ${t('xword.' + xCross.c.status)} ${t('risk.read.crosspost')} ${xCross.dist.toFixed(1)} ${mi}${xCross.c.staleNote ? ` (${xCross.c.staleNote})` : ''}`);
   if (nNotice) parts.push(`${t('risk.read.noticepre')} ${t('ntype.' + nNotice.r.type)} ${t('risk.read.noticepost')} ${nNotice.dist.toFixed(1)} ${mi}`);
   const line = parts.join('; ');
   return line.charAt(0).toUpperCase() + line.slice(1) + '.';
@@ -646,7 +648,8 @@ function runRiskCheck(lat, lon, label) {
   html += `<div class="risk-sec"><div class="risk-sec-t">${t('risk.sec.roads')}</div>`;
   if (xCross) {
     const st = CROSSING_STATUS[xCross.c.status];
-    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</span>: ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} ${esc(mi)}</span></div>`;
+    html += `<div class="risk-road"><span style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</span>: ${esc(xCross.c.name)} <span class="rr-dist">${xCross.dist.toFixed(1)} ${esc(mi)}</span>` +
+      (xCross.c.staleNote ? ` <span class="xg-stale">${esc(xCross.c.staleNote)}</span>` : '') + '</div>';
   }
   if (nNotice) {
     html += `<div class="risk-road"><span>${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(ntypeLabel(nNotice.r.type))}</span>: ${esc(nNotice.r.summary.slice(0, 90))} <span class="rr-dist">${nNotice.dist.toFixed(1)} ${esc(mi)}</span></div>`;
@@ -702,7 +705,8 @@ function inspectContent(lat, lon) {
   }
   if (xCross) {
     const st = CROSSING_STATUS[xCross.c.status];
-    html += `<div class="inspect-line"><span style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</span> ${esc(xCross.c.name)} · ${xCross.dist.toFixed(1)} ${esc(mi)}</div>`;
+    html += `<div class="inspect-line"><span style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))}</span> ${esc(xCross.c.name)} · ${xCross.dist.toFixed(1)} ${esc(mi)}` +
+      (xCross.c.staleNote ? ` · <span class="xg-stale">${esc(xCross.c.staleNote)}</span>` : '') + '</div>';
   }
   if (nNotice) {
     html += `<div class="inspect-line">${TYPE_GLYPH[nNotice.r.type] || '🚧'} ${esc(nNotice.r.summary.slice(0, 60))} · ${nNotice.dist.toFixed(1)} ${esc(mi)}</div>`;

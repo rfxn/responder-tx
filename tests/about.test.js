@@ -260,7 +260,7 @@ test('poll: a newer version still raises the update chip; the running version do
   same.sandbox.fetchBody = { version: same.APP_VERSION };
   await same.checkAppVersion();
   assert.equal(same.node('#update-chip').hidden, true, 'the running version must not badge');
-  assert.equal(same.state.updateTarget, undefined, 'no rollover may be armed for the running build');
+  assert.equal(same.state.updateTarget, null, 'no rollover may be armed for the running build');
 });
 
 test('poll: an unreadable or missing artifact is silent, exactly as an offline poll was', async () => {

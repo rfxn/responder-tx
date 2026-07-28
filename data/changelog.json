@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.67",
+      "date": "2026-07-28",
+      "line": "Tab counts read \"?\" until the source has answered, so a zero now means the board checked and found nothing. A low-water crossing the curator has not re-confirmed inside the confirmation window is no longer presented as a current closure: Drive Mode, the risk view and the point inspector carry its age, and the crossing card counts only what the board can vouch for. When the jurisdiction closure feed or the live shelter feed cannot be read, the board says so instead of showing an empty list, and a failure to load the curated notices, resources and crossings now appears in the data health note. Crest of record context returns on the next refresh after a failed fetch. The river forecast chart no longer draws an empty forecast under a legend that claims one, and when fallback radar imagery returns nothing the timeline says the imagery is unverified. A capped map export now reports how many storm reports were cut instead of reporting that it carried everything in scope. Removed a resources link describing CrowdSource Rescue as activated for the Hill Country, an address that was no longer valid."
+    },
+    {
       "v": "v0.99.66",
       "date": "2026-07-27",
       "line": "Alert setup has moved out of the settings menu into its own panel, called Notify me. Settings carries a single row that opens it, and the Alerts tab carries one at the top. The panel opens with one line per choice, where alerts go, what to send, and which gauges you follow, each opening in place, instead of the whole form stacked in a small scrolling menu. The RSS feed and crest calendar moved into the same panel as full-size rows. On a phone held sideways the panel now uses the full height of the screen and the 911 notice stays visible while you scroll. Turning alerts off no longer discards the gauges you follow and the places you added, and switching language now updates the panel instead of leaving it in the previous language."

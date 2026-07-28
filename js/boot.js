@@ -657,6 +657,7 @@ function relocalizeDynamic() {
   renderDriveMode();
   if (state.legendEl) state.legendEl.innerHTML = mapLegendHtml();
   if (window.renderTeamTab) renderTeamTab();
+  markUnknownBadges(); // a repaint before a source has answered must not leave a zero behind
 }
 
 /* ---------- live team: loaded on the routes that lead to it ----------
@@ -1161,7 +1162,9 @@ async function boot() {
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
   state.bootAt = Date.now();
   hydrateGaugesSnapshot();
-  const ok = await loadSeeds();
+  // loadSeeds rejects on failure so refresh() can report the board source degraded; boot wants the
+  // verdict instead, to decide whether to paint the serve-over-HTTP card below
+  const ok = await loadSeeds().then(() => true, () => false);
   // a shared ?fq=R-031 link fires before seeds exist — re-fly once the cards are on the board
   if (ok) flyToRadioId(new URLSearchParams(location.search).get('fq'));
   if (rollBlob) {

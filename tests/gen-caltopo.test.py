@@ -3,7 +3,8 @@
 (RESPONDER_ROOT override, never the real data/): folder membership and counts,
 simplestyle palette hexes, title/description/citation presence, PII exclusion,
 aged/resolved/operator notice filtering, alert filtering (non-hazard, expired,
-no-geometry), LSR type filtering, truncation drop order, offline source skip, and
+no-geometry), LSR type filtering, truncation drop order, the storm-report cap
+reaching the published candidate total, offline source skip, and
 the KML + GeoRSS emitters (well-formedness, count parity with the GeoJSON,
 truncation and attribution parity, coordinate order, geometry degradation), and the
 all-or-none unavailable-sources claim across all four published artifacts.
@@ -703,7 +704,7 @@ tmp6 = tempfile.mkdtemp()
 try:
     hdr = {'title': 'T & <test>', 'note': 'call 911 & "stay out"', 'generated': iso(NOW),
            'features': 1, 'candidates': 1, 'cap': 500, 'truncated': False, 'dropped': 0,
-           'georss_url': 'https://respondertx.org/data/board-georss.xml'}
+           'lsr_dropped': 0, 'georss_url': 'https://respondertx.org/data/board-georss.xml'}
     unmappable = {'type': 'Feature', 'geometry': {'type': 'Wormhole', 'coordinates': [1, 2]},
                   'properties': {'title': 'Ampersand & angle <bracket>', 'marker-color': '#d03b3b',
                                  'marker-size': 'medium', 'description': 'Source: unit test\nUpdated: now'}}
@@ -948,6 +949,149 @@ try:
           notec[:260])
 finally:
     shutil.rmtree(tmp7)
+
+# The storm-report cap cuts the OLDEST qualifying reports, and it cuts them before the assembled
+# list is counted. On an outbreak day filing more than LSR_CAP of them the export kept the newest
+# LSR_CAP, dropped the rest, and still published truncated=false / dropped=0, which is the metadata
+# js/board.js turns into "this export carries all N features in scope".
+
+LSR_OVER = 60  # unmistakable against the cap, cheap enough to keep the fixture fast
+
+
+def storm_reports(n):
+    """n qualifying LSRs, newest first by index: report 0 is the most recent."""
+    return [{'properties': {'typetext': 'FLASH FLOOD', 'city': 'Testville %d' % i, 'county': 'Harris',
+                            'source': 'trained spotter', 'remark': 'Report %d' % i,
+                            'valid': iso(NOW - timedelta(minutes=i))},
+             'geometry': {'type': 'Point', 'coordinates': [round(-95.0 - i * 0.001, 5),
+                                                           round(30.0 + i * 0.001, 5)]}}
+            for i in range(n)]
+
+
+tmp8 = tempfile.mkdtemp()
+try:
+    write_fixtures(tmp8)
+    with open(os.path.join(tmp8, 'lsrs.json'), 'w') as f:
+        json.dump({'features': storm_reports(gen.LSR_CAP + LSR_OVER)}, f)
+    r8 = run_gen(tmp8)
+    check('a run carrying more storm reports than the cap exits 0', r8.returncode == 0, r8.stderr[-400:])
+    doc8 = load(tmp8)
+    p8 = doc8['properties']
+    mem8 = members_of(doc8)
+    check('the storm-report cap is applied',
+          p8['counts'].get('Storm reports (NWS LSR)') == gen.LSR_CAP,
+          str(p8['counts'].get('Storm reports (NWS LSR)')))
+
+    titles8 = artifact_titles(tmp8)
+    newest = 'LSR: FLASH FLOOD · Testville 0'
+    oldest = 'LSR: FLASH FLOOD · Testville %d' % (gen.LSR_CAP + LSR_OVER - 1)
+    for label, names in titles8.items():
+        check('%s carries the newest storm report' % label, newest in names, str(names[:3]))
+        check('%s does not carry one the cap cut' % label, oldest not in names)
+
+    # the defect: a bound applied before the count is taken published a cut board as a whole one
+    check('a board the storm-report cap cut never publishes as a complete one',
+          p8['truncated'] is True, str({k: p8.get(k) for k in ('truncated', 'dropped', 'candidates')}))
+    check('the candidate total counts the reports the cap cut, not only the ones it kept',
+          p8['candidates'] == len(mem8) + LSR_OVER, '%s vs %d' % (p8.get('candidates'), len(mem8) + LSR_OVER))
+    check('the drop count is the cut the cap made', p8['dropped'] == LSR_OVER, str(p8.get('dropped')))
+    check('the export publishes how many storm reports the cap cut',
+          p8.get('lsr_dropped') == LSR_OVER, str(p8.get('lsr_dropped')))
+
+    kml8 = xml_root(tmp8, 'board.kml')
+    feed8 = xml_root(tmp8, 'board-georss.xml')
+    both8 = '%d of %d' % (len(mem8), len(mem8) + LSR_OVER)
+    for label, title in (('caltopo-export.json', p8['title']),
+                         ('board.kml', kml8.findtext('.//k:Document/k:name', '', NS)),
+                         ('board-georss.xml', feed8.findtext('a:title', '', NS))):
+        check('%s says partial, with both numbers' % label,
+              'partial' in title and both8 in title, title)
+        # the rank trim never fired, so its drop order would describe a cut that did not happen
+        check('%s claims no priority order the cap did not use' % label,
+              'lowest-priority' not in title, title)
+    for label, note in artifact_notes(tmp8).items():
+        check('%s says which storm reports are missing and how many' % label,
+              'most recent storm reports' in note and '%d older ones' % LSR_OVER in note, note[-220:])
+    kext8 = {d.get('name'): d.findtext('k:value', '', NS)
+             for d in kml8.findall('.//k:Document/k:ExtendedData/k:Data', NS)}
+    check('board.kml carries the counters as fields, not only as prose',
+          kext8.get('lsr_dropped') == str(LSR_OVER)
+          and kext8.get('candidates') == str(p8['candidates'])
+          and kext8.get('dropped') == str(p8['dropped']), str(kext8))
+    check('the feeds carry the same feature count the GeoJSON does',
+          len(kml8.findall('.//k:Placemark', NS)) == len(mem8) == len(feed8.findall('a:entry', NS)),
+          '%d / %d / %d' % (len(kml8.findall('.//k:Placemark', NS)), len(mem8),
+                            len(feed8.findall('a:entry', NS))))
+
+    # both bounds at once: the rank trim's explanation must not swallow the cap's
+    rb8 = run_gen(tmp8, RESPONDER_CALTOPO_MAX_FEATURES='20')
+    pb8 = load(tmp8)['properties']
+    check('a run cut by both bounds exits 0', rb8.returncode == 0, rb8.stderr[-400:])
+    check('the candidate total still counts both cuts', pb8['candidates'] == p8['candidates'],
+          '%s vs %s' % (pb8.get('candidates'), p8['candidates']))
+    check('the drop count covers both cuts', pb8['dropped'] == p8['candidates'] - 20, str(pb8.get('dropped')))
+    check('the note explains both cuts',
+          '20 features' in pb8['note'] and 'most recent storm reports' in pb8['note'], pb8['note'][-260:])
+
+    # the other direction: a cap that did not bite must not make any of it claim a cut
+    with open(os.path.join(tmp8, 'lsrs.json'), 'w') as f:
+        json.dump({'features': storm_reports(gen.LSR_CAP)}, f)
+    ru8 = run_gen(tmp8)
+    pu8 = load(tmp8)['properties']
+    check('a board filled exactly to the cap with nothing cut publishes as complete',
+          ru8.returncode == 0 and pu8['truncated'] is False and pu8['dropped'] == 0
+          and pu8['lsr_dropped'] == 0,
+          str({k: pu8.get(k) for k in ('truncated', 'dropped', 'lsr_dropped')}))
+    for label, note in artifact_notes(tmp8).items():
+        check('%s claims no storm-report cut when the cap did not bite' % label,
+              'storm reports' not in note, note[-200:])
+finally:
+    shutil.rmtree(tmp8)
+
+# The byte-fit loop trims once more after building the header it returns, so when the passes run out
+# the document describes a longer list than the one that ships: the same shape as the cap above, one
+# geometry too large for the budget instead of a scale change. A single oversized alert polygon is
+# the case that reaches it, because no count trim can make the board fit around it.
+tmp9 = tempfile.mkdtemp()
+try:
+    write_fixtures(tmp9)
+    with open(os.path.join(tmp9, 'data', 'gauges-snapshot.json'), 'w') as f:
+        json.dump({'generated': iso(NOW), 'bbox': [-98, 27, -93, 31], 'gauges': [
+            {'lid': 'BLK%03d' % i, 'name': 'Bulk gauge %d' % i,
+             'latitude': round(30.0 + i * 0.001, 5), 'longitude': round(-95.0 - i * 0.001, 5),
+             'status': {'observed': {'primary': 1.0, 'primaryUnit': 'ft',
+                                     'floodCategory': 'no_flooding', 'validTime': iso(NOW)},
+                        'forecast': {}}} for i in range(300)]}, f)
+    ring9 = [[round(-95.0 + (i % 700) * 0.001, 5), round(30.0 + (i // 700) * 0.001, 5)]
+             for i in range(11000)]
+    with open(os.path.join(tmp9, 'alerts.json'), 'w') as f:
+        json.dump({'features': [{'id': 'big1', 'properties': {
+            'event': 'Flash Flood Warning', 'areaDesc': 'One oversized polygon',
+            'headline': 'Oversized FFW', 'sent': iso(NOW), 'expires': iso(NOW + timedelta(hours=3)),
+            'description': ''},
+            'geometry': {'type': 'Polygon', 'coordinates': [ring9 + [ring9[0]]]}}]}, f)
+    r9 = run_gen(tmp9, RESPONDER_CALTOPO_MAX_KML_BYTES='150000')
+    check('a board whose largest geometry alone exceeds the budget still publishes',
+          r9.returncode == 0, r9.stderr[-400:])
+    kml_bytes9 = os.path.getsize(os.path.join(tmp9, 'data', 'board.kml'))
+    check('the fit passes really ran out on this fixture, so the case below is not vacuous',
+          kml_bytes9 > 150000, str(kml_bytes9))
+    doc9 = load(tmp9)
+    mem9 = members_of(doc9)
+    k9 = xml_root(tmp9, 'board.kml')
+    g9 = xml_root(tmp9, 'board-georss.xml')
+    check('a document emitted after the passes ran out carries what its header counts',
+          len(k9.findall('.//k:Placemark', NS)) == len(mem9) == len(g9.findall('a:entry', NS)),
+          '%d / %d / %d' % (len(k9.findall('.//k:Placemark', NS)), len(mem9),
+                            len(g9.findall('a:entry', NS))))
+    check('its counters still add up to the candidate total',
+          doc9['properties']['candidates'] == len(mem9) + doc9['properties']['dropped'],
+          str({k: doc9['properties'].get(k) for k in ('candidates', 'dropped', 'truncated')}))
+    check('and the oversized alert is what survived',
+          any(f['properties']['folder'] == 'NWS alerts (active)' for f in mem9),
+          str(sorted({f['properties']['folder'] for f in mem9})))
+finally:
+    shutil.rmtree(tmp9)
 
 print('---')
 if FAILS:

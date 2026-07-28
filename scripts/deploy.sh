@@ -1,5 +1,5 @@
 #!/bin/bash
-# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--allow-dirty-functions] — gate HEAD, build the stripped archive, deploy to Cloudflare Pages
+# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--full-tests] [--allow-dirty-functions] — gate HEAD, build the stripped archive, deploy to Cloudflare Pages
 # Staging is a per-run mktemp dir, dropped on exit; set RESPONDER_DEPLOY_DIR to pin it and keep it.
 set -euo pipefail
 
@@ -10,18 +10,32 @@ REPO_ROOT="$PWD"
 SKIP_LIVE=0
 PREFLIGHT_ONLY=0
 SKIP_TESTS=0
+FULL_TESTS=0
 ALLOW_DIRTY_FUNCTIONS=0
 for arg in "$@"; do
     case "$arg" in
         --skip-live) SKIP_LIVE=1 ;;
         --preflight-only) PREFLIGHT_ONLY=1 ;;
         --skip-tests) SKIP_TESTS=1 ;;
+        --full-tests) FULL_TESTS=1 ;;
         --allow-dirty-functions) ALLOW_DIRTY_FUNCTIONS=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live, --skip-tests, --allow-dirty-functions)" >&2; exit 2 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live, --skip-tests, --full-tests, --allow-dirty-functions)" >&2; exit 2 ;;
     esac
 done
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
+
+# record_bypass VERSION COMMIT — a bypassed gate must not be indistinguishable from a gated one
+# after the fact. On the cron path the banner lands in the cycle log; on a hand-run it scrolls away
+# with the terminal, which is exactly the run nobody can reconstruct afterwards.
+record_bypass() {
+    local ledger="${RESPONDER_DEPLOY_BYPASS_LOG:-/var/log/responder-deploy-bypass.log}"
+    if ! ( : >> "$ledger" ) 2>/dev/null; then ledger="${TMPDIR:-/tmp}/responder-deploy-bypass.log"; fi  # /var/log is not writable for a non-root hand-run
+    printf '%s --skip-tests %s @ %s by %s\n' \
+        "$(command date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$2" "${USER:-unknown}" >> "$ledger" \
+        || echo "NOTE: could not append the --skip-tests record to ${ledger}" >&2
+    echo "# recorded in ${ledger}" >&2
+}
 
 WRANGLER="${RESPONDER_DEPLOY_WRANGLER:-wrangler}"
 
@@ -37,6 +51,7 @@ case "$DEPLOY_DIR_PINNED" in
 esac
 deploy_dir=''  # set at build time; the EXIT trap removes it only when this run created it
 bundle_probe=''  # scratch file for the post-deploy bundle read; the EXIT trap drops it
+gate_log=''  # tests/run.sh's own log file for this gate; it also tees to stdout, so the trap drops it
 
 # Post-deploy bundle-coherence window. A Pages swap can leave one edge entry briefly holding the
 # previous build's bytes under the new ?v= key; the v0.99.60 case cleared on revalidation in about
@@ -57,6 +72,7 @@ cleanup() {
         command rm -rf "$deploy_dir"
     fi
     if [ -n "$bundle_probe" ]; then command rm -f "$bundle_probe"; fi
+    if [ -n "$gate_log" ]; then command rm -f "$gate_log"; fi
     exit "$rc"
 }
 trap cleanup EXIT INT TERM
@@ -94,6 +110,21 @@ if [ -n "$tree_version" ] && [ "$tree_version" != "$version" ]; then
     echo "NOTE: working tree is ${tree_version} but HEAD (${head_commit}) is ${version}; ${version} is what deploys." >&2
 fi
 
+# --- Pre-flight: data/event.json split brain. The generators read the WORKING TREE copy; the
+# artifact below is `git archive HEAD`. Warned, never fatal: a half-applied re-target must not stop
+# a flood publish. See CLAUDE.md E2/E3. ---
+dirty_event=$(git status --porcelain --untracked-files=all -- data/event.json) || dirty_event=''
+if [ -n "$dirty_event" ]; then
+    echo "##########################################################" >&2
+    echo "# WARNING: data/event.json does not match HEAD.          #" >&2
+    echo "##########################################################" >&2
+    echo "$dirty_event" >&2
+    echo "# This artifact ships HEAD (${head_commit})'s copy, so the board's map centre, AO pills," >&2
+    echo "# gaugeBbox, zoom and tideStations are NOT the ones the pipeline generated this data" >&2
+    echo "# against. Commit data/event.json: that is what makes a re-target real." >&2
+    git --no-pager diff --unified=0 -- data/event.json >&2 || :  # an untracked file has no diff; the status line above already named it
+fi
+
 stamps=$(grep -o '?v=[^"]*' "$SRC/index.html") || fail "no ?v= stamps found in HEAD index.html"
 stamp_count=0
 while IFS= read -r stamp; do
@@ -119,17 +150,49 @@ grep -qE "$heading_re" "$SRC/CHANGELOG.md" || fail "CHANGELOG.md has no '## ${ve
 
 echo "pre-flight OK: ${version} @ ${head_commit} (${stamp_count} index.html stamps, changelog.json, version.json, CHANGELOG.md all agree)"
 
-# --- Pre-flight: test gate (never ship on a red suite; --skip-tests is for genuine field emergencies only) ---
+# --- Pre-flight: test gate (never ship on a red suite; --skip-tests is for genuine field emergencies only).
+# node covers the client, the python suites cover the generators this cycle executes out of HEAD
+# (gen-feeds.test.py's failed-fetch guard among them), cycle-check.sh covers the data about to ship.
+# The shell suites cover the ops scripts and read nothing outside scripts/ and tests/, so their
+# verdict cannot change while those two trees do not; they run whenever this gate has not already
+# seen that exact pair green, and --full-tests forces them. tests/deploy.test.sh asserts that the
+# key really does cover everything a shell suite reads, and tests/run-cycle.test.sh asserts the
+# whole publish phase still fits the cron interval. ---
+SHELL_GATE_KEY=$(git rev-parse "HEAD:scripts" "HEAD:tests" | sha256sum | cut -d' ' -f1) \
+    || fail "cannot derive the shell-suite gate key from HEAD"
+git_dir=$(git rev-parse --absolute-git-dir) || fail "git rev-parse --absolute-git-dir failed"
+SHELL_GATE_MARKER="${RESPONDER_DEPLOY_SHELL_MARKER:-${git_dir}/responder-shell-gate.key}"
+
 if [ "$SKIP_TESTS" -eq 1 ]; then
     echo "##########################################################" >&2
     echo "# WARNING: --skip-tests set: TEST GATE BYPASSED.         #" >&2
-    echo "# Deploying WITHOUT running node --test / cycle-check.   #" >&2
+    echo "# Deploying WITHOUT node --test, the python suites, the  #" >&2
+    echo "# shell suites, or cycle-check.sh.                       #" >&2
     echo "# This flag is for genuine field emergencies only.       #" >&2
     echo "##########################################################" >&2
+    record_bypass "$version" "$head_commit"
 else
+    gate_log=$(command mktemp "${TMPDIR:-/tmp}/responder-gate.XXXXXX") || fail "mktemp for the test-gate log failed"
     ( cd "$SRC" && node --test tests/ ) || fail "test gate: node --test tests/ failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
+    ( cd "$SRC" && RESPONDER_TEST_LOG="$gate_log" bash tests/run.sh py ) \
+        || fail "test gate: the python suites failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
+    marker_key=$(command cat "$SHELL_GATE_MARKER" 2>/dev/null) || marker_key=''  # no marker yet reads empty, which correctly runs the suites
+    if [ "$FULL_TESTS" -eq 1 ] || [ "$marker_key" != "$SHELL_GATE_KEY" ]; then
+        # tests/deploy.test.sh drives nested deploy.sh runs and asserts on the DEFAULT per-run
+        # staging path, so this run's own RESPONDER_DEPLOY_* must not reach them: a hand-run
+        # deploy that pinned a staging dir would otherwise fail its own gate.
+        ( cd "$SRC" && RESPONDER_TEST_LOG="$gate_log" \
+            env -u RESPONDER_DEPLOY_DIR -u RESPONDER_DEPLOY_WRANGLER -u RESPONDER_DEPLOY_SHELL_MARKER \
+                -u RESPONDER_DEPLOY_BYPASS_LOG bash tests/run.sh shell ) \
+            || fail "test gate: the shell suites failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
+        printf '%s\n' "$SHELL_GATE_KEY" > "$SHELL_GATE_MARKER" \
+            || echo "NOTE: could not record the shell-gate key at ${SHELL_GATE_MARKER}; the suites simply run again next deploy" >&2
+        shell_verdict="shell suites green at scripts+tests ${SHELL_GATE_KEY:0:12}"
+    else
+        shell_verdict="shell suites already green at scripts+tests ${SHELL_GATE_KEY:0:12}, not re-run (--full-tests forces them)"
+    fi
     ( cd "$SRC" && bash scripts/cycle-check.sh ) || fail "test gate: scripts/cycle-check.sh failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
-    echo "test gate OK: node --test tests/ + cycle-check.sh green at HEAD"
+    echo "test gate OK: node --test tests/ + python suites + cycle-check.sh green at HEAD; ${shell_verdict}"
 fi
 
 # --- Build stripped deploy dir ---
@@ -344,4 +407,10 @@ else
     fi
 fi
 
-echo "OK: ${version} live"
+# a bypassed gate may not sign off in the same words as a gated one: the sign-off is the line an
+# operator reads back, and "live" alone would assert a release nothing verified
+if [ "$SKIP_TESTS" -eq 1 ]; then
+    echo "OK: ${version} live (TEST GATE BYPASSED via --skip-tests)"
+else
+    echo "OK: ${version} live"
+fi

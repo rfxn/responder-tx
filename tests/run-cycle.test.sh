@@ -516,6 +516,76 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 22-23: nothing reaches origin until deploy.sh's gate is green ------------------------
+# The cycle used to `git push origin main` itself, one line before calling deploy.sh, so a red gate
+# still put the commit (and any un-gated code commit sitting on the branch) on origin. The commit
+# still has to precede deploy.sh, because the artifact it builds is `git archive HEAD`; the push is
+# now deploy.sh's, on the far side of its own gate.
+origin_count() { git -C "$WORK/remote.git" rev-list --count refs/heads/main; }
+
+setup
+printf '%s\n' '#!/bin/bash' 'echo "stub deploy: gate is RED"; exit 1' > "$REPO/scripts/deploy.sh"
+chmod +x "$REPO/scripts/deploy.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a deploy whose gate fails' )
+BEFORE=$(origin_count)
+FAILING="" run_cycle
+LOCAL=$(cd "$REPO" && git rev-list --count HEAD)
+if [ "$RC" -ne 0 ] \
+   && [ "$LOCAL" -gt "$BEFORE" ] \
+   && [ "$(origin_count)" -eq "$BEFORE" ] \
+   && grep -q 'committed locally and NOT pushed' "$WORK/cycle.log"; then
+    pass "22 MUTATION · a failing deploy gate leaves the data committed locally and origin untouched"
+else
+    fail "22 a red gate must not reach origin (rc=$RC local=$LOCAL origin=$(origin_count) before=$BEFORE)"
+    cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# the converse: when the gate passes, deploy.sh's own post-gate push is what advances origin, so a
+# healthy cycle still publishes exactly once
+setup
+printf '%s\n' '#!/bin/bash' 'echo "stub deploy"' 'git push --quiet origin main' > "$REPO/scripts/deploy.sh"
+chmod +x "$REPO/scripts/deploy.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a deploy that pushes after its gate' )
+BEFORE=$(origin_count)
+FAILING="" run_cycle
+if [ "$RC" -eq 0 ] && [ "$(origin_count)" -gt "$BEFORE" ]; then
+    pass "23 a green gate still lands the data on origin, pushed by deploy.sh after it gated HEAD"
+else
+    fail "23 a healthy cycle must still reach origin (rc=$RC origin=$(origin_count) before=$BEFORE)"
+    cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# --- Tests 24-25: an uncommitted data/event.json is announced, not silently half-applied ---------
+# Test 13 above pins that the edit takes effect immediately, which is the point AND the hazard: the
+# generators use it while deploy.sh ships HEAD's, so the board is configured for a different AO
+# than its data. The cycle never stages event.json, so this state persists until somebody commits
+# it; the warning is what makes "until somebody" finite. Warned every cycle, never fatal.
+setup
+printf '%s\n' '{"name":"committed event","zoom":9}' > "$REPO/data/event.json"
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit the event config' )
+FAILING="" run_cycle
+if [ "$RC" -eq 0 ] && ! grep -q 'data/event.json does not match HEAD' "$WORK/cycle.log"; then
+    pass "24 a committed data/event.json produces no divergence warning"
+else
+    fail "24 a clean event.json must not warn (rc=$RC)"; cat "$WORK/cycle.log"
+fi
+
+printf '%s\n' '{"name":"re-targeted basin","zoom":11}' > "$REPO/data/event.json"  # operator edit, NOT committed
+FAILING="" run_cycle
+if [ "$RC" -eq 0 ] \
+   && grep -q 'data/event.json does not match HEAD' "$WORK/cycle.log" \
+   && grep -q 'AO pills, gaugeBbox, zoom and tideStations' "$WORK/cycle.log" \
+   && grep -q 're-targeted basin' "$WORK/cycle.log" \
+   && grep -q 'stub deploy' "$WORK/run.out"; then
+    pass "25 MUTATION · an uncommitted event.json warns loudly, shows the diff, and still publishes"
+else
+    fail "25 the event.json divergence must warn without stopping the publish (rc=$RC)"
+    cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
 # --- Test 21: the budgets have to fit the window they exist to protect -------------------------
 # Static arithmetic over the real constants, per the "assert the bound in code" edict: a budget
 # raised past the cron interval, or a cron made more frequent, silently makes the guard useless.
@@ -528,8 +598,11 @@ line = re.search(r"^DATA_LINE=\"([0-9,]+) ", open(sys.argv[1]).read(), re.M).gro
 m = sorted(int(x) for x in line.split(","))
 print(min(min((b - a) for a, b in zip(m, m[1:])), 60 - m[-1] + m[0]) * 60)
 ' "$REPO_ROOT/scripts/install-cron.sh")
-# worst observed publish phase (cycle-check, commit, push, deploy, nudge) is ~135s; reserve 180s
-PUBLISH_RESERVE_S=180
+# Worst observed publish phase (cycle-check, commit, deploy, nudge) was ~135s while the deploy gate
+# ran node plus cycle-check only. That gate now also runs the python suites every cycle (~6s) and
+# the shell suites whenever scripts/ or tests/ changed since the last green gate (~100s, once per
+# code change), so the reserve carries both: 135 + 6 + 100 rounded to 260s.
+PUBLISH_RESERVE_S=260
 if [ -n "$CYCLE_BUDGET_DEFAULT" ] && [ -n "$BIGGEST_STEP" ] && [ -n "$INTERVAL_S" ] \
    && [ "$(( CYCLE_BUDGET_DEFAULT + PUBLISH_RESERVE_S ))" -le "$INTERVAL_S" ] \
    && [ "$BIGGEST_STEP" -le "$CYCLE_BUDGET_DEFAULT" ]; then

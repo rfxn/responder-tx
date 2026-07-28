@@ -186,11 +186,18 @@ function driveItems() {
       rank: 0, pin: d === 0, // standing inside the polygon outranks anything a distance sort could say
     });
   }
-  for (const c of (state.crossings || [])) {
+  /* A curated closure the curator has not restamped inside CROSSING_STALE_H still belongs in the
+     driver's list, but it is not a confirmed closure: it says its own age and it gives up the top
+     rank a current one holds. */
+  for (const c of crossingList()) {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) continue;
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     if (c.status === 'open') continue;
-    items.push({ glyph: st.glyph, color: st.color, name: c.name, sub: t('drive.sub.crossing').replace('{st}', xstLabel(st)), lat: c.lat, lon: c.lon, rank: c.status === 'closed' ? 0 : 2 });
+    items.push({
+      glyph: st.glyph, color: st.color, name: c.name,
+      sub: [t('drive.sub.crossing').replace('{st}', xstLabel(st)), c.staleNote].filter(Boolean).join(' · '),
+      lat: c.lat, lon: c.lon, rank: c.stale ? 2 : (c.status === 'closed' ? 0 : 2),
+    });
   }
   for (const r of activeRequests().filter((x) => x.status !== 'resolved')) {
     if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
@@ -733,7 +740,7 @@ function renderGaugesTab() {
   if (!el) return;
   const inFloodAll = state.gauges.filter((g) => gaugeCat(g) !== 'none');
   const badge = $('#gauges-count');
-  badge.textContent = inFloodAll.length;
+  badge.textContent = badgeText(inFloodAll.length, state.gauges.length > 0);
   badge.classList.toggle('sev', inFloodAll.some((g) => gaugeCat(g) === 'major'));
 
   // "In view" scopes the list buckets; the tab badge above stays global situational truth
@@ -914,6 +921,8 @@ const shlNoteHtml = (body) => `<div class="resource-item" style="border-bottom:n
 // record with the feed's clock
 const shlLiveUpdatedHtml = () => {
   const live = state.sheltersLive;
+  // a live feed we could not read is not a feed reporting nothing open
+  if (state.sheltersUnknown) return shlNoteHtml(esc(t('shl.live.unknown')));
   if (!live || !live.generated) return '';
   const when = fmtWhen(live.generated);
   return (Array.isArray(live.shelters) ? live.shelters : []).length
@@ -1135,7 +1144,11 @@ function heroCards() {
   const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
   const roads = roadFeatures();
-  const xings = (state.crossings || []).filter((c) => c.status && c.status !== 'open');
+  // the card counts what the Roads badge counts: a closure with no current confirmation is listed
+  // and mapped, never summed into a number the reader will act on
+  const xingsAll = crossingList().filter((c) => c.status && c.status !== 'open');
+  const xings = xingsAll.filter((c) => !c.stale);
+  const xingsUnconfirmed = xingsAll.length - xings.length;
   // no gauge loaded at all is an unreadable source, not a river running normal
   const gaugesUnknown = !state.gauges.length;
   const pts = (list) => list.map((g) => [g.latitude, g.longitude]).filter((p) => Number.isFinite(p[0]));
@@ -1187,9 +1200,10 @@ function heroCards() {
       n: state.crossingsUnknown ? null : xings.length,
       tone: xings.length && !state.crossingsUnknown ? 'warn' : 'ok',
       label: t('hero.xing'),
-      sub: state.crossingsUnknown ? t('hero.unknown') : t('hero.xing.sub'),
-      act: xings.length
-        ? frame(xings.filter((c) => Number.isFinite(c.lat)).map((c) => [c.lat, c.lon]))
+      sub: state.crossingsUnknown ? t('hero.unknown')
+        : (xingsUnconfirmed ? t('hero.xing.unconf').replace('{n}', String(xingsUnconfirmed)) : t('hero.xing.sub')),
+      act: xingsAll.length
+        ? frame(xingsAll.filter((c) => Number.isFinite(c.lat)).map((c) => [c.lat, c.lon]))
         : openTab('tab-roads'),
     },
   ];
@@ -1435,6 +1449,21 @@ function armTickerExpiry() {
 
 /* ---------- header ---------- */
 
+/* ---------- tab badges ----------
+   A badge is a count claim about a source. A zero drawn from a source that has not answered is not
+   a measurement, so it renders the hero cards' "?" instead; a non-zero count is a real floor and
+   still says what the board does know. The alerts and feed badges are written in sources.js and
+   board.js, so the rule is re-asserted here after every repaint that could reach them. */
+const BADGE_UNKNOWN = '?';
+const badgeText = (n, known) => (known || n > 0 ? String(n) : BADGE_UNKNOWN);
+
+function markUnknownBadges() {
+  for (const [sel, known] of [['#alerts-count', state.alertsLoadedOnce], ['#requests-count', state.seedsLoadedOnce]]) {
+    const el = $(sel);
+    if (el && !known && el.textContent === '0') el.textContent = BADGE_UNKNOWN;
+  }
+}
+
 // the composite entry every refresh calls; the header tiles it also wrote were retired in
 // v0.97.93 (they duplicated the richer, tappable threat strip and were hidden on every phone)
 function renderTiles() {
@@ -1442,54 +1471,64 @@ function renderTiles() {
   renderNine11Notice();
   renderTicker();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
+  markUnknownBadges();
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical').length;
   const flag = document.title.startsWith('🔴') ? '🔴 ' : '';
   document.title = `${flag}${crit ? `(${crit}) ` : ''}${state.baseTitle}`;
 }
 
-// seeds are re-fetched every refresh so open clients pick up curated data updates
+/* Seeds are re-fetched every refresh so open clients pick up curated data updates. A failure
+   rejects: refresh()'s Promise.allSettled is what names the board source degraded, and a resolved
+   `false` was invisible to it. boot.js is the only caller that wants a verdict instead. */
 async function loadSeeds() {
-  try {
-    const bust = `?_=${Date.now()}`;
-    const [reqs, res] = await Promise.all([
-      fetch(`data/requests.json${bust}`).then((r) => okJson(r, 'requests')),
-      fetch(`data/resources.json${bust}`).then((r) => okJson(r, 'resources')),
-    ]);
-    // E1: validate before publishing. A body without .requests is a failed load, not zero requests.
-    const seedRequests = okList(reqs, 'requests', 'requests');
-    // crest-of-record context — absence-tolerant (older deploys shipped no records.json)
-    if (!state.records) {
-      state.records = (await fetch(`data/records.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) || {}).records || {};
-    }
-    // low-water crossings — absence-tolerant; refetched each cycle for status changes; transient failure keeps last-good, never wipes to []
-    const xing = await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    if (xing && Array.isArray(xing.crossings)) { state.crossings = xing.crossings; state.crossingsUnknown = false; }
-    // E1: on a cold client there is no last-good to keep, so the crossing set is unknown and the
-    // Roads tab must say so instead of reporting that no crossing hazards exist
-    else { state.crossingsUnknown = !state.crossings; state.crossings = state.crossings || []; }
-    // jurisdiction-reported crossing closures — absence-tolerant; transient failure keeps last-good
-    const xst = await fetch(`data/crossing-status.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    if (xst && Array.isArray(xst.crossings)) state.crossStatus = xst;
-    // live NSS shelters — absence-tolerant (poller may never have run); transient failure keeps last-good
-    const shl = await fetch(`data/shelters-live.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    if (shl && Array.isArray(shl.shelters)) state.sheltersLive = shl;
-    state.seedRequests = seedRequests;
-    state.resources = res;
-    markHealthy('seeds'); // only once every body above parsed and validated
-    // hash = content + per-card aging fingerprint: identical seeds skip the re-render (scroll guard),
-    // but aged/stale/fresh-bucket transitions on idle clients still repaint list, tiles, and crossings
-    const agingFp = allRequests().map((r) => [r.id, cardAged(r) ? 1 : 0, r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins ? 1 : 0, freshClass(r.ts)]);
-    const crossingFp = state.crossings.map((c) => (crossingStale(c) ? 1 : 0));
-    const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp, state.sheltersLive, state.crossStatus]);
-    if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
-    state.seedHash = hash;
-    renderRequests();
-    renderResources();
-    renderCrossings();
-    renderCrossStatus();
-    pbRefreshCurated(); // playback may have engaged before this data arrived
-    return true;
-  } catch { return false; }
+  const bust = `?_=${Date.now()}`;
+  const [reqs, res] = await Promise.all([
+    fetch(`data/requests.json${bust}`).then((r) => okJson(r, 'requests')),
+    fetch(`data/resources.json${bust}`).then((r) => okJson(r, 'resources')),
+  ]);
+  // E1: validate before publishing. A body without .requests is a failed load, not zero requests.
+  const seedRequests = okList(reqs, 'requests', 'requests');
+  /* crest-of-record context: a 404 is a deploy that ships no records file, which is a real answer.
+     Anything else leaves state.records null so the next cycle retries, rather than latching an
+     empty record set that keeps every crest-of-record flag dead for the whole session. */
+  if (!state.records) {
+    const rec = await fetch(`data/records.json${bust}`)
+      .then((r) => (r.ok ? r.json() : (r.status === 404 ? { records: {} } : null)))
+      .catch(() => null);
+    state.records = rec && rec.records && typeof rec.records === 'object' ? rec.records : null;
+  }
+  // low-water crossings — absence-tolerant; refetched each cycle for status changes; transient failure keeps last-good, never wipes to []
+  const xing = await fetch(`data/crossings.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (xing && Array.isArray(xing.crossings)) { state.crossings = xing.crossings; state.crossingsUnknown = false; }
+  // E1: on a cold client there is no last-good to keep, so the crossing set is unknown and the
+  // Roads tab must say so instead of reporting that no crossing hazards exist
+  else { state.crossingsUnknown = !state.crossings; state.crossings = state.crossings || []; }
+  // jurisdiction-reported crossing closures, same rule: a failure with no last-good is unknown,
+  // never "no jurisdiction reports a closure"
+  const xst = await fetch(`data/crossing-status.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (xst && Array.isArray(xst.crossings)) { state.crossStatus = xst; state.crossStatusUnknown = false; }
+  else state.crossStatusUnknown = !state.crossStatus;
+  // live NSS shelters — absence-tolerant (poller may never have run); transient failure keeps last-good
+  const shl = await fetch(`data/shelters-live.json${bust}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (shl && Array.isArray(shl.shelters)) { state.sheltersLive = shl; state.sheltersUnknown = false; }
+  else state.sheltersUnknown = !state.sheltersLive;
+  state.seedRequests = seedRequests;
+  state.resources = res;
+  state.seedsLoadedOnce = true;
+  markHealthy('seeds'); // only once every body above parsed and validated
+  // hash = content + per-card aging fingerprint: identical seeds skip the re-render (scroll guard),
+  // but aged/stale/fresh-bucket transitions on idle clients still repaint list, tiles, and crossings
+  const agingFp = allRequests().map((r) => [r.id, cardAged(r) ? 1 : 0, r.status !== 'resolved' && ageMins(r.ts) > CONFIG.staleMins ? 1 : 0, freshClass(r.ts)]);
+  const crossingFp = crossingList().map((c) => (c.stale ? 1 : 0));
+  const hash = JSON.stringify([reqs, res, state.crossings, agingFp, crossingFp, state.sheltersLive, state.crossStatus]);
+  if (hash === state.seedHash) return true;  // unchanged — don't reset operator's scroll
+  state.seedHash = hash;
+  renderRequests();
+  renderResources();
+  renderCrossings();
+  renderCrossStatus();
+  pbRefreshCurated(); // playback may have engaged before this data arrived
+  return true;
 }
 
 const CROSSING_STALE_H = 12;
@@ -1499,6 +1538,18 @@ const crossingAgeH = (c) => {
 };
 // a closure nobody has re-confirmed inside the window is still shown, it just stops being counted
 const crossingStale = (c) => crossingAgeH(c) > CROSSING_STALE_H;
+
+/* THE read path for the curated crossing set: state.crossings is written by loadSeeds and read
+   here, so every consumer is handed the confirmation verdict with the row and none of them can
+   skip it. A stale closure keeps its place on the list, the map and the Drive Mode glance, and
+   `stale` is what stops it being counted or spoken as a current status. */
+function crossingList() {
+  return (state.crossings || []).map((c) => {
+    const ageH = crossingAgeH(c);
+    const stale = crossingStale(c);
+    return Object.assign({}, c, { ageH, stale, staleNote: stale ? roadsAgeChip(ageH) : '' });
+  });
+}
 const CROSSING_STATUS = {
   closed: { color: 'var(--sev-emergency)', glyph: '⛔', key: 'xword.closed' },
   caution: { color: 'var(--cat-action)', glyph: '⚠', key: 'xword.caution' },
@@ -1509,18 +1560,17 @@ const xstLabel = (st) => t(st.key).toUpperCase();
 function renderCrossings() {
   const layer = state.layers.crossings;
   if (layer) layer.clearLayers();
-  const list = state.crossings || [];
+  const list = crossingList();
   renderRoadsTab();
   for (const c of list) {
     if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon) || !layer) continue;
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
-    const stale = crossingStale(c);
-    const icon = L.divIcon({ className: '', html: `<div class="crossing-icon${stale ? ' unconfirmed' : ''}" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    const icon = L.divIcon({ className: '', html: `<div class="crossing-icon${c.stale ? ' unconfirmed' : ''}" style="border-color:${st.color};color:${st.color}">${st.glyph}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([c.lat, c.lon], { icon });
     m.bindPopup(`<div class="popup-title" style="color:${st.color}">${st.glyph} ${esc(xstLabel(st))} · ${esc(t('risk.read.crosspost'))}</div><div>${esc(c.name)} ${srcBadge('curated')}</div>` +
       `<div class="popup-meta">${esc(c.reason || '')}</div>` +
       `<div class="popup-meta">${esc(t('cross.updated').replace('{t}', fmtWhen(c.updated_at)))}</div>` +
-      (stale ? `<div class="popup-meta"><span class="xg-stale">${esc(t('cross.stale').replace('{h}', Math.round(crossingAgeH(c))))}</span></div>` : '') +
+      (c.stale ? `<div class="popup-meta"><span class="xg-stale">${esc(c.staleNote)}</span></div>` : '') +
       (c.source && safeUrl(c.source) !== '#' ? `<div class="popup-link"><a href="${esc(safeUrl(c.source))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>` : ''));
     layer.addLayer(m);
   }
@@ -1610,16 +1660,15 @@ function roadsTxdotRows(pos) {
 
 function roadsCuratedRows() {
   const rows = [];
-  for (const c of (state.crossings || [])) {
+  for (const c of crossingList()) {
     if (c.status === 'open') continue; // the tab lists hazards; an open crossing is the absence of one
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
-    const stale = crossingStale(c);
     rows.push({
-      kind: 'curated', live: !stale, color: st.color, glyph: st.glyph,
+      kind: 'curated', live: !c.stale, color: st.color, glyph: st.glyph,
       label: xstLabel(st), name: c.name, detail: c.reason || '',
       when: c.updated_at || '',
       whenText: c.updated_at ? `${t('word.updated').toLowerCase()} ${fmtWhen(c.updated_at)}` : '',
-      age: stale ? roadsAgeChip(crossingAgeH(c)) : '',
+      age: c.staleNote,
       op: t('roads.src.curated'), badge: 'curated',
       href: c.source && safeUrl(c.source) !== '#' ? safeUrl(c.source) : '',
       lat: c.lat, lon: c.lon,
@@ -1680,19 +1729,21 @@ function renderRoadsTab() {
   const unconf = rows.filter((r) => !r.live);
   // the badge sits beside Alerts and Gauges, both of which suppress a sensor they cannot vouch
   // for; a closure with no current confirmation gets the same treatment
-  if (badge) badge.textContent = String(live.length);
+  const roadsKnown = !state.roadsUnknown && !state.crossingsUnknown && !state.crossStatusUnknown;
+  if (badge) badge.textContent = badgeText(live.length, roadsKnown);
   if (!el) return;
   // whole-mile distance buckets: a moving fix must not repaint (and reset the scroll) every tick
   const fp = JSON.stringify([state.roadsPartial === true, state.roadsFallbackAt || 0, state.roadsUnknown === true,
-    state.crossingsUnknown === true,
+    state.crossingsUnknown === true, state.crossStatusUnknown === true,
     rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
   if (fp === state.roadsTabFp) return;
   state.roadsTabFp = fp;
   // the closure feed's own state leads the list: a snapshot is named as one, and a feed we cannot
   // reach at all is reported as unknown. Neither may read as a current, complete closure set.
-  const feedNote = state.roadsFallbackAt
+  const feedNote = (state.roadsFallbackAt
     ? `<div class="rcv-note">${esc(t('roads.snapshot.note').replace('{t}', fmtWhen(new Date(state.roadsFallbackAt).toISOString())))}</div>`
-    : state.roadsUnknown ? `<div class="rcv-note">${esc(t('roads.unknown.note'))}</div>` : '';
+    : state.roadsUnknown ? `<div class="rcv-note">${esc(t('roads.unknown.note'))}</div>` : '')
+    + (state.crossStatusUnknown ? `<div class="rcv-note">${esc(t('roads.jurunknown'))}</div>` : '');
   // one list, not one group per feed: a crossing shut two miles away must not sit below forty
   // distant TxDOT rows just because a different operator reported it
   el.innerHTML = rows.length
@@ -1703,7 +1754,8 @@ function renderRoadsTab() {
       `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
     // E1: with a feed down and nothing cached, "none reported" would be a failed fetch published as
     // a value. Each empty state names the feed that actually failed rather than a generic outage.
-    : `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : state.crossingsUnknown ? 'roads.xunknown' : 'roads.none'))}</div>`;
+    : `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : state.crossingsUnknown ? 'roads.xunknown'
+      : state.crossStatusUnknown ? 'roads.jurunknown' : 'roads.none'))}</div>`;
   el.querySelectorAll('.road-row[data-lat]').forEach((d) => d.addEventListener('click', (ev) => {
     if (ev.target.closest('a')) return;
     state.map.setView([+d.dataset.lat, +d.dataset.lon], 13);

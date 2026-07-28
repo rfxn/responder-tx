@@ -34,7 +34,8 @@ test('the Resources slot is a Roads tab that counts its own hazard content', () 
   const panels = read('js/panels.js');
   const fn = panels.match(/function renderRoadsTab\(\)[\s\S]*?\n\}/);
   assert.ok(fn && /#roads-count/.test(fn[0]), 'renderRoadsTab must keep the Roads badge current');
-  assert.match(fn[0], /badge\.textContent = String\(live\.length\)/, 'the badge counts the tab\'s live rows');
+  assert.match(fn[0], /badge\.textContent = badgeText\(live\.length, roadsKnown\)/,
+    'the badge counts the tab\'s live rows, and says "?" rather than zero when a feed never answered');
   // reopened roads render as a sibling of the crossings host, so they land in Roads with them
   assert.match(panels, /const host = \$\('#crossings-body'\)/, 'reopened roads must anchor to the crossings host');
 });
@@ -218,7 +219,7 @@ test('the Roads tab surfaces the suppressed count instead of letting it vanish',
   assert.ok(fn, 'renderRoadsTab() not found');
   assert.match(fn[0], /t\('cross\.unconfirmed'\)/, 'the panel must say how many were excluded');
   const cross = panels.match(/function renderCrossings\(\)[\s\S]*?\n\}/);
-  assert.match(cross[0], /crossing-icon\$\{stale \? ' unconfirmed' : ''\}/,
+  assert.match(cross[0], /crossing-icon\$\{c\.stale \? ' unconfirmed' : ''\}/,
     'a stale crossing marker must be visually distinct from a current one');
   for (const lang of ['en', 'es']) {
     assert.ok(I18N[lang]['cross.unconfirmed'], `${lang} missing cross.unconfirmed`);
@@ -404,8 +405,8 @@ test('the empty tab says so instead of rendering nothing at all', () => {
   // "none" is only reachable when BOTH feeds were actually read: a TxDOT outage and an unreadable
   // crossing list each get their own empty state naming the feed that failed
   assert.match(read('js/panels.js'),
-    /t\(state\.roadsUnknown \? 'roads\.unknown' : state\.crossingsUnknown \? 'roads\.xunknown' : 'roads\.none'\)/,
-    'the empty state must render the string, and only claim "none" when both feeds were read');
+    /t\(state\.roadsUnknown \? 'roads\.unknown' : state\.crossingsUnknown \? 'roads\.xunknown'\s*\n?\s*: state\.crossStatusUnknown \? 'roads\.jurunknown' : 'roads\.none'\)/,
+    'the empty state must render the string, and only claim "none" when all three feeds were read');
   for (const lang of ['en', 'es']) {
     const s = I18N[lang]['roads.xunknown'];
     assert.ok(typeof s === 'string' && s.length, `${lang} missing roads.xunknown`);

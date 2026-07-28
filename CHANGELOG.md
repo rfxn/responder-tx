@@ -1,5 +1,30 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.67 · 2026-07-28 (a count of zero now means the board checked)
+
+-- Bug Fixes --
+- [Fix] Tab counts read "?" until the source has answered. A zero now means the
+      board checked and found nothing, and is no longer shown before the check
+- [Fix] A low-water crossing the curator has not re-confirmed inside the
+      confirmation window is no longer presented as a current closure. Drive
+      Mode, the risk view and the point inspector carry its age, and the
+      crossing card counts only what the board can vouch for
+- [Fix] When the jurisdiction closure feed or the live shelter feed cannot be
+      read, the board says so instead of showing an empty list
+- [Fix] A failure to load the curated notices, resources and crossings now
+      appears in the data health note instead of passing as a clean load
+- [Fix] Crest of record context returns on the next refresh after a failed
+      fetch instead of staying blank for the rest of the visit
+- [Fix] The river forecast chart no longer draws an empty forecast under a
+      legend that claims one. It names the forecast that did not answer
+- [Fix] When fallback radar imagery returns nothing, the timeline says the
+      imagery is unverified instead of leaving a blank map under a confident
+      timeline
+- [Fix] A capped map export reports how many storm reports were cut. It
+      previously reported that it carried everything in scope
+- [Fix] Removed a resources link describing CrowdSource Rescue as activated for
+      the Hill Country. The address was no longer valid
+
 ## v0.99.66 · 2026-07-27 (Notify me: alert setup gets its own place)
 
 -- Changes --

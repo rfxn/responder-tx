@@ -30,48 +30,14 @@ jobs:
             node --check "$f"
           done
 
-      # Suite steps run with !cancelled() so one red suite never hides the others.
-      - name: Unit tests (node:test)
+      # One entry point on purpose. This used to be a step per suite, and the hand-kept list
+      # drifted: four python suites existed and were named nowhere, so 114 checks ran in no CI
+      # job at all. tests/run.sh enumerates tests/*.test.sh and tests/*.test.py from disk, keeps
+      # going after a suite goes red (what the old per-step !cancelled() bought), and prints the
+      # failing test names at the end.
+      - name: Test suites (node + shell + python)
         if: ${{ !cancelled() }}
-        run: node --test tests/
-
-      - name: Chat-poll durability tests
-        if: ${{ !cancelled() }}
-        run: bash tests/chat-poll.test.sh
-
-      - name: Deploy gate tests
-        if: ${{ !cancelled() }}
-        run: bash tests/deploy.test.sh
-
-      - name: Cycle-check immunity tests
-        if: ${{ !cancelled() }}
-        run: bash tests/cycle-check.test.sh
-
-      - name: Stall-watchdog tests
-        if: ${{ !cancelled() }}
-        run: bash tests/chat-watchdog.test.sh
-
-      - name: Run-cycle partial-publish tests
-        if: ${{ !cancelled() }}
-        run: bash tests/run-cycle.test.sh
-
-      - name: Freshness-monitor tests
-        if: ${{ !cancelled() }}
-        run: bash tests/freshness-monitor.test.sh
-
-      - name: Server write-gate tests
-        if: ${{ !cancelled() }}
-        run: python3 tests/server-gate.test.py
-
-      - name: Generator tests (notices, shelters, caltopo, history, cameras, crossings)
-        if: ${{ !cancelled() }}
-        run: |
-          python3 tests/gen-notices.test.py
-          python3 tests/gen-shelters.test.py
-          python3 tests/gen-caltopo.test.py
-          python3 tests/gen-history.test.py
-          python3 tests/gen-cameras.test.py
-          python3 tests/gen-crossings-status.test.py
+        run: bash tests/run.sh
 
       - name: Release-cycle sanity checks
         if: ${{ !cancelled() }}

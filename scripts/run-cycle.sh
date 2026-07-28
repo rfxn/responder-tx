@@ -1,9 +1,9 @@
 #!/bin/bash
 # run-cycle.sh [--dry-run] [--allow-dirty-code] — durable 15-min data-refresh cycle.
 # Fetch NWPS snapshot, regenerate roads/history/crest/notices/feeds/shelters/
-# caltopo, validate, then (unless --dry-run) commit the data files by name,
-# push, and deploy via deploy.sh. flock-serialized, idempotent, safe when
-# nothing changed.
+# caltopo, validate, then (unless --dry-run) commit the data files by name and
+# hand off to deploy.sh, which gates HEAD before it pushes or uploads anything.
+# flock-serialized, idempotent, safe when nothing changed.
 #
 # The pipeline CODE is read from HEAD, the DATA is the working tree's. See
 # scripts/README.md "The cycle runs committed code".
@@ -68,8 +68,10 @@ BUDGET_CREST_S=120
 BUDGET_FEEDS_S=120
 BUDGET_CALTOPO_S=120
 # Per-step budgets alone cannot bound the cycle: they sum past the window. This is the aggregate
-# guard, and it leaves room for the publish path (cycle-check, commit, push, deploy) to finish.
-CYCLE_BUDGET_S="${RESPONDER_CYCLE_BUDGET_S:-660}"
+# guard, and it leaves room for the publish path (cycle-check, commit, deploy's own test gate,
+# push, upload, smoke) to finish. Trimmed from 660s when that gate widened to the python and shell
+# suites; tests/run-cycle.test.sh asserts this against the publish reserve and the cron interval.
+CYCLE_BUDGET_S="${RESPONDER_CYCLE_BUDGET_S:-600}"
 STEP_BUDGET_OVERRIDE="${RESPONDER_STEP_BUDGET_S:-}"  # operational escape hatch; also how the suite forces a timeout
 KILL_GRACE_S=20   # SIGTERM, then SIGKILL: long enough for a generator to drop its temp file
 MIN_STEP_S=5      # never hand `timeout` a budget of 0 — GNU timeout reads 0 as "no timeout"
@@ -186,6 +188,23 @@ fi
 # crests.ics into the real repo, which is what this cycle stages and commits. Re-targeting a live
 # event stays an edit to a data file, never a release.
 export RESPONDER_ROOT="$REPO_ROOT"
+
+# ...which makes an uncommitted data/event.json a split brain rather than a re-target: these
+# generators read the working-tree copy, deploy.sh ships `git archive HEAD`. Warned every cycle,
+# never fatal, because failing here would stop a flood publish over a config edit (CLAUDE.md E2/E3).
+dirty_event=$(git status --porcelain --untracked-files=all -- data/event.json) || dirty_event=''
+if [ -n "$dirty_event" ]; then
+    log "##########################################################"
+    log "# WARNING: data/event.json does not match HEAD."
+    log "# These generators use the WORKING-TREE copy; the artifact"
+    log "# deploy.sh ships carries HEAD's, so the board's map centre,"
+    log "# AO pills, gaugeBbox, zoom and tideStations are NOT the ones"
+    log "# this data is being generated against."
+    log "# Commit data/event.json: that is what makes a re-target real."
+    log "##########################################################"
+    printf '%s\n' "$dirty_event"
+    git --no-pager diff --unified=0 -- data/event.json || :  # an untracked file has no diff; the status line above already named it
+fi
 
 # the aggregate clock starts at the first generator, not at cycle start: materializing the HEAD
 # worktree is bounded work that must not eat a data source's budget
@@ -304,15 +323,17 @@ fi
 git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' commit -m "$COMMIT_MSG"
 log "committed: $(git log --oneline -1)"
 
-log "step: git push origin main"
-git push origin main
-
-log "step: deploy.sh (push + CF Pages deploy + smoke)"
+# deploy.sh is the gate AND the publisher: it runs node, the python suites, the shell suites and
+# cycle-check.sh at HEAD, and only then pushes and uploads. The cycle used to push here first, so a
+# red gate still put the commit on origin. The commit above must still precede it, because the
+# artifact deploy.sh builds is `git archive HEAD` and unpublished data would otherwise ship; a
+# local commit is not a publish, and nothing reaches origin or the mirror until the gate is green.
+log "step: deploy.sh (gate HEAD + git push + CF Pages deploy + smoke)"
 if bash "${PIPE_ROOT}/scripts/deploy.sh"; then
     log "deploy OK"
 else
     rc=$?
-    log "WARN: deploy.sh failed (exit ${rc}); data is committed+pushed — next cycle redeploys"
+    log "WARN: deploy.sh failed (exit ${rc}); the data is committed locally and NOT pushed — next cycle re-gates and republishes"
     exit "$rc"
 fi
 

@@ -1676,7 +1676,9 @@ function rtlUpdateLabel(R) {
   const rtl = state.rtl, label = $('#rs-label');
   // combined-legend source: observed until the RainViewer nowcast seam, forecast beyond (nowcast + HRRR)
   const wxFcst = !R.pastN || (state.radar && rtl.idx >= state.radar.castStart);
-  const obsKey = state.radar && state.radar.src === 'iem' ? 'leg.wx.obs.iem' : 'leg.wx.obs';
+  const obsKey = state.radar && state.radar.src === 'iem'
+    ? (wxObsUnverified(state.radar) ? 'leg.wx.obs.iem.blank' : 'leg.wx.obs.iem')
+    : 'leg.wx.obs';
   $('#wx-legend-src').textContent = t(wxFcst ? (wxFcstDegraded(state.fcst) ? 'leg.wx.fcst.down' : 'leg.wx.fcst') : obsKey);
   $('#radar-scrub').classList.toggle('rs-future', rtl.fut);
   $('#rs-badge').hidden = !rtl.fut;
@@ -1692,8 +1694,9 @@ function rtlUpdateLabel(R) {
     label.classList.add('projected');
     return;
   }
-  label.title = '';
   const r = state.radar;
+  // a frame time we computed and cannot back with a tile carries the reason on the stamp itself
+  label.title = wxObsUnverified(r) ? t('leg.wx.obs.iem.blank') : '';
   if (!R.pastN || !r) { label.textContent = '…'; label.classList.remove('projected'); return; }
   const dMin = Math.round((r.frames[rtl.idx].time - r.frames[r.nowIdx].time) / 60);
   label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin >= -110 ? dMin + 'm' : Math.round(dMin / 6) / 10 + 'h'}` : `+${dMin}m PROJECTED`;
@@ -1770,6 +1773,22 @@ function iemRadarFrames(nowMs) {
   return frames;
 }
 
+/* Those stamps come from our clock, not from an upstream index, so a time IEM has not ingested
+   paints nothing at all. Until one fallback tile loads, an empty map under that timeline is an
+   unanswered request and not an observation of clear sky, and the legend has to say which.
+   Same shape as wxFcstDegraded: a failure signal AND nothing painted, so the load itself is quiet. */
+const wxObsUnverified = (r) => !!(r && r.src === 'iem' && r.tileFail && !r.tileOk);
+
+function watchRadarTiles(r, layer) {
+  const mark = (key) => () => {
+    if (r[key] || state.radar !== r) return;
+    r[key] = true;
+    rtlUpdateLabel(rtlDomain()); // the verdict flips asynchronously; the legend must follow it
+  };
+  layer.on('tileload', mark('tileOk'));
+  layer.on('tileerror', mark('tileFail'));
+}
+
 async function fetchRadarFrames() {
   let d = null;
   try {
@@ -1783,7 +1802,7 @@ async function fetchRadarFrames() {
   const keepIdx = state.radar ? state.radar.idx : -1;
   const wasPlaying = state.rtl.playing;
   rtlStopPlay();
-  state.radar = { src: d ? 'rainviewer' : 'iem', host: d ? d.host : '', frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, frameLayers: [] };
+  state.radar = { src: d ? 'rainviewer' : 'iem', host: d ? d.host : '', frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, frameLayers: [], tileOk: false, tileFail: false };
   const r = state.radar;
   state.layers.radar.clearLayers();
   r.frameLayers = r.frames.map((f) => L.tileLayer(
@@ -1792,6 +1811,7 @@ async function fetchRadarFrames() {
       attribution: d ? 'Radar: RainViewer' : 'Radar: NEXRAD via IEM',
     }));
   r.frameLayers.forEach(attachTileRetry);
+  if (!d) r.frameLayers.forEach((l) => watchRadarTiles(r, l)); // fallback frames only: RainViewer indexes its own
   const rf = parseInt(new URLSearchParams(location.search).get('rf'), 10); // debug/deep-link: initial frame index
   const primaryIdx = (state.rtl.wantNow || state.rtl.fut) ? r.nowIdx
     : keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx

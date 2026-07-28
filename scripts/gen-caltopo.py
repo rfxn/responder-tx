@@ -438,6 +438,8 @@ def build_notices(reqs):
 
 
 def build_lsrs(gj):
+    """(features, how many the cap cut). The cap discards the OLDEST qualifying reports, so a caller
+    that counts only what this returns publishes the first half of an outbreak as a whole board."""
     out = []
     feats = [f for f in (gj or {}).get("features", [])
              if LSR_HAZARD_RE.search((f.get("properties") or {}).get("typetext") or "")]
@@ -446,6 +448,7 @@ def build_lsrs(gj):
         return str((f.get("properties") or {}).get("valid") or "")
 
     feats.sort(key=valid_key, reverse=True)
+    capped = max(0, len(feats) - LSR_CAP)
     for i, f in enumerate(feats[:LSR_CAP]):
         p = f.get("properties") or {}
         g = f.get("geometry") or {}
@@ -460,7 +463,7 @@ def build_lsrs(gj):
             rank=6 if i < 30 else 2,
             source="NWS Local Storm Reports via IEM · https://mesonet.agron.iastate.edu/lsr/",
             updated=p.get("valid")))
-    return out
+    return out, capped
 
 
 FOLDERS = [
@@ -641,7 +644,7 @@ def build_kml(members, metas, header):
         doc.append(styles[sid])
 
     ext = ET.SubElement(doc, "ExtendedData")
-    for k in ("generated", "features", "candidates", "cap", "truncated", "dropped"):
+    for k in ("generated", "features", "candidates", "cap", "truncated", "dropped", "lsr_dropped"):
         ET.SubElement(ET.SubElement(ext, "Data", {"name": k}), "value").text = str(header[k])
     ET.SubElement(ET.SubElement(ext, "Data", {"name": "sources_unavailable"}), "value").text = \
         ",".join(header.get("unavailable") or ())
@@ -689,6 +692,8 @@ def write_kml_networklink(path, header):
         "Self-updating link to the Responder TX board. The linked document is re-fetched every "
         f"{REFRESH_SECONDS // 60} minutes, which is how often the board republishes. "
         + DISCLAIMER.split(" One-shot")[0] + " "
+        # the NetworkLink is a subscription: its reader never opens the share sheet either
+        + ((header.get("truncation_note") or "") + " " if header.get("truncation_note") else "")
         + (zone_only_text(zone_only) + " " if zone_only else "")
         + ((UNAVAILABLE_NOTE % ", ".join(unavailable)) + " " if unavailable else "")
         + ATTRIBUTION)
@@ -852,19 +857,28 @@ def trim_ranked(ranked, keep):
     return ordered[:keep], len(ranked) - keep
 
 
-def build_header(event, kept_n, total, now, bound, unavailable=(), zone_only=None):
+def build_header(event, kept_n, ranked_n, now, bound, unavailable=(), zone_only=None, lsr_capped=0):
     """Header shared by all three emitters. bound names which limit did the cutting, because
-    "capped at 2000 features" is a false explanation when it was the byte ceiling that cut."""
+    "capped at 2000 features" is a false explanation when it was the byte ceiling that cut.
+    lsr_capped counts storm reports cut before the ranked list was assembled: they are candidates
+    this export does not carry, so they belong in the same total every artifact publishes."""
+    rank_dropped = ranked_n - kept_n
+    total = ranked_n + lsr_capped
     dropped = total - kept_n
-    partial = (f" (partial: {kept_n} of {total} features, lowest-priority dropped first)"
-               if dropped else "")
-    note = DISCLAIMER
-    if dropped:
+    # priority order is the truth about the rank trim only; the storm-report cap drops by age
+    order = ", lowest-priority dropped first" if rank_dropped else ""
+    partial = f" (partial: {kept_n} of {total} features{order})" if dropped else ""
+    cut = ""
+    if rank_dropped:
         limit = (f"{MAX_KML_BYTES // 1048576} MB of KML so it stays importable"
                  if bound == "size" else f"{MAX_FEATURES} features")
-        note += (f" This export is capped at {limit} and {dropped} lower-priority features were "
-                 "dropped; every alert, crest, closure and in-flood gauge is kept before any "
-                 "quiet gauge.")
+        cut += (f" This export is capped at {limit} and {rank_dropped} lower-priority features were "
+                "dropped; every alert, crest, closure and in-flood gauge is kept before any "
+                "quiet gauge.")
+    if lsr_capped:
+        cut += (f" It carries the {LSR_CAP} most recent storm reports; {lsr_capped} older ones are "
+                "not included.")
+    note = DISCLAIMER + cut
     if zone_only:
         note += " " + zone_only_text(zone_only)
     if unavailable:
@@ -876,31 +890,34 @@ def build_header(event, kept_n, total, now, bound, unavailable=(), zone_only=Non
         "title": f"{name} · live map{partial}",
         "geojson_title": f"{name} · CalTopo export{partial}",
         "note": note,
+        "truncation_note": cut.strip(),
         "generated": now,
         "features": kept_n,
         "candidates": total,
         "cap": MAX_FEATURES,
         "truncated": dropped > 0,
         "dropped": dropped,
+        "lsr_dropped": lsr_capped,
         "georss_url": f"{SITE}/data/board-georss.xml",
     }
 
 
-def fit_to_ceiling(ranked, event, now, unavailable=(), zone_only=None):
+def fit_to_ceiling(ranked, event, now, unavailable=(), zone_only=None, lsr_capped=0):
     """(kept, header, kml text, unmapped). Applies the feature cap, then trims by the same rank
     order until the emitted KML fits MAX_KML_BYTES, re-stating the truncation claim each pass."""
     kept, dropped = trim_ranked(ranked, MAX_FEATURES)
     bound = "cap" if dropped else ""
-    for _ in range(FIT_PASSES):
-        header = build_header(event, len(kept), len(ranked), now, bound, unavailable, zone_only)
+    for attempt in range(FIT_PASSES + 1):
+        header = build_header(event, len(kept), len(ranked), now, bound, unavailable, zone_only, lsr_capped)
         text, unmapped = build_kml([f for _, f, _ in kept], [m for _, _, m in kept], header)
-        if len(text.encode("utf-8")) <= MAX_KML_BYTES or len(kept) <= 1:
+        # the extra pass trims nothing: it re-states the header over the list the caller ships, so
+        # passes running out cannot return a document describing more features than it carries
+        if attempt == FIT_PASSES or len(text.encode("utf-8")) <= MAX_KML_BYTES or len(kept) <= 1:
             return kept, header, text, unmapped
         # proportional step with a margin: converges in two or three passes rather than one at a time
         target = max(1, int(len(kept) * MAX_KML_BYTES / len(text.encode("utf-8")) * 0.95))
         kept, _ = trim_ranked(kept, target)
         bound = "size"
-    return kept, header, text, unmapped
 
 
 # ---------- emitted-artifact gate ----------
@@ -1024,11 +1041,12 @@ def main():
 
     crest_feats, crests_unresolved = build_crests(crest, snapshot, capture)
     alert_feats, zone_only = build_alerts(alerts_gj)
+    lsr_feats, lsrs_capped = build_lsrs(lsr_gj)
     ranked = (alert_feats + crest_feats + build_gauges(snapshot)
-              + build_roads(roads) + build_crossings(crossings) + build_notices(reqs) + build_lsrs(lsr_gj))
+              + build_roads(roads) + build_crossings(crossings) + build_notices(reqs) + lsr_feats)
 
     now = now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
-    kept, header, kml_text, unmapped = fit_to_ceiling(ranked, event, now, unavailable, zone_only)
+    kept, header, kml_text, unmapped = fit_to_ceiling(ranked, event, now, unavailable, zone_only, lsrs_capped)
     dropped = header["dropped"]
 
     members = [f for _, f, _ in kept]
@@ -1058,6 +1076,7 @@ def main():
             "cap": MAX_FEATURES,
             "truncated": header["truncated"],
             "dropped": dropped,
+            "lsr_dropped": header["lsr_dropped"],
             "crests_unresolved": crests_unresolved,
             "sources_unavailable": unavailable,
             "zone_only_products": zone_only,
@@ -1074,7 +1093,7 @@ def main():
     verify_feeds(len(members), header)
 
     print(f"caltopo-export.json: {len(members)} features in {len(folder_feats)} folders "
-          f"(dropped {dropped}, crests unresolved {crests_unresolved}, "
+          f"(dropped {dropped}, storm reports cut {lsrs_capped}, crests unresolved {crests_unresolved}, "
           f"zone-only products {sum(zone_only.values())}, "
           f"unavailable: {','.join(unavailable) or 'none'}) @ {now}")
     print(f"board.kml + board-live.kml + board-georss.xml: {len(members)} features "

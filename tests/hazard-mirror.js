@@ -4,16 +4,21 @@
  * Hazard-allowlist agreement, in one implementation used by two callers: tests/hazard-table.test.js
  * asserts on it, and scripts/cycle-check.sh runs this file directly as a release gate.
  *
- * Three facts are checked, and all three fail silently in production if they are not:
+ * Four facts are checked, and all of them fail silently in production if they are not:
  *   1. js/sources.js HAZARD_EVENTS and the scripts/gen-caltopo.py mirror are the same table. Nothing
  *      at runtime compares them, so drift means the board and its export describe different hazard
  *      sets while each looks correct alone.
  *   2. js/core.js LSR_HAZARD_RE and the generator's copy are the same pattern.
- *   3. Every event string still exists in the live NWS catalogue. An unknown event= value returns
+ *   3. No heat product is admitted. Owner decision (2026-07-27): heat is not the awareness this
+ *      board is built for, and a Texas summer afternoon is a dozen heat advisories that teach a
+ *      responder the hazard surfaces are noise before the tornado warning lands there next week.
+ *      Asserted here rather than written down, because the table is edited every time the board
+ *      goes wider and nothing else would notice heat arriving with the rest of a standing tier.
+ *   4. Every event string still exists in the live NWS catalogue. An unknown event= value returns
  *      HTTP 200 with zero features rather than an error, so a typo or a retired product name
  *      publishes "no tornado warnings" instead of failing.
  *
- * Check 3 skips on a transport failure only: an api.weather.gov outage must not fail a commit or
+ * Check 4 skips on a transport failure only: an api.weather.gov outage must not fail a commit or
  * stop a flood publish, but a reachable catalogue that disagrees is a hard failure.
  *
  * Both sides are read from the same directory tree, so cycle-check --code-from-head compares HEAD's
@@ -29,6 +34,8 @@ const TYPES_URL = 'https://api.weather.gov/alerts/types';
 const UA = 'responder-tx-ops/hazard-mirror (rfxnryan@gmail.com)';
 const MIN_TABLE = 30; // non-vacuity floor: a table this small is a truncated read, not a real allowlist
 const MIN_TYPES = 80; // the catalogue has carried >100 strings for years; far under that is a bad read
+// every NWS heat product carries the word; no flood, wind or storm product does
+const HEAT_RE = /\bheat\b/i;
 
 function jsSide() {
   const { HAZARD_EVENTS, HAZARD_EVENT_LIST, LSR_HAZARD_RE } = loadApp();
@@ -51,6 +58,11 @@ function mirrorProblems(js, py) {
   if (js.list.length < MIN_TABLE) out.push(`js hazard table has only ${js.list.length} entries`);
   if (Object.keys(py.events).length < MIN_TABLE) out.push(`python hazard mirror has only ${Object.keys(py.events).length} entries`);
   if (out.length) return out;
+
+  // both sides, not just js: a heat row reaching only the export still puts heat on a responder's map
+  for (const ev of new Set([...js.list, ...Object.keys(py.events)])) {
+    if (HEAT_RE.test(ev)) out.push(`${ev}: heat products are excluded from this board by decision, not by omission`);
+  }
 
   for (const ev of js.list) {
     if (!py.events[ev]) { out.push(`${ev}: in js/sources.js, missing from the gen-caltopo.py mirror`); continue; }
@@ -119,7 +131,7 @@ async function main() {
   process.stdout.write(`${js.list.length} events mirrored, all present in ${up.types.length} upstream types`);
 }
 
-module.exports = { jsSide, pySide, mirrorProblems, fetchTypes, MIN_TABLE, MIN_TYPES };
+module.exports = { jsSide, pySide, mirrorProblems, fetchTypes, MIN_TABLE, MIN_TYPES, HEAT_RE };
 
 if (require.main === module) {
   main().catch((e) => { process.stderr.write(`hazard mirror: ${e.stack}\n`); process.exit(1); });

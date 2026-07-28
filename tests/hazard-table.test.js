@@ -77,6 +77,41 @@ test('hazard table: the storm-based tier is admitted and the zone-product lookal
   }
 });
 
+/* Heat stays out, by decision rather than by omission. Owner call (2026-07-27): heat is not the
+   awareness this board is built for. The allowlist grows every time the board goes wider, and heat
+   would arrive as an unremarkable member of a standing tier rather than as a choice someone made,
+   so the rule is gated in cycle-check instead of written down somewhere that goes stale. */
+test('hazard table: no heat product is admitted', () => {
+  const heat = ['Heat Advisory', 'Extreme Heat Warning', 'Extreme Heat Watch', 'Excessive Heat Warning'];
+  for (const ev of heat) assert.ok(!hazardAdmits(ev), `${ev} must not be admitted`);
+  // non-vacuity, both directions: the pattern the release gate runs has to match every heat product
+  // and none of the hazards the board carries, or a clean run proves nothing
+  assert.ok(heat.every((ev) => mirror.HEAT_RE.test(ev)), 'the heat pattern must match a real heat product');
+  assert.ok(HAZARD_EVENT_LIST.length >= mirror.MIN_TABLE, 'non-vacuity: the table read is not a truncated one');
+  assert.deepEqual(HAZARD_EVENT_LIST.filter((ev) => mirror.HEAT_RE.test(ev)), [],
+    'no product the board carries may be a heat product');
+});
+
+test('hazard table: the release gate fails when heat is added to either half of the mirror', () => {
+  const js = mirror.jsSide();
+  const py = pythonMirror();
+  assert.deepEqual(mirror.mirrorProblems(js, py), [],
+    'the live tables must be clean, or the mutation below proves nothing');
+  const jsHeat = {
+    ...js,
+    list: [...js.list, 'Heat Advisory'],
+    events: { ...js.events, 'Heat Advisory': { cls: 'standing', rank: 18 } },
+  };
+  const pyHeat = { ...py, events: { ...py.events, 'Heat Advisory': ['standing', 18] } };
+  // the second case is heat reaching only the export, where the drift rule would also fire; matching
+  // on the decision wording keeps this a test of the heat rule rather than of the drift rule
+  for (const [label, a, b] of [['both halves', jsHeat, pyHeat], ['the export alone', js, pyHeat]]) {
+    const problems = mirror.mirrorProblems(a, b);
+    assert.ok(problems.some((p) => p.includes('excluded from this board by decision')),
+      `heat added to ${label} must fail the gate, got ${JSON.stringify(problems)}`);
+  }
+});
+
 /* Upstream reality check. Skips on a transport failure so an api.weather.gov outage cannot fail an
    unrelated commit; a reachable endpoint that does not list one of our strings is a hard failure. */
 test('hazard table: every event string still exists upstream in /alerts/types', async (t) => {

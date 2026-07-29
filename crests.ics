@@ -6,11 +6,11 @@ METHOD:PUBLISH
 X-WR-CALNAME:Responder TX · forecast river crests
 BEGIN:VEVENT
 UID:crest-THET2-20260801T000000Z@responder.rfxn.com
-DTSTAMP:20260729T112328Z
+DTSTAMP:20260729T113831Z
 DTSTART:20260801T000000Z
 DTEND:20260801T010000Z
 SUMMARY:MAJOR crest · Nueces River near Three Rivers (40.4 ft)
-DESCRIPTION:Forecast MAJOR crest 40.4 ft (observed 15.99 ft). NOAA NWPS. Not a dispatch system\; call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 40.4 ft (observed 16.45 ft). NOAA NWPS. Not a dispatch system\; call 911 for emergencies.
 URL:https://respondertx.org/?hydro=THET2
 END:VEVENT
 END:VCALENDAR

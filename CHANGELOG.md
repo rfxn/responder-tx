@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.70 · 2026-07-29 (the fire card reads properly, and a fire marker takes its own tap)
+
+-- Bug Fixes --
+- [Fix] The fire popup ran its labels and values together into one block of
+      text. Each fact is now a row with its label in its own column, and the
+      caveats sit below a divider instead of crowding the figures
+- [Fix] Tapping a fire could open a nearby river gauge instead. Fire markers now
+      sit above gauge markers, so the marker you tap is the one that answers
+- [Change] The two caveat lines on the fire card are shorter
+
 ## v0.99.69 · 2026-07-29 (the fire layer covers Texas, and says more about each fire)
 
 -- Changes --

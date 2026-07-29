@@ -2255,7 +2255,12 @@ function renderWildfire() {
       iconSize: [26, 26],
       iconAnchor: [13, 13],
     });
-    const m = L.marker([f.lat, f.lon], { icon, attribution: wildfireAttrib(f) });
+    /* Above every gauge (js/sources.js gauge markers reach zIndexOffset 1000 for a major category),
+       because Leaflet orders the marker pane by latitude, so a gauge a little to the south was
+       taking the click off a fire glyph the user could see. The asymmetry decides it: a gauge is
+       also reachable from the Gauges tab, the ticker and the hero cards, while a fire incident has
+       no surface but this marker. Stays under the alert ping at 1200. */
+    const m = L.marker([f.lat, f.lon], { icon, attribution: wildfireAttrib(f), zIndexOffset: 1100 });
     m.bindPopup(() => wildfirePopupHtml(f));
     layer.addLayer(m);
   }
@@ -2268,14 +2273,17 @@ const wildfireAttrib = (f) => `${t('layers.wildfire')}: ${wildfireSource(f).name
 /* One row per fact the source actually stated. A reported figure and an unreported one are drawn
    differently rather than both as plain text, because "not reported" is the answer a responder most
    needs to notice: 85% of WFIGS records carry no containment at all. */
+/* The label and the value are direct children of the .wf-facts grid, with no per-row wrapper: a
+   wrapper div becomes a single grid item, which packs two rows onto each line and leaves the label
+   butted against its value. */
 function wfRow(labelKey, value, opts) {
   const o = opts || {};
   const unknown = value === null || value === undefined || value === '';
   if (unknown && !o.showUnknown) return '';
   const cls = `wf-v${unknown ? ' wf-unknown' : ''}${o.cls ? ` ${o.cls}` : ''}`;
   const text = unknown ? t('wf.unreported') : String(value);
-  return `<div class="wf-row"><span class="wf-k">${esc(t(labelKey))}</span>`
-    + `<span class="${cls}">${esc(text)}</span></div>`;
+  return `<dt class="wf-k">${esc(t(labelKey))}</dt>`
+    + `<dd class="${cls}">${esc(text)}</dd>`;
 }
 
 function wildfirePopupHtml(f) {
@@ -2292,7 +2300,7 @@ function wildfirePopupHtml(f) {
     + (f.scope === 'buffer' ? `<span class="wf-tag is-near">${esc(t('wf.nearby'))}</span>` : '')
     + (stale ? `<span class="wf-tag is-stale">${esc(t('wf.stale').replace('{h}', String(Math.round(wildfireAgeH(f)))))}</span>` : '')
     + `</div></div>`;
-  const facts = `<div class="wf-facts">`
+  const facts = `<dl class="wf-facts">`
     + wfRow('wf.k.size', f.acres === null || f.acres === undefined ? null : t('wf.acres').replace('{n}', num(f.acres)), { showUnknown: true })
     + wfRow('wf.k.contain', f.contain === null || f.contain === undefined ? null : t('wf.contain').replace('{n}', num(f.contain)), { showUnknown: true })
     + wfRow('wf.k.where', place)
@@ -2303,7 +2311,7 @@ function wildfirePopupHtml(f) {
     + wfRow('wf.k.org', f.org)
     + wfRow('wf.k.crew', f.crew === null || f.crew === undefined ? null : t('wf.crew').replace('{n}', num(f.crew)))
     + wfRow('wf.k.number', f.number)
-    + `</div>`;
+    + `</dl>`;
   const prov = `<div class="wf-prov">`
     + `<div>${esc(t('wf.lag'))}</div>`
     + `<div>${esc(t('wf.point'))}</div>`

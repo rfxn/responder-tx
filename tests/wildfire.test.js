@@ -272,3 +272,27 @@ test('the richer metadata rows appear only when the source reported them', () =>
   }
   assert.match(full, /Human/);
 });
+
+test('the fire marker outranks every gauge, so a gauge cannot take the click off a fire glyph', () => {
+  const src = read('js/sources.js');
+  const fire = src.match(/L\.marker\(\[f\.lat, f\.lon\][\s\S]{0,200}?zIndexOffset:\s*(\d+)/);
+  assert.ok(fire, 'the wildfire marker must declare a zIndexOffset; Leaflet otherwise orders the pane by latitude');
+  const gauge = src.match(/L\.marker\(\[g\.latitude, g\.longitude\][\s\S]{0,200}?zIndexOffset:([^}]*)\}/);
+  assert.ok(gauge, 'gauge marker zIndexOffset not found; update this test with it');
+  const gaugeMax = Math.max(...(gauge[1].match(/\d+/g) || ['0']).map(Number));
+  assert.ok(Number(fire[1]) > gaugeMax,
+    `fire zIndexOffset ${fire[1]} must exceed the gauge maximum ${gaugeMax}`);
+});
+
+test('the popup facts grid puts labels and values in it directly, not inside a row wrapper', () => {
+  const html = popup(FIRE);
+  assert.match(html, /<dl class="wf-facts">/, 'the facts block must be the grid container itself');
+  assert.match(html, /<dt class="wf-k">/, 'labels must be direct grid children');
+  assert.match(html, /<dd class="wf-v/, 'values must be direct grid children');
+  // a wrapper per row becomes one grid item, which packs two rows per line and butts the label
+  // against its value: that is the jumbled render this asserts against
+  assert.doesNotMatch(html, /class="wf-row"/, 'a per-row wrapper breaks the two-column grid');
+  const css = read('css/app.css');
+  assert.match(css, /\.wf-facts \{[^}]*grid-template-columns/, 'the grid columns must be declared');
+  assert.match(css, /\.wf-v \{[^}]*margin: 0/, 'dd carries a default indent that must be reset');
+});

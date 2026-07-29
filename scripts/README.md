@@ -19,6 +19,7 @@ suspended or mid-task).
 | `gen-notices.py` | Merge LAN intake posts into `data/requests.json`. Runs in the cycle but its output is never committed by it. |
 | `gen-shelters.py` | Live shelter status → `data/shelters-live.json`. Publishes OPEN only where a source states it. |
 | `gen-crossings-status.py` | Jurisdiction-reported low-water-crossing status → `data/crossing-status.json`. Only non-open rows publish, because the feed timestamps a record change rather than a confirmation. |
+| `gen-wildfire.py` | Reported wildfire incidents from Texas A&M Forest Service and NIFC WFIGS → `data/wildfire.json`. Points, never perimeters. Each source publishes its own `ok`/`failed` status and its own upstream capture stamp, so an empty-but-valid read (the normal Texas state for most of the year) is distinguishable from a read that failed. Unreported acreage and containment publish as `null`, never as `0`. |
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
@@ -95,11 +96,12 @@ Order (matches the manual per-cycle protocol):
 4. `gen-notices.py` → `data/requests.json` (LAN intake merge; never committed by the cycle)
 5. `gen-shelters.py` → `data/shelters-live.json`
 6. `gen-crossings-status.py` → `data/crossing-status.json`
-7. `gen-crest-summary.py` → `data/crest-summary.json` (derived from the gauge snapshot)
-8. `gen-feeds.py` → `feed.xml` + `crests.ics`
-9. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
-10. `cycle-check.sh --code-from-head` → validate
-11. If any file in `DATA_FILES` differs from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), then `deploy.sh`, then a best-effort push nudge. The cycle does **not** push: `deploy.sh` gates HEAD first and pushes on the far side of that gate, so a red suite reaches neither origin nor the mirror. The commit still precedes the gate because the artifact is `git archive HEAD`; a local commit is not a publish.
+7. `gen-wildfire.py` → `data/wildfire.json` (two independent sources; either may degrade alone)
+8. `gen-crest-summary.py` → `data/crest-summary.json` (derived from the gauge snapshot)
+9. `gen-feeds.py` → `feed.xml` + `crests.ics`
+10. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
+11. `cycle-check.sh --code-from-head` → validate
+12. If any file in `DATA_FILES` differs from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), then `deploy.sh`, then a best-effort push nudge. The cycle does **not** push: `deploy.sh` gates HEAD first and pushes on the far side of that gate, so a red suite reaches neither origin nor the mirror. The commit still precedes the gate because the artifact is `git archive HEAD`; a local commit is not a publish.
 
 Properties:
 
@@ -583,21 +585,32 @@ Fail-safe and quiet by construction:
   transient error logs and exits 0. Only `RESPONDER_MONITOR_FAIL_STREAK`
   failures in a row (default 3, i.e. 45 min at the installed cadence) raise an
   `UNREACHABLE` alert.
-- **Transition-gated with a cooldown.** An alert posts when the verdict changes
-  or after `RESPONDER_MONITOR_COOLDOWN` (default 6h), so a multi-day outage costs
-  a handful of entries, not one per run. Recovery posts exactly one notice.
+- **Transition-gated with a cooldown, and escalation on top of it.** An alert
+  posts when the verdict changes, or after the cooldown for its tier
+  (`RESPONDER_MONITOR_COOLDOWN`, default 6h, for `WARN`;
+  `RESPONDER_MONITOR_CRIT_COOLDOWN`, default 1h, for `CRITICAL` and
+  `UNREACHABLE`), or as soon as the staleness reaches
+  `RESPONDER_MONITOR_ESCALATE_FACTOR` times the age reported by the last alert
+  (default 2x) regardless of cooldown. A repeat names how long the condition has
+  gone uncleared. Recovery posts exactly one notice. The escalation exists
+  because the monitor posts a recovery notice, which makes silence after an alert
+  read as recovery: on 2026-07-29 one CRITICAL verdict held for 5h while the
+  staleness went 95 to 305 min, and the flat gap kept all 20 checks silent.
 - **No prior state is normal.** A missing state file, missing outbox, missing
   cycle log, or missing git history all degrade to "unknown" and never fabricate
   an alert or crash (upgrade path from any earlier version).
 - Single-flight `flock` on `/tmp/responder-freshness-monitor.lock`; state in
-  `/tmp/responder-freshness-state` (`verdict streak last_alert_epoch`), where a
-  reboot reset costs at most one extra alert.
+  `/tmp/responder-freshness-state`
+  (`verdict streak last_alert_epoch last_alert_age_min`), where a reboot reset
+  costs at most one extra alert. A pre-upgrade 3-field line is read, with the
+  missing age column defaulting to 0.
 
 Flags and tunables: `--dry-run` computes and logs the verdict, writing neither
 the outbox nor the state file (use it to check the board by hand). Exit code is
 `0` when fresh or deferring, `1` on any alerting verdict. Overrides:
 `RESPONDER_MONITOR_URL`, `_WARN_MIN`, `_CRIT_MIN`, `_FAIL_STREAK`, `_COOLDOWN`,
-`_TIMEOUT`, `_STATE`, `_LOCK`, `_LOG`, `_OUTBOX`, `_SNAPSHOT`, plus
+`_CRIT_COOLDOWN`, `_ESCALATE_FACTOR`, `_TIMEOUT`, `_STATE`, `_LOCK`, `_LOG`,
+`_OUTBOX`, `_SNAPSHOT`, plus
 `RESPONDER_CYCLE_LOG` for the deploy-history read. Log tees to
 `/var/log/responder-freshness.log` (falls back to `/tmp`).
 

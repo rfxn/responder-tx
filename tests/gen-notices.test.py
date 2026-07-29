@@ -25,6 +25,11 @@ def check(name, ok):
         FAILS += 1
 
 
+class Bail(Exception):
+    """A dependent step whose input never appeared. Recorded as a failure and its block skipped,
+    rather than crashing the file and losing every assertion after it."""
+
+
 CURATED = [
     {'id': 'seed-001', 'ts': '2026-07-24T10:00:00Z', 'type': 'road', 'priority': 'high',
      'status': 'open', 'county': 'Hays', 'place': 'Curated place', 'summary': 'Curated entry',
@@ -60,8 +65,11 @@ try:
         return subprocess.run([sys.executable, GEN], env=env, capture_output=True, text=True)
 
     def load():
-        with open(req_path) as f:
-            return json.load(f)['requests']
+        try:
+            with open(req_path) as f:
+                return json.load(f)['requests']
+        except (OSError, ValueError, KeyError) as e:
+            raise Bail('data/requests.json did not read after the run under test: %s' % e)
 
     write_requests(list(CURATED))
     write_inbox(LINES)
@@ -116,6 +124,8 @@ try:
     before = open(req_path).read()
     r7 = run_gen()
     check('absent inbox is a no-op', r7.returncode == 0 and open(req_path).read() == before)
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp)
 

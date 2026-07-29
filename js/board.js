@@ -960,7 +960,7 @@ function buildShareUrl() {
   if (state.map.hasLayer(state.layers.mrms)) p.set('rain', state.rainWindow); // rollover/share carry the rainfall window
   // non-default layer toggles travel too (set only when ON — default URLs stay short); parsed at boot
   for (const [key, lk] of [['radar', 'radar'], ['fcst', 'fcstRadar'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen'],
-    ['rs', 'riverSentry']]) {
+    ['rs', 'riverSentry'], ['fire', 'wildfire']]) {
     if (state.layers[lk] && state.map.hasLayer(state.layers[lk])) p.set(key, '1');
   }
   // cameras travel as one ?camreg= list of region ids; the retired per-source params stay readable
@@ -1154,7 +1154,7 @@ function readViewState() {
    control by control), and neither are ?hydro=/?cam=, which open one record and say nothing about
    how the map should be framed. */
 const LINK_VIEW_PARAMS = ['mlat', 'mlon', 'mz', 'ao', 'rain', 'radar', 'fcst', 'usgs', 'lwc',
-  'inun', 'reopen', 'rs', 'camreg'];
+  'inun', 'reopen', 'rs', 'fire', 'camreg'];
 const linkOwnsView = (q) => LINK_VIEW_PARAMS.some((k) => q.has(k));
 
 function saveViewState() {

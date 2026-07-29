@@ -19,7 +19,7 @@ const { loadApp } = require('./harness.js');
 
 const {
   alertTags, alertMotion, alertMotionText, alertVtecKey, alertDedupe, alertLifetimeMs, alertStaleAfterMs, alertFreshClass,
-  hazardClass, hazardRank, hazardStyleKey, hazardPolyStyle, alertActionKey, alertHazCmp, alertMoves,
+  hazardClass, hazardRank, hazardStyleKey, hazardGlyph, hazardPolyStyle, alertActionKey, alertHazCmp, alertMoves,
   ALERT_STALE_FLOOR_MS, alertNearMi, ALERT_NEAR_MI_ACUTE, tickerCap, TICKER_ACUTE_MAX,
   tickerAlertItems, driveItems, alertSeverity, state,
 } = loadApp();
@@ -32,6 +32,16 @@ const TORNADO_PDS = fixture('alert-tornado-pds.json');
 const SEVERE_DESTRUCTIVE = fixture('alert-severe-destructive.json');
 
 const withSev = (f) => Object.assign({}, f, { _sev: alertSeverity(f.properties) });
+
+// the two theme custom-property blocks, so a token added to one theme only is caught here
+const CSS = fs.readFileSync(path.join(__dirname, '..', 'css', 'app.css'), 'utf8');
+const cssBlock = (sel) => {
+  const at = CSS.indexOf(`${sel} {`);
+  assert.ok(at !== -1, `css/app.css has no ${sel} block; the theme assertions below would prove nothing`);
+  return CSS.slice(at, CSS.indexOf('}', at));
+};
+const DARK_VARS = cssBlock(':root');
+const LIGHT_VARS = cssBlock(':root[data-theme="light"]');
 
 /* ---------- impact-based warning tags, in the formats the feed really uses ---------- */
 
@@ -213,6 +223,32 @@ test('hazardPolyStyle — a storm-based warning draws as a dashed swath, a flood
   assert.equal(hazardStyleKey({ properties: { event: 'Tornado Warning' } }), 'tornado');
   assert.notEqual(hazardStyleKey({ properties: { event: 'Tornado Warning' } }), hazardStyleKey({ properties: { event: 'Flood Warning' } }),
     'if tornado and flood share a colour the exercise is pointless');
+});
+
+/* The fallthrough in hazardStyleKey is 'flood', so a fire product with no style token of its own
+   would draw blue with a wave glyph over a burning county. Smoke is a separate token on purpose:
+   a dense smoke advisory covers ground that is usually nowhere near what is burning. */
+test('hazardStyleKey — a fire-weather product is neither flood-blue nor an order, and smoke is not fire', () => {
+  const key = (ev) => hazardStyleKey({ properties: { event: ev } });
+  assert.equal(key('Red Flag Warning'), 'fire');
+  assert.equal(key('Fire Weather Watch'), 'fire');
+  assert.equal(key('Dense Smoke Advisory'), 'smoke');
+  assert.equal(key('Fire Warning'), 'order', 'a county fire directive reads as the directive it is');
+  for (const ev of ['Red Flag Warning', 'Fire Weather Watch', 'Dense Smoke Advisory']) {
+    assert.notEqual(key(ev), 'flood', `${ev} must not fall through to the flood token`);
+    const g = hazardGlyph(withSev({ properties: { event: ev, parameters: {} } }));
+    assert.notEqual(g, '🌊', `${ev} must not render a wave glyph`);
+    assert.notEqual(g, '⚠', `${ev} must have a glyph of its own, not the unknown fallback`);
+    // and the css custom property panels.js interpolates has to exist in both themes, or the
+    // colour silently falls back to the severity one and the token buys nothing
+    for (const theme of [LIGHT_VARS, DARK_VARS]) {
+      assert.ok(theme.includes(`--haz-${key(ev)}:`), `--haz-${key(ev)} is missing from a theme block`);
+    }
+  }
+  assert.notEqual(key('Red Flag Warning'), key('Dense Smoke Advisory'));
+  assert.equal(hazardGlyph(withSev({ properties: { event: 'Fire Warning', parameters: {} } })), '⛔');
+  // fire products are area conditions, not travelling swaths, so they draw filled like a flood area
+  assert.equal(hazardPolyStyle(withSev({ properties: { event: 'Red Flag Warning', parameters: {} } })).dashArray, null);
 });
 
 /* ---------- Drive Mode: the verb, not the noun ---------- */

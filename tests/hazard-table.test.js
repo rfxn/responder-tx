@@ -14,10 +14,11 @@
  *      "Excessive Heat Warning" and "Wind Chill Warning" this way) publishes "no tornado warnings"
  *      instead of failing. That is the edict E1 shape: a failed match becoming a published zero.
  *
- * The upstream half needs a skip path, because an api.weather.gov outage must not fail an
- * unrelated commit. It skips only on a transport failure; a reachable endpoint that disagrees with
- * the table is a hard failure. Every assertion below is preceded by a non-vacuity check, so an
- * empty table or an empty upstream list cannot satisfy a loop that never runs.
+ * The catalogue half reads hazard-mirror.js PINNED_TYPES, not api.weather.gov: this suite is the
+ * publish gate, and a flood publish may neither wait on an upstream nor lose the check to an
+ * outage. `node tests/hazard-mirror.js --upstream` re-judges against the live catalogue and is how
+ * PINNED_TYPES is refreshed. Every assertion below is preceded by a non-vacuity check, so an empty
+ * table or an empty catalogue cannot satisfy a loop that never runs.
  */
 
 const { test } = require('node:test');
@@ -77,6 +78,28 @@ test('hazard table: the storm-based tier is admitted and the zone-product lookal
   }
 });
 
+/* The fire family, named individually. "Fire Warning" is the load-bearing one: it is a CIV code
+   under 47 CFR 11.31 like the other orders, written by a county and relayed down the NWS path the
+   board already fetches, so its class is a claim about attribution and about never folding into a
+   meteorological rank, not just about membership. The other three are conditions rather than
+   directives and must stay off the glance surfaces. */
+test('hazard table: the fire family is admitted, and only the county directive is an order', () => {
+  assert.equal(HAZARD_EVENTS['Fire Warning'].cls, 'order',
+    'Fire Warning is a county-authored directive; any other class drops its author and its rank');
+  assert.equal(HAZARD_EVENTS['Fire Warning'].rank, 4, 'an order ranks with the other orders');
+  for (const [ev, cls, rank] of [['Red Flag Warning', 'standing', 17],
+    ['Fire Weather Watch', 'watch', 14], ['Dense Smoke Advisory', 'standing', 18]]) {
+    assert.ok(hazardAdmits(ev), `${ev} is fetched today and discarded; it belongs in the table`);
+    assert.equal(HAZARD_EVENTS[ev].cls, cls, `${ev} is a condition, not an order`);
+    assert.equal(HAZARD_EVENTS[ev].rank, rank);
+    assert.ok(HAZARD_EVENTS[ev].rank > HAZARD_EVENTS['Evacuation Immediate'].rank,
+      `${ev} must never outrank an evacuation order`);
+  }
+  // fire danger is a real catalogue string the board deliberately does not carry, so the four above
+  // are a choice rather than everything the fire family offers
+  assert.ok(!hazardAdmits('Extreme Fire Danger'), 'Extreme Fire Danger is out of scope by decision');
+});
+
 /* Heat stays out, by decision rather than by omission. Owner call (2026-07-27): heat is not the
    awareness this board is built for. The allowlist grows every time the board goes wider, and heat
    would arrive as an unremarkable member of a standing tier rather than as a choice someone made,
@@ -112,25 +135,37 @@ test('hazard table: the release gate fails when heat is added to either half of 
   }
 });
 
-/* Upstream reality check. Skips on a transport failure so an api.weather.gov outage cannot fail an
-   unrelated commit; a reachable endpoint that does not list one of our strings is a hard failure. */
-test('hazard table: every event string still exists upstream in /alerts/types', async (t) => {
-  const up = await mirror.fetchTypes(15000);
-  assert.ok(!up.bad, `the upstream catalogue read is not usable: ${up.bad}`);
-  if (up.skipped) {
-    t.skip(`api.weather.gov unreachable (${up.skipped}); upstream agreement not checked this run`);
-    return;
-  }
+/* Catalogue reality check, against hazard-mirror.js PINNED_TYPES. The publish gate runs this
+   suite, so it reads the pinned copy rather than api.weather.gov: an outage there may not stop a
+   flood publish, and skipping on outage was coverage that vanished exactly when upstream was
+   flaky. `node tests/hazard-mirror.js --upstream` re-judges against the live catalogue. */
+test('hazard table: every event string still exists in the NWS catalogue', async () => {
+  const up = await mirror.fetchTypes();
+  assert.ok(!up.bad, `the pinned catalogue read is not usable: ${up.bad}`);
+  assert.ok(!up.skipped, `the pinned catalogue is always readable: ${up.skipped}`);
   assert.ok(up.types.length >= mirror.MIN_TYPES,
-    `non-vacuity: /alerts/types returned ${up.types.length} entries, which cannot be the real catalogue`);
+    `non-vacuity: the catalogue holds ${up.types.length} entries, which cannot be the real one`);
   assert.ok(up.types.includes('Tornado Warning'),
-    'non-vacuity: the upstream list is missing a product that certainly exists');
+    'non-vacuity: the catalogue is missing a product that certainly exists');
 
   const missing = HAZARD_EVENT_LIST.filter((ev) => !up.types.includes(ev));
   assert.deepEqual(missing, [],
-    'these event strings are not in the live NWS catalogue; the board would silently publish zero of them');
+    'these event strings are not in the NWS catalogue; the board would silently publish zero of them');
   // a string that was never real must be seen as missing, or the check above proves nothing
   assert.ok(!up.types.includes('Tornado Warnign'), 'non-vacuity: a typo must not read as a real product');
+});
+
+test('hazard table: the gated catalogue read reaches no upstream', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = () => { throw new Error('the publish gate must not reach api.weather.gov'); };
+  try {
+    const up = await mirror.fetchTypes();
+    assert.ok(Array.isArray(up.types) && up.types.length >= mirror.MIN_TYPES,
+      'the default read must answer from the fixture, with no transport involved');
+    assert.equal(up.captured, mirror.PINNED_CAPTURED, 'the read must be the pinned catalogue, dated');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 /* The generator has to agree with itself too: the exporter filters on the same table, so a product

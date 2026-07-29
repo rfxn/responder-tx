@@ -69,7 +69,17 @@ if name in os.environ.get("RESPONDER_TEST_SLOW", "").split(","):
 if name in os.environ.get("RESPONDER_TEST_FAIL", "").split(","):
     sys.exit(name + ": stub failure")
 out = "$2"
-now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+now = datetime.datetime.now(datetime.timezone.utc)
+# the stamp is second-resolution, so two cycles inside one second used to write byte-identical
+# data; the cycle then correctly skipped the publish and the test read that as a failed deploy
+try:
+    with open(out, encoding="utf-8") as f:
+        prev = f.read()
+except OSError:
+    prev = ""
+while now.strftime("%Y-%m-%dT%H:%M:%SZ") in prev:
+    now += datetime.timedelta(seconds=1)
+now = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 if out.endswith(".json"):
     payload = {"generated": now, "gauges": [{"id": "G1"}], "roads": [], "shelters": [], "requests": []}
     with open(out, "w", encoding="utf-8") as f:
@@ -87,7 +97,7 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
     mkdir -p "$REPO/scripts" "$REPO/data"
 
     # every data file starts at the SAME old stamp, so any restamping is visible
-    for f in gauges-snapshot roads-snapshot crest-summary history gauge-meta shelters-live caltopo-export requests; do
+    for f in gauges-snapshot roads-snapshot crest-summary history gauge-meta shelters-live caltopo-export requests wildfire; do
         printf '{"generated":"%s","gauges":[{"id":"G1"}],"roads":[],"shelters":[],"requests":[]}\n' \
             "$OLD_STAMP" > "$REPO/data/$f.json"
     done
@@ -103,6 +113,7 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
     mk_gen gen-shelters.py        data/shelters-live.json
     mk_gen gen-caltopo.py         data/caltopo-export.json
     mk_gen gen-crossings-status.py data/crossing-status.json
+    mk_gen gen-wildfire.py        data/wildfire.json
 
     # validation + publish stubs; RESPONDER_TEST_CHECK_RC lets one test make validation fail
     # shellcheck disable=SC2016  # deliberate: the stub must expand this when IT runs, not now
@@ -234,7 +245,7 @@ rm -rf "$WORK"
 
 # --- Test 6: every generator failing is still a hard failure that publishes nothing ------------
 setup
-FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo,gen-crossings-status" run_cycle
+FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo,gen-crossings-status,gen-wildfire" run_cycle
 COMMITS=$(cd "$REPO" && git rev-list --count HEAD)
 if [ "$RC" -eq 1 ] \
    && grep -q 'ERROR: cycle failed (no source refreshed' "$WORK/cycle.log" \

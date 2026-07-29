@@ -416,6 +416,46 @@ if d is not None:
             # upstream vocabulary drift renders verbatim and must never abort the data cycle
             print("note: shelters-live.json shelters[%d] status %r is outside the mapped vocabulary" % (i, st))
 
+d = optional("data/wildfire.json")
+if d is not None:
+    if ("generated" not in d or not isinstance(d.get("fires"), list)
+            or not isinstance(d.get("sources"), list)):
+        die("wildfire.json: generated/fires[]/sources[] missing")
+    if not d["sources"]:
+        die("wildfire.json: sources[] is empty; a payload naming no source cannot be aged or credited")
+    keys = set()
+    for i, s in enumerate(d["sources"]):
+        if not s.get("key") or not s.get("name") or not s.get("url"):
+            die("wildfire.json: sources[%d] missing key/name/url" % i)
+        if s.get("status") not in ("ok", "failed"):
+            die("wildfire.json: sources[%d] status must be ok or failed, not %r" % (i, s.get("status")))
+        # a failed source that also reports rows would launder a partial read as a whole one
+        if s["status"] == "failed" and s.get("count"):
+            die("wildfire.json: sources[%d] failed but reports count %r" % (i, s.get("count")))
+        if s["status"] == "ok" and s.get("captured"):
+            parse_iso(s["captured"])
+        keys.add(s["key"])
+    ok_keys = {s["key"] for s in d["sources"] if s["status"] == "ok"}
+    for i, f in enumerate(d["fires"]):
+        if (not f.get("name") or not f.get("id")
+                or not isinstance(f.get("lat"), (int, float))
+                or not isinstance(f.get("lon"), (int, float))):
+            die("wildfire.json: fires[%d] missing id/name/lat/lon" % i)
+        if f.get("src") not in keys:
+            die("wildfire.json: fires[%d] src %r is not in sources[]" % (i, f.get("src")))
+        if f["src"] not in ok_keys:
+            die("wildfire.json: fires[%d] came from a source marked failed" % i)
+        if not f.get("observed"):
+            die("wildfire.json: fires[%d] has no observed stamp; an undated incident cannot be aged" % i)
+        parse_iso(f["observed"])
+        # null and 0 are different facts: null is "the source did not report", and a 0 written in
+        # its place asserts an uncontained fire nobody reported
+        for k in ("acres", "contain"):
+            if f.get(k) is not None and not isinstance(f[k], (int, float)):
+                die("wildfire.json: fires[%d] %s is neither a number nor null" % (i, k))
+        if isinstance(f.get("contain"), (int, float)) and not 0 <= f["contain"] <= 100:
+            die("wildfire.json: fires[%d] contain %r is outside 0-100" % (i, f["contain"]))
+
 d = optional("data/caltopo-export.json")
 if d is not None:
     if d.get("type") != "FeatureCollection" or not isinstance(d.get("features"), list):
@@ -540,7 +580,7 @@ EOF
 }
 if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin) + #disclaimer"; else failck "911 footer on every lens"; fi
 
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 # l. USGS bbox area cap. WaterServices 400s any bBox over 25 equator-equivalent square degrees, and
 # the AO outgrew that in a config change alone, with no code touched: the layer died silently for

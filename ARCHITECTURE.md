@@ -108,6 +108,7 @@ Every 15 minutes (`8,23,38,53` on the system crontab, via `scripts/run-cycle.sh`
 | `gen-notices.py` | `data/requests.json` | LAN intake merge (never committed by the cycle) |
 | `gen-shelters.py` | `data/shelters-live.json` | Live shelter status, published only where a source states one |
 | `gen-crossings-status.py` | `data/crossing-status.json` | Jurisdiction-reported low-water-crossing status; only non-open rows publish |
+| `gen-wildfire.py` | `data/wildfire.json` | Reported wildfire incident points (TFS + NIFC WFIGS), per-source status and capture stamp; never perimeters |
 | `gen-crest-summary.py` | `data/crest-summary.json` | Per-gauge event peak stages for after-action / FEMA review |
 | `gen-feeds.py` | `feed.xml`, `crests.ics` | Public RSS + crest calendar |
 | `gen-caltopo.py` | `data/caltopo-export.json` | CalTopo / SARTopo GeoJSON layer at a fixed URL |

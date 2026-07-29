@@ -71,6 +71,8 @@ run_monitor() {  # runs the monitor against the temp state + file:// mirror; set
     RESPONDER_MONITOR_CRIT_MIN="${CRIT:-90}" \
     RESPONDER_MONITOR_FAIL_STREAK="${STREAK:-3}" \
     RESPONDER_MONITOR_COOLDOWN="${COOL:-21600}" \
+    RESPONDER_MONITOR_CRIT_COOLDOWN="${CRITCOOL:-3600}" \
+    RESPONDER_MONITOR_ESCALATE_FACTOR="${ESCF:-2}" \
     RESPONDER_MONITOR_TIMEOUT=10 \
     bash "$MON" > "$WORK/run.out" 2>&1
     RC=$?
@@ -81,7 +83,7 @@ setup
 run_monitor
 if [ "$RC" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 0 ] \
    && grep -q 'verdict=FRESH' "$WORK/monitor.log" \
-   && [ -f "$STATE" ] && grep -q '^FRESH 0 0$' "$STATE"; then
+   && [ -f "$STATE" ] && grep -q '^FRESH 0 0 0$' "$STATE"; then
     pass "1 fresh mirror: no alert, verdict FRESH, state written"
 else
     fail "1 fresh mirror produces no alert"; cat "$WORK/run.out"
@@ -160,7 +162,7 @@ run_monitor
 if [ "$rc_after" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 2 ] \
    && has_text "$OUT" "Data freshness recovered" \
    && has_text "$OUT" "Prior state was CRITICAL" \
-   && grep -q '^FRESH 0 0$' "$STATE"; then
+   && grep -q '^FRESH 0 0 0$' "$STATE"; then
     pass "7 mirror catches up: exactly one recovery notice, state back to FRESH"
 else
     fail "7 recovery notice posted once"; cat "$OUT"; cat "$WORK/run.out"
@@ -261,6 +263,60 @@ if [ "$RC" -eq 1 ] && ! has_text "$OUT" "DEGRADED" && has_text "$OUT" "the data 
     pass "13 a clean sign-off invents no degraded sources, and a dead cron is still called a dead cron"
 else
     fail "13 clean sign-off adds no degraded facet"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
+# --- Tests 14-17: a persisting CRITICAL must not go quiet ---------------------
+# 2026-07-29: the mirror held one CRITICAL verdict for 5h while its staleness went 95 -> 305 min.
+# Suppression keyed only on the verdict string and a flat 6h gap, so 20 consecutive checks stayed
+# silent. The monitor posts a recovery notice, so silence after an alert reads as recovery.
+
+# 14: worsening beats the cooldown, even though the verdict never changes
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 100
+run_monitor
+mk_snapshot "$WORK/remote/gauges-snapshot.json" 220
+run_monitor
+if [ "$(count_msgs "$OUT")" -eq 2 ] && grep -q 'escalating inside cooldown' "$WORK/monitor.log"; then
+    pass "14 staleness doubling inside the cooldown re-alerts instead of staying silent"
+else
+    fail "14 worsening staleness escalates (got $(count_msgs "$OUT") messages)"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# 15: a steady CRITICAL still respects its cooldown, so escalation is not a spam loop
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 100
+run_monitor
+mk_snapshot "$WORK/remote/gauges-snapshot.json" 110
+run_monitor
+if [ "$(count_msgs "$OUT")" -eq 1 ] && grep -q 'alert suppressed: same verdict CRITICAL' "$WORK/monitor.log"; then
+    pass "15 a CRITICAL that is not materially worsening is still held to one alert"
+else
+    fail "15 steady CRITICAL stays suppressed (got $(count_msgs "$OUT") messages)"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# 16: CRITICAL re-alerts on its own shorter gap, not the WARN one
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 100
+CRITCOOL=1 run_monitor
+sleep 2
+mk_snapshot "$WORK/remote/gauges-snapshot.json" 110
+CRITCOOL=1 run_monitor
+if [ "$(count_msgs "$OUT")" -eq 2 ] && has_text "$OUT" "has not cleared since the first alert"; then
+    pass "16 a CRITICAL past its own cooldown repeats, and says the condition never cleared"
+else
+    fail "16 CRITICAL repeats on CRIT_COOLDOWN (got $(count_msgs "$OUT") messages)"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
+# 17: a pre-upgrade 3-field state file is read, not treated as corrupt
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 120
+printf 'CRITICAL 0 %s\n' "$(date -u '+%s')" > "$STATE"
+run_monitor
+if [ "$(count_msgs "$OUT")" -eq 0 ] && grep -q 'alert suppressed: same verdict CRITICAL' "$WORK/monitor.log" \
+   && grep -qE '^CRITICAL 0 [0-9]+ 0$' "$STATE"; then
+    pass "17 a legacy 3-field state file still suppresses, and is rewritten with the age column"
+else
+    fail "17 legacy state file tolerated"; cat "$STATE"; cat "$WORK/run.out"
 fi
 rm -rf "$WORK"
 

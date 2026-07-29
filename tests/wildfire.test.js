@@ -1,0 +1,248 @@
+/* Wildfire incidents. Two claims this layer must never make: that a point is the edge of the
+   fire, and that an unreported acreage or containment is a measurement. WFIGS omits containment
+   on about two thirds of its records, so a popup that prints "0% contained" for a null asserts
+   an uncontained fire nobody reported. The other half of the file is the empty state: Texas has
+   no active wildfires for most of the year, and a blank layer that says nothing reads as broken. */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const { loadApp } = require('./harness.js');
+
+const ROOT = path.join(__dirname, '..');
+const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+
+const app = loadApp();
+const { wildfirePopupHtml, wildfireNoticeText, wildfireStale, wildfireContained, wildfireAgeH,
+  WILDFIRE_STALE_H, state } = app;
+
+function loadI18N() {
+  const sandbox = {
+    console, URLSearchParams,
+    location: { search: '' },
+    document: { documentElement: {}, querySelectorAll: () => [], title: '' },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    navigator: { language: 'en' },
+    window: {},
+  };
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(read('js/i18n.js'), sandbox);
+  return sandbox.window.I18N;
+}
+const I18N = loadI18N();
+
+const hoursAgo = (h) => new Date(Date.now() - h * 3600000).toISOString();
+const SOURCES = [
+  { key: 'tfs', name: 'Texas A&M Forest Service', url: 'https://tfswildfires.com/public/',
+    status: 'ok', captured: hoursAgo(0.1), count: 1 },
+  { key: 'wfigs', name: 'National Interagency Fire Center (WFIGS)',
+    url: 'https://data-nifc.opendata.arcgis.com/', status: 'ok', captured: hoursAgo(0.2), count: 1 },
+];
+const FIRE = { id: 'tfs:1', src: 'tfs', name: 'Upshur 6318', lat: 32.575, lon: -94.889,
+  status: 'Contained', acres: 2, contain: 100, county: 'Upshur', state: 'TX',
+  observed: hoursAgo(1), started: hoursAgo(6), unit: 'TXTXS' };
+
+// the popup and the notice both read state, so each case sets the whole payload it describes
+function withData(doc, fn) {
+  const prev = state.wildfire;
+  state.wildfire = doc;
+  try { return fn(); } finally { state.wildfire = prev; }
+}
+const popup = (fire, sources) =>
+  withData({ generated: hoursAgo(0.1), sources: sources || SOURCES, fires: [fire] },
+    () => wildfirePopupHtml(fire));
+
+test('an unreported acreage or containment is named as unreported, never rendered as zero', () => {
+  const html = popup({ ...FIRE, src: 'wfigs', acres: null, contain: null });
+  assert.match(html, /wf\.noacres/, 'a null size must say so');
+  assert.match(html, /wf\.nocontain/, 'a null containment must say so');
+  assert.doesNotMatch(html, /wf\.contain/, 'a null containment must not reach the "{n}% contained" string');
+  assert.doesNotMatch(html, /wf\.acres/, 'a null size must not reach the "{n} acres" string');
+  assert.doesNotMatch(html, /\b0%/, 'a null containment rendered as 0% asserts an uncontained fire nobody reported');
+  // and the honest strings really do say "not reported" in both languages
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['wf.nocontain'], /not reported|no reportada/i);
+    assert.match(I18N[lang]['wf.noacres'], /not reported|no reportada/i);
+  }
+
+  // a genuinely reported zero is still a reported figure and must survive
+  const zero = popup({ ...FIRE, src: 'wfigs', acres: 0, contain: 0 });
+  assert.match(zero, /wf\.contain/, 'a reported 0% is a fact the source published');
+  assert.doesNotMatch(zero, /wf\.nocontain/);
+});
+
+test('the popup credits the operator that reported the incident, never the other source', () => {
+  const html = popup(FIRE);
+  assert.match(html, /Texas A&amp;M Forest Service/, 'a TFS incident must be credited to TFS');
+  assert.doesNotMatch(html, /National Interagency/, 'crediting NIFC for a state incident is a false citation');
+  const fed = popup({ ...FIRE, id: 'wfigs:1', src: 'wfigs', name: 'Frontera' });
+  assert.match(fed, /National Interagency/);
+  assert.doesNotMatch(fed, /Texas A&amp;M/);
+});
+
+test('the popup says what the numbers are and what the point is, so neither is read as an observation', () => {
+  const html = popup(FIRE);
+  assert.match(html, /wf\.lag/, 'acreage and containment are reported figures, and the popup must say so');
+  assert.match(html, /wf\.point/, 'the point is the reported origin, not the edge of the fire');
+  assert.match(html, /wf\.updated/, 'the popup must state when the incident record was last updated');
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['wf.point'], /perimet|perímet/i, 'the string must deny fire perimeters');
+    assert.match(I18N[lang]['wf.lag'], /hours|horas/i, 'the string must say the figures can lag');
+  }
+  // a source that published no build stamp says its currency is unknown rather than staying silent
+  const nostamp = popup(FIRE, [{ ...SOURCES[0], captured: null }, SOURCES[1]]);
+  assert.match(nostamp, /wf\.nocurrency/);
+  assert.doesNotMatch(popup(FIRE), /wf\.nocurrency/, 'a stamped source must not claim its currency is unknown');
+});
+
+test('an incident nobody has restamped is drawn, aged and said to be aged', () => {
+  assert.equal(wildfireStale(FIRE), false);
+  assert.equal(wildfireStale({ ...FIRE, observed: hoursAgo(WILDFIRE_STALE_H + 1) }), true);
+  assert.equal(wildfireStale({ ...FIRE, observed: null }), true, 'an undated record cannot be asserted as current');
+  assert.ok(Math.abs(wildfireAgeH(FIRE) - 1) < 0.1);
+  const old = popup({ ...FIRE, observed: hoursAgo(31) });
+  assert.match(old, /wf\.stale/, 'past the window the popup must say how long it has been');
+  assert.match(old, /xg-stale/, 'the age warning uses the board staleness treatment');
+  assert.doesNotMatch(popup(FIRE), /wf\.stale/);
+});
+
+test('contained is read from a reported figure or a reported word, never guessed from acreage', () => {
+  assert.equal(wildfireContained(FIRE), true);
+  assert.equal(wildfireContained({ ...FIRE, contain: 40, status: 'Active' }), false);
+  assert.equal(wildfireContained({ ...FIRE, contain: null, status: 'Contained' }), true);
+  assert.equal(wildfireContained({ ...FIRE, contain: null, status: null }), false,
+    'no reported containment and no reported word is not a contained fire');
+  assert.equal(wildfireContained({ ...FIRE, contain: null, status: null, acres: 0.1 }), false,
+    'a small fire is not a contained one');
+});
+
+test('the empty state is an honest sentence, and a failed source can never produce it', () => {
+  const empty = withData({ generated: hoursAgo(0.1), sources: SOURCES, fires: [] }, wildfireNoticeText);
+  assert.equal(empty, 'wf.none', 'zero incidents with both sources healthy is a reportable absence');
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['wf.none'], /Texas A&M Forest Service/, 'the empty sentence must name the operator');
+    assert.match(I18N[lang]['wf.none'], /\{t\}/, 'the empty sentence must state as of when');
+  }
+
+  const undated = withData({ generated: hoursAgo(0.1), fires: [],
+    sources: SOURCES.map((s) => ({ ...s, captured: null })) }, wildfireNoticeText);
+  assert.equal(undated, 'wf.none.undated', 'an absence with no upstream stamp cannot claim an as-of time');
+
+  const partial = withData({ generated: hoursAgo(0.1), fires: [],
+    sources: [SOURCES[0], { ...SOURCES[1], status: 'failed', captured: null, count: null }] },
+  wildfireNoticeText);
+  assert.equal(partial, 'wf.partial', 'a half-read list must not be presented as a complete absence');
+
+  const allDown = withData({ generated: hoursAgo(0.1), fires: [],
+    sources: SOURCES.map((s) => ({ ...s, status: 'failed', captured: null, count: null })) },
+  wildfireNoticeText);
+  assert.equal(allDown, 'wf.unknown');
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['wf.unknown'], /not a report|no es un informe/i,
+      'an unreadable feed must not read as "no fires are burning"');
+    assert.match(I18N[lang]['wf.partial'], /incomplete|incompleta/i);
+  }
+
+  // a healthy day with incidents needs no sentence: the markers are the answer
+  assert.equal(withData({ generated: hoursAgo(0.1), sources: SOURCES, fires: [FIRE] }, wildfireNoticeText), '');
+});
+
+test('the lazy fetch treats an absent list as unreadable, never as a fire-free day', () => {
+  const src = read('js/sources.js');
+  const fn = src.slice(src.indexOf('async function fetchWildfire()'), src.indexOf('\n}', src.indexOf('async function fetchWildfire()')));
+  assert.ok(fn.includes('Array.isArray(data.fires)') && fn.includes('Array.isArray(data.sources)'),
+    'a payload missing either list must throw rather than publish an empty layer');
+  assert.ok(fn.includes('state._wildfireLoaded = false'), 'a failure must allow a retry on the next toggle');
+  assert.ok(fn.includes("opNotice(t('note.wildfirefail'))"), 'a failure must be visible to the reader');
+  assert.ok(fn.includes('data/wildfire.json'), 'the layer must read the committed same-origin file');
+  assert.ok(!/https?:\/\//.test(fn), 'the layer must not reach a third party at runtime');
+});
+
+test('the layer ships off by default, claims OFFICIAL, is pilled and hides under playback', () => {
+  const map = read('js/map.js');
+  assert.match(map, /\['wildfire', '<span class="wildfire-icon">🔥<\/span>', 'layers\.wildfire', 'sheet\.s\.wildfire', 'official', false\]/,
+    'the sheet row is missing, on by default, or does not claim the agency provenance it has');
+  assert.match(map, /\['wildfire', 'layers\.wildfire'\]/, 'an off-by-default layer with no pill is invisible when on');
+  assert.match(map, /state\.layers\.wildfire = L\.layerGroup\(\);/,
+    'the layer is created already added to the map, so it is not off by default');
+  assert.match(map, /if \(e\.layer === state\.layers\.wildfire\) fetchWildfire\(\);/, 'the layer never loads');
+  assert.match(map, /legend\.wildfire/, 'the map legend does not name the marker');
+  assert.match(read('js/boot.js'), /glossary\.wildfire/, 'the glossary does not name the marker');
+
+  const pb = read('js/playback.js').match(/const PB_LIVE_HIDE = \[[\s\S]*?\];/);
+  assert.ok(pb, 'PB_LIVE_HIDE not found');
+  assert.match(pb[0], /\['wildfire', 'layers\.wildfire'\]/,
+    'there is no incident archive, so a live wildfire layer under playback impersonates the past');
+});
+
+test('the layer travels in a shared link, in both directions and without stacking on a kept view', () => {
+  const share = read('js/board.js').match(/for \(const \[key, lk\] of \[\['radar'[\s\S]*?\]\) \{/);
+  assert.ok(share, 'the share-url layer list was not found');
+  assert.match(share[0], /\['fire', 'wildfire'\]/, 'a shared link silently drops the wildfire layer');
+  const boot = read('js/boot.js').match(/for \(const \[qk, lk\] of \[\['usgs'[\s\S]*?\]\) \{/);
+  assert.ok(boot, 'the share-param parser was not found');
+  assert.match(boot[0], /\['fire', 'wildfire'\]/, 'an incoming ?fire=1 link does not reopen the layer');
+  assert.ok(app.LINK_VIEW_PARAMS.includes('fire'), 'a link carrying ?fire= must win over the kept layer set');
+});
+
+test('the marker reads as a hazard, retires when contained and dashes when unrestamped', () => {
+  const css = read('css/app.css');
+  const rule = (css.match(/\.wildfire-icon \{([^}]*)\}/) || [])[1];
+  assert.ok(rule, '.wildfire-icon has no rule');
+  assert.match(rule, /border-radius:\s*50%/, 'a hazard marker is a circle on this map');
+  assert.match(rule, /var\(--haz-fire\)/, 'the marker must carry the fire hazard token');
+  assert.ok(!/--sev-|--cat-/.test(rule),
+    'the marker borrows a severity colour, but neither source publishes a severity');
+  assert.match(css, /\.wildfire-icon\.contained \{/, 'a contained incident has no retired treatment');
+  assert.match(css, /\.wildfire-icon\.unconfirmed \{[^}]*dashed/, 'an aged incident is drawn as current');
+  assert.match(css, /\.leaflet-marker-pane \.wildfire-icon::before/, 'the marker has no phone tap halo');
+  for (const theme of [':root {', ':root[data-theme="light"] {']) {
+    const block = css.slice(css.indexOf(theme), css.indexOf('}', css.indexOf(theme)));
+    assert.match(block, /--haz-fire:/, `--haz-fire is missing from the ${theme} block`);
+  }
+  // the render path applies all three classes off the record, not off a hand-set flag
+  const render = read('js/sources.js');
+  assert.match(render, /wildfireContained\(f\) \? ' contained' : ''/);
+  assert.match(render, /wildfireStale\(f\) \? ' unconfirmed' : ''/);
+});
+
+test('every wildfire string exists in both languages and carries no em-dash', () => {
+  const i18n = read('js/i18n.js');
+  const keys = ['layers.wildfire', 'sheet.s.wildfire', 'legend.wildfire', 'glossary.wildfire',
+    'glossary.wildfire.label', 'wf.county', 'wf.acres', 'wf.noacres', 'wf.contain', 'wf.nocontain',
+    'wf.updated', 'wf.stale', 'wf.lag', 'wf.point', 'wf.captured', 'wf.nocurrency', 'wf.none',
+    'wf.none.undated', 'wf.partial', 'wf.unknown', 'note.wildfirefail'];
+  for (const k of keys) {
+    assert.equal((i18n.match(new RegExp(`'${k.replace(/\./g, '\\.')}':`, 'g')) || []).length, 2,
+      `${k} is missing from en or es`);
+    for (const lang of ['en', 'es']) {
+      assert.ok(I18N[lang][k], `${k} is empty in ${lang}`);
+      assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
+    }
+  }
+  // the layer must never describe itself as drawing the fire itself
+  for (const k of ['sheet.s.wildfire', 'glossary.wildfire']) {
+    for (const lang of ['en', 'es']) {
+      assert.match(I18N[lang][k], /perimet|perímet/i, `${k} must say it is not a perimeter: ${I18N[lang][k]}`);
+    }
+  }
+});
+
+test('the shipped incident file, when present, matches what the client and the gate both expect', () => {
+  const p = path.join(ROOT, 'data', 'wildfire.json');
+  if (!fs.existsSync(p)) return; // the generator may never have run on this checkout
+  const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+  assert.match(d.generated, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  assert.ok(Array.isArray(d.sources) && d.sources.length, 'a payload naming no source cannot be credited');
+  const ok = new Set(d.sources.filter((s) => s.status === 'ok').map((s) => s.key));
+  for (const f of d.fires) {
+    assert.ok(ok.has(f.src), `${f.id} credits a source that is not marked ok`);
+    assert.ok(Number.isFinite(f.lat) && Number.isFinite(f.lon), `${f.id} has no usable point`);
+    for (const k of ['acres', 'contain']) {
+      assert.ok(f[k] === null || typeof f[k] === 'number', `${f.id} ${k} is neither a number nor null`);
+    }
+  }
+  assert.ok(!fs.readFileSync(p, 'utf8').includes('—'), 'em-dash in data/wildfire.json');
+});

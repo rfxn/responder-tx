@@ -97,7 +97,9 @@ ALERTS = {'features': [
     {'id': 'a2', 'properties': {'event': 'Flood Warning', 'areaDesc': 'Expired, TX',
      'sent': iso(NOW - timedelta(hours=9)), 'expires': iso(NOW - timedelta(hours=1)), 'description': ''},
      'geometry': {'type': 'Polygon', 'coordinates': [[[-95.9, 29.9], [-95.8, 29.9], [-95.8, 30.0], [-95.9, 29.9]]]}},
-    {'id': 'a3', 'properties': {'event': 'Red Flag Warning', 'areaDesc': 'Not a flood hazard',
+    # heat is excluded from the board by owner decision and the hazard-mirror gate enforces it, so
+    # this fixture cannot quietly become admitted the way Red Flag Warning did
+    {'id': 'a3', 'properties': {'event': 'Heat Advisory', 'areaDesc': 'Not a hazard this board carries',
      'sent': iso(NOW), 'expires': iso(NOW + timedelta(hours=3)), 'description': ''},
      'geometry': {'type': 'Polygon', 'coordinates': [[[-95.9, 29.9], [-95.8, 29.9], [-95.8, 30.0], [-95.9, 29.9]]]}},
     {'id': 'a4', 'properties': {'event': 'Flood Watch', 'areaDesc': 'Zone-based, no geometry',
@@ -138,9 +140,24 @@ def run_gen(tmp, **env_extra):
     return subprocess.run([sys.executable, GEN], env=env, capture_output=True, text=True)
 
 
+class Bail(Exception):
+    """A dependent step whose input never appeared. Recorded as a failure and its block skipped,
+    rather than crashing the file and losing every assertion after it."""
+
+
 def load(tmp):
-    with open(os.path.join(tmp, 'data', 'caltopo-export.json')) as f:
-        return json.load(f)
+    try:
+        with open(os.path.join(tmp, 'data', 'caltopo-export.json')) as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        raise Bail('data/caltopo-export.json did not read after the run under test: %s' % e)
+
+
+def parse_xml(tmp, name):
+    try:
+        return ET.parse(os.path.join(tmp, 'data', name)).getroot()
+    except (OSError, ET.ParseError) as e:
+        raise Bail('data/%s did not read after the run under test: %s' % (name, e))
 
 
 # the module itself, for the constants and the emitter units below. Loaded directly because the
@@ -247,11 +264,10 @@ try:
 
     def claims(root_dir):
         """The unavailable-sources claim as each published artifact states it."""
-        with open(os.path.join(root_dir, 'data', 'caltopo-export.json')) as fh:
-            props = json.load(fh)['properties']
-        kml = ET.parse(os.path.join(root_dir, 'data', 'board.kml')).getroot()
-        live = ET.parse(os.path.join(root_dir, 'data', 'board-live.kml')).getroot()
-        feed = ET.parse(os.path.join(root_dir, 'data', 'board-georss.xml')).getroot()
+        props = load(root_dir)['properties']
+        kml = parse_xml(root_dir, 'board.kml')
+        live = parse_xml(root_dir, 'board-live.kml')
+        feed = parse_xml(root_dir, 'board-georss.xml')
         ext = {d.get('name'): (d.findtext('k:value', '', KNS) or '')
                for d in kml.findall('.//k:Document/k:ExtendedData/k:Data', KNS)}
         return props, ext, {
@@ -310,6 +326,8 @@ try:
           and not any(CLAIM in v for v in texts6.values()), str(props6['sources_unavailable']))
     with open(os.path.join(tmp, 'data', 'crossings.json'), 'w') as fh:
         json.dump(CROSSINGS, fh)
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp)
 
@@ -340,6 +358,8 @@ try:
     check('capture never overrides a display-snapshot coordinate',
           any(f['properties'].get('lid') == 'MAJT2'
               and abs(f['geometry']['coordinates'][0][0][1] - 30.0) < 0.05 for f in crests4))
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp2)
 
@@ -382,6 +402,8 @@ try:
           all(f['properties']['folder'] != 'Gauges (NOAA NWPS)' for f in kept)
           or all(gauge_cat_in_title(f) for f in kept if f['properties']['folder'] == 'Gauges (NOAA NWPS)'),
           [f['properties']['title'] for f in kept])
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp3)
 
@@ -396,7 +418,7 @@ NS = {'k': 'http://www.opengis.net/kml/2.2',
 
 
 def xml_root(tmp, name):
-    return ET.parse(os.path.join(tmp, 'data', name)).getroot()
+    return parse_xml(tmp, name)
 
 
 def members_of(doc):
@@ -541,6 +563,8 @@ try:
     check('offline run still emits both XML feeds', ro5.returncode == 0
           and len(xml_root(tmp4, 'board.kml').findall('.//k:Placemark', NS)) == len(members_of(load(tmp4))),
           ro5.stderr[-300:])
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp4)
 
@@ -608,6 +632,8 @@ try:
     check('a byte-trimmed board keeps life-safety folders before quiet gauges',
           'NWS alerts (active)' in kept_folders and 'Gauges (NOAA NWPS)' not in kept_folders,
           str(sorted(kept_folders)))
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmpc)
 
@@ -645,6 +671,8 @@ try:
           alert_entry.findtext('a:summary', '', NS)[-160:])
     check('georss never invents a bounding box over disjoint parts',
           not feedm.findall('.//g:box', NS))
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp5)
 
@@ -744,6 +772,8 @@ try:
     gen.write_georss([unmappable], [dict(meta, updated='2026-07-26T08:15:00-05:00')], hdr, gpath)
     check('a source time with an offset is normalized to UTC',
           ET.parse(gpath).getroot().findtext('a:entry/a:updated', '', NS) == '2026-07-26T13:15:00Z')
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp6)
 
@@ -947,6 +977,8 @@ try:
     check('a feature-capped run blames the feature cap, not the byte ceiling',
           rc7.returncode == 0 and '4 features' in notec and 'of KML so it stays importable' not in notec,
           notec[:260])
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp7)
 
@@ -1045,6 +1077,8 @@ try:
     for label, note in artifact_notes(tmp8).items():
         check('%s claims no storm-report cut when the cap did not bite' % label,
               'storm reports' not in note, note[-200:])
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp8)
 
@@ -1090,6 +1124,8 @@ try:
     check('and the oversized alert is what survived',
           any(f['properties']['folder'] == 'NWS alerts (active)' for f in mem9),
           str(sorted({f['properties']['folder'] for f in mem9})))
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp9)
 

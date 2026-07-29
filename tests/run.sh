@@ -23,6 +23,19 @@ LOG="${RESPONDER_TEST_LOG:-/tmp/responder-test-${SUITE}-$(date -u '+%Y%m%dT%H%M%
 # live 15-minute data cycle owns. Taking /tmp/responder-cycle.lock costs a real publish.
 SCRATCH=$(mktemp -d "${TMPDIR:-/tmp}/responder-test.XXXXXX") || exit 1
 trap 'rm -rf "$SCRATCH"' EXIT INT TERM
+
+# run-cycle.sh exports RESPONDER_ROOT and deploy.sh runs this gate under it, so an inherited one
+# pointed every generator a test spawns at the LIVE repo: gen-history.test.py wrote the real
+# data/history.json and then failed on the file its own temp repo never got. No gated test may
+# inherit it; a test that needs one sets its own.
+unset RESPONDER_ROOT
+
+# Nothing gated may reach a third party: the publish path of a life-safety board cannot depend on
+# an upstream being up. tests/nonet/sitecustomize.py is imported by every python process started
+# under this PYTHONPATH, including the generator subprocesses the suites spawn.
+export PYTHONPATH="$PWD/tests/nonet${PYTHONPATH:+:$PYTHONPATH}"
+export RESPONDER_NONET_LOG="$SCRATCH/network-reached.log"
+: > "$RESPONDER_NONET_LOG" || { echo "FAIL: cannot arm the network trap ledger" >&2; exit 1; }
 export RESPONDER_CYCLE_LOCK="$SCRATCH/cycle.lock"
 export RESPONDER_CYCLE_LOG="$SCRATCH/cycle.log"
 export RESPONDER_MONITOR_LOCK="$SCRATCH/monitor.lock"
@@ -74,6 +87,17 @@ fi
 
 if [ "$SUITE" = py ] || [ "$SUITE" = all ]; then
     run_glob py 'tests/*.test.py' python3
+fi
+
+# The ledger, not the raised error, is the verdict: a generator that catches the trap and records
+# a miss would otherwise pass while still having reached out.
+if [ -s "$RESPONDER_NONET_LOG" ]; then
+    {
+        echo
+        echo "FAIL: a gated test reached a real host; the gate must not depend on third-party uptime"
+        cat "$RESPONDER_NONET_LOG"
+    } | tee -a "$LOG"
+    FAILED+=("network trap: a gated test reached a real host")
 fi
 
 {

@@ -236,7 +236,7 @@ printf '%s\n' \
 ( cd "$REPO" && git add -A && git commit --quiet -m 'commit a red suite' )
 run_deploy --skip-live
 RC=$?
-if [ "$RC" -ne 0 ] && grep -q 'test gate: node --test tests/ failed at HEAD' "$WORK/run.out" \
+if [ "$RC" -ne 0 ] && grep -q 'test gate: the node suite failed at HEAD' "$WORK/run.out" \
    && [ ! -s "$WORK/wrangler-args" ]; then
     pass "7 a red suite at HEAD still blocks the deploy (wrangler never runs)"
 else

@@ -150,6 +150,8 @@ const EXPORTS = [
   'pushNormalizePlaces', 'pushScopeState', 'pushDelivers', 'pushPlacesHtml', 'pushRadiusLabel', 'pushPlaceLabel', 'PUSH_PLACE_KM', 'PUSH_MAX_PLACES',
   'pushEntryStateKey', 'pushWhereSummary', 'pushWhatSummary', 'pushGaugesSummary',
   'pushLocal', 'pushLocalSet', 'pushPrefs', 'pushDisable', 'pushFollowGauge',
+  'wildfirePopupHtml', 'wildfireNoticeText', 'wildfireStale', 'wildfireContained', 'wildfireAgeH',
+  'wildfireSource', 'WILDFIRE_STALE_H',
 ];
 
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay

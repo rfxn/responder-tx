@@ -29,6 +29,11 @@ def check(name, ok, detail=''):
         FAILS += 1
 
 
+class Bail(Exception):
+    """A dependent step whose input never appeared. Recorded as a failure and its block skipped,
+    rather than crashing the file and losing every assertion after it."""
+
+
 BASE = datetime(2026, 7, 20, 0, 0, 0, tzinfo=timezone.utc)
 ARCHIVE_START = BASE - timedelta(days=5)
 
@@ -89,8 +94,11 @@ def run_gen(repo):
 
 
 def summary(repo):
-    with open(os.path.join(repo, 'data', 'crest-summary.json'), encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(os.path.join(repo, 'data', 'crest-summary.json'), encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        raise Bail('data/crest-summary.json did not read after the run under test: %s' % e)
 
 
 tmp = tempfile.mkdtemp(prefix='gen-crest-summary-test.')
@@ -139,7 +147,7 @@ try:
     r4 = run_gen(sticky)
     check('the first run publishes with an empty ratchet', r4.returncode == 0, r4.stderr[-400:])
     path = os.path.join(sticky, 'data', 'crest-summary.json')
-    published = open(path, encoding='utf-8').read()
+    published = json.dumps(summary(sticky), separators=(',', ':'))
     check('the first run published the gauge that flooded',
           [g['lid'] for g in json.loads(published)['gauges']] == ['EASTA'])
 
@@ -165,6 +173,8 @@ try:
     check('an ABSENT summary is a genuinely empty ratchet, not a read failure, and publishes',
           r7.returncode == 0 and [g['lid'] for g in summary(sticky)['gauges']] == ['EASTA'],
           r7.stderr[-400:])
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 

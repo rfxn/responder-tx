@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.68",
+      "date": "2026-07-29",
+      "line": "A wildfire layer, off until you turn it on, carrying incidents reported by Texas A&M Forest Service and the National Interagency Fire Center. Points, not perimeters. Acreage and containment appear only where the reporting agency stated them, and are shown as unknown otherwise. With no reported fires the layer says so, naming both sources and when they were read, so a quiet day cannot be mistaken for a layer that failed. Red Flag Warning, Fire Weather Watch and Dense Smoke Advisory are now carried, each with its own colour and symbol, with smoke kept visually distinct from fire because a smoke advisory often covers ground far from anything burning. A county Fire Warning is now carried as well: these are written by a county or state agency and relayed through the weather service, and the board had been discarding them."
+    },
+    {
       "v": "v0.99.67",
       "date": "2026-07-28",
       "line": "Tab counts read \"?\" until the source has answered, so a zero now means the board checked and found nothing. A low-water crossing the curator has not re-confirmed inside the confirmation window is no longer presented as a current closure: Drive Mode, the risk view and the point inspector carry its age, and the crossing card counts only what the board can vouch for. When the jurisdiction closure feed or the live shelter feed cannot be read, the board says so instead of showing an empty list, and a failure to load the curated notices, resources and crossings now appears in the data health note. Crest of record context returns on the next refresh after a failed fetch. The river forecast chart no longer draws an empty forecast under a legend that claims one, and when fallback radar imagery returns nothing the timeline says the imagery is unverified. A capped map export now reports how many storm reports were cut instead of reporting that it carried everything in scope. Removed a resources link describing CrowdSource Rescue as activated for the Hill Country, an address that was no longer valid."

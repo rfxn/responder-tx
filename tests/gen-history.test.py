@@ -34,6 +34,11 @@ def check(name, ok, detail=''):
         FAILS += 1
 
 
+class Bail(Exception):
+    """A dependent step whose input never appeared. Recorded as a failure and its block skipped,
+    rather than crashing the file and losing every assertion after it."""
+
+
 def load_module():
     spec = importlib.util.spec_from_file_location('gen_history', GEN)
     mod = importlib.util.module_from_spec(spec)
@@ -77,13 +82,26 @@ def commit(repo, bbox, n, msg):
 
 
 def run_gen(repo):
+    """RESPONDER_ROOT is pinned, never inherited: run-cycle.sh exports it and deploy.sh runs this
+    suite under it, which pointed the generator at the live repo instead of this fixture."""
     return subprocess.run((sys.executable, os.path.join(repo, 'scripts', 'gen-history.py'), '--no-backfill'),
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, env=dict(os.environ, RESPONDER_ROOT=repo))
 
 
 def history(repo):
-    with open(os.path.join(repo, 'data', 'history.json'), encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(os.path.join(repo, 'data', 'history.json'), encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        raise Bail('data/history.json did not read after the run under test: %s' % e)
+
+
+def seed_gauge_meta(repo):
+    """Answered thresholds for every fixture gauge, so the metadata stage has nothing to fetch
+    even if a future change drops --no-backfill from run_gen."""
+    with open(os.path.join(repo, 'data', 'gauge-meta.json'), 'w', encoding='utf-8') as f:
+        json.dump({lid: {'usgs': None, 'action': 10.0, 'minor': 13.0, 'moderate': 16.0, 'major': 20.0}
+                   for lid, _, _ in SITES}, f)
 
 
 def make_repo(tmp):
@@ -91,8 +109,8 @@ def make_repo(tmp):
     os.makedirs(os.path.join(repo, 'data'))
     os.makedirs(os.path.join(repo, 'scripts'))
     shutil.copy(GEN, os.path.join(repo, 'scripts', 'gen-history.py'))
-    git(repo if os.path.isdir(os.path.join(repo, '.git')) else repo, 'init', '-q') if False else None
     subprocess.run(('git', 'init', '-q', repo), check=True, capture_output=True)
+    seed_gauge_meta(repo)
     return repo
 
 
@@ -107,6 +125,23 @@ try:
     check('wide run retains all four gauges', h1['retained']['gauges'] == 4, str(h1['retained']))
     check('wide run publishes all four gauges', set(h1['gaugeIndex']) == {s[0] for s in SITES},
           str(sorted(h1['gaugeIndex'])))
+
+    # run-cycle.sh exports RESPONDER_ROOT and deploy.sh runs this suite under it, so an inherited
+    # one used to send the generator at the LIVE repo: it wrote the real archive and left this
+    # fixture without the file the assertions above read.
+    ambient = os.path.join(tmp, 'ambient')
+    os.makedirs(os.path.join(ambient, 'data'))
+    prior_root = os.environ.get('RESPONDER_ROOT')
+    os.environ['RESPONDER_ROOT'] = ambient
+    try:
+        r_amb = run_gen(repo)
+    finally:
+        os.environ.pop('RESPONDER_ROOT', None)
+        if prior_root is not None:
+            os.environ['RESPONDER_ROOT'] = prior_root
+    check('AMBIENT · an inherited RESPONDER_ROOT never redirects the generator out of the fixture '
+          'repo', r_amb.returncode == 0 and not os.listdir(os.path.join(ambient, 'data')),
+          'exit %s · wrote %s' % (r_amb.returncode, sorted(os.listdir(os.path.join(ambient, 'data')))))
 
     # the pivot: display scope narrows to the coast, dropping both western gauges
     commit(repo, NARROW, 2, 'coastal pivot')
@@ -160,8 +195,11 @@ try:
         return os.path.join(repo, 'history', 'day', day + '.json')
 
     def read_index():
-        with open(os.path.join(repo, 'history', 'index.json'), encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(os.path.join(repo, 'history', 'index.json'), encoding='utf-8') as f:
+                return json.load(f)
+        except (OSError, ValueError) as e:
+            raise Bail('history/index.json did not read after the run under test: %s' % e)
 
     idx = read_index()
     days = idx['days']
@@ -270,6 +308,7 @@ try:
     os.makedirs(os.path.join(rrepo, 'scripts'))
     shutil.copy(GEN, os.path.join(rrepo, 'scripts', 'gen-history.py'))
     subprocess.run(('git', 'init', '-q', rrepo), check=True, capture_output=True)
+    seed_gauge_meta(rrepo)
 
     # pre-split: only the display snapshot exists, and it is the widest road set we had
     commit_roads(rrepo, WIDE, 0, 'roads pre-split 1', [WEST_R])
@@ -316,6 +355,8 @@ try:
           'bbox' not in road_src and 'ROADS_CAPTURE_PATH' in road_src,
           'road retention reads a bbox, or stopped reading the capture')
 
+except Bail as e:
+    check(str(e), False)
 finally:
     shutil.rmtree(tmp)
 

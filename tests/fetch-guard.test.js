@@ -239,7 +239,7 @@ test('no client file substitutes an empty list for a missing payload key', () =>
 const CENSUS = {
   'board.js': 11, 'boot.js': 5, 'cameras.js': 3, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
   'map.js': 3, 'master.js': 1, 'notes.js': 4, 'panels.js': 9, 'playback.js': 4,
-  'sources.js': 14, 'team.js': 2, 'usng.js': 0,
+  'sources.js': 15, 'team.js': 2, 'usng.js': 0,
 };
 
 test('the client fetch census is unchanged, so no new call site slipped past this audit', () => {
@@ -292,6 +292,8 @@ const SITES = [
     req: ["okJson(r, 'TxGIO')", "okList(d, 'features', 'TxGIO')", "opNotice(t('note.lwcfail'))"] },
   { f: 'sources.js', d: 'async function fetchRiverSentry()', c: TOP, v: 'HONEST',
     req: ['Array.isArray(data.towers)', "opNotice(t('note.rsentryfail'))"] },
+  { f: 'sources.js', d: 'async function fetchWildfire()', c: TOP, v: 'HONEST',
+    req: ['Array.isArray(data.fires)', 'Array.isArray(data.sources)', "opNotice(t('note.wildfirefail'))"] },
   { f: 'sources.js', d: 'async function fetchLsrs()', c: TOP, v: 'GUARDED',
     req: ["okJson(res, 'LSR')", "okList(data, 'features', 'LSR')"] },
   { f: 'sources.js', d: 'async function fetchTideStation(', c: TOP, v: 'GUARDED',

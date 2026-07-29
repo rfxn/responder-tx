@@ -98,6 +98,7 @@ HAZARD_EVENTS = {
     "Hurricane Force Wind Watch": ("watch", 13),
     "Tropical Storm Watch": ("watch", 13),
     "High Wind Watch": ("watch", 14),
+    "Fire Weather Watch": ("watch", 14),
     # orders: state and local event codes with originator CIV under 47 CFR 11.31, authored by a
     # county or state agency and relayed down the NWS path, not NWS products
     "Civil Danger Warning": ("order", 4),
@@ -108,7 +109,10 @@ HAZARD_EVENTS = {
     "Law Enforcement Warning": ("order", 4),
     "911 Telephone Outage": ("order", 4),
     "Local Area Emergency": ("order", 4),
+    "Fire Warning": ("order", 4),
     "High Wind Warning": ("standing", 17),
+    "Red Flag Warning": ("standing", 17),
+    "Dense Smoke Advisory": ("standing", 18),
     "Flood Advisory": ("standing", 18),
     "Coastal Flood Advisory": ("standing", 18),
     "Lakeshore Flood Advisory": ("standing", 18),

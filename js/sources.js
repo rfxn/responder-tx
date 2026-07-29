@@ -119,6 +119,8 @@ const HAZARD_EVENTS = {
   'Hurricane Force Wind Watch': { cls: 'watch', rank: 13 },
   'Tropical Storm Watch': { cls: 'watch', rank: 13 },
   'High Wind Watch': { cls: 'watch', rank: 14 },
+  // the fire-weather pair sits where the wind pair does: the watch is the precursor to the warning
+  'Fire Weather Watch': { cls: 'watch', rank: 14 },
   /* Orders. Not NWS products: under 47 CFR 11.31 these are state and local event codes with
      originator CIV, written by a county or a state agency and relayed down the NWS path, which is
      why they carry their author in senderName and why alertAgency reads it. They rank above every
@@ -132,7 +134,13 @@ const HAZARD_EVENTS = {
   'Law Enforcement Warning': { cls: 'order', rank: 4 },
   '911 Telephone Outage': { cls: 'order', rank: 4 },
   'Local Area Emergency': { cls: 'order', rank: 4 },
+  'Fire Warning': { cls: 'order', rank: 4 },
   'High Wind Warning': { cls: 'standing', rank: 17 },
+  /* Red flag is a fuel-and-weather condition with an hours-to-days life, not an event in progress:
+     it belongs beside the High Wind Warning it is usually issued with, and it must never reach a
+     glance surface where it could push an evacuation order or a tornado warning off the list. */
+  'Red Flag Warning': { cls: 'standing', rank: 17 },
+  'Dense Smoke Advisory': { cls: 'standing', rank: 18 },
   'Flood Advisory': { cls: 'standing', rank: 18 },
   'Coastal Flood Advisory': { cls: 'standing', rank: 18 },
   'Lakeshore Flood Advisory': { cls: 'standing', rank: 18 },
@@ -402,13 +410,19 @@ const HAZARD_STYLE = {
   'Dust Storm Warning': 'dust',
   'Snow Squall Warning': 'winter',
   'Extreme Wind Warning': 'wind',
+  'Red Flag Warning': 'fire',
+  'Fire Weather Watch': 'fire',
+  /* Smoke is its own token rather than a shade of fire: a dense smoke advisory is a visibility
+     hazard over ground that is usually nowhere near what is burning, so a fire glyph on it would
+     assert a fire where the product asserts only smoke. */
+  'Dense Smoke Advisory': 'smoke',
 };
 // an order is a directive rather than a forecast, so it reads as one colour of its own whatever
 // hazard prompted it: the wildfire behind an evacuation order is not what the reader has to act on
 const hazardStyleKey = (f) => HAZARD_STYLE[String(((f && f.properties) || {}).event || '')]
   || (hazardClass(f) === 'order' ? 'order' : 'flood');
 
-const HAZARD_GLYPH = { tornado: '🌪', severe: '⛈', dust: '🌫', winter: '❄', wind: '🌬', flood: '🌊', order: '⛔' };
+const HAZARD_GLYPH = { tornado: '🌪', severe: '⛈', dust: '🌫', winter: '❄', wind: '🌬', fire: '🔥', smoke: '💨', flood: '🌊', order: '⛔' };
 const hazardGlyph = (f) => HAZARD_GLYPH[hazardStyleKey(f)] || '⚠';
 
 /* The verb, not the hazard name. A driver has ten seconds and gloves, and "Tornado Warning" is a
@@ -416,7 +430,9 @@ const hazardGlyph = (f) => HAZARD_GLYPH[hazardStyleKey(f)] || '⚠';
    answer to a flood. A product with no correct ten-second driving action gets no row in Drive Mode
    at all, because a row a driver cannot act on is what teaches him to stop reading the list.
    Snow squall reads "avoid travel" rather than "take shelter": the hazard is the whiteout on the
-   roadway, and stopping on the shoulder in one is how the pile-up happens. */
+   roadway, and stopping on the shoulder in one is how the pile-up happens.
+   Only acute and order products reach Drive Mode at all (driveItems filters on hazardGlance), so a
+   row here for a watch or standing product would be unreachable rather than merely wrong. */
 const HAZARD_ACTION = {
   'Tornado Warning': 'drive.act.shelter',
   'Extreme Wind Warning': 'drive.act.shelter',
@@ -2171,6 +2187,105 @@ function rsentryPopupHtml(tw) {
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(t('rs.reported'))}` +
     (data.captured ? ` ${esc(t('rs.captured').replace('{t}', fmtWhen(data.captured)))}` : '') + '</div>' +
     (src.name ? `<div class="popup-meta" style="opacity:.7">${esc(src.name)}</div>` : '') +
+    link;
+}
+
+/* ---------- Wildfire incidents (REPORTED INCIDENTS, not fire perimeters) ----------
+   data/wildfire.json is written each cycle from Texas A&M Forest Service and NIFC WFIGS. Two
+   things the layer must never do: draw a point as if it were the edge of the fire, and read an
+   unreported figure as a measurement. Acreage and containment are what an incident commander
+   typed into a system at some point, so a null is "nobody reported", never 0. */
+
+/* TFS keeps a contained incident in its feed for weeks (measured max 24 days) and WFIGS "Current"
+   holds records modified up to a fortnight ago, so past this window an incident is still drawn,
+   it just stops being asserted as something anyone is working. */
+const WILDFIRE_STALE_H = 24;
+const wildfireSources = () => (((state.wildfire || {}).sources) || []);
+const wildfireAgeH = (f) => (Date.now() - new Date(f && f.observed).getTime()) / 3600000;
+const wildfireStale = (f) => !(wildfireAgeH(f) < WILDFIRE_STALE_H); // NaN counts as stale
+// contained is a reported state, so it needs a reported number or a status word saying so
+const wildfireContained = (f) => f && (f.contain === 100 || /contain|out|control/i.test(String(f.status || '')));
+
+// lazy: fetched once on first overlayadd; same-origin static file, no CSP surface
+async function fetchWildfire() {
+  if (state._wildfireLoaded) return;
+  state._wildfireLoaded = true;
+  try {
+    const res = await fetch(`data/wildfire.json?_=${Date.now()}`);
+    if (!res.ok) throw new Error(`wildfire HTTP ${res.status}`);
+    const data = await res.json();
+    // E1: an absent list is an unreadable file, never a report that nothing is burning
+    if (!data || !Array.isArray(data.fires) || !Array.isArray(data.sources)) throw new Error('wildfire payload has no fires/sources');
+    state.wildfire = data;
+    state.wildfireUnknown = false;
+    renderWildfire();
+    const said = wildfireNoticeText();
+    if (said) opNotice(said);
+  } catch (err) {
+    state._wildfireLoaded = false; // allow a retry the next time the layer is toggled on
+    state.wildfireUnknown = !state.wildfire;
+    opNotice(t('note.wildfirefail'));
+  }
+}
+
+/* An empty layer looks broken, and for most of a Texas year empty is the correct answer, so the
+   layer says which of the two it is out loud the moment it is switched on. Returns the sentence
+   or '' when the markers speak for themselves. */
+function wildfireNoticeText() {
+  const srcs = wildfireSources();
+  const failed = srcs.filter((s) => s.status !== 'ok');
+  if (failed.length) return t(failed.length < srcs.length ? 'wf.partial' : 'wf.unknown');
+  if (((state.wildfire || {}).fires || []).length) return '';
+  const stamp = srcs.map((s) => s.captured).filter(Boolean).sort()[0];
+  return stamp ? t('wf.none').replace('{t}', fmtWhen(stamp)) : t('wf.none.undated');
+}
+
+function renderWildfire() {
+  const layer = state.layers.wildfire;
+  const data = state.wildfire;
+  if (!layer || !data) return;
+  layer.clearLayers();
+  const lbl = esc(t('layers.wildfire'));
+  for (const f of (Array.isArray(data.fires) ? data.fires : [])) {
+    if (!Number.isFinite(f.lat) || !Number.isFinite(f.lon)) continue;
+    const cls = `wildfire-icon${wildfireContained(f) ? ' contained' : ''}${wildfireStale(f) ? ' unconfirmed' : ''}`;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="${cls}" role="img" aria-label="${lbl}" title="${lbl}">🔥</div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+    });
+    const m = L.marker([f.lat, f.lon], { icon, attribution: wildfireAttrib(f) });
+    m.bindPopup(() => wildfirePopupHtml(f));
+    layer.addLayer(m);
+  }
+}
+
+// the operator that actually runs the service, per record; NIFC must never be credited for a TFS fire
+const wildfireSource = (f) => wildfireSources().find((s) => s.key === (f && f.src)) || {};
+const wildfireAttrib = (f) => `${t('layers.wildfire')}: ${wildfireSource(f).name || t('word.source')}`;
+
+function wildfirePopupHtml(f) {
+  const src = wildfireSource(f);
+  const place = [f.county && t('wf.county').replace('{c}', f.county), f.state].filter(Boolean).join(', ');
+  const figures = [
+    f.acres === null || f.acres === undefined ? t('wf.noacres') : t('wf.acres').replace('{n}', fmtNum(f.acres)),
+    f.contain === null || f.contain === undefined ? t('wf.nocontain') : t('wf.contain').replace('{n}', fmtNum(f.contain)),
+  ].join(' · ');
+  const link = safeUrl(src.url) !== '#'
+    ? `<div class="popup-link"><a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>`
+    : '';
+  return `<div class="popup-title">🔥 ${esc([f.status, f.name].filter(Boolean).join(' · '))}</div>` +
+    (place ? `<div class="popup-meta">${esc(place)}</div>` : '') +
+    `<div class="popup-meta">${esc(figures)}</div>` +
+    `<div class="popup-meta">${esc(t('wf.updated').replace('{t}', fmtWhen(f.observed)))}</div>` +
+    (wildfireStale(f)
+      ? `<div class="popup-meta"><span class="xg-stale">${esc(t('wf.stale').replace('{h}', String(Math.round(wildfireAgeH(f)))))}</span></div>`
+      : '') +
+    `<div class="popup-meta" style="margin-top:4px">${esc(t('wf.lag'))}</div>` +
+    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(t('wf.point'))}</div>` +
+    (src.name ? `<div class="popup-meta" style="opacity:.7">${esc(src.name)}` +
+      (src.captured ? ` · ${esc(t('wf.captured').replace('{t}', fmtWhen(src.captured)))}` : ` · ${esc(t('wf.nocurrency'))}`) + '</div>' : '') +
     link;
 }
 

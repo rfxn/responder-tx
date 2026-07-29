@@ -75,7 +75,7 @@ const ELSEWHERE = [[32.78, -96.80]];
 const ORDER_EVENTS = Object.keys(HAZARD_EVENTS).filter((k) => HAZARD_EVENTS[k].cls === 'order');
 
 test('the fixture set is real, complete and non-vacuous', () => {
-  assert.equal(ORDER_EVENTS.length, 8, 'all eight order event strings must be in the hazard table');
+  assert.equal(ORDER_EVENTS.length, 9, 'all nine order event strings must be in the hazard table');
   assert.equal(REAL.length, 6, 'six verbatim archived products; a shrunken set would weaken every assertion below');
   assert.ok(SHAPED.length >= 6);
   // the senderName shapes the normaliser has to survive must all actually be present
@@ -230,7 +230,7 @@ test('an order is never read as an advisory and never loses its class to its own
     assert.equal(hazardStyleKey(f), 'order');
     assert.equal(hazardGlyph(f), '⛔');
   }
-  // four of the eight carry no "Warning" in the name and are exactly the ones the word test missed
+  // four carry no "Warning" in the name and are exactly the ones the word test missed
   const noWarning = ORDER_EVENTS.filter((e) => !/Warning/i.test(e));
   assert.deepEqual(noWarning.sort(),
     ['911 Telephone Outage', 'Civil Emergency Message', 'Evacuation Immediate', 'Local Area Emergency']);

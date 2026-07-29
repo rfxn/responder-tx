@@ -14,12 +14,13 @@
  *      responder the hazard surfaces are noise before the tornado warning lands there next week.
  *      Asserted here rather than written down, because the table is edited every time the board
  *      goes wider and nothing else would notice heat arriving with the rest of a standing tier.
- *   4. Every event string still exists in the live NWS catalogue. An unknown event= value returns
+ *   4. Every event string still exists in the NWS catalogue. An unknown event= value returns
  *      HTTP 200 with zero features rather than an error, so a typo or a retired product name
  *      publishes "no tornado warnings" instead of failing.
  *
- * Check 4 skips on a transport failure only: an api.weather.gov outage must not fail a commit or
- * stop a flood publish, but a reachable catalogue that disagrees is a hard failure.
+ * Check 4 reads the PINNED_TYPES catalogue below by default, because this file runs inside the
+ * publish gate and a flood publish may neither wait on api.weather.gov nor lose the check to an
+ * outage. `--upstream` re-judges against the live catalogue, which is how PINNED_TYPES is refreshed.
  *
  * Both sides are read from the same directory tree, so cycle-check --code-from-head compares HEAD's
  * js/sources.js against HEAD's gen-caltopo.py rather than one copy of each.
@@ -32,6 +33,38 @@ const { loadApp } = require('./harness.js');
 const ROOT = path.join(__dirname, '..');
 const TYPES_URL = 'https://api.weather.gov/alerts/types';
 const UA = 'responder-tx-ops/hazard-mirror (rfxnryan@gmail.com)';
+// The NWS product catalogue as of PINNED_CAPTURED, pinned here rather than in tests/fixtures/
+// because cycle-check.sh --code-from-head materializes this file and not a sibling one, and a
+// catalogue read from a different lane than the table it judges is the check E3 warns about.
+const PINNED_CAPTURED = '2026-07-29';
+const PINNED_TYPES = [
+  '911 Telephone Outage', 'Administrative Message', 'Air Quality Alert', 'Air Stagnation Advisory',
+  'Ashfall Advisory', 'Ashfall Warning', 'Avalanche Advisory', 'Avalanche Warning', 'Avalanche Watch',
+  'Beach Hazards Statement', 'Blizzard Warning', 'Blowing Dust Advisory', 'Blowing Dust Warning', 'Blue Alert',
+  'Brisk Wind Advisory', 'Child Abduction Emergency', 'Civil Danger Warning', 'Civil Emergency Message',
+  'Coastal Flood Advisory', 'Coastal Flood Statement', 'Coastal Flood Warning', 'Coastal Flood Watch',
+  'Cold Weather Advisory', 'Dense Fog Advisory', 'Dense Smoke Advisory', 'Dust Advisory', 'Dust Storm Warning',
+  'Earthquake Warning', 'Evacuation Immediate', 'Extreme Cold Warning', 'Extreme Cold Watch',
+  'Extreme Fire Danger', 'Extreme Heat Warning', 'Extreme Heat Watch', 'Extreme Wind Warning', 'Fire Warning',
+  'Fire Weather Watch', 'Flash Flood Statement', 'Flash Flood Warning', 'Flash Flood Watch', 'Flood Advisory',
+  'Flood Statement', 'Flood Warning', 'Flood Watch', 'Freeze Warning', 'Freeze Watch', 'Freezing Fog Advisory',
+  'Freezing Spray Advisory', 'Frost Advisory', 'Gale Warning', 'Gale Watch', 'Hazardous Materials Warning',
+  'Hazardous Seas Warning', 'Hazardous Seas Watch', 'Hazardous Weather Outlook', 'Heat Advisory',
+  'Heavy Freezing Spray Warning', 'Heavy Freezing Spray Watch', 'High Surf Advisory', 'High Surf Warning',
+  'High Wind Warning', 'High Wind Watch', 'Hurricane Force Wind Warning', 'Hurricane Force Wind Watch',
+  'Hurricane Warning', 'Hurricane Watch', 'Hydrologic Outlook', 'Ice Storm Warning',
+  'Lake Effect Snow Warning', 'Lake Wind Advisory', 'Lakeshore Flood Advisory', 'Lakeshore Flood Statement',
+  'Lakeshore Flood Warning', 'Lakeshore Flood Watch', 'Law Enforcement Warning', 'Local Area Emergency',
+  'Low Water Advisory', 'Marine Weather Statement', 'Nuclear Power Plant Warning',
+  'Radiological Hazard Warning', 'Red Flag Warning', 'Rip Current Statement', 'Severe Thunderstorm Warning',
+  'Severe Thunderstorm Watch', 'Severe Weather Statement', 'Shelter In Place Warning', 'Short Term Forecast',
+  'Small Craft Advisory', 'Snow Squall Warning', 'Special Marine Warning', 'Special Weather Statement',
+  'Storm Surge Warning', 'Storm Surge Watch', 'Storm Warning', 'Storm Watch', 'Test', 'Tornado Warning',
+  'Tornado Watch', 'Tropical Cyclone Local Statement', 'Tropical Storm Warning', 'Tropical Storm Watch',
+  'Tsunami Advisory', 'Tsunami Warning', 'Tsunami Watch', 'Typhoon Warning', 'Typhoon Watch',
+  'Volcano Warning', 'Wind Advisory', 'Winter Storm Warning', 'Winter Storm Watch', 'Winter Weather Advisory'
+];
+
 const MIN_TABLE = 30; // non-vacuity floor: a table this small is a truncated read, not a real allowlist
 const MIN_TYPES = 80; // the catalogue has carried >100 strings for years; far under that is a bad read
 // every NWS heat product carries the word; no flood, wind or storm product does
@@ -78,10 +111,20 @@ function mirrorProblems(js, py) {
   return out;
 }
 
-/* Live catalogue. Resolves to { types } when reachable, or { skipped: reason } on a transport
-   failure. A reachable-but-implausible catalogue is an error, not a skip: it would let every
-   membership test pass vacuously. */
-async function fetchTypes(timeoutMs) {
+/* The pinned catalogue. Its plausibility is checked the same way the live one's is, so a
+   truncated or hand-edited fixture is an error rather than a test that passes vacuously. */
+function pinnedTypes() {
+  if (PINNED_TYPES.length < MIN_TYPES) {
+    return { bad: `the pinned catalogue holds ${PINNED_TYPES.length} entries, which cannot be the real catalogue` };
+  }
+  return { types: PINNED_TYPES, captured: PINNED_CAPTURED };
+}
+
+/* Resolves to { types } when readable, or { skipped: reason } on a transport failure. A
+   reachable-but-implausible catalogue is an error, not a skip: it would let every membership
+   test pass vacuously. Live only when asked: the publish gate runs this. */
+async function fetchTypes(timeoutMs, live) {
+  if (!live) return pinnedTypes();
   try {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), timeoutMs || 15000);
@@ -113,7 +156,8 @@ async function main() {
     process.exit(1);
   }
 
-  const up = await fetchTypes(15000);
+  const live = process.argv.slice(2).includes('--upstream');
+  const up = await fetchTypes(15000, live);
   if (up.bad) {
     process.stderr.write(`hazard mirror: ${up.bad}\n`);
     process.exit(1);
@@ -124,14 +168,17 @@ async function main() {
   }
   const missing = js.list.filter((ev) => !up.types.includes(ev));
   if (missing.length) {
-    process.stderr.write('these event strings are not in the live NWS catalogue, so the board would '
-      + `silently publish zero of them:\n  ${missing.join('\n  ')}\n`);
+    process.stderr.write(`these event strings are not in the ${live ? 'live' : 'pinned'} NWS catalogue, so the board `
+      + `would silently publish zero of them:\n  ${missing.join('\n  ')}\n`);
     process.exit(1);
   }
-  process.stdout.write(`${js.list.length} events mirrored, all present in ${up.types.length} upstream types`);
+  // the capture date rides the sign-off line cycle-check.sh already logs, so a fixture nobody has
+  // refreshed is visible without a check that could block a publish over it
+  const provenance = live ? 'live' : `pinned ${up.captured}`;
+  process.stdout.write(`${js.list.length} events mirrored, all present in ${up.types.length} ${provenance} types`);
 }
 
-module.exports = { jsSide, pySide, mirrorProblems, fetchTypes, MIN_TABLE, MIN_TYPES, HEAT_RE };
+module.exports = { jsSide, pySide, mirrorProblems, fetchTypes, pinnedTypes, PINNED_TYPES, PINNED_CAPTURED, MIN_TABLE, MIN_TYPES, HEAT_RE };
 
 if (require.main === module) {
   main().catch((e) => { process.stderr.write(`hazard mirror: ${e.stack}\n`); process.exit(1); });

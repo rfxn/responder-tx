@@ -445,6 +445,7 @@ function mapLegendHtml() {
     }).join('') +
     `<div><span class="reopen-icon">✓</span>${esc(t('legend.reopen'))}</div>` +
     `<div><span class="rsentry-icon">📢</span>${esc(t('legend.rsentry'))}</div>` +
+    `<div><span class="wildfire-icon">🔥</span>${esc(t('legend.wildfire'))}</div>` +
     `<div class="lg-title" style="margin-top:6px">${esc(t('legend.cams'))}</div>` +
     `<div><span class="cam-icon cam-live">▶</span>${esc(t('cam.kind.live.long'))}</div>` +
     `<div><span class="cam-icon cam-still">📷</span>${esc(t('cam.kind.still.long'))}</div>` +
@@ -523,6 +524,7 @@ function initMap() {
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = false;
     if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer === state.layers.riverSentry) fetchRiverSentry();
+    if (e.layer === state.layers.wildfire) fetchWildfire();
     if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { opNotice(t('note.tropfail')); }); }
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
     if ((state.camLayerList || []).includes(e.layer)) loadCameras().catch(() => { opNotice(t('note.camfail')); });
@@ -590,6 +592,9 @@ function initMap() {
   // River Sentry siren tower sites — OFF by default, lazy-loaded; REPORTED LOCATIONS from a public
   // My Maps export, never a claim that a tower is powered, working, or still standing
   state.layers.riverSentry = L.layerGroup();
+  // wildfire incidents an agency has opened a record for — OFF by default, lazy-loaded; REPORTED
+  // ORIGIN POINTS, never a fire perimeter, and acreage/containment are reported figures
+  state.layers.wildfire = L.layerGroup();
   // cameras: one group per AO region (every source pooled into the region it sits in), all OFF by
   // default, lazy-loaded, clustered; plain group if the markercluster plugin failed to load
   const camGroup = () => (L.markerClusterGroup
@@ -630,6 +635,7 @@ function initMap() {
     'Low-water crossings (locations · not live status)': state.layers.lwc,
     'Crossings reported closed (Central Texas jurisdictions)': state.layers.crossStatus,
     'River Sentry siren sites (reported locations · not live status)': state.layers.riverSentry,
+    'Wildfire incidents (reported points · not perimeters)': state.layers.wildfire,
     ...camOverlays,
   }, { collapsed: true }).addTo(state.map);
 
@@ -1015,6 +1021,7 @@ const PILL_LAYERS = (CONFIG.wxUnified
   ['lwc', 'layers.lwc'],
   ['roadReopen', 'layers.reopen'],
   ['riverSentry', 'layers.rsentry'],
+  ['wildfire', 'layers.wildfire'],
 ]); // region camera pills are appended by initCamRegionRows()
 
 // a static row carries an i18n key; a region camera row takes its name from the event config
@@ -1141,6 +1148,7 @@ const SHEET_GROUPS = [
     ['lsrsAged', '🕓', 'layers.lsrhist', 'sheet.s.lsrhist', null, false],
     ['requests', '🆘', 'layers.notices', 'sheet.s.notices', 'curated', true],
     ['shelters', '🏠', 'layers.shelters', 'sheet.s.shelters', 'curated', true],
+    ['wildfire', '<span class="wildfire-icon">🔥</span>', 'layers.wildfire', 'sheet.s.wildfire', 'official', false],
   ]],
 ];
 

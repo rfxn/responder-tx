@@ -512,6 +512,7 @@ function renderGlossary() {
   html += glRow('⛔⚠✓', t('glossary.cross.label'), t('glossary.cross'));
   html += glRow('🆘', t('glossary.notice.label'), t('glossary.notice'));
   html += glRow('<span class="rsentry-icon" style="width:16px;height:16px;font-size:10px">📢</span>', t('glossary.rsentry.label'), t('glossary.rsentry'));
+  html += glRow('<span class="wildfire-icon" style="width:16px;height:16px;font-size:10px">🔥</span>', t('glossary.wildfire.label'), t('glossary.wildfire'));
   html += sec('glossary.sec.cues');
   html += `<div class="gl-note">${esc(t('glossary.cues'))}</div>`;
   for (const [glyph, key] of [['⚠', 'threat.ffemerg'], ['🆘', 'threat.life'], ['⛔', 'threat.cutoff'], ['●', 'threat.major'],
@@ -1135,7 +1136,7 @@ async function boot() {
   const shareQs = new URLSearchParams(location.search);
   const camOn = (lk) => { if (state.layers[lk]) state.layers[lk].addTo(state.map); };
   for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen'],
-    ['rs', 'riverSentry']]) {
+    ['rs', 'riverSentry'], ['fire', 'wildfire']]) {
     if (shareQs.get(qk) === '1') camOn(lk);
   }
   // ?camreg=<id,id> names the camera regions to open, ?camreg=all opens every one of them; unknown

@@ -55,6 +55,10 @@
   --haz-dust: #c98a4b;
   --haz-winter: #5ec8e8;
   --haz-wind: #7fb3a0;
+  /* the fire pair keeps clear of the crowded warm range the order and severe tokens already hold,
+     and follows the NWS product colour a responder may already read red flag as */
+  --haz-fire: #f5518f;
+  --haz-smoke: #b9718f;
   --haz-order: #e8593f;
   --good: #0ca30c;
   --tile-value: #ffffff;
@@ -91,6 +95,8 @@
   --haz-dust: #8f5c22;
   --haz-winter: #1f7d99;
   --haz-wind: #3f7a63;
+  --haz-fire: #c2185b;
+  --haz-smoke: #8e4b63;
   --haz-order: #b6301a;
   --cat-major: #8b2fd6;
   --good: #006300;
@@ -459,6 +465,8 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .alert-card.haz-dust { border-left-color: var(--haz-dust); }
 .alert-card.haz-winter { border-left-color: var(--haz-winter); }
 .alert-card.haz-wind { border-left-color: var(--haz-wind); }
+.alert-card.haz-fire { border-left-color: var(--haz-fire); }
+.alert-card.haz-smoke { border-left-color: var(--haz-smoke); }
 .alert-card.haz-order { border-left-color: var(--haz-order); }
 .alert-card .event { font-weight: 650; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .alert-card .event .ev-name { min-width: 0; }
@@ -611,6 +619,8 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .alert-poly.haz-dust { stroke: var(--haz-dust); fill: var(--haz-dust); }
 .alert-poly.haz-winter { stroke: var(--haz-winter); fill: var(--haz-winter); }
 .alert-poly.haz-wind { stroke: var(--haz-wind); fill: var(--haz-wind); }
+.alert-poly.haz-fire { stroke: var(--haz-fire); fill: var(--haz-fire); }
+.alert-poly.haz-smoke { stroke: var(--haz-smoke); fill: var(--haz-smoke); }
 .alert-poly.haz-order { stroke: var(--haz-order); fill: var(--haz-order); }
 
 /* punch the label-boost tiles up so place names stay readable under radar/alert washes */
@@ -1711,6 +1721,25 @@ button.inspect-gauge:hover { color: var(--accent); }
   display: inline-flex; vertical-align: middle; box-shadow: none;
 }
 
+/* Reported wildfire incident. A circle, because unlike a siren site this IS a hazard, and it
+   carries the fire hazard colour rather than a severity one: neither source publishes a severity
+   and the board must not invent one from acreage. */
+.wildfire-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; font-size: 13px; line-height: 1;
+  background: var(--surface-1); color: var(--ink-1);
+  border: 2.5px solid var(--haz-fire); border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+/* still a road hazard and a smoke source, visually retired: a reported containment is a fact */
+.wildfire-icon.contained { border-color: var(--ink-muted); filter: grayscale(1); }
+/* nobody has restamped it inside the window, so it is drawn without being asserted as current */
+.wildfire-icon.unconfirmed { border-style: dashed; opacity: 0.55; }
+.map-legend .wildfire-icon, .ls-icon .wildfire-icon {
+  width: 16px; height: 16px; margin-right: 6px; font-size: 10px;
+  display: inline-flex; vertical-align: middle; box-shadow: none; border-width: 1.5px;
+}
+
 /* mobile tap targets — small map markers get a transparent ~44px hit halo centered on the
    anchor (marker still points at its true coordinate); visible glyph unchanged. Scoped to the
    marker pane so legend swatches keep their small size (owner UX: markers hard to tap on a phone) */
@@ -1718,11 +1747,13 @@ button.inspect-gauge:hover { color: var(--accent); }
   .leaflet-marker-pane .reopen-icon,
   .leaflet-marker-pane .cam-icon,
   .leaflet-marker-pane .rsentry-icon,
+  .leaflet-marker-pane .wildfire-icon,
   .leaflet-marker-pane .lsr-icon,
   .leaflet-marker-pane .usgs-dot { position: relative; }
   .leaflet-marker-pane .reopen-icon::before,
   .leaflet-marker-pane .cam-icon::before,
   .leaflet-marker-pane .rsentry-icon::before,
+  .leaflet-marker-pane .wildfire-icon::before,
   .leaflet-marker-pane .lsr-icon::before,
   .leaflet-marker-pane .usgs-dot::before {
     content: ''; position: absolute; top: 50%; left: 50%;

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.67';
+const APP_VERSION = 'v0.99.68';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -304,6 +304,8 @@ const state = {
   roadClosures: null,
   roadsPartial: false,
   riverSentry: null,
+  wildfire: null,
+  wildfireUnknown: false, // the incident file was unreadable: unknown, never "no fires are burning"
   snapshotAt: null, // epoch of the gauge snapshot currently on screen, else null
   seedHash: null,
   gaugeMarkers: null,
@@ -313,6 +315,7 @@ const state = {
   showAllLsrs: false,
   _lwcLoaded: false,
   _rsentryLoaded: false,
+  _wildfireLoaded: false,
 
   bootAt: 0,
   lastInteract: 0,

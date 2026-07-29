@@ -171,6 +171,7 @@ function pbSbwPopup(p) {
 const PB_LIVE_HIDE = [
   ['shelters', 'layers.shelters'],
   ['riverSentry', 'layers.rsentry'], // undated location snapshot — cannot re-render as-of a past frame
+  ['wildfire', 'layers.wildfire'], // no incident archive exists, so it cannot re-render as-of a past frame
   ['roadReopen', 'layers.reopen'],
   ['usgs', 'layers.usgs'],
   ['fcstMax', 'layers.fcst'],

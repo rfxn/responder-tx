@@ -1,5 +1,24 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.68 · 2026-07-29 (fire products, and a wildfire layer)
+
+-- New Features --
+- [New] A wildfire layer, off until you turn it on, carrying incidents reported
+      by Texas A&M Forest Service and the National Interagency Fire Center.
+      Points, not perimeters. Acreage and containment appear only where the
+      reporting agency stated them, and are shown as unknown otherwise
+- [New] With no reported fires the layer says so, naming both sources and when
+      they were read, so a quiet day cannot be mistaken for a layer that failed
+- [New] Red Flag Warning, Fire Weather Watch and Dense Smoke Advisory are now
+      carried, each with its own colour and symbol. Smoke is kept visually
+      distinct from fire, because a smoke advisory often covers ground far from
+      anything burning
+
+-- Bug Fixes --
+- [Fix] A county Fire Warning is now carried. These are written by a county or
+      state agency and relayed through the weather service, and the board had
+      been discarding them
+
 ## v0.99.67 · 2026-07-28 (a count of zero now means the board checked)
 
 -- Bug Fixes --

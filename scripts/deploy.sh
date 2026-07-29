@@ -173,7 +173,10 @@ if [ "$SKIP_TESTS" -eq 1 ]; then
     record_bypass "$version" "$head_commit"
 else
     gate_log=$(command mktemp "${TMPDIR:-/tmp}/responder-gate.XXXXXX") || fail "mktemp for the test-gate log failed"
-    ( cd "$SRC" && node --test tests/ ) || fail "test gate: node --test tests/ failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
+    # through run.sh, not node directly: run.sh scrubs the inherited RESPONDER_ROOT that
+    # run-cycle.sh exports, which otherwise aims a spawned generator at the live repo
+    ( cd "$SRC" && RESPONDER_TEST_LOG="$gate_log" bash tests/run.sh node ) \
+        || fail "test gate: the node suite failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
     ( cd "$SRC" && RESPONDER_TEST_LOG="$gate_log" bash tests/run.sh py ) \
         || fail "test gate: the python suites failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
     marker_key=$(command cat "$SHELL_GATE_MARKER" 2>/dev/null) || marker_key=''  # no marker yet reads empty, which correctly runs the suites
@@ -182,7 +185,7 @@ else
         # staging path, so this run's own RESPONDER_DEPLOY_* must not reach them: a hand-run
         # deploy that pinned a staging dir would otherwise fail its own gate.
         ( cd "$SRC" && RESPONDER_TEST_LOG="$gate_log" \
-            env -u RESPONDER_DEPLOY_DIR -u RESPONDER_DEPLOY_WRANGLER -u RESPONDER_DEPLOY_SHELL_MARKER \
+            env -u RESPONDER_ROOT -u RESPONDER_DEPLOY_DIR -u RESPONDER_DEPLOY_WRANGLER -u RESPONDER_DEPLOY_SHELL_MARKER \
                 -u RESPONDER_DEPLOY_BYPASS_LOG bash tests/run.sh shell ) \
             || fail "test gate: the shell suites failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
         printf '%s\n' "$SHELL_GATE_KEY" > "$SHELL_GATE_MARKER" \

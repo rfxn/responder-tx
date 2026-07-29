@@ -26,11 +26,13 @@ MIRROR_URL="${RESPONDER_MONITOR_URL:-https://respondertx.org/data/gauges-snapsho
 OUTBOX="${RESPONDER_MONITOR_OUTBOX:-data/chat-outbox.json}"
 SNAPSHOT="${RESPONDER_MONITOR_SNAPSHOT:-data/gauges-snapshot.json}"
 CYCLE_LOG="${RESPONDER_CYCLE_LOG:-/var/log/responder-cycle.log}"
-STATE_FILE="${RESPONDER_MONITOR_STATE:-/tmp/responder-freshness-state}"  # "verdict streak last_alert_epoch"; a reboot reset costs at most one extra alert
+STATE_FILE="${RESPONDER_MONITOR_STATE:-/tmp/responder-freshness-state}"  # "verdict streak last_alert_epoch last_alert_age_min"; a reboot reset costs at most one extra alert
 WARN_MIN="${RESPONDER_MONITOR_WARN_MIN:-45}"        # 3 missed 15-min cycles
 CRIT_MIN="${RESPONDER_MONITOR_CRIT_MIN:-90}"        # 6 missed 15-min cycles
 FAIL_STREAK="${RESPONDER_MONITOR_FAIL_STREAK:-3}"   # consecutive fetch failures before the mirror counts as unreachable
-COOLDOWN="${RESPONDER_MONITOR_COOLDOWN:-21600}"     # re-alert gap (s) while one verdict persists
+COOLDOWN="${RESPONDER_MONITOR_COOLDOWN:-21600}"     # re-alert gap (s) while a WARN persists
+CRIT_COOLDOWN="${RESPONDER_MONITOR_CRIT_COOLDOWN:-3600}"  # CRITICAL/UNREACHABLE repeat faster: 6h of silence on a life-safety board reads as recovery
+ESCALATE_FACTOR="${RESPONDER_MONITOR_ESCALATE_FACTOR:-2}" # re-alert regardless of cooldown once the staleness has multiplied this much since the last alert
 FETCH_TIMEOUT="${RESPONDER_MONITOR_TIMEOUT:-25}"
 
 LOGFILE="${RESPONDER_MONITOR_LOG:-/var/log/responder-freshness.log}"
@@ -207,21 +209,23 @@ sys.exit(4)
 PY
 }
 
-# read_state — load STATE into ST_VERDICT/ST_STREAK/ST_LASTALERT; absent file is the fresh-install default.
+# read_state — load STATE into ST_VERDICT/ST_STREAK/ST_LASTALERT/ST_LASTAGE; absent file is the fresh-install
+# default, and a legacy 3-field line leaves ST_LASTAGE at 0, which only costs one extra escalation alert.
 read_state() {
-    ST_VERDICT=NONE; ST_STREAK=0; ST_LASTALERT=0
+    ST_VERDICT=NONE; ST_STREAK=0; ST_LASTALERT=0; ST_LASTAGE=0
     local word_re='^[A-Z]+$'
     if [ -f "$STATE_FILE" ]; then
-        read -r ST_VERDICT ST_STREAK ST_LASTALERT < "$STATE_FILE" || true  # short/absent line: keep defaults
+        read -r ST_VERDICT ST_STREAK ST_LASTALERT ST_LASTAGE < "$STATE_FILE" || true  # short/absent line: keep defaults
         [[ "${ST_VERDICT:-}" =~ $word_re ]] || ST_VERDICT=NONE
         ST_STREAK=$(printf '%s' "${ST_STREAK:-0}" | command tr -cd '0-9'); ST_STREAK="${ST_STREAK:-0}"
         ST_LASTALERT=$(printf '%s' "${ST_LASTALERT:-0}" | command tr -cd '0-9'); ST_LASTALERT="${ST_LASTALERT:-0}"
+        ST_LASTAGE=$(printf '%s' "${ST_LASTAGE:-0}" | command tr -cd '0-9'); ST_LASTAGE="${ST_LASTAGE:-0}"
     fi
 }
 
-# write_state VERDICT STREAK LASTALERT — persist monitor state atomically.
+# write_state VERDICT STREAK LASTALERT LASTAGE — persist monitor state atomically.
 write_state() {
-    printf '%s %s %s\n' "$1" "$2" "$3" > "${STATE_FILE}.tmp" && command mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    printf '%s %s %s %s\n' "$1" "$2" "$3" "${4:-0}" > "${STATE_FILE}.tmp" && command mv "${STATE_FILE}.tmp" "$STATE_FILE"
 }
 
 read_state
@@ -261,7 +265,7 @@ else
     STREAK=$((STREAK + 1))
     if [ "$STREAK" -lt "$FAIL_STREAK" ]; then
         log "mirror unreadable (${STREAK}/${FAIL_STREAK} consecutive); treating as transient, no alert. ${PIPELINE}"
-        [ "$DRY_RUN" -eq 1 ] || write_state "$ST_VERDICT" "$STREAK" "$ST_LASTALERT"
+        [ "$DRY_RUN" -eq 1 ] || write_state "$ST_VERDICT" "$STREAK" "$ST_LASTALERT" "$ST_LASTAGE"
         exit 0
     fi
     VERDICT=UNREACHABLE
@@ -300,17 +304,37 @@ if alerting "$VERDICT"; then
     else
         POST_TEXT="Data freshness alert (${VERDICT}). The public mirror at respondertx.org is serving a gauge snapshot generated $(fmt_min "$REMOTE_AGE") ago (warn over ${WARN_MIN} min, critical over ${CRIT_MIN} min). Local pipeline: ${PIPELINE}. Likely cause: ${CAUSE}. Runbook: scripts/README.md, section \"Freshness monitor\"."
     fi
-    if [ "$VERDICT" = "$ST_VERDICT" ] && [ "$ST_LASTALERT" -gt 0 ] && [ $((NOW - ST_LASTALERT)) -lt "$COOLDOWN" ]; then
-        log "alert suppressed: same verdict ${VERDICT}, last alert $((NOW - ST_LASTALERT))s ago (< ${COOLDOWN}s cooldown)"
+    # A repeat alert names the elapsed time, because a second identical message reads as a second
+    # incident rather than one that never cleared.
+    if [ "$VERDICT" = "$ST_VERDICT" ] && [ "$ST_LASTALERT" -gt 0 ]; then
+        POST_TEXT="${POST_TEXT} This condition has not cleared since the first alert $(fmt_min $(( (NOW - ST_LASTALERT) / 60 ))) ago."
+    fi
+    case "$VERDICT" in
+        CRITICAL|UNREACHABLE) THIS_COOLDOWN="$CRIT_COOLDOWN" ;;
+        *) THIS_COOLDOWN="$COOLDOWN" ;;
+    esac
+    # Worsening beats the cooldown: the incident this guards against held one verdict for five hours
+    # while the staleness tripled, and the flat gap kept every one of those checks silent.
+    ESCALATED=0
+    if [ -n "$REMOTE_AGE" ] && [ "$ST_LASTAGE" -gt 0 ] && [ "$REMOTE_AGE" -ge $((ST_LASTAGE * ESCALATE_FACTOR)) ]; then
+        ESCALATED=1
+    fi
+    if [ "$VERDICT" = "$ST_VERDICT" ] && [ "$ST_LASTALERT" -gt 0 ] \
+        && [ $((NOW - ST_LASTALERT)) -lt "$THIS_COOLDOWN" ] && [ "$ESCALATED" -eq 0 ]; then
+        log "alert suppressed: same verdict ${VERDICT}, last alert $((NOW - ST_LASTALERT))s ago (< ${THIS_COOLDOWN}s cooldown), age ${REMOTE_AGE:-?} vs ${ST_LASTAGE} at last alert"
         POST_TEXT=""
+    elif [ "$ESCALATED" -eq 1 ]; then
+        log "escalating inside cooldown: age ${REMOTE_AGE} min is >= ${ESCALATE_FACTOR}x the ${ST_LASTAGE} min at the last alert"
     fi
 elif alerting "$ST_VERDICT"; then
     POST_TEXT="Data freshness recovered. The public mirror at respondertx.org is current again (snapshot $(fmt_min "$REMOTE_AGE") old). Prior state was ${ST_VERDICT}."
 fi
 
 LASTALERT="$ST_LASTALERT"
+LASTAGE="$ST_LASTAGE"
 if ! alerting "$VERDICT"; then
     LASTALERT=0
+    LASTAGE=0
 fi
 if [ -n "$POST_TEXT" ]; then
     if [ "$DRY_RUN" -eq 1 ]; then
@@ -319,6 +343,7 @@ if [ -n "$POST_TEXT" ]; then
         log "posted to ops chat: ${POST_TEXT}"
         if alerting "$VERDICT"; then
             LASTALERT="$NOW"
+            LASTAGE="${REMOTE_AGE:-0}"  # the age this alert reported is what the next escalation is measured against
         fi
     else
         log "WARN: outbox append contended; nothing posted, retries next run"
@@ -326,9 +351,9 @@ if [ -n "$POST_TEXT" ]; then
 fi
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    log "DRY-RUN: state left at ${ST_VERDICT} ${ST_STREAK} ${ST_LASTALERT}"
+    log "DRY-RUN: state left at ${ST_VERDICT} ${ST_STREAK} ${ST_LASTALERT} ${ST_LASTAGE}"
 else
-    write_state "$VERDICT" "$STREAK" "$LASTALERT"
+    write_state "$VERDICT" "$STREAK" "$LASTALERT" "$LASTAGE"
 fi
 
 if alerting "$VERDICT"; then

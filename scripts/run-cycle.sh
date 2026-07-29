@@ -64,6 +64,7 @@ BUDGET_HISTORY_S=600
 BUDGET_NOTICES_S=60
 BUDGET_SHELTERS_S=150
 BUDGET_CROSSSTATUS_S=120
+BUDGET_WILDFIRE_S=90
 BUDGET_CREST_S=120
 BUDGET_FEEDS_S=120
 BUDGET_CALTOPO_S=120
@@ -218,6 +219,7 @@ gen history gen-history.py data/history.json "$BUDGET_HISTORY_S" || :  # reads C
 gen notices gen-notices.py data/requests.json "$BUDGET_NOTICES_S" || :  # LAN intake merge, never committed by the cycle
 gen shelters gen-shelters.py data/shelters-live.json "$BUDGET_SHELTERS_S" || :  # independent optional feed
 gen crossstatus gen-crossings-status.py data/crossing-status.json "$BUDGET_CROSSSTATUS_S" || :  # independent optional feed; live jurisdiction-reported closures
+gen wildfire gen-wildfire.py data/wildfire.json "$BUDGET_WILDFIRE_S" || :  # independent optional feed; two sources, either one may degrade alone
 
 # crest-summary is purely derived from the gauge snapshot; feeds is not (it also carries live NWS
 # flash-flood alerts, and its lastBuildDate is a document build stamp, not a data-currency claim),
@@ -281,6 +283,7 @@ DATA_FILES=(
     history/day
     data/shelters-live.json
     data/crossing-status.json
+    data/wildfire.json
     data/caltopo-export.json
     data/board.kml
     data/board-live.kml

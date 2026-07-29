@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.69 · 2026-07-29 (the fire layer covers Texas, and says more about each fire)
+
+-- Changes --
+- [Change] The wildfire layer now carries Texas and a 50 mile band beyond its
+           border, instead of a rectangle that reached into New Mexico,
+           Oklahoma and Arkansas. An incident beyond the band is not shown, and
+           one inside it is marked as near Texas rather than presented as a
+           Texas fire
+- [Change] Fire now has its own group in the layer list, alongside water, rain
+           and tropical, instead of sitting at the bottom with alerts and
+           reports
+- [Change] The wildfire layer description is shorter
+
+-- New Features --
+- [New] The fire popup is now a card with one row per fact, and adds cause,
+      first reported time, protecting unit, how the incident is being managed,
+      assigned personnel and incident number. A row appears only where the
+      agency reported it, and an unreported size or containment is shown as a
+      gap rather than written out as prose
+
 ## v0.99.68 · 2026-07-29 (fire products, and a wildfire layer)
 
 -- New Features --

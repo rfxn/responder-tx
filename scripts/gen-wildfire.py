@@ -2,9 +2,14 @@
 """Poll active wildfire incidents to data/wildfire.json.
 
 Two independent sources: Texas A&M Forest Service (in-state, the only feed that carries live
-Texas wildfire content) and NIFC WFIGS incident locations for the area around the AO. WFIGS
-records whose point of origin is Texas are dropped, because TFS is authoritative in-state and a
-duplicate would double-count the same fire.
+Texas wildfire content) and NIFC WFIGS incident locations for the band just outside the state.
+WFIGS records whose point of origin is Texas are dropped, because TFS is authoritative in-state
+and a duplicate would double-count the same fire.
+
+Scope is data/wildfire-scope.json, an outline of Texas plus a buffer in miles, and deliberately
+NOT data/event.json: event.json is the flood area of operations, and a flood re-target must not
+silently redefine which fires the board carries. Each record publishes the side of the line it
+fell on, so the client need not imply every incident is a Texas one.
 
 Zero active wildfires is the normal Texas state for most of the year, so an empty-but-valid read
 publishes cleanly with status "ok" and count 0. A failed read never does: a source that could not
@@ -41,30 +46,77 @@ SOURCES = {
               "url": "https://data-nifc.opendata.arcgis.com/"},
 }
 
-# event-neutral Texas-wide fallback, mirrors js/core.js CONFIG.gaugeBbox
-DEFAULT_BBOX = {"xmin": -106.65, "ymin": 25.83, "xmax": -93.4, "ymax": 36.5}
-MARGIN = 0.5
+SCOPE = os.path.join(ROOT, "data", "wildfire-scope.json")
+MI_PER_DEG_LAT = 69.0
 # both endpoints answer healthy in well under a second, so a short deadline plus retries beats one
 # long wait on a hang
 TIMEOUT = 12
 BACKOFFS = [2, 5]
 PAGE = 1000
 MAX_PAGES = 4
+# fill rates measured 2026-07-29 over 47 in-scope records: FireCause 96%, PercentContained 15%,
+# IncidentManagementOrganization 15%, TotalIncidentPersonnel 13%. ContainmentDateTime was 0/47 and
+# is left out rather than carried as a column nothing populates.
 WFIGS_FIELDS = ("IncidentName,POOState,POOCounty,IncidentSize,PercentContained,"
                 "ModifiedOnDateTime_dt,FireDiscoveryDateTime,UniqueFireIdentifier,"
-                "POOProtectingAgency,IncidentTypeCategory")
+                "POOProtectingAgency,IncidentTypeCategory,FireCause,"
+                "TotalIncidentPersonnel,IncidentManagementOrganization")
 WFIGS_WHERE = "IncidentTypeCategory='WF' AND FireOutDateTime IS NULL"
 
 
-def ao_bbox():
-    try:
-        with open(EVENT, encoding="utf-8") as f:
-            b = json.load(f).get("gaugeBbox") or {}
-        if all(isinstance(b.get(k), (int, float)) for k in ("xmin", "ymin", "xmax", "ymax")):
-            return b
-    except Exception as e:  # noqa: BLE001 — a broken event.json must not kill the poller; the fallback matches core.js
-        print(f"warn: event.json bbox unreadable, using default: {e}", file=sys.stderr)
-    return DEFAULT_BBOX
+def load_scope():
+    """(ring, buffer_mi, bbox). Raises: with no scope there is no way to tell a Texas fire from a
+    Montana one, and both answers a fallback could give (publish everything, publish nothing) are
+    false claims. Failing keeps the previous file, which ages visibly."""
+    with open(SCOPE, encoding="utf-8") as f:
+        s = json.load(f)
+    ring = s.get("ring")
+    if not isinstance(ring, list) or len(ring) < 4:
+        raise ValueError("wildfire-scope.json: ring missing or too short to be a boundary")
+    ring = [(float(x), float(y)) for x, y in ring]
+    buf = s.get("bufferMiles")
+    if not isinstance(buf, (int, float)) or not 0 <= buf <= 500:
+        raise ValueError(f"wildfire-scope.json: bufferMiles {buf!r} outside 0-500")
+    lons = [p[0] for p in ring]
+    lats = [p[1] for p in ring]
+    pad_lat = buf / MI_PER_DEG_LAT
+    pad_lon = buf / max(1.0, MI_PER_DEG_LAT * math.cos(math.radians(sum(lats) / len(lats))))
+    bbox = {"xmin": min(lons) - pad_lon, "ymin": min(lats) - pad_lat,
+            "xmax": max(lons) + pad_lon, "ymax": max(lats) + pad_lat}
+    return ring, float(buf), bbox
+
+
+def in_ring(lat, lon, ring):
+    inside = False
+    for i in range(len(ring) - 1):
+        x1, y1 = ring[i]
+        x2, y2 = ring[i + 1]
+        if (y1 > lat) != (y2 > lat) and lon < x1 + (lat - y1) / (y2 - y1) * (x2 - x1):
+            inside = not inside
+    return inside
+
+
+def miles_to_ring(lat, lon, ring):
+    """Shortest distance to the boundary, in statute miles. Degrees are scaled to miles before the
+    comparison, because a degree of longitude at this latitude is about 56 miles, not 69."""
+    kx = MI_PER_DEG_LAT * math.cos(math.radians(lat))
+    px, py = lon * kx, lat * MI_PER_DEG_LAT
+    best = float("inf")
+    for i in range(len(ring) - 1):
+        ax, ay = ring[i][0] * kx, ring[i][1] * MI_PER_DEG_LAT
+        bx, by = ring[i + 1][0] * kx, ring[i + 1][1] * MI_PER_DEG_LAT
+        dx, dy = bx - ax, by - ay
+        span = dx * dx + dy * dy
+        t = 0.0 if span == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / span))
+        best = min(best, math.hypot(px - (ax + t * dx), py - (ay + t * dy)))
+    return best
+
+
+def scope_of(lat, lon, ring, buffer_mi):
+    """"tx", "buffer", or None for a fire the board does not carry."""
+    if in_ring(lat, lon, ring):
+        return "tx"
+    return "buffer" if miles_to_ring(lat, lon, ring) <= buffer_mi else None
 
 
 def iso_z(dt):
@@ -146,12 +198,7 @@ def point_of(f):
     return round(lat, 5), round(lon, 5)
 
 
-def in_bbox(lat, lon, b):
-    return (b["xmin"] - MARGIN <= lon <= b["xmax"] + MARGIN
-            and b["ymin"] - MARGIN <= lat <= b["ymax"] + MARGIN)
-
-
-def collect_tfs(b):
+def collect_tfs(scope):
     """(fires, captured). Raises on any read the file must not publish as an empty day."""
     doc = get_json(TFS_URL, "TFS")
     fires = []
@@ -167,7 +214,8 @@ def collect_tfs(b):
             observed = iso_from_text(p.get("lastupdated")) or iso_from_text(p.get("statustimestamp"))
             if not pt or not name or not p.get("id") or not observed:
                 continue
-            if not in_bbox(pt[0], pt[1], b):
+            where = scope_of(pt[0], pt[1], scope[0], scope[1])
+            if where is None:
                 continue
             # the feed states its own units rather than implying them, so an incident measured in
             # something other than acres publishes no acreage instead of a mislabelled number
@@ -180,6 +228,7 @@ def collect_tfs(b):
             fires.append({
                 "id": "tfs:%s" % p["id"],
                 "src": "tfs",
+                "scope": where,
                 "name": name,
                 "lat": pt[0],
                 "lon": pt[1],
@@ -192,6 +241,7 @@ def collect_tfs(b):
                 "observed": observed,
                 "started": iso_from_text(p.get("firsttimestatus")),
                 "unit": str(p.get("protectingunit") or "").strip() or None,
+                "number": str(p.get("number") or "").strip() or None,
             })
         except Exception as e:  # noqa: BLE001 — one malformed feature must not drop the whole poll
             print(f"warn: skipped malformed TFS feature: {e!r}", file=sys.stderr)
@@ -209,15 +259,15 @@ def wfigs_captured():
         return None
 
 
-def collect_wfigs(b):
+def collect_wfigs(scope):
     """(fires, captured). Raises on a failed or truncated read: a short set read as complete
     invents an absence."""
     raw = []
     for page in range(MAX_PAGES):
         params = urllib.parse.urlencode({
             "where": WFIGS_WHERE,
-            "geometry": (f"{b['xmin'] - MARGIN},{b['ymin'] - MARGIN},"
-                         f"{b['xmax'] + MARGIN},{b['ymax'] + MARGIN}"),
+            "geometry": (f"{scope[2]['xmin']},{scope[2]['ymin']},"
+                         f"{scope[2]['xmax']},{scope[2]['ymax']}"),
             "geometryType": "esriGeometryEnvelope",
             "inSR": "4326",
             "spatialRel": "esriSpatialRelIntersects",
@@ -251,11 +301,13 @@ def collect_wfigs(b):
             observed = iso_from_ms(p.get("ModifiedOnDateTime_dt"))
             if not pt or not name or not fid or not observed:
                 continue
-            if not in_bbox(pt[0], pt[1], b):
+            where = scope_of(pt[0], pt[1], scope[0], scope[1])
+            if where is None:
                 continue
             fires.append({
                 "id": "wfigs:%s" % fid,
                 "src": "wfigs",
+                "scope": where,
                 "name": name,
                 "lat": pt[0],
                 "lon": pt[1],
@@ -267,15 +319,19 @@ def collect_wfigs(b):
                 "observed": observed,
                 "started": iso_from_ms(p.get("FireDiscoveryDateTime")),
                 "unit": str(p.get("POOProtectingAgency") or "").strip() or None,
+                "cause": (lambda c: c if c and c.lower() not in ("none", "null") else None)(
+                    str(p.get("FireCause") or "").strip()),
+                "org": str(p.get("IncidentManagementOrganization") or "").strip() or None,
+                "crew": number(p.get("TotalIncidentPersonnel"), lo=0, ndigits=0),
             })
         except Exception as e:  # noqa: BLE001 — one malformed feature must not drop the whole poll
             print(f"warn: skipped malformed WFIGS feature: {e!r}", file=sys.stderr)
     return fires, wfigs_captured()
 
 
-def collect(key, fn, b):
+def collect(key, fn, scope):
     try:
-        fires, captured = fn(b)
+        fires, captured = fn(scope)
     except Exception as e:  # noqa: BLE001 — a failed source is published as failed, never as zero
         print(f"warn: {key} read failed, publishing it as failed with no records: {e}", file=sys.stderr)
         return [], dict(SOURCES[key], key=key, status="failed", captured=None, count=None)
@@ -294,9 +350,9 @@ def write_payload(payload):
 
 
 def main():
-    b = ao_bbox()
-    tfs_fires, tfs_src = collect("tfs", collect_tfs, b)
-    wfigs_fires, wfigs_src = collect("wfigs", collect_wfigs, b)
+    scope = load_scope()
+    tfs_fires, tfs_src = collect("tfs", collect_tfs, scope)
+    wfigs_fires, wfigs_src = collect("wfigs", collect_wfigs, scope)
     sources = [tfs_src, wfigs_src]
 
     if all(s["status"] == "failed" for s in sources):

@@ -635,6 +635,24 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .popup-meta { color: var(--ink-2); font-size: 12px; }
 .cat-word { font-weight: 700; text-transform: uppercase; }
 .popup-link a { color: var(--accent); text-decoration: none; font-size: 12px; }
+
+/* wildfire incident card: a label/value grid so an unreported figure reads as a gap rather than
+   as prose, and the status/proximity/staleness tags read before the numbers do */
+.wf-card { min-width: 214px; }
+.wf-head { margin-bottom: 5px; }
+.wf-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.wf-tag { font-size: 10px; font-weight: 650; letter-spacing: .02em; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 3px; background: var(--haz-fire, var(--sev-warning)); color: #fff; }
+.wf-tag.is-out { background: var(--ink-3, var(--ink-2)); }
+.wf-tag.is-near { background: transparent; color: var(--ink-2);
+  border: 1px solid var(--line, var(--ink-3, currentColor)); }
+.wf-tag.is-stale { background: transparent; color: var(--sev-warning);
+  border: 1px dashed var(--sev-warning); }
+.wf-facts { display: grid; grid-template-columns: auto 1fr; gap: 1px 8px; font-size: 12px; }
+.wf-k { color: var(--ink-2); white-space: nowrap; }
+.wf-v { color: var(--ink); }
+.wf-unknown { color: var(--ink-2); font-style: italic; opacity: .8; }
+.wf-prov { margin-top: 6px; font-size: 11px; line-height: 1.35; color: var(--ink-2); opacity: .8; }
 .popup-spark { margin-top: 6px; }
 .popup-spark .spark-note { font-size: 10.5px; color: var(--ink-muted); }
 

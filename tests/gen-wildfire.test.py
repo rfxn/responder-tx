@@ -89,12 +89,16 @@ PREV = json.dumps({'generated': '2026-07-01T00:00:00Z',
                               'acres': None, 'contain': None}]})
 
 
-# the AO the fixture repo declares; a narrowed one proves the generator reads event.json rather
-# than always falling through to the Texas-wide default
+# The flood AO the fixture repo declares. The wildfire layer must NOT follow it: event.json is the
+# flood area of operations, and a flood re-target must not redefine which fires the board carries.
 TX_BBOX = {'xmin': -106.65, 'ymin': 25.83, 'xmax': -93.4, 'ymax': 36.5}
+# the shipped outline itself, so these tests exercise the real ring rather than a stand-in
+REPO_SCOPE = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                         '..', 'data', 'wildfire-scope.json')))
 
 
-def run(tfs=TFS_OK, wfigs=WFIGS_OK, meta=META_OK, previous=None, bbox=TX_BBOX):
+def run(tfs=TFS_OK, wfigs=WFIGS_OK, meta=META_OK, previous=None, bbox=TX_BBOX,
+        buffer_mi=50, scope=True):
     """Drive main() with urlopen routed by URL. Each of tfs/wfigs/meta is an Exception to raise,
     a body to answer with, or a list of either replayed in order (the last element repeats)."""
     root = tempfile.mkdtemp(prefix='gen-wildfire-test.')
@@ -102,6 +106,9 @@ def run(tfs=TFS_OK, wfigs=WFIGS_OK, meta=META_OK, previous=None, bbox=TX_BBOX):
         os.mkdir(os.path.join(root, 'data'))
         with open(os.path.join(root, 'data', 'event.json'), 'w') as f:
             json.dump({'name': 'Fixture AO', 'gaugeBbox': bbox}, f)
+        if scope:
+            with open(os.path.join(root, 'data', 'wildfire-scope.json'), 'w') as f:
+                json.dump(dict(REPO_SCOPE, bufferMiles=buffer_mi), f)
         out = os.path.join(root, 'data', 'wildfire.json')
         if previous is not None:
             with open(out, 'w') as f:
@@ -139,13 +146,17 @@ def run(tfs=TFS_OK, wfigs=WFIGS_OK, meta=META_OK, previous=None, bbox=TX_BBOX):
         mod.urllib.request.urlopen = urlopen
         mod.time.sleep = lambda s: sleeps.append(s)
         code = 0
+        errors = []
         try:
             code = mod.main()
         except SystemExit as e:  # sys.exit("reason") exits 1; only an int code is itself
             code = e.code if isinstance(e.code, int) else 1
+        except Exception as e:  # noqa: BLE001 — an uncaught raise is a non-zero run, not a dead suite
+            code = 1
+            errors.append(repr(e))
         body = open(out).read() if os.path.exists(out) else None
         return {'code': code, 'body': body, 'doc': json.loads(body) if body else None,
-                'calls': calls, 'sleeps': sleeps, 'mod': mod, 'seen': seen}
+                'calls': calls, 'sleeps': sleeps, 'mod': mod, 'seen': seen, 'errors': errors}
     finally:
         os.environ.pop('RESPONDER_ROOT', None)
         shutil.rmtree(root, ignore_errors=True)
@@ -178,6 +189,7 @@ def run_schema_gate(payload):
                                        'gauges': [{'lid': 'AAAT2', 'status': {}}]})
         write('requests.json', {'requests': []})
         write('wildfire.json', payload)
+        write('wildfire-scope.json', REPO_SCOPE)
         script = os.path.join(work, 'gate.py')
         with open(script, 'w') as f:
             f.write(gate)
@@ -312,10 +324,30 @@ check('a prescribed burn and a non-public incident are both dropped, and the rea
 r = run(tfs=collection([tfs_feature(lon=-70.0, lat=43.0)], created='2026-07-29T03:55:03.767Z'))
 check('an incident outside the area of operations is dropped',
       not [f for f in r['doc']['fires'] if f['src'] == 'tfs'], r['doc']['fires'])
-# the AO comes from event.json, not from a constant: a narrowed one has to narrow the layer too
+# SCOPE: the fire layer is keyed to data/wildfire-scope.json, never to the flood AO. Narrowing
+# event.json used to silently shrink the fire layer with it, which is E6 in reverse.
 r = run(bbox={'xmin': -99.5, 'ymin': 29.5, 'xmax': -98.5, 'ymax': 30.5})
-check('the generator reads the declared AO rather than always publishing Texas-wide',
-      not r['doc']['fires'], r['doc']['fires'])
+check('SCOPE · narrowing the flood AO does not narrow the wildfire layer',
+      [f for f in r['doc']['fires'] if f['src'] == 'tfs'], r['doc']['fires'])
+r = run(tfs=collection([tfs_feature(lon=-97.74, lat=30.27)], created='2026-07-29T03:55:03.767Z'))
+check('SCOPE · a Texas incident publishes as scope tx',
+      [f for f in r['doc']['fires'] if f['src'] == 'tfs' and f['scope'] == 'tx'], r['doc']['fires'])
+# Shreveport LA, 17 mi out: close enough that its smoke and its mutual aid both reach Texas
+r = run(wfigs=collection([wfigs_feature(lon=-93.75, lat=32.53, POOState='US-LA')]))
+check('SCOPE · an out-of-state incident inside the buffer publishes as scope buffer',
+      [f for f in r['doc']['fires'] if f['src'] == 'wfigs' and f['scope'] == 'buffer'],
+      r['doc']['fires'])
+# Santa Fe NM, 159 mi out: the exact shape of record a Texas-shaped bounding box used to admit
+r = run(wfigs=collection([wfigs_feature(lon=-105.87, lat=35.67, POOState='US-NM')]))
+check('SCOPE · an incident well outside the buffer is dropped, and the run still publishes clean',
+      r['code'] == 0 and not [f for f in r['doc']['fires'] if f['src'] == 'wfigs'],
+      r['doc']['fires'])
+r = run(buffer_mi=0, wfigs=collection([wfigs_feature(lon=-93.75, lat=32.53, POOState='US-LA')]))
+check('SCOPE · a zero buffer keeps Texas and drops everything beyond the line',
+      not [f for f in r['doc']['fires'] if f['src'] == 'wfigs'], r['doc']['fires'])
+r = run(scope=False)
+check('SCOPE · an unreadable scope file refuses to publish rather than guessing at coverage',
+      r['code'] != 0 and r['doc'] is None, (r['code'], r['doc']))
 r = run(tfs=collection([tfs_feature(lastupdated=None, statustimestamp=None),
                         tfs_feature(fid='ID-3', name='')],
                        created='2026-07-29T03:55:03.767Z'))
@@ -341,7 +373,8 @@ GOOD_SOURCES = [{'key': 'tfs', 'name': 'Texas A&M Forest Service',
                  'url': 'https://data-nifc.opendata.arcgis.com/', 'status': 'failed',
                  'captured': None, 'count': None}]
 FIRE = {'id': 'tfs:ID-1', 'src': 'tfs', 'name': 'Upshur 6318', 'lat': 32.575, 'lon': -94.889,
-        'status': 'Contained', 'acres': 2, 'contain': 100, 'observed': '2026-07-29T01:04:00Z'}
+        'scope': 'tx', 'status': 'Contained', 'acres': 2, 'contain': 100,
+        'observed': '2026-07-29T01:04:00Z'}
 
 
 def payload(fires, sources=None):
@@ -386,6 +419,24 @@ check('the generator writes what the release gate accepts', rc == 0, 'rc=%s %s' 
 rc, log = run_schema_gate(run(wfigs=ARCGIS_ERR)['doc'])
 check('a degraded run also writes what the release gate accepts', rc == 0, 'rc=%s %s' % (rc, log))
 
+
+# GATE · the scope decision is re-derived from the outline, not taken on the generator's word: a
+# widened scope would otherwise publish out-of-state fires with nobody noticing.
+rc, log = run_schema_gate(payload([dict(FIRE, lat=39.74, lon=-104.99, scope='buffer')]))
+check('the schema gate rejects a fire past the border buffer even when it is labelled buffer',
+      rc != 0 and 'past the' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(FIRE, scope='buffer')]))
+check('the schema gate rejects a Texas fire mislabelled as out of state',
+      rc != 0 and 'inside Texas but labelled' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(FIRE, lat=32.53, lon=-93.75, scope='tx')]))
+check('the schema gate rejects an out-of-state fire mislabelled as Texas',
+      rc != 0 and 'outside Texas but labelled' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(FIRE, lat=32.53, lon=-93.75, scope='buffer')]))
+check('the schema gate accepts a Louisiana fire 17 mi from the line, which is inside the buffer',
+      rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([FIRE, dict(FIRE, id='tfs:ID-2', scope=None)]))
+check('the schema gate rejects a half-populated scope column rather than trusting the labelled half',
+      rc != 0 and 'partial column' in log, 'rc=%s %s' % (rc, log))
 print('----')
 if FAILS == 0:
     print('ALL GEN-WILDFIRE TESTS PASSED')

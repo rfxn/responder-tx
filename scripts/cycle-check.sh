@@ -274,7 +274,7 @@ if check_cursors; then pass "chat cursors (integer, <= inbox lines, no regressio
 # so generator/consumer drift fails the cycle instead of degrading silently
 check_schemas() {
     python3 - <<'EOF'
-import datetime, hashlib, json, os, sys
+import datetime, hashlib, json, math, os, sys
 
 
 def die(m):
@@ -455,6 +455,60 @@ if d is not None:
                 die("wildfire.json: fires[%d] %s is neither a number nor null" % (i, k))
         if isinstance(f.get("contain"), (int, float)) and not 0 <= f["contain"] <= 100:
             die("wildfire.json: fires[%d] contain %r is outside 0-100" % (i, f["contain"]))
+    # An artifact written before the scope column existed is an upgrade path, not a fault: it notes
+    # and self-resolves on the first cycle after the release. A record that carries SOME scope is
+    # held to all of it.
+    scoped = [f for f in d["fires"] if f.get("scope") is not None]
+    if scoped and len(scoped) != len(d["fires"]):
+        die("wildfire.json: %d of %d fires carry a scope; a partial column cannot be trusted"
+            % (len(scoped), len(d["fires"])))
+    if d["fires"] and not scoped:
+        print("note: wildfire.json predates the scope column; the next cycle republishes it")
+    for i, f in enumerate(scoped):
+        if f.get("scope") not in ("tx", "buffer"):
+            die("wildfire.json: fires[%d] scope %r is neither tx nor buffer" % (i, f.get("scope")))
+    # Re-derive the scope decision here rather than trusting the label the generator wrote. The
+    # board carries Texas plus a border buffer, and a widened scope is exactly the kind of change
+    # that would otherwise publish out-of-state fires with nobody noticing.
+    sc = optional("data/wildfire-scope.json")
+    if sc is not None and scoped:
+        ring = [(float(x), float(y)) for x, y in sc["ring"]]
+        buf = float(sc["bufferMiles"])
+        MI_LAT = 69.0
+
+        def inside(lat, lon):
+            hit = False
+            for j in range(len(ring) - 1):
+                x1, y1 = ring[j]
+                x2, y2 = ring[j + 1]
+                if (y1 > lat) != (y2 > lat) and lon < x1 + (lat - y1) / (y2 - y1) * (x2 - x1):
+                    hit = not hit
+            return hit
+
+        def miles_out(lat, lon):
+            kx = MI_LAT * math.cos(math.radians(lat))
+            px, py = lon * kx, lat * MI_LAT
+            best = float("inf")
+            for j in range(len(ring) - 1):
+                ax, ay = ring[j][0] * kx, ring[j][1] * MI_LAT
+                bx, by = ring[j + 1][0] * kx, ring[j + 1][1] * MI_LAT
+                dx, dy = bx - ax, by - ay
+                span = dx * dx + dy * dy
+                t = 0.0 if span == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / span))
+                best = min(best, math.hypot(px - (ax + t * dx), py - (ay + t * dy)))
+            return best
+
+        for i, f in enumerate(scoped):
+            here = inside(f["lat"], f["lon"])
+            if here and f["scope"] != "tx":
+                die("wildfire.json: fires[%d] is inside Texas but labelled %r" % (i, f["scope"]))
+            if not here:
+                out = miles_out(f["lat"], f["lon"])
+                if out > buf:
+                    die("wildfire.json: fires[%d] sits %.0f mi outside Texas, past the %g mi buffer"
+                        % (i, out, buf))
+                if f["scope"] != "buffer":
+                    die("wildfire.json: fires[%d] is outside Texas but labelled %r" % (i, f["scope"]))
 
 d = optional("data/caltopo-export.json")
 if d is not None:

@@ -2265,28 +2265,58 @@ function renderWildfire() {
 const wildfireSource = (f) => wildfireSources().find((s) => s.key === (f && f.src)) || {};
 const wildfireAttrib = (f) => `${t('layers.wildfire')}: ${wildfireSource(f).name || t('word.source')}`;
 
+/* One row per fact the source actually stated. A reported figure and an unreported one are drawn
+   differently rather than both as plain text, because "not reported" is the answer a responder most
+   needs to notice: 85% of WFIGS records carry no containment at all. */
+function wfRow(labelKey, value, opts) {
+  const o = opts || {};
+  const unknown = value === null || value === undefined || value === '';
+  if (unknown && !o.showUnknown) return '';
+  const cls = `wf-v${unknown ? ' wf-unknown' : ''}${o.cls ? ` ${o.cls}` : ''}`;
+  const text = unknown ? t('wf.unreported') : String(value);
+  return `<div class="wf-row"><span class="wf-k">${esc(t(labelKey))}</span>`
+    + `<span class="${cls}">${esc(text)}</span></div>`;
+}
+
 function wildfirePopupHtml(f) {
   const src = wildfireSource(f);
+  const num = (v) => (v === null || v === undefined ? null : fmtNum(v));
   const place = [f.county && t('wf.county').replace('{c}', f.county), f.state].filter(Boolean).join(', ');
-  const figures = [
-    f.acres === null || f.acres === undefined ? t('wf.noacres') : t('wf.acres').replace('{n}', fmtNum(f.acres)),
-    f.contain === null || f.contain === undefined ? t('wf.nocontain') : t('wf.contain').replace('{n}', fmtNum(f.contain)),
-  ].join(' · ');
+  const stale = wildfireStale(f);
+  const head = `<div class="wf-head">`
+    + `<div class="popup-title">🔥 ${esc(f.name || t('layers.wildfire'))}</div>`
+    + `<div class="wf-tags">`
+    + (f.status ? `<span class="wf-tag${wildfireContained(f) ? ' is-out' : ''}">${esc(f.status)}</span>` : '')
+    // a fire in the border band is not a Texas fire, and the card says so rather than letting the
+    // layer's name imply it
+    + (f.scope === 'buffer' ? `<span class="wf-tag is-near">${esc(t('wf.nearby'))}</span>` : '')
+    + (stale ? `<span class="wf-tag is-stale">${esc(t('wf.stale').replace('{h}', String(Math.round(wildfireAgeH(f)))))}</span>` : '')
+    + `</div></div>`;
+  const facts = `<div class="wf-facts">`
+    + wfRow('wf.k.size', f.acres === null || f.acres === undefined ? null : t('wf.acres').replace('{n}', num(f.acres)), { showUnknown: true })
+    + wfRow('wf.k.contain', f.contain === null || f.contain === undefined ? null : t('wf.contain').replace('{n}', num(f.contain)), { showUnknown: true })
+    + wfRow('wf.k.where', place)
+    + wfRow('wf.k.cause', f.cause)
+    + wfRow('wf.k.started', f.started ? fmtWhen(f.started) : null)
+    + wfRow('wf.k.updated', f.observed ? fmtWhen(f.observed) : null, { showUnknown: true, cls: stale ? 'xg-stale' : '' })
+    + wfRow('wf.k.unit', f.unit)
+    + wfRow('wf.k.org', f.org)
+    + wfRow('wf.k.crew', f.crew === null || f.crew === undefined ? null : t('wf.crew').replace('{n}', num(f.crew)))
+    + wfRow('wf.k.number', f.number)
+    + `</div>`;
+  const prov = `<div class="wf-prov">`
+    + `<div>${esc(t('wf.lag'))}</div>`
+    + `<div>${esc(t('wf.point'))}</div>`
+    + (src.name
+      ? `<div>${esc(src.name)}`
+        + (src.captured ? ` · ${esc(t('wf.captured').replace('{t}', fmtWhen(src.captured)))}`
+          : ` · ${esc(t('wf.nocurrency'))}`) + `</div>`
+      : '')
+    + `</div>`;
   const link = safeUrl(src.url) !== '#'
     ? `<div class="popup-link"><a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener">${esc(t('word.source'))}</a></div>`
     : '';
-  return `<div class="popup-title">🔥 ${esc([f.status, f.name].filter(Boolean).join(' · '))}</div>` +
-    (place ? `<div class="popup-meta">${esc(place)}</div>` : '') +
-    `<div class="popup-meta">${esc(figures)}</div>` +
-    `<div class="popup-meta">${esc(t('wf.updated').replace('{t}', fmtWhen(f.observed)))}</div>` +
-    (wildfireStale(f)
-      ? `<div class="popup-meta"><span class="xg-stale">${esc(t('wf.stale').replace('{h}', String(Math.round(wildfireAgeH(f)))))}</span></div>`
-      : '') +
-    `<div class="popup-meta" style="margin-top:4px">${esc(t('wf.lag'))}</div>` +
-    `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(t('wf.point'))}</div>` +
-    (src.name ? `<div class="popup-meta" style="opacity:.7">${esc(src.name)}` +
-      (src.captured ? ` · ${esc(t('wf.captured').replace('{t}', fmtWhen(src.captured)))}` : ` · ${esc(t('wf.nocurrency'))}`) + '</div>' : '') +
-    link;
+  return `<div class="wf-card">${head}${facts}${prov}${link}</div>`;
 }
 
 /* ---------- IEM local storm reports (ground truth) ---------- */

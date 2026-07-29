@@ -56,21 +56,22 @@ const popup = (fire, sources) =>
 
 test('an unreported acreage or containment is named as unreported, never rendered as zero', () => {
   const html = popup({ ...FIRE, src: 'wfigs', acres: null, contain: null });
-  assert.match(html, /wf\.noacres/, 'a null size must say so');
-  assert.match(html, /wf\.nocontain/, 'a null containment must say so');
-  assert.doesNotMatch(html, /wf\.contain/, 'a null containment must not reach the "{n}% contained" string');
-  assert.doesNotMatch(html, /wf\.acres/, 'a null size must not reach the "{n} acres" string');
+  // the size and containment rows are always drawn, so an unreported figure is a visible gap
+  assert.match(html, /wf\.k\.size/, 'the size row is drawn even when nothing was reported');
+  assert.match(html, /wf\.k\.contain/, 'the containment row is drawn even when nothing was reported');
+  assert.match(html, /wf\.unreported/, 'a null figure must name itself unreported');
+  assert.match(html, /wf-unknown/, 'and must be drawn as a gap rather than as a value');
+  assert.doesNotMatch(html, /wf\.contain'|wf\.contain"/, 'a null containment must not reach the "{n}% contained" string');
   assert.doesNotMatch(html, /\b0%/, 'a null containment rendered as 0% asserts an uncontained fire nobody reported');
-  // and the honest strings really do say "not reported" in both languages
   for (const lang of ['en', 'es']) {
-    assert.match(I18N[lang]['wf.nocontain'], /not reported|no reportada/i);
-    assert.match(I18N[lang]['wf.noacres'], /not reported|no reportada/i);
+    assert.match(I18N[lang]['wf.unreported'], /not reported|no reportado/i);
   }
 
   // a genuinely reported zero is still a reported figure and must survive
   const zero = popup({ ...FIRE, src: 'wfigs', acres: 0, contain: 0 });
   assert.match(zero, /wf\.contain/, 'a reported 0% is a fact the source published');
-  assert.doesNotMatch(zero, /wf\.nocontain/);
+  assert.doesNotMatch(zero, /wf\.unreported/, 'a reported 0 is not an unreported figure');
+  assert.doesNotMatch(zero, /wf-unknown/);
 });
 
 test('the popup credits the operator that reported the incident, never the other source', () => {
@@ -86,7 +87,7 @@ test('the popup says what the numbers are and what the point is, so neither is r
   const html = popup(FIRE);
   assert.match(html, /wf\.lag/, 'acreage and containment are reported figures, and the popup must say so');
   assert.match(html, /wf\.point/, 'the point is the reported origin, not the edge of the fire');
-  assert.match(html, /wf\.updated/, 'the popup must state when the incident record was last updated');
+  assert.match(html, /wf\.k\.updated/, 'the popup must state when the incident record was last updated');
   for (const lang of ['en', 'es']) {
     assert.match(I18N[lang]['wf.point'], /perimet|perímet/i, 'the string must deny fire perimeters');
     assert.match(I18N[lang]['wf.lag'], /hours|horas/i, 'the string must say the figures can lag');
@@ -211,9 +212,12 @@ test('the marker reads as a hazard, retires when contained and dashes when unres
 test('every wildfire string exists in both languages and carries no em-dash', () => {
   const i18n = read('js/i18n.js');
   const keys = ['layers.wildfire', 'sheet.s.wildfire', 'legend.wildfire', 'glossary.wildfire',
-    'glossary.wildfire.label', 'wf.county', 'wf.acres', 'wf.noacres', 'wf.contain', 'wf.nocontain',
-    'wf.updated', 'wf.stale', 'wf.lag', 'wf.point', 'wf.captured', 'wf.nocurrency', 'wf.none',
-    'wf.none.undated', 'wf.partial', 'wf.unknown', 'note.wildfirefail'];
+    'glossary.wildfire.label', 'wf.county', 'wf.acres', 'wf.contain',
+    'wf.stale', 'wf.lag', 'wf.point', 'wf.captured', 'wf.nocurrency', 'wf.none',
+    'wf.none.undated', 'wf.partial', 'wf.unknown', 'note.wildfirefail',
+    'wf.unreported', 'wf.nearby', 'wf.crew', 'wf.k.size', 'wf.k.contain', 'wf.k.where',
+    'wf.k.cause', 'wf.k.started', 'wf.k.updated', 'wf.k.unit', 'wf.k.org', 'wf.k.crew',
+    'wf.k.number'];
   for (const k of keys) {
     assert.equal((i18n.match(new RegExp(`'${k.replace(/\./g, '\\.')}':`, 'g')) || []).length, 2,
       `${k} is missing from en or es`);
@@ -245,4 +249,26 @@ test('the shipped incident file, when present, matches what the client and the g
     }
   }
   assert.ok(!fs.readFileSync(p, 'utf8').includes('—'), 'em-dash in data/wildfire.json');
+});
+
+test('a fire in the border buffer is marked as near Texas, not presented as a Texas fire', () => {
+  const near = popup({ ...FIRE, src: 'wfigs', scope: 'buffer', state: 'LA' });
+  assert.match(near, /wf\.nearby/, 'an out-of-state fire must say it is only near Texas');
+  assert.match(near, /wf-tag is-near/);
+  assert.doesNotMatch(popup({ ...FIRE, scope: 'tx' }), /wf\.nearby/,
+    'a Texas fire must not be labelled as merely nearby');
+  for (const lang of ['en', 'es']) assert.match(I18N[lang]['wf.nearby'], /texas/i);
+});
+
+test('the richer metadata rows appear only when the source reported them', () => {
+  const bare = popup({ ...FIRE, src: 'wfigs', cause: null, org: null, crew: null, number: null });
+  for (const k of ['wf.k.cause', 'wf.k.org', 'wf.k.crew', 'wf.k.number']) {
+    assert.doesNotMatch(bare, new RegExp(k.replace(/\./g, '\\.')),
+      `${k} must be absent rather than drawn empty, since most records do not carry it`);
+  }
+  const full = popup({ ...FIRE, src: 'wfigs', cause: 'Human', org: 'Type 3', crew: 42, number: '266318' });
+  for (const k of ['wf.k.cause', 'wf.k.org', 'wf.k.crew', 'wf.k.number']) {
+    assert.match(full, new RegExp(k.replace(/\./g, '\\.')), `${k} must be drawn when reported`);
+  }
+  assert.match(full, /Human/);
 });

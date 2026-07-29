@@ -1137,6 +1137,11 @@ const SHEET_GROUPS = [
     ['tropical', '🌀', 'layers.tropical', 'sheet.s.tropical', 'official', false],
     ['surge', '🌊', 'layers.surge', 'sheet.s.surge', 'official', false],
   ]],
+  // fire is a hazard domain, so it sits with the other hazard domains rather than in the reports
+  // grab-bag it shipped in. Groups here are read top-down under time pressure.
+  ['sheet.g.fire', [
+    ['wildfire', '<span class="wildfire-icon">🔥</span>', 'layers.wildfire', 'sheet.s.wildfire', 'official', false],
+  ]],
   ['sheet.g.roads', [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],
     ['roadReopen', '<span class="reopen-icon">✓</span>', 'layers.reopen', 'sheet.s.reopen', 'official', false, true],
@@ -1148,7 +1153,6 @@ const SHEET_GROUPS = [
     ['lsrsAged', '🕓', 'layers.lsrhist', 'sheet.s.lsrhist', null, false],
     ['requests', '🆘', 'layers.notices', 'sheet.s.notices', 'curated', true],
     ['shelters', '🏠', 'layers.shelters', 'sheet.s.shelters', 'curated', true],
-    ['wildfire', '<span class="wildfire-icon">🔥</span>', 'layers.wildfire', 'sheet.s.wildfire', 'official', false],
   ]],
 ];
 

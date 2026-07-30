@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-30T18:53:34Z",
+ "generated": "2026-07-30T19:08:34Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-30T18:38:00Z"
+  "last": "2026-07-30T18:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -36,6 +36,13 @@
    "first_in_flood": "2026-07-16T12:00:00Z",
    "last_in_flood": "2026-07-17T00:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 42.3,
+    "record_date": "1869-07-01",
+    "peak_pct": 83.9,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -49,6 +56,13 @@
    "first_in_flood": "2026-07-16T10:00:00Z",
    "last_in_flood": "2026-07-18T02:42:54Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 38.82,
+    "record_date": "2009-10-05",
+    "peak_pct": 91.0,
+    "exceeded": false,
+    "approached": true
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -62,6 +76,13 @@
    "first_in_flood": "2026-07-16T14:00:00Z",
    "last_in_flood": "2026-07-16T20:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 41.6,
+    "record_date": "1978-08-02",
+    "peak_pct": 82.5,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -75,6 +96,13 @@
    "first_in_flood": "2026-07-17T10:00:00Z",
    "last_in_flood": "2026-07-26T03:53:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 33,
+    "record_date": "1935-06-17",
+    "peak_pct": 95.6,
+    "exceeded": false,
+    "approached": true
+   },
    "stale": false
   },
   {
@@ -87,6 +115,13 @@
    "first_in_flood": "2026-07-16T08:00:00Z",
    "last_in_flood": "2026-07-16T20:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 39,
+    "record_date": "1932-07-02",
+    "peak_pct": 77.1,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -100,6 +135,13 @@
    "first_in_flood": "2026-07-21T18:53:00Z",
    "last_in_flood": "2026-07-25T23:23:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 30.06,
+    "record_date": "2002-07-10",
+    "peak_pct": 99.7,
+    "exceeded": false,
+    "approached": true
+   },
    "stale": false
   },
   {
@@ -112,6 +154,13 @@
    "first_in_flood": "2026-07-21T01:53:00Z",
    "last_in_flood": "2026-07-28T20:38:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 32.4,
+    "record_date": "1935-06-18",
+    "peak_pct": 89.5,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -124,6 +173,13 @@
    "first_in_flood": "2026-07-15T18:00:00Z",
    "last_in_flood": "2026-07-18T08:43:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 24.88,
+    "record_date": "1996-10-28",
+    "peak_pct": 111.6,
+    "exceeded": true,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -137,6 +193,13 @@
    "first_in_flood": "2026-07-16T20:00:00Z",
    "last_in_flood": "2026-07-17T08:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 42.5,
+    "record_date": "1952-09-11",
+    "peak_pct": 57.6,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -150,6 +213,13 @@
    "first_in_flood": "2026-07-27T06:08:00Z",
    "last_in_flood": "ongoing",
    "ongoing": true,
+   "record": {
+    "record_ft": 26.57,
+    "record_date": "1967-09-24",
+    "peak_pct": 87.0,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -162,6 +232,13 @@
    "first_in_flood": "2026-07-15T12:00:00Z",
    "last_in_flood": "2026-07-20T21:53:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 40,
+    "record_date": "1935-06-14",
+    "peak_pct": 57.1,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -175,6 +252,13 @@
    "first_in_flood": "2026-07-18T09:58:00Z",
    "last_in_flood": "2026-07-19T16:28:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 15.09,
+    "record_date": "2018-10-18",
+    "peak_pct": 149.1,
+    "exceeded": true,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -187,6 +271,13 @@
    "first_in_flood": "2026-07-15T08:00:00Z",
    "last_in_flood": "2026-07-18T05:43:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 29.95,
+    "record_date": "1955-09-24",
+    "peak_pct": 72.5,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -200,6 +291,13 @@
    "first_in_flood": "2026-07-18T14:43:00Z",
    "last_in_flood": "2026-07-20T13:23:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 35,
+    "record_date": "1954-06-28",
+    "peak_pct": 60.4,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -212,6 +310,13 @@
    "first_in_flood": "2026-07-16T14:00:00Z",
    "last_in_flood": "2026-07-22T11:08:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 29.45,
+    "record_date": "1932-07-04",
+    "peak_pct": 69.6,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -224,6 +329,13 @@
    "first_in_flood": "2026-07-16T12:00:00Z",
    "last_in_flood": "2026-07-17T18:16:04Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 34.4,
+    "record_date": "1932-07-01",
+    "peak_pct": 57.2,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -237,6 +349,13 @@
    "first_in_flood": "2026-07-15T16:00:00Z",
    "last_in_flood": "2026-07-17T22:58:04Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 35,
+    "record_date": "1894-01-01",
+    "peak_pct": 55.4,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -250,6 +369,13 @@
    "first_in_flood": "2026-07-18T03:25:00Z",
    "last_in_flood": "2026-07-18T15:43:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 43.9,
+    "record_date": "1954-06-28",
+    "peak_pct": 36.3,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -262,6 +388,13 @@
    "first_in_flood": "2026-07-17T02:00:00Z",
    "last_in_flood": "2026-07-17T10:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 53,
+    "record_date": "1869-08-03",
+    "peak_pct": 68.6,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -294,6 +427,13 @@
    "first_in_flood": "2026-07-30T01:38:00Z",
    "last_in_flood": "ongoing",
    "ongoing": true,
+   "record": {
+    "record_ft": 49.21,
+    "record_date": "1967-09-23",
+    "peak_pct": 69.9,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -306,6 +446,13 @@
    "first_in_flood": "2026-07-16T08:00:00Z",
    "last_in_flood": "2026-07-18T07:43:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 43.3,
+    "record_date": "1935-06-14",
+    "peak_pct": 69.9,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -338,6 +485,13 @@
    "first_in_flood": "2026-07-16T16:00:00Z",
    "last_in_flood": "2026-07-18T08:58:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 46,
+    "record_date": "1935-06-14",
+    "peak_pct": 57.2,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -369,6 +523,13 @@
    "first_in_flood": "2026-07-14T18:00:00Z",
    "last_in_flood": "2026-07-17T08:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 40,
+    "record_date": "1919-08-24",
+    "peak_pct": 58.0,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -382,6 +543,13 @@
    "first_in_flood": "2026-07-16T04:00:00Z",
    "last_in_flood": "2026-07-16T08:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 35.4,
+    "record_date": "1998-10-17",
+    "peak_pct": 61.9,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -395,6 +563,13 @@
    "first_in_flood": "2026-07-15T18:00:00Z",
    "last_in_flood": "2026-07-15T20:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 35.7,
+    "record_date": "1935-05-31",
+    "peak_pct": 59.1,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -408,6 +583,13 @@
    "first_in_flood": "2026-07-16T20:00:00Z",
    "last_in_flood": "2026-07-19T00:10:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 41.5,
+    "record_date": "1935-06-14",
+    "peak_pct": 50.2,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -420,6 +602,13 @@
    "first_in_flood": "2026-07-17T14:00:00Z",
    "last_in_flood": "2026-07-18T09:28:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 55.99,
+    "record_date": "1865-06-01",
+    "peak_pct": 34.6,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -432,6 +621,13 @@
    "first_in_flood": "2026-07-16T08:00:00Z",
    "last_in_flood": "2026-07-17T18:16:04Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 37.52,
+    "record_date": "2025-07-04",
+    "peak_pct": 48.3,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -445,6 +641,13 @@
    "first_in_flood": "2026-07-18T13:58:00Z",
    "last_in_flood": "2026-07-18T22:40:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 38.14,
+    "record_date": "1978-11-05",
+    "peak_pct": 43.7,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -457,6 +660,13 @@
    "first_in_flood": "2026-07-16T06:00:00Z",
    "last_in_flood": "2026-07-16T08:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 29.31,
+    "record_date": "1998-10-18",
+    "peak_pct": 55.0,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -470,6 +680,13 @@
    "first_in_flood": "2026-07-17T00:00:00Z",
    "last_in_flood": "2026-07-17T04:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 46.62,
+    "record_date": "1978-08-02",
+    "peak_pct": 33.3,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -483,6 +700,13 @@
    "first_in_flood": "2026-07-18T23:40:00Z",
    "last_in_flood": "2026-07-19T16:28:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 19.82,
+    "record_date": "1974-09-18",
+    "peak_pct": 54.3,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false
   },
   {
@@ -572,6 +796,13 @@
    "first_in_flood": "2026-07-16T12:00:00Z",
    "last_in_flood": "2026-07-16T16:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 55.65,
+    "record_date": "2002-07-04",
+    "peak_pct": 37.5,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -625,6 +856,13 @@
    "first_in_flood": "2026-07-15T10:00:00Z",
    "last_in_flood": "2026-07-15T12:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 33,
+    "record_date": "1980-01-01",
+    "peak_pct": 37.9,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },
@@ -651,6 +889,13 @@
    "first_in_flood": "2026-07-14T10:00:00Z",
    "last_in_flood": "2026-07-15T16:00:00Z",
    "ongoing": false,
+   "record": {
+    "record_ft": 29.64,
+    "record_date": "1997-06-22",
+    "peak_pct": 39.3,
+    "exceeded": false,
+    "approached": false
+   },
    "stale": false,
    "src": "usgs"
   },

@@ -2291,6 +2291,29 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .ls-grab { display: block; flex: 0 0 auto; width: 44px; height: 4px; border-radius: 2px; background: var(--ink-muted); margin: 8px auto 0; }
 }
 
+/* ---- the Alerts-tab Notify me entry row ---- */
+/* On a phone the list beneath it is the reason the tab is open, so the row holds one 44px line and
+   cannot grow: the state ellipsises instead of wrapping, and the card chrome drops to a cue. It
+   keeps the touch floor, so this is a width change, not a smaller target. */
+@media (max-width: 768px) {
+  #alerts-notify-row {
+    min-height: 44px; margin: 0 0 6px; padding: 2px; gap: 8px;
+    background: none; border: 0; border-radius: 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  /* already subscribed and delivering: the gear row is entry point enough on a phone */
+  #alerts-notify-row.entry-quiet { display: none; }
+  #alerts-notify-row .ls-icon { flex: 0 0 18px; }
+  #alerts-notify-row .ls-txt { flex-direction: row; align-items: center; gap: 6px; }
+  #alerts-notify-row .ls-name { flex: 0 0 auto; }
+  #alerts-notify-row .ls-sub {
+    flex: 1; min-width: 0; overflow-wrap: normal;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #alerts-notify-row .ls-sub:not(:empty)::before { content: '· '; }
+  #alerts-notify-row .ls-go { flex: 0 0 14px; font-size: 16px; }
+}
+
 /* ---- the Notify me sheet ---- */
 /* The alert card rendered up to 2,335px inside the settings panel's 418px scroll window, shared
    with five other feature groups. It gets its own .ls-panel, and .ls-panel finally gets the

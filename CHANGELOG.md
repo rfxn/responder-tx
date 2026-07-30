@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.71 · 2026-07-29 (the Notify me row stops crowding the alert list on a phone)
+
+-- Changes --
+- [Change] On a phone the Notify me row at the top of the Alerts tab is one
+           slim line and no longer grows to several, so more of the alert list
+           is visible without scrolling. On a phone that already has alerts
+           switched on and delivering, the row steps aside entirely; Settings
+           still holds the same entry
+- [Change] The Notify me row and the Settings entry state the alert state in
+           short form. When the board cannot reach the alert service they read
+           that availability could not be checked, in place of the longer notice
+           that the Notify me panel itself carries
+
 ## v0.99.70 · 2026-07-29 (the fire card reads properly, and a fire marker takes its own tap)
 
 -- Bug Fixes --

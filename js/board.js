@@ -1592,7 +1592,9 @@ function pushRenderUnreachable(host) {
    coverage the card is refusing to claim. `silent` carries the v0.99.65 rule outward: a
    subscription that can deliver nothing never reads as ON anywhere on the board. */
 function pushEntryStateKey(cardState, deliversAny) {
-  if (cardState === 'unreachable') return 'push.unreachable';
+  // an entry row states the state; the card inside the sheet carries the long `push.unreachable`
+  // explanation, which wrapped these rows to four lines on a phone
+  if (cardState === 'unreachable') return 'push.state.unreachable';
   return cardState === 'on' && !deliversAny ? 'push.state.silent' : `push.state.${cardState}`;
 }
 
@@ -1605,7 +1607,12 @@ function pushSyncEntries(cardState, deliversAny) {
   const sub = $('#alerts-notify-sub');
   if (sub) sub.textContent = txt;
   const row = $('#alerts-notify-row');
-  if (row) row.hidden = false;
+  if (row) {
+    row.hidden = false;
+    // a phone already subscribed and delivering does not need a second entry point above its alert
+    // list, and the gear row still holds one. Every other state stays, `silent` included.
+    row.classList.toggle('entry-quiet', cardState === 'on' && deliversAny);
+  }
 }
 
 /* Collapsed-pane summaries. Each says what is really set, so a closed accordion never hides a

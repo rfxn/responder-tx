@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.71",
+      "date": "2026-07-29",
+      "line": "On a phone the Notify me row at the top of the Alerts tab is one slim line and no longer grows to several, so more of the alert list is visible without scrolling. On a phone that already has alerts switched on and delivering, the row steps aside entirely and Settings still holds the same entry. The Notify me row and the Settings entry state the alert state in short form: when the board cannot reach the alert service they read that availability could not be checked, in place of the longer notice that the Notify me panel itself carries."
+    },
+    {
       "v": "v0.99.70",
       "date": "2026-07-29",
       "line": "The fire popup ran its labels and values together into one block of text. Each fact is now a row with its label in its own column, and the caveats sit below a divider instead of crowding the figures. Tapping a fire could also open a nearby river gauge instead: fire markers now sit above gauge markers, so the marker you tap is the one that answers. The two caveat lines on the fire card are shorter."

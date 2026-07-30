@@ -265,7 +265,41 @@ test('no entry point claims ON for a subscription that can deliver nothing', () 
   assert.equal(pushEntryStateKey('on', false), 'push.state.silent', 'a silent subscription must not read as on');
   assert.equal(pushEntryStateKey('off', false), 'push.state.off');
   assert.equal(pushEntryStateKey('blocked', false), 'push.state.blocked');
-  assert.equal(pushEntryStateKey('unreachable', false), 'push.unreachable');
+  assert.equal(pushEntryStateKey('unreachable', false), 'push.state.unreachable');
+});
+
+/* v0.99.71: the entry rows took the card's 140-char unreachable paragraph, which wrapped the
+   Alerts-tab row to four lines on a phone. The short form replaces it and must stay as honest:
+   an unreachable check is neither an OFF nor an ON claim. */
+test('the short unreachable state reads as unchecked, not as off, in both languages', () => {
+  for (const lang of ['en', 'es']) {
+    const short = I18N[lang]['push.state.unreachable'];
+    assert.ok(short, `${lang} is missing push.state.unreachable`);
+    assert.ok(short.length < 60, `${lang} push.state.unreachable is a paragraph again: ${short.length} chars`);
+    assert.ok(!/—/.test(short), `${lang} push.state.unreachable uses an em-dash`);
+    const off = I18N[lang]['push.state.off'], on = I18N[lang]['push.state.on'];
+    assert.notEqual(short, off, `${lang} an unchecked backend must not read as off`);
+    assert.notEqual(short, on, `${lang} an unchecked backend must not read as on`);
+    // the long explanation stays on the card inside the sheet, where there is room for it
+    assert.ok(I18N[lang]['push.unreachable'].length > short.length, `${lang} lost the card's full notice`);
+  }
+});
+
+/* The row sits above the alert list that is the reason the tab is open, so on a phone it holds one
+   line at the touch floor and cannot grow, and it steps aside for a device already delivering. */
+test('the Alerts-tab notify row is one fixed 44px line on a phone', () => {
+  assert.match(BOARD, /row\.classList\.toggle\('entry-quiet', cardState === 'on' && deliversAny\)/,
+    'the row must publish the already-delivering case the CSS hides on a phone');
+  const mobile = CSS.slice(CSS.indexOf('/* ---- the Alerts-tab Notify me entry row ---- */'),
+    CSS.indexOf('/* ---- the Notify me sheet ---- */'));
+  assert.match(mobile, /@media \(max-width: 768px\)/, 'the compaction must be phone-scoped');
+  assert.match(mobile, /#alerts-notify-row\s*\{[^}]*min-height: 44px/,
+    'the row must keep the touch floor: this is a width change, not a smaller target');
+  assert.match(mobile, /#alerts-notify-row\.entry-quiet \{ display: none; \}/);
+  assert.match(mobile, /#alerts-notify-row \.ls-txt \{[^}]*flex-direction: row/,
+    'the name and state must share one line');
+  assert.match(mobile, /#alerts-notify-row \.ls-sub \{[^}]*white-space: nowrap[\s\S]*?text-overflow: ellipsis/,
+    'the state must ellipsise rather than wrap the row taller');
 });
 
 /* ---------- the promise stays honest ---------- */

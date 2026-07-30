@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.72",
+      "date": "2026-07-30",
+      "line": "Outside the area the crossing feeds cover, the Roads tab said no crossing hazards were reported, which read as an all-clear. It now says crossing status is not published for that area, so crossings there are unknown rather than clear, and to treat any flooded roadway as impassable. Road closures from TxDOT are statewide and unaffected."
+    },
+    {
       "v": "v0.99.71",
       "date": "2026-07-30",
       "line": "When every notice in the Feed was too old to show, the Feed said there were none. It now says how many are being held back and offers to show them, and the calm styling no longer renders over suppressed notices. The count was previously only a button in the filter row."

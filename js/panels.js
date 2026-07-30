@@ -1721,6 +1721,25 @@ function roadsRowHtml(r) {
     '</div></div>';
 }
 
+/* Both crossing feeds are regional, not statewide: the curated inventory is a Hill Country list and
+   the jurisdiction feed is ATX Floods, Central Texas. Outside their footprint "none reported" is a
+   coverage hole wearing the words of an all-clear, and the NWS instruction on every flood warning is
+   that most flood deaths happen in vehicles. Measured off the loaded records rather than a declared
+   region, so it follows the data if either feed's footprint ever changes. */
+const CROSS_COVERAGE_MI = 50;
+function crossUncovered() {
+  const ref = state.myPos || (state.map && state.map.getCenter());
+  if (!ref) return false;
+  const lat = ref.lat !== undefined ? ref.lat : ref[0];
+  const lon = ref.lng !== undefined ? ref.lng : ref[1];
+  // through the accessor like every other reader: a stale row still proves the feed reaches here,
+  // so the staleness verdict it attaches is simply unused for a geographic question
+  const pts = [...crossingList(), ...(state.crossStatus || [])]
+    .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon));
+  if (!pts.length) return false; // nothing loaded at all: the unknown states above already say so
+  return !pts.some((p) => distMi(lat, lon, p.lat, p.lon) <= CROSS_COVERAGE_MI);
+}
+
 function renderRoadsTab() {
   const el = $('#crossings-body');
   const badge = $('#roads-count');
@@ -1755,7 +1774,8 @@ function renderRoadsTab() {
     // E1: with a feed down and nothing cached, "none reported" would be a failed fetch published as
     // a value. Each empty state names the feed that actually failed rather than a generic outage.
     : `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : state.crossingsUnknown ? 'roads.xunknown'
-      : state.crossStatusUnknown ? 'roads.jurunknown' : 'roads.none'))}</div>`;
+      : state.crossStatusUnknown ? 'roads.jurunknown'
+        : crossUncovered() ? 'roads.nocross' : 'roads.none'))}</div>`;
   el.querySelectorAll('.road-row[data-lat]').forEach((d) => d.addEventListener('click', (ev) => {
     if (ev.target.closest('a')) return;
     state.map.setView([+d.dataset.lat, +d.dataset.lon], 13);

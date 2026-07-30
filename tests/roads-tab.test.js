@@ -405,8 +405,8 @@ test('the empty tab says so instead of rendering nothing at all', () => {
   // "none" is only reachable when BOTH feeds were actually read: a TxDOT outage and an unreadable
   // crossing list each get their own empty state naming the feed that failed
   assert.match(read('js/panels.js'),
-    /t\(state\.roadsUnknown \? 'roads\.unknown' : state\.crossingsUnknown \? 'roads\.xunknown'\s*\n?\s*: state\.crossStatusUnknown \? 'roads\.jurunknown' : 'roads\.none'\)/,
-    'the empty state must render the string, and only claim "none" when all three feeds were read');
+    /t\(state\.roadsUnknown \? 'roads\.unknown' : state\.crossingsUnknown \? 'roads\.xunknown'\s*\n?\s*: state\.crossStatusUnknown \? 'roads\.jurunknown'\s*\n?\s*: crossUncovered\(\) \? 'roads\.nocross' : 'roads\.none'\)/,
+    'the empty state must render the string, and only claim "none" when all three feeds were read AND the area is inside crossing coverage');
   for (const lang of ['en', 'es']) {
     const s = I18N[lang]['roads.xunknown'];
     assert.ok(typeof s === 'string' && s.length, `${lang} missing roads.xunknown`);
@@ -785,4 +785,30 @@ test('a recovered live fetch stands the snapshot claim down', async () => {
   assert.equal(ST.roadsFallbackAt, null, 'a live round must clear the snapshot claim');
   assert.equal(ST.roadsUnknown, false, 'and clear the unknown claim');
   assert.equal(ST.roadClosures.points.length, 0, 'live lines replace the snapshot points entirely');
+});
+
+/* 2026-07-30, during a Severe/Immediate Flood Warning on the Nueces: both crossing feeds are
+   regional (curated list is Hill Country, jurisdiction feed is ATX Floods, Central Texas), the
+   nearest crossing record to Three Rivers was 98 mi away, and the tab rendered "No road closures or
+   crossing hazards are reported in this area right now" to a county under that warning. A coverage
+   hole must not wear the words of an all-clear. */
+test('outside crossing coverage the tab says crossings are unknown, not clear', () => {
+  const src = read('js/panels.js');
+  assert.match(src, /function crossUncovered\(\)/, 'coverage must be decided in code, not assumed');
+  const fn = src.slice(src.indexOf('function crossUncovered()'), src.indexOf('function renderRoadsTab'));
+  assert.match(fn, /crossingList\(\)/, 'coverage reads the curated list through its accessor');
+  assert.match(fn, /state\.crossStatus/, 'and off the jurisdiction feed');
+  assert.match(fn, /distMi/, 'measured by real distance rather than a hardcoded region');
+  assert.match(fn, /if \(!pts\.length\) return false/,
+    'with nothing loaded the unknown states already speak; this must not double-claim');
+
+  for (const lang of ['en', 'es']) {
+    const s = I18N[lang]['roads.nocross'];
+    assert.ok(typeof s === 'string' && s.length, `${lang} missing roads.nocross`);
+    assert.ok(!s.includes('—'), `em-dash in ${lang} roads.nocross`);
+  }
+  assert.notEqual(I18N.en['roads.nocross'], I18N.es['roads.nocross'], 'roads.nocross was never translated');
+  // it must deny the all-clear reading explicitly, the way roads.unknown and roads.xunknown do
+  assert.match(I18N.en['roads.nocross'], /unknown, not clear/i);
+  assert.match(I18N.es['roads.nocross'], /se desconocen, no est/i);
 });

@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.72 · 2026-07-30 (where crossings are not covered, the board says so)
+
+-- Bug Fixes --
+- [Fix] Outside the area the crossing feeds cover, the Roads tab said no
+      crossing hazards were reported, which read as an all-clear. It now says
+      crossing status is not published for that area, so crossings there are
+      unknown rather than clear, and to treat any flooded roadway as
+      impassable. Road closures from TxDOT are statewide and unaffected
+
 ## v0.99.71 · 2026-07-30 (an empty Feed says whether anything is being held back)
 
 -- Bug Fixes --

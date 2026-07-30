@@ -481,3 +481,35 @@ test('pushsubscriptionchange re-subscribes and migrates prefs (P3 self-heal)', (
   assert.match(src, /\/push-prefs/, 'mirrored prefs back the fresh-subscribe fallback');
   assert.match(src, /api\/push\/subscribe/, 'fresh subscribe fallback when the old row is gone');
 });
+
+/* 2026-07-30: the public board sat in an update-prompt loop on v0.99.73 while the origin served
+   .74. Neither auto-rollover nor the "Updated · tap to reload" chip posted SKIP_WAITING, and a
+   reload does not activate a waiting worker: the old one keeps control while a tab is open and
+   serves its cached shell, so the tab re-booted the build it was trying to leave. The 10 minute
+   ROLL_HOLD_MS guard turned the reload storm into a recurring prompt, and the comment on it blamed
+   CDN lag, which is why it went unchased. */
+test('every path that applies an update hands the worker over before reloading', () => {
+  const boot = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
+  assert.match(boot, /function applyUpdateAndReload\(/, 'the handover must exist in one place');
+  const fn = boot.slice(boot.indexOf('function applyUpdateAndReload('), boot.indexOf('function performRollover('));
+  assert.match(fn, /SKIP_WAITING/, 'it must ask the waiting worker to take over');
+  assert.match(fn, /reg\.waiting/, 'and only when one is actually waiting');
+  assert.match(fn, /navigator\.serviceWorker\.controller/,
+    'a first install has no controller and must not be treated as an update');
+  assert.match(fn, /setTimeout\([\s\S]{0,160}?location\.reload/,
+    'a handover that never completes must not strand the reader');
+
+  // the rollover and the chip are the two "apply the update" affordances; neither may reload bare
+  const roll = boot.slice(boot.indexOf('function performRollover('), boot.indexOf('function registerServiceWorker('));
+  assert.match(roll, /applyUpdateAndReload\(/, 'the auto rollover must hand over');
+  assert.doesNotMatch(roll, /location\.replace\(/, 'a bare navigation re-serves the old cached shell');
+
+  const chip = (boot.match(/#update-chip'\)\.addEventListener\('click',[^;]*/) || [''])[0];
+  assert.match(chip, /applyUpdateAndReload\(/,
+    'the chip says "tap to reload" and must actually apply the update');
+  assert.doesNotMatch(chip, /location\.reload\(\)/, 'a bare reload leaves the old worker in control');
+
+  // and the worker must still honour the message
+  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /SKIP_WAITING'\)\s*self\.skipWaiting\(\)|SKIP_WAITING[\s\S]{0,40}skipWaiting\(\)/,
+    'sw.js must act on SKIP_WAITING or the handover is a no-op');
+});

@@ -250,6 +250,27 @@ function postponeRollover() {
   $('#update-toast').hidden = true;
 }
 
+/* A reload does NOT activate a waiting service worker: the old one keeps control while any tab is
+   open, serves its cached shell for the navigation, and the tab boots the SAME build it just tried
+   to leave. That is what put the public board in an update-prompt loop on v0.99.73 while the origin
+   served .74. Every path that means "apply the update" has to hand over first, then reload, and the
+   controllerchange listener above already does the reload once the new worker takes control.
+   navUrl is applied before the handover so the reload lands on it; the timer is the escape hatch for
+   a handover that never completes. */
+function applyUpdateAndReload(navUrl) {
+  if (navUrl) {
+    try { history.replaceState(null, '', navUrl); } catch { /* opaque origin: reload keeps this URL */ }
+  }
+  const reg = state.swWaitingReg || state.swReg;
+  if (reg && reg.waiting && navigator.serviceWorker.controller) {
+    state.swApplying = true;
+    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    setTimeout(() => { if (!state.swReloaded) { state.swReloaded = true; location.reload(); } }, 3000);
+    return;
+  }
+  location.reload();
+}
+
 function performRollover() {
   state.rollToastTimer = null;
   if (rolloverBusy()) { $('#update-toast').hidden = true; return; } // user re-engaged during the 4s notice — retry when idle again
@@ -260,8 +281,8 @@ function performRollover() {
     sessionStorage.setItem(ROLL_STATE_KEY, JSON.stringify({ v: state.updateTarget, t: now, qs }));
     const draft = document.getElementById('chat-input');
     if (draft && draft.value.trim()) sessionStorage.setItem('respondertx.chatDraft', draft.value);
-    location.replace(`${location.pathname}?${qs}`);
-  } catch { location.reload(); } // serializer failed — a plain reload still fetches the new build
+    applyUpdateAndReload(`${location.pathname}?${qs}`);
+  } catch { applyUpdateAndReload(); } // serializer failed — still hand over, then reload
 }
 
 // boot-side: read+clear the blob; re-install its query string if the reload lost it
@@ -870,7 +891,7 @@ async function boot() {
   $('#cam-close').addEventListener('click', closeCamViewer);
   $('#cam-viewer').addEventListener('click', (e) => { if (e.target.id === 'cam-viewer') closeCamViewer(); });
   $('#drive-loc').addEventListener('click', () => { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });
-  $('#update-chip').addEventListener('click', () => location.reload());
+  $('#update-chip').addEventListener('click', () => applyUpdateAndReload());
   $('#data-age-bar').addEventListener('click', (e) => {
     if (!e.target.closest('.age-bar-x')) { if (window.openFeedHealth) window.openFeedHealth(); return; } // the bar IS the way in to per-source detail
     sessionStorage.setItem('respondertx.ageBarDismiss', $('#data-age-bar').dataset.key || '');

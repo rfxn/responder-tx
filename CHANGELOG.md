@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.75 · 2026-07-30 (the update prompt now actually updates)
+
+-- Bug Fixes --
+- [Fix] The board could keep offering an update that never applied, reloading
+      back into the same version each time. Reloading alone does not hand the
+      page over to the new build while a tab is open, so both the automatic
+      reload and the "tap to reload" button now hand over first
+
 ## v0.99.74 · 2026-07-30 (crest of record now covers the whole gauge network)
 
 -- Bug Fixes --

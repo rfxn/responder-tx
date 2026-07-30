@@ -337,9 +337,20 @@ function renderRequests() {
   }
   if (!listed.length) {
     const restricted = ['type', 'county', 'q', 'window'].some((k) => state.filters[k]) || (state.filters.dist && state.myPos) || state.inView;
+    /* Notices held back for age are not the same fact as no notices, and this is the tab the board
+       opens on. The aged count already exists, but only as a button in a filter row a reader on the
+       default tab has no reason to open, so an empty list read as a quiet board. */
+    const heldForAge = !restricted && !state.showAged && agedCount > 0;
     // the calm treatment is a claim about hazards, so it renders only when the hazard feeds agree
-    const calm = !restricted && feedCalmOk();
-    el.innerHTML = `<div class="card${calm ? ' feed-allclear' : ''}">${esc(t(restricted ? 'feed.empty' : 'feed.allclear'))}</div>`;
+    const calm = !restricted && !heldForAge && feedCalmOk();
+    const msg = heldForAge
+      ? t('feed.aged.only').replace('{n}', String(agedCount))
+      : t(restricted ? 'feed.empty' : 'feed.allclear');
+    el.innerHTML = `<div class="card${calm ? ' feed-allclear' : ''}">${esc(msg)}</div>`
+      + (heldForAge ? `<button class="aged-toggle" id="feed-show-aged" type="button">${esc(t('feed.aged.show').replace('{n}', String(agedCount)))}</button>` : '');
+    if (heldForAge) {
+      $('#feed-show-aged').addEventListener('click', () => { state.showAged = true; renderRequests(); });
+    }
   }
 
   state.layers.requests.clearLayers();

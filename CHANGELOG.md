@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.71 · 2026-07-30 (an empty Feed says whether anything is being held back)
+
+-- Bug Fixes --
+- [Fix] When every notice in the Feed was too old to show, the Feed said there
+      were none. It now says how many are being held back and offers to show
+      them, and the calm styling no longer renders over suppressed notices. The
+      count was previously only a button in the filter row
+
 ## v0.99.71 · 2026-07-29 (the Notify me row stops crowding the alert list on a phone)
 
 -- Changes --

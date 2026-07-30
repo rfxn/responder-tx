@@ -391,6 +391,8 @@
       'sec.gauge.noload': 'Gauge data not loaded yet.',
       'feed.empty': 'No notices match the current filters.',
       'feed.allclear': 'No notices in the Feed right now. Hazard status is in Alerts, Gauges and Roads.',
+      'feed.aged.only': 'No current notices. {n} older ones are held back because nothing has re-confirmed them. Hazard status is in Alerts, Gauges and Roads.',
+      'feed.aged.show': 'Show the {n} older notices',
       'feed.allcounties': 'All counties',
 
       'sync.openfeed': 'Open in feed →',
@@ -1723,6 +1725,8 @@
       'sec.gauge.noload': 'Datos de medidores aún no cargados.',
       'feed.empty': 'Ningún reporte coincide con los filtros actuales.',
       'feed.allclear': 'No hay avisos en el Canal en este momento. El estado de peligros está en Alertas, Medidores y Caminos.',
+      'feed.aged.only': 'No hay avisos actuales. Se retienen {n} más antiguos porque nada los ha vuelto a confirmar. El estado de peligros está en Alertas, Medidores y Caminos.',
+      'feed.aged.show': 'Mostrar los {n} avisos más antiguos',
       'feed.allcounties': 'Todos los condados',
 
       'sync.openfeed': 'Abrir en el feed →',

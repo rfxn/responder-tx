@@ -397,3 +397,28 @@ test('the empty-Feed headline claims only that the Feed is empty, in both langua
   assert.ok(!/all clear/i.test(I18N.en['feed.allclear']), 'en feed.allclear claims a hazard verdict');
   assert.ok(!/todo despejado/i.test(I18N.es['feed.allclear']), 'es feed.allclear claims a hazard verdict');
 });
+
+/* 2026-07-30: a MAJOR-category flood was running on the Nueces with two Severe/Immediate Flood
+   Warnings, while the Feed, which is the tab the board opens on, held 43 notices suppressed for age
+   and rendered "No notices in the Feed right now". The count existed only as a button in a filter
+   row nobody on the default tab opens. Suppressed is not absent. */
+test('a Feed emptied by age says so with the count, and never takes the calm treatment', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
+  const branch = src.slice(src.indexOf('if (!listed.length)'), src.indexOf('state.layers.requests.clearLayers()'));
+  assert.match(branch, /heldForAge/, 'the empty branch must distinguish held-for-age from genuinely empty');
+  assert.match(branch, /feed\.aged\.only/, 'it must use the string that names the suppressed count');
+  assert.match(branch, /calm = [^;]*!heldForAge/,
+    'the calm treatment is a hazard claim and must not render over suppressed notices');
+  assert.match(branch, /feed-show-aged/, 'the reader needs a way to see them without opening the filter row');
+
+  for (const lang of ['en', 'es']) {
+    assert.ok(I18N[lang]['feed.aged.only'], `feed.aged.only missing from ${lang}`);
+    assert.ok(I18N[lang]['feed.aged.show'], `feed.aged.show missing from ${lang}`);
+    assert.match(I18N[lang]['feed.aged.only'], /\{n\}/, `${lang} must interpolate the count`);
+    assert.ok(!/—/.test(I18N[lang]['feed.aged.only'] + I18N[lang]['feed.aged.show']),
+      `${lang} strings must carry no em-dash`);
+  }
+  // and it must still point at where the hazard actually lives
+  assert.match(I18N.en['feed.aged.only'], /Alerts/);
+  assert.match(I18N.es['feed.aged.only'], /Alertas/);
+});

@@ -2,6 +2,11 @@
   "versions": [
     {
       "v": "v0.99.71",
+      "date": "2026-07-30",
+      "line": "When every notice in the Feed was too old to show, the Feed said there were none. It now says how many are being held back and offers to show them, and the calm styling no longer renders over suppressed notices. The count was previously only a button in the filter row."
+    },
+    {
+      "v": "v0.99.71",
       "date": "2026-07-29",
       "line": "On a phone the Notify me row at the top of the Alerts tab is one slim line and no longer grows to several, so more of the alert list is visible without scrolling. On a phone that already has alerts switched on and delivering, the row steps aside entirely and Settings still holds the same entry. The Notify me row and the Settings entry state the alert state in short form: when the board cannot reach the alert service they read that availability could not be checked, in place of the longer notice that the Notify me panel itself carries."
     },

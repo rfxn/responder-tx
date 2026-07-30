@@ -2534,3 +2534,11 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .boot-notice h1 { font-size: 22px; margin-top: 28px; margin-bottom: 14px; color: #b3261e; }
 .boot-notice p { margin-bottom: 14px; }
 .boot-notice .drive-911 { margin-top: auto; position: static; }
+
+/* Fire perimeter. Drawn under the origin points, which stay the layer's primary answer because
+   most fires never get an edge mapped at all. */
+.wildfire-perimeter { pointer-events: auto; }
+.wildfire-perim-key {
+  display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle;
+  border: 2px solid #d9480f; background: rgba(247, 103, 7, .18);
+}

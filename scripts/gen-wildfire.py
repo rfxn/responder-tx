@@ -44,6 +44,8 @@ SOURCES = {
     "tfs": {"name": "Texas A&M Forest Service", "url": "https://tfswildfires.com/public/"},
     "wfigs": {"name": "National Interagency Fire Center (WFIGS)",
               "url": "https://data-nifc.opendata.arcgis.com/"},
+    "wfigs-perimeters": {"name": "National Interagency Fire Center (WFIGS perimeters)",
+                         "url": "https://data-nifc.opendata.arcgis.com/"},
 }
 
 SCOPE = os.path.join(ROOT, "data", "wildfire-scope.json")
@@ -62,6 +64,18 @@ WFIGS_FIELDS = ("IncidentName,POOState,POOCounty,IncidentSize,PercentContained,"
                 "POOProtectingAgency,IncidentTypeCategory,FireCause,"
                 "TotalIncidentPersonnel,IncidentManagementOrganization")
 WFIGS_WHERE = "IncidentTypeCategory='WF' AND FireOutDateTime IS NULL"
+
+# Perimeters come from WFIGS for Texas fires TOO, unlike incident points: the in-state dedupe
+# above exists because TFS publishes its own points, and it publishes no perimeter of any kind.
+WFIGS_PERIM_LAYER = ("https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services"
+                     "/WFIGS_Interagency_Perimeters_Current/FeatureServer/0")
+PERIM_FIELDS = ("poly_IncidentName,poly_GISAcres,poly_IRWINID,poly_DateCurrent,"
+                "poly_FeatureCategory,poly_MapMethod")
+# ~55 m. Server-side generalization, because the raw geometry is unusable on this board: measured
+# 2026-07-30 over 6 in-scope fires, 11064 vertices and 243 KB became 202 vertices and 7 KB, and a
+# fire edge is a daily interpretation of imagery, not a survey.
+PERIM_OFFSET = "0.0005"
+PERIM_MAX_VERTS = 40000   # a runaway geometry must not become the payload; refuse instead
 
 
 def load_scope():
@@ -349,24 +363,116 @@ def write_payload(payload):
         raise
 
 
+def collect_perimeters(scope):
+    """(perimeters, captured). A fire edge where an agency has mapped one; most fires have none,
+    which is why the points layer stays. Raises on a truncated read, like the incident collector:
+    a short set read as complete would draw a fire smaller than it is."""
+    raw = []
+    for page in range(MAX_PAGES):
+        params = urllib.parse.urlencode({
+            "where": "1=1",
+            "geometry": (f"{scope[2]['xmin']},{scope[2]['ymin']},"
+                         f"{scope[2]['xmax']},{scope[2]['ymax']}"),
+            "geometryType": "esriGeometryEnvelope",
+            "inSR": "4326",
+            "spatialRel": "esriSpatialRelIntersects",
+            "outSR": "4326",
+            "geometryPrecision": "5",
+            "maxAllowableOffset": PERIM_OFFSET,
+            "outFields": PERIM_FIELDS,
+            "resultRecordCount": str(PAGE),
+            "resultOffset": str(page * PAGE),
+            "f": "geojson",
+        })
+        doc = get_json(f"{WFIGS_PERIM_LAYER}/query?{params}", "WFIGS perimeters")
+        feats = feature_list(doc, "WFIGS perimeters")
+        raw += feats
+        if not feats or not arcgis_has_more(doc):
+            break
+    else:
+        raise ValueError(f"WFIGS perimeters still reports more rows after {MAX_PAGES} pages; "
+                         "a truncated set read as complete would draw a fire smaller than it is")
+
+    out, verts = [], 0
+    for f in raw:
+        try:
+            p = f.get("properties") or {}
+            rings = rings_of(f.get("geometry"))
+            if not rings:
+                continue
+            # any vertex inside decides it: a perimeter on the state line is ours even when its
+            # centre is not, and the centre of a horseshoe can sit outside its own fire
+            hit = None
+            for ring in rings:
+                for lon, lat in ring:
+                    hit = scope_of(lat, lon, scope[0], scope[1])
+                    if hit:
+                        break
+                if hit:
+                    break
+            if not hit:
+                continue
+            verts += sum(len(r) for r in rings)
+            if verts > PERIM_MAX_VERTS:
+                raise ValueError(f"perimeter geometry exceeded {PERIM_MAX_VERTS} vertices; "
+                                 "refusing to publish a payload that size")
+            name = str(p.get("poly_IncidentName") or "").strip()
+            irwin = str(p.get("poly_IRWINID") or "").strip()
+            out.append({
+                "id": f"wfigs-perim:{irwin or name or len(out)}",
+                "irwin": irwin,
+                "name": name,
+                "scope": hit,
+                "acres": number(p.get("poly_GISAcres"), lo=0),
+                "observed": iso_from_ms(p.get("poly_DateCurrent")) or iso_from_text(p.get("poly_DateCurrent")),
+                "method": str(p.get("poly_MapMethod") or "").strip() or None,
+                "category": str(p.get("poly_FeatureCategory") or "").strip() or None,
+                "rings": rings,
+            })
+        except ValueError:
+            raise
+        except Exception as e:  # noqa: BLE001 — one malformed polygon must not drop the rest
+            print(f"warn: skipped malformed WFIGS perimeter: {e!r}", file=sys.stderr)
+    out.sort(key=lambda x: (x["name"] or "", x["id"]))
+    return out, wfigs_captured()
+
+
+def rings_of(geom):
+    """Outer rings as [[lon, lat], ...], for a GeoJSON Polygon or MultiPolygon. Holes are dropped:
+    the board draws where the fire is, and an unburnt island inside it is not an operational fact
+    at this zoom."""
+    if not isinstance(geom, dict):
+        return []
+    kind, coords = geom.get("type"), geom.get("coordinates")
+    if kind == "Polygon" and isinstance(coords, list):
+        return [r for r in coords[:1] if isinstance(r, list) and len(r) >= 4]
+    if kind == "MultiPolygon" and isinstance(coords, list):
+        return [poly[0] for poly in coords
+                if isinstance(poly, list) and poly and isinstance(poly[0], list) and len(poly[0]) >= 4]
+    return []
+
+
 def main():
     scope = load_scope()
     tfs_fires, tfs_src = collect("tfs", collect_tfs, scope)
     wfigs_fires, wfigs_src = collect("wfigs", collect_wfigs, scope)
-    sources = [tfs_src, wfigs_src]
+    perims, perim_src = collect("wfigs-perimeters", collect_perimeters, scope)
+    sources = [tfs_src, wfigs_src, perim_src]
 
-    if all(s["status"] == "failed" for s in sources):
+    # the points layer is the board's wildfire answer; perimeters are an enrichment, so a
+    # perimeter failure must not sink a good incident read. E1 keeps it visible in sources[].
+    if all(s["status"] == "failed" for s in (tfs_src, wfigs_src)):
         sys.exit("gen-wildfire: no source could be read, keeping the previous file and its older stamp")
 
     fires = sorted(tfs_fires + wfigs_fires, key=lambda x: (x["observed"], x["id"]), reverse=True)
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    write_payload({"generated": now, "sources": sources, "fires": fires})
+    write_payload({"generated": now, "sources": sources, "fires": fires, "perimeters": perims})
 
     detail = " · ".join(
         f"{s['key']} {s['status']}"
         + (f" {s['count']} @ {s['captured'] or 'no upstream stamp'}" if s["status"] == "ok" else "")
         for s in sources)
-    print(f"wildfire.json: {len(fires)} incidents ({detail}) @ {now}")
+    print(f"wildfire.json: {len(fires)} incidents, {len(perims)} perimeters ({detail}) @ {now}")
     # a half-sourced file is published but is not a clean cycle
     return 0 if all(s["status"] == "ok" for s in sources) else 1
 

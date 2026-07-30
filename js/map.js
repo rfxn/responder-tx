@@ -446,6 +446,7 @@ function mapLegendHtml() {
     `<div><span class="reopen-icon">✓</span>${esc(t('legend.reopen'))}</div>` +
     `<div><span class="rsentry-icon">📢</span>${esc(t('legend.rsentry'))}</div>` +
     `<div><span class="wildfire-icon">🔥</span>${esc(t('legend.wildfire'))}</div>` +
+    `<div><span class="wildfire-perim-key"></span>${esc(t('legend.wildfire.perim'))}</div>` +
     `<div class="lg-title" style="margin-top:6px">${esc(t('legend.cams'))}</div>` +
     `<div><span class="cam-icon cam-live">▶</span>${esc(t('cam.kind.live.long'))}</div>` +
     `<div><span class="cam-icon cam-still">📷</span>${esc(t('cam.kind.still.long'))}</div>` +

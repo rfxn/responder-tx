@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.79 · 2026-07-30 (fire perimeters, where anyone has mapped one)
+
+-- New Features --
+- [New] The wildfire layer draws the mapped edge of a fire where an agency
+      publishes one, under the reported origin point rather than replacing it. The
+      popup names how the edge was mapped and when, because it is a daily
+      interpretation of imagery and not a survey
+- [New] The legend and glossary say what a missing outline means: most fires never
+      get an edge mapped, so no outline is a statement about mapping and never about
+      the size of the fire
+
 ## v0.99.78 · 2026-07-30 (the did-not-load notice no longer covers a working board)
 
 -- Bug Fixes --

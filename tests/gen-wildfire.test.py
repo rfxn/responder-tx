@@ -78,6 +78,21 @@ def collection(features, **over):
 
 TFS_OK = collection([tfs_feature()], created='2026-07-29T03:55:03.767Z')
 WFIGS_OK = collection([wfigs_feature()])
+
+
+def perim_feature(name='Frontera', ring=None, **over):
+    """A ring is [lon, lat] and must close, exactly as the service returns it."""
+    ring = ring or [[-99.0, 31.0], [-99.0, 31.1], [-98.9, 31.1], [-98.9, 31.0], [-99.0, 31.0]]
+    props = {'poly_IncidentName': name, 'poly_GISAcres': 120.5,
+             'poly_IRWINID': '{ABC-123}', 'poly_DateCurrent': 1785297127038,
+             'poly_FeatureCategory': 'Wildfire Daily Fire Perimeter',
+             'poly_MapMethod': 'Image Interpretation'}
+    props.update(over)
+    return {'type': 'Feature', 'geometry': {'type': 'Polygon', 'coordinates': [ring]},
+            'properties': props}
+
+
+PERIM_OK = collection([])   # most cycles have no perimeter in scope; that is the ordinary case
 META_OK = {'name': 'Incidents', 'editingInfo': {'lastEditDate': 1785297127038}}
 ARCGIS_ERR = {'error': {'code': 400, 'message': "Invalid field: DailyAcres"}}
 PREV = json.dumps({'generated': '2026-07-01T00:00:00Z',
@@ -98,7 +113,7 @@ REPO_SCOPE = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file_
 
 
 def run(tfs=TFS_OK, wfigs=WFIGS_OK, meta=META_OK, previous=None, bbox=TX_BBOX,
-        buffer_mi=50, scope=True):
+        buffer_mi=50, scope=True, perim=PERIM_OK):
     """Drive main() with urlopen routed by URL. Each of tfs/wfigs/meta is an Exception to raise,
     a body to answer with, or a list of either replayed in order (the last element repeats)."""
     root = tempfile.mkdtemp(prefix='gen-wildfire-test.')
@@ -124,13 +139,15 @@ def run(tfs=TFS_OK, wfigs=WFIGS_OK, meta=META_OK, previous=None, bbox=TX_BBOX,
 
         calls, sleeps = [], []
         scripts = {k: (v if isinstance(v, list) else [v]) for k, v in
-                   (('tfs', tfs), ('wfigs', wfigs), ('meta', meta))}
-        seen = {'tfs': 0, 'wfigs': 0, 'meta': 0}
+                   (('tfs', tfs), ('wfigs', wfigs), ('meta', meta), ('perim', perim))}
+        seen = {'tfs': 0, 'wfigs': 0, 'meta': 0, 'perim': 0}
 
         def urlopen(req, timeout=None):
             url = req.full_url if hasattr(req, 'full_url') else str(req)
             if 'tfswildfires.com' in url:
                 lane = 'tfs'
+            elif 'Perimeters_Current' in url and '/query?' in url:
+                lane = 'perim'
             elif '/query?' in url:
                 lane = 'wfigs'
             else:
@@ -221,8 +238,8 @@ r = run(tfs=collection([], created='2026-07-29T03:55:03.767Z'), wfigs=collection
 D = r['doc']
 check('an empty but valid read publishes as ok with count 0 and exits clean',
       r['code'] == 0 and D['fires'] == []
-      and [s['status'] for s in D['sources']] == ['ok', 'ok']
-      and [s['count'] for s in D['sources']] == [0, 0],
+      and [s['status'] for s in D['sources']] == ['ok', 'ok', 'ok']
+      and [s['count'] for s in D['sources']] == [0, 0, 0],
       'code=%s %s' % (r['code'], D['sources']))
 check('an empty day still states when each source was last built, so it can be aged',
       src(D, 'tfs')['captured'] == '2026-07-29T03:55:03Z', src(D, 'tfs')['captured'])
@@ -437,6 +454,62 @@ check('the schema gate accepts a Louisiana fire 17 mi from the line, which is in
 rc, log = run_schema_gate(payload([FIRE, dict(FIRE, id='tfs:ID-2', scope=None)]))
 check('the schema gate rejects a half-populated scope column rather than trusting the labelled half',
       rc != 0 and 'partial column' in log, 'rc=%s %s' % (rc, log))
+# --- perimeters: an edge where one is published, never a claim where none is -----------------
+r = run(perim=collection([perim_feature()]))
+D = r['doc']
+P = D['perimeters']
+check('a perimeter in scope is published with its ring, name and mapping provenance',
+      len(P) == 1 and P[0]['name'] == 'Frontera' and P[0]['acres'] == 120.5
+      and P[0]['method'] == 'Image Interpretation' and len(P[0]['rings'][0]) == 5, P)
+check('the ring keeps [lon, lat] order, so the client flip lands in Texas',
+      P[0]['rings'][0][0] == [-99.0, 31.0], P[0]['rings'][0][0])
+check('the perimeter read gets its own source row, so a failure is visible',
+      src(D, 'wfigs-perimeters')['status'] == 'ok' and src(D, 'wfigs-perimeters')['count'] == 1,
+      D['sources'])
+
+# a fire whose edge crosses the line is ours even when most of it is not
+r = run(perim=collection([perim_feature(
+    ring=[[-94.5, 33.0], [-93.0, 33.0], [-93.0, 33.5], [-94.5, 33.5], [-94.5, 33.0]])]))
+check('a perimeter with only some vertices in scope is kept, not dropped',
+      len(r['doc']['perimeters']) == 1, r['doc']['perimeters'])
+
+r = run(perim=collection([perim_feature(ring=[[-80.0, 40.0], [-79.9, 40.0], [-79.9, 40.1],
+                                             [-80.0, 40.1], [-80.0, 40.0]])]))
+check('a perimeter wholly outside the scope is dropped',
+      r['doc']['perimeters'] == [], r['doc']['perimeters'])
+
+# E1 · an enrichment that fails must not empty the layer it enriches
+r = run(perim=OSError('timed out'))
+D = r['doc']
+check('a failed perimeter read publishes as failed with a null count, never as zero edges',
+      src(D, 'wfigs-perimeters')['status'] == 'failed'
+      and src(D, 'wfigs-perimeters')['count'] is None and D['perimeters'] == [],
+      D['sources'])
+check('a failed perimeter read still publishes the incidents and signs the cycle degraded',
+      r['code'] != 0 and [f['src'] for f in D['fires']] == ['tfs', 'wfigs'],
+      'code=%s %s' % (r['code'], [f['src'] for f in D['fires']]))
+
+r = run(perim=ARCGIS_ERR)
+check('an ArcGIS error body inside HTTP 200 marks the perimeter source failed, never zero edges',
+      src(r['doc'], 'wfigs-perimeters')['status'] == 'failed' and r['doc']['perimeters'] == [],
+      r['doc']['sources'])
+
+# holes are dropped deliberately; an unburnt island is not an operational fact at this zoom
+r = run(perim=collection([{
+    'type': 'Feature',
+    'geometry': {'type': 'Polygon', 'coordinates': [
+        [[-99.0, 31.0], [-99.0, 31.2], [-98.8, 31.2], [-98.8, 31.0], [-99.0, 31.0]],
+        [[-98.95, 31.05], [-98.95, 31.1], [-98.9, 31.1], [-98.95, 31.05]]]},
+    'properties': {'poly_IncidentName': 'Holed', 'poly_GISAcres': 10,
+                   'poly_DateCurrent': 1785297127038}}]))
+check('a polygon hole is dropped and only the outer ring is published',
+      len(r['doc']['perimeters'][0]['rings']) == 1
+      and len(r['doc']['perimeters'][0]['rings'][0]) == 5, r['doc']['perimeters'])
+
+r = run(perim=collection([perim_feature(ring=[[-99.0, 31.0], [-99.0, 31.1], [-99.0, 31.0]])]))
+check('a ring with too few points to be a polygon is skipped rather than drawn',
+      r['doc']['perimeters'] == [], r['doc']['perimeters'])
+
 print('----')
 if FAILS == 0:
     print('ALL GEN-WILDFIRE TESTS PASSED')

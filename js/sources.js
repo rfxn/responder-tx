@@ -2240,11 +2240,45 @@ function wildfireNoticeText() {
   return stamp ? t('wf.none').replace('{t}', fmtWhen(stamp)) : t('wf.none.undated');
 }
 
+/* Where an agency has mapped the fire edge. Most fires never get one, so this draws under the
+   points rather than replacing them, and its absence is never a claim the fire is small. The
+   geometry is a generalized daily interpretation of imagery, which the popup says out loud. */
+function renderPerimeters(layer, data) {
+  for (const p of (Array.isArray(data.perimeters) ? data.perimeters : [])) {
+    for (const ring of (Array.isArray(p.rings) ? p.rings : [])) {
+      if (!Array.isArray(ring) || ring.length < 4) continue;
+      const latlngs = ring
+        .filter((c) => Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]))
+        .map((c) => [c[1], c[0]]); // stored lon,lat like the GeoJSON it came from
+      if (latlngs.length < 4) continue;
+      const poly = L.polygon(latlngs, {
+        pane: 'shadowPane', color: '#d9480f', weight: 2, opacity: 0.9,
+        fillColor: '#f76707', fillOpacity: 0.18, className: 'wildfire-perimeter',
+      });
+      poly.bindPopup(perimeterPopupHtml(p));
+      layer.addLayer(poly);
+    }
+  }
+}
+
+function perimeterPopupHtml(p) {
+  const rows = [];
+  if (Number.isFinite(p.acres)) rows.push(`${esc(t('wf.k.size'))}: ${esc(t('wf.acres').replace('{n}', num(p.acres)))}`);
+  // the mapping method is the provenance: image interpretation and a GPS walk are different claims
+  if (p.method) rows.push(`${esc(t('wf.k.method'))}: ${esc(p.method)}`);
+  if (p.observed) rows.push(`${esc(t('wf.k.mapped'))}: ${esc(fmtWhen(p.observed))}`);
+  return `<div class="pop"><strong>${esc(p.name || t('wf.unnamed'))}</strong>`
+    + `<div class="pop-sub">${esc(t('wf.perim.sub'))}</div>`
+    + (rows.length ? `<div class="pop-meta">${rows.join(' · ')}</div>` : '')
+    + `</div>`;
+}
+
 function renderWildfire() {
   const layer = state.layers.wildfire;
   const data = state.wildfire;
   if (!layer || !data) return;
   layer.clearLayers();
+  renderPerimeters(layer, data); // first, so the origin points stay clickable on top
   const lbl = esc(t('layers.wildfire'));
   for (const f of (Array.isArray(data.fires) ? data.fires : [])) {
     if (!Number.isFinite(f.lat) || !Number.isFinite(f.lon)) continue;

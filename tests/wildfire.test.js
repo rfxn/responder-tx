@@ -217,7 +217,8 @@ test('every wildfire string exists in both languages and carries no em-dash', ()
     'wf.none.undated', 'wf.partial', 'wf.unknown', 'note.wildfirefail',
     'wf.unreported', 'wf.nearby', 'wf.crew', 'wf.k.size', 'wf.k.contain', 'wf.k.where',
     'wf.k.cause', 'wf.k.started', 'wf.k.updated', 'wf.k.unit', 'wf.k.org', 'wf.k.crew',
-    'wf.k.number'];
+    'wf.k.number', 'wf.k.method', 'wf.k.mapped', 'wf.unnamed', 'wf.perim.sub',
+    'legend.wildfire.perim'];
   for (const k of keys) {
     assert.equal((i18n.match(new RegExp(`'${k.replace(/\./g, '\\.')}':`, 'g')) || []).length, 2,
       `${k} is missing from en or es`);
@@ -226,11 +227,18 @@ test('every wildfire string exists in both languages and carries no em-dash', ()
       assert.ok(!I18N[lang][k].includes('—'), `em-dash in ${lang} ${k}`);
     }
   }
-  // the layer must never describe itself as drawing the fire itself
+  /* The layer draws perimeters where an agency publishes one (most fires have none), so the
+     strings have to carry BOTH halves: the marker is an origin point, and a missing outline means
+     unmapped rather than small. Dropping either half turns an absence into a claim about size. */
   for (const k of ['sheet.s.wildfire', 'glossary.wildfire']) {
     for (const lang of ['en', 'es']) {
-      assert.match(I18N[lang][k], /perimet|perímet/i, `${k} must say it is not a perimeter: ${I18N[lang][k]}`);
+      assert.match(I18N[lang][k], /perimet|perímet/i, `${k} must address perimeters: ${I18N[lang][k]}`);
+      assert.match(I18N[lang][k], /origin|origen/i, `${k} must still call the marker an origin point`);
     }
+  }
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['glossary.wildfire'], /never|nunca/i,
+      'the glossary must say a missing perimeter is never a statement about the size of the fire');
   }
 });
 
@@ -295,4 +303,65 @@ test('the popup facts grid puts labels and values in it directly, not inside a r
   const css = read('css/app.css');
   assert.match(css, /\.wf-facts \{[^}]*grid-template-columns/, 'the grid columns must be declared');
   assert.match(css, /\.wf-v \{[^}]*margin: 0/, 'dd carries a default indent that must be reset');
+});
+
+/* ---------- perimeters: an edge where one is published, and no claim where none is ---------- */
+
+test('rings_of keeps outer rings only and rejects a degenerate ring', () => {
+  const src = read('scripts/gen-wildfire.py');
+  assert.match(src, /def rings_of\(geom\)/);
+  // holes are dropped on purpose; an unburnt island is not an operational fact at this zoom
+  assert.match(src, /coords\[:1\]/, 'Polygon must take the outer ring only');
+  assert.match(src, /poly\[0\] for poly in coords/, 'MultiPolygon must take each outer ring');
+  assert.match(src, /len\(r\) >= 4/, 'a ring with under 4 points is not a polygon');
+});
+
+test('a perimeter is in scope when ANY vertex is, not just its centre', () => {
+  const src = read('scripts/gen-wildfire.py');
+  const fn = src.slice(src.indexOf('def collect_perimeters'), src.indexOf('def rings_of'));
+  assert.match(fn, /for ring in rings:/, 'the scope test must walk the ring');
+  assert.match(fn, /scope_of\(lat, lon, scope\[0\], scope\[1\]\)/,
+    'it must reuse the same scope test the incident points use');
+  // a horseshoe fire can have its centroid outside its own burn, and a border fire is still ours.
+  // Comments are stripped first: the code's own note names the approach it deliberately avoids.
+  const code = fn.replace(/#.*$/gm, '');
+  assert.ok(!/centroid|center|centre/i.test(code), 'a centroid test would drop border and horseshoe fires');
+});
+
+test('the perimeter read is generalized and bounded, so one geometry cannot become the payload', () => {
+  const src = read('scripts/gen-wildfire.py');
+  assert.match(src, /PERIM_OFFSET = "0\.0005"/, 'server-side generalization must stay on');
+  assert.match(src, /"maxAllowableOffset": PERIM_OFFSET/);
+  assert.match(src, /PERIM_MAX_VERTS/, 'an unbounded geometry must be refused, not published');
+  assert.match(src, /raise ValueError\(f"WFIGS perimeters still reports more rows/,
+    'a truncated perimeter read must raise: a short set would draw a fire smaller than it is');
+});
+
+test('a perimeter failure is published as failed and never sinks the incident layer', () => {
+  const src = read('scripts/gen-wildfire.py');
+  assert.match(src, /"wfigs-perimeters": \{"name"/, 'the perimeter read needs its own source entry');
+  // E1: the points are the board's answer; an enrichment that fails must not empty the layer
+  assert.match(src, /if all\(s\["status"\] == "failed" for s in \(tfs_src, wfigs_src\)\):/,
+    'the fatal check must consider the two incident sources, not the perimeter read');
+});
+
+test('the client draws perimeters under the points and states what the geometry is', () => {
+  const src = read('js/sources.js');
+  assert.match(src, /renderPerimeters\(layer, data\); \/\/ first/,
+    'perimeters must be added before the markers so the origin points stay clickable');
+  assert.match(src, /\[c\[1\], c\[0\]\]/, 'stored lon,lat must be flipped for Leaflet');
+  assert.match(src, /length < 4\) continue/, 'a degenerate ring must be skipped, not drawn');
+  // the popup has to say the edge is an interpretation, not a measurement
+  assert.match(I18N.en['wf.perim.sub'], /interpretation/i);
+  assert.match(I18N.es['wf.perim.sub'], /interpretaci/i);
+});
+
+test('an absent perimeter list is not a claim that no fire has an edge', () => {
+  const src = read('js/sources.js');
+  const fn = src.slice(src.indexOf('function renderPerimeters'), src.indexOf('function perimeterPopupHtml'));
+  assert.match(fn, /Array\.isArray\(data\.perimeters\) \? data\.perimeters : \[\]/,
+    'a missing list must render nothing rather than throw');
+  // the payload guard must still only require fires/sources: an old file has no perimeters key
+  assert.match(src, /!Array\.isArray\(data\.fires\) \|\| !Array\.isArray\(data\.sources\)/,
+    'perimeters must NOT be required, or every client would reject a pre-perimeter file');
 });

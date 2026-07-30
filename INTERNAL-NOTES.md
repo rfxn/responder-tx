@@ -343,3 +343,38 @@ The live `robots.txt` is Cloudflare's Content Signals Policy preamble injected a
 before this change the origin had no robots.txt at all, so the served file was comments only,
 with no directives and no `Sitemap:` line. Our file must survive that merge: verify with
 `curl https://respondertx.org/robots.txt` after any deploy that touches it.
+
+## Single-host feed failover (N5): what was probed and what exists (2026-07-30)
+
+Two feeds still run on one host each. Both degrade honestly, which is correct
+behaviour but not resilience, so the question was whether a real alternate exists.
+Recording the negatives so the same endpoints are not re-probed.
+
+**HRRR forecast radar** (`CONFIG.hrrrWmsUrl` / `hrrrMetaUrl`, IEM). No renderable
+alternate found.
+
+| Candidate | Finding |
+|-----------|---------|
+| NOAA nowCOAST GeoServer | HTTP 200, 301 layers. Carries NDFD 6h/12h precipitation and the observed MRMS mosaic. **No per-hour HRRR reflectivity**, so it cannot back the +1h..+12h timeline |
+| NCEP `opengeo.ncep.noaa.gov` | HTTP 200, 2.3 MB capabilities. Observed only: `conus:conus_bref_qcd`, `conus_cref_qcd`, plus per-radar-site `t???_brefl`. No model forecast |
+| Unidata THREDDS `grib/NCEP/HRRR/CONUS_2p5km/Best` | Dataset exists and advertises WMS, but GetCapabilities returns a ServiceException: "Coordinate values must increase or decrease monotonically". Broken upstream, not usable |
+| NOMADS / AWS `noaa-hrrr-bdp-pds` | GRIB only. Would need server-side decode, render and tile storage each cycle. That is an object-store project, not a client failover |
+
+The honest degrade is the final answer for HRRR. What the probe *did* find is that
+the degrade was incomplete: the run stamp is a static file under `/data/gis/` and
+the tiles come from a CGI under `/cgi-bin/`, so IEM can serve a healthy run stamp
+while the WMS answers nothing. `wxFcstDegraded` keyed on `metaFail` alone, so that
+partial outage stepped through blank model hours reading as a dry forecast. Fixed
+v0.99.76: the hour layers now carry a `tileFail` signal, mirroring `wxObsUnverified`.
+
+**DriveTexas road closures** (`CONFIG.roadCondUrl`, ArcGIS). A real second endpoint
+exists but is key-gated.
+
+| Candidate | Finding |
+|-----------|---------|
+| TxDOT WZDx 4.2 `api.drivetexas.org/api/conditions.wzdx.geojson` | **The real alternate.** Different host, different format, 5-minute cadence, listed active in the USDOT WZDx registry. Returns HTTP 401 without a key; the key is a free self-serve registration at `api.drivetexas.org`. **Owner action to mint**, same shape as the Cloudflare token |
+| TxDOT public ArcGIS org `KTcxiTD9dsQw4r7Z` | 685 services, none carrying live conditions. Lane geometry and inventory only. The live conditions exist solely in the `services5`/`Rvw11bGpzJNE7apK` DriveTexas service |
+| City of Austin WZDx | Keyless, HTTP 200, 5.5 MB, fresh. But it is Austin **work zones** on a 60-minute cadence, not statewide flood closures. Wiring it as failover would answer a high-water question with construction cones, so it is excluded on honesty grounds, not availability |
+
+Registry query that produced this (41 rows, `state=texas` filtered client-side):
+`curl 'https://datahub.transportation.gov/resource/69qe-yiui.json?$limit=400'`

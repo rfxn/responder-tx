@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.76 · 2026-07-30 (the forecast timeline says when it has nothing to show)
+
+-- Bug Fixes --
+- [Fix] An empty forecast timeline could read as a dry forecast. When the model
+      imagery fails to load, the radar legend now says the forecast is
+      unavailable instead of stepping through blank hours
+
 ## v0.99.75 · 2026-07-30 (the update prompt now actually updates)
 
 -- Bug Fixes --

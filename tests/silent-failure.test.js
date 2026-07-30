@@ -422,6 +422,49 @@ test('wxObsUnverified fires only when the fallback answered with nothing', () =>
     'one painted tile makes it a real observation again, dropped frames aside');
 });
 
+test('wxFcstDegraded counts a failing WMS, not only failing run metadata', () => {
+  const { wxFcstDegraded } = mapApp;
+  assert.equal(wxFcstDegraded(null), false);
+  assert.equal(wxFcstDegraded({ metaFail: false, tileFail: false, tileOk: false }), false,
+    'still loading is not yet a failure; the legend must not flicker a warning on every enable');
+  assert.equal(wxFcstDegraded({ metaFail: true, tileFail: false, tileOk: false }), true,
+    'no run stamp and nothing painted: the model hours are empty and must say so');
+  assert.equal(wxFcstDegraded({ metaFail: false, tileFail: true, tileOk: false }), true,
+    'the run stamp is a static file and the tiles are a CGI: a healthy stamp over a dead WMS '
+    + 'would otherwise step through blank hours that read as a dry forecast');
+  assert.equal(wxFcstDegraded({ metaFail: true, tileFail: true, tileOk: true }), false,
+    'one painted model tile means the forecast is real, whatever else errored');
+});
+
+test('the forecast hour layers report tile failure the way the observed frames do', () => {
+  const prev = { fcst: MST.fcst, rtl: MST.rtl, map: MST.map, layers: MST.layers, radar: MST.radar };
+  try {
+    MST.map = { hasLayer: () => false };
+    MST.layers = { radar: null, fcstRadar: null };
+    MST.radar = null;
+    MST.rtl = { idx: 0, fut: true, hour: 1, playing: false };
+    MST.fcst = { runIso: null, hourLayers: [], metaFail: false, tileOk: false, tileFail: false };
+    const handlers = {};
+    const layer = { on(ev, fn) { handlers[ev] = fn; } };
+    withRadarDom((node) => {
+      MSB.watchFcstTiles(layer);
+      assert.deepEqual(Object.keys(handlers).sort(), ['tileerror', 'tileload']);
+      handlers.tileerror();
+      assert.equal(MST.fcst.tileFail, true, 'a dead WMS is the failure signal');
+      assert.equal(mapApp.wxFcstDegraded(MST.fcst), true);
+      assert.equal(node('#wx-legend-src').textContent, 'leg.wx.fcst.down',
+        'the legend follows the verdict without waiting for another enable');
+      handlers.tileload();
+      assert.equal(MST.fcst.tileOk, true);
+      assert.equal(mapApp.wxFcstDegraded(MST.fcst), false);
+      assert.equal(node('#wx-legend-src').textContent, 'leg.wx.fcst');
+    });
+    // the bare tileload handler this replaced could never see a WMS outage
+    assert.match(read('js/map.js'), /watchFcstTiles\(l\);\n\s*attachTileRetry\(l\);/,
+      'every mounted hour layer must be watched, or the verdict depends on which hour was shown');
+  } finally { Object.assign(MST, prev); }
+});
+
 function withRadarDom(fn) {
   const nodes = {};
   const node = (sel) => (nodes[sel] = nodes[sel] || {

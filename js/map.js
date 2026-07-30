@@ -506,7 +506,7 @@ function initMap() {
   // HRRR model future-cast — MODEL data (never observed); per-hour WMS layers mounted at opacity 0
   // like the observed-radar frames, so stepping is opacity-only (never a per-step fetch-gated fade)
   state.rtl = { idx: 0, fut: false, hour: 1, playing: false, timer: null, wantNow: false };
-  state.fcst = { runIso: null, hourLayers: [], metaFail: false, tileOk: false };
+  state.fcst = { runIso: null, hourLayers: [], metaFail: false, tileOk: false, tileFail: false };
   state.layers.fcstRadar = L.layerGroup();
   state.inunBucket = Math.floor(Date.now() / 3600000);
   state.refreshRadar = () => {
@@ -1842,9 +1842,23 @@ async function fetchRadarFrames() {
 const FCST_WIN_BEHIND = 1; // sliding preload window around the playhead; bounds the concurrent WMS load on mobile
 const FCST_WIN_AHEAD = 3;  // lead enough at the play cadence that an hour paints before it is shown
 
-// HRRR has no secondary source — degraded means the IEM run metadata is failing and no model tile has
-// ever painted; the legend then says so instead of showing silently blank forecast frames
-const wxFcstDegraded = (f) => !!(f && f.metaFail && !f.tileOk);
+/* HRRR has no secondary source, so degraded is the only honest answer when it fails. The run stamp is a
+   static file and the tiles come from a CGI, so IEM can serve a healthy run while the WMS answers nothing;
+   either signal counts. Same shape as wxObsUnverified: a failure AND nothing painted, so a stray
+   out-of-bounds tile error never flips a working forecast. */
+const wxFcstDegraded = (f) => !!(f && (f.metaFail || f.tileFail) && !f.tileOk);
+
+// the verdict flips asynchronously once tiles answer; the legend has to follow it
+function watchFcstTiles(layer) {
+  const mark = (key) => () => {
+    const f = state.fcst;
+    if (!f || f[key]) return;
+    f[key] = true;
+    rtlUpdateLabel(rtlDomain());
+  };
+  layer.on('tileload', mark('tileOk'));
+  layer.on('tileerror', mark('tileFail'));
+}
 
 // one supersampled, mobile-tuned HRRR hour layer (mirrors the observed-radar frame tuning), mounted at opacity 0
 function fcstMakeHourLayer(h) {
@@ -1856,7 +1870,7 @@ function fcstMakeHourLayer(h) {
   });
   l.wmsParams.width = l.wmsParams.height = FCST_WMS_PX; // render size (initialize() pins these to tileSize)
   if (state.fcst.runIso) l.wmsParams._run = state.fcst.runIso; // stay on the same run as its already-mounted siblings
-  l.on('tileload', () => { state.fcst.tileOk = true; });
+  watchFcstTiles(l);
   attachTileRetry(l);
   return l;
 }

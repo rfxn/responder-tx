@@ -579,15 +579,24 @@ N5 and half of N6, both verified still open in source.
   `.chat-ack-cursor <= .chat-cursor` half was deliberately **not** asserted: the
   ack cursor legitimately runs ahead of the build cursor by design, so that
   assertion would have false-failed a fatal data-cycle gate.
-- **N5. Single-host feed failover remainder** [infra] · the v0.97.76 radar leg
-  landed (RainViewer falling back to the IEM NEXRAD archive, `js/map.js`
-  `iemRadarFrames()`), but 2 of 3 single-host feeds still have no second
-  source: HRRR forecast radar (one IEM WMS endpoint, and `js/map.js` says so in
-  as many words) and DriveTexas road closures (`js/sources.js`
-  `fetchRoadClosures()`, single `CONFIG.roadCondUrl`, throws on non-200). Both
-  degrade honestly rather than failing over, which is correct behavior but not
-  resilience. Find and wire a real alternate for each, or document why none
-  exists and keep the honest degrade as the final answer.
+- ~~**N5. Single-host feed failover remainder**~~ · RESOLVED v0.99.76, source hunt
+  in `INTERNAL-NOTES.md` "Single-host feed failover (N5)". Both remaining legs were
+  probed against every plausible alternate.
+  - **HRRR forecast radar** · no alternate exists. NOAA nowCOAST carries NDFD
+    precipitation and observed MRMS but no per-hour HRRR reflectivity; NCEP opengeo
+    is observed-only; the Unidata THREDDS HRRR WMS is broken upstream; NOMADS and
+    the AWS mirror are GRIB, needing server-side render and tile storage. The honest
+    degrade is the final answer. The hunt did find the degrade **incomplete**: the
+    run stamp is a static file and the tiles are a CGI, so a healthy stamp over a
+    dead WMS stepped through blank model hours that read as a dry forecast. Fixed
+    v0.99.76 with a `tileFail` signal mirroring `wxObsUnverified`.
+  - **DriveTexas road closures** · a real alternate exists and is now the only
+    blocker: TxDOT's own WZDx 4.2 GeoJSON at `api.drivetexas.org`, a different host
+    and format on a 5-minute cadence, active in the USDOT WZDx registry. It answers
+    401 without a key. Minting one is a free self-serve registration and an owner
+    action, so it moves to OWNER-GATED; the wiring is ours once a key exists. Austin's
+    keyless WZDx feed is city work zones, not statewide closures, and is excluded on
+    honesty grounds. Until then the committed snapshot fallback stands.
 - **N6. Public-artifact remainder** [ux] · DELIVERED. The intake-form half shipped
   v0.98.11 (the markup no longer reaches the mirror, and every reader tolerates the
   element being absent). The `?note=<id>` half shipped v0.99.48: the parameter is
@@ -634,6 +643,10 @@ engineering.
   dedicated token scoped to this project, or a wrangler-native login. Until one
   exists, `scripts/deploy.sh` derives the token from the rfxn-infra Ansible
   vault, which couples every deploy to an unrelated repo checkout.
+- **Mint a TxDOT DriveTexas API key.** Free self-serve registration at
+  `api.drivetexas.org`. It unlocks the one real second source for road closures
+  (TxDOT's WZDx 4.2 GeoJSON, a different host and format from the ArcGIS service we
+  read now), which is the last open half of N5. Wiring is ours once a key exists.
 - **Cloudflare zone cache rule.** Decide whether to narrow or remove the
   zone-level `max-age=14400` rule on respondertx.org. It overrides the repo
   `_headers` file, which works correctly on pages.dev. Already known to affect

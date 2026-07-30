@@ -63,10 +63,12 @@ constant instead of growing with archive depth; the "view" object is what keeps 
 partial file from reading as a complete one.
 """
 import bisect
+import csv
 import datetime
 import glob
 import gzip
 import hashlib
+import io
 import json
 import os
 import signal
@@ -105,8 +107,12 @@ THIN_OLD_GAP_S = 29 * 60
 BACKFILL_FALLBACK_DAYS = 7         # no archive floor in data/event.json: rolling window
 TOTAL_SIZE_BUDGET = 3600 * 1024    # over budget: thin reconstruction from 1-hour to 2-hour spacing
 NWPS_GAUGE_URL = "https://api.water.noaa.gov/nwps/v1/gauges/"
-USGS_IV_URL = "https://waterservices.usgs.gov/nwis/iv/"
+# waterservices.usgs.gov is decommissioned in Q1 2027 and its no-degradation guarantee lapsed in
+# August 2026. See INTERNAL-NOTES.md "USGS WaterServices decommission".
+USGS_OGC_URL = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/continuous/items"
 USGS_SITES_PER_REQ = 10
+USGS_PAGE_LIMIT = 50000   # server rejects a larger limit outright, which is what makes a full page a reliable truncation signal
+USGS_SPLIT_MAX = 6
 FETCH_SPACING_S = 0.2
 THRESHOLD_KEYS = ("action", "minor", "moderate", "major")
 META_MISS_KEY = "miss"             # entry present but never answered: retried, never read as thresholds
@@ -655,6 +661,12 @@ def http_json(url, timeout=90):
         return json.loads(resp.read().decode("utf-8"))
 
 
+def http_text(url, timeout=90):
+    req = urllib.request.Request(url, headers={"User-Agent": "responder-ops-board/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8")
+
+
 def meta_due(entry, now):
     """A never-answered entry is due again once its retry window passes. An unparseable stamp
     is due immediately, so a malformed marker can never become the permanent cache."""
@@ -718,7 +730,38 @@ def load_gauge_meta(lids):
     return meta
 
 
+def usgs_stamp(dt):
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def fetch_usgs_rows(sites, start_dt, end_dt, depth=0):
+    """Observation rows for one site chunk and window: complete, or an exception.
+
+    CSV because it is roughly a quarter the bytes of the GeoJSON view of the same observations,
+    which repeats the geometry and every property on every point. The cost is that CSV carries no
+    next-link and stops silently at `limit`, so a full page is treated as truncated and the window
+    halved rather than trusted. E1: a partial series must never publish as a whole one."""
+    ids = ",".join("USGS-" + s for s in sites)
+    url = (f"{USGS_OGC_URL}?monitoring_location_id={ids}&parameter_code=00065"
+           f"&datetime={usgs_stamp(start_dt)}/{usgs_stamp(end_dt)}"
+           f"&limit={USGS_PAGE_LIMIT}&f=csv")
+    rows = list(csv.DictReader(io.StringIO(http_text(url, timeout=180))))
+    if len(rows) < USGS_PAGE_LIMIT:
+        return rows
+    half = (end_dt - start_dt) / 2
+    if depth >= USGS_SPLIT_MAX or half < datetime.timedelta(minutes=1):
+        raise RuntimeError(f"USGS returned a full {USGS_PAGE_LIMIT}-row page for {len(sites)} "
+                           f"site(s) after {depth} split(s); the series would be partial")
+    mid = start_dt + half
+    time.sleep(FETCH_SPACING_S)
+    return (fetch_usgs_rows(sites, start_dt, mid, depth + 1)
+            + fetch_usgs_rows(sites, mid, end_dt, depth + 1))
+
+
 def fetch_usgs_series(site_ids, start_iso, end_iso):
+    start_dt, end_dt = parse_iso(start_iso), parse_iso(end_iso)
+    if not start_dt or not end_dt:
+        return {}
     series = {}
     site_ids = sorted(site_ids)
     for i in range(0, len(site_ids), USGS_SITES_PER_REQ):
@@ -727,26 +770,25 @@ def fetch_usgs_series(site_ids, start_iso, end_iso):
                   f"{len(site_ids) - i} site(s) unfetched; they resume next cycle", file=sys.stderr)
             break
         chunk = site_ids[i:i + USGS_SITES_PER_REQ]
-        url = (f"{USGS_IV_URL}?format=json&sites={','.join(chunk)}"
-               f"&parameterCd=00065&startDT={start_iso}&endDT={end_iso}")
-        data = http_json(url, timeout=180)
-        for ts in data.get("value", {}).get("timeSeries", []):
-            site = ts["sourceInfo"]["siteCode"][0]["value"]
-            blocks = ts.get("values") or []
-            vals = max(blocks, key=lambda b: len(b.get("value", [])), default={}).get("value", [])
-            pts = []
-            for v in vals:
-                try:
-                    stage = float(v["value"])
-                except (KeyError, ValueError, TypeError):
-                    continue
-                dt = parse_iso(v.get("dateTime"))
-                if stage <= -999 or not dt:
-                    continue
-                pts.append((dt.astimezone(datetime.timezone.utc), stage))
-            pts.sort()
+        # keyed by timestamp, so the duplicate point a window split puts on both sides collapses
+        by_key = {}
+        for r in fetch_usgs_rows(chunk, start_dt, end_dt):
+            mlid = r.get("monitoring_location_id") or ""
+            site = mlid[5:] if mlid.startswith("USGS-") else mlid
+            dt = parse_iso(r.get("time"))
+            try:
+                stage = float(r.get("value"))
+            except (TypeError, ValueError):
+                continue
+            if not site or not dt or stage <= -999:
+                continue
+            key = (site, r.get("statistic_id") or "")
+            by_key.setdefault(key, {})[dt.astimezone(datetime.timezone.utc)] = stage
+        # a site publishing 00065 under more than one statistic must not have them interleaved;
+        # the fullest one wins, exactly as the legacy path picked the largest values block
+        for (site, _stat), pts in by_key.items():
             if len(pts) > len(series.get(site, ())):
-                series[site] = pts
+                series[site] = sorted(pts.items())
         time.sleep(FETCH_SPACING_S)
     return series
 

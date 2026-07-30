@@ -48,13 +48,35 @@ in a query parameter is not secret in a browser.
    an owner decision. The Python generator has no CSP constraint and can migrate
    on its own schedule.
 
-**What has to change, and when.** Revisit by mid-2026 so the work lands well
-before Q1 2027 and before the August 2026 no-degradation guarantee lapses.
-`scripts/gen-history.py` can move first and independently: rewrite
-`fetch_usgs_series()` against `continuous`, prefix site ids with `USGS-`, replace
-`startDT`/`endDT` with a `datetime=` RFC 3339 interval, and note that
-`/continuous` caps at three years per query. `js/sources.js` `fetchUsgsIv()`
-moves only once the CSP host is approved.
+**Generator half MIGRATED 2026-07-30.** `scripts/gen-history.py` now reads
+`api.waterdata.usgs.gov` `/collections/continuous/items`. Verified against the live
+legacy service for 3 sites over 3 days: same sites, 289 points each, byte-identical
+timestamps and values.
+
+Three findings that changed the plan sketched above:
+
+- **CSV, not GeoJSON.** `f=csv` returns the same observations in roughly a quarter the
+  bytes (487 KB against 2313 KB, one site over 29 days), because GeoJSON repeats the
+  geometry and every property on every point. That cuts the 10.4x bloat measured
+  against legacy to about 2.3x, which is what made this affordable now rather than a
+  rewrite-plus-budget problem.
+- **CSV truncates silently.** It carries no `links rel=next` and returns exactly
+  `limit` rows with nothing to say more exist, which is the E1 shape: a partial series
+  would publish as a complete one. The server rejects `limit` above 50000 with HTTP 400
+  "Limit of 50000 exceeded", and that ceiling is what makes a full page a reliable
+  truncation signal. `fetch_usgs_rows()` treats a full page as suspect and halves the
+  window, bounded by `USGS_SPLIT_MAX`, raising rather than returning a short series.
+  Verified by forcing the limit to 200: the split result is identical to the unsplit
+  one, and setting the bound to 0 raises.
+- **Statistic grouping.** Rows carry `statistic_id`, so a site publishing 00065 under
+  more than one statistic must not have them interleaved. Grouping by
+  `(site, statistic_id)` and keeping the fullest reproduces what the legacy path did
+  when it picked the largest `values` block.
+
+**Client half still pending.** `js/sources.js` `fetchUsgsIv()` stays on the legacy
+service until `api.waterdata.usgs.gov` is added to CSP `connect-src` in BOTH `_headers`
+and `server.py`, which is an owner decision. It also needs a join against
+`monitoring-locations` for the popup title, which the current path does not make.
 
 ## USGS IV client layer returns HTTP 400 (bbox too large) — fixed in v0.99.49
 

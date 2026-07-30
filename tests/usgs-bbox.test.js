@@ -268,7 +268,9 @@ test('the throttle stays inside the window that triggers the USGS fallback', () 
 
 test('gen-history.py queries USGS by site list, so the bbox cap never applies to it', () => {
   const src = fs.readFileSync(path.join(ROOT, 'scripts/gen-history.py'), 'utf8');
-  assert.match(src, /\?format=json&sites=/, 'gen-history must query by explicit site list');
-  // it does hold bboxes, as a retention filter over results; what it must never do is send one
-  assert.ok(!/bBox=/.test(src), 'gen-history must not acquire a bBox query parameter');
+  assert.match(src, /monitoring_location_id=\{ids\}/, 'gen-history must query by explicit site list');
+  // it does hold bboxes, as a retention filter over results; what it must never do is send one.
+  // Both spellings: the legacy service took bBox, the OGC API it migrated to takes bbox.
+  assert.ok(!/[?&]bBox=/.test(src), 'gen-history must not acquire a bBox query parameter');
+  assert.ok(!/[?&]bbox=/.test(src), 'gen-history must not acquire an OGC bbox query parameter');
 });

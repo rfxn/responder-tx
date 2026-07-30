@@ -556,8 +556,8 @@ digest.
   1.0, during TS Bertha (NHC tracker, SLOSH surge, CO-OPS tides, widened
   hazard allowlist). The severe/tornado + wildfire remainder stays in LATER.
 - **Live team location sharing (old NEXT 12)** · DELIVERED v0.97.0 → v0.97.63
-  (see the Team coordination cluster above; Phase-2 SAR remains in the team
-  build queue).
+  (see the Team coordination cluster above; the Phase-2 queue closed 2026-07-30 with
+  only the owner-gated SOS left, see NEXT 10).
 
 ### NOW (re-derived 2026-07-25 after v0.98.6, reconciled 2026-07-26 after v0.99.34)
 
@@ -607,6 +607,11 @@ N5 and half of N6, both verified still open in source.
 
 ### NEXT (after the NOW queue)
 
+> **Status 2026-07-30:** the NOW queue is empty (N5 resolved v0.99.76) and every
+> remaining NEXT item is now blocked on an owner decision, not on engineering: 7 needs
+> a token, 8 needs the naming call, 9's remainder is a terms posture, and 10 reduces to
+> the owner-gated SOS. The three decisions are listed under OWNER-GATED below.
+
 7. **Deploy-credential decoupling** [infra] · the remaining half of the old item
    18 (its freshness-monitor half shipped v0.97.81). `scripts/deploy.sh` still
    reaches into the rfxn-infra Ansible vault for the Cloudflare token, so deploys
@@ -631,9 +636,17 @@ N5 and half of N6, both verified still open in source.
    is left is **a terms surface** (no `terms` string exists anywhere in source or
    `ABOUT.md`). That one is deliberately left for the owner: publishing terms of use
    for a life-safety board is a posture decision, not an engineering task.
-10. **Team Phase-2 SAR** [field] · the remaining team build-queue item.
-    Breadcrumb store-and-forward already landed (v0.97.73), and v0.98.6 moved
-    Team off the default tab bar, so the surface is opt-in before this is built.
+10. ~~**Team Phase-2 SAR**~~ [field] · CLOSED as a queue item 2026-07-30, verified
+    against source. The label outlived its contents: the concrete build queue was
+    F1/F3/F4/F5 plus E1, and four of the five have shipped. Wake lock (F1) is in
+    `js/core.js` `keepAwake()`; interactive member markers with popups (F3) are
+    `js/team.js` `memberPopupHtml()`; tap-to-locate (F4) is `armDrop()` with its own
+    member-gated armed flag; per-member GPS accuracy circles (F5) are `entry.acc`,
+    self halo always on with teammate accuracy in the popup. Breadcrumb
+    store-and-forward landed v0.97.73 and v0.98.6 moved Team off the default tab bar,
+    so the surface is opt-in. **What remains is E1 SOS alone, which is OWNER-GATED**
+    (see below); `sos` appears nowhere in `js/team.js` or `js/master.js`. Nothing
+    non-gated is left in this cluster.
 
 ### OWNER-GATED (explicit owner decision required; do NOT auto-build)
 

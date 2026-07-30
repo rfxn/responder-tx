@@ -131,6 +131,11 @@ def main():
 
     payload = {
         "generated": now.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        # the network this run was built against. Age does not imply coverage: a file six days old
+        # can still describe a fifth of the gauges, which is what happened when the network grew
+        # from 290 to 1018 and nobody re-ran this. cycle-check compares walked to the live snapshot.
+        "walked": len(lids),
+        "failed": failed,
         "source": "NOAA NWPS flood.crests.historic (all-time crest of record at each gauge)",
         "note": ("Record = highest crest in the NWPS period of record. Datum shifts "
                  "across decades can affect very old crests; treat as context, not a "

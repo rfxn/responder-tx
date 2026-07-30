@@ -775,7 +775,12 @@ import datetime, json, os, sys
 
 # artifact -> (days it stays trustworthy, the generator that refreshes it). Cameras carry per-camera
 # liveness claims that expire at 30d, so 45 leaves a fortnight to act; records are all-time crests
-# that move only when one falls, so a quarter also catches "the gauge network grew and nobody re-ran it".
+# that move only when one falls, so a quarter is generous.
+#
+# Age is NOT coverage, and the earlier version of this comment claimed it was. On 2026-07-30
+# records.json was six days old, well inside its limit, while describing 216 of 1018 gauges: every
+# gauge on the flooding Nueces was absent while this check reported OK. Coverage is now measured
+# separately, off the walked count the generator publishes.
 LIMITS = (("data/cameras.json", 45, "gen-cameras.py"), ("data/records.json", 90, "gen-records.py"))
 root = os.environ.get("DATA_ROOT", ".")
 now = datetime.datetime.now(datetime.timezone.utc)
@@ -798,6 +803,25 @@ for rel, limit, gen in LIMITS:
     detail.append("%s %dd/%dd" % (os.path.basename(rel), age, limit))
     if age > limit:
         stale.append("%s is %d days old (limit %d); re-run scripts/%s" % (rel, age, limit, gen))
+
+# coverage: the gauge network this artifact was built against, versus the one the board carries now
+try:
+    with open(os.path.join(root, "data", "records.json"), encoding="utf-8") as f:
+        rec = json.load(f)
+    with open(os.path.join(root, "data", "gauges-snapshot.json"), encoding="utf-8") as f:
+        live_n = len(json.load(f).get("gauges") or [])
+except (OSError, ValueError):
+    rec, live_n = None, 0
+if rec is not None and live_n:
+    walked = rec.get("walked")
+    if walked is None:
+        detail.append("records.json predates the walked count; the next gen-records.py run adds it")
+    else:
+        detail.append("records walked %d/%d gauges" % (walked, live_n))
+        # a tenth of the network is slack for gauges added between an out-of-band run and now
+        if walked < live_n * 0.9:
+            stale.append("data/records.json was built against %d gauges but the board now carries "
+                         "%d; re-run scripts/gen-records.py" % (walked, live_n))
 if stale:
     raise SystemExit("; ".join(stale))
 sys.stdout.write(", ".join(detail))

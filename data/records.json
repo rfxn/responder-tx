@@ -1,5 +1,7 @@
 {
- "generated": "2026-07-24T04:27:27Z",
+ "generated": "2026-07-30T19:00:42Z",
+ "walked": 1018,
+ "failed": 0,
  "source": "NOAA NWPS flood.crests.historic (all-time crest of record at each gauge)",
  "note": "Record = highest crest in the NWPS period of record. Datum shifts across decades can affect very old crests; treat as context, not a datum-exact guarantee.",
  "records": {
@@ -7,6 +9,11 @@
    "name": "Williamson Creek at Manchaca Road at Austin",
    "record_ft": 16.1,
    "record_date": "2015-10-30"
+  },
+  "ABAT2": {
+   "name": "Hubbard Creek below Albany",
+   "record_ft": 41.41,
+   "record_date": "1978-08-04"
   },
   "ABTT2": {
    "name": "Barton Creek at Loop 360",
@@ -18,10 +25,40 @@
    "record_ft": 18.72,
    "record_date": "2000-11-24"
   },
+  "ABYT2": {
+   "name": "Clear Fork Brazos River near Fort Griffin",
+   "record_ft": 38.88,
+   "record_date": "1978-08-04"
+  },
+  "ACDO2": {
+   "name": "Deep Fork River at Arcadia Lake",
+   "record_ft": 1021.16,
+   "record_date": "1993-05-20"
+  },
+  "ACET2": {
+   "name": "San Diego Creek at Alice",
+   "record_ft": 17.7,
+   "record_date": "1971-10-17"
+  },
+  "ACMN5": {
+   "name": "Pecos River below Acme",
+   "record_ft": 17.37,
+   "record_date": "2022-08-21"
+  },
   "ACRT2": {
    "name": "Colorado River (TX) at Austin",
    "record_ft": 51,
    "record_date": "1869-07-07"
+  },
+  "ACTT2": {
+   "name": "North Texas Lakes at Waco Lake",
+   "record_ft": 488.48,
+   "record_date": "1991-12-24"
+  },
+  "ADDO2": {
+   "name": "Cow Creek (OK) near Addington",
+   "record_ft": 18.5,
+   "record_date": "2025-04-30"
   },
   "ADDT2": {
    "name": "Langham Creek at Addicks Reservoir",
@@ -38,15 +75,180 @@
    "record_ft": 23.11,
    "record_date": "1981-05-24"
   },
+  "AICN5": {
+   "name": "Rio Chama below Abiquiu",
+   "record_ft": 5.52,
+   "record_date": "1985-05-14"
+  },
+  "AICT2": {
+   "name": "San Fernando Creek near Alice",
+   "record_ft": 16.51,
+   "record_date": "1971-09-12"
+  },
+  "ALAT2": {
+   "name": "North Texas Lakes at Aquilla Lake",
+   "record_ft": 551.89,
+   "record_date": "1991-12-23"
+  },
+  "ALOT2": {
+   "name": "Angelina River near Alto",
+   "record_ft": 33.2,
+   "record_date": "1989-03-31"
+  },
+  "ALTO2": {
+   "name": "North Fork of the Red River at Lake Altus at Lugert",
+   "record_ft": 1562.45,
+   "record_date": "2019-05-28"
+  },
+  "ALWT2": {
+   "name": "Little Wichita River near Archer City",
+   "record_ft": 27.03,
+   "record_date": "1989-05-16"
+  },
+  "ALXO2": {
+   "name": "Washita River at Alex",
+   "record_ft": 33.78,
+   "record_date": "1983-10-21"
+  },
+  "AMAT2": {
+   "name": "Canadian River at Amarillo",
+   "record_ft": 25,
+   "record_date": "1904-10-01"
+  },
+  "AMCO2": {
+   "name": "Cimarron River near Ames",
+   "record_ft": 12.39,
+   "record_date": "2018-10-04"
+  },
+  "AMIT2": {
+   "name": "Rio Grande at Lake Amistad",
+   "record_ft": 1135.66,
+   "record_date": "1974-09-22"
+  },
+  "AMTT2": {
+   "name": "Brazos River at Aspermont 10S",
+   "record_ft": 29.5,
+   "record_date": "1955-09-26"
+  },
+  "ANDO2": {
+   "name": "Washita River at Anadarko",
+   "record_ft": 26.02,
+   "record_date": "2007-08-20"
+  },
+  "ANFN5": {
+   "name": "AMAFCA at North Floodway Channel near Alameda",
+   "record_ft": 10.4,
+   "record_date": "1980-08-14"
+  },
+  "ANTO2": {
+   "name": "Kiamichi River near Antlers",
+   "record_ft": 40.44,
+   "record_date": "1990-05-04"
+  },
+  "AQLT2": {
+   "name": "Brazos River near Aquilla",
+   "record_ft": 45,
+   "record_date": "1922-05-09"
+  },
+  "ARBO2": {
+   "name": "Rock Creek (OK) at Lake of the Arbuckles",
+   "record_ft": 891.28,
+   "record_date": "2015-06-18"
+  },
+  "ARCT2": {
+   "name": "Red River at Arthur City",
+   "record_ft": 43.2,
+   "record_date": "1908-05-28"
+  },
+  "ARHT2": {
+   "name": "North Fork Little Wichita River at Lake Kickapoo",
+   "record_ft": 1049.2,
+   "record_date": "1950-08-02"
+  },
+  "ARRT2": {
+   "name": "Little Wichita River at Lake Arrowhead",
+   "record_ft": 927.92,
+   "record_date": "1990-05-04"
+  },
+  "ARTT2": {
+   "name": "Salt Fork - Brazos River near Aspermont 13N",
+   "record_ft": 14.92,
+   "record_date": "1955-09-25"
+  },
   "ASHT2": {
    "name": "Shoal Creek above Silverway Drive",
    "record_ft": 11.29,
    "record_date": "2025-05-29"
   },
+  "ASRT2": {
+   "name": "Nueces River near Asherton",
+   "record_ft": 33,
+   "record_date": "1935-06-17"
+  },
+  "ATBT2": {
+   "name": "Attoyac Bayou near Chireno",
+   "record_ft": 29.9,
+   "record_date": "1902-06-29"
+  },
+  "ATCN5": {
+   "name": "Pecos River below Anton Chico",
+   "record_ft": 24,
+   "record_date": "1904-09-29"
+  },
+  "ATCT2": {
+   "name": "Atascosa River at FM 476 near Pleasanton",
+   "record_ft": 20.37,
+   "record_date": "2021-06-04"
+  },
+  "ATHT2": {
+   "name": "North Texas Lakes at Lake Athens",
+   "record_ft": 442.37,
+   "record_date": "1968-05-10"
+  },
   "ATIT2": {
    "name": "Onion Creek at US 183",
    "record_ft": 40.15,
    "record_date": "2013-10-31"
+  },
+  "ATKO2": {
+   "name": "North Boggy Creek at Atoka Lake",
+   "record_ft": 596.53,
+   "record_date": "2015-05-25"
+  },
+  "ATMO2": {
+   "name": "Muddy Boggy Creek at Atoka",
+   "record_ft": 42.96,
+   "record_date": "2015-12-29"
+  },
+  "ATOT2": {
+   "name": "Neches River near Alto",
+   "record_ft": 28.2,
+   "record_date": "1884-05-01"
+  },
+  "ATSN5": {
+   "name": "Pecos River 6 miles E of Artesia",
+   "record_ft": 16.7,
+   "record_date": "1911-07-24"
+  },
+  "AVLN5": {
+   "name": "Pecos River at Avalon Reservoir Dam",
+   "record_ft": 3180.72,
+   "record_date": "2014-09-22"
+  },
+  "AVTO2": {
+   "name": "Bird Creek at Avant",
+   "record_ft": 36.31,
+   "record_date": "2019-05-21"
+  },
+  "AWCO2": {
+   "name": "Willow Creek (OK) near Albert",
+   "record_ft": 14.86,
+   "record_date": "2007-08-19"
+  },
+  "AYIT2": {
+   "name": "Ayish Bayou near San Augustine",
+   "record_ft": 20.91,
+   "record_date": "2008-03-30"
   },
   "BACT2": {
    "name": "Colorado River (TX) near Bay City",
@@ -57,6 +259,16 @@
    "name": "Buffalo Bayou at Barker Reservoir",
    "record_ft": 101.6,
    "record_date": "2017-08-27"
+  },
+  "BAMT2": {
+   "name": "Elm Creek (Colorado Basin WCTX) at Ballinger",
+   "record_ft": 14.5,
+   "record_date": "1906-08-01"
+  },
+  "BAPT2": {
+   "name": "Blanco River at Crabapple Road",
+   "record_ft": 7.01,
+   "record_date": "2019-05-08"
   },
   "BAWT2": {
    "name": "Brazos River above San Felipe",
@@ -77,6 +289,11 @@
    "name": "Brazos River near Bryan",
    "record_ft": 46.49,
    "record_date": "2007-07-16"
+  },
+  "BCAT2": {
+   "name": "North Texas Lakes at Lake Amon Carter",
+   "record_ft": 928.75,
+   "record_date": "2015-05-21"
   },
   "BCCT2": {
    "name": "Barton Creek above Barton Springs",
@@ -108,65 +325,300 @@
    "record_ft": 5.45,
    "record_date": "2019-05-04"
   },
+  "BDAT2": {
+   "name": "Medina River at Bandera",
+   "record_ft": 46.62,
+   "record_date": "1978-08-02"
+  },
+  "BDCO2": {
+   "name": "Delaware Creek near Bromide",
+   "record_ft": 7.53,
+   "record_date": "2020-01-10"
+  },
+  "BDLT2": {
+   "name": "North Texas Lakes at Lake Daniel",
+   "record_ft": 1282.76,
+   "record_date": "2007-06-29"
+  },
   "BDUT2": {
    "name": "Onion Creek at Buda",
    "record_ft": 23.39,
    "record_date": "2015-10-30"
+  },
+  "BDWT2": {
+   "name": "North Texas Lakes at Bardwell Lake",
+   "record_ft": 440.7,
+   "record_date": "2015-06-18"
   },
   "BEAT2": {
    "name": "Neches River at Beaumont",
    "record_ft": 19.59,
    "record_date": "2017-09-01"
   },
+  "BEKT2": {
+   "name": "Sabine River near Beckville",
+   "record_ft": 40.1,
+   "record_date": "1945-04-06"
+  },
   "BEMT2": {
    "name": "Mill Creek near Bellville",
    "record_ft": 22.83,
    "record_date": "2016-05-28"
+  },
+  "BENT2": {
+   "name": "South Wichita River near Benjamin",
+   "record_ft": 19.35,
+   "record_date": "2024-06-11"
+  },
+  "BEST2": {
+   "name": "Bear Creek at FM 2722 nr Sattler",
+   "record_ft": 7.31,
+   "record_date": "2020-05-12"
+  },
+  "BFST2": {
+   "name": "Blanco River at Fischer Store Rd near Fischer",
+   "record_ft": 20.38,
+   "record_date": "2019-05-08"
+  },
+  "BGET2": {
+   "name": "Big Sandy Creek (Brazos River Basin) above Breckenridge",
+   "record_ft": 31.69,
+   "record_date": "2021-06-01"
+  },
+  "BGKT2": {
+   "name": "Big Cypress Creek near Karnack",
+   "record_ft": 19.52,
+   "record_date": "2016-03-13"
   },
   "BGMT2": {
    "name": "Boggy Creek at Manor Road",
    "record_ft": 9.92,
    "record_date": "2019-05-03"
   },
+  "BGSO2": {
+   "name": "Deep Fork River near Beggs",
+   "record_ft": 34.55,
+   "record_date": "1943-05-11"
+  },
+  "BICT2": {
+   "name": "Prairie Dog Town Fork of the Red River at Brice 6SW",
+   "record_ft": 12.2,
+   "record_date": "1960-06-07"
+  },
   "BIPT2": {
    "name": "Pine Island Bayou at B.I. Pump Plant",
    "record_ft": 28.97,
    "record_date": "2017-08-30"
+  },
+  "BKBT2": {
+   "name": "Red River near Burkburnett",
+   "record_ft": 16.9,
+   "record_date": "1983-10-21"
+  },
+  "BKCT2": {
+   "name": "Devils River at Bakers Crossing near Juno",
+   "record_ft": 35,
+   "record_date": "1954-06-28"
   },
   "BKFT2": {
    "name": "Brushy Creek at Kenney Fort Blvd nr Round Rock",
    "record_ft": 23.76,
    "record_date": "2015-05-25"
   },
+  "BKLT2": {
+   "name": "Sabine River at Toledo Bend Reservoir",
+   "record_ft": 174.36,
+   "record_date": "2016-03-10"
+  },
   "BKTT2": {
    "name": "Brushy Creek at FM 619 near Taylor",
    "record_ft": 30.05,
    "record_date": "2018-09-22"
+  },
+  "BLBT2": {
+   "name": "North Texas Lakes at Lake Bonham",
+   "record_ft": 568.5,
+   "record_date": "2001-02-16"
+  },
+  "BLET2": {
+   "name": "Leon River near Belton",
+   "record_ft": 25,
+   "record_date": "1913-12-01"
+  },
+  "BLIT2": {
+   "name": "Colorado River (TX) near Ballinger",
+   "record_ft": 36,
+   "record_date": "1884-01-01"
+  },
+  "BLNT2": {
+   "name": "North Texas Lakes at Belton Lake",
+   "record_ft": 634.36,
+   "record_date": "1992-03-06"
+  },
+  "BLUO2": {
+   "name": "Blue River (OK) near Blue",
+   "record_ft": 50.83,
+   "record_date": "1981-10-14"
+  },
+  "BMCT2": {
+   "name": "Marys Creek near Benbrook",
+   "record_ft": 22,
+   "record_date": "1949-05-17"
+  },
+  "BMKT2": {
+   "name": "Manadas Creek at Bristol Road nr Laredo",
+   "record_ft": 7.9,
+   "record_date": "2020-05-26"
+  },
+  "BNBT2": {
+   "name": "North Texas Lakes at Benbrook Lake",
+   "record_ft": 717.54,
+   "record_date": "1990-05-03"
   },
   "BOLT2": {
    "name": "San Bernard River near Boling",
    "record_ft": 43.79,
    "record_date": "2017-08-31"
   },
+  "BOQT2": {
+   "name": "Rio Grande at Boquillas Crossing",
+   "record_ft": 25.5,
+   "record_date": "1978-10-03"
+  },
+  "BOYT2": {
+   "name": "West Fork Trinity River near Boyd",
+   "record_ft": 25.87,
+   "record_date": "1981-10-14"
+  },
+  "BPRT2": {
+   "name": "North Texas Lakes at Lake Bridgeport",
+   "record_ft": 844.36,
+   "record_date": "1990-05-05"
+  },
+  "BPST2": {
+   "name": "South Wichita River at Guthrie 6E",
+   "record_ft": 20.8,
+   "record_date": "1954-05-01"
+  },
+  "BRAT2": {
+   "name": "Brady Creek at Brady",
+   "record_ft": 29.1,
+   "record_date": "1938-07-23"
+  },
+  "BRBT2": {
+   "name": "Blanco River at Blanco",
+   "record_ft": 18.36,
+   "record_date": "2019-05-08"
+  },
+  "BRIO2": {
+   "name": "Canadian River near Bridgeport",
+   "record_ft": 21.03,
+   "record_date": "2007-08-19"
+  },
+  "BRPT2": {
+   "name": "Big Sandy Creek (Trinity River Basin) near Bridgeport",
+   "record_ft": 15.69,
+   "record_date": "1941-06-10"
+  },
   "BRTT2": {
    "name": "Colorado River (TX) at Bastrop",
    "record_ft": 60.3,
    "record_date": "1869-07-07"
+  },
+  "BRVT2": {
+   "name": "Sabine River near Burkeville",
+   "record_ft": 54.88,
+   "record_date": "2016-03-11"
+  },
+  "BRYA4": {
+   "name": "Kings River near Berryville",
+   "record_ft": 38.91,
+   "record_date": "1985-11-19"
+  },
+  "BSAT2": {
+   "name": "North Texas Lakes at Lake Mexia",
+   "record_ft": 456.62,
+   "record_date": "1966-04-24"
+  },
+  "BSJT2": {
+   "name": "South Fork Rocky Creek near Briggs, TX",
+   "record_ft": 13.74,
+   "record_date": "2019-05-03"
   },
   "BSMT2": {
    "name": "Blanco River at San Marcos",
    "record_ft": 43.1,
    "record_date": "2015-05-24"
   },
+  "BSNT2": {
+   "name": "Big Sandy Creek near Big Sandy",
+   "record_ft": 24.1,
+   "record_date": "1945-03-31"
+  },
+  "BSSN5": {
+   "name": "Blue Spring 5 miles E of Whites City",
+   "record_ft": 7.62,
+   "record_date": "2014-09-21"
+  },
+  "BSST2": {
+   "name": "San Saba River near Brady",
+   "record_ft": 30.53,
+   "record_date": "2025-07-04"
+  },
+  "BSWT2": {
+   "name": "Salado Creek at Wilderness Road near San Antonio",
+   "record_ft": 10.78,
+   "record_date": "2018-09-03"
+  },
   "BSYT2": {
    "name": "Brushy Creek at FM 973 nr Coupland",
    "record_ft": 27.59,
    "record_date": "2015-05-25"
   },
+  "BTCO2": {
+   "name": "Turkey Creek (OK) near Bison",
+   "record_ft": 26.54,
+   "record_date": "2019-05-21"
+  },
+  "BTNT2": {
+   "name": "Pecos River 14 miles NW of Pandale",
+   "record_ft": 16.32,
+   "record_date": "2014-05-25"
+  },
+  "BTVT2": {
+   "name": "West Nueces River at Brackettville",
+   "record_ft": 40,
+   "record_date": "1935-06-14"
+  },
+  "BUDT2": {
+   "name": "Colorado River (TX) at Lake Buchanan",
+   "record_ft": 1021.39,
+   "record_date": "1991-12-20"
+  },
   "BUKT2": {
    "name": "Sabine River at CR 2082",
    "record_ft": 89.82,
    "record_date": "2020-04-26"
+  },
+  "BUMT2": {
+   "name": "Nolan River at Blum",
+   "record_ft": 35,
+   "record_date": "1922-05-08"
+  },
+  "BVST2": {
+   "name": "Cibolo Creek at Specht Road near Bulverde",
+   "record_ft": 17,
+   "record_date": "2018-09-09"
+  },
+  "BVWT2": {
+   "name": "Sister Grove Creek near Blue Ridge",
+   "record_ft": 32.5,
+   "record_date": "1982-05-13"
+  },
+  "BWDT2": {
+   "name": "Pecan Bayou at Brownwood",
+   "record_ft": 21.7,
+   "record_date": "1900-09-01"
   },
   "BWRT2": {
    "name": "Sabine River near Bon Wier",
@@ -183,10 +635,45 @@
    "record_ft": 16,
    "record_date": "1967-09-24"
   },
+  "CAGO2": {
+   "name": "Washita River near Carnegie",
+   "record_ft": 31.7,
+   "record_date": "1983-10-20"
+  },
+  "CANO2": {
+   "name": "Clear Boggy Creek above Caney Creek near Caney",
+   "record_ft": 34.16,
+   "record_date": "2018-09-23"
+  },
+  "CARO2": {
+   "name": "North Fork of the Red River near Carter",
+   "record_ft": 20.08,
+   "record_date": "1995-06-04"
+  },
+  "CART2": {
+   "name": "Elm Fork Trinity River near Carrollton",
+   "record_ft": 19,
+   "record_date": "1908-05-25"
+  },
+  "CBBT2": {
+   "name": "Rio Grande at Columbia Bridge",
+   "record_ft": 49.42,
+   "record_date": "2010-07-08"
+  },
+  "CBLN5": {
+   "name": "Pecos River at Brantley Reservoir Dam",
+   "record_ft": 3263.55,
+   "record_date": "2014-10-13"
+  },
   "CBQL1": {
    "name": "Choupique Bayou at Highway 108",
    "record_ft": 4.7,
    "record_date": "2017-08-31"
+  },
+  "CBSL1": {
+   "name": "Cross Bayou at Hwy 80 West of Greenwood",
+   "record_ft": 17.69,
+   "record_date": "2016-03-09"
   },
   "CBST2": {
    "name": "Colorado River (TX) at Columbus",
@@ -208,55 +695,445 @@
    "record_ft": 129.97,
    "record_date": "2017-08-28"
   },
+  "CCKO2": {
+   "name": "Washita River near Chickasha",
+   "record_ft": 29.9,
+   "record_date": "1993-05-10"
+  },
+  "CCRT2": {
+   "name": "Champion Creek at Champion Creek Reservoir",
+   "record_ft": 2076.3,
+   "record_date": "2021-07-09"
+  },
+  "CCST2": {
+   "name": "North Texas Lakes at Lake Cisco",
+   "record_ft": 1525.86,
+   "record_date": "2016-06-02"
+  },
   "CCVT2": {
    "name": "Coleto Creek at Highway 59",
    "record_ft": 42,
    "record_date": "1967-09-22"
+  },
+  "CCWO2": {
+   "name": "Washita River near Cordell",
+   "record_ft": 24.04,
+   "record_date": "2007-06-14"
+  },
+  "CDCT2": {
+   "name": "Colorado River (TX) 1 mile WSW of Colorado City",
+   "record_ft": 35.9,
+   "record_date": "1939-06-20"
+  },
+  "CDET2": {
+   "name": "Rio Grande at Candelaria Crossing",
+   "record_ft": 17.89,
+   "record_date": "2023-05-27"
+  },
+  "CDNT2": {
+   "name": "Canadian River at Canadian",
+   "record_ft": 20,
+   "record_date": "1904-10-02"
+  },
+  "CDPT2": {
+   "name": "Pease River at Childress 17SE",
+   "record_ft": 22,
+   "record_date": "1957-06-01"
   },
   "CFKT2": {
    "name": "West Fork San Jacinto River near Conroe",
    "record_ft": 126.93,
    "record_date": "2017-08-29"
   },
+  "CHLT2": {
+   "name": "Prairie Dog Town Fork of the Red River at Childress 10N",
+   "record_ft": 16.9,
+   "record_date": "1957-06-01"
+  },
+  "CHVT2": {
+   "name": "South Concho River at Christoval",
+   "record_ft": 23,
+   "record_date": "1906-08-06"
+  },
+  "CHWT2": {
+   "name": "Wichita River near Charlie",
+   "record_ft": 28.5,
+   "record_date": "2007-07-04"
+  },
+  "CHYO2": {
+   "name": "Washita River near Cheyenne",
+   "record_ft": 20.24,
+   "record_date": "1954-04-29"
+  },
+  "CICT2": {
+   "name": "Cibolo Creek near Boerne",
+   "record_ft": 19.83,
+   "record_date": "2015-05-23"
+  },
   "CKET2": {
    "name": "Cole Creek at I-10",
    "record_ft": 12.06,
    "record_date": "2018-12-08"
+  },
+  "CLBT2": {
+   "name": "North Concho River near Carlsbad",
+   "record_ft": 29.1,
+   "record_date": "1936-09-26"
   },
   "CLDT2": {
    "name": "East Fork San Jacinto River at Cleveland",
    "record_ft": 29.1,
    "record_date": "1940-11-24"
   },
+  "CLIO2": {
+   "name": "Washita River near Clinton",
+   "record_ft": 33.9,
+   "record_date": "1934-04-03"
+  },
+  "CLMO2": {
+   "name": "North Canadian River near Calumet",
+   "record_ft": 20.67,
+   "record_date": "2007-08-19"
+  },
+  "CLRO2": {
+   "name": "Verdigris River near Claremore",
+   "record_ft": 55.05,
+   "record_date": "1943-05-21"
+  },
+  "CLRT2": {
+   "name": "Morgan Creek (TX) at Lake Colorado City",
+   "record_ft": 2072.1,
+   "record_date": "2004-11-18"
+  },
+  "CLTO2": {
+   "name": "Kiamichi River near Clayton",
+   "record_ft": 25.35,
+   "record_date": "2015-12-28"
+  },
+  "CLVO2": {
+   "name": "Canadian River near Calvin",
+   "record_ft": 26,
+   "record_date": "1906-08-07"
+  },
+  "CMCN5": {
+   "name": "Pecos River 3 miles NNW of Carlsbad North",
+   "record_ft": 5.41,
+   "record_date": "2019-04-26"
+  },
+  "CMDO2": {
+   "name": "Deer Creek (OK) at Comanche Lake near Meers",
+   "record_ft": 1814.79,
+   "record_date": "2018-10-25"
+  },
+  "CMHT2": {
+   "name": "Moss Creek at Moss Creek Lake",
+   "record_ft": 2332.33,
+   "record_date": "2016-06-06"
+  },
+  "CMKT2": {
+   "name": "Devils River at Pafford Crossing near Comstock",
+   "record_ft": 19.82,
+   "record_date": "1974-09-18"
+  },
   "CMNT2": {
    "name": "Little River at Cameron",
    "record_ft": 53.2,
    "record_date": "1921-09-10"
+  },
+  "CMTN5": {
+   "name": "Rio Chama near Chamita",
+   "record_ft": 11.68,
+   "record_date": "1994-08-14"
+  },
+  "CMTO2": {
+   "name": "Little Washita River near Cement",
+   "record_ft": 22.94,
+   "record_date": "2015-05-24"
+  },
+  "CNCT2": {
+   "name": "Frio River at Concan",
+   "record_ft": 34.4,
+   "record_date": "1932-07-01"
+  },
+  "CNLO2": {
+   "name": "North Canadian River at Canton Lake",
+   "record_ft": 1628.05,
+   "record_date": "1951-05-25"
+  },
+  "CNLT2": {
+   "name": "East Fork Trinity River near Crandall",
+   "record_ft": 27.17,
+   "record_date": "1990-05-05"
+  },
+  "CNOO2": {
+   "name": "North Canadian River near Canton",
+   "record_ft": 19.01,
+   "record_date": "2024-10-25"
+  },
+  "CNVO2": {
+   "name": "Blue River (OK) near Connerville",
+   "record_ft": 16.39,
+   "record_date": "2018-09-21"
   },
   "CODT2": {
    "name": "Sandy Creek near Cordele",
    "record_ft": 32.72,
    "record_date": "1998-10-19"
   },
+  "COLN5": {
+   "name": "Gallinas River above Colonias",
+   "record_ft": 28.41,
+   "record_date": "2013-09-11"
+  },
+  "COMT2": {
+   "name": "Guadalupe River at Comfort",
+   "record_ft": 42.3,
+   "record_date": "1869-07-01"
+  },
+  "COPT2": {
+   "name": "South Sulphur River near Cooper",
+   "record_ft": 27.21,
+   "record_date": "1982-05-13"
+  },
+  "CORO2": {
+   "name": "Mud Creek (OK) near Courtney",
+   "record_ft": 34.46,
+   "record_date": "2015-06-18"
+  },
+  "COTT2": {
+   "name": "Nueces River at Cotulla",
+   "record_ft": 32.4,
+   "record_date": "1935-06-18"
+  },
+  "COUO2": {
+   "name": "Red River near Courtney",
+   "record_ft": 33.57,
+   "record_date": "2025-05-03"
+  },
   "COWT2": {
    "name": "Cow Bayou at SH 87",
    "record_ft": 7.72,
    "record_date": "2017-09-03"
+  },
+  "CPDN5": {
+   "name": "Pecos River 2 miles E of Carlsbad below Dark Canyon",
+   "record_ft": 22,
+   "record_date": "1966-08-23"
+  },
+  "CPPT2": {
+   "name": "North Sulphur River near Cooper",
+   "record_ft": 36.16,
+   "record_date": "1971-10-19"
+  },
+  "CRBN5": {
+   "name": "Rocky Arroyo 7 miles S of Lakewood",
+   "record_ft": 19.2,
+   "record_date": "1954-10-07"
+  },
+  "CRFT2": {
+   "name": "Hog Creek near Crawford",
+   "record_ft": 17.5,
+   "record_date": "1936-09-26"
+  },
+  "CRKT2": {
+   "name": "Trinity River near Crockett",
+   "record_ft": 48.54,
+   "record_date": "1990-05-10"
+  },
+  "CRLL1": {
+   "name": "Cross Lake at Shreveport",
+   "record_ft": 177.02,
+   "record_date": "2016-03-10"
+  },
+  "CRLO2": {
+   "name": "Elm Fork of North Fork Red River near Carl",
+   "record_ft": 23.8,
+   "record_date": "1995-06-03"
+  },
+  "CRNO2": {
+   "name": "North Criner Creek near Criner",
+   "record_ft": 15.57,
+   "record_date": "2015-05-23"
+  },
+  "CRTT2": {
+   "name": "Little Elkhart Creek at Houston County Lake",
+   "record_ft": 264.87,
+   "record_date": "2001-06-08"
+  },
+  "CSBN5": {
+   "name": "Pecos River 9 miles NW of Carlsbad",
+   "record_ft": 22.3,
+   "record_date": "1941-05-22"
   },
   "CSSL1": {
    "name": "Bess Branch at Alligator Park",
    "record_ft": 23.74,
    "record_date": "2020-04-29"
   },
+  "CSTT2": {
+   "name": "Rio Grande at Castolon",
+   "record_ft": 24.7,
+   "record_date": "1958-09-27"
+  },
+  "CSVT2": {
+   "name": "Cibolo Creek at Smithson Valley Rd nr Bulverde",
+   "record_ft": 27.23,
+   "record_date": "2015-05-24"
+  },
+  "CTDN5": {
+   "name": "Rio Grande below Cochiti Dam",
+   "record_ft": 7.05,
+   "record_date": "1984-05-31"
+  },
+  "CTKT2": {
+   "name": "Dry Devils River near Comstock",
+   "record_ft": 10.3,
+   "record_date": "1986-09-14"
+  },
+  "CTNT2": {
+   "name": "North Bosque River near Clifton",
+   "record_ft": 38.3,
+   "record_date": "1991-12-20"
+  },
   "CUET2": {
    "name": "Guadalupe River near Cuero",
    "record_ft": 50.35,
    "record_date": "1998-10-20"
   },
+  "CUST2": {
+   "name": "East Fork Angelina River near Cushing",
+   "record_ft": 17.79,
+   "record_date": "2019-05-19"
+  },
+  "CUTT2": {
+   "name": "Pecan Bayou near Cross Cut",
+   "record_ft": 26.5,
+   "record_date": "1908-01-01"
+  },
+  "CVLO2": {
+   "name": "Caney River near Collinsville",
+   "record_ft": 39.8,
+   "record_date": "1943-05-21"
+  },
+  "CWBO2": {
+   "name": "Little West Blue Creek near Connerville",
+   "record_ft": 17.59,
+   "record_date": "2024-04-28"
+  },
+  "CWRO2": {
+   "name": "Washita River at Cumberland Cut near Cumberland",
+   "record_ft": 635.27,
+   "record_date": "2025-05-11"
+  },
+  "CWYO2": {
+   "name": "Illinois River (AR OK) at Chewey",
+   "record_ft": 32.65,
+   "record_date": "2017-04-30"
+  },
+  "CYLO2": {
+   "name": "Little Washita River near Cyril",
+   "record_ft": 21.82,
+   "record_date": "2015-05-24"
+  },
+  "DACN5": {
+   "name": "Dark Canyon at Carlsbad",
+   "record_ft": 22,
+   "record_date": "1966-08-23"
+  },
+  "DALT2": {
+   "name": "Trinity River at Dallas",
+   "record_ft": 52.6,
+   "record_date": "1908-05-25"
+  },
+  "DARN5": {
+   "name": "Rio Hondo above Roswell",
+   "record_ft": 28.78,
+   "record_date": "1941-09-22"
+  },
+  "DAWT2": {
+   "name": "North Texas Lakes at Navarro Mills Lake",
+   "record_ft": 443.33,
+   "record_date": "2015-10-31"
+  },
+  "DAYN5": {
+   "name": "Rio Penasco 2 miles NW of Dayton",
+   "record_ft": 16.4,
+   "record_date": "1966-08-23"
+  },
+  "DBYT2": {
+   "name": "Frio River near Derby",
+   "record_ft": 29.45,
+   "record_date": "1932-07-04"
+  },
+  "DCJT2": {
+   "name": "Denton Creek near Justin",
+   "record_ft": 21.6,
+   "record_date": "1908-01-01"
+  },
+  "DDET2": {
+   "name": "Wichita River at Lake Diversion near Dundee",
+   "record_ft": 1054.56,
+   "record_date": "2015-05-20"
+  },
+  "DEET2": {
+   "name": "Deep Creek 1 mile W of Dunn",
+   "record_ft": 31.28,
+   "record_date": "1972-08-14"
+  },
+  "DEKT2": {
+   "name": "Red River near Dekalb - Pecan Point",
+   "record_ft": 36,
+   "record_date": "1938-02-15"
+  },
+  "DEQA4": {
+   "name": "Cossatot River near DeQueen",
+   "record_ft": 20.7,
+   "record_date": "1961-05-06"
+  },
   "DEYT2": {
    "name": "East Yegua Creek near Dime Box",
    "record_ft": 15.25,
    "record_date": "2019-05-04"
+  },
+  "DIBT2": {
+   "name": "Neches River near Diboll",
+   "record_ft": 21,
+   "record_date": "1884-05-07"
+  },
+  "DIRA4": {
+   "name": "Saline River near Dierks",
+   "record_ft": 22.95,
+   "record_date": "1968-05-13"
+  },
+  "DIXL1": {
+   "name": "Twelvemile Bayou near Dixie",
+   "record_ft": 41.53,
+   "record_date": "1945-04-05"
+  },
+  "DIXN5": {
+   "name": "Embudo Creek below Dixon",
+   "record_ft": 10.8,
+   "record_date": "2010-08-01"
+  },
+  "DKCN5": {
+   "name": "Dark Canyon 8 miles N of Whites City",
+   "record_ft": 19.42,
+   "record_date": "2014-09-22"
+  },
+  "DLBO2": {
+   "name": "Little Beaver Creek (OK) near Duncan",
+   "record_ft": 28.25,
+   "record_date": "2016-06-12"
+  },
+  "DLLT2": {
+   "name": "Leon River near DeLeon",
+   "record_ft": 19.78,
+   "record_date": "2007-06-28"
+  },
+  "DLRT2": {
+   "name": "Rio Grande at Del Rio",
+   "record_ft": 38.25,
+   "record_date": "1954-06-28"
   },
   "DLWT2": {
    "name": "Peach Creek below Dilworth",
@@ -268,15 +1145,110 @@
    "record_ft": 15.56,
    "record_date": "2019-05-04"
   },
+  "DNNT2": {
+   "name": "Brazos River near Dennis",
+   "record_ft": 31.88,
+   "record_date": "1981-10-14"
+  },
+  "DOLT2": {
+   "name": "Dolan Creek above Devils River near Comstock",
+   "record_ft": 12.15,
+   "record_date": "2024-05-04"
+  },
+  "DOVO2": {
+   "name": "Cimarron River near Dover",
+   "record_ft": 26.1,
+   "record_date": "1986-10-03"
+  },
+  "DQNA4": {
+   "name": "Rolling Fork near DeQueen",
+   "record_ft": 25.6,
+   "record_date": "1947-08-28"
+  },
+  "DRWT2": {
+   "name": "Onion Creek near Driftwood",
+   "record_ft": 26.39,
+   "record_date": "2015-10-30"
+  },
+  "DSBT2": {
+   "name": "Sabana River near DeLeon",
+   "record_ft": 24,
+   "record_date": "1908-05-01"
+  },
+  "DSCT2": {
+   "name": "South Side Canal near Dundee",
+   "record_ft": 9.26,
+   "record_date": "2017-09-14"
+  },
+  "DSNT2": {
+   "name": "Red River at Lake Texoma near Denison",
+   "record_ft": 645.72,
+   "record_date": "2015-05-31"
+  },
+  "DSPT2": {
+   "name": "Sulphur River near Dalby Springs at Interstate 30",
+   "record_ft": 37.29,
+   "record_date": "2018-02-25"
+  },
+  "DSTT2": {
+   "name": "Red River at Denison Dam near Denison",
+   "record_ft": 33.29,
+   "record_date": "2015-06-21"
+  },
   "DUPT2": {
    "name": "Guadalupe River near Bloomington",
    "record_ft": 34,
    "record_date": "1998-10-21"
   },
+  "DURO2": {
+   "name": "Washita River near Dickson",
+   "record_ft": 48.7,
+   "record_date": "2015-06-19"
+  },
+  "DVDO2": {
+   "name": "Red River near Davidson",
+   "record_ft": 13.03,
+   "record_date": "2019-05-28"
+  },
+  "DVSO2": {
+   "name": "Honey Creek (OK) below Turner Falls near Davis",
+   "record_ft": 8.56,
+   "record_date": "2015-06-17"
+  },
+  "DWRT2": {
+   "name": "White Rock Creek at Dallas",
+   "record_ft": 91.59,
+   "record_date": "2018-09-22"
+  },
   "DWYT2": {
    "name": "Sabine River at Deweyville",
    "record_ft": 33.28,
    "record_date": "2016-03-15"
+  },
+  "DYNT2": {
+   "name": "Rio Grande 14 miles S of Dryden",
+   "record_ft": 61.33,
+   "record_date": "1978-11-05"
+  },
+  "EAGO2": {
+   "name": "Mountain Fork near Eagletown",
+   "record_ft": 26.73,
+   "record_date": "1960-05-20"
+  },
+  "EAKO2": {
+   "name": "Cobb Creek near Eakley",
+   "record_ft": 24.38,
+   "record_date": "1986-09-29"
+  },
+  "EAMT2": {
+   "name": "North Texas Lakes at Eagle Mountain Lake",
+   "record_ft": 659.7,
+   "record_date": "1942-04-26"
+  },
+  "EAST2": {
+   "name": "Navasota River near Easterly",
+   "record_ft": 30.66,
+   "record_date": "2024-05-02"
   },
   "EBBT2": {
    "name": "San Bernard River at East Bernard",
@@ -298,20 +1270,115 @@
    "record_ft": 27.62,
    "record_date": "2015-10-31"
   },
+  "EKCO2": {
+   "name": "Lake Creek (OK) near Eakley",
+   "record_ft": 18.74,
+   "record_date": "2007-08-19"
+  },
+  "ELDO2": {
+   "name": "Baron Fork at Eldon",
+   "record_ft": 28.51,
+   "record_date": "2011-04-25"
+  },
+  "ELMT2": {
+   "name": "San Antonio River at Elmendorf",
+   "record_ft": 64.2,
+   "record_date": "1998-10-18"
+  },
+  "ELNO2": {
+   "name": "North Canadian River near El Reno",
+   "record_ft": 23.33,
+   "record_date": "2007-08-20"
+  },
+  "ELTT2": {
+   "name": "Beaver Creek (TX) near Electra",
+   "record_ft": 34.94,
+   "record_date": "1987-05-29"
+  },
+  "ELWO2": {
+   "name": "East Cache Creek at Lake Ellsworth",
+   "record_ft": 1238.09,
+   "record_date": "2015-05-24"
+  },
+  "EMBN5": {
+   "name": "Rio Grande at Embudo",
+   "record_ft": 15.9,
+   "record_date": "1903-06-19"
+  },
+  "EMDT2": {
+   "name": "Rio Grande 3 miles NNW of Redford",
+   "record_ft": 18.19,
+   "record_date": "2014-09-07"
+  },
+  "EPPT2": {
+   "name": "Rio Grande at Eagle Pass",
+   "record_ft": 55.99,
+   "record_date": "1865-06-01"
+  },
+  "EPRT2": {
+   "name": "Rio Grande at El Paso (Courchesne Bridge)",
+   "record_ft": 11.2,
+   "record_date": "1903-06-21"
+  },
   "EPTT2": {
    "name": "Tide Station (HGX) at San Leon",
    "record_ft": 5.55,
    "record_date": "2021-09-14"
+  },
+  "ERMT2": {
+   "name": "Village Creek near Everman",
+   "record_ft": 22.07,
+   "record_date": "2015-05-29"
+  },
+  "ESCO2": {
+   "name": "Skeleton Creek at Enid",
+   "record_ft": 15.97,
+   "record_date": "2008-06-09"
+  },
+  "ESFO2": {
+   "name": "Salt Fork of the Red River near Elmer",
+   "record_ft": 24.15,
+   "record_date": "1986-10-05"
+  },
+  "ESPN5": {
+   "name": "Rio Grande at Espanola",
+   "record_ft": 10.4,
+   "record_date": "1941-05-15"
   },
   "EVDT2": {
    "name": "Neches River at Evadale",
    "record_ft": 26.2,
    "record_date": "1884-05-01"
   },
+  "FACT2": {
+   "name": "San Antonio River near Falls City",
+   "record_ft": 38.43,
+   "record_date": "2002-07-06"
+  },
+  "FAFT2": {
+   "name": "Los Olmos Creek near Falfurrias",
+   "record_ft": 15,
+   "record_date": "1951-09-13"
+  },
+  "FALT2": {
+   "name": "Rio Grande at Falcon Lake",
+   "record_ft": 309.31,
+   "record_date": "2010-07-17"
+  },
   "FBCT2": {
    "name": "Cummins Creek at Frelsburg",
    "record_ft": 42.12,
    "record_date": "2017-08-28"
+  },
+  "FBFO2": {
+   "name": "Washita River near Foss",
+   "record_ft": 23.4,
+   "record_date": "1959-05-01"
+  },
+  "FCCO2": {
+   "name": "Cobb Creek near Fort Cobb",
+   "record_ft": 23.01,
+   "record_date": "2007-08-19"
   },
   "FCTT2": {
    "name": "Cibolo Creek near Falls City",
@@ -323,20 +1390,115 @@
    "record_ft": 150.99,
    "record_date": "2017-08-28"
   },
+  "FFLT2": {
+   "name": "North Texas Lakes at Richland-Chambers Lake",
+   "record_ft": 316.85,
+   "record_date": "1991-12-22"
+  },
+  "FILT2": {
+   "name": "Frio River at at Leakey",
+   "record_ft": 13.56,
+   "record_date": "2018-10-08"
+  },
+  "FKBO2": {
+   "name": "Blue River (OK) near Franks",
+   "record_ft": 20.78,
+   "record_date": "2024-04-28"
+  },
+  "FLTA4": {
+   "name": "Red River at Fulton",
+   "record_ft": 37.4,
+   "record_date": "1945-04-02"
+  },
+  "FLVT2": {
+   "name": "San Antonio River near Floresville",
+   "record_ft": 38.11,
+   "record_date": "2016-06-04"
+  },
+  "FLWT2": {
+   "name": "North Texas Lakes at Lake Worth",
+   "record_ft": 598.7,
+   "record_date": "1990-05-03"
+  },
   "FMFT2": {
    "name": "Berry Creek near Florence, TX",
    "record_ft": 15.02,
    "record_date": "2026-05-20"
+  },
+  "FOSO2": {
+   "name": "Washita River at Foss Reservoir",
+   "record_ft": 1648.147,
+   "record_date": "1997-06-16"
   },
   "FPST2": {
    "name": "Tide Station (HGX) at Freeport",
    "record_ft": 4.01,
    "record_date": "2021-10-24"
   },
+  "FRBT2": {
+   "name": "Pedernales River at Fredericksburg",
+   "record_ft": 41.6,
+   "record_date": "1978-08-02"
+  },
+  "FRHT2": {
+   "name": "North Texas Lakes at Lake Ray Hubbard",
+   "record_ft": 437.81,
+   "record_date": "1990-05-04"
+  },
   "FRLT2": {
    "name": "Redgate Creek at Frelsburg",
    "record_ft": 31.95,
    "record_date": "2016-04-18"
+  },
+  "FRRT2": {
+   "name": "San Casimiro Creek near Freer",
+   "record_ft": 24.22,
+   "record_date": "2022-08-16"
+  },
+  "FRSO2": {
+   "name": "Muddy Boggy Creek near Farris",
+   "record_ft": 51.94,
+   "record_date": "1945-06-17"
+  },
+  "FTCO2": {
+   "name": "Cobb Creek at Fort Cobb Lake",
+   "record_ft": 1352.25,
+   "record_date": "1995-06-13"
+  },
+  "FWCO2": {
+   "name": "Wolf Creek near Fort Supply",
+   "record_ft": 12.61,
+   "record_date": "2019-05-27"
+  },
+  "FWHT2": {
+   "name": "Clear Fork Trinity River at Fort Worth",
+   "record_ft": 28.2,
+   "record_date": "1949-05-17"
+  },
+  "FWOT2": {
+   "name": "West Fork Trinity River at Fort Worth",
+   "record_ft": 25.91,
+   "record_date": "1949-05-17"
+  },
+  "FYGA4": {
+   "name": "White River near Fayetteville",
+   "record_ft": 30.39,
+   "record_date": "2015-12-27"
+  },
+  "GAST2": {
+   "name": "Leon River at Gatesville",
+   "record_ft": 35,
+   "record_date": "1908-05-01"
+  },
+  "GAWO2": {
+   "name": "Wolf Creek near Gage",
+   "record_ft": 13.01,
+   "record_date": "2010-06-16"
+  },
+  "GBCT2": {
+   "name": "Guadalupe River below Comal",
+   "record_ft": 39.5,
+   "record_date": "1913-12-13"
   },
   "GBHT2": {
    "name": "Greens Bayou at Houston",
@@ -348,15 +1510,35 @@
    "record_ft": 44.85,
    "record_date": "2017-08-28"
   },
+  "GBYT2": {
+   "name": "North Texas Lakes at Lake Granbury",
+   "record_ft": 693.6,
+   "record_date": "1977-03-27"
+  },
+  "GCCT2": {
+   "name": "Culebra Creek at GCSNA near Helotes",
+   "record_ft": 1.39,
+   "record_date": "2002-07-08"
+  },
   "GCST2": {
    "name": "Geronimo Creek near Seguin 2NE",
    "record_ft": 18.71,
    "record_date": "2021-10-14"
   },
+  "GCTT2": {
+   "name": "Guadalupe River near Centerpoint",
+   "record_ft": 39.61,
+   "record_date": "2025-07-04"
+  },
   "GDHT2": {
    "name": "Guadalupe River at Hwy 183 near Hochheim",
    "record_ft": 40.2,
    "record_date": "2017-08-28"
+  },
+  "GDWT2": {
+   "name": "Sabine River near Gladewater",
+   "record_ft": 44.16,
+   "record_date": "1945-04-02"
   },
   "GERT2": {
    "name": "North Fork of the San Gabriel River near Georgetown",
@@ -368,10 +1550,35 @@
    "record_ft": 41,
    "record_date": "1956-04-24"
   },
+  "GIVT2": {
+   "name": "Pecos River 3 miles NNW of Girvin",
+   "record_ft": 20.49,
+   "record_date": "1941-10-05"
+  },
   "GLIT2": {
    "name": "San Antonio River at Goliad",
    "record_ft": 53.7,
    "record_date": "1967-09-23"
+  },
+  "GLLT2": {
+   "name": "Elm Fork Trinity River at Gainesville",
+   "record_ft": 28.1,
+   "record_date": "1981-10-01"
+  },
+  "GLOO2": {
+   "name": "Glover River at Glover",
+   "record_ft": 29.72,
+   "record_date": "1971-12-10"
+  },
+  "GLRT2": {
+   "name": "Brazos River near Glen Rose",
+   "record_ft": 35.76,
+   "record_date": "1990-04-28"
+  },
+  "GMDO2": {
+   "name": "Deer Creek (OK) at Grama Lake near Meers",
+   "record_ft": 1865.35,
+   "record_date": "2019-05-25"
   },
   "GNDT2": {
    "name": "West Mustang Creek near Ganado",
@@ -393,35 +1600,145 @@
    "record_ft": 26.31,
    "record_date": "2025-07-05"
   },
+  "GNST2": {
+   "name": "Giffin Springs 1 mile N of Toyahvale",
+   "record_ft": 6.6,
+   "record_date": "2014-09-13"
+  },
+  "GNTO2": {
+   "name": "Elm Fork of North Fork Red River near Granite",
+   "record_ft": 21.31,
+   "record_date": "2019-05-08"
+  },
+  "GNVT2": {
+   "name": "Cowleech Fork Sabine River at Greenville",
+   "record_ft": 22,
+   "record_date": "1935-05-01"
+  },
+  "GOLN5": {
+   "name": "Mora River near Golondrinas",
+   "record_ft": 8.7,
+   "record_date": "1952-08-22"
+  },
+  "GORO2": {
+   "name": "Illinois River (AR OK) at Gore",
+   "record_ft": 30.2,
+   "record_date": "1950-05-11"
+  },
+  "GPET2": {
+   "name": "North Texas Lakes at Mountain Creek Lake",
+   "record_ft": 459.46,
+   "record_date": "2015-05-29"
+  },
+  "GPLT2": {
+   "name": "Colorado River (TX) at Lake LBJ",
+   "record_ft": 828.35,
+   "record_date": "2018-10-16"
+  },
+  "GPRT2": {
+   "name": "West Fork Trinity River at Grand Prairie",
+   "record_ft": 37.25,
+   "record_date": "2004-06-11"
+  },
+  "GPVT2": {
+   "name": "North Texas Lakes at Lake Grapevine",
+   "record_ft": 563.5,
+   "record_date": "1981-11-01"
+  },
+  "GQQT2": {
+   "name": "North Texas Lakes at Squaw Creek Reservoir",
+   "record_ft": 779.14,
+   "record_date": "1991-12-19"
+  },
+  "GRHT2": {
+   "name": "Guadalupe River above Bear Creek at Kerrville",
+   "record_ft": 34.4,
+   "record_date": "2025-07-04"
+  },
   "GRIT2": {
    "name": "Trinity River near Goodrich",
    "record_ft": 48.97,
    "record_date": "1994-10-18"
+  },
+  "GROT2": {
+   "name": "Paluxy River at Glen Rose",
+   "record_ft": 27.2,
+   "record_date": "1908-04-17"
   },
   "GRRT2": {
    "name": "Tide Station (HGX) at Galveston Railroad Bridge",
    "record_ft": 5.04,
    "record_date": "2021-09-14"
   },
+  "GRST2": {
+   "name": "Navasota River above Groesbeck",
+   "record_ft": 26,
+   "record_date": "1910-01-01"
+  },
+  "GRTT2": {
+   "name": "Guadalupe River at 3rd Crossing nr Sattler",
+   "record_ft": 24.22,
+   "record_date": "2015-10-30"
+  },
+  "GRVA4": {
+   "name": "Fourche LaFave River near Gravelly",
+   "record_ft": 32.6,
+   "record_date": "2013-05-31"
+  },
   "GSST2": {
    "name": "Brays Bayou at Gessner Drive",
    "record_ft": 61.6,
    "record_date": "2015-05-26"
+  },
+  "GSVT2": {
+   "name": "Red River near Gainesville",
+   "record_ft": 42.05,
+   "record_date": "2015-06-19"
   },
   "GTOT2": {
    "name": "Tide Station (HGX) at NOS Station at Pier 21 Galveston",
    "record_ft": 4.71,
    "record_date": "2021-09-14"
   },
+  "GTRO2": {
+   "name": "Cimarron River near Guthrie",
+   "record_ft": 25.7,
+   "record_date": "1986-10-04"
+  },
   "GTWT2": {
    "name": "Berry Creek near Georgetown",
    "record_ft": 28.34,
    "record_date": "2010-09-08"
   },
+  "GUBT2": {
+   "name": "Guadalupe River at FM474 near Bergheim",
+   "record_ft": 50.33,
+   "record_date": "2025-07-04"
+  },
+  "GUCO2": {
+   "name": "Cottonwood Creek (OK) at Guthrie",
+   "record_ft": 30,
+   "record_date": "1983-10-20"
+  },
   "GWGT2": {
    "name": "Guadalupe River at CR 143 near Gonzales",
    "record_ft": 34.92,
    "record_date": "2021-10-15"
+  },
+  "GWLT2": {
+   "name": "Lagarto Creek below George West",
+   "record_ft": 25.1,
+   "record_date": "1971-10-17"
+  },
+  "HAGT2": {
+   "name": "Arroyo Colorado at Harlingen",
+   "record_ft": 30.44,
+   "record_date": "2025-03-28"
+  },
+  "HAKT2": {
+   "name": "Sabine River near Hawkins",
+   "record_ft": 37.2,
+   "record_date": "2015-12-31"
   },
   "HBMT2": {
    "name": "Brays Bayou at Houston",
@@ -438,6 +1755,31 @@
    "record_ft": 58.99,
    "record_date": "2017-08-28"
   },
+  "HCRT2": {
+   "name": "North Texas Lakes at Hubbard Creek Lake",
+   "record_ft": 1190.22,
+   "record_date": "1981-10-14"
+  },
+  "HDWT2": {
+   "name": "Cibolo Creek near St. Hedwig",
+   "record_ft": 26.59,
+   "record_date": "2009-10-04"
+  },
+  "HEAO2": {
+   "name": "North Fork of the Red River near Headrick",
+   "record_ft": 21.13,
+   "record_date": "2019-05-27"
+  },
+  "HEFO2": {
+   "name": "Bluff Creek (Central OK) at Lake Hefner",
+   "record_ft": 1200.51,
+   "record_date": "2007-08-19"
+  },
+  "HEIT2": {
+   "name": "Martinez Creek near Saint Hedwig",
+   "record_ft": 26.78,
+   "record_date": "2016-06-02"
+  },
   "HFXT2": {
    "name": "Blanco River above at Halifax Ranch near Kyle",
    "record_ft": 26.94,
@@ -453,20 +1795,75 @@
    "record_ft": 52.84,
    "record_date": "2001-06-09"
   },
+  "HIBT2": {
+   "name": "Brazos River near Highbank",
+   "record_ft": 42,
+   "record_date": "1913-12-01"
+  },
+  "HICT2": {
+   "name": "North Bosque River at Hico",
+   "record_ft": 32.6,
+   "record_date": "1952-05-23"
+  },
   "HIST2": {
    "name": "Tide Station (HGX) at High Island",
    "record_ft": 4.22,
    "record_date": "2021-09-14"
+  },
+  "HJFA4": {
+   "name": "James Fork near Hackett",
+   "record_ft": 25.09,
+   "record_date": "2015-05-25"
+  },
+  "HLCO2": {
+   "name": "Lake Creek (OK) near Sickels",
+   "record_ft": 13.4,
+   "record_date": "2022-06-08"
+  },
+  "HLTT2": {
+   "name": "Helotes Creek at Helotes",
+   "record_ft": 15.21,
+   "record_date": "1998-10-18"
+  },
+  "HMLT2": {
+   "name": "Leon River near Hamilton",
+   "record_ft": 38.4,
+   "record_date": "1908-05-01"
+  },
+  "HMMO2": {
+   "name": "Washita River near Hammon",
+   "record_ft": 23.44,
+   "record_date": "1982-05-17"
   },
   "HMMT2": {
    "name": "West Fork San Jacinto River near Humble",
    "record_ft": 69.18,
    "record_date": "2017-08-29"
   },
+  "HNFT2": {
+   "name": "North Fork Guadalupe River near Hunt",
+   "record_ft": 21.2,
+   "record_date": "2025-07-04"
+  },
+  "HNTT2": {
+   "name": "Guadalupe River at Hunt",
+   "record_ft": 37.52,
+   "record_date": "2025-07-04"
+  },
   "HPDT2": {
    "name": "Brazos River near Hempstead",
    "record_ft": 66.1,
    "record_date": "1913-12-08"
+  },
+  "HRGA4": {
+   "name": "Little River at Horatio",
+   "record_ft": 38,
+   "record_date": "1915-08-21"
+  },
+  "HRHO2": {
+   "name": "North Canadian River near Harrah",
+   "record_ft": 21.9,
+   "record_date": "1993-05-09"
   },
   "HSIT2": {
    "name": "Sims Bayou at Houston",
@@ -478,10 +1875,150 @@
    "record_ft": 53.12,
    "record_date": "2017-08-29"
   },
+  "HSKO2": {
+   "name": "Arkansas River near Haskell",
+   "record_ft": 26.02,
+   "record_date": "1980-01-01"
+  },
+  "HTAT2": {
+   "name": "Little Wichita River near Henrietta",
+   "record_ft": 24.96,
+   "record_date": "1990-05-03"
+  },
   "HTST2": {
    "name": "Lavaca River at Hallettsville",
    "record_ft": 41.1,
    "record_date": "1981-08-31"
+  },
+  "HTWT2": {
+   "name": "East Fork Little Wichita River near Henrietta",
+   "record_ft": 31.7,
+   "record_date": "1981-10-13"
+  },
+  "HUBO2": {
+   "name": "Beaver Creek (OK) near Hulen",
+   "record_ft": 28.62,
+   "record_date": "2016-06-12"
+  },
+  "HVRO2": {
+   "name": "Wildhorse Creek near Hoover",
+   "record_ft": 31.13,
+   "record_date": "1990-05-03"
+  },
+  "HWLT2": {
+   "name": "Clear Fork Brazos River at Hawley",
+   "record_ft": 25,
+   "record_date": "1932-01-01"
+  },
+  "IDBO2": {
+   "name": "Little River near Idabel",
+   "record_ft": 39.7,
+   "record_date": "1938-02-18"
+  },
+  "INGA4": {
+   "name": "Red River at Index",
+   "record_ft": 34.4,
+   "record_date": "1938-02-23"
+  },
+  "INOO2": {
+   "name": "Verdigris River near Inola",
+   "record_ft": 54.93,
+   "record_date": "1943-05-21"
+  },
+  "IPWT2": {
+   "name": "Wichita River near Iowa Park",
+   "record_ft": 28.45,
+   "record_date": "2015-05-22"
+  },
+  "IRAT2": {
+   "name": "Colorado River (TX) 4 miles SW of Ira below Lake J. B. Thomas",
+   "record_ft": 32,
+   "record_date": "1913-06-16"
+  },
+  "JAKT2": {
+   "name": "West Fork Trinity River near Jacksboro",
+   "record_ft": 32.1,
+   "record_date": "1957-04-27"
+  },
+  "JBGT2": {
+   "name": "Colorado River (TX) 13 miles SE of Gail",
+   "record_ft": 24.65,
+   "record_date": "2015-05-05"
+  },
+  "JBTT2": {
+   "name": "Colorado River (TX) at Lake JB Thomas",
+   "record_ft": 2251.94,
+   "record_date": "2015-07-12"
+  },
+  "JCIT2": {
+   "name": "Johnson Creek above Ingram",
+   "record_ft": 35,
+   "record_date": "1932-07-02"
+  },
+  "JCTT2": {
+   "name": "North Llano River near Junction",
+   "record_ft": 29.2,
+   "record_date": "1936-09-16"
+  },
+  "JECN5": {
+   "name": "Jemez River below Jemez Dam",
+   "record_ft": 12.09,
+   "record_date": "2005-09-29"
+  },
+  "JEFT2": {
+   "name": "Black Cypress Bayou near Jefferson",
+   "record_ft": 22.42,
+   "record_date": "1958-04-29"
+  },
+  "JFET2": {
+   "name": "Big Cypress Creek above Jefferson",
+   "record_ft": 28.78,
+   "record_date": "1945-04-01"
+  },
+  "JFFT2": {
+   "name": "Little Cypress Creek near Jefferson",
+   "record_ft": 22.28,
+   "record_date": "1966-04-26"
+  },
+  "JKST2": {
+   "name": "Mud Creek near Jacksonville",
+   "record_ft": 20,
+   "record_date": "1913-12-01"
+  },
+  "JNCT2": {
+   "name": "Llano River near Junction",
+   "record_ft": 43.3,
+   "record_date": "1935-06-14"
+  },
+  "JNKO2": {
+   "name": "Polecat Creek near Jenks",
+   "record_ft": 25,
+   "record_date": "1974-06-08"
+  },
+  "JNXT2": {
+   "name": "Devils River at Cauthorn Ranch near Juno",
+   "record_ft": 15.09,
+   "record_date": "2018-10-18"
+  },
+  "JOCT2": {
+   "name": "Pedernales River at Johnson City",
+   "record_ft": 42.5,
+   "record_date": "1952-09-11"
+  },
+  "JPLT2": {
+   "name": "North Texas Lakes at Joe Pool  Lake",
+   "record_ft": 538.11,
+   "record_date": "2015-05-30"
+  },
+  "JSPT2": {
+   "name": "Angelina River at Lake Sam Rayburn",
+   "record_ft": 175.1,
+   "record_date": "1992-03-10"
+  },
+  "JTBT2": {
+   "name": "Brazos River at Justiceburg",
+   "record_ft": 25.8,
+   "record_date": "1914-01-01"
   },
   "JYBT2": {
    "name": "Neches River at Downtown Beaumont",
@@ -513,6 +2050,16 @@
    "record_ft": 37.49,
    "record_date": "2001-06-11"
   },
+  "KCRO2": {
+   "name": "Canadian River near Konawa",
+   "record_ft": 20.01,
+   "record_date": "2025-05-01"
+  },
+  "KEMT2": {
+   "name": "Lampasas River near Kempner",
+   "record_ft": 45,
+   "record_date": "1873-09-01"
+  },
   "KHOT2": {
    "name": "Cypress Creek near Hockley",
    "record_ft": 162.85,
@@ -523,45 +2070,195 @@
    "record_ft": 8.08,
    "record_date": "2021-05-19"
   },
+  "KLGT2": {
+   "name": "Rabbit Creek at Kilgore",
+   "record_ft": 20.81,
+   "record_date": "2016-04-30"
+  },
   "KMST2": {
    "name": "Lavaca River at Komensky",
    "record_ft": 25.94,
    "record_date": "2015-05-26"
+  },
+  "KNBT2": {
+   "name": "Dove Creek (Concho River Basin) at Knickerbocker",
+   "record_ft": 30.4,
+   "record_date": "1959-10-03"
+  },
+  "KNGO2": {
+   "name": "Kingfisher Creek at Kingfisher",
+   "record_ft": 28,
+   "record_date": "1965-09-21"
+  },
+  "KNLT2": {
+   "name": "Sandy Creek near Kingsland",
+   "record_ft": 34.2,
+   "record_date": "1952-09-11"
+  },
+  "KNRO2": {
+   "name": "Uncle John Creek at Kingfisher",
+   "record_ft": 26.3,
+   "record_date": "1965-09-21"
+  },
+  "KNSO2": {
+   "name": "Flint Creek (OK) near Kansas",
+   "record_ft": 19.42,
+   "record_date": "1974-06-08"
   },
   "KOUT2": {
    "name": "Village Creek near Kountze",
    "record_ft": 35.96,
    "record_date": "2017-08-30"
   },
+  "KRRT2": {
+   "name": "Guadalupe River at Kerrville",
+   "record_ft": 39,
+   "record_date": "1932-07-02"
+  },
+  "KTNT2": {
+   "name": "Sweetwater Creek at Kelton",
+   "record_ft": 20,
+   "record_date": "1957-05-16"
+  },
+  "KWHT2": {
+   "name": "Hondo Creek at SH 173 near Hondo",
+   "record_ft": 21,
+   "record_date": "1919-09-01"
+  },
   "KYET2": {
    "name": "Blanco River near Kyle",
    "record_ft": 40,
    "record_date": "1929-05-01"
+  },
+  "LACT2": {
+   "name": "Medina River near La Coste",
+   "record_ft": 32,
+   "record_date": "2002-07-06"
+  },
+  "LART2": {
+   "name": "North Texas Lakes at Lake Arlington",
+   "record_ft": 562.42,
+   "record_date": "1989-05-17"
+  },
+  "LATN5": {
+   "name": "Pecos River above Lake Arthur",
+   "record_ft": 21.9,
+   "record_date": "1941-09-24"
+  },
+  "LBBL1": {
+   "name": "Bayou Bodcau at Bayou Bodcau Lake",
+   "record_ft": 200.27,
+   "record_date": "2009-11-05"
+  },
+  "LBFT2": {
+   "name": "Little Blanco River at FM32 near Fischer",
+   "record_ft": 16.72,
+   "record_date": "2021-10-14"
+  },
+  "LBUL1": {
+   "name": "Bayou Dorcheat at Lake Bistineau",
+   "record_ft": 150.16,
+   "record_date": "2016-03-13"
+  },
+  "LBWT2": {
+   "name": "Pecan Bayou at Lake Brownwood",
+   "record_ft": 1432.6,
+   "record_date": "1991-12-21"
   },
   "LBYT2": {
    "name": "Trinity River at Liberty",
    "record_ft": 32.7,
    "record_date": "2017-09-01"
   },
+  "LCBT2": {
+   "name": "Wolf Creek at Lipscomb",
+   "record_ft": 16,
+   "record_date": "1890-01-01"
+  },
+  "LCFT2": {
+   "name": "Leon Creek at I-10 and Loop 1604",
+   "record_ft": 13.32,
+   "record_date": "2018-09-09"
+  },
+  "LCJT2": {
+   "name": "North Texas Lakes at Lost Creek Reservoir",
+   "record_ft": 1015.44,
+   "record_date": "2015-05-30"
+  },
+  "LCKA4": {
+   "name": "Saline River near Lockesburg",
+   "record_ft": 25.6,
+   "record_date": "1961-05-06"
+  },
   "LCKT2": {
    "name": "Lost Creek at Lost Creek Blvd",
    "record_ft": 16.9,
    "record_date": "2015-10-30"
+  },
+  "LCLT2": {
+   "name": "North Texas Lakes at Lake Pat Cleburne",
+   "record_ft": 738.91,
+   "record_date": "2007-03-31"
+  },
+  "LCOL1": {
+   "name": "Big Cypress Creek at Mooringsport (Caddo Lake)",
+   "record_ft": 182.92,
+   "record_date": "1958-05-05"
   },
   "LCPT2": {
    "name": "Plum Creek at Lockhart",
    "record_ft": 23.09,
    "record_date": "1998-10-18"
   },
+  "LCRT2": {
+   "name": "Cherokee Bayou at Lake Cherokee",
+   "record_ft": 289,
+   "record_date": "1989-03-30"
+  },
   "LCTT2": {
    "name": "West Fork San Jacinto River at Lake Conroe",
    "record_ft": 205.61,
    "record_date": "1994-10-17"
   },
+  "LCVN5": {
+   "name": "Mora River at La Cueva",
+   "record_ft": 16,
+   "record_date": "1904-09-29"
+  },
+  "LDOT2": {
+   "name": "Rio Grande at Laredo",
+   "record_ft": 62.48,
+   "record_date": "1865-01-01"
+  },
+  "LECT2": {
+   "name": "Leon Creek at Loop 410 near Leon Valley",
+   "record_ft": 18.74,
+   "record_date": "2025-06-12"
+  },
+  "LEWT2": {
+   "name": "North Texas Lakes at Lake Lewisville",
+   "record_ft": 536.94,
+   "record_date": "2015-05-31"
+  },
+  "LFKT2": {
+   "name": "Lake Fork Creek at Lake Fork",
+   "record_ft": 405.15,
+   "record_date": "1990-05-04"
+  },
+  "LGNN5": {
+   "name": "Revuelto Creek near Logan",
+   "record_ft": 14.3,
+   "record_date": "1960-07-09"
+  },
   "LGRT2": {
    "name": "Colorado River (TX) above La Grange",
    "record_ft": 56.7,
    "record_date": "1869-07-09"
+  },
+  "LGTO2": {
+   "name": "North Fork of the Red River near Lugert",
+   "record_ft": 16.37,
+   "record_date": "1977-05-21"
   },
   "LHGT2": {
    "name": "South Fork San Gabriel River at SH 1869 near Liberty Hill",
@@ -578,10 +2275,35 @@
    "record_ft": 8.59,
    "record_date": "2010-09-08"
   },
+  "LKST2": {
+   "name": "Leon Creek at I-35S near San Antonio",
+   "record_ft": 29.31,
+   "record_date": "1998-10-18"
+  },
+  "LKWN5": {
+   "name": "Fourmile Draw 4 miles NNW of Lakewood",
+   "record_ft": 19.9,
+   "record_date": "1966-08-23"
+  },
+  "LLAT2": {
+   "name": "Llano River at Llano",
+   "record_ft": 41.5,
+   "record_date": "1935-06-14"
+  },
+  "LLET2": {
+   "name": "North Texas Lakes at Lake Leon",
+   "record_ft": 1385.6,
+   "record_date": "2007-06-28"
+  },
   "LLGT2": {
    "name": "San Marcos River at Luling",
    "record_ft": 41.85,
    "record_date": "1998-10-18"
+  },
+  "LLST2": {
+   "name": "North Texas Lakes at Lake Limestone",
+   "record_ft": 364.39,
+   "record_date": "1991-12-21"
   },
   "LLYT2": {
    "name": "Langham Creek near Addicks",
@@ -593,20 +2315,135 @@
    "record_ft": 24.35,
    "record_date": "2004-11-21"
   },
+  "LMDN5": {
+   "name": "Rio Ojo Caliente below La Madera",
+   "record_ft": 10.32,
+   "record_date": "2025-08-25"
+  },
+  "LMGT2": {
+   "name": "North Texas Lakes at Lake Graham",
+   "record_ft": 1078.52,
+   "record_date": "1990-05-03"
+  },
+  "LMKT2": {
+   "name": "Manadas Creek at Laredo",
+   "record_ft": 13.25,
+   "record_date": "2017-05-22"
+  },
+  "LMTT2": {
+   "name": "Martin Creek at Martin Creek Lake",
+   "record_ft": 313,
+   "record_date": "1989-03-29"
+  },
+  "LMVT2": {
+   "name": "Murvaul Bayou at Lake Murvaul",
+   "record_ft": 268.34,
+   "record_date": "2009-10-30"
+  },
+  "LNDO2": {
+   "name": "Washita River at Lindsay",
+   "record_ft": 25.6,
+   "record_date": "2015-05-25"
+  },
+  "LNXT2": {
+   "name": "South Fork Guadalupe River at Lynx Haven Crossing near Hunt, TX",
+   "record_ft": 24.9,
+   "record_date": "2025-07-04"
+  },
+  "LNYT2": {
+   "name": "Rio Grande at Foster Ranch",
+   "record_ft": 50,
+   "record_date": "1922-06-17"
+  },
+  "LOBT2": {
+   "name": "Rio Grande at Lower Brownsville",
+   "record_ft": 31.48,
+   "record_date": "1945-10-08"
+  },
+  "LOLT2": {
+   "name": "Trinity River near Long Lake (Oakwood)",
+   "record_ft": 53,
+   "record_date": "1890-05-01"
+  },
+  "LONT2": {
+   "name": "Sabine River below Longview",
+   "record_ft": 40,
+   "record_date": "1966-05-02"
+  },
+  "LPPT2": {
+   "name": "North Texas Lakes at Lake Palo Pinto",
+   "record_ft": 872.16,
+   "record_date": "2016-06-01"
+  },
+  "LPTL1": {
+   "name": "Sabine River at Logansport",
+   "record_ft": 44.07,
+   "record_date": "1945-04-08"
+  },
+  "LPTT2": {
+   "name": "Neches River at Lake Palestine",
+   "record_ft": 349.31,
+   "record_date": "1989-05-19"
+  },
   "LRIT2": {
    "name": "Little River near Little River",
    "record_ft": 46.8,
    "record_date": "1921-09-01"
+  },
+  "LRTT2": {
+   "name": "Llano River at County Road 102",
+   "record_ft": 1089.02,
+   "record_date": "2025-07-04"
+  },
+  "LRUT2": {
+   "name": "Leona River at CR 429A near Uvalde",
+   "record_ft": 14.46,
+   "record_date": "2018-09-08"
+  },
+  "LSDO2": {
+   "name": "East Elm Creek at Lake Stanley Draper",
+   "record_ft": 1188.5,
+   "record_date": "2007-07-15"
+  },
+  "LSET2": {
+   "name": "Brazos River near Lubbock 4ESE",
+   "record_ft": 14.99,
+   "record_date": "2023-09-15"
   },
   "LSNT2": {
    "name": "Navidad River at Strane Park",
    "record_ft": 31.28,
    "record_date": "2017-08-29"
   },
+  "LSPT2": {
+   "name": "Las Moras Creek at Brackettville",
+   "record_ft": 6.14,
+   "record_date": "2018-10-09"
+  },
+  "LTLO2": {
+   "name": "Medicine Creek at Lake Lawtonka",
+   "record_ft": 1348.21,
+   "record_date": "2007-06-29"
+  },
+  "LTLT2": {
+   "name": "North Texas Lakes at New Terrell City Lake",
+   "record_ft": 507.4,
+   "record_date": "2009-10-13"
+  },
+  "LTRT2": {
+   "name": "Pecos River near Langtry",
+   "record_ft": 38.14,
+   "record_date": "1978-11-05"
+  },
   "LTXT2": {
    "name": "Navidad River at Lake Texana",
    "record_ft": 44.74,
    "record_date": "2001-11-27"
+  },
+  "LUFT2": {
+   "name": "Angelina River near Lufkin",
+   "record_ft": 189.83,
+   "record_date": "1884-05-24"
   },
   "LUIT2": {
    "name": "Tide Station (HGX) at San Luis Pass",
@@ -623,50 +2460,225 @@
    "record_ft": 134.39,
    "record_date": "1994-10-17"
   },
+  "LVLO2": {
+   "name": "Skeleton Creek near Lovell",
+   "record_ft": 45.47,
+   "record_date": "1993-05-09"
+  },
+  "LVNO2": {
+   "name": "Poteau River at Loving",
+   "record_ft": 29.31,
+   "record_date": "2015-05-24"
+  },
+  "LVNT2": {
+   "name": "North Texas Lakes at Lake Lavon",
+   "record_ft": 504.93,
+   "record_date": "1990-05-03"
+  },
   "LWCT2": {
    "name": "Willow Creek near Tomball",
    "record_ft": 133.89,
    "record_date": "2017-08-28"
+  },
+  "LWFT2": {
+   "name": "North Texas Lakes at Lake Weatherford",
+   "record_ft": 899.65,
+   "record_date": "1977-03-27"
   },
   "LWGT2": {
    "name": "Little Walnut Creek (TX) at Georgian Drive near Austin 7N",
    "record_ft": 12.76,
    "record_date": "2015-05-25"
   },
+  "LWWT2": {
+   "name": "North Texas Lakes at Lake Waxahachie",
+   "record_ft": 534.67,
+   "record_date": "2007-03-31"
+  },
   "LYNT2": {
    "name": "Davidson Creek near Lyons",
    "record_ft": 19.47,
    "record_date": "2017-08-28"
+  },
+  "MADT2": {
+   "name": "Rio Grande at Anzalduas Reservior",
+   "record_ft": 111.44,
+   "record_date": "2010-07-20"
+  },
+  "MBCT2": {
+   "name": "Beaver Creek (Llano River Basin) near Mason",
+   "record_ft": 24,
+   "record_date": "1978-08-03"
   },
   "MBFT2": {
    "name": "Trinity River near Moss Bluff",
    "record_ft": 18.65,
    "record_date": "2017-09-01"
   },
+  "MBLT2": {
+   "name": "Wichita River near Mabelle",
+   "record_ft": 10.47,
+   "record_date": "1976-03-24"
+  },
+  "MCGT2": {
+   "name": "Middle Bosque River near McGregor",
+   "record_ft": 28.5,
+   "record_date": "1989-01-01"
+  },
+  "MCKO2": {
+   "name": "Mill Creek (OK) near Mill Creek",
+   "record_ft": 19.54,
+   "record_date": "2024-04-28"
+  },
+  "MCKT2": {
+   "name": "East Fork Trinity River at McKinney",
+   "record_ft": 28,
+   "record_date": "1942-04-01"
+  },
+  "MCPO2": {
+   "name": "Pennington Creek near Mill Creek",
+   "record_ft": 12.41,
+   "record_date": "2024-04-28"
+  },
   "MCVT2": {
    "name": "Cow Bayou near Mauriceville",
    "record_ft": 26.85,
    "record_date": "2017-08-30"
+  },
+  "MDET2": {
+   "name": "North Floodway West of Mercedes",
+   "record_ft": 69.66,
+   "record_date": "2010-07-19"
+  },
+  "MDLT2": {
+   "name": "Medina River at Medina Lake",
+   "record_ft": 1082.42,
+   "record_date": "2002-07-05"
   },
   "MDST2": {
    "name": "Bedias Creek near Madisonville",
    "record_ft": 34,
    "record_date": "1922-05-01"
   },
+  "MECT2": {
+   "name": "Arroyo Colorado South of Mercedes",
+   "record_ft": 8.2,
+   "record_date": "2010-07-20"
+  },
+  "MEPT2": {
+   "name": "Medina River above Engligh Crossing near Pipe Creek",
+   "record_ft": 14.77,
+   "record_date": "2018-09-22"
+  },
+  "MERT2": {
+   "name": "Medina River at Patterson Road at Medina",
+   "record_ft": 16.99,
+   "record_date": "2015-05-23"
+  },
+  "MFCT2": {
+   "name": "North Texas Lakes at Moss Lake",
+   "record_ft": 733.72,
+   "record_date": "1981-10-13"
+  },
   "MFNT2": {
    "name": "San Antonio River near McFaddin",
    "record_ft": 30.08,
    "record_date": "2021-07-14"
+  },
+  "MGAN5": {
+   "name": "Black River 1 mile NE of Malaga",
+   "record_ft": 24.62,
+   "record_date": "2014-09-19"
+  },
+  "MGCO2": {
+   "name": "McGee Creek at McGee Creek Lake",
+   "record_ft": 600,
+   "record_date": "2015-05-20"
+  },
+  "MGMO2": {
+   "name": "Salt Fork of the Red River at Mangum",
+   "record_ft": 14.7,
+   "record_date": "1938-06-16"
   },
   "MGPT2": {
    "name": "Tide Station (HGX) at Morgan's Point",
    "record_ft": 6.03,
    "record_date": "2021-09-14"
   },
+  "MICO2": {
+   "name": "Mill Creek (OK) at Mouth of 3Mile Creek near Mill Creek",
+   "record_ft": 15.95,
+   "record_date": "2024-04-28"
+  },
   "MIOT2": {
    "name": "Medio Creek near Beeville",
    "record_ft": 15.12,
    "record_date": "2021-07-09"
+  },
+  "MITT2": {
+   "name": "Banker Inlet to Main Floodway",
+   "record_ft": 112.57,
+   "record_date": "2010-07-20"
+  },
+  "MKGO2": {
+   "name": "Arkansas River near Muskogee",
+   "record_ft": 48.2,
+   "record_date": "1943-05-21"
+  },
+  "MLAN5": {
+   "name": "Black River 5 miles W of Malaga",
+   "record_ft": 21.7,
+   "record_date": "1966-08-23"
+  },
+  "MLAT2": {
+   "name": "Sabine River near Mineola",
+   "record_ft": 24.37,
+   "record_date": "1943-06-08"
+  },
+  "MLBA4": {
+   "name": "Mulberry River (AR) near Mulberry",
+   "record_ft": 23.66,
+   "record_date": "1982-12-03"
+  },
+  "MLGN5": {
+   "name": "Pecos River 3 miles ESE of Malaga",
+   "record_ft": 42.1,
+   "record_date": "1966-08-23"
+  },
+  "MLIT2": {
+   "name": "Pecan Bayou near Mullin",
+   "record_ft": 42.15,
+   "record_date": "1990-04-27"
+  },
+  "MLRT2": {
+   "name": "Llano River near Mason",
+   "record_ft": 46,
+   "record_date": "1935-06-14"
+  },
+  "MMDT2": {
+   "name": "Medina River near Macdona",
+   "record_ft": 24.7,
+   "record_date": "2002-07-06"
+  },
+  "MMWT2": {
+   "name": "North Texas Lakes at Lake Mineral Wells",
+   "record_ft": 866.09,
+   "record_date": "2007-03-30"
+  },
+  "MNFT2": {
+   "name": "Walnut Creek near Mansfield",
+   "record_ft": 33.78,
+   "record_date": "1989-05-17"
+  },
+  "MNRT2": {
+   "name": "San Saba River at Menard",
+   "record_ft": 23.3,
+   "record_date": "1899-06-06"
+  },
+  "MPCO2": {
+   "name": "Pennington Creek 5 miles NNE of Mill Creek",
+   "record_ft": 6.92,
+   "record_date": "2020-09-01"
   },
   "MRAT2": {
    "name": "Navidad River near Morales",
@@ -688,10 +2700,55 @@
    "record_ft": 48.7,
    "record_date": "1967-09-24"
   },
+  "MTNO2": {
+   "name": "West Otter Creek at Tom Steed Lake",
+   "record_ft": 1415.82,
+   "record_date": "1987-05-29"
+  },
   "MTPT2": {
    "name": "Tres Palacios River near Midfield",
    "record_ft": 37,
    "record_date": "1960-06-01"
+  },
+  "MTST2": {
+   "name": "San Antonio River at Mitchell Street",
+   "record_ft": 14.67,
+   "record_date": "2013-05-25"
+  },
+  "MTZN5": {
+   "name": "Gallinas Creek above Montezuma",
+   "record_ft": 9.7,
+   "record_date": "1966-08-02"
+  },
+  "MYAT2": {
+   "name": "Atascosa River near McCoy",
+   "record_ft": 25.76,
+   "record_date": "2015-05-16"
+  },
+  "MYST2": {
+   "name": "North Texas Lakes at Pat Mayse Lake",
+   "record_ft": 462.84,
+   "record_date": "1971-12-12"
+  },
+  "NADT2": {
+   "name": "La Nana Creek at Nacogdoches",
+   "record_ft": 22.18,
+   "record_date": "1979-06-02"
+  },
+  "NBCT2": {
+   "name": "Comal River at New Braunfels",
+   "record_ft": 39.28,
+   "record_date": "1998-10-17"
+  },
+  "NBDT2": {
+   "name": "Dry Comal at Loop 337",
+   "record_ft": 24.57,
+   "record_date": "2009-10-14"
+  },
+  "NBRT2": {
+   "name": "Guadalupe River above Comal River at New Braunfels",
+   "record_ft": 38,
+   "record_date": "1869-08-08"
   },
   "NCCT2": {
    "name": "Big Cow Creek near Newton",
@@ -708,6 +2765,16 @@
    "record_ft": 7.57,
    "record_date": "2021-09-14"
   },
+  "NCST2": {
+   "name": "Neches River near Neches",
+   "record_ft": 25,
+   "record_date": "1884-05-03"
+  },
+  "NDST2": {
+   "name": "Beals Creek at Natural Dam Salt Lake",
+   "record_ft": 2447.45,
+   "record_date": "2001-06-04"
+  },
   "NFBT2": {
    "name": "North Fork San Gabriel River at 243 near Briggs, TX",
    "record_ft": 36.42,
@@ -723,15 +2790,70 @@
    "record_ft": 25.61,
    "record_date": "2024-05-04"
   },
+  "NGTT2": {
+   "name": "Clear Fork Brazos River at Nugent",
+   "record_ft": 30,
+   "record_date": "1876-01-01"
+  },
+  "NKHO2": {
+   "name": "Little Washita River near Ninnekah",
+   "record_ft": 25.2,
+   "record_date": "2015-05-24"
+  },
+  "NLRO2": {
+   "name": "Little River (OK) near Norman",
+   "record_ft": 28.85,
+   "record_date": "1957-05-25"
+  },
+  "NMOT2": {
+   "name": "Nueces River at CR 414 near Montell",
+   "record_ft": 14.68,
+   "record_date": "2018-10-09"
+  },
+  "NNCT2": {
+   "name": "North Texas Lakes at Lake Nocona",
+   "record_ft": 835.14,
+   "record_date": "2015-06-18"
+  },
+  "NPBT2": {
+   "name": "North Prong Medina River at Brewington Creek",
+   "record_ft": 9.15,
+   "record_date": "2018-10-09"
+  },
+  "NRCO2": {
+   "name": "Canadian River at Norman",
+   "record_ft": 99.98,
+   "record_date": "2007-08-21"
+  },
+  "NRMO2": {
+   "name": "Little River (OK) at Lake Thunderbird",
+   "record_ft": 1053.22,
+   "record_date": "2015-05-24"
+  },
   "NSBT2": {
    "name": "Neches River at Saltwater Barrier",
    "record_ft": 21.56,
    "record_date": "2017-09-01"
   },
+  "NUBT2": {
+   "name": "Nueces River near Barksdale",
+   "record_ft": 32.15,
+   "record_date": "2018-10-16"
+  },
+  "NUCT2": {
+   "name": "Nueces River at FM 1025 Near Crystal City",
+   "record_ft": 12.14,
+   "record_date": "2025-07-16"
+  },
   "OABT2": {
    "name": "Adams Bayou at FM 3247",
    "record_ft": 13.3,
    "record_date": "2017-09-01"
+  },
+  "OCCO2": {
+   "name": "Crutcho Creek at SE 50th Street at Oklahoma City",
+   "record_ft": 14.37,
+   "record_date": "2025-04-19"
   },
   "OCNT2": {
    "name": "San Bernard River near Old Ocean",
@@ -743,10 +2865,30 @@
    "record_ft": 24.83,
    "record_date": "2015-10-30"
   },
+  "OKBO2": {
+   "name": "North Canadian River at Britton Road at Oklahoma City",
+   "record_ft": 24.8,
+   "record_date": "1993-05-09"
+  },
+  "OLBO2": {
+   "name": "North Canadian River at NW10th Street at Oklahoma City",
+   "record_ft": 40.9,
+   "record_date": "1923-10-15"
+  },
+  "OMWT2": {
+   "name": "White Oak Creek near Omaha at Interstate 30",
+   "record_ft": 23.4,
+   "record_date": "2018-02-25"
+  },
   "ONIT2": {
    "name": "Onion Creek at Twin Creeks near Manchaca",
    "record_ft": 30.89,
    "record_date": "2015-10-30"
+  },
+  "OOLO2": {
+   "name": "Eastern Oklahoma Lakes at Oologah Lake",
+   "record_ft": 52.8,
+   "record_date": "1961-05-09"
   },
   "OOST2": {
    "name": "Oso Creek near Corpus Christi",
@@ -758,15 +2900,95 @@
    "record_ft": 6.27,
    "record_date": "2019-05-03"
   },
+  "ORCT2": {
+   "name": "Little Cypress Creek near Ore City",
+   "record_ft": 20.7,
+   "record_date": "1945-04-02"
+  },
   "ORFT2": {
    "name": "Cow Bayou at FM 1442",
    "record_ft": 16.53,
    "record_date": "2017-09-03"
   },
+  "ORLT2": {
+   "name": "Pecos River 6 miles NE of Orla",
+   "record_ft": 21.07,
+   "record_date": "2014-09-19"
+  },
   "ORNT2": {
    "name": "Sabine River at Orange",
    "record_ft": 9.86,
    "record_date": "2008-09-13"
+  },
+  "OTWN5": {
+   "name": "Rio Grande at Otowi",
+   "record_ft": 14.5,
+   "record_date": "1904-09-29"
+  },
+  "OVRO2": {
+   "name": "North Canadian River at Lake Overholser",
+   "record_ft": 1243.6,
+   "record_date": "1986-10-04"
+  },
+  "OWSO2": {
+   "name": "Bird Creek near Owasso",
+   "record_ft": 34,
+   "record_date": "1908-10-25"
+  },
+  "OXDT2": {
+   "name": "Sandy Creek near Willow City",
+   "record_ft": 12.43,
+   "record_date": "2007-06-27"
+  },
+  "OZGA4": {
+   "name": "Arkansas River at Ozark L/D Tailwater",
+   "record_ft": 375.5,
+   "record_date": "1943-05-13"
+  },
+  "PANO2": {
+   "name": "Poteau River near Panama",
+   "record_ft": 49.6,
+   "record_date": "1935-06-18"
+  },
+  "PAWL1": {
+   "name": "Paw Paw Bayou near Greenwood",
+   "record_ft": 14.46,
+   "record_date": "2016-03-09"
+  },
+  "PAWO2": {
+   "name": "Black Bear Creek at Pawnee",
+   "record_ft": 31.43,
+   "record_date": "1959-10-03"
+  },
+  "PBAN5": {
+   "name": "Pecos River below Avalon Reservoir",
+   "record_ft": 26.4,
+   "record_date": "1966-08-23"
+  },
+  "PBGT2": {
+   "name": "Big Cypress Creek near Pittsburg",
+   "record_ft": 28.3,
+   "record_date": "1945-03-30"
+  },
+  "PCON5": {
+   "name": "Pecos River above Pecos",
+   "record_ft": 6.2,
+   "record_date": "1929-09-21"
+  },
+  "PCST2": {
+   "name": "Pecos River 2 miles NE of Pecos",
+   "record_ft": 15.42,
+   "record_date": "2014-09-22"
+  },
+  "PCTT2": {
+   "name": "North Texas Lakes at Proctor Lake",
+   "record_ft": 1197.66,
+   "record_date": "2016-06-05"
+  },
+  "PDAT2": {
+   "name": "Pecos River at Pandale Crossing",
+   "record_ft": 43.9,
+   "record_date": "1954-06-28"
   },
   "PEDT2": {
    "name": "Perdido Creek near Fannin",
@@ -783,40 +3005,230 @@
    "record_ft": 23.67,
    "record_date": "2017-08-28"
   },
+  "PGFT2": {
+   "name": "Pecos River 9 miles WNW of Grandfalls",
+   "record_ft": 17.74,
+   "record_date": "2014-10-02"
+  },
+  "PICT2": {
+   "name": "Cowhouse Creek near Pidcoke",
+   "record_ft": 44.51,
+   "record_date": "2024-05-05"
+  },
+  "PIEL1": {
+   "name": "Bayou Pierre at Shreveport",
+   "record_ft": 23.31,
+   "record_date": "2016-03-09"
+  },
+  "PIOT2": {
+   "name": "Rio Grande 6 miles WNW of Presidio",
+   "record_ft": 15.26,
+   "record_date": "1974-09-22"
+  },
+  "PKCN5": {
+   "name": "Pecos River 6 miles NE of Lakewood",
+   "record_ft": 22.35,
+   "record_date": "2013-09-19"
+  },
+  "PLOT2": {
+   "name": "Brazos River near Palo Pinto",
+   "record_ft": 30,
+   "record_date": "1930-06-16"
+  },
   "PLPT2": {
    "name": "Placedo Creek near Placedo",
    "record_ft": 29.77,
    "record_date": "2017-08-26"
+  },
+  "PLVO2": {
+   "name": "Washita River near Pauls Valley",
+   "record_ft": 34.879999999999995,
+   "record_date": "1950-05-11"
+  },
+  "PNTT2": {
+   "name": "North Texas Lakes at Lake Tawakoni",
+   "record_ft": 442.58,
+   "record_date": "1966-05-01"
+  },
+  "PNVT2": {
+   "name": "Salt Fork - Brazos River at Plainview",
+   "record_ft": 10,
+   "record_date": "1890-01-01"
   },
   "POET2": {
    "name": "West Fork San Jacinto River near Porter",
    "record_ft": 94.87,
    "record_date": "2017-08-29"
   },
+  "PPCN5": {
+   "name": "Pecos River 6 miles ESE of Malaga at Pierce Canyon Crossing",
+   "record_ft": 31.6,
+   "record_date": "1966-08-23"
+  },
   "PPTT2": {
    "name": "Buffalo Bayou at Piney Point Village",
    "record_ft": 62.84,
    "record_date": "2017-08-31"
+  },
+  "PRBT2": {
+   "name": "Alamito Creek 5 miles ESE of Presidio",
+   "record_ft": 13.54,
+   "record_date": "1962-09-02"
+  },
+  "PRCO2": {
+   "name": "Canadian River at Purcell",
+   "record_ft": 14.75,
+   "record_date": "1987-05-29"
+  },
+  "PRDT2": {
+   "name": "Rio Grande 5 miles SE of Presidio",
+   "record_ft": 26.7,
+   "record_date": "1904-09-11"
+  },
+  "PRKO2": {
+   "name": "Cimarron River near Perkins",
+   "record_ft": 26.75,
+   "record_date": "1986-10-04"
+  },
+  "PRKT2": {
+   "name": "Concho River at Paint Rock",
+   "record_ft": 43.4,
+   "record_date": "1936-09-17"
+  },
+  "PRLO2": {
+   "name": "Walnut Creek (OK) at Purcell",
+   "record_ft": 24.4,
+   "record_date": "1983-10-20"
   },
   "PRLT2": {
    "name": "Clear Creek above Telephone Road",
    "record_ft": 47.4,
    "record_date": "2017-08-29"
   },
+  "PRST2": {
+   "name": "Rio Grande at Presidio International Bridge",
+   "record_ft": 28.21,
+   "record_date": "2008-09-16"
+  },
+  "PSBN5": {
+   "name": "Pecos River below Brantley Reservoir",
+   "record_ft": 13.09,
+   "record_date": "2014-09-22"
+  },
+  "PSMT2": {
+   "name": "North Texas Lakes at Possum Kingdom Lake",
+   "record_ft": 1003.6,
+   "record_date": "1981-10-13"
+  },
+  "PTAO2": {
+   "name": "Poteau River near Poteau",
+   "record_ft": 39,
+   "record_date": "1935-06-18"
+  },
+  "PUEN5": {
+   "name": "Pecos River below Puerto De Luna",
+   "record_ft": 17,
+   "record_date": "1942-09-01"
+  },
+  "PWRT2": {
+   "name": "North Wichita River at Paducah 14SE",
+   "record_ft": 29.5,
+   "record_date": "1955-10-01"
+  },
+  "QGCT2": {
+   "name": "Groesbeck Creek near Quanah",
+   "record_ft": 24.78,
+   "record_date": "1983-10-20"
+  },
+  "QLAT2": {
+   "name": "South Fork Sabine River near Quinlan",
+   "record_ft": 21,
+   "record_date": "1902-07-29"
+  },
+  "QPDO2": {
+   "name": "Quanah Creek at Quanah Parker Lake near Lawton",
+   "record_ft": 1487.28,
+   "record_date": "2019-05-25"
+  },
+  "QTMT2": {
+   "name": "Lake Fork Creek near Quitman",
+   "record_ft": 29.85,
+   "record_date": "1945-03-30"
+  },
   "RBBT2": {
    "name": "Tide Station (LCH) at Rainbow Bridge",
    "record_ft": 10.5,
    "record_date": "2008-09-13"
+  },
+  "RBFN5": {
+   "name": "Pecos River 10 miles S of Malaga",
+   "record_ft": 33.32,
+   "record_date": "1966-08-23"
+  },
+  "RBFT2": {
+   "name": "Red Bluff Creek at FM 1283 near Pipe Creek",
+   "record_ft": 11.28,
+   "record_date": "2024-11-08"
+  },
+  "RCAN5": {
+   "name": "Rio Chama above Abiquiu",
+   "record_ft": 10.76,
+   "record_date": "2009-05-09"
   },
   "RCCT2": {
    "name": "Copano Creek near Refugio",
    "record_ft": 21,
    "record_date": "1971-09-12"
   },
+  "RCET2": {
+   "name": "Chambers Creek near Rice",
+   "record_ft": 32.57,
+   "record_date": "1991-12-21"
+  },
+  "RDBN5": {
+   "name": "Delaware River (NM) 11 miles NW of Red Bluff",
+   "record_ft": 27,
+   "record_date": "1955-10-02"
+  },
   "REFT2": {
    "name": "Mission River at Refugio",
    "record_ft": 38.25,
    "record_date": "1971-09-12"
+  },
+  "RELT2": {
+   "name": "Colorado River (TX) at Robert Lee",
+   "record_ft": 26.7,
+   "record_date": "1957-10-13"
+  },
+  "RGAT2": {
+   "name": "Rio Grande below American Canal Diversion",
+   "record_ft": 9.36,
+   "record_date": "2017-09-28"
+  },
+  "RGCN5": {
+   "name": "Galisteo Creek below Galisteo Dam",
+   "record_ft": 11.6,
+   "record_date": "2013-09-16"
+  },
+  "RGDT2": {
+   "name": "Rio Grande at Rio Grande City",
+   "record_ft": 65.78,
+   "record_date": "1972-09-27"
+  },
+  "RGLT2": {
+   "name": "Rio Grande near Los Ebanos",
+   "record_ft": 39.32,
+   "record_date": "2010-07-30"
+  },
+  "RIPO2": {
+   "name": "Cimarron River near Ripley",
+   "record_ft": 28.36,
+   "record_date": "1993-05-10"
+  },
+  "RLAT2": {
+   "name": "Pecos River at Red Bluff Reservoir",
+   "record_ft": 2832.31,
+   "record_date": "2014-09-23"
   },
   "RLOT2": {
    "name": "Tide Station (HGX) at Rollover Pass",
@@ -838,40 +3250,150 @@
    "record_ft": 43.49,
    "record_date": "1945-04-13"
   },
+  "RNDO2": {
+   "name": "Deep Red Creek near Randlett",
+   "record_ft": 29.58,
+   "record_date": "1987-05-29"
+  },
+  "ROKT2": {
+   "name": "Neches River at Rockland",
+   "record_ft": 38,
+   "record_date": "1884-05-01"
+  },
   "ROST2": {
    "name": "Brazos River near Rosharon",
    "record_ft": 52.65,
    "record_date": "2017-08-29"
+  },
+  "ROYT2": {
+   "name": "Clear Fork Brazos River near Roby",
+   "record_ft": 22.5,
+   "record_date": "1899-12-31"
+  },
+  "RPCO2": {
+   "name": "Pennington Creek near Reagan",
+   "record_ft": 27.25,
+   "record_date": "2025-04-28"
+  },
+  "RRGT2": {
+   "name": "Rio Grande at Roma",
+   "record_ft": 33.81,
+   "record_date": "2010-07-22"
+  },
+  "RRLT2": {
+   "name": "North Texas Lakes at Lake Ray Roberts",
+   "record_ft": 644.44,
+   "record_date": "1990-05-03"
+  },
+  "RSRT2": {
+   "name": "Trinity River near Rosser",
+   "record_ft": 41.8,
+   "record_date": "1938-02-21"
   },
   "RTAT2": {
    "name": "Tide Gauge at Port Aransas",
    "record_ft": 1.93,
    "record_date": "2018-06-19"
   },
+  "RUHN5": {
+   "name": "Rio Ruidoso at Hollywood",
+   "record_ft": 18.55,
+   "record_date": "2025-07-08"
+  },
   "RVRT2": {
    "name": "Trinity River at Riverside",
    "record_ft": 142.61,
    "record_date": "1942-05-05"
+  },
+  "RVTO2": {
+   "name": "Elk Creek (OK) near Roosevelt",
+   "record_ft": 27.91,
+   "record_date": "2010-07-05"
+  },
+  "RWDT2": {
+   "name": "Dry Frio River near Reagan Wells near Uvalde 23N",
+   "record_ft": 33,
+   "record_date": "1980-01-01"
   },
   "RYET2": {
    "name": "Menard Creek near Rye",
    "record_ft": 36.11,
    "record_date": "2017-08-29"
   },
+  "SAAT2": {
+   "name": "Medina River at San Antonio US 281S",
+   "record_ft": 55.65,
+   "record_date": "2002-07-04"
+  },
+  "SABT2": {
+   "name": "Sabinal River at Sabinal",
+   "record_ft": 40,
+   "record_date": "1919-08-24"
+  },
+  "SACT2": {
+   "name": "Salado Creek at Loop 13",
+   "record_ft": 34.07,
+   "record_date": "1998-10-17"
+  },
+  "SAFT2": {
+   "name": "San Pedro Creek at Furnish Street",
+   "record_ft": 12.92,
+   "record_date": "2025-06-12"
+  },
+  "SALT2": {
+   "name": "Sabinal River near Sabinal",
+   "record_ft": 33.74,
+   "record_date": "2002-07-05"
+  },
+  "SASO2": {
+   "name": "Little River (OK) near Sasakwa",
+   "record_ft": 33.48,
+   "record_date": "1950-05-11"
+  },
+  "SAYO2": {
+   "name": "North Fork of the Red River near Sayre",
+   "record_ft": 13.02,
+   "record_date": "2015-05-24"
+  },
+  "SBFA4": {
+   "name": "Red River at Springbank Ferry",
+   "record_ft": 44.23,
+   "record_date": "2015-06-07"
+  },
   "SBMT2": {
    "name": "Navidad River at Sublime",
    "record_ft": 40,
    "record_date": "1940-06-01"
+  },
+  "SBNT2": {
+   "name": "Rio Grande near San Benito",
+   "record_ft": 61.06,
+   "record_date": "1967-09-29"
   },
   "SBPT2": {
    "name": "near Sabine Pass",
    "record_ft": 14.31,
    "record_date": "2008-09-13"
   },
+  "SBST2": {
+   "name": "North Floodway Near Sebastian",
+   "record_ft": 47.7,
+   "record_date": "2010-07-20"
+  },
+  "SBUT2": {
+   "name": "Sabinal River at Utopia",
+   "record_ft": 5.34,
+   "record_date": "2021-05-01"
+  },
   "SCAT2": {
    "name": "Slaughter Creek at FM 1826 near Austin ",
    "record_ft": 11.06,
    "record_date": "2019-05-04"
+  },
+  "SCCT2": {
+   "name": "Concho River at San Angelo",
+   "record_ft": 47.5,
+   "record_date": "1906-08-06"
   },
   "SCDT2": {
    "name": "Coleto Creek at Arnold Road Crossing",
@@ -883,30 +3405,130 @@
    "record_ft": 27.04,
    "record_date": "2021-10-14"
   },
+  "SCLT2": {
+   "name": "North Texas Lakes at Jim Chapman Lake",
+   "record_ft": 447.99,
+   "record_date": "2015-12-29"
+  },
+  "SCRT2": {
+   "name": "Seco Creek at Rowe Ranch near D'Hanis",
+   "record_ft": 35.7,
+   "record_date": "1935-05-31"
+  },
   "SDAT2": {
    "name": "Caney Creek near Splendora",
    "record_ft": 28.19,
    "record_date": "1945-04-01"
+  },
+  "SDFO2": {
+   "name": "Deep Fork River near Stroud",
+   "record_ft": 28.21,
+   "record_date": "2021-06-29"
   },
   "SEGT2": {
    "name": "Guadalupe River at Seguin",
    "record_ft": 36.8,
    "record_date": "1998-10-18"
   },
+  "SEIO2": {
+   "name": "North Canadian River near Seiling",
+   "record_ft": 16.4,
+   "record_date": "1923-10-13"
+  },
+  "SELT2": {
+   "name": "Cibolo Creek at Selma",
+   "record_ft": 35.4,
+   "record_date": "1998-10-17"
+  },
+  "SEYT2": {
+   "name": "Wichita River near Seymour",
+   "record_ft": 17.81,
+   "record_date": "2024-06-12"
+  },
+  "SFCT2": {
+   "name": "San Felipe Creek near Del Rio 1SE",
+   "record_ft": 12.52,
+   "record_date": "2022-09-03"
+  },
+  "SFIT2": {
+   "name": "Independence Creek 18 miles SSE of Sheffield",
+   "record_ft": 22,
+   "record_date": "1954-06-28"
+  },
+  "SFPN5": {
+   "name": "Rio Grande above San Felipe Pueblo",
+   "record_ft": 11.13,
+   "record_date": "1937-06-26"
+  },
+  "SFRO2": {
+   "name": "Stillwater Creek (OK) near Stillwater",
+   "record_ft": 23.14,
+   "record_date": "2022-05-24"
+  },
+  "SGAT2": {
+   "name": "Barrilla Draw 13 miles ESE of Saragosa",
+   "record_ft": 7.26,
+   "record_date": "2018-06-26"
+  },
+  "SGET2": {
+   "name": "Clear Creek near Sanger",
+   "record_ft": 36.5,
+   "record_date": "1908-05-01"
+  },
   "SGGT2": {
    "name": "Guadalupe River at FM 1117 near Seguin",
    "record_ft": 32.11,
    "record_date": "2021-10-14"
+  },
+  "SGHT2": {
+   "name": "San Geronimo Creek near Helotes, TX",
+   "record_ft": 12.13,
+   "record_date": "2018-09-22"
   },
   "SGNT2": {
    "name": "Tide Station (HGX) at Sargent",
    "record_ft": 4.58,
    "record_date": "2021-09-14"
   },
+  "SGOT2": {
+   "name": "Pecan Creek (Concho River Basin) near San Angelo",
+   "record_ft": 14.36,
+   "record_date": "1936-09-15"
+  },
+  "SHAT2": {
+   "name": "North Fork of the Red River at Shamrock",
+   "record_ft": 21.1,
+   "record_date": "1957-05-01"
+  },
+  "SHCT2": {
+   "name": "Rowlette Creek near Sachse",
+   "record_ft": 35.4,
+   "record_date": "1942-04-23"
+  },
+  "SHEL1": {
+   "name": "Shettleworth Bayou near Blanchard",
+   "record_ft": 14.29,
+   "record_date": "2016-03-09"
+  },
+  "SHLO2": {
+   "name": "South Deer Creek Tributary at Shawnee Rerservoir near Shawnee",
+   "record_ft": 1073.64,
+   "record_date": "2010-07-05"
+  },
   "SHLT2": {
    "name": "San Jacinto River near Sheldon",
    "record_ft": 28.72,
    "record_date": "2017-08-29"
+  },
+  "SILT2": {
+   "name": "Colorado River (TX) above Silver",
+   "record_ft": 22.98,
+   "record_date": "1980-09-09"
+  },
+  "SIOT2": {
+   "name": "Olmos Creek at Dresden Drive",
+   "record_ft": 14.82,
+   "record_date": "1978-09-13"
   },
   "SIPT2": {
    "name": "Sabine River at International Paper",
@@ -928,15 +3550,60 @@
    "record_ft": 67.69,
    "record_date": "2024-05-12"
   },
+  "SLSA4": {
+   "name": "Illinois River (AR OK) near Siloam Springs 4SE / Hwy 16",
+   "record_ft": 20.71,
+   "record_date": "2004-04-24"
+  },
+  "SMCO2": {
+   "name": "Mill Creek (OK) near Sulphur",
+   "record_ft": 9.76,
+   "record_date": "2024-04-28"
+  },
+  "SMCT2": {
+   "name": "Guadalupe River at Canyon Lake",
+   "record_ft": 950.02,
+   "record_date": "2002-07-06"
+  },
   "SMIT2": {
    "name": "Colorado River (TX) near Smithville",
    "record_ft": 47.4,
    "record_date": "1913-12-04"
   },
+  "SMKT2": {
+   "name": "Millers Creek at Millers Creek Reservoir near Bomarton",
+   "record_ft": 1344.37,
+   "record_date": "2005-10-02"
+  },
+  "SMMT2": {
+   "name": "Medina River near Somerset",
+   "record_ft": 42.19,
+   "record_date": "2002-07-06"
+  },
   "SMRT2": {
    "name": "San Marcos River near Martindale",
    "record_ft": 40.68,
    "record_date": "2013-10-31"
+  },
+  "SNBT2": {
+   "name": "Colorado River (TX) near San Saba",
+   "record_ft": 62.24,
+   "record_date": "1938-07-23"
+  },
+  "SNCN5": {
+   "name": "Canadian River near Sanchez",
+   "record_ft": 36.6,
+   "record_date": "1965-06-18"
+  },
+  "SNCO2": {
+   "name": "North Canadian River at Shawnee",
+   "record_ft": 24.06,
+   "record_date": "2015-05-24"
+  },
+  "SNPT2": {
+   "name": "San Antonio River at Loop 410",
+   "record_ft": 34.21,
+   "record_date": "2013-05-25"
   },
   "SOLT2": {
    "name": "Pine Island Bayou near Sour Lake",
@@ -948,20 +3615,70 @@
    "record_ft": 259.82,
    "record_date": "2016-05-29"
   },
+  "SOUT2": {
+   "name": "Brazos River near South Bend",
+   "record_ft": 41.5,
+   "record_date": "1978-08-06"
+  },
   "SPAT2": {
    "name": "Navidad River near Speaks",
    "record_ft": 32.79,
    "record_date": "2017-08-29"
+  },
+  "SPCO2": {
+   "name": "Polecat Creek near Sapulpa",
+   "record_ft": 33.7,
+   "record_date": "1943-05-10"
+  },
+  "SPCT2": {
+   "name": "Pecos River 3 miles ESE of Sheffield",
+   "record_ft": 23.5,
+   "record_date": "1919-09-01"
   },
   "SPDT2": {
    "name": "Peach Creek near Splendora",
    "record_ft": 27.73,
    "record_date": "1949-10-08"
   },
+  "SPEO2": {
+   "name": "Bird Creek near Sperry",
+   "record_ft": 32.6,
+   "record_date": "1959-10-03"
+  },
+  "SPGN5": {
+   "name": "Cimarron River (NM) at Springer",
+   "record_ft": 22.04,
+   "record_date": "1904-09-29"
+  },
+  "SPMT2": {
+   "name": "Palo Duro Creek at Spearman",
+   "record_ft": 23.68,
+   "record_date": "1936-06-04"
+  },
   "SPNT2": {
    "name": "Spring Creek near Spring",
    "record_ft": 111.6,
    "record_date": "1994-10-18"
+  },
+  "SRCO2": {
+   "name": "Rock Creek (OK) at Sulphur",
+   "record_ft": 23.49,
+   "record_date": "2015-07-03"
+  },
+  "SRCT2": {
+   "name": "North Concho River at Sterling City",
+   "record_ft": 23.7,
+   "record_date": "1948-07-06"
+  },
+  "SRGT2": {
+   "name": "Guadalupe River near Spring Branch",
+   "record_ft": 53,
+   "record_date": "1869-08-03"
+  },
+  "SRMT2": {
+   "name": "Sabinal River below Mill Creek near Vanderpool",
+   "record_ft": 8.68,
+   "record_date": "2018-10-09"
   },
   "SRRT2": {
    "name": "San Antonio River at SH 72 near Runge",
@@ -973,6 +3690,106 @@
    "record_ft": 21.29,
    "record_date": "1998-10-17"
   },
+  "SSBT2": {
+   "name": "San Saba River at San Saba",
+   "record_ft": 42.1,
+   "record_date": "1922-04-26"
+  },
+  "SSCT2": {
+   "name": "Salado Creek at NE Loop 410",
+   "record_ft": 24,
+   "record_date": "1913-10-01"
+  },
+  "SSMT2": {
+   "name": "Seco Creek at Miller Ranch near Utopia",
+   "record_ft": 17.7,
+   "record_date": "1997-06-22"
+  },
+  "SSQO2": {
+   "name": "Squirrel Creek near Shawnee",
+   "record_ft": 12.98,
+   "record_date": "2017-05-19"
+  },
+  "SSRN5": {
+   "name": "South Seven Rivers 1 mile SE of Seven Rivers",
+   "record_ft": 12.43,
+   "record_date": "2019-06-05"
+  },
+  "STFT2": {
+   "name": "California Creek (Clear Fk Brazos) near Stamford",
+   "record_ft": 31,
+   "record_date": "1978-08-04"
+  },
+  "STIT2": {
+   "name": "North Texas Lakes at Stillhouse Hollow Lake",
+   "record_ft": 667.97,
+   "record_date": "1992-03-04"
+  },
+  "STLT2": {
+   "name": "Guadalupe River at Sattler",
+   "record_ft": 39,
+   "record_date": "1932-07-01"
+  },
+  "STYT2": {
+   "name": "Colorado River (TX) at Stacy",
+   "record_ft": 64.59,
+   "record_date": "1936-09-18"
+  },
+  "SUPT2": {
+   "name": "Cibolo Creek at Sutherland Springs",
+   "record_ft": 38.82,
+   "record_date": "2009-10-05"
+  },
+  "SVPL1": {
+   "name": "Red River at Shreveport",
+   "record_ft": 45.9,
+   "record_date": "1849-08-10"
+  },
+  "SVYA4": {
+   "name": "Illinois River (AR OK) at Savoy",
+   "record_ft": 25.87,
+   "record_date": "2017-04-29"
+  },
+  "SWDO2": {
+   "name": "Cottonwood Creek (OK) near Seward",
+   "record_ft": 39.47,
+   "record_date": "1995-06-09"
+  },
+  "SWNO2": {
+   "name": "North Canadian River near Shawnee",
+   "record_ft": 20.9,
+   "record_date": "1993-05-10"
+  },
+  "SWTO2": {
+   "name": "Sweetwater Creek near Sweetwater",
+   "record_ft": 15.89,
+   "record_date": "1995-06-03"
+  },
+  "SYDO2": {
+   "name": "Otter Creek (OK) near Snyder",
+   "record_ft": 15.02,
+   "record_date": "2015-05-24"
+  },
+  "SYMT2": {
+   "name": "Brazos River at Seymour",
+   "record_ft": 23,
+   "record_date": "1955-09-28"
+  },
+  "SYOT2": {
+   "name": "Wichita River at Lake Kemp",
+   "record_ft": 1149.63,
+   "record_date": "2025-05-09"
+  },
+  "TALO2": {
+   "name": "Illinois River (AR OK) near Tahlequah",
+   "record_ft": 30.69,
+   "record_date": "2015-12-28"
+  },
+  "TBCN5": {
+   "name": "Rio Pueblo De Taos below Taos",
+   "record_ft": 9.79,
+   "record_date": "2017-05-11"
+  },
   "TBFT2": {
    "name": "Neches River near Town Bluff",
    "record_ft": 86.8,
@@ -983,10 +3800,95 @@
    "record_ft": 86.81,
    "record_date": "1984-05-01"
   },
+  "TBPT2": {
+   "name": "Bluff Creek (N TX) at Truscott Brine Lake",
+   "record_ft": 1771.58,
+   "record_date": "1995-08-05"
+  },
+  "TCMO2": {
+   "name": "Little River (OK) near Tecumseh",
+   "record_ft": 20.65,
+   "record_date": "2015-05-24"
+  },
+  "TDDT2": {
+   "name": "Trinity River at Trinidad",
+   "record_ft": 49.8,
+   "record_date": "1942-04-25"
+  },
+  "TELT2": {
+   "name": "Rio Grande at Johnson Ranch",
+   "record_ft": 28.4,
+   "record_date": "1978-09-30"
+  },
+  "TGAO2": {
+   "name": "Canadian River near Taloga",
+   "record_ft": 8.2,
+   "record_date": "1941-09-24"
+  },
+  "THCO2": {
+   "name": "Haikey Creek at Tulsa 12SE / 101st St. Bridge",
+   "record_ft": 22.77,
+   "record_date": "2019-05-21"
+  },
+  "THET2": {
+   "name": "Nueces River near Three Rivers",
+   "record_ft": 49.21,
+   "record_date": "1967-09-23"
+  },
+  "TIDT2": {
+   "name": "Frio River at Tilden",
+   "record_ft": 30.06,
+   "record_date": "2002-07-10"
+  },
+  "TILT2": {
+   "name": "Nueces River near Tilden",
+   "record_ft": 26.57,
+   "record_date": "1967-09-24"
+  },
+  "TIPO2": {
+   "name": "North Fork of the Red River near Tipton",
+   "record_ft": 19.18,
+   "record_date": "1993-05-10"
+  },
   "TIVT2": {
    "name": "Guadalupe River near Tivoli",
    "record_ft": 11.77,
    "record_date": "2017-09-01"
+  },
+  "TJBN5": {
+   "name": "Rio Grande below Taos",
+   "record_ft": 9.41,
+   "record_date": "1941-05-17"
+  },
+  "TJOO2": {
+   "name": "Joe Creek at Tulsa 6SSE / 61st St.",
+   "record_ft": 5.11,
+   "record_date": "1991-09-04"
+  },
+  "TKLT2": {
+   "name": "Spring Creek (Concho River Basin) above Tankersley",
+   "record_ft": 18.4,
+   "record_date": "1959-10-03"
+  },
+  "TKST2": {
+   "name": "Middle Concho River above Tankersley",
+   "record_ft": 29.5,
+   "record_date": "1900-01-01"
+  },
+  "TLCT2": {
+   "name": "Sulphur River near Talco",
+   "record_ft": 30.99,
+   "record_date": "2001-12-18"
+  },
+  "TLPT2": {
+   "name": "Middle Wichita River at Guthrie 19NE",
+   "record_ft": 16.63,
+   "record_date": "2024-11-18"
+  },
+  "TLSO2": {
+   "name": "Arkansas River at Tulsa",
+   "record_ft": 25.21,
+   "record_date": "1986-10-05"
   },
   "TMBT2": {
    "name": "Spring Creek at Tomball",
@@ -998,25 +3900,150 @@
    "record_ft": 3.37,
    "record_date": "2020-09-23"
   },
+  "TNGT2": {
+   "name": "Terlingua Creek 7 miles S of Terlingua",
+   "record_ft": 17.59,
+   "record_date": "1935-05-24"
+  },
+  "TNLT2": {
+   "name": "San Miguel Creek near Tilden",
+   "record_ft": 31.48,
+   "record_date": "2002-09-10"
+  },
+  "TPHT2": {
+   "name": "Hondo Creek near Tarpley",
+   "record_ft": 29.64,
+   "record_date": "1997-06-22"
+  },
+  "TRLO2": {
+   "name": "Red River near Terral",
+   "record_ft": 32.65,
+   "record_date": "1987-05-30"
+  },
+  "TRNT2": {
+   "name": "North Texas Lakes at Cedar Creek Lake",
+   "record_ft": 323.31,
+   "record_date": "2001-02-17"
+  },
+  "TRST2": {
+   "name": "North Wichita River near Truscott",
+   "record_ft": 21.96,
+   "record_date": "1965-09-19"
+  },
+  "TUCO2": {
+   "name": "Canadian River near Mustang",
+   "record_ft": 27.22,
+   "record_date": "2007-08-20"
+  },
   "TVLT2": {
    "name": "Guadalupe River above Tivoli",
    "record_ft": 16.48,
    "record_date": "2015-06-01"
+  },
+  "TWRO2": {
+   "name": "Washita River near Tishomingo",
+   "record_ft": 645.11,
+   "record_date": "2025-05-03"
+  },
+  "TYLN5": {
+   "name": "Canadian River near Taylor Springs",
+   "record_ft": 47.4,
+   "record_date": "1965-06-18"
+  },
+  "UDET2": {
+   "name": "Frio River below Dry Frio near Uvalde",
+   "record_ft": 35,
+   "record_date": "1894-01-01"
+  },
+  "ULRT2": {
+   "name": "Leona River near Uvalde",
+   "record_ft": 15.97,
+   "record_date": "2015-10-09"
+  },
+  "UMBT2": {
+   "name": "Tierra Blanca Creek 8SW Umbarger",
+   "record_ft": 6.44,
+   "record_date": "2008-06-29"
+  },
+  "UVAT2": {
+   "name": "Nueces River at Laguna",
+   "record_ft": 29.95,
+   "record_date": "1955-09-24"
+  },
+  "UVLT2": {
+   "name": "Nueces River below Uvalde",
+   "record_ft": 24.88,
+   "record_date": "1996-10-28"
+  },
+  "VBRA4": {
+   "name": "Lee Creek near Van Buren LCR",
+   "record_ft": 417.5,
+   "record_date": "2015-12-28"
+  },
+  "VBUA4": {
+   "name": "Arkansas River at Van Buren",
+   "record_ft": 40.79,
+   "record_date": "2019-06-01"
+  },
+  "VCKT2": {
+   "name": "Middle Verde Creek at Hwy 173N near Hondo",
+   "record_ft": 11.93,
+   "record_date": "2016-05-29"
+  },
+  "VERT2": {
+   "name": "Pease River near Vernon",
+   "record_ft": 20.15,
+   "record_date": "1983-10-21"
   },
   "VICT2": {
    "name": "Guadalupe River at Victoria",
    "record_ft": 34.04,
    "record_date": "1998-10-20"
   },
+  "VMAT2": {
+   "name": "North Bosque River at Valley Mills",
+   "record_ft": 44.6,
+   "record_date": "1991-12-21"
+  },
   "WADT2": {
    "name": "Walnut Creek at Dessau Rd near Austin",
    "record_ft": 23.44,
    "record_date": "2023-04-21"
   },
+  "WAGL1": {
+   "name": "Wallace Lake",
+   "record_ft": 160.23,
+   "record_date": "2016-03-11"
+  },
+  "WAKO2": {
+   "name": "Beaver Creek (OK) at Waurika",
+   "record_ft": 32.65,
+   "record_date": "2025-05-01"
+  },
   "WART2": {
    "name": "Waller Creek at Red River Street",
    "record_ft": 7.73,
    "record_date": "2015-10-30"
+  },
+  "WATO2": {
+   "name": "North Canadian River near Watonga",
+   "record_ft": 19.7,
+   "record_date": "2007-08-19"
+  },
+  "WAYT2": {
+   "name": "Prairie Dog Town Fork of the Red River at Wayside",
+   "record_ft": 13,
+   "record_date": "1968-08-28"
+  },
+  "WBAT2": {
+   "name": "Brazos River at Waco",
+   "record_ft": 40.9,
+   "record_date": "1936-09-27"
+  },
+  "WBRT2": {
+   "name": "Beals Creek 11 miles S of Westbrook",
+   "record_ft": 22.75,
+   "record_date": "2012-09-28"
   },
   "WBZT2": {
    "name": "Brazos River at Washington",
@@ -1028,10 +4055,40 @@
    "record_ft": 30.73,
    "record_date": "2017-09-03"
   },
+  "WCHT2": {
+   "name": "Colorado River (TX) at Winchell",
+   "record_ft": 62.2,
+   "record_date": "1936-09-19"
+  },
+  "WDGO2": {
+   "name": "North Canadian River near Woodward",
+   "record_ft": 10.72,
+   "record_date": "1989-05-23"
+  },
+  "WDWO2": {
+   "name": "North Canadian River at Woodward",
+   "record_ft": 15.85,
+   "record_date": "1923-10-12"
+  },
+  "WEAT2": {
+   "name": "Clear Fork Trinity River near Weatherford",
+   "record_ft": 27,
+   "record_date": "1957-05-25"
+  },
+  "WETO2": {
+   "name": "North Canadian River near Wetumka",
+   "record_ft": 31.4,
+   "record_date": "1945-04-15"
+  },
   "WFDT2": {
    "name": "Cypress Creek near Westfield",
    "record_ft": 97.12,
    "record_date": "2017-08-29"
+  },
+  "WFHT2": {
+   "name": "Holliday Creek at Wichita Falls",
+   "record_ft": 18.35,
+   "record_date": "2016-09-24"
   },
   "WGRT2": {
    "name": "Willis Creek near Granger",
@@ -1048,6 +4105,16 @@
    "record_ft": 32.28,
    "record_date": "1981-09-01"
   },
+  "WHTO2": {
+   "name": "Canadian River near Whitefield",
+   "record_ft": 25.5,
+   "record_date": "1943-05-10"
+  },
+  "WICT2": {
+   "name": "Wichita River at Wichita Falls",
+   "record_ft": 24.4,
+   "record_date": "2007-06-30"
+  },
   "WJCT2": {
    "name": "Williamson Creek at Jimmy Clay Road near Austin 6SE",
    "record_ft": 21.91,
@@ -1063,10 +4130,45 @@
    "record_ft": 5.43,
    "record_date": "2015-10-30"
   },
+  "WLGT2": {
+   "name": "Salt Fork of the Red River at Wellington",
+   "record_ft": 19.55,
+   "record_date": "1997-04-03"
+  },
+  "WLTO2": {
+   "name": "East Cache Creek near Walters",
+   "record_ft": 30.66,
+   "record_date": "1983-10-21"
+  },
+  "WMBT2": {
+   "name": "Blanco River at Wimberley",
+   "record_ft": 44.9,
+   "record_date": "2015-05-24"
+  },
+  "WOCT2": {
+   "name": "White Oak Creek near Talco",
+   "record_ft": 22.9,
+   "record_date": "1945-03-31"
+  },
+  "WPMT2": {
+   "name": "West Prong Medina River at Carpenter Creek Road",
+   "record_ft": 3.72,
+   "record_date": "2018-10-09"
+  },
+  "WRLO2": {
+   "name": "Beaver Creek (OK) at Waurika Lake",
+   "record_ft": 964.25,
+   "record_date": "2007-06-30"
+  },
   "WRST2": {
    "name": "Fifteenmile Creek near Weser",
    "record_ft": 19.5,
    "record_date": "2021-07-09"
+  },
+  "WRWO2": {
+   "name": "Deep Fork River near Warwick",
+   "record_ft": 27.05,
+   "record_date": "1983-10-21"
   },
   "WSBT2": {
    "name": "Buffalo Bayou at West Belt Drive",
@@ -1078,10 +4180,55 @@
    "record_ft": 29.48,
    "record_date": "2025-07-05"
   },
+  "WSLT2": {
+   "name": "Main Floodway South of Weslaco",
+   "record_ft": 75.43,
+   "record_date": "2010-07-19"
+  },
+  "WTTO2": {
+   "name": "Illinois River (AR OK) near Watts",
+   "record_ft": 30.12,
+   "record_date": "2017-04-30"
+  },
+  "WTTT2": {
+   "name": "Atascosa River at Whitsett",
+   "record_ft": 41.4,
+   "record_date": "1967-09-23"
+  },
+  "WTYT2": {
+   "name": "North Texas Lakes at Whitney Lake",
+   "record_ft": 570.25,
+   "record_date": "1957-05-29"
+  },
+  "WWCO2": {
+   "name": "Wewoka Creek near Wetumka",
+   "record_ft": 32.15,
+   "record_date": "2015-06-19"
+  },
+  "WWLO2": {
+   "name": "North Deer Creek at Wes Watkins Reservoir",
+   "record_ft": 1080.77,
+   "record_date": "2015-05-24"
+  },
   "WWVT2": {
    "name": "Walnut Creek at Webberville Road",
    "record_ft": 27.24,
    "record_date": "1981-05-25"
+  },
+  "YUKO2": {
+   "name": "North Canadian River near Yukon",
+   "record_ft": 19.2,
+   "record_date": "1995-06-10"
+  },
+  "ZACT2": {
+   "name": "Zacate Creek at Laredo",
+   "record_ft": 8.44,
+   "record_date": "2017-05-21"
+  },
+  "ZAJT2": {
+   "name": "Zacate Creek at Jacaman Road",
+   "record_ft": 2.87,
+   "record_date": "2020-09-17"
   }
  }
 }

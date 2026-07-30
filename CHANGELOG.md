@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.74 · 2026-07-30 (crest of record now covers the whole gauge network)
+
+-- Bug Fixes --
+- [Fix] Crest of record covered 216 of the 1018 gauges on the board, all of
+      them in East Texas, so no gauge on the Nueces could be read against its
+      own record during a flood. It now covers the whole network, 845 gauges
+      with a published historic crest
+- [Fix] The check on that file measured its age, not how much of the network it
+      described, so a six day old file covering a fifth of the gauges passed.
+      It now checks both
+
 ## v0.99.73 · 2026-07-30 (the board is findable, and says what it is)
 
 -- New Features --

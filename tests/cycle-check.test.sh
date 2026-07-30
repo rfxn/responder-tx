@@ -547,8 +547,9 @@ setup
 write_static cameras.json 3
 write_static records.json 10
 run_check; A=$?
-if [ "$A" -eq 0 ] && grep -q 'out-of-cycle artifact age (cameras.json 3d/45d, records.json 10d/90d)' "$WORK/out"; then
-    pass "33 fresh hand-run artifacts pass and their measured age is reported"
+if [ "$A" -eq 0 ] && grep -q 'out-of-cycle artifact age (cameras.json 3d/45d, records.json 10d/90d' "$WORK/out" \
+   && grep -q 'records.json predates the walked count' "$WORK/out"; then
+    pass "33 fresh hand-run artifacts pass, their age is reported, and a pre-upgrade records.json notes rather than fails"
 else
     fail "33 fresh artifacts pass (rc=${A})"; cat "$WORK/out"
 fi
@@ -719,6 +720,59 @@ if [ "$A" -eq 0 ] && grep -q 'export predates the storm-report counter' "$WORK/o
     pass "46 an export from before the counter is tolerated and says so, rather than failing a cycle"
 else
     fail "46 pre-counter export tolerated (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+
+# --- 47-49: records coverage. Age is not coverage ---------------------------
+# 2026-07-30: records.json was six days old, well inside its 90-day limit, and described 216 of 1018
+# gauges. Every gauge on the flooding Nueces was absent while this check reported OK. The old comment
+# on the age limit claimed it caught "the gauge network grew and nobody re-ran it". It did not.
+setup
+write_static records.json 10
+python3 - "$REPO" <<'PY'
+import json, os, sys
+p = os.path.join(sys.argv[1], "data", "records.json")
+d = json.load(open(p)); d["walked"] = 30  # the fixture snapshot carries 30 gauges
+json.dump(d, open(p, "w"))
+PY
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'records walked 30/30 gauges' "$WORK/out"; then
+    pass "47 an artifact built against the whole current network passes and reports its coverage"
+else
+    fail "47 full coverage passes (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+setup
+write_static records.json 10
+python3 - "$REPO" <<'PY'
+import json, os, sys
+p = os.path.join(sys.argv[1], "data", "records.json")
+d = json.load(open(p)); d["walked"] = 6  # a fifth of the network, the shipped defect's shape
+json.dump(d, open(p, "w"))
+PY
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'was built against 6 gauges but the board now carries 30' "$WORK/out"; then
+    pass "48 MUTATION · an artifact describing a fraction of the network fails, however fresh it is"
+else
+    fail "48 stale coverage fails (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+setup
+write_static records.json 10
+python3 - "$REPO" <<'PY'
+import json, os, sys
+p = os.path.join(sys.argv[1], "data", "records.json")
+d = json.load(open(p)); d["walked"] = 28  # gauges added since the last out-of-band run
+json.dump(d, open(p, "w"))
+PY
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'records walked 28/30 gauges' "$WORK/out"; then
+    pass "49 a network that grew slightly since the last run is slack, not a failure"
+else
+    fail "49 small growth tolerated (rc=${A})"; cat "$WORK/out"
 fi
 rm -rf "$WORK"
 

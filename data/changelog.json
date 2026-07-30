@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.77",
+      "date": "2026-07-30",
+      "line": "If the board cannot start in your browser it now says so, in English and Spanish, instead of leaving a header and an empty map that looks like a board with nothing to report. It needs Chrome or Android WebView 80 or newer, or iOS 13.4 or newer, and that requirement is now stated on the page and in the About view. A page with JavaScript turned off says the same."
+    },
+    {
       "v": "v0.99.76",
       "date": "2026-07-30",
       "line": "An empty forecast timeline could read as a dry forecast. When the model imagery fails to load, the radar legend now says the forecast is unavailable instead of stepping through blank hours."

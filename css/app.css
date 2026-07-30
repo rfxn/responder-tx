@@ -2515,3 +2515,22 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 .n11-num { color: var(--haz-order); text-decoration: underline; }
 .n11-keep { font-size: .78rem; color: var(--muted); margin-top: 5px; }
 .n11-text { display: inline-block; margin-top: 5px; font-size: .78rem; cursor: pointer; text-decoration: underline; }
+
+/* Boot notices. Neither can rely on the app: #boot-noscript renders inside <noscript>, and
+   #boot-unsupported is revealed by js/bootfloor.js adding .boot-failed to <html>. Both cover the
+   shell on purpose, because a half-drawn board reads as a quiet one, and both carry their own
+   .drive-911 line since the disclaimer strip they hide belongs to a board that never started. */
+.boot-notice {
+  position: fixed; inset: 0; z-index: 100000; overflow-y: auto;
+  background: #fff; color: #16181d;
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: flex; flex-direction: column;
+}
+#boot-unsupported { display: none; }
+.boot-failed #boot-unsupported { display: flex; }
+/* one px width for heading and body: a ch box scales with its own font-size, so the h1 and the
+   paragraphs under it would not share a left edge */
+.boot-notice h1, .boot-notice p { width: min(100% - 40px, 620px); margin-left: auto; margin-right: auto; }
+.boot-notice h1 { font-size: 22px; margin-top: 28px; margin-bottom: 14px; color: #b3261e; }
+.boot-notice p { margin-bottom: 14px; }
+.boot-notice .drive-911 { margin-top: auto; position: static; }

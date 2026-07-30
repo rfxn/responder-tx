@@ -59,6 +59,8 @@ JS
         '<div id="recovery-view"><span class="drive-911">call 911</span></div>' \
         '<div id="basin-view"><span class="drive-911">call 911</span></div>' \
         '</main>' \
+        '<div id="boot-noscript"><span class="drive-911">call 911</span></div>' \
+        '<div id="boot-unsupported"><span class="drive-911">call 911</span></div>' \
         '<div id="disclaimer">call 911</div>' \
         '</body></html>' > "$REPO/index.html"
     printf "%s\n" "const SW_VERSION = '1.0.0';" > "$REPO/sw.js"

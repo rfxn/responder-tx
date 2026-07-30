@@ -88,6 +88,8 @@ function buildSandbox() {
     Promise,
     document: documentStub,
     window: {},
+    // window.* is the sandbox itself (see below); js/bootfloor.js binds load/error here
+    addEventListener() {}, removeEventListener() {},
     navigator: { clipboard: null, share: null, geolocation: null },
     localStorage: localStorageStub,
     location: { origin: 'https://example.test', pathname: '/', search: '' },

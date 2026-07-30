@@ -224,6 +224,14 @@ live readings still need a connection.
 For a purely public, read-only view you do not need to run anything. Just open the
 [live board](https://respondertx.org).
 
+**Browser floor:** Chrome / Android WebView 80+, or iOS 13.4+. The bundle is classic
+scripts using nullish coalescing, so a below-floor engine stops at the first parse
+error and every later script with it. `js/bootfloor.js` is ES5 and eval-free (the CSP
+is `script-src 'self'`) precisely so it still runs there: it waits for `load`, checks
+the `window.__boardBooted` sentinel that `js/core.js` sets on its last line, and
+reveals a bilingual full-screen notice when the board never started. Raising the floor
+means moving that sentinel, which `tests/boot-floor.test.js` pins.
+
 Tests are zero-dependency (Node's built-in runner plus `python3` and `bash`):
 
 ```bash

@@ -63,6 +63,8 @@ const ENTRY_POINTS = [
    exactly rather than by a floor: adding one has to be a deliberate edit here, and the lazy four
    cannot drift back onto the shell unnoticed. tests/lazy-assets.test.js owns the other half. */
 const EAGER_SCRIPTS = [
+  // ~1 KB and necessarily first: it is the only script an engine below the syntax floor can run
+  'js/bootfloor.js',
   'js/vendor/leaflet.js',
   'js/vendor/leaflet.markercluster.js',
   'js/usng.js',

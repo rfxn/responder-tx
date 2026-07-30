@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.77 · 2026-07-30 (the board says when it could not start)
+
+-- New Features --
+- [New] A board that cannot run in your browser now says so on the page, in
+      English and Spanish, and tells you not to read the empty shell behind the
+      notice. It needs Chrome or Android WebView 80 or newer, or iOS 13.4 or
+      newer, which the About view now states as well
+- [New] Opening the page with JavaScript turned off gives the same plain notice
+      rather than a header above a blank map
+
 ## v0.99.76 · 2026-07-30 (the forecast timeline says when it has nothing to show)
 
 -- Bug Fixes --

@@ -621,7 +621,7 @@ const root = process.env.CODE_ROOT || '.';
 const html = fs.readFileSync(`${root}/index.html`, 'utf8');
 const fail = (m) => { console.error(`lens-911 gate: ${m}`); process.exit(1); };
 if (!/id="disclaimer"/.test(html)) fail('#disclaimer strip missing from index.html');
-for (const id of ['drive-mode', 'summary-view', 'recovery-view', 'basin-view']) {
+for (const id of ['drive-mode', 'summary-view', 'recovery-view', 'basin-view', 'boot-unsupported', 'boot-noscript']) {
   const at = html.indexOf(`id="${id}"`);
   if (at === -1) fail(`#${id} missing from index.html`);
   // the root's own markup runs to the next lens root or to </main>; close enough to catch a drop
@@ -632,7 +632,7 @@ for (const id of ['drive-mode', 'summary-view', 'recovery-view', 'basin-view']) 
 }
 EOF
 }
-if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin) + #disclaimer"; else failck "911 footer on every lens"; fi
+if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin/boot) + #disclaimer"; else failck "911 footer on every lens"; fi
 
 if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 

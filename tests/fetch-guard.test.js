@@ -237,7 +237,7 @@ test('no client file substitutes an empty list for a missing payload key', () =>
    counts below fail on any added or removed call site, and each site named must still carry the
    token that makes its verdict true. */
 const CENSUS = {
-  'board.js': 11, 'boot.js': 5, 'cameras.js': 3, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
+  'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 3, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
   'map.js': 3, 'master.js': 1, 'notes.js': 4, 'panels.js': 9, 'playback.js': 4,
   'sources.js': 15, 'team.js': 2, 'usng.js': 0,
 };

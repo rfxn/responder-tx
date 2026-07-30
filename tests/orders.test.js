@@ -376,7 +376,9 @@ test('the standard 911 guidance is untouched everywhere else', () => {
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
 
   // the notice is additive: it sits beside the contract, it does not edit it
-  assert.equal((html.match(/class="drive-911"/g) || []).length, 4, 'all four lens footers stay');
+  // four lens footers plus the two boot notices, which cover #disclaimer and so carry their own
+  assert.equal((html.match(/class="drive-911"/g) || []).length, 6, 'all four lens footers stay');
+  for (const id of ['drive-mode', 'summary-view', 'recovery-view', 'basin-view']) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /id="disclaimer"/);
   assert.match(html, /data-i18n-html="disc\.short"/);
   assert.match(html, /data-i18n="drive\.footer"/);

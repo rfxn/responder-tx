@@ -624,9 +624,13 @@ N5 and half of N6, both verified still open in source.
    (`ABOUT.md` who-runs-this and methodology, the privacy statement, and a
    `LICENSE` file), and the in-app about/methodology view landed v0.99.46
    (`js/boot.js` `openAbout()`), so provenance is reachable from the board itself.
-   What is left is a terms surface (no `terms` string exists anywhere in source or
-   `ABOUT.md`) and a documented browser floor (Chrome/WebView 80+, iOS 13.4+ per
-   compat-3), which the board currently states nowhere a reader can find it.
+   The browser-floor half shipped v0.99.77: the floor is stated in `ABOUT.md` and
+   `README.md`, and `js/bootfloor.js` (ES5, eval-free under `script-src 'self'`) now
+   reveals a bilingual full-screen notice when the bundle never ran, so a below-floor
+   engine no longer leaves a shell that reads as a board with nothing to report. What
+   is left is **a terms surface** (no `terms` string exists anywhere in source or
+   `ABOUT.md`). That one is deliberately left for the owner: publishing terms of use
+   for a life-safety board is a posture decision, not an engineering task.
 10. **Team Phase-2 SAR** [field] · the remaining team build-queue item.
     Breadcrumb store-and-forward already landed (v0.97.73), and v0.98.6 moved
     Team off the default tab bar, so the surface is opt-in before this is built.

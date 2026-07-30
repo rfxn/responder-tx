@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.99.76';
+const SW_VERSION = '0.99.77';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 // version-independent: /data/ is not versioned by app release, and the last-good copies here are
 // the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
@@ -24,6 +24,7 @@ const PRECACHE_PATHS = [
   'js/vendor/MarkerCluster.css',
   'js/vendor/MarkerCluster.Default.css',
   'js/vendor/leaflet.markercluster.js',
+  'js/bootfloor.js',
   'js/usng.js',
   'js/i18n.js',
   'js/core.js',

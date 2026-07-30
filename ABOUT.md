@@ -97,6 +97,18 @@ Curated content (assistance requests, shelters and hotlines, and known crossings
 is edited by hand, cites its source, and is committed to the repository like code,
 so its full history is auditable.
 
+## What it needs to run
+
+The board draws every map, gauge, alert and closure in your browser, so it needs
+JavaScript on and a reasonably current engine: **Chrome or Android WebView 80 or
+newer, or iOS 13.4 or newer** (both released in early 2020). Below that floor the
+code will not parse and nothing loads.
+
+That is stated here because the failure is quiet: the page would otherwise show a
+header, empty tabs and a blank map, which looks like a board reporting nothing
+rather than a board that never started. If your browser cannot run it, the board
+says so on the page and tells you not to read the empty shell behind the notice.
+
 ## Privacy
 
 - **No accounts.** Nothing to sign up for.

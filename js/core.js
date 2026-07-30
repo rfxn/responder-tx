@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.76';
+const APP_VERSION = 'v0.99.77';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -818,3 +818,8 @@ document.addEventListener('keydown', (e) => {
   f[next].focus();
 }, true);
 
+
+/* Boot-floor sentinel for js/bootfloor.js. This file carries the board's highest syntax floor
+   (nullish coalescing, so Chrome/WebView 80+ and iOS 13.4+), which makes reaching this line the
+   proof that the engine cleared it. tests/boot-floor.test.js pins the pairing. */
+window.__boardBooted = true;

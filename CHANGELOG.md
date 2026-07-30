@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.78 · 2026-07-30 (the did-not-load notice no longer covers a working board)
+
+-- Bug Fixes --
+- [Fix] The board could show the "did not load" notice over a map that had loaded
+      perfectly. The check that detects a failed start also treated a blocked
+      third-party tag as a failure, and the public site carries one that the
+      board's own security policy blocks by design. Only the board's own startup
+      now decides
+
 ## v0.99.77 · 2026-07-30 (the board says when it could not start)
 
 -- New Features --

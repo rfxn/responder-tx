@@ -11,22 +11,21 @@
 
 (function () {
   var HTML = document.documentElement;
-  var lostScript = false;
 
   function reveal() {
     if (HTML.className.indexOf('boot-failed') < 0) HTML.className += ' boot-failed';
   }
 
-  // a script that never arrives breaks the board just as completely as one that will not parse
-  window.addEventListener('error', function (e) {
-    if (e && e.target && e.target.tagName === 'SCRIPT') lostScript = true;
-  }, true);
+  /* The sentinel is the ONLY signal. A script error event is not one: the edge injects a
+     Cloudflare analytics beacon that our own CSP blocks, which fired an error on a healthy board
+     and blanked it for every live visitor (v0.99.77, fixed v0.99.78). Any third party can put a
+     tag on the page; none of them can speak for whether OUR bundle ran.
 
-  /* load means every script has run or given up, so an unset flag past it is a real failure and not
+     load means every script has run or given up, so an unset flag past it is a real failure and not
      a slow connection. Without that wait a 3G responder would be told their browser is unsupported. */
   window.addEventListener('load', function () {
     setTimeout(function () {
-      if (!window.__boardBooted || lostScript) reveal();
+      if (!window.__boardBooted) reveal();
     }, 1200);
   });
 }());

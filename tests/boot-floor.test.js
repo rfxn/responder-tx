@@ -70,6 +70,20 @@ test('the guard waits for load, so a slow connection is not called an old browse
   assert.ok(!/DOMContentLoaded/.test(guard), 'DOMContentLoaded would false-positive on a slow bundle');
 });
 
+/* v0.99.77 shipped a guard that also revealed on any script error event. Cloudflare injects an
+   analytics beacon at the edge, our CSP blocks it, the blocked tag fires an error, and the notice
+   covered a working board for every live visitor. Local screenshots could never see it, because
+   only the edge injects the beacon. The sentinel is the only thing that speaks for our bundle. */
+test('a third-party script the CSP blocks cannot blank a booted board', () => {
+  assert.ok(!/lostScript|tagName\s*===\s*'SCRIPT'/.test(guardCode),
+    'a script error event must not feed the reveal decision: the edge injects tags we block by design');
+  const reveal = guardCode.slice(guardCode.indexOf("addEventListener('load'"));
+  assert.match(reveal, /if \(!window\.__boardBooted\) reveal\(\);/,
+    'the sentinel is the only reveal condition');
+  assert.ok(!/\|\||&&/.test(reveal.slice(reveal.indexOf('if (!window.__boardBooted'), reveal.indexOf('reveal();'))),
+    'no extra clause may rejoin the reveal condition without its own false-positive analysis');
+});
+
 test('both boot notices state the failure and carry their own 911 line', () => {
   for (const id of ['boot-noscript', 'boot-unsupported']) {
     const at = html.indexOf(`id="${id}"`);

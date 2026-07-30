@@ -1,0 +1,43 @@
+#!/bin/bash
+# pre-push — refuse to rewrite history on the remote.
+#
+# GitHub is the only offsite copy of this repository, and the repository is the flood
+# observation record (gen-history.py rebuilds the archive by walking past commits). A force
+# push does not just lose commits, it replicates the loss to the one place we would restore
+# from. Everything else here is recoverable; this is the operation that is not.
+#
+# Install: scripts/install-cron.sh --hooks   (hooks live outside the tree and no clone carries them)
+# Override for a deliberate, considered rewrite: RESPONDER_ALLOW_FORCE_PUSH=1 git push ...
+set -uo pipefail
+
+Z40="0000000000000000000000000000000000000000"
+protected_re='^refs/heads/(main|master)$'
+status=0
+
+# shellcheck disable=SC2034  # local_ref is positional in git's pre-push stdin format
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -z "${remote_ref:-}" ] && continue
+    [[ "$remote_ref" =~ $protected_re ]] || continue
+    [ "$local_sha" = "$Z40" ] && {
+        echo "pre-push: refusing to DELETE ${remote_ref}." >&2
+        status=1
+        continue
+    }
+    # a brand new remote branch has nothing to rewrite
+    [ "$remote_sha" = "$Z40" ] && continue
+    # fast-forward means the remote tip is still in our history; anything else drops commits
+    if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+        dropped=$(git rev-list --count "${local_sha}..${remote_sha}" 2>/dev/null || echo "?")
+        echo "pre-push: refusing a NON-FAST-FORWARD push to ${remote_ref}." >&2
+        echo "  ${dropped} commit(s) on the remote are not in what you are pushing." >&2
+        echo "  GitHub is the only offsite copy of the archive, so this would destroy them there too." >&2
+        echo "  Recover the remote work first, or set RESPONDER_ALLOW_FORCE_PUSH=1 if this is deliberate." >&2
+        status=1
+    fi
+done
+
+if [ "$status" -ne 0 ] && [ "${RESPONDER_ALLOW_FORCE_PUSH:-0}" = "1" ]; then
+    echo "pre-push: RESPONDER_ALLOW_FORCE_PUSH=1 set; allowing it. Take a backup first: scripts/backup.sh --tier daily" >&2
+    exit 0
+fi
+exit "$status"

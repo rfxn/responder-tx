@@ -633,6 +633,93 @@ failure, streak, cooldown, fresh-install, recovery, plus all four sign-off forms
 degraded and clean, and a mid-run `cycle start` banner); it uses a `file://`
 mirror URL, so it never touches the network or the real repo data.
 
+## Disaster recovery (`backup.sh`, `restore-drill.sh`, `hooks/pre-push`)
+
+**Why this repository is not ordinary source.** `gen-history.py` rebuilds the playback
+archive by walking git history: it `git show`s every past `data/gauges-capture.json` to
+reconstruct observed gauge state. The commit history *is* the flood observation record, and
+upstream keeps roughly 30 days, so history lost here is not re-fetchable. Treat the repo as
+primary data, not as code with a copy on a build server.
+
+**GitHub is a replica, not a backup.** `deploy.sh` pushes to `origin` (line ~283, before the
+Cloudflare step, so a CF outage does not block the push). But a push faithfully replicates
+whatever it is given: a bad commit, a truncated archive, a history rewrite. Replication
+propagates destruction. Worse, the push only happens if every gate before it passes, so when
+the tree is in the state most likely to need recovery, the offsite copy is also the most
+likely to be stale. `backup.sh` reports the `origin` gap for exactly this reason.
+
+### What runs
+
+| When | What | Keeps |
+|------|------|-------|
+| `:47` hourly | `backup.sh --tier hourly` | 6 |
+| `03:17` daily | `backup.sh --tier daily` | 7 |
+| `04:37` Sunday | `backup.sh --tier weekly` | 4 |
+| `03:51` daily | `restore-drill.sh` | verifies the newest snapshot |
+
+Install with `install-cron.sh --backup`; the pre-push guard with `install-cron.sh --hooks`.
+
+### What a snapshot contains
+
+Written to `$RESPONDER_BACKUP_DIR` (default `/root/backups/responder`), **outside the repo**
+so that deleting the repo does not delete its own backups:
+
+- `mirror.git` — an incremental `--mirror` clone, refreshed each run, **never pruned**, and
+  cloned `--no-hardlinks` so it does not share inodes with the repo it exists to survive.
+  Never pruning is the point: a rewrite upstream leaves the old objects sitting here.
+- `<tier>/repo-<stamp>.bundle` — a self-contained `git bundle --all`, restorable with a plain
+  `git clone` on any machine, with no dependency on this host or on GitHub. Verified with
+  `git bundle verify` before anything rotates out.
+- `<tier>/state-<stamp>.tar.gz` — the state git does not track and therefore nothing else
+  protects: `data/chat-inbox.jsonl`, `data/chat-outbox.json`, the chat cursors, and
+  `.git/info/exclude`. The ops chat is the owner's message record and exists in one place.
+- `<tier>/manifest-<stamp>.json` — HEAD, commit count, unpushed-to-origin gap, and the
+  sha256 of each artifact. `status.json` records the outcome of the last run.
+
+`backup.sh` refuses to run when free space is under `RESPONDER_BACKUP_MIN_FREE_MB` (2 GB
+default) rather than filling the disk the board runs on, and every exit path writes
+`status.json`. A backup that fails quietly is worse than none: the next incident would meet a
+directory of stale bundles nobody knew had stopped.
+
+### Restoring
+
+```bash
+git clone /root/backups/responder/<tier>/repo-<stamp>.bundle responder-restored
+cd responder-restored && git log --oneline -3          # confirm the point in time
+tar -xzf /root/backups/responder/<tier>/state-<stamp>.tar.gz   # chat + cursors, if needed
+node --test tests/                                     # prove it works before trusting it
+```
+
+To recover a single bad commit without a full restore, the mirror still has the objects:
+`git --git-dir=/root/backups/responder/mirror.git log --all --oneline | grep ...`, then
+`git fetch /root/backups/responder/mirror.git <sha>`.
+
+### Verifying (the part usually skipped)
+
+`restore-drill.sh` clones the newest bundle into a temp tree and checks the sha256 against the
+manifest, `git bundle verify`, `git fsck`, HEAD and commit count against the manifest, that
+**the oldest `gauges-capture.json` blob is still readable** (without it the archive cannot be
+rebuilt, which is the thing actually being protected), that the state tar extracts, and that
+the restored tree passes its own test suite. It writes `drill-status.json` and touches nothing
+live. Mutation-tested against a flipped bundle byte and a manifest with the wrong HEAD.
+
+### The guard
+
+`hooks/pre-push` refuses non-fast-forward and branch-delete pushes to `main`. Everything else
+is recoverable; a force push is the one operation that destroys the only offsite copy at the
+same moment it destroys the local one. Override deliberately with
+`RESPONDER_ALLOW_FORCE_PUSH=1`. Git never carries hooks, so **every fresh clone must run
+`install-cron.sh --hooks`**.
+
+### Known gap: this is 2 copies in 1 location
+
+The snapshots live on the same host and the same filesystem as the repo. They survive a bad
+commit, a bad push, an accidental delete and a corrupted working tree. They do **not** survive
+losing this machine. GitHub is the offsite leg, but it is a replica on the same failure path.
+Completing 3-2-1 needs an offsite target that a mistake here cannot reach: an R2/S3 bucket with
+object-lock or versioning and write-only credentials, or a bare repo on another host. That is
+an owner decision (it costs credentials and money) and is not wired up.
+
 ## Cron schedule & install
 
 `install-cron.sh` manages independent system-cron entries. The default target is

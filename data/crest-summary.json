@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-30T22:38:33Z",
+ "generated": "2026-07-30T22:53:34Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-30T22:23:00Z"
+  "last": "2026-07-30T22:38:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -22,6 +22,25 @@
     "record_date": "2016-03-13",
     "peak_pct": 109.4,
     "exceeded": true,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
+   "lid": "THET2",
+   "name": "Nueces River near Three Rivers",
+   "peak": 35.59,
+   "peak_time": "2026-07-30T22:38:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-07-30T01:38:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 49.21,
+    "record_date": "1967-09-23",
+    "peak_pct": 72.3,
+    "exceeded": false,
     "approached": false
    },
    "stale": false
@@ -65,25 +84,6 @@
    },
    "stale": false,
    "src": "usgs"
-  },
-  {
-   "lid": "THET2",
-   "name": "Nueces River near Three Rivers",
-   "peak": 35.33,
-   "peak_time": "2026-07-30T21:38:00Z",
-   "peak_category": "major",
-   "unit": "ft",
-   "first_in_flood": "2026-07-30T01:38:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
-   "record": {
-    "record_ft": 49.21,
-    "record_date": "1967-09-23",
-    "peak_pct": 71.8,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
   },
   {
    "lid": "FRBT2",

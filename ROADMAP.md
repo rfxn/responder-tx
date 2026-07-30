@@ -618,13 +618,17 @@ N5 and half of N6, both verified still open in source.
    are coupled to an unrelated repo checkout. Move to a dedicated scoped token or
    a wrangler-native login. The token mint is an owner action (see OWNER-GATED);
    the wiring is ours once it exists.
-8. **Generalization / region-event packs (#25)** [infra] · the remaining
-   non-TX-literal sequence: the NWS alerts URL (`area=TX` in `js/core.js`,
-   `scripts/gen-feeds.py` and `scripts/gen-caltopo.py`), the DriveTexas/TxGIO
-   road and crossing layers, the city camera networks, the coastal tide-station
-   seed, and the LSR flood-in-AO bbox test. Sequenced after the owner's naming
-   decision (see OWNER-GATED), with the event-config brand hook, `aoPresets` and
-   `captureBbox` as groundwork already in `data/event.json`.
+8. **Generalization / region-event packs (#25)** [infra] · **DEPRIORITISED
+   2026-07-30**, gate resolved the other way. The owner decided the board stays
+   ResponderTX on respondertx.org, and the de-Texas-ify rename was this item's only
+   driver, so the non-TX-literal sweep (`area=TX` in `js/core.js`,
+   `scripts/gen-feeds.py`, `scripts/gen-caltopo.py`; the DriveTexas/TxGIO road and
+   crossing layers; the city camera networks; the coastal tide-station seed; the LSR
+   flood-in-AO bbox test) buys nothing a Texas board needs. What survives on merit is
+   the narrower **event-pack** half already groundworked in `data/event.json`
+   (`aoPresets`, `captureBbox`, `archiveStart`), which lets the board be re-pointed at
+   a new Texas event without a code change. Keep that; drop the literal sweep unless a
+   second deployment actually appears.
 9. **Trust/governance content** [content] · the repo half landed 2026-07-26
    (`ABOUT.md` who-runs-this and methodology, the privacy statement, and a
    `LICENSE` file), and the in-app about/methodology view landed v0.99.46
@@ -653,9 +657,11 @@ N5 and half of N6, both verified still open in source.
 Each of these is a decision, not a dependency. Nothing below is blocked on
 engineering.
 
-- **Rebrand / product name + domain.** Decide the de-Texas-ify / all-hazard name
-  and the domain that goes with it. #25's non-TX literals sequence after it; the
-  `data/event.json` brand hook is already wired and waiting for a value.
+- ~~**Rebrand / product name + domain.**~~ **DECIDED 2026-07-30: no rebrand.** The
+  board stays **ResponderTX** on **respondertx.org** for now. The de-Texas-ify effort
+  is off. The `data/event.json` brand hook stays wired and unused, which is the right
+  resting state: it costs nothing and it is what a future rename would turn. #25 is
+  reframed below, since the naming decision was its only driver.
 - **Mint a scoped Cloudflare Pages token.** Decide whether deploys get a
   dedicated token scoped to this project, or a wrangler-native login. Until one
   exists, `scripts/deploy.sh` derives the token from the rfxn-infra Ansible
@@ -686,10 +692,15 @@ engineering.
 
 ### LATER (post-event or gated)
 
-19. **All-hazard remainder: severe/tornado + wildfire** · the tropical/coastal
-    half shipped v0.97.47–53; the remainder is cheap for warnings (extend
-    `HAZARD_ALERT_RE` + styling) while wildfire needs perimeter data. Follows
-    generalization (#25).
+19. **All-hazard remainder** · mostly DELIVERED, and no longer sequenced behind #25
+    (that item was dropped 2026-07-30). Tropical/coastal shipped v0.97.47-53;
+    tornado, severe thunderstorm, dust storm, snow squall and extreme wind warnings
+    shipped v0.99.56 with per-hazard Drive Mode actions; watches and standing
+    conditions such as Fire Weather are in the `js/sources.js` event table; wildfire
+    **incidents** ship from TFS + NIFC WFIGS via `scripts/gen-wildfire.py`. What is
+    actually left is **fire perimeters**: the layer publishes origin points and says
+    so in its own layer name, and NIFC WFIGS publishes perimeter polygons that nothing
+    here reads yet. That is a build, not a data gate.
 20. **T5 evacuation zones** — data-gated; mirror authoritative status, never
     invent an order.
 21. **Camera-imagery retention** · gated on storage, not on code. There is no

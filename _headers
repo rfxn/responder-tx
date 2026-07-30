@@ -31,9 +31,27 @@
 /history/day/*
   Cache-Control: public, max-age=31536000, immutable
 
+# robots.txt disallows /api/ already, but a crawler that arrives on a linked proxy URL never
+# reads robots.txt for that fetch. These are proxies and relays, never documents.
+/api/*
+  X-Robots-Tag: noindex, nofollow
+
 /api/team/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
+
+# nosniff is global, so these have to be typed here or a strict client refuses them.
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
 
 /index.html
   Cache-Control: no-cache

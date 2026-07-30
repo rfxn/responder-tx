@@ -1,0 +1,18 @@
+# ResponderTX · https://respondertx.org
+# Live flood operating picture for Texas. Public, read-only, no account.
+# Cloudflare appends its Content Signals Policy preamble to this file at the edge;
+# the directives below are ours and must survive that merge (verify after deploy).
+
+User-agent: *
+Allow: /
+# Pages Functions: proxies and the opt-in team relay. No documents, no content.
+Disallow: /api/
+# Immutable playback chunks. Large, numeric, and useless in an index; the board reads
+# them directly and no crawler needs them.
+Disallow: /history/day/
+# search: index and link to us. ai-input: grounding an answer on the live board is the
+# point of publishing it. ai-train is deliberately unset, which grants and restricts
+# nothing, and stays the owner's call.
+Content-Signal: search=yes, ai-input=yes
+
+Sitemap: https://respondertx.org/sitemap.xml

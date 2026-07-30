@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ResponderTX is one indexable document. Deep links (?hydro=LID, ?view=, ?tab=, ?lang=)
+  are real and shareable, but Cloudflare Pages serves the identical shell for every one
+  of them, so listing them here would be 1000+ URLs that consolidate back to "/" and
+  would read as doorway pages. Per-entity URLs need a renderer first; see the SEO notes
+  in INTERNAL-NOTES.md.
+
+  No <lastmod>: this shell changes on release, not on the fifteen minute data cycle, and
+  a date nothing keeps true is worse than an absent one. tests/seo.test.js asserts every
+  <loc> below resolves to a file in this repo.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://respondertx.org/</loc>
+  </url>
+</urlset>

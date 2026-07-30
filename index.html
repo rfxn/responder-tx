@@ -3,38 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ResponderTX: Live Hazard Awareness</title>
+  <title>ResponderTX: Live Texas Flood Map, River Gauges, Road Closures</title>
+  <link rel="canonical" href="https://respondertx.org/">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="ResponderTX delivers a real-time, source-cited picture of hazards, roads, weather, and field conditions across Texas. Built for responders, open to the public. Situational awareness, not a dispatch system. Life-threatening emergency: call 911.">
+  <meta name="description" content="Live Texas flood map: river gauges with forecast crests, NWS flash flood alerts, road and crossing closures, radar. Source cited, not a dispatch system; call 911.">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="ResponderTX">
-  <meta property="og:title" content="ResponderTX: Live Hazard Awareness">
-  <meta property="og:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
+  <meta property="og:title" content="ResponderTX: Live Texas Flood Map, River Gauges, Road Closures">
+  <meta property="og:description" content="Live Texas flood map: river gauges with observed and forecast flood category, crest times, NWS flash flood alerts, road and low water crossing closures, cameras, and radar. Every card cites its source. Not a dispatch system; call 911 for emergencies.">
   <meta property="og:url" content="https://respondertx.org/">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.72">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="es_US">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.73">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="ResponderTX share card: river gauges, forecast crests, crest wave timing, record crest watch, NWS alerts, radar">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="ResponderTX: Live Hazard Awareness">
-  <meta name="twitter:description" content="Real-time, source-cited hazards, roads, weather, and field conditions across Texas. Built for responders, open to all. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.72">
+  <meta name="twitter:title" content="ResponderTX: Live Texas Flood Map, River Gauges, Road Closures">
+  <meta name="twitter:description" content="Live Texas flood map: river gauges with observed and forecast flood category, crest times, NWS flash flood alerts, road and low water crossing closures, cameras, and radar. Every card cites its source. Not a dispatch system; call 911 for emergencies.">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.99.73">
+  <meta name="twitter:image:alt" content="ResponderTX share card: river gauges, forecast crests, crest wave timing, record crest watch, NWS alerts, radar">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.99.72" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.99.72" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.99.72" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.99.72">
-  <link rel="manifest" href="manifest.webmanifest?v=0.99.72">
-  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.99.72">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.99.72">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.99.72">
-  <link rel="stylesheet" href="css/app.css?v=0.99.72">
+  <link rel="alternate" type="text/calendar" title="ResponderTX forecast crest calendar" href="/crests.ics">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.99.73" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.99.73" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.99.73" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.99.73">
+  <link rel="manifest" href="manifest.webmanifest?v=0.99.73">
+  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.99.73">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.99.73">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.99.73">
+  <link rel="stylesheet" href="css/app.css?v=0.99.73">
+  <!-- Static shell, so nothing here may describe a live hazard: an alert-shaped node (schema.org
+       SpecialAnnouncement) would be indexed once and then served past the event. feed.xml is the
+       per-cycle surface. Coverage claims here are guarded by tests/seo.test.js against event.json. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://respondertx.org/#publisher",
+        "name": "R-fx Networks",
+        "url": "https://www.rfxn.com",
+        "email": "proj@rfxn.com",
+        "logo": "https://respondertx.org/assets/brand/app-icon.png"
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://respondertx.org/#website",
+        "url": "https://respondertx.org/",
+        "name": "ResponderTX",
+        "alternateName": "Responder TX",
+        "description": "Live Texas flood map: river gauges with forecast crests, NWS flash flood alerts, road and crossing closures, radar. Source cited, not a dispatch system; call 911.",
+        "inLanguage": ["en", "es"],
+        "isAccessibleForFree": true,
+        "publisher": { "@id": "https://respondertx.org/#publisher" },
+        "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://respondertx.org/#app",
+        "url": "https://respondertx.org/",
+        "name": "ResponderTX",
+        "applicationCategory": "UtilitiesApplication",
+        "applicationSubCategory": "Flood situational awareness",
+        "operatingSystem": "Any modern web browser",
+        "browserRequirements": "Requires JavaScript.",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "inLanguage": ["en", "es"],
+        "isPartOf": { "@id": "https://respondertx.org/#website" },
+        "publisher": { "@id": "https://respondertx.org/#publisher" },
+        "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
+        "spatialCoverage": { "@type": "Place", "name": "Texas, United States" },
+        "disambiguatingDescription": "ResponderTX is situational awareness. It is not a dispatch system, it is not an official warning source, it is not a way to request help, and it is not monitored by emergency services. In a life threatening emergency call 911, and verify with the National Weather Service and Wireless Emergency Alerts.",
+        "featureList": [
+          "River gauges with observed and forecast NWS flood category",
+          "Forecast crest heights and times, with crest wave timing downstream",
+          "NWS flash flood warnings and flash flood emergency detection",
+          "Road closures and low water crossing status",
+          "Observed and forecast radar on one timeline",
+          "Traffic, river, coastal and port camera network",
+          "Historical playback from a committed archive",
+          "Bilingual English and Spanish, offline capable, no account, no tracking"
+        ]
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://respondertx.org/#feeds",
+        "url": "https://respondertx.org/",
+        "name": "ResponderTX public flood feeds for Texas",
+        "description": "Machine readable exports of the ResponderTX operating picture: forecast river crests, flash flood emergencies, and active field notices for Texas. Regenerated on a fifteen minute cycle; every file carries the timestamp it was generated at, so a consumer can tell fresh from stale.",
+        "creator": { "@id": "https://respondertx.org/#publisher" },
+        "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
+        "isAccessibleForFree": true,
+        "spatialCoverage": { "@type": "Place", "name": "Texas, United States" },
+        "keywords": ["flood", "river gauge", "crest forecast", "flash flood warning", "road closure", "low water crossing", "Texas", "emergency management"],
+        "isBasedOn": [
+          "https://water.noaa.gov/",
+          "https://api.weather.gov/",
+          "https://waterservices.usgs.gov/",
+          "https://mesonet.agron.iastate.edu/",
+          "https://drivetexas.org/"
+        ],
+        "distribution": [
+          { "@type": "DataDownload", "name": "RSS feed of flash flood emergencies and forecast crests", "encodingFormat": "application/rss+xml", "contentUrl": "https://respondertx.org/feed.xml" },
+          { "@type": "DataDownload", "name": "GeoRSS Atom feed of the current board", "encodingFormat": "application/atom+xml", "contentUrl": "https://respondertx.org/data/board-georss.xml" },
+          { "@type": "DataDownload", "name": "KML of the current board", "encodingFormat": "application/vnd.google-earth.kml+xml", "contentUrl": "https://respondertx.org/data/board.kml" },
+          { "@type": "DataDownload", "name": "KML network link that refreshes each cycle", "encodingFormat": "application/vnd.google-earth.kml+xml", "contentUrl": "https://respondertx.org/data/board-live.kml" },
+          { "@type": "DataDownload", "name": "GeoJSON layer for CalTopo and SARTopo", "encodingFormat": "application/geo+json", "contentUrl": "https://respondertx.org/data/caltopo-export.json" },
+          { "@type": "DataDownload", "name": "iCalendar feed of forecast crest times", "encodingFormat": "text/calendar", "contentUrl": "https://respondertx.org/crests.ics" }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.99.72" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.99.72" alt="ResponderTX" width="677" height="162">
-      <img class="brand-mark" src="assets/brand/icon.svg?v=0.99.72" alt="ResponderTX" width="32" height="32">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.99.73" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.99.73" alt="ResponderTX" width="677" height="162">
+      <img class="brand-mark" src="assets/brand/icon.svg?v=0.99.73" alt="ResponderTX" width="32" height="32">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="controls">
@@ -579,17 +671,17 @@
     </div>
   </div>
 
-  <script src="js/vendor/leaflet.js?v=0.99.72"></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.99.72"></script>
-  <script src="js/usng.js?v=0.99.72"></script>
-  <script src="js/i18n.js?v=0.99.72"></script>
-  <script src="js/core.js?v=0.99.72"></script>
-  <script src="js/map.js?v=0.99.72"></script>
-  <script src="js/playback.js?v=0.99.72"></script>
-  <script src="js/sources.js?v=0.99.72"></script>
-  <script src="js/cameras.js?v=0.99.72"></script>
-  <script src="js/panels.js?v=0.99.72"></script>
-  <script src="js/board.js?v=0.99.72"></script>
-  <script src="js/boot.js?v=0.99.72"></script>
+  <script src="js/vendor/leaflet.js?v=0.99.73"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.99.73"></script>
+  <script src="js/usng.js?v=0.99.73"></script>
+  <script src="js/i18n.js?v=0.99.73"></script>
+  <script src="js/core.js?v=0.99.73"></script>
+  <script src="js/map.js?v=0.99.73"></script>
+  <script src="js/playback.js?v=0.99.73"></script>
+  <script src="js/sources.js?v=0.99.73"></script>
+  <script src="js/cameras.js?v=0.99.73"></script>
+  <script src="js/panels.js?v=0.99.73"></script>
+  <script src="js/board.js?v=0.99.73"></script>
+  <script src="js/boot.js?v=0.99.73"></script>
 </body>
 </html>

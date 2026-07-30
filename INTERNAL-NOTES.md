@@ -309,3 +309,37 @@ Houston TranStar camera: same pole, TxDOT serving HLS and TranStar serving a sti
 streamable set but does not dedupe **TranStar** against it, so raw marker counts in
 Houston roughly double-count viewpoints. Whether to collapse the pair or keep it as
 stream-plus-still redundancy is an open owner decision, not a defect.
+
+## Search and answer-engine surface: why the sitemap has one URL (2026-07-30)
+
+The board is one indexable document. `?hydro=LID`, `?view=`, `?tab=`, `?lang=` are real,
+shareable and already published (feed.xml links `?hydro=`), but Cloudflare Pages serves the
+identical shell for every one of them, so 1018 gauge URLs in a sitemap would be 1018 pages
+with one title, one description and one social card, consolidating back to `/`. Google reads
+that as doorway pages, and it is worse than no sitemap. So `sitemap.xml` lists `/` only.
+
+Competitors out-rank the board on gauge-name queries because they publish one page per
+gauge. Closing that needs a renderer, not a sitemap entry. The shape that would work:
+`functions/gauge/[lid].js` reading `data/gauges-snapshot.json` at request time and emitting a
+real document (title `<gauge name> river level`, description carrying the current stage and
+flood category, JSON-LD, and a link into `?hydro=LID`). Two things gate it. It is the first
+server-rendered surface in a zero-backend board, and every rendered page asserts a *hazard
+value*, so it is E1 territory: a CDN-cached page must not read as current after the reading
+behind it went stale, and a gauge whose fetch failed must not render as "no flooding". Any
+build of this needs a per-page aging badge and a cache-control short enough that a stale
+render cannot outlive its own staleness threshold. Not built; owner decision.
+
+Same reasoning kills per-view Open Graph cards. Every share of the board produces the same
+card because no state reaches the server. Varying it means intercepting `/` in a Pages
+Function and injecting `og:*` per query string, which puts a hazard assertion into a preview
+that Slack, iMessage and X cache for days with no way to retract it.
+
+`llms.txt` is shipped and is deliberately pointer-shaped: stable facts plus links to the live
+endpoints, no counts. It is a 2024 proposal with real publisher adoption and no confirmed
+consumer at any major model vendor, so it is cheap insurance, not a channel. The
+standards-based path that engines actually read is the JSON-LD `Dataset` node in the head.
+
+The live `robots.txt` is Cloudflare's Content Signals Policy preamble injected at the edge;
+before this change the origin had no robots.txt at all, so the served file was comments only,
+with no directives and no `Sitemap:` line. Our file must survive that merge: verify with
+`curl https://respondertx.org/robots.txt` after any deploy that touches it.

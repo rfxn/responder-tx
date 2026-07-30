@@ -1,5 +1,21 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.73 · 2026-07-30 (the board is findable, and says what it is)
+
+-- New Features --
+- [New] The page now tells a search engine what the board is and where it
+      covers, with a title, description, canonical address and structured data
+      naming the six open data feeds it publishes. A robots.txt and a sitemap
+      are served for the first time
+- [New] A machine-readable summary at /llms.txt for tools pointed at the site,
+      leading with the fact that this is not an emergency reporting channel
+
+-- Bug Fixes --
+- [Fix] The page title was being replaced at load with just the board name, so
+      a search engine only ever saw one word. The fuller title now stands, and
+      an event name still takes over when the board is aimed at a named event
+- [Fix] The page not found screen was English only and used the old name
+
 ## v0.99.72 · 2026-07-30 (where crossings are not covered, the board says so)
 
 -- Bug Fixes --

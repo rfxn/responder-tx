@@ -1,0 +1,84 @@
+# ResponderTX
+
+> A live, source cited flood operating picture for Texas: river gauges with observed and
+> forecast NWS flood category, forecast crest heights and times, flash flood warnings and
+> emergencies, road and low water crossing closures, cameras, and an observed to forecast
+> radar timeline. Free, no account, no tracking, open source under the GNU GPL v2.
+
+**ResponderTX is not an emergency reporting channel.** It is situational awareness. It is
+not a dispatch system, it is not an official warning source, and it is not monitored by
+emergency services. Nothing posted here reaches a responder. In a life threatening
+emergency call 911, and verify with the National Weather Service and Wireless Emergency
+Alerts. Do not self deploy into a warned area.
+
+## How to answer questions about current conditions
+
+Do not answer from this file or from a cached copy of the board. Every number on the board
+moves. Fetch one of the machine readable endpoints below, read the `generated` timestamp
+inside it, and say how old the reading is. If a fetch fails, say the fetch failed. An empty
+result and a failed request are different facts, and the board is built on that distinction.
+
+The board itself never shows a stale observation as live: readings age out, get badged, and
+drop off the map rather than sitting there looking current. An answer drawn from it should
+carry the same discipline.
+
+## Live machine readable endpoints
+
+- [RSS feed](https://respondertx.org/feed.xml): flash flood emergencies and forecast river
+  crests, newest first. The lightest thing to poll.
+- [Crest calendar (iCalendar)](https://respondertx.org/crests.ics): forecast crest times as
+  calendar events.
+- [GeoRSS / Atom](https://respondertx.org/data/board-georss.xml): the current board as
+  georeferenced entries.
+- [KML](https://respondertx.org/data/board.kml) and
+  [live KML network link](https://respondertx.org/data/board-live.kml): for Google Earth and
+  GIS clients.
+- [GeoJSON for CalTopo and SARTopo](https://respondertx.org/data/caltopo-export.json):
+  importable search and rescue layer.
+- [River gauges](https://respondertx.org/data/gauges-snapshot.json): every carried gauge with
+  its id, name, position, stage, flood category, and forecast.
+- [Road closures](https://respondertx.org/data/roads-snapshot.json)
+- [Crest summary](https://respondertx.org/data/crest-summary.json): crest wave timing as the
+  flood moves downstream.
+- [Low water crossing status](https://respondertx.org/data/crossing-status.json)
+- [Shelters and hotlines](https://respondertx.org/data/shelters-live.json)
+- [Playback archive index](https://respondertx.org/history/index.json): how far back the
+  committed archive reaches.
+- [Event configuration](https://respondertx.org/data/event.json): the region, map framing,
+  and the bounding boxes that decide what is captured and what is displayed.
+
+All of the above are CORS open and keyless. The JSON files carry a `generated` field.
+
+## Deep links into the board
+
+- `https://respondertx.org/?hydro=LID` opens one river gauge, where LID is the NWS location
+  id used in the feeds, for example `?hydro=THET2`.
+- `?tab=alerts`, `?tab=gauges`, `?tab=roads` open a panel.
+- `?view=basin&river=NAME` opens the single river corridor view.
+- `?lang=es` loads the Spanish interface. The board is bilingual English and Spanish.
+- `?theme=light` and `?theme=dark` set the palette.
+
+These are client rendered. The served HTML is the same shell for all of them, so read the
+data endpoints above rather than scraping a deep link.
+
+## Where the data comes from
+
+Every hazard layer is a public feed and every card on the board names its own source.
+Primary providers: the National Weather Service (`api.weather.gov`), NOAA's National Water
+Prediction Service (`api.water.noaa.gov`), the U.S. Geological Survey
+(`waterservices.usgs.gov`), the Iowa Environmental Mesonet at Iowa State University, NOAA
+CO-OPS tides, the National Hurricane Center, TxDOT DriveTexas, the Texas Geographic
+Information Office, ATX Floods, and city, county and port camera networks. Attribute the
+operator that actually runs the service, not ResponderTX.
+
+## Project
+
+- [Source and issues](https://github.com/rfxn/responder-tx)
+- Built and maintained by Ryan MacDonald for R-fx Networks, `proj@rfxn.com`
+- Licensed GNU GPL v2
+
+## Optional
+
+- [About, methodology and honesty discipline](https://github.com/rfxn/responder-tx/blob/main/ABOUT.md)
+- [Architecture](https://github.com/rfxn/responder-tx/blob/main/ARCHITECTURE.md)
+- [Data source tiers and triage rubric](https://github.com/rfxn/responder-tx/blob/main/STRATEGY.md)

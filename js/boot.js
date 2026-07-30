@@ -622,8 +622,13 @@ async function loadEventConfig() {
     if (ev.name) {
       // brand is logo imgs (no h1 since the lockup rebrand); the name lands on alt text + tab title
       document.querySelectorAll('.brand .brand-logo').forEach((img) => { img.alt = ev.name; });
-      state.baseTitle = ev.name;
-      document.title = ev.name;
+      /* The static <title> is the one a crawler indexes, and it already leads with the brand plus
+         what the board covers. An event name that is merely the brand would replace it with a bare
+         word; a genuine event re-target ("Hill Country Flood") is new information and takes over. */
+      if (!String(state.baseTitle || '').startsWith(ev.name)) {
+        state.baseTitle = ev.name;
+        document.title = ev.name;
+      }
     }
     if (ev.subtitle) {
       const st = document.querySelector('.brand .sub-text');

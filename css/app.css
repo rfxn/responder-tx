@@ -2542,3 +2542,9 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle;
   border: 2px solid #d9480f; background: rgba(247, 103, 7, .18);
 }
+/* Inferred area, deliberately unlike a mapped perimeter: dashed and unfilled, because it says how
+   much is burning and nothing about where the fire has actually reached. */
+.wildfire-area-key {
+  display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle;
+  border: 2px dashed #e8590c;
+}

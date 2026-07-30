@@ -347,8 +347,10 @@ test('a perimeter failure is published as failed and never sinks the incident la
 
 test('the client draws perimeters under the points and states what the geometry is', () => {
   const src = read('js/sources.js');
-  assert.match(src, /renderPerimeters\(layer, data\); \/\/ first/,
-    'perimeters must be added before the markers so the origin points stay clickable');
+  // ordering proven by execution, not by matching a comment that any edit can move
+  assert.deepEqual(renderKinds({ sources: [], fires: [FIRE_PT], perimeters: [PERIM] }),
+    ['polygon', 'marker'],
+    'the perimeter must be added before the marker so the origin point stays clickable');
   assert.match(src, /\[c\[1\], c\[0\]\]/, 'stored lon,lat must be flipped for Leaflet');
   assert.match(src, /length < 4\) continue/, 'a degenerate ring must be skipped, not drawn');
   // the popup has to say the edge is an interpretation, not a measurement
@@ -388,6 +390,35 @@ function renderInto(data) {
     MSB.renderWildfire();
     return added;
   } finally { Object.assign(MS, prev); }
+}
+
+
+/* The harness L is a proxy that answers every call with itself, so drawn layers are
+   indistinguishable. This swaps in a recorder that tags what was created, which is what makes
+   draw ORDER and draw KIND testable rather than a comment someone has to keep true. */
+function renderKinds(data) {
+  const MS = mapApp.state, MSB = mapApp._sandbox;
+  const prev = { layers: MS.layers, wildfire: MS.wildfire, L: MSB.L };
+  const kinds = [];
+  const stub = (kind) => () => {
+    const o = { __kind: kind };
+    o.bindPopup = () => o; o.addTo = () => o; o.on = () => o; o.setStyle = () => o;
+    return o;
+  };
+  try {
+    MSB.L = new Proxy({}, {
+      get(_t, prop) {
+        if (prop === 'polygon' || prop === 'circle' || prop === 'marker') return stub(prop);
+        return () => ({ bindPopup() { return this; }, addTo() { return this; }, on() { return this; } });
+      },
+    });
+    MS.layers = Object.assign({}, MS.layers, {
+      wildfire: { clearLayers() { kinds.length = 0; }, addLayer(l) { kinds.push(l && l.__kind); } },
+    });
+    MS.wildfire = data;
+    MSB.renderWildfire();
+    return kinds;
+  } finally { Object.assign(MS, prev); MSB.L = prev.L; }
 }
 
 const PERIM = {
@@ -435,4 +466,69 @@ test('the incident points still render when the perimeter list is absent or junk
 test('a fire with no perimeter and a perimeter with no fire both render', () => {
   assert.equal(renderInto({ sources: [], fires: [], perimeters: [PERIM] }).length, 1);
   assert.equal(renderInto({ sources: [], fires: [FIRE_PT], perimeters: [] }).length, 1);
+});
+
+/* ---------- inferred area circles ----------
+   Reported acreage as a circle of equal area, for fires with no mapped perimeter. The circle is
+   centred on the reported ORIGIN and a fire spreads downwind from its origin, so it states how
+   much is burning and nothing about where. Everything below guards that distinction. */
+
+const BIG = Object.assign({}, FIRE_PT, { name: 'Steady', acres: 158, irwin: '{A}' });
+
+test('the area floor is where the circle first beats the marker at a single-fire zoom', () => {
+  const S = mapApp;
+  assert.equal(S.WILDFIRE_AREA_MIN_ACRES, 100);
+  // 100 acres is a 359 m radius: 22px at z13 against the marker's 13px. 50 would be 15px.
+  assert.ok(Math.abs(S.fireAreaRadiusM(100) - 359) < 2, S.fireAreaRadiusM(100));
+  assert.ok(Math.abs(S.fireAreaRadiusM(6000) - 2780) < 5, S.fireAreaRadiusM(6000));
+  // equal-area, not a diameter or a guess: area of the drawn circle must equal the reported acreage
+  const r = S.fireAreaRadiusM(158);
+  assert.ok(Math.abs((Math.PI * r * r) / 4046.86 - 158) < 0.01, 'circle area must equal the acreage');
+});
+
+test('a fire at or over the floor draws a circle, one under it does not', () => {
+  assert.equal(renderInto({ sources: [], fires: [BIG], perimeters: [] }).length, 2, 'circle + marker');
+  const small = Object.assign({}, BIG, { acres: 99 });
+  assert.equal(renderInto({ sources: [], fires: [small], perimeters: [] }).length, 1, 'marker only');
+});
+
+test('a mapped perimeter always beats an inferred circle, matched by IRWIN or by name', () => {
+  const byIrwin = Object.assign({}, PERIM, { irwin: '{A}', name: 'Different Name' });
+  assert.equal(renderInto({ sources: [], fires: [BIG], perimeters: [byIrwin] }).length, 2,
+    'perimeter ring + marker, and no circle');
+  const byName = Object.assign({}, PERIM, { irwin: '', name: 'steady' });
+  assert.equal(renderInto({ sources: [], fires: [BIG], perimeters: [byName] }).length, 2,
+    'a name match is case-insensitive');
+  const unrelated = Object.assign({}, PERIM, { irwin: '{Z}', name: 'Elsewhere' });
+  assert.equal(renderInto({ sources: [], fires: [BIG], perimeters: [unrelated] }).length, 3,
+    'an unrelated perimeter must not suppress the circle');
+});
+
+test('a fire with no acreage reported draws no circle, because null is not zero', () => {
+  for (const acres of [null, undefined, NaN, 'lots']) {
+    const f = Object.assign({}, BIG, { acres });
+    assert.equal(renderInto({ sources: [], fires: [f], perimeters: [] }).length, 1,
+      `acres=${String(acres)} must not infer an area`);
+  }
+});
+
+test('the circle popup says it is acreage and not the shape or reach of the fire', () => {
+  const S = mapApp._sandbox;
+  assert.doesNotThrow(() => S.fireAreaPopupHtml(BIG));
+  for (const lang of ['en', 'es']) {
+    const s = I18N[lang]['wf.area.sub'];
+    assert.match(s, /shape|forma/i, `${lang} must deny it is the shape`);
+    assert.match(s, /spread|extend/i, `${lang} must deny it shows where the fire reached`);
+    assert.ok(!s.includes('—'), `em-dash in ${lang} wf.area.sub`);
+  }
+});
+
+test('the circle is drawn unlike a perimeter, so the two are never confused', () => {
+  const src = read('js/sources.js');
+  const fn = src.slice(src.indexOf('function renderFireAreas'), src.indexOf('function fireAreaPopupHtml'));
+  assert.match(fn, /dashArray/, 'an inferred area must be dashed');
+  assert.match(fn, /fill: false/, 'it must not be filled like a mapped perimeter');
+  const perim = src.slice(src.indexOf('function renderPerimeters'), src.indexOf('function perimeterPopupHtml'));
+  assert.match(perim, /fillOpacity: 0\.18/, 'the mapped perimeter keeps its fill');
+  assert.ok(!/dashArray/.test(perim), 'a mapped perimeter must stay solid');
 });

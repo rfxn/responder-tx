@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.81 · 2026-07-30 (reported acreage you can see)
+
+-- New Features --
+- [New] A fire of 100 acres or more with no mapped perimeter now draws a dashed
+      circle covering the acreage reported burning, around the reported origin.
+      It is styled unlike a mapped perimeter on purpose: it says how much is
+      burning, not the shape of the fire or how far it has spread. A real
+      perimeter always replaces it
+
 ## v0.99.80 · 2026-07-30 (the wildfire layer draws again)
 
 -- Bug Fixes --

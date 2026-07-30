@@ -60,7 +60,7 @@ MAX_PAGES = 4
 # IncidentManagementOrganization 15%, TotalIncidentPersonnel 13%. ContainmentDateTime was 0/47 and
 # is left out rather than carried as a column nothing populates.
 WFIGS_FIELDS = ("IncidentName,POOState,POOCounty,IncidentSize,PercentContained,"
-                "ModifiedOnDateTime_dt,FireDiscoveryDateTime,UniqueFireIdentifier,"
+                "ModifiedOnDateTime_dt,FireDiscoveryDateTime,UniqueFireIdentifier,IrwinID,"
                 "POOProtectingAgency,IncidentTypeCategory,FireCause,"
                 "TotalIncidentPersonnel,IncidentManagementOrganization")
 WFIGS_WHERE = "IncidentTypeCategory='WF' AND FireOutDateTime IS NULL"
@@ -322,6 +322,7 @@ def collect_wfigs(scope):
                 "id": "wfigs:%s" % fid,
                 "src": "wfigs",
                 "scope": where,
+                "irwin": str(p.get("IrwinID") or "").strip() or None,  # joins a fire to its perimeter
                 "name": name,
                 "lat": pt[0],
                 "lon": pt[1],

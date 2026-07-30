@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.81",
+      "date": "2026-07-30",
+      "line": "A fire of 100 acres or more with no mapped perimeter now shows a dashed circle covering the acreage reported burning, drawn around the reported origin. It is deliberately unlike a mapped perimeter: it says how much is burning and nothing about the shape of the fire or how far it has spread. A mapped perimeter always replaces it."
+    },
+    {
       "v": "v0.99.80",
       "date": "2026-07-30",
       "line": "Fixed the wildfire layer reporting itself unavailable when switched on. The perimeters added in the previous release stopped the layer drawing at all, so no fire showed, including the incident points that were working before."

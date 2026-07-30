@@ -2240,6 +2240,52 @@ function wildfireNoticeText() {
   return stamp ? t('wf.none').replace('{t}', fmtWhen(stamp)) : t('wf.none.undated');
 }
 
+/* Reported acreage drawn as a circle of equal area, for fires big enough that the figure says
+   something a pin cannot. NOT a perimeter and never styled like one: it is centred on the reported
+   ORIGIN, and a fire spreads downwind from its origin rather than around it, so the circle says how
+   much is burning and says nothing about where. Suppressed the moment a real perimeter exists.
+
+   The floor is where the circle first reads as bigger than the 26px marker at the zoom someone uses
+   to look at one fire (z13): 100 acres is a 359 m radius, 22px there, against the marker's 13px.
+   50 acres would be 15px and 25 acres 11px, which is smaller than the pin it is drawn around. */
+const WILDFIRE_AREA_MIN_ACRES = 100;
+const SQ_M_PER_ACRE = 4046.86;
+const fireAreaRadiusM = (acres) => Math.sqrt((acres * SQ_M_PER_ACRE) / Math.PI);
+
+const wildfireKey = (v) => String(v || '').trim().toUpperCase();
+
+// a fire is mapped when a perimeter shares its IRWIN id, or failing that its incident name
+function perimeterMatches(data, f) {
+  const perims = Array.isArray(data.perimeters) ? data.perimeters : [];
+  if (!perims.length) return false;
+  const irwin = wildfireKey(f.irwin);
+  const name = wildfireKey(f.name);
+  return perims.some((p) => (irwin && wildfireKey(p.irwin) === irwin)
+    || (name && wildfireKey(p.name) === name));
+}
+
+function renderFireAreas(layer, data) {
+  for (const f of (Array.isArray(data.fires) ? data.fires : [])) {
+    if (!Number.isFinite(f.lat) || !Number.isFinite(f.lon)) continue;
+    if (!Number.isFinite(f.acres) || f.acres < WILDFIRE_AREA_MIN_ACRES) continue;
+    if (perimeterMatches(data, f)) continue; // a mapped edge always beats an inferred circle
+    const circle = L.circle([f.lat, f.lon], {
+      radius: fireAreaRadiusM(f.acres),
+      pane: 'shadowPane', color: '#e8590c', weight: 2, opacity: 0.8,
+      dashArray: '6 5', fill: false, className: 'wildfire-area',
+    });
+    circle.bindPopup(fireAreaPopupHtml(f));
+    layer.addLayer(circle);
+  }
+}
+
+function fireAreaPopupHtml(f) {
+  return `<div class="pop"><strong>${esc(f.name || t('wf.unnamed'))}</strong>`
+    + `<div class="pop-sub">${esc(t('wf.area.sub'))}</div>`
+    + `<div class="pop-meta">${esc(t('wf.k.size'))}: `
+    + `${esc(t('wf.acres').replace('{n}', fmtNum(f.acres)))}</div></div>`;
+}
+
 /* Where an agency has mapped the fire edge. Most fires never get one, so this draws under the
    points rather than replacing them, and its absence is never a claim the fire is small. The
    geometry is a generalized daily interpretation of imagery, which the popup says out loud. */
@@ -2279,7 +2325,8 @@ function renderWildfire() {
   const data = state.wildfire;
   if (!layer || !data) return;
   layer.clearLayers();
-  renderPerimeters(layer, data); // first, so the origin points stay clickable on top
+  renderFireAreas(layer, data);   // inferred area first: a mapped perimeter must draw over it
+  renderPerimeters(layer, data); // then edges, so the origin points stay clickable on top
   const lbl = esc(t('layers.wildfire'));
   for (const f of (Array.isArray(data.fires) ? data.fires : [])) {
     if (!Number.isFinite(f.lat) || !Number.isFinite(f.lon)) continue;

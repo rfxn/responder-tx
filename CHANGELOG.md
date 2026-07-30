@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.80 · 2026-07-30 (the wildfire layer draws again)
+
+-- Bug Fixes --
+- [Fix] Switching the wildfire layer on reported "wildfire incidents unavailable"
+      and drew nothing. The fire perimeters added in the previous release stopped
+      the layer rendering at all, so no fire appeared, including the incident
+      points that had been working. Perimeters and points both draw again
+
 ## v0.99.79 · 2026-07-30 (fire perimeters, where anyone has mapped one)
 
 -- New Features --

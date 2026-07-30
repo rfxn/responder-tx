@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { loadApp } = require('./harness.js');
+const { loadApp, loadMapApp } = require('./harness.js');
 
 const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -364,4 +364,75 @@ test('an absent perimeter list is not a claim that no fire has an edge', () => {
   // the payload guard must still only require fires/sources: an old file has no perimeters key
   assert.match(src, /!Array\.isArray\(data\.fires\) \|\| !Array\.isArray\(data\.sources\)/,
     'perimeters must NOT be required, or every client would reject a pre-perimeter file');
+});
+
+
+/* ---------- the render actually runs ----------
+   v0.99.79 shipped renderPerimeters() calling num(), which is a const local to
+   wildfirePopupHtml. It threw ReferenceError on the first paint, fetchWildfire()'s catch turned
+   that into "wildfire incidents unavailable", and the whole layer went dark including the incident
+   points that had worked for weeks. Every client test in that release asserted on SOURCE TEXT, so
+   all of them passed. These execute the render instead. */
+
+const mapApp = loadMapApp();
+
+function renderInto(data) {
+  const MS = mapApp.state, MSB = mapApp._sandbox;
+  const prev = { layers: MS.layers, wildfire: MS.wildfire };
+  const added = [];
+  try {
+    MS.layers = Object.assign({}, MS.layers, {
+      wildfire: { clearLayers() { added.length = 0; }, addLayer(l) { added.push(l); } },
+    });
+    MS.wildfire = data;
+    MSB.renderWildfire();
+    return added;
+  } finally { Object.assign(MS, prev); }
+}
+
+const PERIM = {
+  id: 'wfigs-perim:{X}', irwin: '{X}', name: 'Fixture', scope: 'tx', acres: 120.5,
+  observed: '2026-07-30T02:00:00Z', method: 'Image Interpretation',
+  category: 'Wildfire Daily Fire Perimeter',
+  rings: [[[-99, 31], [-99, 31.1], [-98.9, 31.1], [-98.9, 31], [-99, 31]]],
+};
+const FIRE_PT = {
+  id: 'tfs:X', src: 'tfs', scope: 'tx', name: 'Point', lat: 31.5, lon: -99.5,
+  status: 'Active', acres: 10, contain: null, observed: '2026-07-30T20:00:00Z',
+};
+
+test('rendering a payload with perimeters does not throw', () => {
+  const added = renderInto({ generated: '2026-07-30T21:00:00Z', sources: [], fires: [FIRE_PT], perimeters: [PERIM] });
+  assert.equal(added.length, 2, 'one perimeter ring plus one incident marker');
+});
+
+test('a perimeter popup builds without reaching outside its own scope', () => {
+  // the actual v0.99.79 defect: the popup body referenced a helper local to another function
+  assert.doesNotThrow(() => mapApp._sandbox.perimeterPopupHtml(PERIM));
+  const MSB = mapApp._sandbox;
+  const prevT = MSB.t;
+  try {
+    // the harness echoes keys, so the number needs a real template to substitute into
+    MSB.t = (k) => (k === 'wf.acres' ? '{n} acres' : k);
+    const html = MSB.perimeterPopupHtml(PERIM);
+    assert.match(html, /120\.5 acres/, 'acreage must render, not silently vanish');
+    assert.match(html, /Fixture/);
+  } finally { MSB.t = prevT; }
+});
+
+test('a perimeter with no acreage still builds a popup', () => {
+  assert.doesNotThrow(() => mapApp._sandbox.perimeterPopupHtml(
+    Object.assign({}, PERIM, { acres: null, method: null, observed: null, name: '' })));
+});
+
+test('the incident points still render when the perimeter list is absent or junk', () => {
+  for (const p of [undefined, null, [], 'nonsense', [{ rings: null }], [{ rings: [[[0, 0]]] }]]) {
+    const added = renderInto({ generated: 'x', sources: [], fires: [FIRE_PT], perimeters: p });
+    assert.equal(added.length, 1, `incident marker must survive perimeters=${JSON.stringify(p)}`);
+  }
+});
+
+test('a fire with no perimeter and a perimeter with no fire both render', () => {
+  assert.equal(renderInto({ sources: [], fires: [], perimeters: [PERIM] }).length, 1);
+  assert.equal(renderInto({ sources: [], fires: [FIRE_PT], perimeters: [] }).length, 1);
 });

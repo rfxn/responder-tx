@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.80",
+      "date": "2026-07-30",
+      "line": "Fixed the wildfire layer reporting itself unavailable when switched on. The perimeters added in the previous release stopped the layer drawing at all, so no fire showed, including the incident points that were working before."
+    },
+    {
       "v": "v0.99.79",
       "date": "2026-07-30",
       "line": "The wildfire layer now draws the mapped edge of a fire where an agency publishes one, alongside the reported origin point. Most fires never get an edge mapped, so no outline around a fire means nobody has mapped it and never that the fire is small."

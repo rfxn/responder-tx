@@ -2263,7 +2263,8 @@ function renderPerimeters(layer, data) {
 
 function perimeterPopupHtml(p) {
   const rows = [];
-  if (Number.isFinite(p.acres)) rows.push(`${esc(t('wf.k.size'))}: ${esc(t('wf.acres').replace('{n}', num(p.acres)))}`);
+  // fmtNum, not wildfirePopupHtml's local num(): that one is scoped to the incident popup
+  if (Number.isFinite(p.acres)) rows.push(`${esc(t('wf.k.size'))}: ${esc(t('wf.acres').replace('{n}', fmtNum(p.acres)))}`);
   // the mapping method is the provenance: image interpretation and a GPS walk are different claims
   if (p.method) rows.push(`${esc(t('wf.k.method'))}: ${esc(p.method)}`);
   if (p.observed) rows.push(`${esc(t('wf.k.mapped'))}: ${esc(fmtWhen(p.observed))}`);

@@ -1,9 +1,9 @@
 {
- "generated": "2026-07-31T03:38:35Z",
+ "generated": "2026-07-31T03:53:37Z",
  "event": "July 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-07-31T03:23:00Z"
+  "last": "2026-07-31T03:38:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -29,8 +29,8 @@
   {
    "lid": "THET2",
    "name": "Nueces River near Three Rivers",
-   "peak": 36.45,
-   "peak_time": "2026-07-31T02:38:00Z",
+   "peak": 36.66,
+   "peak_time": "2026-07-31T03:38:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-30T01:38:00Z",
@@ -39,7 +39,7 @@
    "record": {
     "record_ft": 49.21,
     "record_date": "1967-09-23",
-    "peak_pct": 74.1,
+    "peak_pct": 74.5,
     "exceeded": false,
     "approached": false
    },

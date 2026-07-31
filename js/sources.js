@@ -2234,6 +2234,9 @@ async function fetchWildfire() {
 function wildfireNoticeText() {
   const srcs = wildfireSources();
   const failed = srcs.filter((s) => s.status !== 'ok');
+  // a failed perimeter read leaves the incident list complete, so saying the list is incomplete
+  // would overstate it: name the edges as the thing that is missing instead
+  if (failed.length && failed.every((s) => s.key === 'wfigs-perimeters')) return t('wf.noedges');
   if (failed.length) return t(failed.length < srcs.length ? 'wf.partial' : 'wf.unknown');
   if (((state.wildfire || {}).fires || []).length) return '';
   const stamp = srcs.map((s) => s.captured).filter(Boolean).sort()[0];

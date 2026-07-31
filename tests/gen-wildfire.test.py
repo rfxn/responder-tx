@@ -485,9 +485,9 @@ check('a failed perimeter read publishes as failed with a null count, never as z
       src(D, 'wfigs-perimeters')['status'] == 'failed'
       and src(D, 'wfigs-perimeters')['count'] is None and D['perimeters'] == [],
       D['sources'])
-check('a failed perimeter read still publishes the incidents and signs the cycle degraded',
-      r['code'] != 0 and [f['src'] for f in D['fires']] == ['tfs', 'wfigs'],
-      'code=%s %s' % (r['code'], [f['src'] for f in D['fires']]))
+check('a failed perimeter read still publishes every incident from both live sources',
+      [f['src'] for f in D['fires']] == ['tfs', 'wfigs'],
+      [f['src'] for f in D['fires']])
 
 r = run(perim=ARCGIS_ERR)
 check('an ArcGIS error body inside HTTP 200 marks the perimeter source failed, never zero edges',
@@ -509,6 +509,14 @@ check('a polygon hole is dropped and only the outer ring is published',
 r = run(perim=collection([perim_feature(ring=[[-99.0, 31.0], [-99.0, 31.1], [-99.0, 31.0]])]))
 check('a ring with too few points to be a polygon is skipped rather than drawn',
       r['doc']['perimeters'] == [], r['doc']['perimeters'])
+
+# an enrichment failure is reported without spending the cycle's DEGRADED signal
+r = run(perim=OSError('timed out'))
+check('a perimeter timeout alone exits CLEAN, so the cycle keeps DEGRADED for the incidents',
+      r['code'] == 0 and src(r['doc'], 'wfigs-perimeters')['status'] == 'failed',
+      'code=%s %s' % (r['code'], r['doc']['sources']))
+check('a failed incident source still exits degraded even when perimeters are fine',
+      run(wfigs=ARCGIS_ERR)['code'] != 0, run(wfigs=ARCGIS_ERR)['code'])
 
 print('----')
 if FAILS == 0:

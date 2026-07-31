@@ -532,3 +532,45 @@ test('the circle is drawn unlike a perimeter, so the two are never confused', ()
   assert.match(perim, /fillOpacity: 0\.18/, 'the mapped perimeter keeps its fill');
   assert.ok(!/dashArray/.test(perim), 'a mapped perimeter must stay solid');
 });
+
+/* ---------- an enrichment failure is reported, not escalated ----------
+   Perimeters timed out on 2 of 15 cycles in one night. Spending the data cycle's DEGRADED signal
+   on a rarely-populated enrichment devalues it for the gauges and roads it exists for, and the
+   incident list is still complete when only the edges are missing. */
+
+const OKSRC = (key) => ({ key, name: key, url: 'u', status: 'ok', captured: '2026-07-30T00:00:00Z', count: 1 });
+const BADSRC = (key) => ({ key, name: key, url: 'u', status: 'failed', captured: null, count: null });
+
+function noticeFor(sources, fires) {
+  const MS = mapApp.state, MSB = mapApp._sandbox;
+  const prev = MS.wildfire;
+  try {
+    MS.wildfire = { generated: 'x', sources, fires: fires || [], perimeters: [] };
+    return MSB.wildfireNoticeText();
+  } finally { MS.wildfire = prev; }
+}
+
+test('a perimeter-only failure names the edges, not the whole list, as missing', () => {
+  const said = noticeFor([OKSRC('tfs'), OKSRC('wfigs'), BADSRC('wfigs-perimeters')], [FIRE_PT]);
+  assert.equal(said, 'wf.noedges');
+  for (const lang of ['en', 'es']) {
+    const s = I18N[lang]['wf.noedges'];
+    assert.ok(s && !s.includes('—'), `wf.noedges missing or em-dashed in ${lang}`);
+  }
+  // and it must not claim the incident list is short when it is not
+  assert.ok(!/incomplete/i.test(I18N.en['wf.noedges']), 'must not call the incident list incomplete');
+});
+
+test('an incident source failing still says the list is incomplete', () => {
+  assert.equal(noticeFor([BADSRC('tfs'), OKSRC('wfigs'), OKSRC('wfigs-perimeters')], [FIRE_PT]), 'wf.partial');
+  assert.equal(noticeFor([BADSRC('tfs'), BADSRC('wfigs'), BADSRC('wfigs-perimeters')], []), 'wf.unknown');
+});
+
+test('the generator exit code answers for the incidents, not the enrichment', () => {
+  const src = read('scripts/gen-wildfire.py');
+  const tail = src.slice(src.indexOf('detail = " · ".join'));
+  assert.match(tail, /if any\(s\["status"\] != "ok" for s in \(tfs_src, wfigs_src\)\):\n\s+return 1/,
+    'a failed incident source must still degrade the cycle');
+  assert.match(tail, /if perim_src\["status"\] != "ok":/,
+    'a failed enrichment must still be reported on stderr');
+});

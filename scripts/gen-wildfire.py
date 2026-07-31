@@ -474,8 +474,17 @@ def main():
         + (f" {s['count']} @ {s['captured'] or 'no upstream stamp'}" if s["status"] == "ok" else "")
         for s in sources)
     print(f"wildfire.json: {len(fires)} incidents, {len(perims)} perimeters ({detail}) @ {now}")
-    # a half-sourced file is published but is not a clean cycle
-    return 0 if all(s["status"] == "ok" for s in sources) else 1
+    # A half-sourced INCIDENT read is not a clean cycle. A failed perimeter read is not the same
+    # thing: perimeters are an enrichment most fires never have, and the layer's answer is the
+    # points. Spending the cycle's DEGRADED signal on it measured 2 of 15 cycles in one night,
+    # which devalues that signal for the gauges and roads it exists for. The failure stays visible
+    # without it: the source row publishes failed, and the client says so when the layer opens.
+    if any(s["status"] != "ok" for s in (tfs_src, wfigs_src)):
+        return 1
+    if perim_src["status"] != "ok":
+        print("note: perimeter enrichment failed; the incident layer published in full",
+              file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":

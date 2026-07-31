@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.82 · 2026-07-31 (a missing outline is not a missing fire)
+
+-- Bug Fixes --
+- [Fix] When the mapped fire outlines could not be read, the wildfire layer said the
+      list of incidents was incomplete. Every incident was in fact listed and only
+      the outlines were missing, which is what it now says
+
 ## v0.99.81 · 2026-07-30 (reported acreage you can see)
 
 -- New Features --

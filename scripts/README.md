@@ -696,6 +696,12 @@ To recover a single bad commit without a full restore, the mirror still has the 
 
 ### Verifying (the part usually skipped)
 
+Both scripts `cd` to the repo before doing anything. `git bundle verify` needs a repository to
+resolve prerequisites against and answers "need a repository to verify a bundle" without one, so a
+drill run from cron (CWD `$HOME`, not the repo) reported every healthy backup as rejected. It passed
+by hand for a day before anyone read `drill-status.json`. `tests/backup.test.sh` now runs both from
+a foreign CWD.
+
 `restore-drill.sh` clones the newest bundle into a temp tree and checks the sha256 against the
 manifest, `git bundle verify`, `git fsck`, HEAD and commit count against the manifest, that
 **the oldest `gauges-capture.json` blob is still readable** (without it the archive cannot be

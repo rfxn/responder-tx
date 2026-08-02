@@ -18,6 +18,11 @@ while [ $# -gt 0 ]; do
 done
 
 SCRIPT_DIR=$(cd "$(command dirname "$0")" && pwd) || exit 1
+REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd) || exit 1
+# `git bundle verify` needs a repository to resolve prerequisites against and errors out with
+# "need a repository to verify a bundle" without one. Under cron the CWD is $HOME, not the repo,
+# which is why this script passed by hand and failed every night.
+cd "$REPO_ROOT" || exit 1
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 DEST="${RESPONDER_BACKUP_DIR:-/root/backups/responder}"
@@ -78,7 +83,8 @@ state_name=$(read_key state)
 got_sha=$(sha256sum "$bundle" | awk '{print $1}') || fail "sha256 of the bundle failed"
 [ "$got_sha" = "$want_sha" ] \
     || fail "bundle sha256 mismatch: manifest says ${want_sha}, file is ${got_sha} (bit rot or a partial write)"
-git bundle verify "$bundle" >/dev/null 2>&1 || fail "git bundle verify rejected ${bundle}"
+verify_err=$(git bundle verify "$bundle" 2>&1 >/dev/null) \
+    || fail "git bundle verify rejected ${bundle}: ${verify_err}"
 
 WORK=$(command mktemp -d "${TMPDIR:-/tmp}/responder-drill.XXXXXX") || fail "mktemp failed"
 git clone --quiet "$bundle" "$WORK/repo" 2>/dev/null || fail "git clone from the bundle failed"

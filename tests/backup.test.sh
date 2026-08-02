@@ -95,6 +95,16 @@ RESPONDER_BACKUP_DIR="$WORK/liar" ./scripts/restore-drill.sh >"$WORK/drill3.log"
 grep -q "gauges-capture" scripts/restore-drill.sh
 check $? "drill: asserts the oldest gauges-capture blob is readable in the restored tree"
 
+# --- CWD independence. Cron runs these from $HOME, not the repo. `git bundle verify` needs a
+# repository to resolve against, so the drill failed every night while passing by hand for a day
+# before anyone looked at drill-status.json.
+( cd / && "$FIX/scripts/restore-drill.sh" >"$WORK/cwd.log" 2>&1 )
+check $? "drill: MUTATION passes when run from / , the way cron runs it"
+grep -q '"verdict": "OK"' "$BDIR/drill-status.json"
+check $? "drill: records OK after a run from a foreign cwd, not just a clean exit"
+( cd /tmp && "$FIX/scripts/backup.sh" --tier daily >"$WORK/cwd2.log" 2>&1 )
+check $? "backup: also runs from a foreign cwd"
+
 # --- pre-push guard
 Z40="0000000000000000000000000000000000000000"
 HEADSHA=$(git rev-parse HEAD)

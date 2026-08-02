@@ -29,8 +29,14 @@ UA = "responder-tx-ops/gen-shelters (rfxnryan@gmail.com)"
 DEFAULT_BBOX = {"xmin": -106.65, "ymin": 25.83, "xmax": -93.4, "ymax": 36.5}
 MARGIN = 0.5
 # NSS answers healthy in ~0.5s and otherwise hangs, so a short deadline plus retries beats one long wait
-TIMEOUT = 12
-BACKOFFS = [2, 5]
+TIMEOUT = 8
+# FEMA's NSS endpoint is bimodal rather than slow: measured 2026-08-02 it either answers in about
+# 0.3s or never returns at all. So waiting longer per attempt buys nothing (TIMEOUT is still 16x a
+# healthy answer) and spending that time on more attempts buys a lot: at the ~40% hang rate measured
+# that day, 3 attempts drop a cycle about 6% of the time and 4 about 2.6%. Worst case is unchanged
+# in practice and costs nothing at all when the endpoint is well, because retries only fire on
+# failure. The whole budget stays inside the bound tests/gen-shelters.test.py asserts.
+BACKOFFS = [2, 4, 6]
 
 
 def ao_bbox():

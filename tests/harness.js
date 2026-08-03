@@ -136,6 +136,8 @@ const EXPORTS = [
   'NWPS_DEGRADED_CAT', 'defaultGaugeFilter', 'gaugeStateShown',
   'riverSlug', 'basinCrestTime', 'basinCorridor', 'basinRivers', 'basinWaveState',
   'recordContext', 'recordWatchGauges', 'RECORD_NEAR_FT', 'gaugeDegraded',
+  'WATCH_KEY', 'WATCH_KINDS', 'watchAll', 'watchList', 'watchHas', 'watchToggle', 'watchDrop',
+  'watchFirst', 'watchAudit', 'watchStarHtml', 'watchNoticeHtml',
   'roadId', 'roadMemory', 'updateRoadMemory', 'reopenedRoads', 'reopenIsFlood', 'ROADS_KEY', 'ROADS_KEY_LEGACY',
   'roadPointNear', 'roadSegMiles', 'roadSegParts', 'roadPopupHtml', 'arcgisHasMore', 'LWC_PAGE', 'LWC_MAX_PAGES',
   'fetchRoadClosures', 'fetchRoadClosuresLive', 'hydrateRoadsSnapshot', 'roadFeatures', 'ROAD_PAGE', 'ROAD_MAX_PAGES',
@@ -168,7 +170,7 @@ const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn
   'curatedShelterAgeH', 'SHELTER_CURATED_STALE_H', 'shelterOpen',
   'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H',
   'crossingList', 'heroCards', 'badgeText', 'BADGE_UNKNOWN', 'shlLiveUpdatedHtml',
-  'roadsTabRows', 'roadsTxdotRows', 'roadsCuratedRows', 'roadsJurisdictionRows', 'roadsRowHtml',
+  'roadsTabRows', 'roadsTxdotRows', 'roadsCuratedRows', 'roadsJurisdictionRows', 'roadsRowHtml', 'roadRowKey',
   'xstatusAgeD', 'XSTATUS_UNCONFIRMED_D'];
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)

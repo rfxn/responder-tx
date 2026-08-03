@@ -74,8 +74,17 @@ function gaugeCardDiv(g) {
       : (stale ? `<div class="meta stale-note">⏱ ${esc(t('gauge.stale').replace('{t}', fmtWhen(o.validTime)))}</div>` : '')) +
     (fCat ? `<div class="meta">${esc(t('wave.crest'))} ${fmtNum(f.primary)} ${esc(f.primaryUnit)} · <span class="cat-word" style="color:var(--cat-${fCat})">${esc(catWord(fCat))}</span> · ${esc(fmtWhen(f.validTime))}</div>` : '') +
     recordLineHtml(g) +
-    (site ? `<div class="meta">📍 ${esc(site)}</div>` : '');
-  div.addEventListener('click', (ev) => { if (ev.target.closest('a')) return; focusGauge(g); });
+    (site ? `<div class="meta">📍 ${esc(site)}</div>` : '') +
+    watchStarHtml('gauges', g.lid, g.name);
+  const star = div.querySelector('.watch-star');
+  if (star) {
+    star.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      watchToggle('gauges', g.lid);
+      renderGaugesTab();
+    });
+  }
+  div.addEventListener('click', (ev) => { if (ev.target.closest('a') || ev.target.closest('.watch-star')) return; focusGauge(g); });
   return div;
 }
 
@@ -747,18 +756,35 @@ function renderGaugesTab() {
   const pool = state.inView ? state.gauges.filter((g) => inMapView(g.latitude, g.longitude)) : state.gauges;
   const inFlood = pool.filter((g) => gaugeCat(g) !== 'none');
   // double-listing precedence: rising wins, then falling, then in-flood
-  const rising = pool.filter(gaugeRising)
+  const risingAll = pool.filter(gaugeRising)
     .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
-  const risingLids = new Set(rising.map((g) => g.lid));
+  const risingLids = new Set(risingAll.map((g) => g.lid));
   const inFloodOnly = inFlood.filter((g) => !risingLids.has(g.lid));
-  const falling = inFloodOnly.filter((g) => (gaugeTrend(g.lid) || {}).dir === 'down');
-  const fallingLids = new Set(falling.map((g) => g.lid));
-  const holding = inFloodOnly.filter((g) => !fallingLids.has(g.lid))
+  const fallingAll = inFloodOnly.filter((g) => (gaugeTrend(g.lid) || {}).dir === 'down');
+  const fallingLids = new Set(fallingAll.map((g) => g.lid));
+  const holdingAll = inFloodOnly.filter((g) => !fallingLids.has(g.lid))
     .sort((a, b) => CAT_RANK[gaugeCat(b)] - CAT_RANK[gaugeCat(a)] || b.status.observed.primary - a.status.observed.primary);
-  const normal = pool.filter((g) => gaugeCat(g) === 'none' && !risingLids.has(g.lid))
+  const normalAll = pool.filter((g) => gaugeCat(g) === 'none' && !risingLids.has(g.lid))
     .sort((a, b) => a.name.localeCompare(b.name));
+  const degradedAll = degradedGaugeList();
+
+  // watched rows lift out of their buckets to a pinned group, in the order the buckets already
+  // ranked them, so the tab lists each gauge exactly once and the unwatched sort is untouched
+  const watched = (g) => watchHas('gauges', g.lid);
+  const unwatched = (list) => list.filter((g) => !watched(g));
+  const pinned = risingAll.filter(watched).concat(holdingAll.filter(watched), fallingAll.filter(watched),
+    normalAll.filter(watched), degradedAll.filter(watched));
+  const rising = unwatched(risingAll);
+  const holding = unwatched(holdingAll);
+  const falling = unwatched(fallingAll);
+  const normal = unwatched(normalAll);
+  const degraded = unwatched(degradedAll);
   // gaugeCat maps stale sensors to 'none', so this bucket mixes truly-normal and dead gauges — count them apart for an honest label
   const normalStale = normal.filter(gaugeObsStale).length;
+  // a lid the pinned group could not draw is filtered away, missing from the data, or unmeasurable
+  // because the feed never answered; gaugeAll() is the unfiltered set, so the three stay apart
+  const audit = watchAudit('gauges', gaugeAll().map((g) => g.lid), pinned.map((g) => g.lid));
+  const notice = watchNoticeHtml('gauges', audit, { unknown: !gaugeAll().length });
 
   el.innerHTML = '';
   const bar = document.createElement('div');
@@ -785,6 +811,15 @@ function renderGaugesTab() {
     el.appendChild(t);
     for (const g of list) el.appendChild(gaugeCardDiv(g));
   };
+  if (pinned.length || notice) {
+    section(t('watch.section').replace('{n}', pinned.length), pinned);
+    if (notice) {
+      const n = document.createElement('div');
+      n.className = 'watch-notes';
+      n.innerHTML = notice;
+      el.appendChild(n);
+    }
+  }
   if (state.gaugeGroup === 'river') {
     // NWPS gauge objects carry no county — group by river name derived from the site name
     const groups = new Map();
@@ -799,11 +834,11 @@ function renderGaugesTab() {
     if (holding.length) section(`${t('sec.gauge.inflood')} (${holding.length})`, holding);
     if (falling.length) section(`${t('sec.gauge.falling')} (${falling.length})`, falling);
   }
-  const degraded = degradedGaugeList();
-  if (!rising.length && !holding.length && !falling.length) {
+  // measured before the watch split: a pinned in-flood gauge must not let the tab claim none are
+  if (!risingAll.length && !holdingAll.length && !fallingAll.length) {
     const none = document.createElement('div');
     none.className = 'card';
-    none.textContent = (state.gauges.length || degraded.length) ? t('sec.gauge.empty') : t('sec.gauge.noload');
+    none.textContent = (state.gauges.length || degradedAll.length) ? t('sec.gauge.empty') : t('sec.gauge.noload');
     el.appendChild(none);
   }
   const fold = (cls, label, list, on, set) => {
@@ -826,6 +861,12 @@ function renderGaugesTab() {
       .replace('{n}', degraded.length).replace('{t}', dc.nothresh).replace('{s}', dc.stale).replace('{o}', dc.oos),
     degraded, state.showDegradedGauges, (v) => { state.showDegradedGauges = v; });
   }
+  // "In view" is the only filter the pinned group cannot outrank, so showing them means dropping it
+  el.querySelectorAll('[data-watch-show]').forEach((b) => b.addEventListener('click', () => setInView(false)));
+  el.querySelectorAll('[data-watch-drop]').forEach((b) => b.addEventListener('click', () => {
+    watchDrop('gauges', audit.absent);
+    renderGaugesTab();
+  }));
 }
 
 /* Migration cue. A reorganization with no in-product pointer produces "what happened to X" support
@@ -1635,6 +1676,10 @@ function renderCrossStatus() {
 const ROADS_TXDOT_GLYPH = { Flooding: '🌊', Damage: '⚠' };
 const roadsAgeChip = (h) => (Number.isFinite(h) ? t('cross.stale').replace('{h}', Math.round(h)) : t('xstatus.nocheck'));
 
+// watch identity, namespaced by provenance over the id each feed already publishes: roadId
+// (route + limits, what the reopened-roads memory keys on) and each crossing feed's record id
+const roadRowKey = (kind, id) => `${kind}:${id}`;
+
 function roadsTxdotRows(pos) {
   const rows = [];
   for (const f of roadFeatures()) {
@@ -1646,7 +1691,7 @@ function roadsTxdotRows(pos) {
     // the Roads badge, and ages on the snapshot's own stamp rather than on when we fell back to it
     const snap = p._snapshot === true;
     rows.push({
-      kind: 'txdot', live: !snap, color: ct.color, glyph: ROADS_TXDOT_GLYPH[p.condition] || '⛔',
+      kind: 'txdot', wid: roadRowKey('txdot', roadId(p)), live: !snap, color: ct.color, glyph: ROADS_TXDOT_GLYPH[p.condition] || '⛔',
       label: roadLabel(ct), name: prettyRoute(p.route_name) || t('word.road'),
       detail: dscr || [p.from_limit, p.to_limit].filter(Boolean).join(' → '),
       when: p.start_time || '', whenText: p.start_time ? `${t('road.since')} ${fmtWhen(p.start_time)}` : '',
@@ -1664,7 +1709,7 @@ function roadsCuratedRows() {
     if (c.status === 'open') continue; // the tab lists hazards; an open crossing is the absence of one
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     rows.push({
-      kind: 'curated', live: !c.stale, color: st.color, glyph: st.glyph,
+      kind: 'curated', wid: roadRowKey('curated', c.id || c.name), live: !c.stale, color: st.color, glyph: st.glyph,
       label: xstLabel(st), name: c.name, detail: c.reason || '',
       when: c.updated_at || '',
       whenText: c.updated_at ? `${t('word.updated').toLowerCase()} ${fmtWhen(c.updated_at)}` : '',
@@ -1683,7 +1728,7 @@ function roadsJurisdictionRows() {
     const st = CROSSING_STATUS[c.status] || CROSSING_STATUS.caution;
     const ageD = xstatusAgeD(c);
     rows.push({
-      kind: 'xstatus', live: false, color: st.color, glyph: st.glyph,
+      kind: 'xstatus', wid: roadRowKey('xstatus', c.id || c.name), live: false, color: st.color, glyph: st.glyph,
       label: xstLabel(st), name: c.name, detail: [c.address, c.comment].filter(Boolean).join(' · '),
       when: c.changed || '',
       // never "updated": this feed stamps the last record change, and it publishes no confirmation time
@@ -1705,7 +1750,7 @@ function roadsTabRows() {
   }
   if (pos) rows.sort((a, b) => a.dist - b.dist);
   else rows.sort((a, b) => (Date.parse(b.when) || 0) - (Date.parse(a.when) || 0));
-  return rows;
+  return watchFirst(rows, 'roads', (r) => r.wid);
 }
 
 function roadsRowHtml(r) {
@@ -1718,7 +1763,7 @@ function roadsRowHtml(r) {
     `<div class="addr">${meta}` +
     (r.age ? ` · <span class="xg-stale">${esc(r.age)}</span>` : '') +
     (r.href ? ` <a href="${esc(r.href)}" target="_blank" rel="noopener">src</a>` : '') +
-    '</div></div>';
+    '</div>' + watchStarHtml('roads', r.wid, r.name) + '</div>';
 }
 
 /* Both crossing feeds are regional, not statewide: the curated inventory is a Hill Country list and
@@ -1753,10 +1798,14 @@ function renderRoadsTab() {
   if (!el) return;
   // whole-mile distance buckets: a moving fix must not repaint (and reset the scroll) every tick
   const fp = JSON.stringify([state.roadsPartial === true, state.roadsFallbackAt || 0, state.roadsUnknown === true,
-    state.crossingsUnknown === true, state.crossStatusUnknown === true,
+    state.crossingsUnknown === true, state.crossStatusUnknown === true, watchList('roads'),
     rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
   if (fp === state.roadsTabFp) return;
   state.roadsTabFp = fp;
+  // the tab draws every row it holds, so a watched key it cannot find is gone or unmeasurable;
+  // snapshot rows carry no limits, so roadId cannot rebuild the key a live row was starred under
+  const audit = watchAudit('roads', rows.map((r) => r.wid));
+  const watchNote = watchNoticeHtml('roads', audit, { unknown: !roadsKnown || !!state.roadsFallbackAt });
   // the closure feed's own state leads the list: a snapshot is named as one, and a feed we cannot
   // reach at all is reported as unknown. Neither may read as a current, complete closure set.
   const feedNote = (state.roadsFallbackAt
@@ -1766,19 +1815,30 @@ function renderRoadsTab() {
   // one list, not one group per feed: a crossing shut two miles away must not sit below forty
   // distant TxDOT rows just because a different operator reported it
   el.innerHTML = rows.length
-    ? `<div class="section-title">${esc(t('roads.live.title'))}</div>` + feedNote +
+    ? `<div class="section-title">${esc(t('roads.live.title'))}</div>` + feedNote + watchNote +
       (state.roadsPartial ? `<div class="rcv-note">${esc(t('road.partial'))}</div>` : '') +
       (unconf.length ? `<div class="rcv-note">${esc(t('cross.unconfirmed').replace('{n}', unconf.length))}</div>` : '') +
       rows.map(roadsRowHtml).join('') +
       `<div class="resource-item" style="border:none"><a href="https://drivetexas.org/" target="_blank" rel="noopener">${esc(t('cross.drivetx'))}</a></div>`
     // E1: with a feed down and nothing cached, "none reported" would be a failed fetch published as
     // a value. Each empty state names the feed that actually failed rather than a generic outage.
-    : `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : state.crossingsUnknown ? 'roads.xunknown'
+    : watchNote + `<div class="rcv-none">${esc(t(state.roadsUnknown ? 'roads.unknown' : state.crossingsUnknown ? 'roads.xunknown'
       : state.crossStatusUnknown ? 'roads.jurunknown'
         : crossUncovered() ? 'roads.nocross' : 'roads.none'))}</div>`;
   el.querySelectorAll('.road-row[data-lat]').forEach((d) => d.addEventListener('click', (ev) => {
-    if (ev.target.closest('a')) return;
+    if (ev.target.closest('a') || ev.target.closest('.watch-star')) return;
     state.map.setView([+d.dataset.lat, +d.dataset.lon], 13);
+  }));
+  el.querySelectorAll('.watch-star').forEach((b) => b.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    watchToggle('roads', b.getAttribute('data-watch-id'));
+    state.roadsTabFp = null;
+    renderRoadsTab();
+  }));
+  el.querySelectorAll('[data-watch-drop]').forEach((b) => b.addEventListener('click', () => {
+    watchDrop('roads', audit.absent);
+    state.roadsTabFp = null;
+    renderRoadsTab();
   }));
 }
 

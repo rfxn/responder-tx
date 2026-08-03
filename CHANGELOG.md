@@ -1,5 +1,25 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.84 · 2026-08-02 (one road identity, live feed or snapshot)
+
+-- Bug Fixes --
+- [Fix] Roads: a closure starred while the TxDOT feed was down is found again when
+      the feed returns, instead of being reported as absent from the closure list.
+      Closures sharing a route are tracked separately, so starring one no longer
+      stars the rest
+- [Fix] Roads: a watched road is reported gone only when the source that covers it
+      answered, and the unstar control is offered only for rows that were checked
+- [Fix] Roads: the tab could fail to render at all when no hazards were listed
+- [Fix] Roads: a closure whose limits change now repaints instead of leaving a star
+      on the wrong row
+- [Fix] Watchlist notices read correctly for a single item, in English and Spanish
+
+-- Changes --
+- [Change] Gauges: the Watching header appears only when it has rows; the notices
+         below account for the rest
+- [Change] Gauges: opening a starred gauge from the map no longer expands the whole
+         normal gauge fold
+
 ## v0.99.83 · 2026-08-02 (the rows you are watching stay at the top)
 
 -- New Features --

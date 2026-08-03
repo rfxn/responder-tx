@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.84",
+      "date": "2026-08-02",
+      "line": "A road starred while the TxDOT feed was down is found again when the feed returns, and closures sharing a route are tracked separately. A watched road is reported gone only when the source covering it answered. Watchlist notices read correctly for a single item, in English and Spanish."
+    },
+    {
       "v": "v0.99.83",
       "date": "2026-08-02",
       "line": "A star on each Gauges and Roads row pins that row to the top of its tab. When a row you are watching is not on screen, the tab says whether the view filter is hiding it, it is no longer in the data, or a source did not answer."

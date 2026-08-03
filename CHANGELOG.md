@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.89 · 2026-08-03 (map markers follow a live language switch)
+
+-- Bug Fixes --
+- [Fix] Switching language kept the old language on the wildfire, River Sentry siren
+      and coastal station map markers, including the labels a screen reader reads.
+      All three now repaint with the rest of the board
+
 ## v0.99.88 · 2026-08-03 (coastal stations map from the list, calm ones fold away)
 
 -- New Features --

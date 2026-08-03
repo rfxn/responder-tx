@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.89",
+      "date": "2026-08-03",
+      "line": "Switching language now repaints the wildfire, River Sentry siren and coastal station map markers, so their labels, including the ones a screen reader reads, no longer stay in the old language."
+    },
+    {
       "v": "v0.99.88",
       "date": "2026-08-03",
       "line": "Tide station names in Coastal water levels are now tappable: a tap turns on a new station layer and frames that station on the map with its level, surge residual and trend. Stations steady within half a foot of the predicted tide fold away behind a count; a station that could not be read, or that has no prediction, is never folded."

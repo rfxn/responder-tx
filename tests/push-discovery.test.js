@@ -22,13 +22,89 @@ const BOOT = read('js/boot.js');
 const HTML = read('index.html');
 const CSS = read('css/app.css');
 
-const { pushCardVisible, pushCardState, pushEntryStateKey } = loadApp();
+const APP = loadApp();
+const { pushCardVisible, pushCardState, pushEntryStateKey } = APP;
+const SB = APP._sandbox;
 
 // the same environment facts pushEnvFacts() reports, for a capable browser that never opted in
 const facts = (over = {}) => ({
   ios: false, standalone: false, secure: true, hasSW: true, hasPush: true, hasNotif: true,
   permission: 'default', subscribed: false, flagged: false, ...over,
 });
+
+/* ---------- the card as the browser really paints it ----------
+
+   renderPushCard() is what a resident actually meets, and a regex over js/board.js cannot tell a
+   drawn card from one that throws on its first paint. That is how a whole layer shipped dead in
+   v0.99.79 behind six green source-text assertions, so every claim below about the card's markup
+   is read off markup the shipped function emitted. */
+
+// browser environments, not fact bags: pushEnvFacts() reads each one back out for itself
+const PUSH_DEVICE = {
+  off: { permission: 'default', subscribed: false, hasPush: true },
+  on: { permission: 'granted', subscribed: true, hasPush: true },
+  blocked: { permission: 'denied', subscribed: false, hasPush: true },
+  ios: { permission: 'default', subscribed: false, hasPush: false, ua: 'iPhone' },
+  unsupported: { permission: 'default', subscribed: false, hasPush: false },
+};
+
+// the accordion rows are the only nodes the card looks up on itself; answering them out of markup
+// it really emitted stops a row it has quietly dropped from being faked back into existence
+function pushHost() {
+  const host = {
+    innerHTML: '', firstChild: true, taps: {}, asked: [],
+    querySelectorAll(sel) {
+      if (sel !== '.push-sec[data-sec]') return [];
+      return [...host.innerHTML.matchAll(/push-sec" data-sec="([a-z]+)"/g)].map(([, key]) => ({
+        getAttribute: (a) => (a === 'data-sec' ? key : null),
+        addEventListener: (ev, fn) => { if (ev === 'click') host.taps[key] = fn; },
+      }));
+    },
+  };
+  return host;
+}
+
+/* Renders `device` once and returns the host. Only the selectors passed in `nodes` are answered;
+   everything else resolves to null, so a node the card starts needing shows up as a change here
+   rather than as a mock that agrees with anything. `body(host)` may tap panes open, and must carry
+   its own assertions: the cleanup closes whatever is left open, since pushSection is module state
+   every test in this file shares. */
+function renderCard(device, { prefs = {}, nodes = {} } = {}, body) {
+  const d = PUSH_DEVICE[device];
+  const keep = { qs: SB.document.querySelector, notif: SB.Notification, pm: SB.PushManager,
+    secure: SB.isSecureContext, sw: SB.navigator.serviceWorker, ua: SB.navigator.userAgent };
+  SB.isSecureContext = true;
+  SB.navigator.serviceWorker = {};
+  SB.navigator.userAgent = d.ua || 'Mozilla/5.0';
+  SB.Notification = { permission: d.permission };
+  if (d.hasPush) SB.PushManager = function PushManager() {}; else delete SB.PushManager;
+  SB.localStorage.setItem('respondertx.push', JSON.stringify({ on: d.subscribed, prefs }));
+  const host = pushHost();
+  const reg = Object.assign({ '#push-body': host }, nodes);
+  // A control the card draws inside itself resolves only once it has really drawn it: in a browser
+  // that lookup runs after #push-body was overwritten, so answering unconditionally would hide a
+  // control that stopped being emitted.
+  const drawn = (sel) => sel === '#push-body' || !/^#push-/.test(sel)
+    || host.innerHTML.includes(`id="${sel.slice(1)}"`);
+  SB.document.querySelector = (s) => {
+    host.asked.push(s);
+    return Object.prototype.hasOwnProperty.call(reg, s) && drawn(s) ? reg[s] : null;
+  };
+  try {
+    SB.renderPushCard();
+    if (body) body(host);
+    return host;
+  } finally {
+    const open = host.innerHTML.match(/data-sec="([a-z]+)" aria-expanded="true"/);
+    if (open) host.taps[open[1]]();
+    SB.document.querySelector = () => null; // so the preselect reset cannot reopen the sheet
+    SB.pushOpenManageFor('');
+    SB.document.querySelector = keep.qs; SB.Notification = keep.notif;
+    SB.isSecureContext = keep.secure; SB.navigator.serviceWorker = keep.sw; SB.navigator.userAgent = keep.ua;
+    if (keep.pm === undefined) delete SB.PushManager; else SB.PushManager = keep.pm;
+    SB.localStorage.removeItem('respondertx.push'); // the bundle is cached across tests in this file
+  }
+}
 
 /* ---------- who can find the card ---------- */
 
@@ -70,13 +146,48 @@ test('a subscribed device gets its card, and therefore its off switch, in every 
     assert.equal(pushCardVisible(facts({ ...over, subscribed: true })), true);
     assert.equal(pushCardVisible(facts({ ...over, subscribed: true, flagged: true })), true);
   }
-  // and the toggle really is rendered for the two toggleable states
-  const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
-  assert.match(render, /const toggleable = st === 'on' \|\| st === 'off';/);
-  assert.match(render, /toggleable \? `<button type="button" class="act-btn push-toggle"/);
-  assert.match(render, /push\.toggle\.off/, 'the off label must still be reachable from the card');
-  const manageHtml = BOARD.match(/function pushManageHtml\(prefs\)[\s\S]*?\n\}/)[0];
-  assert.match(manageHtml, /id="push-unsub-all"/, 'the manage view keeps its everything-off action');
+});
+
+/* Reaching the card is half of it; the off switch has to be drawn on it, wired to the action that
+   matches the state. The states that cannot be toggled out of get no switch at all, because a
+   button that cannot do anything is worse than the sentence explaining why. */
+test('the off switch is drawn and correctly wired in exactly the two toggleable states', () => {
+  const tapped = (device) => {
+    const btn = { addEventListener(ev, fn) { if (ev === 'click') btn.fn = fn; } };
+    const html = renderCard(device, { nodes: { '#push-toggle': btn } }).innerHTML;
+    return { html, fn: btn.fn };
+  };
+
+  const on = tapped('on');
+  assert.match(on.html, /class="act-btn push-toggle" id="push-toggle">push\.toggle\.off</,
+    'a subscribed device must be offered the off label');
+  assert.equal(on.fn, SB.pushDisable, 'the switch on a subscribed device must turn alerts off');
+
+  const off = tapped('off');
+  assert.match(off.html, /class="act-btn push-toggle" id="push-toggle">push\.toggle\.on</);
+  assert.equal(off.fn, SB.pushEnable, 'the switch on an unsubscribed device must be the one enable path');
+
+  for (const device of ['blocked', 'ios', 'unsupported']) {
+    const dead = tapped(device);
+    assert.ok(!dead.html.includes('push-toggle'), `${device} cannot be toggled, so it must not draw a switch`);
+    assert.equal(dead.fn, undefined, `${device} wired a click handler onto a switch it never drew`);
+    assert.match(dead.html, new RegExp(`class="push-fix">push\\.fix\\.${device}<`),
+      `${device} must say what the fix is, since the switch is not it`);
+  }
+});
+
+test('the everything-off action is reachable from the followed-gauges pane', () => {
+  const keep = APP.state.gauges;
+  APP.state.gauges = [{ lid: 'SRRT2', name: 'San Marcos at Luling', latitude: 29.68, longitude: -97.65 }];
+  try {
+    renderCard('on', { prefs: { scope: 'statewide', gauges: [{ lid: 'SRRT2', tier: 'major' }] } }, (host) => {
+      assert.ok(!host.innerHTML.includes('push-unsub-all'), 'the pane starts collapsed');
+      assert.ok(host.taps.gauges, 'the card drew no followed-gauges row to open');
+      host.taps.gauges();
+      assert.match(host.innerHTML, /id="push-unsub-all"/, 'the manage view keeps its everything-off action');
+      assert.match(host.innerHTML, /San Marcos at Luling/, 'a followed gauge must be listed by name');
+    });
+  } finally { APP.state.gauges = keep; }
 });
 
 test('only a real local subscription counts as subscribed, never a truthy stand-in', () => {
@@ -125,7 +236,9 @@ test('Notification.requestPermission is reachable from exactly one place, and on
   }
   assert.ok(!/(?<!function )pushEnable\s*\(/.test(BOARD), 'pushEnable is invoked directly somewhere; the prompt must ride a gesture');
 
-  // making the card visible must not enable anything by itself
+  // Deliberately textual: this is a whole-body claim about paths NOT taken, and one render can
+  // only ever show that one branch stayed quiet. Executing every branch is what the render tests
+  // above do; this one has to read the body.
   const initFn = BOARD.match(/async function initPushCard\(\)[\s\S]*?\n\}/)[0];
   const renderFn = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
   for (const [name, src] of [['initPushCard', initFn], ['renderPushCard', renderFn]]) {
@@ -159,8 +272,6 @@ test('one header door to the notify sheet, with the call-to-action riding the ge
     'a second alert-setup opener is back; openNotifySheet is the only one');
 
   // the dot is a claim that this device can subscribe, so only the card that checked may raise it
-  assert.match(BOARD, /if \(window\.setAlertsCta\) setAlertsCta\(st === 'off'\)/,
-    "the dot must track the push card's own state, and only its 'off' state");
   assert.equal((BOARD.match(/setAlertsCta\(/g) || []).length, 1, 'the dot is set from more than the card render');
   // swapping the key attributes alone would leave the live button stale: applyI18n() scopes to
   // descendants, so the gear itself is never re-read until a full-document pass
@@ -172,13 +283,52 @@ test('one header door to the notify sheet, with the call-to-action riding the ge
   assert.match(cta, /btn\.setAttribute\('aria-label', t\(ariaKey\)\)/, 'the swapped aria-label must be painted immediately');
 
   // every door lands on the same sheet, so alert setup has one destination
-  const manage = BOARD.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
-  assert.ok(manage, 'pushOpenManageFor() not found');
-  assert.match(manage[0], /openNotifySheet\('gauges'\)/, 'the Notify me bell must open the notify sheet');
   for (const wiring of [/\$\('#notify-btn'\)\.addEventListener\('click', \(\) => openNotifySheet\(\)\)/,
     /\$\('#alerts-notify-row'\)\.addEventListener\('click', \(\) => openNotifySheet\(\)\)/]) {
     assert.match(BOOT, wiring, 'an entry point lost its opener');
   }
+});
+
+/* The gauge-popup bell used to click its way to the Resources tab. It now opens the same sheet as
+   every other door, and it has to arrive with the requested gauge already in reach: a picker that
+   opens on eight nearby gauges and not the one that was tapped is a dead end with extra steps. */
+test('the gauge-popup bell opens the sheet on the followed-gauges pane with that gauge pinned', () => {
+  const keep = APP.state.gauges;
+  APP.state.gauges = [
+    { lid: 'GRDT2', name: 'Guadalupe at Gonzales', latitude: 29.50, longitude: -97.45 },
+    { lid: 'SRRT2', name: 'San Marcos at Luling', latitude: 29.68, longitude: -97.65 },
+  ];
+  const sheet = { hidden: true };
+  try {
+    renderCard('on', { prefs: { scope: 'statewide' }, nodes: { '#notify-sheet': sheet } }, (host) => {
+      assert.ok(!host.innerHTML.includes('data-lid='), 'the picker must start collapsed');
+      host.asked.length = 0;
+      SB.pushOpenManageFor('srrt2');
+      assert.equal(sheet.hidden, false, 'the bell must open the notify sheet');
+      assert.match(host.innerHTML, /data-sec="gauges" aria-expanded="true"/,
+        'it must land on the followed-gauges pane, not on the pane the card was last left on');
+      assert.match(host.innerHTML, /class="push-g-row push-nearby-row preselect" data-lid="SRRT2"/,
+        'the requested gauge must be pinned, and marked as the one that was asked for');
+      assert.ok(host.innerHTML.indexOf('data-lid="SRRT2"') < host.innerHTML.indexOf('data-lid="GRDT2"'),
+        'the pinned gauge must lead the picker');
+      assert.deepEqual(host.asked.filter((s) => /\btabs?\b|\.tabs/.test(s)), [],
+        'the bell reached for a tab; alert setup has one destination');
+    });
+  } finally { APP.state.gauges = keep; }
+});
+
+test('rendering the card raises the gear dot only where this device could actually subscribe', () => {
+  const keep = SB.setAlertsCta;
+  const raised = [];
+  SB.setAlertsCta = (on) => raised.push(on);
+  try {
+    for (const device of ['off', 'on', 'blocked', 'ios', 'unsupported']) {
+      raised.length = 0;
+      renderCard(device, { prefs: { scope: 'statewide' } });
+      assert.equal(raised.length, 1, `${device} must publish the dot exactly once per render`);
+      assert.equal(raised[0], device === 'off', `${device} sets the dot to ${raised[0]}`);
+    }
+  } finally { if (keep === undefined) delete SB.setAlertsCta; else SB.setAlertsCta = keep; }
 });
 
 /* The card was the largest thing in a 300px-wide, 418px-tall settings panel it shared with five
@@ -246,9 +396,35 @@ test('the Alerts tab carries a persistent row that cannot be repainted away', ()
     'the row must sit above the list its own renderer replaces wholesale');
   // hidden until the card proves a backend exists: a row into an empty sheet is a dead end
   assert.match(tab, /id="alerts-notify-row"[^>]*hidden/, 'the row must start hidden, not asserted on load');
-  assert.match(BOARD, /function pushSyncEntries\(cardState, deliversAny\)/, 'the entry-row updater is gone');
-  assert.match(BOARD, /pushSyncEntries\(st, delivers\.any\)/,
-    'renderPushCard must publish its own state to the entry rows');
+});
+
+/* The row ships hidden, so only a render can reveal it, and what it reveals has to be the state the
+   card itself just committed to. `entry-quiet` is the one case the phone CSS hides: a device that is
+   already delivering does not need a second entry point above its alert list. */
+test('a render reveals the entry rows and publishes the card state onto them', () => {
+  const entries = () => {
+    const classes = new Set();
+    return {
+      '#notify-state': { textContent: '' },
+      '#alerts-notify-sub': { textContent: '' },
+      '#alerts-notify-row': { hidden: true, classes, classList: { toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)) } },
+    };
+  };
+
+  for (const [device, prefs, key, quiet] of [
+    ['on', { scope: 'statewide', ffe: true }, 'push.state.on', true],
+    ['on', { scope: 'none' }, 'push.state.silent', false],
+    ['off', {}, 'push.state.off', false],
+    ['blocked', {}, 'push.state.blocked', false],
+  ]) {
+    const nodes = entries();
+    renderCard(device, { prefs, nodes });
+    const row = nodes['#alerts-notify-row'];
+    assert.equal(row.hidden, false, `${device}/${key} left the Alerts-tab row hidden`);
+    assert.equal(nodes['#alerts-notify-sub'].textContent, key, `${device} published the wrong state`);
+    assert.equal(nodes['#notify-state'].textContent, ` · ${key}`, 'the gear row must carry the same claim');
+    assert.equal(row.classes.has('entry-quiet'), quiet, `${device}/${key} got the wrong entry-quiet verdict`);
+  }
 });
 
 /* v0.99.65: a subscription that can deliver nothing must never wear the green ON. The rework
@@ -288,8 +464,6 @@ test('the short unreachable state reads as unchecked, not as off, in both langua
 /* The row sits above the alert list that is the reason the tab is open, so on a phone it holds one
    line at the touch floor and cannot grow, and it steps aside for a device already delivering. */
 test('the Alerts-tab notify row is one fixed 44px line on a phone', () => {
-  assert.match(BOARD, /row\.classList\.toggle\('entry-quiet', cardState === 'on' && deliversAny\)/,
-    'the row must publish the already-delivering case the CSS hides on a phone');
   const mobile = CSS.slice(CSS.indexOf('/* ---- the Alerts-tab Notify me entry row ---- */'),
     CSS.indexOf('/* ---- the Notify me sheet ---- */'));
   assert.match(mobile, /@media \(max-width: 768px\)/, 'the compaction must be phone-scoped');
@@ -305,11 +479,17 @@ test('the Alerts-tab notify row is one fixed 44px line on a phone', () => {
 /* ---------- the promise stays honest ---------- */
 
 test('the card still carries the best-effort framing, unweakened, on every render', () => {
-  const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
-  // unconditional: not inside an `on ?` or `st === ... ?` branch that a first-time visitor misses
-  assert.match(render, /`<div class="push-note">\$\{esc\(t\('push\.note'\)\)\}<\/div>` \+/);
-  assert.match(render, /push\.disclaimer/, 'the full disclaimer paragraph left the card');
-  assert.match(render, /push\.sub/, 'the what-you-get paragraph left the card');
+  // every state a resident can arrive in, including the ones a first-time visitor lands on
+  for (const device of ['off', 'on', 'blocked', 'ios', 'unsupported']) {
+    for (const prefs of [{}, { scope: 'statewide', ffe: true }]) {
+      const html = renderCard(device, { prefs }).innerHTML;
+      assert.match(html, /<div class="push-note">push\.note<\/div>/,
+        `${device} dropped the compact honesty line`);
+      assert.match(html, /<div class="push-sub">push\.sub<\/div>/, `${device} dropped the what-you-get paragraph`);
+      assert.match(html, /<div class="push-disclaimer">push\.disclaimer<\/div>/,
+        `${device} dropped the full disclaimer paragraph`);
+    }
+  }
 
   for (const lang of ['en', 'es']) {
     const note = I18N[lang]['push.note'];

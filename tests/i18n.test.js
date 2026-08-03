@@ -424,21 +424,10 @@ test('the Team shortcut is gone from markup, wiring, and both languages', () => 
   }
 });
 
-test('the Notify me entry point opens the alerts surface, not the Resources tab', () => {
-  const board = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
-  const m = board.match(/function pushOpenManageFor\(lid\)[\s\S]*?\n\}/);
-  assert.ok(m, 'pushOpenManageFor() not found in js/board.js');
-  assert.ok(/openNotifySheet\('gauges'\)/.test(m[0]),
-    'the gauge bell must open the notify sheet on the followed-gauges pane');
-  assert.ok(!/\.tabs button/.test(m[0]), 'pushOpenManageFor still clicks a tab');
-  // the three resolvers of #push-body must all still find it in its new home
-  for (const fn of ['renderPushCard', 'initPushCard']) {
-    const f = board.match(new RegExp(`function ${fn}\\(\\)[\\s\\S]*?\\n\\}`));
-    assert.ok(f, `${fn}() not found`);
-    assert.ok(/\$\('#push-body'\)/.test(f[0]), `${fn}() no longer resolves #push-body`);
-  }
-  assert.ok(/async function pushBootSync\(\)/.test(board), 'pushBootSync() not found in js/board.js');
-});
+/* The Notify me routing used to be asserted here as source text, including a loop checking that
+   renderPushCard() and initPushCard() each CONTAIN the string $('#push-body'). It now lives in
+   tests/push-discovery.test.js, which renders the card into a #push-body recorder and opens the
+   sheet through pushOpenManageFor(), so the selector question answers itself. */
 
 test('i18n: the settings sheet keys exist in both languages', () => {
   const keys = ['ctl.settings', 'ctl.settings.title', 'ctl.settings.aria',

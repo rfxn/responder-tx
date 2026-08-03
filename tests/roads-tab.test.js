@@ -16,6 +16,117 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const HTML = read('index.html').replace(/<!--[\s\S]*?-->/g, '');
 const I18N = require('./i18n-load.js');
 
+const { loadApp, loadHeaderStatus } = require('./harness.js');
+const app = loadApp();
+const SB = app._sandbox;
+const ST = app.state; // `state` is a lexical const in core.js, reachable only through the export
+const { crossingStale, crossingAgeH, CROSSING_STALE_H, roadsTabRows, roadsRowHtml } = app;
+
+const iso = (h) => new Date(Date.now() - h * 3600000).toISOString();
+
+let hdrCache = null;
+const hdr = () => (hdrCache || (hdrCache = loadHeaderStatus()));
+
+/* ---------- running the shipped client rather than reading it ----------
+   Road closures are a life-safety surface: a render that throws on first paint answers nothing at
+   all, and an assertion against the TEXT of js/panels.js cannot tell the difference. Everything
+   below that can be called is called. `withDom` answers ONLY the selectors a test registered, so a
+   host the render forgot returns null and fails the test instead of being invented for it. */
+
+function stubEl(id) {
+  const classes = new Set();
+  const el = {
+    id: id || '', innerHTML: '', textContent: '', hidden: false, value: '', title: '',
+    style: {}, dataset: {}, options: [], children: [], clicks: 0, rows: {},
+    classList: {
+      add: (c) => classes.add(c),
+      remove: (c) => classes.delete(c),
+      toggle: (c, on) => { if (on) classes.add(c); else classes.delete(c); },
+      contains: (c) => classes.has(c),
+    },
+    classes,
+    querySelector() { return null; },
+    querySelectorAll(sel) { return el.rows[sel] || []; },
+    addEventListener() {}, appendChild(c) { el.children.push(c); }, insertAdjacentHTML() {},
+    setAttribute() {}, getAttribute() { return null; }, add(o) { el.options.push(o); },
+    click() { el.clicks++; },
+  };
+  return el;
+}
+
+function withDom(nodes, fn) {
+  const prev = SB.document.querySelector;
+  SB.document.querySelector = (sel) => (Object.prototype.hasOwnProperty.call(nodes, sel) ? nodes[sel] : null);
+  try { return fn(); } finally { SB.document.querySelector = prev; }
+}
+
+// a row the render can wire a click onto, and the test can then fire
+function stubRow(lat, lon) {
+  const bound = {};
+  return {
+    dataset: { lat: String(lat), lon: String(lon) },
+    addEventListener(ev, fn) { bound[ev] = fn; },
+    tap(hit) { bound.click({ target: { closest: (s) => (s === hit ? {} : null) } }); },
+  };
+}
+
+// Leaflet stand-in that keeps every factory call, so icon html, popups and attribution stay readable
+function recordingL() {
+  const made = [];
+  const factory = (kind) => (...args) => {
+    const rec = { kind, args, popup: null };
+    made.push(rec);
+    return { bindPopup(p) { rec.popup = p; return this; }, addTo() { return this; }, on() { return this; } };
+  };
+  const L = { made, of: (kind) => made.filter((m) => m.kind === kind) };
+  for (const k of ['divIcon', 'marker', 'circleMarker', 'geoJSON', 'canvas', 'layerGroup', 'polyline', 'polygon']) {
+    L[k] = factory(k);
+  }
+  return L;
+}
+
+function withL(fn) {
+  const L = recordingL();
+  const prev = SB.L;
+  SB.L = L;
+  try { fn(L); } finally { SB.L = prev; }
+  return L;
+}
+
+// the harness stubs t() as a key echo, which swallows {n}/{t} substitution; assertions about the
+// rendered claim run against the real en table
+function withEn(fn) {
+  const saved = SB.t;
+  SB.t = (k) => (typeof I18N.en[k] === 'string' ? I18N.en[k] : k);
+  try { return fn(); } finally { SB.t = saved; }
+}
+
+function setRoadsState(o) {
+  ST.crossings = o.crossings || [];
+  ST.crossStatus = o.crossStatus || null;
+  ST.roadClosures = o.roadClosures || { lines: [], points: [] };
+  ST.myPos = o.myPos || null;
+  ST.map = o.map || null;
+  ST.roadsTabFp = null;
+  ST.roadsFallbackAt = o.roadsFallbackAt || null;
+  ST.roadsUnknown = o.roadsUnknown === true;
+  ST.crossingsUnknown = o.crossingsUnknown === true;
+  ST.crossStatusUnknown = o.crossStatusUnknown === true;
+  ST.roadsPartial = o.roadsPartial === true;
+}
+
+// runs the shipped renderRoadsTab() and hands back what it painted
+function paintRoads(o) {
+  setRoadsState(o);
+  const body = stubEl('crossings-body');
+  const badge = stubEl('roads-count');
+  Object.assign(body.rows, o.rows || {});
+  withDom({ '#crossings-body': body, '#roads-count': badge }, () => SB.renderRoadsTab());
+  return { html: body.innerHTML, badge: badge.textContent, body };
+}
+
+const emptyState = (o) => (paintRoads(o).html.match(/rcv-none">([^<]*)</) || [])[1];
+
 test('the Resources slot is a Roads tab that counts its own hazard content', () => {
   assert.ok(!/data-tab="tab-resources"/.test(HTML), 'the Resources tab button is still declared');
   assert.ok(!/id="tab-resources"/.test(HTML), 'the Resources tab body is still declared');
@@ -31,34 +142,71 @@ test('the Resources slot is a Roads tab that counts its own hazard content', () 
   assert.ok(body.includes('id="crossings-body"'), 'low-water crossings must live in Roads');
   assert.ok(!/tab-sub/.test(HTML), 'no tab should need a paragraph to explain what it holds');
 
-  const panels = read('js/panels.js');
-  const fn = panels.match(/function renderRoadsTab\(\)[\s\S]*?\n\}/);
-  assert.ok(fn && /#roads-count/.test(fn[0]), 'renderRoadsTab must keep the Roads badge current');
-  assert.match(fn[0], /badge\.textContent = badgeText\(live\.length, roadsKnown\)/,
-    'the badge counts the tab\'s live rows, and says "?" rather than zero when a feed never answered');
+  // the badge is the tab's own live-row count, and says "?" rather than zero when a feed never answered
+  const closure = { name: 'Curated fresh', status: 'closed', lat: 30.1, lon: -97.8, updated_at: iso(2) };
+  assert.equal(paintRoads({ crossings: [closure] }).badge, '1', 'the badge must count the live rows the tab renders');
+  assert.equal(paintRoads({}).badge, '0', 'every feed read and nothing to report is a real zero');
+  assert.equal(paintRoads({ roadsUnknown: true }).badge, '?', 'a feed that never answered must not read as zero closures');
+
   // reopened roads render as a sibling of the crossings host, so they land in Roads with them
-  assert.match(panels, /const host = \$\('#crossings-body'\)/, 'reopened roads must anchor to the crossings host');
+  const host = stubEl('crossings-body');
+  const inserted = [];
+  host.parentNode = { insertBefore: (node, before) => inserted.push({ node, before }) };
+  host.nextSibling = { after: 'crossings' };
+  const made = [];
+  const prevCreate = SB.document.createElement;
+  SB.document.createElement = () => { const n = stubEl(); made.push(n); return n; };
+  ST.roadMemory = null;
+  SB.localStorage.clear();
+  try {
+    withDom({ '#crossings-body': host, '#reopened-roads': null }, () => SB.renderReopenedRoads());
+  } finally { SB.document.createElement = prevCreate; }
+  assert.equal(made.length, 1, 'renderReopenedRoads must build its own host');
+  assert.equal(made[0].id, 'reopened-roads');
+  assert.equal(inserted.length, 1, 'the host must be placed in the DOM, not left detached');
+  assert.equal(inserted[0].node, made[0]);
+  assert.equal(inserted[0].before, host.nextSibling, 'reopened roads must anchor to the crossings host');
 });
 
-test('a tide is a water-level reading, so it renders in Gauges and is absent inland', () => {
+test('a tide is a water-level reading, so it renders in Gauges and is absent inland', async () => {
   const gauges = HTML.slice(HTML.indexOf('id="tab-gauges"'), HTML.indexOf('id="tab-roads"'));
   assert.ok(gauges.includes('id="tides-body"'), '#tides-body must live in the Gauges tab');
   assert.equal((HTML.match(/id="tides-body"/g) || []).length, 1);
 
+  // both lazy-fetch call sites live inside boot(), which the harness cannot run; see the file note
   const boot = read('js/boot.js');
   assert.ok(/b\.dataset\.tab === 'tab-gauges'\) loadTides\(\)/.test(boot), 'the lazy tide fetch must follow the Gauges tab');
   assert.ok(/\$\('#tab-gauges'\)\.classList\.contains\('active'\)\) loadTides\(\)/.test(boot),
     'the refresh loop must keep tides live off the Gauges tab');
   assert.ok(!/tab-resources/.test(boot), 'js/boot.js still references the dissolved tab');
 
-  // inland event: absent, not an empty host that still carries fetch hooks
-  const panels = read('js/panels.js');
-  const fn = panels.match(/function renderTides\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderTides() not found');
-  assert.match(fn[0], /el\.innerHTML = ''; el\.hidden = true; return;/,
-    'with no configured stations the tide host must be hidden, not left as an empty div');
-  const load = read('js/sources.js').match(/async function loadTides\(\)[\s\S]*?\n\}/);
-  assert.match(load[0], /if \(!coopStations\(\)\.length\)/, 'loadTides must not fetch with no stations configured');
+  const stations = app.CONFIG.tideStations;
+  const host = stubEl('tides-body');
+  const toggle = stubEl('tides-toggle');
+  const fetched = [];
+  const prevFetch = SB.fetch;
+  SB.fetch = (u) => { fetched.push(String(u)); return Promise.reject(new Error('network disabled in tests')); };
+  try {
+    // inland event: absent, not an empty host that still carries fetch hooks
+    app.CONFIG.tideStations = [];
+    ST.tides = null;
+    ST.tidesLoading = false;
+    withDom({ '#tides-body': host, '#tides-toggle': toggle }, () => SB.renderTides());
+    assert.equal(host.innerHTML, '', 'with no configured stations the tide host must be emptied');
+    assert.equal(host.hidden, true, 'and hidden, not left as an empty div');
+    await withDom({ '#tides-body': host, '#tides-toggle': toggle }, () => SB.loadTides());
+    assert.deepEqual(fetched, [], 'loadTides must not fetch with no stations configured');
+
+    app.CONFIG.tideStations = [{ id: '8770613', name: 'Morgans Point' }];
+    withDom({ '#tides-body': host, '#tides-toggle': toggle }, () => SB.renderTides());
+    assert.equal(host.hidden, false, 'a coastal event must show the card');
+    assert.match(host.innerHTML, /tides\.title/, 'and paint it, not just unhide an empty host');
+  } finally {
+    app.CONFIG.tideStations = stations;
+    SB.fetch = prevFetch;
+    ST.tides = null;
+    ST.tidesLoading = false;
+  }
 });
 
 test('source health is the detail behind the data-age bar, not a content section', () => {
@@ -66,6 +214,7 @@ test('source health is the detail behind the data-age bar, not a content section
   const modal = HTML.slice(HTML.indexOf('id="health-modal"'), HTML.indexOf('id="help-sheet"'));
   assert.ok(modal.includes('id="source-health"'), 'the chip row must live inside #health-modal');
 
+  // this wiring is built inside boot(), which the harness cannot run; see the file note
   const boot = read('js/boot.js');
   assert.match(boot, /const openFeedHealth = \(\) => \{ renderSourceHealth\(\); \$\('#health-modal'\)\.hidden = false; \}/,
     'the detail must open in place');
@@ -77,11 +226,15 @@ test('source health is the detail behind the data-age bar, not a content section
     'opening feed health must not switch tabs');
 
   // the freshness slot is a permanent entry point now that no tab hosts feed health
-  for (const re of [/function setFeedNote\(short, detail\)[\s\S]*?\n\}/, /function setFeedNoteHealthy\(html\)[\s\S]*?\n\}/]) {
-    const m = boot.match(re);
-    assert.ok(m, `${re} did not match a writer in js/boot.js`);
-    assert.match(m[0], /setAttribute\('role', 'button'\)/, 'the writer must leave the slot tappable');
-    assert.match(m[0], /setAttribute\('tabindex', '0'\)/, 'the writer must leave the slot keyboard reachable');
+  const h = hdr();
+  const slot = h.node('#refresh-note');
+  for (const [name, write] of [['setFeedNote', () => h.setFeedNote('note.degraded', 'note.degraded.detail NWPS')],
+    ['setFeedNoteHealthy', () => h.setFeedNoteHealthy('<span class="fresh-dot fresh"></span>')]]) {
+    slot.removeAttribute('role');
+    slot.removeAttribute('tabindex');
+    write();
+    assert.equal(slot.getAttribute('role'), 'button', `${name} must leave the slot tappable`);
+    assert.equal(slot.getAttribute('tabindex'), '0', `${name} must leave the slot keyboard reachable`);
   }
 });
 
@@ -94,24 +247,72 @@ test('shelters and hotlines are promoted out of position 6 of 8', () => {
   assert.ok(menu.indexOf('id="shelters-btn"') < menu.indexOf('id="theme-toggle"'),
     'the shelters row must lead the settings sheet, not trail the preferences');
 
-  const panels = read('js/panels.js');
-  const count = panels.match(/function openShelterCount\(\)[\s\S]*?\n\}/);
-  assert.ok(count, 'openShelterCount() not found');
-  // v0.98.0 asserted `=== 'open'` appears here, which the `!sh.live ||` short-circuit satisfied
-  // while counting every curated entry regardless of status. Assert the reading, not its spelling.
-  assert.match(count[0], /shelterOpen\(sh\)/, 'both paths must read status through shelterOpen()');
-  assert.ok(!/!sh\.live \|\|/.test(count[0]),
-    'the !sh.live short-circuit counted curated entries whatever their status');
-  assert.match(count[0], /curatedSheltersStale/, 'the curated list must be aged against its own stamp');
-  assert.match(count[0], /mergeShelters/, 'the chip must count the same merged list the sheet renders');
-  assert.ok(!/fetch\(/.test(count[0]), 'the chip must not introduce a new fetch');
-  // shelters are help, not a hazard: the count must never sit in the hazard surfaces at all
-  const strip = panels.match(/function renderThreatStrip\(\)[\s\S]*?\n\}/);
-  assert.ok(!/[Ss]helter/.test(strip[0]),
-    'the shelter count must stay out of the threat strip, which now carries only the all-clear');
+  /* v0.98.0 asserted `=== 'open'` appeared in openShelterCount(), which the `!sh.live ||`
+     short-circuit satisfied while counting every curated entry regardless of status. Count. */
+  const curated = ['open', 'closed', 'standby', 'full'].map((status, i) => ({ name: status, status, lat: 30 + i / 10, lon: -98 }));
+  const savedRes = ST.resources;
+  const savedLive = ST.sheltersLive;
+  const fetched = [];
+  const prevFetch = SB.fetch;
+  SB.fetch = (u) => { fetched.push(String(u)); return Promise.reject(new Error('network disabled in tests')); };
+  try {
+    ST.sheltersLive = null;
+    ST.resources = { shelters: curated, generated: iso(1) };
+    assert.equal(app.curatedSheltersStale(), false, 'setup: a one-hour-old curated list is inside its window');
+    assert.equal(app.openShelterCount(), 1, 'only an entry listed open counts; standby, full and closed never do');
+
+    ST.resources = { shelters: curated, generated: iso(app.SHELTER_CURATED_STALE_H + 1) };
+    assert.equal(app.curatedSheltersStale(), true, 'setup: the curated list is now past its window');
+    assert.equal(app.openShelterCount(), 0, 'a curated list past its confirmation window asserts nothing');
+    assert.equal(app.unconfirmedShelterCount(), 1, 'and the suppressed entry is reported, not dropped');
+
+    // the live feed carries its own status, so it counts while the curated list is aged out
+    ST.sheltersLive = { shelters: [{ name: 'live open', status: 'OPEN', live: true, lat: 31, lon: -99 },
+      { name: 'live closed', status: 'closed', live: true, lat: 31.1, lon: -99.1 }] };
+    assert.equal(app.openShelterCount(), 1, 'the chip counts the same merged list the sheet renders');
+    assert.deepEqual(fetched, [], 'the chip must not introduce a new fetch');
+  } finally {
+    ST.resources = savedRes;
+    ST.sheltersLive = savedLive;
+    SB.fetch = prevFetch;
+  }
+
+  // shelters are help, not a hazard: the count must stay out of the hazard surfaces in every state
+  const strip = stubEl('threat-strip');
+  strip.rows['[data-hero]'] = [];
+  const savedGauges = ST.gauges;
+  const savedAlerts = ST.alerts;
+  const savedLoaded = ST.alertsLoadedOnce;
+  const painted = [];
+  try {
+    setRoadsState({});
+    ST.alertsLoadedOnce = true;
+    ST.gauges = [];
+    ST.alerts = [];
+    withDom({ '#threat-strip': strip }, () => SB.renderThreatStrip());
+    painted.push(strip.innerHTML);
+    ST.gauges = [{ latitude: 30, longitude: -98, status: {} }];
+    withDom({ '#threat-strip': strip }, () => SB.renderThreatStrip());
+    painted.push(strip.innerHTML);
+    ST.alerts = [{ id: 'a1', properties: { event: 'Flash Flood Warning', severity: 'Severe', urgency: 'Immediate',
+      ends: new Date(Date.now() + 3600000).toISOString(), areaDesc: 'Kerr, TX', headline: 'x', parameters: {} } }];
+    withDom({ '#threat-strip': strip }, () => SB.renderThreatStrip());
+    painted.push(strip.innerHTML);
+  } finally {
+    ST.gauges = savedGauges;
+    ST.alerts = savedAlerts;
+    ST.alertsLoadedOnce = savedLoaded;
+  }
+  assert.match(painted[0], /class="strip-ok"/, 'setup: the generic all-clear');
+  assert.match(painted[1], /strip-ok quiet/, 'setup: the scoped all-clear');
+  assert.match(painted[2], /hero-card/, 'setup: the hero cards');
+  for (const html of painted) {
+    assert.ok(!/shelter/i.test(html), 'the shelter count must stay out of the threat strip');
+  }
 });
 
 test('the monitor link farm left the client entirely', () => {
+  // an absence sweep has no executable form: the point is that no file mentions these at all
   for (const f of ['js/panels.js', 'js/boot.js', 'js/core.js', 'index.html', 'css/app.css']) {
     const src = read(f);
     for (const token of ['renderMonitors', 'monitor-body', 'monitorGroupHtml', 'showMonitors', 'mon-toggle']) {
@@ -130,38 +331,73 @@ test('the outbound source and recovery link lists moved to the share surface', (
   const sheet = HTML.slice(HTML.indexOf('id="share-sheet"'), HTML.indexOf('id="notes-flyout"'));
   assert.ok(sheet.includes('id="datalinks-body"'), '#datalinks-body must live in the Share surface');
   assert.ok(sheet.includes('data-i18n="res.sources"'), 'the group needs a clear label');
-  const panels = read('js/panels.js');
-  const fn = panels.match(/function renderResources\(\)[\s\S]*?\n  state\.layers\.shelters\.clearLayers\(\);/);
-  assert.ok(fn, 'renderResources() not found');
-  assert.match(fn[0], /\$\('#datalinks-body'\)/, 'the link lists must render into their own host');
-  assert.ok(!/res\.data|res\.recovery/.test(fn[0].slice(0, fn[0].indexOf("$('#datalinks-body')"))),
-    'the shelter host must no longer carry the link lists');
+
+  const savedRes = ST.resources;
+  const savedLive = ST.sheltersLive;
+  const savedLayer = ST.layers.shelters;
+  const drawn = [];
+  const body = stubEl('resources-body');
+  const links = stubEl('datalinks-body');
+  try {
+    ST.sheltersLive = null;
+    ST.resources = {
+      hotlines: [{ name: 'Hotline', value: '512-555-1212', note: 'n' }],
+      shelters: [{ name: 'S1', address: 'a', note: 'n', status: 'open', lat: 30, lon: -98 }],
+      dataLinks: [{ label: 'DL', url: 'https://example.test/data' }],
+      recoveryLinks: [{ label: 'RL', url: 'https://example.test/recovery' }],
+      generated: iso(1),
+    };
+    ST.layers.shelters = { clearLayers() { drawn.length = 0; }, addLayer(l) { drawn.push(l); } };
+    withDom({ '#resources-body': body, '#datalinks-body': links, '#recovery-toggle': null, '#recovery-view': null },
+      () => SB.renderResources());
+  } finally {
+    ST.resources = savedRes;
+    ST.sheltersLive = savedLive;
+    ST.layers.shelters = savedLayer;
+  }
+  assert.match(links.innerHTML, /res\.data/, 'the link lists must render into their own host');
+  assert.ok(links.innerHTML.includes('https://example.test/data'), 'and carry the actual links');
+  assert.match(links.innerHTML, /res\.recovery/, 'including the recovery group');
+  assert.ok(!/res\.data|res\.recovery/.test(body.innerHTML), 'the shelter host must no longer carry the link lists');
+  assert.match(body.innerHTML, /res\.hotlines/, 'setup: the shelter host still renders what it kept');
+  assert.equal(drawn.length, 1, 'and still draws the shelter markers');
 });
 
 /* Deep links are the whole risk of this move. ?tab=resources is in the wild, and ?tab=monitor was
    already shimmed to it, so the alias must resolve transitively rather than one hop. */
+
+// runs the shipped restoreViewState() over a saved view and reports which tab button it clicked
+function restoredTab(savedTab) {
+  SB.localStorage.setItem('respondertx.view', JSON.stringify({ tab: savedTab }));
+  const nodes = {};
+  for (const sel of ['#flt-type', '#flt-window', '#flt-dist', '#flt-q', '#flt-sort',
+    '#flt-alert-sev', '#flt-alert-q', '#req-filters']) nodes[sel] = stubEl(sel.slice(1));
+  const buttons = {};
+  for (const name of ['roads', 'gauges', 'resources', 'monitor']) {
+    buttons[name] = stubEl(name);
+    nodes[`.tabs button[data-tab="tab-${name}"]`] = buttons[name];
+  }
+  ST.map = null;
+  withDom(nodes, () => SB.restoreViewState());
+  return Object.keys(buttons).filter((k) => buttons[k].clicks).join(',');
+}
+
 test('?tab= and saved views survive both renames, transitively', () => {
-  const board = read('js/board.js');
-  const table = board.match(/const TAB_ALIASES = \{[^}]*\}/);
-  assert.ok(table, 'TAB_ALIASES not found in js/board.js');
-  assert.match(table[0], /monitor: 'resources'/, 'the ?tab=monitor shim must survive');
-  assert.match(table[0], /resources: 'roads'/, 'the ?tab=resources hop is missing');
+  assert.equal(SB.resolveTabName('monitor'), 'roads', 'the two-hop legacy link must land on Roads');
+  assert.equal(SB.resolveTabName('resources'), 'roads');
+  assert.equal(SB.resolveTabName('roads'), 'roads');
+  assert.equal(SB.resolveTabName('gauges'), 'gauges', 'an unaliased tab must pass through untouched');
+  assert.equal(SB.resolveTabName(undefined), '', 'a missing tab must not throw');
 
-  const fn = board.match(/function resolveTabName\(name\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'resolveTabName() not found');
-  const ctx = { TAB_ALIASES: {} };
-  // eslint-disable-next-line no-new-func
-  const resolve = new Function(`${table[0]}; ${fn[0]}; return resolveTabName;`)();
-  assert.equal(resolve('monitor'), 'roads', 'the two-hop legacy link must land on Roads');
-  assert.equal(resolve('resources'), 'roads');
-  assert.equal(resolve('roads'), 'roads');
-  assert.equal(resolve('gauges'), 'gauges', 'an unaliased tab must pass through untouched');
-  assert.equal(resolve(undefined), '', 'a missing tab must not throw');
+  // a saved view runs through the same table, all the way to the button it actually clicks
+  assert.equal(restoredTab('tab-monitor'), 'roads', 'a view saved under the first name must restore to Roads');
+  assert.equal(restoredTab('tab-resources'), 'roads', 'and one saved under the second name too');
+  assert.equal(restoredTab('tab-roads'), 'roads');
+  assert.equal(restoredTab('tab-gauges'), 'gauges', 'an unaliased saved tab must restore to itself');
 
+  // ?tab= is read inline in boot(), which the harness cannot run; see the file note
   assert.match(read('js/boot.js'), /tabParam = resolveTabName\(tabParam\)/, '?tab= must run through the alias table');
-  const restore = board.match(/function restoreViewState\(\)[\s\S]*?\n\}/);
-  assert.match(restore[0], /resolveTabName\(vtab\.slice\(4\)\)/, 'a saved view must run through the same table');
-  // and both former call sites moved with the tab
+  // js/team.js is in no harness bundle
   assert.match(read('js/team.js'), /button\[data-tab="tab-roads"\]/, 'the team tab-order anchor did not move');
 });
 
@@ -182,9 +418,6 @@ test('i18n: every string this release introduced exists in both languages', () =
    counts that both suppress a sensor they cannot vouch for. data/crossings.json was eight days old
    and the badge read 5. Per-row staleness already existed; the badge made the claim before the
    qualification was reachable. */
-
-const { loadApp } = require('./harness.js');
-const { crossingStale, crossingAgeH, CROSSING_STALE_H } = loadApp();
 
 const xAgo = (h, status) => ({ status: status || 'closed', updated_at: new Date(Date.now() - h * 3600000).toISOString() });
 const roadsBadgeCount = (list) => list.filter((c) => c.status !== 'open').filter((c) => !crossingStale(c)).length;
@@ -214,17 +447,35 @@ test('an all-stale crossing file yields a badge of zero, and the rows still exis
 });
 
 test('the Roads tab surfaces the suppressed count instead of letting it vanish', () => {
-  const panels = read('js/panels.js');
-  const fn = panels.match(/function renderRoadsTab\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderRoadsTab() not found');
-  assert.match(fn[0], /t\('cross\.unconfirmed'\)/, 'the panel must say how many were excluded');
-  const cross = panels.match(/function renderCrossings\(\)[\s\S]*?\n\}/);
-  assert.match(cross[0], /crossing-icon\$\{c\.stale \? ' unconfirmed' : ''\}/,
-    'a stale crossing marker must be visually distinct from a current one');
+  const list = [
+    { name: 'fresh', status: 'closed', lat: 30.1, lon: -97.8, updated_at: iso(1) },
+    { name: 'stale', status: 'closed', lat: 30.2, lon: -97.9, updated_at: iso(200) },
+    { name: 'stale two', status: 'caution', lat: 30.3, lon: -98.0, updated_at: iso(300) },
+  ];
+  const painted = withEn(() => paintRoads({ crossings: list }));
+  assert.equal(painted.badge, '1', 'setup: one row of three can still be vouched for');
+  const note = (painted.html.match(/<div class="rcv-note">([^<]*)<\/div>/) || [])[1];
+  assert.ok(note, 'the panel must say how many rows were excluded');
+  assert.ok(note.startsWith('2 '), `the note must carry the real count, said "${note}"`);
+  assert.ok(!painted.html.includes('{n}'), 'the count placeholder must be substituted, not printed');
+
+  // a stale crossing marker must be visually distinct from a current one
+  const drawn = withL(() => {
+    ST.layers.crossings = { clearLayers() {}, addLayer() {} };
+    setRoadsState({ crossings: list });
+    withDom({ '#crossings-body': stubEl('crossings-body'), '#roads-count': stubEl('roads-count'),
+      '#reopened-roads': stubEl('reopened-roads') }, () => SB.renderCrossings());
+  });
+  const icons = drawn.of('divIcon').map((m) => m.args[0].html);
+  assert.equal(icons.length, 3, 'every crossing must be drawn, current or not');
+  assert.ok(!/unconfirmed/.test(icons[0]), 'a current crossing carries no unconfirmed mark');
+  assert.ok(icons.slice(1).every((h) => /unconfirmed/.test(h)), 'a stale crossing marker must say so');
+
   for (const lang of ['en', 'es']) {
     assert.ok(I18N[lang]['cross.unconfirmed'], `${lang} missing cross.unconfirmed`);
     assert.ok(I18N[lang]['cross.unconfirmed'].includes('{n}'), `${lang} cross.unconfirmed lost its count placeholder`);
   }
+  // css is not executable here; the class the marker just rendered has to exist somewhere
   const css = read('css/app.css');
   assert.match(css, /\.crossing-icon\.unconfirmed \{/, 'the unconfirmed marker style is missing');
 });
@@ -234,23 +485,6 @@ test('the Roads tab surfaces the suppressed count instead of letting it vanish',
    second, off-by-default one, so a tab named Roads could read a low single digit while dozens of
    road hazards were live. All three provenances now list in the tab, each naming its operator,
    and the badge counts what the tab shows as live. */
-
-const app = loadApp();
-const SB = app._sandbox;
-const ST = app.state; // `state` is a lexical const in core.js, reachable only through the export
-const { roadsTabRows, roadsRowHtml } = app;
-
-const iso = (h) => new Date(Date.now() - h * 3600000).toISOString();
-
-function setRoadsState(o) {
-  ST.crossings = o.crossings || [];
-  ST.crossStatus = o.crossStatus || null;
-  ST.roadClosures = o.roadClosures || { lines: [], points: [] };
-  ST.myPos = o.myPos || null;
-  ST.roadsTabFp = null;
-  ST.roadsFallbackAt = o.roadsFallbackAt || null;
-  ST.roadsUnknown = o.roadsUnknown === true;
-}
 
 const txdotLine = (route, condition, lat, lon) => ({
   type: 'Feature',
@@ -300,24 +534,18 @@ test('every provenance reaches the Roads tab, and each row names its own operato
 });
 
 test('the Roads badge equals the rows the tab renders as live, and nothing unconfirmed inflates it', () => {
-  setRoadsState({ ...FIXTURE, myPos: { lat: 30.2, lng: -97.9 } });
-  const el = { innerHTML: '', querySelectorAll: () => [] };
-  const badge = { textContent: '' };
-  const prev = SB.document.querySelector;
-  SB.document.querySelector = (s) => (s === '#crossings-body' ? el : s === '#roads-count' ? badge : prev(s));
-  try { SB.renderRoadsTab(); } finally { SB.document.querySelector = prev; }
-
-  const rendered = (el.innerHTML.match(/class="resource-item road-row/g) || []).length;
-  const unconfirmed = (el.innerHTML.match(/class="resource-item road-row unconfirmed/g) || []).length;
+  const painted = paintRoads({ ...FIXTURE, myPos: { lat: 30.2, lng: -97.9 } });
+  const rendered = (painted.html.match(/class="resource-item road-row/g) || []).length;
+  const unconfirmed = (painted.html.match(/class="resource-item road-row unconfirmed/g) || []).length;
   assert.equal(rendered, 5, 'the tab renders every hazard row it holds');
-  assert.equal(+badge.textContent, rendered - unconfirmed, 'the badge is the live rows the tab renders');
-  assert.equal(+badge.textContent, 3, 'two TxDOT conditions plus the one confirmable curated closure');
+  assert.equal(+painted.badge, rendered - unconfirmed, 'the badge is the live rows the tab renders');
+  assert.equal(+painted.badge, 3, 'two TxDOT conditions plus the one confirmable curated closure');
   assert.equal(unconfirmed, 2, 'the stale curated row and the jurisdiction row are listed, not counted');
-  assert.ok(el.innerHTML.includes('cross.unconfirmed'), 'the tab must say how many rows it is not counting');
+  assert.ok(painted.html.includes('cross.unconfirmed'), 'the tab must say how many rows it is not counting');
 
   // one distance-ordered list, not one group per feed: the fix sits on the stale curated crossing,
   // so that row leads even though it is the one row the badge does not count
-  const order = [...el.innerHTML.matchAll(/class="resource-item road-row( unconfirmed)?"/g)].map((m) => !m[1]);
+  const order = [...painted.html.matchAll(/class="resource-item road-row( unconfirmed)?"/g)].map((m) => !m[1]);
   assert.deepEqual(order, Array.from(roadsTabRows(), (r) => r.live), 'the rendered order must be the sorted order');
   assert.equal(order[0], false, 'a nearby unconfirmed closure must not be exiled below distant live rows');
 });
@@ -378,15 +606,35 @@ test('a row with no coordinates is still listed, it just cannot be focused', () 
 });
 
 test('tapping a Roads row focuses it on the map the way the reopened rows do', () => {
-  const panels = read('js/panels.js');
-  const fn = panels.match(/function renderRoadsTab\(\)[\s\S]*?\n\}/)[0];
-  assert.match(fn, /querySelectorAll\('\.road-row\[data-lat\]'\)/, 'mapped rows must be wired for focus');
-  assert.match(fn, /state\.map\.setView\(\[\+d\.dataset\.lat, \+d\.dataset\.lon\]/, 'a tap must focus the row on the map');
-  assert.match(fn, /ev\.target\.closest\('a'\)/, 'the source link must not hijack the row tap');
-  assert.match(fn, /ev\.target\.closest\('\.watch-star'\)/, 'nor may the watch star, which sits inside the row');
-  // and the block v0.99.36 fixed is untouched: reopened roads still render into their own sibling host
-  assert.match(panels, /el\.id = 'reopened-roads'/, 'the reopened-roads host must survive');
-  assert.match(panels, /function renderCrossings\(\)[\s\S]*?renderReopenedRoads\(\);/, 'reopenings still render with the crossings');
+  const closure = { name: 'Nearby closure', status: 'closed', lat: 30.11, lon: -97.81, updated_at: iso(1) };
+  const wired = stubRow(closure.lat, closure.lon);
+  const views = [];
+  const painted = paintRoads({ crossings: [closure], map: { setView: (...a) => views.push(a) },
+    rows: { '.road-row[data-lat]': [wired] } });
+  assert.ok(painted.html.includes('data-lat="30.11"'), 'a mapped row must carry the map target the handler reads');
+
+  wired.tap(null);
+  assert.equal(views.length, 1, 'a tap must focus the row on the map');
+  assert.deepEqual(Array.from(views[0][0]), [30.11, -97.81], 'and focus it at the row coordinates');
+  assert.equal(views[0][1], 13);
+  wired.tap('a');
+  assert.equal(views.length, 1, 'the source link must not hijack the row tap');
+  wired.tap('.watch-star');
+  assert.equal(views.length, 1, 'nor may the watch star, which sits inside the row');
+  wired.tap(null);
+  assert.equal(views.length, 2, 'setup: the handler is still live after both guards');
+
+  // and the block v0.99.36 fixed is untouched: reopenings still render with the crossings
+  let reopened = 0;
+  const prevReopen = SB.renderReopenedRoads;
+  SB.renderReopenedRoads = () => { reopened++; };
+  try {
+    ST.layers.crossings = { clearLayers() {}, addLayer() {} };
+    setRoadsState({ crossings: [closure] });
+    withL(() => withDom({ '#crossings-body': stubEl('crossings-body'), '#roads-count': stubEl('roads-count') },
+      () => SB.renderCrossings()));
+  } finally { SB.renderReopenedRoads = prevReopen; }
+  assert.equal(reopened, 1, 'renderCrossings must still drive the reopened list');
 });
 
 test('the empty tab says so instead of rendering nothing at all', () => {
@@ -403,11 +651,22 @@ test('the empty tab says so instead of rendering nothing at all', () => {
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
   assert.equal(I18N.en['roads.src.txdot'], I18N.es['roads.src.txdot']);
-  // "none" is only reachable when BOTH feeds were actually read: a TxDOT outage and an unreadable
-  // crossing list each get their own empty state naming the feed that failed
-  assert.match(read('js/panels.js'),
-    /t\(state\.roadsUnknown \? 'roads\.unknown' : state\.crossingsUnknown \? 'roads\.xunknown'\s*\n?\s*: state\.crossStatusUnknown \? 'roads\.jurunknown'\s*\n?\s*: crossUncovered\(\) \? 'roads\.nocross' : 'roads\.none'\)/,
-    'the empty state must render the string, and only claim "none" when all three feeds were read AND the area is inside crossing coverage');
+
+  // "none" is only reachable when every feed was actually read AND the area is inside crossing
+  // coverage: each other case names the feed that failed instead
+  const here = { lat: 28.46, lng: -98.18 };
+  const nearOpen = { name: 'open nearby', status: 'open', lat: 28.5, lon: -98.2, updated_at: iso(1) };
+  const farOpen = { name: 'open far', status: 'open', lat: 30.1, lon: -97.8, updated_at: iso(1) };
+  assert.equal(emptyState({ crossings: [nearOpen], myPos: here }), 'roads.none');
+  assert.equal(emptyState({ crossings: [farOpen], myPos: here }), 'roads.nocross',
+    'a coverage hole must not wear the words of an all-clear');
+  assert.equal(emptyState({ roadsUnknown: true }), 'roads.unknown');
+  assert.equal(emptyState({ crossingsUnknown: true }), 'roads.xunknown');
+  assert.equal(emptyState({ crossStatusUnknown: true }), 'roads.jurunknown');
+  assert.equal(emptyState({ roadsUnknown: true, crossingsUnknown: true, crossStatusUnknown: true }), 'roads.unknown',
+    'a down closure feed is named ahead of the crossing feeds');
+  assert.equal(emptyState({ crossingsUnknown: true, crossStatusUnknown: true }), 'roads.xunknown');
+
   for (const lang of ['en', 'es']) {
     const s = I18N[lang]['roads.xunknown'];
     assert.ok(typeof s === 'string' && s.length, `${lang} missing roads.xunknown`);
@@ -477,11 +736,24 @@ test('a load that hits the ceiling says it is partial instead of under-reporting
   assert.equal(r.partial, true, 'the layer must know it is incomplete');
   assert.deepEqual(r.notices, ['lwc.partial'], 'and must say so');
 
-  const src = read('js/sources.js');
-  assert.match(src, /state\.lwcPartial \? `\$\{LWC_ATTRIB\} · \$\{t\('lwc\.partial'\)\}` : LWC_ATTRIB/,
-    'the map attribution must carry the partial claim, not just a dismissable toast');
-  assert.match(src, /state\.lwcPartial \? `<div class="popup-meta"><span class="xg-stale">\$\{esc\(t\('lwc\.partial'\)\)\}/,
-    'each crossing popup must repeat that the layer is partial');
+  // the partial claim has to reach the map, not just a dismissable toast
+  const savedLayer = ST.layers.lwc;
+  const feature = { geometry: { coordinates: [-98.1, 30.1] }, properties: { road: 'CR 1', county: 'Kerr' } };
+  const paintLwc = () => withL(() => {
+    ST.layers.lwc = { clearLayers() {}, addLayer() {} };
+    SB.renderLwc([feature]);
+  }).of('circleMarker')[0];
+  try {
+    ST.lwcPartial = false;
+    const whole = paintLwc();
+    assert.equal(whole.args[1].attribution, 'Low-water crossings: TxGIO (Texas Geographic Information Office)');
+    assert.ok(!/lwc\.partial/.test(whole.popup()), 'a complete layer must not claim it is partial');
+    ST.lwcPartial = true;
+    const part = paintLwc();
+    assert.match(part.args[1].attribution, /· lwc\.partial$/, 'the map attribution must carry the partial claim');
+    assert.match(part.popup(), /xg-stale">lwc\.partial/, 'each crossing popup must repeat that the layer is partial');
+  } finally { ST.layers.lwc = savedLayer; ST.lwcPartial = false; }
+
   for (const lang of ['en', 'es']) {
     assert.ok(I18N[lang]['lwc.partial'] && !I18N[lang]['lwc.partial'].includes('—'), `${lang} lwc.partial`);
   }
@@ -543,11 +815,23 @@ test('a truncated closure set is declared partial and never diffed into reopenin
   assert.deepEqual(Object.keys(app.roadMemory().seen), [],
     'a truncated set must not seed the memory the reopened diff is built from');
 
-  const src = read('js/sources.js');
-  assert.match(src, /state\.roadsPartial \? `\$\{ROAD_ATTRIB\} · \$\{t\('road\.partial'\)\}`/,
-    'the map attribution must carry the partial claim, not just a dismissable toast');
-  assert.match(read('js/panels.js'), /state\.roadsPartial \? `<div class="rcv-note">\$\{esc\(t\('road\.partial'\)\)\}/,
-    'the Roads tab must repeat that the closure list is partial');
+  // the partial claim has to reach the map attribution and the tab, not just a dismissable toast
+  const lines = [{ properties: { route_name: 'FM0126', condition: 'Flooding', from_limit: 'a', to_limit: 'b' },
+    geometry: { type: 'LineString', coordinates: [[-98, 30], [-98.1, 30.1]] } }];
+  const savedLayer = ST.layers.roadClosures;
+  const paintClosures = () => withL(() => {
+    ST.layers.roadClosures = { clearLayers() {}, addLayer() {} };
+    SB.renderRoadClosures();
+  }).of('geoJSON')[0];
+  try {
+    setRoadsState({ roadClosures: { lines, points: [] } });
+    assert.equal(paintClosures().args[1].attribution, 'Road conditions: TxDOT DriveTexas / TDEM (drivetexas.org)');
+    setRoadsState({ roadClosures: { lines, points: [] }, roadsPartial: true });
+    assert.match(paintClosures().args[1].attribution, /· road\.partial$/, 'the map attribution must carry the partial claim');
+  } finally { ST.layers.roadClosures = savedLayer; }
+  assert.match(paintRoads({ roadClosures: { lines, points: [] }, roadsPartial: true }).html,
+    /<div class="rcv-note">road\.partial<\/div>/, 'the Roads tab must repeat that the closure list is partial');
+
   for (const lang of ['en', 'es']) {
     assert.ok(I18N[lang]['road.partial'] && !I18N[lang]['road.partial'].includes('—'), `${lang} road.partial`);
   }
@@ -638,14 +922,6 @@ async function runRoadsFallback(snap, opts) {
   return { threw, healthy, closures: ST.roadClosures, fallbackAt: ST.roadsFallbackAt, unknown: ST.roadsUnknown };
 }
 
-// the harness stubs t() as a key echo, which swallows {n}/{t} substitution; these assertions are
-// about the rendered claim, so they run against the real en table
-function withEn(fn) {
-  const saved = SB.t;
-  SB.t = (k) => (typeof I18N.en[k] === 'string' ? I18N.en[k] : k);
-  try { return fn(); } finally { SB.t = saved; }
-}
-
 const snapshotBody = (ageMin, roads) => ({
   generated: new Date(Date.now() - ageMin * 60000).toISOString(),
   roads: roads || [{ id: 1, cond: 'Flooding', route: 'FM0481', desc: '- Water over roadway', start: iso(3), end: null, v: [29.9, -98.4] }],
@@ -704,7 +980,8 @@ test('fallback rows are marked as a snapshot and stay out of the live Roads coun
     }
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
-  assert.match(read('js/panels.js'), /roads\.snapshot\.note/, 'the Roads tab must head the list with the snapshot claim');
+  assert.match(paintRoads({ roadClosures: r.closures, roadsFallbackAt: r.fallbackAt }).html,
+    /rcv-note">roads\.snapshot\.note/, 'the Roads tab must head the list with the snapshot claim');
 });
 
 test('a served fallback never paints the live closure source healthy', async () => {
@@ -714,12 +991,10 @@ test('a served fallback never paints the live closure source healthy', async () 
   assert.ok(!r.healthy.includes('roads'),
     'marking roads healthy off a snapshot would hide the outage the way the USGS silence was hidden');
   assert.ok(r.threw, 'fetchRoadClosures must reject so the refresh loop counts roads among the failed sources');
+  assert.ok(r.fallbackAt, 'and the fallback must have rendered before that rejection, never be swallowed by it');
 
   // the rejection is what puts roads in the degraded list, so that wiring must stay
-  const boot = read('js/boot.js');
-  assert.match(boot, /REFRESH_SOURCE_KEYS = \[[^\]]*'health\.roads'/, 'roads must stay named in the degraded detail');
-  assert.match(read('js/sources.js'), /await hydrateRoadsSnapshot\(\);\s*\n\s*throw e;/,
-    'the fallback must render and then re-throw, never swallow the live failure');
+  assert.ok(hdr().REFRESH_SOURCE_KEYS.includes('health.roads'), 'roads must stay named in the degraded detail');
 });
 
 test('snapshot closures never enter the reopened diff', async () => {
@@ -772,9 +1047,25 @@ test('a missing or unreadable snapshot is reported as unknown, never as zero clo
   for (const lang of ['en', 'es']) {
     assert.match(I18N[lang]['roads.unknown'], /desconoc|unknown/i, `${lang} must say the set is unknown`);
   }
+
   // an unknown closure set must also stop the board claiming an all-clear over it
-  assert.match(read('js/panels.js'), /!state\.roadClosures \|\| state\.roadsUnknown\) return false;/,
-    'quietState must refuse an all-clear while the closure set is unknown');
+  const savedGauges = ST.gauges;
+  const savedAlerts = ST.alerts;
+  try {
+    ST.gauges = [{ latitude: 30, longitude: -98, status: {} }];
+    ST.alerts = [];
+    setRoadsState({});
+    assert.equal(app.quietState(), true, 'setup: a closure set that was read and is empty can carry an all-clear');
+    ST.roadsUnknown = true;
+    assert.equal(app.quietState(), false, 'quietState must refuse an all-clear while the closure set is unknown');
+    ST.roadsUnknown = false;
+    ST.roadClosures = null;
+    assert.equal(app.quietState(), false, 'and while there is no closure set at all');
+  } finally {
+    ST.gauges = savedGauges;
+    ST.alerts = savedAlerts;
+    setRoadsState({});
+  }
 });
 
 test('a recovered live fetch stands the snapshot claim down', async () => {
@@ -794,14 +1085,25 @@ test('a recovered live fetch stands the snapshot claim down', async () => {
    crossing hazards are reported in this area right now" to a county under that warning. A coverage
    hole must not wear the words of an all-clear. */
 test('outside crossing coverage the tab says crossings are unknown, not clear', () => {
-  const src = read('js/panels.js');
-  assert.match(src, /function crossUncovered\(\)/, 'coverage must be decided in code, not assumed');
-  const fn = src.slice(src.indexOf('function crossUncovered()'), src.indexOf('function renderRoadsTab'));
-  assert.match(fn, /crossingList\(\)/, 'coverage reads the curated list through its accessor');
-  assert.match(fn, /state\.crossStatus/, 'and off the jurisdiction feed');
-  assert.match(fn, /distMi/, 'measured by real distance rather than a hardcoded region');
-  assert.match(fn, /if \(!pts\.length\) return false/,
+  const nueces = { lat: 28.46, lng: -98.18 };
+  const near = (extra) => Object.assign({ name: 'near', status: 'closed', lat: 28.5, lon: -98.2 }, extra);
+  const far = (extra) => Object.assign({ name: 'far', status: 'closed', lat: 30.1, lon: -97.8 }, extra);
+  const uncovered = (o) => { setRoadsState(o); return SB.crossUncovered(); };
+
+  assert.equal(uncovered({}), false,
     'with nothing loaded the unknown states already speak; this must not double-claim');
+  assert.equal(uncovered({ crossings: [far({ updated_at: iso(1) })], myPos: nueces }), true,
+    'the nearest crossing record 98 mi away is a coverage hole, measured by real distance');
+  assert.equal(uncovered({ crossings: [near({ updated_at: iso(1) })], myPos: nueces }), false);
+  assert.equal(uncovered({ crossings: [near({ updated_at: iso(500) })], myPos: nueces }), false,
+    'a stale row still proves the curated feed reaches here');
+  assert.equal(uncovered({ crossStatus: { crossings: [near({ changed: iso(2) })] }, myPos: nueces }), false,
+    'and the jurisdiction feed counts as coverage on its own');
+  assert.equal(uncovered({ crossStatus: { crossings: [far({ changed: iso(2) })] }, myPos: nueces }), true);
+  assert.equal(uncovered({ crossings: [far({ updated_at: iso(1) })], map: { getCenter: () => nueces } }), true,
+    'with no fix the map centre is the reference');
+  assert.equal(uncovered({ crossings: [far({ updated_at: iso(1) })] }), false,
+    'with neither a fix nor a map there is nothing to measure from');
 
   for (const lang of ['en', 'es']) {
     const s = I18N[lang]['roads.nocross'];

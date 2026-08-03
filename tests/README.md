@@ -159,11 +159,87 @@ markup, `history/index.json`) stays fine: it costs the upstream APIs nothing.
 ## How it works
 
 The app ships `js/*.js` as classic browser `<script>` files that share one global
-scope — not modules. `harness.js` reads those files **verbatim** (never edits
+scope, not modules. `harness.js` reads those files **verbatim** (never edits
 them), concatenates the ones under test, and evaluates the combined source once
 in a Node `vm` sandbox stocked with minimal mock browser globals (`document`,
-`localStorage`, a Leaflet `L` stub, etc.). Only the pure functions are exercised;
-nothing that needs a live DOM or Leaflet map is called.
+`localStorage`, a Leaflet `L` stub, etc.).
+
+Four loaders, in increasing order of how much of the app they start:
+
+| loader | what it gives you |
+|---|---|
+| `loadApp()` | core + usng + playback + sources + cameras + **panels** + board |
+| `loadMapApp()` | the same, with **map.js** in place of panels.js (they are mutually exclusive) |
+| `loadWiredMap()` | a private bundle with `initMap()` actually **run**: `fire('overlayadd', { layer: layers.wildfire })` executes the shipped handler, `spyOn('fetchX')` records the call |
+| `loadHeaderStatus()` | core..board plus **boot.js**, against a DOM that records `classList` and attribute writes |
+
+`._sandbox` exposes every top-level `function` **declaration** on the sandbox
+global, so `loadApp()._sandbox.renderRoadsTab()` calls the shipped function with
+no harness change. A top-level `const NAME = () =>` is lexical and is NOT on the
+sandbox: it has to be named in `EXPORTS` / `PANEL_EXPORTS` / `MAP_EXPORTS`.
+
+Gotchas that have each cost a release:
+
+- The harness `t()` **echoes the key back**, so `t('x').replace('{n}', v)`
+  substitutes nothing. Override `sandbox.t` when asserting on interpolated
+  output, and restore it in a `finally`.
+- The module-level `L` is a Proxy that returns **itself**, so every drawn layer
+  compares equal to every other one. To assert draw order, kind or options, swap
+  in a recording `L` (see `drawWith()` in `wildfire.test.js`).
+  `loadWiredMap()` already hands out distinct layer objects.
+- A recording DOM must **not** answer `querySelector` with a live stub
+  unconditionally. That exact mistake let a missing star element pass in
+  v0.99.83. Register the selectors you deliberately provide and return `null`
+  for the rest, so a node the shipped code starts needing fails loudly.
+- `loadApp()` / `loadMapApp()` are **cached** and shared by every test in a file.
+  Restore anything you mutate in a `finally`. `loadWiredMap()` is per call.
+- Arrays built inside the sandbox come from a different realm, so
+  `assert.deepEqual` fails on the prototype. Re-home them with `Array.from`.
+
+## The source-text budget
+
+`source-text-budget.test.js` holds two committed numbers and fails if either
+grows. `source-text-scan.js` computes them, and prints both when run directly:
+
+```
+node tests/source-text-scan.js
+```
+
+A **source-text assertion** is an `assert.*(...)` whose FIRST argument (the
+subject under assertion) is project-file text rather than a value the app
+produced. Concretely, the subject either contains a call to a file-reading
+helper (any `const`/`function` in the test file that wraps `readFileSync`), or
+names a binding whose initializer does, transitively. `assert.match(src, /../)`
+and the extract-a-body-then-regex variant
+(`const fn = src.slice(src.indexOf('function f'), ...)`) both count. Deliberately
+NOT counted: a subject wrapped in `JSON.parse(...)` (a parsed artifact is data,
+not source text), a function-valued binding (its parameters shadow, and callers
+assert on its RESULT), and an object-literal key that happens to be spelled like
+a source variable.
+
+An **unexecuted test** is a `test()` block with at least one assertion in which
+EVERY assertion is source-text. Those would still pass if the feature under test
+were deleted. A test that regexes source AND also runs the code is not counted:
+mixing the two is not the failure mode.
+
+Both numbers may only go **down**. Lowering one is a normal part of converting a
+suite, and the test prints the number to lower it to. Raising one is a decision
+someone has to make in a diff, on purpose.
+
+Known limits, so nobody reads the number as exact: the contents of template
+literals are masked before analysis, so text that arrives through an
+interpolation (`out.push(\`${src.slice(a, b)}\`)`) is not tracked; scope is
+approximated by nearest preceding declaration, so one name reused for two
+different files resolves by position rather than by block; and reads of `css/`,
+`index.html`, `scripts/*.py` and shipped JSON are counted but have no executing
+alternative in the node suite, which is why the scan prints the executable-`js/`
+subset separately. It is a budget, not a proof.
+
+Why it exists: v0.99.79 shipped the wildfire layer completely dead behind six
+green tests, every one of them `assert.match(source_text, /.../)`. A string
+existing in a file proves nothing about whether the code runs, and it also breaks
+spuriously, one of those six broke in the next release when a COMMENT was edited.
+See the CLAUDE.md section "A source-text assertion is a lint, not a test".
 
 ## Coverage
 
@@ -183,7 +259,10 @@ Focused on the guarantees the board makes, not a coverage number:
 - **`board.js` — `smartScore` / `shortId`**: priority-weighted half-life feed
   ranking and the stable radio-speakable `R-###` id derivation.
 
-Deliberately **not** unit-tested here (need a full Leaflet map / live DOM, would
-require brittle over-stubbing): `buildShareUrl` / `applyShareParams`, alert/gauge
-rendering, and anything touching `state.map`. Regenerate the USNG ground truth
-with `python3 -c "import mgrs; print(mgrs.MGRS().toMGRS(LAT, LON))"`.
+Render paths, popup builders and map event wiring ARE exercised, through
+`loadWiredMap()` and a recording `L`: `buildShareUrl`, the layer sheet, the
+overlay lazy-loads and the wildfire/gauge marker rendering all run for real.
+Still out of reach from node: anything in `js/boot.js`, `js/team.js`,
+`js/notes.js`, `js/chat.js` or `sw.js` outside the `loadHeaderStatus()` bundle,
+and anything whose answer depends on real layout. Regenerate the USNG ground
+truth with `python3 -c "import mgrs; print(mgrs.MGRS().toMGRS(LAT, LON))"`.

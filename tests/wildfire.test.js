@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { loadApp, loadMapApp } = require('./harness.js');
+const { loadApp, loadMapApp, loadWiredMap } = require('./harness.js');
 
 const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -150,39 +150,80 @@ test('the empty state is an honest sentence, and a failed source can never produ
   assert.equal(withData({ generated: hoursAgo(0.1), sources: SOURCES, fires: [FIRE] }, wildfireNoticeText), '');
 });
 
-test('the lazy fetch treats an absent list as unreadable, never as a fire-free day', () => {
-  const src = read('js/sources.js');
-  const fn = src.slice(src.indexOf('async function fetchWildfire()'), src.indexOf('\n}', src.indexOf('async function fetchWildfire()')));
-  assert.ok(fn.includes('Array.isArray(data.fires)') && fn.includes('Array.isArray(data.sources)'),
-    'a payload missing either list must throw rather than publish an empty layer');
-  assert.ok(fn.includes('state._wildfireLoaded = false'), 'a failure must allow a retry on the next toggle');
-  // the executing half is the last test in this file; this only holds the notice on the failure path
-  assert.ok(fn.includes('opNotice(') && fn.includes("t('note.wildfirefail')"), 'a failure must be visible to the reader');
-  assert.ok(fn.includes('data/wildfire.json'), 'the layer must read the committed same-origin file');
-  assert.ok(!/https?:\/\//.test(fn), 'the layer must not reach a third party at runtime');
+/* Switching the layer on is the ONLY thing that loads it, and initMap() is where that is decided.
+   v0.99.79's sibling failure is a commented-out wiring line, which every source-text assertion
+   about js/map.js still matches. These run initMap() and fire the real event. */
+test('turning the overlay on is what loads the layer, and no other overlay does', () => {
+  const w = loadWiredMap();
+  const calls = w.spyOn('fetchWildfire', 'fetchLwc', 'fetchRiverSentry', 'loadCameras');
+  w.fire('overlayadd', { layer: w.layers.wildfire });
+  assert.deepEqual(calls.names(), ['fetchWildfire'],
+    'switching the wildfire overlay on must load the wildfire layer, and only it');
+  calls.length = 0;
+  for (const other of ['lwc', 'riverSentry', 'mrms', 'inundation']) {
+    w.fire('overlayadd', { layer: w.layers[other] });
+  }
+  assert.ok(!calls.names().includes('fetchWildfire'), 'no other overlay may load the wildfire layer');
 });
 
-test('the layer ships off by default, claims OFFICIAL, is pilled and hides under playback', () => {
-  const map = read('js/map.js');
-  assert.match(map, /\['wildfire', '<span class="wildfire-icon">🔥<\/span>', 'layers\.wildfire', 'sheet\.s\.wildfire', 'official', false\]/,
-    'the sheet row is missing, on by default, or does not claim the agency provenance it has');
-  assert.match(map, /\['wildfire', 'layers\.wildfire'\]/, 'an off-by-default layer with no pill is invisible when on');
-  assert.match(map, /state\.layers\.wildfire = L\.layerGroup\(\);/,
-    'the layer is created already added to the map, so it is not off by default');
-  assert.match(map, /if \(e\.layer === state\.layers\.wildfire\) fetchWildfire\(\);/, 'the layer never loads');
-  assert.match(map, /legend\.wildfire/, 'the map legend does not name the marker');
-  assert.match(read('js/boot.js'), /glossary\.wildfire/, 'the glossary does not name the marker');
+test('the layer ships off by default and the sheet row says which agency stands behind it', () => {
+  const w = loadWiredMap();
+  const S = w.sandbox;
+  assert.ok(S.layerRowKeys().includes('wildfire'), 'the layer has no user-facing sheet row');
+  assert.equal(S.layerRowOn('wildfire'), false, 'the layer must not be on the map at boot');
+  assert.ok(!S.collectLayerState().on.includes('wildfire'), 'and must not be in the default saved set');
 
-  const pb = read('js/playback.js').match(/const PB_LIVE_HIDE = \[[\s\S]*?\];/);
-  assert.ok(pb, 'PB_LIVE_HIDE not found');
-  assert.match(pb[0], /\['wildfire', 'layers\.wildfire'\]/,
-    'there is no incident archive, so a live wildfire layer under playback impersonates the past');
+  // renderLayerSheet writes the real markup; the DOM answers only the nodes it is asked for, so a
+  // node the shipped code starts needing shows up as a failure rather than as a silent pass
+  const body = { innerHTML: '', scrollTop: 0 };
+  const sheet = {
+    querySelector: (sel) => ({
+      '.ls-head strong': { textContent: '' },
+      '.ls-close': { title: '' },
+      '.ls-note': { hidden: true, textContent: '' },
+      '.ls-body': body,
+    }[sel] || null),
+  };
+  const prevGet = S.document.getElementById;
+  try {
+    S.document.getElementById = (id) => (id === 'layer-sheet' ? sheet : null);
+    S.renderLayerSheet();
+  } finally { S.document.getElementById = prevGet; }
+  const row = body.innerHTML.slice(body.innerHTML.indexOf('data-layer="wildfire"'));
+  assert.ok(row, 'the sheet renders no wildfire row');
+  assert.match(row.slice(0, 400), /aria-checked="false"/, 'the row renders as already on');
+  assert.match(row.slice(0, 400), /wildfire-icon/, 'the row carries no fire glyph');
+  assert.match(row.slice(0, 400), /src-official/, 'the row does not claim the agency provenance it has');
+  assert.match(row.slice(0, 400), /sheet\.s\.wildfire/, 'the row has no subtitle');
+  assert.match(body.innerHTML.slice(0, body.innerHTML.indexOf('data-layer="wildfire"')).slice(-200),
+    /sheet\.g\.fire/, 'the row is not filed under the fire group');
+});
+
+test('the layer is named in the legend and the glossary, and hides under playback', () => {
+  const legend = mapApp._sandbox.mapLegendHtml();
+  for (const k of ['legend.wildfire', 'legend.wildfire.perim', 'legend.wildfire.area']) {
+    assert.ok(legend.includes(k), `the map legend does not name ${k}`);
+  }
+  assert.match(legend, /wildfire-icon/, 'the legend names the layer without showing its glyph');
+  // js/boot.js is in no executable bundle, so the glossary entry stays a text check
+  assert.match(read('js/boot.js'), /glossary\.wildfire/, 'the glossary does not name the marker');
+  const hidden = mapApp.pbLiveHideAll().find(([k]) => k === 'wildfire');
+  assert.ok(hidden, 'there is no incident archive, so a live wildfire layer under playback impersonates the past');
+  assert.equal(hidden[1], 'layers.wildfire', 'playback must be able to name the layer it took away');
 });
 
 test('the layer travels in a shared link, in both directions and without stacking on a kept view', () => {
-  const share = read('js/board.js').match(/for \(const \[key, lk\] of \[\['radar'[\s\S]*?\]\) \{/);
-  assert.ok(share, 'the share-url layer list was not found');
-  assert.match(share[0], /\['fire', 'wildfire'\]/, 'a shared link silently drops the wildfire layer');
+  const w = loadWiredMap();
+  const S = w.sandbox;
+  const prev = S.document.querySelector;
+  try {
+    // buildShareUrl reads the feed filter controls; anything else it asks for it must handle as absent
+    S.document.querySelector = (sel) => ({ '#flt-alert-sev': { value: '' }, '#flt-alert-q': { value: '' } }[sel] || null);
+    assert.ok(!/[?&]fire=/.test(S.buildShareUrl()), 'a link built with the layer off must not carry ?fire=');
+    w.layers.wildfire.addTo(w.map);
+    assert.match(S.buildShareUrl(), /[?&]fire=1\b/, 'a shared link silently drops the wildfire layer');
+  } finally { S.document.querySelector = prev; }
+  // js/boot.js parses the incoming ?fire=1 and is in no executable bundle, so that half stays textual
   const boot = read('js/boot.js').match(/for \(const \[qk, lk\] of \[\['usgs'[\s\S]*?\]\) \{/);
   assert.ok(boot, 'the share-param parser was not found');
   assert.match(boot[0], /\['fire', 'wildfire'\]/, 'an incoming ?fire=1 link does not reopen the layer');
@@ -204,10 +245,16 @@ test('the marker reads as a hazard, retires when contained and dashes when unres
     const block = css.slice(css.indexOf(theme), css.indexOf('}', css.indexOf(theme)));
     assert.match(block, /--haz-fire:/, `--haz-fire is missing from the ${theme} block`);
   }
-  // the render path applies all three classes off the record, not off a hand-set flag
-  const render = read('js/sources.js');
-  assert.match(render, /wildfireContained\(f\) \? ' contained' : ''/);
-  assert.match(render, /wildfireStale\(f\) \? ' unconfirmed' : ''/);
+  // the render applies all three classes off the record, not off a hand-set flag
+  // FIRE_PT carries a fixed observed stamp that has since aged out, so the base is restamped here
+  const cls = (fire) => iconHtml(markerFor(Object.assign({}, FIRE_PT, { observed: hoursAgo(1) }, fire)));
+  assert.match(cls({}), /class="wildfire-icon"/, 'an active, freshly restamped fire wears neither treatment');
+  assert.match(cls({ contain: 100 }), /class="wildfire-icon contained"/,
+    'a contained incident must be drawn as retired');
+  assert.match(cls({ observed: hoursAgo(WILDFIRE_STALE_H + 1) }), /class="wildfire-icon unconfirmed"/,
+    'an incident nobody has restamped must be drawn as unconfirmed');
+  assert.match(cls({ contain: 100, observed: null }), /class="wildfire-icon contained unconfirmed"/,
+    'an undated contained incident is both, and neither class may drop the other');
 });
 
 test('every wildfire string exists in both languages and carries no em-dash', () => {
@@ -282,15 +329,21 @@ test('the richer metadata rows appear only when the source reported them', () =>
   assert.match(full, /Human/);
 });
 
+/* Both layers are rendered here rather than read, because the claim is about what Leaflet ends up
+   stacking: the pane orders by latitude, so a gauge a little to the south was taking the click off
+   a fire glyph the user could see. */
 test('the fire marker outranks every gauge, so a gauge cannot take the click off a fire glyph', () => {
-  const src = read('js/sources.js');
-  const fire = src.match(/L\.marker\(\[f\.lat, f\.lon\][\s\S]{0,200}?zIndexOffset:\s*(\d+)/);
-  assert.ok(fire, 'the wildfire marker must declare a zIndexOffset; Leaflet otherwise orders the pane by latitude');
-  const gauge = src.match(/L\.marker\(\[g\.latitude, g\.longitude\][\s\S]{0,200}?zIndexOffset:([^}]*)\}/);
-  assert.ok(gauge, 'gauge marker zIndexOffset not found; update this test with it');
-  const gaugeMax = Math.max(...(gauge[1].match(/\d+/g) || ['0']).map(Number));
-  assert.ok(Number(fire[1]) > gaugeMax,
-    `fire zIndexOffset ${fire[1]} must exceed the gauge maximum ${gaugeMax}`);
+  const fire = markerFor(FIRE_PT).opts.zIndexOffset;
+  assert.ok(Number.isFinite(fire), 'the wildfire marker must declare a zIndexOffset');
+  const iso = (min) => new Date(Date.now() - min * 60000).toISOString();
+  const gauge = (cat) => ({ lid: `T-${cat}`, name: 'Test River', latitude: 30, longitude: -98,
+    status: { observed: { floodCategory: cat, primary: 12.3, primaryUnit: 'ft', validTime: iso(30) } } });
+  const offsets = gaugesDrawn(['major', 'moderate', 'minor', 'action', 'no_flooding'].map(gauge))
+    .filter((o) => o.kind === 'marker').map((o) => o.opts.zIndexOffset);
+  assert.ok(offsets.length, 'no gauge markers were drawn; the comparison below would be vacuous');
+  const gaugeMax = Math.max(...offsets);
+  assert.ok(gaugeMax > 0, 'the gauge ceiling read as 0, so this test would pass on any fire offset');
+  assert.ok(fire > gaugeMax, `fire zIndexOffset ${fire} must exceed the gauge maximum ${gaugeMax}`);
 });
 
 test('the popup facts grid puts labels and values in it directly, not inside a row wrapper', () => {
@@ -347,26 +400,17 @@ test('a perimeter failure is published as failed and never sinks the incident la
 });
 
 test('the client draws perimeters under the points and states what the geometry is', () => {
-  const src = read('js/sources.js');
-  // ordering proven by execution, not by matching a comment that any edit can move
-  assert.deepEqual(renderKinds({ sources: [], fires: [FIRE_PT], perimeters: [PERIM] }),
-    ['polygon', 'marker'],
+  const drawn = renderDrawn({ sources: [], fires: [FIRE_PT], perimeters: [PERIM] });
+  assert.deepEqual(drawn.map((o) => o.kind), ['polygon', 'marker'],
     'the perimeter must be added before the marker so the origin point stays clickable');
-  assert.match(src, /\[c\[1\], c\[0\]\]/, 'stored lon,lat must be flipped for Leaflet');
-  assert.match(src, /length < 4\) continue/, 'a degenerate ring must be skipped, not drawn');
+  // the file stores lon,lat like the GeoJSON it came from; Leaflet wants lat,lng.
+  // Array.from re-homes the sandbox's arrays: deepEqual compares prototypes across realms.
+  assert.deepEqual(Array.from(drawn[0].args[0], (p) => [p[0], p[1]]),
+    PERIM.rings[0].map(([lon, lat]) => [lat, lon]),
+    'stored lon,lat must be flipped for Leaflet, or the perimeter lands in the wrong hemisphere');
   // the popup has to say the edge is an interpretation, not a measurement
   assert.match(I18N.en['wf.perim.sub'], /interpretation/i);
   assert.match(I18N.es['wf.perim.sub'], /interpretaci/i);
-});
-
-test('an absent perimeter list is not a claim that no fire has an edge', () => {
-  const src = read('js/sources.js');
-  const fn = src.slice(src.indexOf('function renderPerimeters'), src.indexOf('function perimeterPopupHtml'));
-  assert.match(fn, /Array\.isArray\(data\.perimeters\) \? data\.perimeters : \[\]/,
-    'a missing list must render nothing rather than throw');
-  // the payload guard must still only require fires/sources: an old file has no perimeters key
-  assert.match(src, /!Array\.isArray\(data\.fires\) \|\| !Array\.isArray\(data\.sources\)/,
-    'perimeters must NOT be required, or every client would reject a pre-perimeter file');
 });
 
 
@@ -379,48 +423,56 @@ test('an absent perimeter list is not a claim that no fire has an edge', () => {
 
 const mapApp = loadMapApp();
 
-function renderInto(data) {
-  const MS = mapApp.state, MSB = mapApp._sandbox;
-  const prev = { layers: MS.layers, wildfire: MS.wildfire };
-  const added = [];
-  try {
-    MS.layers = Object.assign({}, MS.layers, {
-      wildfire: { clearLayers() { added.length = 0; }, addLayer(l) { added.push(l); } },
-    });
-    MS.wildfire = data;
-    MSB.renderWildfire();
-    return added;
-  } finally { Object.assign(MS, prev); }
-}
-
-
 /* The harness L is a proxy that answers every call with itself, so drawn layers are
-   indistinguishable. This swaps in a recorder that tags what was created, which is what makes
-   draw ORDER and draw KIND testable rather than a comment someone has to keep true. */
-function renderKinds(data) {
+   indistinguishable and every option vanishes. This swaps in a recorder that keeps what
+   renderWildfire() actually created: its kind, the options it was given, and the popup it bound.
+   A lazily-bound popup is INVOKED here, because Leaflet invokes it on the first click and a
+   builder reaching outside its own scope is exactly the v0.99.79 defect. */
+const RECORDED_SHAPES = ['polygon', 'circle', 'marker', 'divIcon'];
+
+function drawWith(layerName, run) {
   const MS = mapApp.state, MSB = mapApp._sandbox;
-  const prev = { layers: MS.layers, wildfire: MS.wildfire, L: MSB.L };
-  const kinds = [];
-  const stub = (kind) => () => {
-    const o = { __kind: kind };
-    o.bindPopup = () => o; o.addTo = () => o; o.on = () => o; o.setStyle = () => o;
+  const prev = { layers: MS.layers, L: MSB.L };
+  const drawn = [];
+  const shape = (kind) => (...args) => {
+    const o = { kind, args, opts: args[args.length - 1] || {}, popup: undefined };
+    o.bindPopup = (p) => { o.popup = typeof p === 'function' ? p() : p; return o; };
+    o.addTo = () => o; o.on = () => o; o.setStyle = () => o; o.setLatLng = () => o;
     return o;
   };
   try {
     MSB.L = new Proxy({}, {
       get(_t, prop) {
-        if (prop === 'polygon' || prop === 'circle' || prop === 'marker') return stub(prop);
+        if (RECORDED_SHAPES.includes(prop)) return shape(prop);
         return () => ({ bindPopup() { return this; }, addTo() { return this; }, on() { return this; } });
       },
     });
     MS.layers = Object.assign({}, MS.layers, {
-      wildfire: { clearLayers() { kinds.length = 0; }, addLayer(l) { kinds.push(l && l.__kind); } },
+      [layerName]: { clearLayers() { drawn.length = 0; }, addLayer(l) { drawn.push(l); } },
     });
-    MS.wildfire = data;
-    MSB.renderWildfire();
-    return kinds;
+    run();
+    return drawn;
   } finally { Object.assign(MS, prev); MSB.L = prev.L; }
 }
+
+function renderDrawn(data) {
+  const MS = mapApp.state;
+  const prev = MS.wildfire;
+  try { MS.wildfire = data; return drawWith('wildfire', () => mapApp._sandbox.renderWildfire()); }
+  finally { MS.wildfire = prev; }
+}
+
+function gaugesDrawn(gauges) {
+  const MS = mapApp.state;
+  const prev = MS.gauges;
+  try { MS.gauges = gauges; return drawWith('gauges', () => mapApp._sandbox.renderGauges()); }
+  finally { MS.gauges = prev; }
+}
+
+const renderInto = renderDrawn; // the count-only callers below read better this way
+const iconHtml = (o) => ((o.opts.icon || {}).args || [{}])[0].html || '';
+const markerFor = (fire) => renderDrawn({ sources: SOURCES, fires: [fire], perimeters: [] })
+  .find((o) => o.kind === 'marker');
 
 const PERIM = {
   id: 'wfigs-perim:{X}', irwin: '{X}', name: 'Fixture', scope: 'tx', acres: 120.5,
@@ -541,13 +593,14 @@ test('the circle popup says it is acreage and not the shape or reach of the fire
 });
 
 test('the circle is drawn unlike a perimeter, so the two are never confused', () => {
-  const src = read('js/sources.js');
-  const fn = src.slice(src.indexOf('function renderFireAreas'), src.indexOf('function fireAreaPopupHtml'));
-  assert.match(fn, /dashArray/, 'an inferred area must be dashed');
-  assert.match(fn, /fill: false/, 'it must not be filled like a mapped perimeter');
-  const perim = src.slice(src.indexOf('function renderPerimeters'), src.indexOf('function perimeterPopupHtml'));
-  assert.match(perim, /fillOpacity: 0\.18/, 'the mapped perimeter keeps its fill');
-  assert.ok(!/dashArray/.test(perim), 'a mapped perimeter must stay solid');
+  const circle = renderDrawn({ sources: [], fires: [BIG], perimeters: [] }).find((o) => o.kind === 'circle');
+  assert.ok(circle, 'no inferred area was drawn');
+  assert.ok(circle.opts.dashArray, 'an inferred area must be dashed');
+  assert.equal(circle.opts.fill, false, 'it must not be filled like a mapped perimeter');
+  const perim = renderDrawn({ sources: [], fires: [], perimeters: [PERIM] }).find((o) => o.kind === 'polygon');
+  assert.ok(perim, 'no mapped perimeter was drawn');
+  assert.ok(perim.opts.fillOpacity > 0, 'the mapped perimeter keeps its fill');
+  assert.ok(!perim.opts.dashArray, 'a mapped perimeter must stay solid');
 });
 
 /* ---------- an enrichment failure is reported, not escalated ----------
@@ -619,5 +672,123 @@ test('an unreadable wildfire file is unknown, and the sentence the reader gets s
   } finally {
     MS.wildfire = saved.wildfire; MS.wildfireUnknown = saved.unknown;
     MS._wildfireLoaded = saved.loaded; MSB.fetch = saved.fetch; MSB.opNotice = saved.opNotice;
+  }
+});
+
+/* ---------- the lazy fetch, driven rather than described ----------
+   The previous version of this block sliced fetchWildfire() out of js/sources.js and regexed the
+   slice, which is the shape that let the whole layer ship dead in v0.99.79. Everything here runs it
+   against a scripted transport instead. */
+
+// Puts a scripted transport and a recording opNotice in front of the real fetchWildfire().
+function driveFetch(opts) {
+  const MS = mapApp.state, MSB = mapApp._sandbox;
+  const o = opts || {};
+  const saved = { wildfire: MS.wildfire, unknown: MS.wildfireUnknown, loaded: MS._wildfireLoaded,
+    layers: MS.layers, fetch: MSB.fetch, opNotice: MSB.opNotice };
+  const said = [];
+  const urls = [];
+  MS.wildfire = o.last || null;
+  MS.wildfireUnknown = false;
+  MS._wildfireLoaded = false;
+  MS.layers = Object.assign({}, MS.layers,
+    { wildfire: o.layer || { clearLayers() {}, addLayer() {} } });
+  MSB.fetch = (url) => { urls.push(String(url)); return o.transport(String(url)); };
+  MSB.opNotice = (s) => said.push(s);
+  return {
+    said,
+    urls,
+    run: () => MSB.fetchWildfire(),
+    notice: () => MSB.wildfireNoticeText(),
+    get unknown() { return MS.wildfireUnknown; },
+    get loaded() { return MS._wildfireLoaded; },
+    get payload() { return MS.wildfire; },
+    restore() {
+      MS.wildfire = saved.wildfire; MS.wildfireUnknown = saved.unknown;
+      MS._wildfireLoaded = saved.loaded; MS.layers = saved.layers;
+      MSB.fetch = saved.fetch; MSB.opNotice = saved.opNotice;
+    },
+  };
+}
+const served = (body) => () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
+const GOOD = { generated: '2026-07-30T21:00:00Z', sources: SOURCES, fires: [FIRE_PT], perimeters: [] };
+
+test('the layer reads the committed same-origin file and reaches no third party', async () => {
+  const d = driveFetch({ transport: served(GOOD) });
+  try {
+    await d.run();
+    assert.equal(d.urls.length, 1, 'the layer must read exactly one file');
+    assert.match(d.urls[0], /^data\/wildfire\.json\?/, 'the layer must read the committed same-origin file');
+    assert.ok(!/^[a-z]+:|^\/\//i.test(d.urls[0]), 'the layer must not reach a third party at runtime');
+    assert.equal(d.unknown, false);
+    assert.deepEqual(d.said, [], 'a healthy day with incidents needs no sentence');
+  } finally { d.restore(); }
+});
+
+test('a payload missing either list is an unreadable file, never a fire-free day', async () => {
+  for (const body of [{ sources: SOURCES }, { fires: [] }, { fires: [], sources: 'nope' }, null]) {
+    const d = driveFetch({ transport: served(body) });
+    try {
+      await d.run();
+      assert.equal(d.unknown, true, `${JSON.stringify(body)} must read as unknown, not as an empty layer`);
+      assert.equal(d.notice(), 'wf.unknown', 'and must never produce the "no wildfire incidents" sentence');
+      assert.deepEqual(d.said, ['wf.unknown'], 'the reader is told once, and told the sources could not be read');
+    } finally { d.restore(); }
+  }
+});
+
+test('a pre-perimeter file is still a good file, so the edges may never be required', async () => {
+  const old = { generated: 'x', sources: SOURCES, fires: [FIRE_PT] }; // no perimeters key at all
+  const d = driveFetch({ transport: served(old) });
+  try {
+    await d.run();
+    assert.equal(d.unknown, false, 'a client that rejected a pre-perimeter file would empty the layer');
+    assert.equal(d.payload.fires.length, 1);
+  } finally { d.restore(); }
+});
+
+test('an HTTP error and a failed read both stay retryable on the next toggle', async () => {
+  const http = driveFetch({ transport: () => Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve({}) }) });
+  try {
+    await http.run();
+    assert.equal(http.loaded, false, 'a failure must allow a retry the next time the layer is toggled on');
+    await http.run();
+    assert.equal(http.urls.length, 2, 'the retry must actually re-read the file');
+  } finally { http.restore(); }
+
+  const good = driveFetch({ transport: served(GOOD) });
+  try {
+    await good.run();
+    assert.equal(good.loaded, true);
+    await good.run();
+    assert.equal(good.urls.length, 1, 'a loaded layer must not re-read on every toggle');
+  } finally { good.restore(); }
+});
+
+/* v0.99.79 in one sentence: renderWildfire() threw, fetchWildfire()'s catch swallowed it, and the
+   board told the reader the SOURCES were unavailable. The file had been read perfectly. */
+test('a render failure is not reported as a source failure', async () => {
+  const boom = { clearLayers() {}, addLayer() { throw new Error('render blew up'); } };
+  const d = driveFetch({ transport: served(GOOD), layer: boom });
+  try {
+    await d.run();
+    assert.equal(d.unknown, false,
+      'the file was read, so the board may not claim the sources are unreadable');
+    assert.notEqual(d.said[0], 'wf.unknown',
+      'a render exception must never produce the "sources could not be read" sentence');
+    assert.equal(d.said.length, 1, 'the reader must still be told something, not left with a dead layer');
+    assert.equal(d.loaded, false, 'and the layer must stay retryable');
+  } finally { d.restore(); }
+});
+
+/* The incident marker binds its popup LAZILY, so a builder that reaches outside its own scope
+   survives the render and only throws on the first click. renderDrawn invokes what was bound. */
+test('every popup the render binds is built without reaching outside its own scope', () => {
+  const drawn = renderDrawn({ sources: SOURCES, fires: [BIG], perimeters: [PERIM] });
+  assert.equal(drawn.length, 3, 'perimeter, marker and inferred circle must all be drawn');
+  for (const o of drawn) {
+    assert.equal(typeof o.popup, 'string', `the ${o.kind} bound no popup`);
+    assert.ok(o.popup.includes('<div class="pop') || o.popup.includes('wf-head'),
+      `the ${o.kind} popup rendered nothing usable: ${o.popup.slice(0, 80)}`);
   }
 });

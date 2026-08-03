@@ -21,6 +21,7 @@ function makeCaches(seed = {}) {
       store.get(name).set(String(k && k.url ? k.url : k), v);
     },
     async delete(k) { return (store.get(name) || new Map()).delete(String(k && k.url ? k.url : k)); },
+    async addAll(urls) { for (const u of urls) await this.put(u, mkRes('')); },
   });
   return {
     _store: store,
@@ -538,13 +539,22 @@ test('the lazy assets are excluded from the install precache and exist on disk',
   }
 });
 
-test('re-listing a lazy path in PRECACHE_PATHS cannot put it back on the install path', () => {
-  // discriminating power: the guard is the filter in sw.js, not the tidiness of the list above it
-  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  assert.match(src, /PRECACHE_PATHS\s*\.filter\(\(p\) => LAZY_PATHS\.indexOf\(p\) < 0\)/,
-    'PRECACHE must filter LAZY_PATHS out rather than trusting the list to stay correct');
-  const both = [...sw.PRECACHE_PATHS].filter((p) => sw.LAZY_PATHS.includes(p));
-  assert.equal([...sw.PRECACHE].filter((u) => both.includes(u.split('?')[0])).join(', '), '');
+/* What the install handler really writes. The previous version of this test filtered PRECACHE_PATHS
+   by LAZY_PATHS and asserted the intersection was absent from PRECACHE, which could not fail while
+   the two lists were disjoint. The install path is observable, so it is what gets asserted.
+   Honest residual: deleting the LAZY_PATHS filter in sw.js is invisible until a lazy path is also
+   listed in PRECACHE_PATHS; nothing here (or in a source match) can see it before that. */
+test('install caches exactly PRECACHE, and no lazy asset reaches it', async () => {
+  const caches = makeCaches();
+  const s = loadSw(caches);
+  await fire(s, 'install');
+  const cached = [...(caches._store.get(s.CACHE_STATIC) || new Map()).keys()];
+  assert.ok(cached.length > 10, 'the install handler cached almost nothing');
+  assert.deepEqual(cached.sort(), [...s.PRECACHE].sort(), 'install wrote something other than PRECACHE');
+  assert.ok(cached.includes(`css/app.css?v=${s.SW_VERSION}`), 'the shell stylesheet must install-cache');
+  for (const p of s.LAZY_PATHS) {
+    assert.ok(!cached.some((u) => u.split('?')[0] === p), `${p} reached the install cache`);
+  }
 });
 
 test('every lazy path the client asks for carries the release stamp', () => {

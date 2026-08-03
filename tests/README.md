@@ -193,6 +193,10 @@ Gotchas that have each cost a release:
   for the rest, so a node the shipped code starts needing fails loudly.
 - `loadApp()` / `loadMapApp()` are **cached** and shared by every test in a file.
   Restore anything you mutate in a `finally`. `loadWiredMap()` is per call.
+- Listeners the files register on `document` at load time are kept in
+  `_sandbox.__docHandlers` (a `type -> [fn]` Map), so the modal focus trap in
+  `core.js` can be fired with a synthetic event instead of matched. Handlers
+  registered inside `boot()` are NOT there: nothing invokes `boot()` from node.
 - Arrays built inside the sandbox come from a different realm, so
   `assert.deepEqual` fails on the prototype. Re-home them with `Array.from`.
 

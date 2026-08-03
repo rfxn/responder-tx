@@ -55,6 +55,8 @@ function makeElementStub() {
 }
 
 function buildSandbox() {
+  // load-time document listeners are kept, not dropped: the modal focus trap is one of them
+  const docHandlers = new Map();
   const documentStub = {
     title: '',
     readyState: 'loading', // classic scripts evaluate before DOMContentLoaded; notes.js branches on this
@@ -63,7 +65,10 @@ function buildSandbox() {
     querySelectorAll() { return []; },
     createElement() { return makeElementStub(); },
     getElementById() { return makeElementStub(); },
-    addEventListener() {},
+    addEventListener(type, fn) {
+      if (!docHandlers.has(type)) docHandlers.set(type, []);
+      docHandlers.get(type).push(fn);
+    },
     documentElement: {
       getAttribute() { return ''; },
       setAttribute() {},
@@ -118,6 +123,7 @@ function buildSandbox() {
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
+  sandbox.__docHandlers = docHandlers;
   // deferred through sandbox.setTimeout so a test that replaces the clock also owns the frame
   sandbox.requestAnimationFrame = (fn) => sandbox.setTimeout(fn, 0);
   sandbox.cancelAnimationFrame = (id) => sandbox.clearTimeout(id);
@@ -158,6 +164,7 @@ const EXPORTS = [
   'WATCH_KEY', 'WATCH_KINDS', 'watchAll', 'watchList', 'watchHas', 'watchToggle', 'watchDrop',
   'watchFirst', 'watchAudit', 'watchStarHtml', 'watchNoticeHtml', 'watchCountText',
   'watchUnknownIds', 'watchDropIds',
+  'ROAD_COND', 'ROAD_COND_FALLBACK', 'roadCondType',
   'roadId', 'roadWatchId', 'roadMemory', 'updateRoadMemory', 'reopenedRoads', 'reopenIsFlood', 'ROADS_KEY', 'ROADS_KEY_LEGACY',
   'roadPointNear', 'roadSegMiles', 'roadSegParts', 'roadPopupHtml', 'arcgisHasMore', 'LWC_PAGE', 'LWC_MAX_PAGES',
   'fetchRoadClosures', 'fetchRoadClosuresLive', 'hydrateRoadsSnapshot', 'roadFeatures', 'ROAD_PAGE', 'ROAD_MAX_PAGES',
@@ -188,13 +195,15 @@ const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn
   'openShelterCount', 'unconfirmedShelterCount', 'curatedSheltersStale',
   'hotlineHtml', 'hotlinesOrdered', 'hotlineIsEmergency', 'shlNavHtml',
   'curatedShelterAgeH', 'SHELTER_CURATED_STALE_H', 'shelterOpen',
+  'CROSSING_STATUS',
   'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H',
   'crossingList', 'heroCards', 'badgeText', 'BADGE_UNKNOWN', 'shlLiveUpdatedHtml',
   'roadsTabRows', 'roadsTxdotRows', 'roadsCuratedRows', 'roadsJurisdictionRows', 'roadsRowHtml', 'roadRowKey',
   'xstatusAgeD', 'XSTATUS_UNCONFIRMED_D'];
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
-const MAP_EXPORTS = EXPORTS.concat(['CAM_LEGACY_PARAMS', 'CAM_ROWS', 'CAM_SUBGROUPS', 'CAM_PILL_MAX',
+const MAP_EXPORTS = EXPORTS.concat(['VIEW_ROWS',
+  'CAM_LEGACY_PARAMS', 'CAM_ROWS', 'CAM_SUBGROUPS', 'CAM_PILL_MAX',
   'initCamRegionRows', 'camTriState', 'camParentRows', 'camParentOn', 'camRegionHasCams',
   'layerRowKeys', 'layerRowOn', 'collectLayerState', 'applyLayerState', 'aoPickedId', 'aoSelectById',
   'offlineResultText', 'offlineSaveClean', 'offlineDepth', 'OFFLINE_DEPTHS', 'OFFLINE_DEPTH_DEFAULT',

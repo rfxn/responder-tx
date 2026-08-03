@@ -784,7 +784,8 @@ function renderGaugesTab() {
   // a lid the pinned group could not draw is filtered away, missing from the data, or unmeasurable
   // because the feed never answered; gaugeAll() is the unfiltered set, so the three stay apart
   const audit = watchAudit('gauges', gaugeAll().map((g) => g.lid), pinned.map((g) => g.lid));
-  const notice = watchNoticeHtml('gauges', audit, { unknown: !gaugeAll().length });
+  const feedSilent = !gaugeAll().length;
+  const notice = watchNoticeHtml('gauges', audit, { unknown: feedSilent });
 
   el.innerHTML = '';
   const bar = document.createElement('div');
@@ -811,14 +812,14 @@ function renderGaugesTab() {
     el.appendChild(t);
     for (const g of list) el.appendChild(gaugeCardDiv(g));
   };
-  if (pinned.length || notice) {
-    section(t('watch.section').replace('{n}', pinned.length), pinned);
-    if (notice) {
-      const n = document.createElement('div');
-      n.className = 'watch-notes';
-      n.innerHTML = notice;
-      el.appendChild(n);
-    }
+  // no "Watching (0)" header over an empty group: with every star unaccounted for the notices below
+  // are the whole answer, and a zero beside a list the user knows they populated reads as a loss
+  if (pinned.length) section(t('watch.section').replace('{n}', pinned.length), pinned);
+  if (notice) {
+    const n = document.createElement('div');
+    n.className = 'watch-notes';
+    n.innerHTML = notice;
+    el.appendChild(n);
   }
   if (state.gaugeGroup === 'river') {
     // NWPS gauge objects carry no county — group by river name derived from the site name
@@ -864,7 +865,7 @@ function renderGaugesTab() {
   // "In view" is the only filter the pinned group cannot outrank, so showing them means dropping it
   el.querySelectorAll('[data-watch-show]').forEach((b) => b.addEventListener('click', () => setInView(false)));
   el.querySelectorAll('[data-watch-drop]').forEach((b) => b.addEventListener('click', () => {
-    watchDrop('gauges', audit.absent);
+    watchDrop('gauges', watchDropIds(audit, feedSilent));
     renderGaugesTab();
   }));
 }
@@ -1690,8 +1691,9 @@ function roadsTxdotRows(pos) {
     // a snapshot row is not a current confirmation: it joins the unconfirmed bucket, is left out of
     // the Roads badge, and ages on the snapshot's own stamp rather than on when we fell back to it
     const snap = p._snapshot === true;
+    const rid = roadWatchId(p);
     rows.push({
-      kind: 'txdot', wid: roadRowKey('txdot', roadId(p)), live: !snap, color: ct.color, glyph: ROADS_TXDOT_GLYPH[p.condition] || '⛔',
+      kind: 'txdot', wid: rid ? roadRowKey('txdot', rid) : '', live: !snap, color: ct.color, glyph: ROADS_TXDOT_GLYPH[p.condition] || '⛔',
       label: roadLabel(ct), name: prettyRoute(p.route_name) || t('word.road'),
       detail: dscr || [p.from_limit, p.to_limit].filter(Boolean).join(' → '),
       when: p.start_time || '', whenText: p.start_time ? `${t('road.since')} ${fmtWhen(p.start_time)}` : '',
@@ -1763,7 +1765,8 @@ function roadsRowHtml(r) {
     `<div class="addr">${meta}` +
     (r.age ? ` · <span class="xg-stale">${esc(r.age)}</span>` : '') +
     (r.href ? ` <a href="${esc(r.href)}" target="_blank" rel="noopener">src</a>` : '') +
-    '</div>' + watchStarHtml('roads', r.wid, r.name) + '</div>';
+    // no star on a row with no stable identity: the tap would write a key nothing can resolve
+    '</div>' + (r.wid ? watchStarHtml('roads', r.wid, r.name) : '') + '</div>';
 }
 
 /* Both crossing feeds are regional, not statewide: the curated inventory is a Hill Country list and
@@ -1779,7 +1782,7 @@ function crossUncovered() {
   const lon = ref.lng !== undefined ? ref.lng : ref[1];
   // through the accessor like every other reader: a stale row still proves the feed reaches here,
   // so the staleness verdict it attaches is simply unused for a geographic question
-  const pts = [...crossingList(), ...(state.crossStatus || [])]
+  const pts = [...crossingList(), ...((state.crossStatus && state.crossStatus.crossings) || [])]
     .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon));
   if (!pts.length) return false; // nothing loaded at all: the unknown states above already say so
   return !pts.some((p) => distMi(lat, lon, p.lat, p.lon) <= CROSS_COVERAGE_MI);
@@ -1799,13 +1802,25 @@ function renderRoadsTab() {
   // whole-mile distance buckets: a moving fix must not repaint (and reset the scroll) every tick
   const fp = JSON.stringify([state.roadsPartial === true, state.roadsFallbackAt || 0, state.roadsUnknown === true,
     state.crossingsUnknown === true, state.crossStatusUnknown === true, watchList('roads'),
-    rows.map((r) => [r.kind, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
+    rows.map((r) => [r.kind, r.wid, r.name, r.label, r.when, r.live, r.age, Math.round(r.dist) || 0])]);
   if (fp === state.roadsTabFp) return;
   state.roadsTabFp = fp;
-  // the tab draws every row it holds, so a watched key it cannot find is gone or unmeasurable;
-  // snapshot rows carry no limits, so roadId cannot rebuild the key a live row was starred under
-  const audit = watchAudit('roads', rows.map((r) => r.wid));
-  const watchNote = watchNoticeHtml('roads', audit, { unknown: !roadsKnown || !!state.roadsFallbackAt });
+  // the tab draws every row it holds, so a watched key it cannot find is gone or unmeasurable
+  const audit = watchAudit('roads', rows.map((r) => r.wid).filter(Boolean));
+  /* Which of those the tab may call gone, attributed per provenance: a DriveTexas outage says
+     nothing about a curated crossing whose own feed answered. A snapshot is 15 minutes stale, and
+     one written before v0.99.84 is not keyed like the live feed at all, so neither can vouch that a
+     watched closure cleared. */
+  const txdotBlind = state.roadsUnknown === true || !state.roadClosures || !!state.roadsFallbackAt
+    || rows.some((r) => r.kind === 'txdot' && !r.wid);
+  const unknownIds = audit.absent.filter((id) => {
+    const src = String(id).split(':')[0];
+    if (src === 'txdot') return txdotBlind;
+    if (src === 'curated') return state.crossingsUnknown === true;
+    if (src === 'xstatus') return state.crossStatusUnknown === true;
+    return true; // a key from a provenance this build does not draw cannot be checked against anything
+  });
+  const watchNote = watchNoticeHtml('roads', audit, { unknown: unknownIds });
   // the closure feed's own state leads the list: a snapshot is named as one, and a feed we cannot
   // reach at all is reported as unknown. Neither may read as a current, complete closure set.
   const feedNote = (state.roadsFallbackAt
@@ -1836,7 +1851,7 @@ function renderRoadsTab() {
     renderRoadsTab();
   }));
   el.querySelectorAll('[data-watch-drop]').forEach((b) => b.addEventListener('click', () => {
-    watchDrop('roads', audit.absent);
+    watchDrop('roads', watchDropIds(audit, unknownIds));
     state.roadsTabFp = null;
     renderRoadsTab();
   }));

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.83';
+const APP_VERSION = 'v0.99.84';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -697,6 +697,21 @@ function watchAudit(kind, present, visible) {
   return out;
 }
 
+// n=1 is the commonest watchlist case, so every count-bearing line has its own singular in both
+// locales rather than reading "1 gauges ... are"
+const watchCountText = (key, n) => t(n === 1 ? `${key}.one` : key).replace('{n}', String(n));
+
+/* An absent watch is two different facts. Some ids a healthy list can vouch have gone; others sit
+   behind a source that never answered, or behind rows the board cannot key comparably, and nothing
+   may assert those are gone. `unknown` is true for the whole set, or the ids one silent source
+   covers. Only what survives the split may be offered to the destructive drop control. */
+const watchUnknownIds = (audit, unknown) => (unknown === true ? audit.absent.slice()
+  : (Array.isArray(unknown) ? audit.absent.filter((id) => unknown.indexOf(id) !== -1) : []));
+function watchDropIds(audit, unknown) {
+  const un = watchUnknownIds(audit, unknown);
+  return audit.absent.filter((id) => un.indexOf(id) === -1);
+}
+
 function watchStarHtml(kind, id, name) {
   const on = watchHas(kind, id);
   const label = t(on ? 'watch.remove' : 'watch.add').replace('{name}', name || '');
@@ -704,22 +719,23 @@ function watchStarHtml(kind, id, name) {
     `aria-pressed="${on ? 'true' : 'false'}" aria-label="${esc(label)}" title="${esc(label)}">${on ? '★' : '☆'}</button>`;
 }
 
-// `unknown` means a source this list depends on has not answered, so absent items may not be
-// reported as gone; that state offers no drop control for the same reason
+// The drop control is offered against `gone` only: an item nothing can vouch for is reported and
+// left alone, because an unverifiable state is not grounds for destroying the user's star.
 function watchNoticeHtml(kind, audit, o) {
   const opts = o || {};
+  const unknown = watchUnknownIds(audit, opts.unknown);
+  const gone = watchDropIds(audit, opts.unknown);
   let html = '';
   if (audit.hidden.length) {
-    html += `<div class="rcv-note watch-note">${esc(t(`watch.${kind}.hidden`).replace('{n}', audit.hidden.length))} ` +
+    html += `<div class="rcv-note watch-note">${esc(watchCountText(`watch.${kind}.hidden`, audit.hidden.length))} ` +
       `<button type="button" class="watch-act" data-watch-show="${esc(kind)}">${esc(t('watch.show'))}</button></div>`;
   }
-  if (audit.absent.length) {
-    const body = opts.unknown
-      ? t(`watch.${kind}.unknown`).replace('{n}', audit.absent.length)
-      : t(`watch.${kind}.absent`).replace('{n}', audit.absent.length).replace('{ids}', audit.absent.join(', '));
-    html += `<div class="rcv-note watch-note">${esc(body)}` +
-      (opts.unknown ? '' : ` <button type="button" class="watch-act" data-watch-drop="${esc(kind)}">${esc(t('watch.drop'))}</button>`) +
-      '</div>';
+  if (gone.length) {
+    html += `<div class="rcv-note watch-note">${esc(watchCountText(`watch.${kind}.absent`, gone.length).replace('{ids}', gone.join(', ')))}` +
+      ` <button type="button" class="watch-act" data-watch-drop="${esc(kind)}">${esc(t('watch.drop'))}</button></div>`;
+  }
+  if (unknown.length) {
+    html += `<div class="rcv-note watch-note">${esc(watchCountText(`watch.${kind}.unknown`, unknown.length))}</div>`;
   }
   return html;
 }

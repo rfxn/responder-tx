@@ -147,6 +147,7 @@ function openInAlertsList(f) {
 function gaugeListUnfoldFor(lids) {
   let changed = false;
   for (const lid of lids) {
+    if (watchHas('gauges', lid)) continue; // a starred gauge is pinned above every fold already
     if ((state.gaugesDegraded || []).some((g) => g.lid === lid)) {
       if (!state.showDegradedGauges) { state.showDegradedGauges = true; changed = true; }
     } else if (!state.showNormalGauges && state.gauges.some((g) => g.lid === lid && gaugeCat(g) === 'none')) {

@@ -1724,13 +1724,16 @@ async function hydrateRoadsSnapshot() {
   const points = d.roads.map((r) => {
     const v = Array.isArray(r.v) ? r.v : [];
     if (!Number.isFinite(v[0]) || !Number.isFinite(v[1])) return null;
+    // a snapshot written before v0.99.84 archived no limits, so roadId cannot rebuild the key its
+    // rows share with the live feed; _noLimits is what stops a colliding stand-in being used instead
+    const limits = typeof r.from === 'string' && typeof r.to === 'string';
     return {
       // _snapshot taints the feature all the way to updateRoadMemory, which refuses to diff it
       _snapshot: true,
-      properties: {
+      properties: Object.assign({
         condition: r.cond, route_name: r.route, description: r.desc,
         start_time: r.start, end_time: r.end, _snapshot: true, _snapshotAt: stamp,
-      },
+      }, limits ? { from_limit: r.from, to_limit: r.to } : { _noLimits: true }),
       geometry: { type: 'Point', coordinates: [v[1], v[0]] },
     };
   }).filter(Boolean).filter(roadCondActive);
@@ -1753,6 +1756,9 @@ const roadHash = (s) => { let h = 5381; for (let i = 0; i < s.length; i++) h = (
 // re-code updates the remembered road instead of reading as a reopening; description stays out
 // of the id so an edit to it never reads as one either.
 const roadId = (p) => roadHash([p.route_name, p.from_limit, p.to_limit].map((v) => String(v ?? '')).join('|'));
+// '' when the row's limits were never archived: no identity at all beats one that collides with
+// every other closure on the route and matches nothing the live feed publishes
+const roadWatchId = (p) => (!p || p._noLimits === true ? '' : roadId(p));
 
 function roadVertex(geo) {
   if (!geo || !Array.isArray(geo.coordinates)) return null;
@@ -1802,9 +1808,8 @@ function roadMemory() {
 // on a road that is still under water. A partial fetch keeps the last good reopened set instead.
 function updateRoadMemory(lines, partial) {
   if (!lines.length || partial) return;
-  // Snapshot rows are up to 15 minutes stale and carry no from/to limits, so roadId hashes them to
-  // ids no live id can equal: diffing a snapshot set would mark every remembered closure reopened.
-  // The taint rides the feature itself so no future caller can route fallback data in here.
+  // Snapshot rows are up to 15 minutes stale, so diffing them would mark still-closed roads
+  // reopened. The taint rides the feature itself so no future caller can route fallback data in here.
   if (lines.some((f) => f && f._snapshot)) return;
   const mem = roadMemory();
   const now = new Date().toISOString();

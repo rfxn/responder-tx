@@ -81,7 +81,7 @@ def fetch_features(bbox):
             "inSR": "4326",
             "spatialRel": "esriSpatialRelIntersects",
             "outSR": "4326",
-            "outFields": "OBJECTID,condition,route_name,description,start_time,end_time",
+            "outFields": "OBJECTID,condition,route_name,description,start_time,end_time,from_limit,to_limit",
             "resultRecordCount": str(PAGE),
             "resultOffset": str(page * PAGE),
             "f": "geojson",
@@ -153,6 +153,11 @@ def main():
                 "id": p.get("OBJECTID") if p.get("OBJECTID") is not None else f.get("id"),
                 "cond": p.get("condition"),
                 "route": p.get("route_name"),
+                # route + limits is the segment identity js/sources.js roadId hashes; without them a
+                # snapshot row keys to something no live row can equal, and every closure on one
+                # route collapses to a single key
+                "from": p.get("from_limit") or "",
+                "to": p.get("to_limit") or "",
                 "desc": (p.get("description") or "")[:120],
                 "start": p.get("start_time"),
                 "end": p.get("end_time"),

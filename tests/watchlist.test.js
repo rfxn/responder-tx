@@ -35,20 +35,24 @@ const stored = () => JSON.parse(SB.localStorage.getItem(WATCH_KEY) || 'null');
 
 /* ---------- a recording DOM: the renderers below are executed against it ---------- */
 
+// a stub that answered .watch-star unconditionally would let a card that renders no star at all
+// still pass "the card must wire its own star", so the node has to have actually drawn one
+const STAR_RE = /class="watch-star[ "]/;
+
 // hidden: true keeps refreshRecoveryView/refreshBasinView from rendering lenses this file is not testing
 function recEl(tag) {
   const el = {
-    tag, kids: [], wired: [], starHandler: null,
+    tag, kids: [], wired: [], handlers: [], starHandler: null,
     className: '', textContent: '', title: '', value: '', hidden: true,
     dataset: {}, style: {}, options: [],
     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
     appendChild(c) { el.kids.push(c); return c; },
     append() {}, remove() {}, add() {},
-    addEventListener() {}, removeEventListener() {},
+    addEventListener(ev, fn) { el.handlers.push({ ev, fn }); }, removeEventListener() {},
     setAttribute() {}, getAttribute() { return ''; },
     closest() { return null; }, dispatchEvent() { return true; }, scrollIntoView() {},
     querySelector(sel) {
-      if (String(sel) !== '.watch-star') return null;
+      if (String(sel) !== '.watch-star' || !STAR_RE.test(String(el.innerHTML))) return null;
       return { addEventListener(_e, fn) { el.starHandler = fn; } };
     },
     // a descendant search like the real one: renderGaugesTab puts the notice in a child node
@@ -106,10 +110,15 @@ function withDom(fn) {
 const TEMPLATES = {
   'watch.section': 'Watching ({n})',
   'watch.gauges.hidden': '{n} gauges you are watching are outside the current view.',
+  'watch.gauges.hidden.one': '1 gauge you are watching is outside the current view.',
   'watch.gauges.absent': '{n} gauges you are watching are not in the gauge data right now: {ids}',
+  'watch.gauges.absent.one': '1 gauge you are watching is not in the gauge data right now: {ids}',
   'watch.gauges.unknown': '{n} gauges you are watching cannot be checked.',
+  'watch.gauges.unknown.one': '1 gauge you are watching cannot be checked.',
   'watch.roads.absent': '{n} roads you are watching are not in the current closure list.',
+  'watch.roads.absent.one': '1 road you are watching is not in the current closure list.',
   'watch.roads.unknown': '{n} roads you are watching cannot be checked.',
+  'watch.roads.unknown.one': '1 road you are watching cannot be checked.',
 };
 
 /* ---------- gauge fixtures ---------- */
@@ -303,6 +312,8 @@ test('tapping the star on a rendered card toggles storage and repaints', () => {
   resetWatch();
   renderGaugesWith({ gauges: [FLOOD_HI, FLOOD_LO] }, (host) => {
     const card = host.kids.find((k) => k.dataset.lid === 'FLDLO');
+    assert.match(card.innerHTML, /class="watch-star" data-watch-kind="gauges" data-watch-id="FLDLO"/,
+      'the star must be in the card the tab rendered, not only in the test double');
     assert.ok(card && typeof card.starHandler === 'function', 'the card must wire its own star');
     card.starHandler(CLICK);
     assert.deepEqual(arr(watchList('gauges')), ['FLDLO'], 'the tap wrote the watch');
@@ -312,6 +323,54 @@ test('tapping the star on a rendered card toggles storage and repaints', () => {
     again.starHandler(CLICK);
     assert.deepEqual(arr(watchList('gauges')), [], 'a second tap unstars');
   });
+  resetWatch();
+});
+
+test('a tap on the gauge star does not also open the gauge behind it', () => {
+  resetWatch();
+  const savedFocus = SB.focusGauge;
+  const focused = [];
+  SB.focusGauge = (g) => focused.push(g.lid);
+  try {
+    renderGaugesWith({ gauges: [FLOOD_HI] }, (host) => {
+      const card = host.kids.find((k) => k.dataset.lid === 'FLDHI');
+      const onStar = {
+        stopped: false,
+        stopPropagation() { onStar.stopped = true; },
+        target: { closest: (s) => (s === '.watch-star' ? {} : null) },
+      };
+      card.starHandler(onStar);
+      assert.equal(onStar.stopped, true, 'the star handler must stop the tap reaching the row');
+
+      const row = card.handlers.find((h) => h.ev === 'click');
+      assert.ok(row, 'the card must wire a row tap of its own');
+      row.fn(onStar);
+      assert.deepEqual(focused, [], 'and the row handler must ignore a tap that landed on the star');
+
+      row.fn({ target: { closest: () => null } });
+      assert.deepEqual(focused, ['FLDHI'], 'a tap on the row itself still opens the gauge');
+    });
+  } finally { SB.focusGauge = savedFocus; }
+  resetWatch();
+});
+
+test('a starred normal gauge is pinned already, so opening it unfolds nothing', () => {
+  resetWatch();
+  watchToggle('gauges', 'NORM');
+  const saved = {};
+  for (const k of GAUGE_STATE_KEYS) saved[k] = ST[k];
+  try {
+    withDom(() => {
+      Object.assign(ST, { gauges: [FLOOD_HI, NORMAL], gaugesDegraded: [], showNormalGauges: false, showDegradedGauges: false });
+      assert.equal(SB.gaugeListUnfoldFor(['NORM']), false, 'a pinned row needs no fold opened');
+      assert.equal(ST.showNormalGauges, false, 'and a filter the user set stays as they set it');
+
+      // the fold still opens for a gauge that really is hidden behind it
+      watchToggle('gauges', 'NORM');
+      assert.equal(SB.gaugeListUnfoldFor(['NORM']), true);
+      assert.equal(ST.showNormalGauges, true);
+    });
+  } finally { Object.assign(ST, saved); }
   resetWatch();
 });
 
@@ -328,7 +387,7 @@ test('a watched gauge the view filter hides is counted and offered a one-tap way
   }, (host, dom) => {
     const notes = host.kids.find((k) => k.className === 'watch-notes');
     assert.ok(notes, 'a watched gauge the filter hid must say so');
-    assert.match(notes.innerHTML, /1 gauges you are watching are outside the current view/);
+    assert.match(notes.innerHTML, /1 gauge you are watching is outside the current view/);
     assert.ok(!/not in the gauge data/.test(notes.innerHTML), 'a filtered gauge is not a missing one');
     assert.match(notes.innerHTML, /data-watch-show="gauges"/, 'the line needs a control that unhides them');
 
@@ -346,7 +405,7 @@ test('a watched gauge the data no longer carries says so by name, and stays watc
   renderGaugesWith({ gauges: [FLOOD_HI] }, (host) => {
     const notes = host.kids.find((k) => k.className === 'watch-notes');
     assert.ok(notes, 'the tab must account for a watched gauge it did not draw');
-    assert.match(notes.innerHTML, /1 gauges you are watching are not in the gauge data right now: RETIRED/);
+    assert.match(notes.innerHTML, /1 gauge you are watching is not in the gauge data right now: RETIRED/);
     assert.ok(!/outside the current view/.test(notes.innerHTML), 'absent is not the same fact as filtered');
     assert.match(notes.innerHTML, /data-watch-drop="gauges"/, 'unstarring stays available, and stays the user\'s call');
   });
@@ -360,7 +419,7 @@ test('a gauge feed that never answered is reported as unmeasurable, not as a mis
   renderGaugesWith({ gauges: [], gaugesDegraded: [] }, (host) => {
     const notes = host.kids.find((k) => k.className === 'watch-notes');
     assert.ok(notes, 'an unanswered feed must not silently drop the watchlist line');
-    assert.match(notes.innerHTML, /1 gauges you are watching cannot be checked/);
+    assert.match(notes.innerHTML, /1 gauge you are watching cannot be checked/);
     assert.ok(!/not in the gauge data/.test(notes.innerHTML),
       'a failed fetch must not be published as "this gauge is gone"');
     assert.ok(!/data-watch-drop/.test(notes.innerHTML),
@@ -372,6 +431,17 @@ test('a gauge feed that never answered is reported as unmeasurable, not as a mis
   renderGaugesWith({ gauges: [FLOOD_HI] }, (host) => {
     assert.deepEqual(cardLids(host), ['FLDHI']);
     assert.equal(host.kids.some((k) => k.className === 'watch-notes'), false);
+  });
+  resetWatch();
+});
+
+test('a watchlist the tab drew none of never renders a "Watching (0)" header', () => {
+  resetWatch();
+  for (const id of ['RETIRED', 'ALSOGONE']) watchToggle('gauges', id);
+  renderGaugesWith({ gauges: [FLOOD_HI] }, (host) => {
+    assert.deepEqual(titles(host).filter((s) => s.startsWith('Watching')), [],
+      'a zero beside a list the user knows they starred reads as a loss');
+    assert.ok(host.kids.some((k) => k.className === 'watch-notes'), 'the notices still account for every star');
   });
   resetWatch();
 });
@@ -391,11 +461,21 @@ test('the drop control removes exactly the absent ids and nothing else', () => {
 
 /* ---------- roads ---------- */
 
-const txdotLine = (route, lat) => ({
+/* Timestamps are passed in, never taken from the clock per call: two rows built a millisecond apart
+   sort by `when` in whichever order the tick landed, and `rows.find(kind === 'txdot')` then returns
+   a different row from run to run. */
+const txdotLine = (route, lat, start, from, to) => ({
   type: 'Feature',
-  properties: { route_name: route, condition: 'Closure', from_limit: `${route} A`, to_limit: `${route} B`, start_time: iso(180) },
+  properties: {
+    route_name: route, condition: 'Closure', start_time: start,
+    from_limit: from === undefined ? `${route} A` : from,
+    to_limit: to === undefined ? `${route} B` : to,
+  },
   geometry: { type: 'LineString', coordinates: [[-98, lat], [-97.99, lat + 0.01]] },
 });
+
+const FM_START = iso(180);
+const IH_START = iso(240);
 
 const ROADS_STATE_KEYS = ['crossings', 'crossStatus', 'roadClosures', 'myPos', 'roadsTabFp',
   'roadsFallbackAt', 'roadsUnknown', 'crossingsUnknown', 'crossStatusUnknown', 'roadsPartial', 'map'];
@@ -423,8 +503,30 @@ function renderRoadsWith(patch, fn) {
 const ROADS_FIXTURE = {
   crossings: [{ id: 'x-one', name: 'Curated One', status: 'closed', lat: 30.1, lon: -97.8, updated_at: iso(60) }],
   crossStatus: { crossings: [{ id: '811', name: 'Jurisdiction One', status: 'closed', jurisdiction: 'MBF', lat: 30.4, lon: -98.1, changed: iso(600) }] },
-  roadClosures: { lines: [txdotLine('FM0126', 30.5), txdotLine('IH0010', 30.6)], points: [] },
+  roadClosures: { lines: [txdotLine('FM0126', 30.5, FM_START), txdotLine('IH0010', 30.6, IH_START)], points: [] },
 };
+
+/* Drive the real snapshot hydrator, which is the only way to exercise the upgrade path: `body` is
+   what data/roads-snapshot.json answers with, old format or new. */
+async function hydrateSnapshot(body) {
+  const saved = {};
+  for (const k of ['fetch', 'renderRoadClosures', 'renderRoadsTab', 'renderTiles']) saved[k] = SB[k];
+  for (const k of ['renderRoadClosures', 'renderRoadsTab', 'renderTiles']) SB[k] = () => {};
+  SB.fetch = () => Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+  try { await SB.hydrateRoadsSnapshot(); } finally { Object.assign(SB, saved); }
+}
+
+const snapRow = (o) => Object.assign({ id: 1, cond: 'Closure', route: 'FM0126', desc: '',
+  start: FM_START, end: null, v: [30.5, -98] }, o);
+
+const snapshotBody = (roads) => ({ generated: new Date().toISOString(), roads });
+
+// run `fn` with the roads state saved and restored around it
+function withRoadsState(fn) {
+  const saved = {};
+  for (const k of ROADS_STATE_KEYS) saved[k] = ST[k];
+  try { return fn(); } finally { Object.assign(ST, saved); }
+}
 
 test('a road row carries the identity the closure archive already keys on', () => {
   resetWatch();
@@ -477,7 +579,7 @@ test('a watched road absent from a healthy closure list is reported as absent, n
   resetWatch();
   watchToggle('roads', 'curated:reopened-one');
   renderRoadsWith(ROADS_FIXTURE, (host) => {
-    assert.match(host.innerHTML, /1 roads you are watching are not in the current closure list/);
+    assert.match(host.innerHTML, /1 road you are watching is not in the current closure list/);
     assert.ok(!/cannot be checked/.test(host.innerHTML));
     assert.match(host.innerHTML, /data-watch-drop="roads"/);
   });
@@ -489,7 +591,7 @@ test('with every road source down the empty list still accounts for the watchlis
   resetWatch();
   watchToggle('roads', 'txdot:whatever');
   renderRoadsWith({ roadsUnknown: true, crossingsUnknown: true, crossStatusUnknown: true }, (host) => {
-    assert.match(host.innerHTML, /1 roads you are watching cannot be checked/,
+    assert.match(host.innerHTML, /1 road you are watching cannot be checked/,
       'an unanswered feed must not leave a watched road unaccounted for');
     assert.ok(!/not in the current closure list/.test(host.innerHTML),
       'a feed that did not answer cannot assert the road reopened');
@@ -503,20 +605,158 @@ test('with every road source down the empty list still accounts for the watchlis
 test('snapshot fallback cannot report a watched TxDOT road as gone', () => {
   resetWatch();
   watchToggle('roads', 'txdot:whatever');
-  // the snapshot carries route + start but no limits, so roadId cannot rebuild a live row's key
+  // keys match the live feed now, but the rows are still up to 15 minutes old and the source is
+  // down, so a road missing from them has not been shown to have reopened
   renderRoadsWith({
     roadsFallbackAt: Date.now() - 600000,
     roadClosures: {
       lines: [],
       points: [{
         _snapshot: true,
-        properties: { condition: 'Closure', route_name: 'FM0126', description: '', start_time: iso(200), _snapshot: true, _snapshotAt: iso(10) },
+        properties: {
+          condition: 'Closure', route_name: 'FM0126', description: '', start_time: FM_START,
+          from_limit: 'FM0126 A', to_limit: 'FM0126 B', _snapshot: true, _snapshotAt: iso(10),
+        },
         geometry: { type: 'Point', coordinates: [-98, 30.5] },
       }],
     },
   }, (host) => {
-    assert.match(host.innerHTML, /1 roads you are watching cannot be checked/);
+    assert.match(host.innerHTML, /1 road you are watching cannot be checked/);
     assert.ok(!/not in the current closure list/.test(host.innerHTML));
+    assert.ok(!/data-watch-drop/.test(host.innerHTML));
+  });
+  resetWatch();
+});
+
+/* ---------- roads: one identity across both sources (v0.99.84) ----------
+   The snapshot and the live feed describe the same physical closures. When their keys disagree the
+   Roads tab reports a road it is drawing as missing and offers to destroy the star, so these run
+   the real hydrator rather than hand-building the shape it produces. */
+
+test('a snapshot row and the live row for one closure carry the same watch key', async () => {
+  resetWatch();
+  await withRoadsState(async () => {
+    setRoads({ roadClosures: { lines: [txdotLine('FM0126', 30.5, FM_START)], points: [] } });
+    const liveWid = roadsTabRows().find((r) => r.kind === 'txdot').wid;
+    assert.ok(liveWid, 'the live row has an identity to match against');
+
+    await hydrateSnapshot(snapshotBody([snapRow({ from: 'FM0126 A', to: 'FM0126 B' })]));
+    const snapWid = roadsTabRows().find((r) => r.kind === 'txdot').wid;
+    assert.equal(snapWid, liveWid, 'one closure, one key, whichever source the board is serving');
+  });
+  resetWatch();
+});
+
+test('two closures on one route keep separate keys through the snapshot', async () => {
+  resetWatch();
+  await withRoadsState(async () => {
+    await hydrateSnapshot(snapshotBody([
+      snapRow({ id: 1, from: 'FM0126 A', to: 'FM0126 B' }),
+      snapRow({ id: 2, from: 'FM0126 C', to: 'FM0126 D', v: [30.6, -98.1] }),
+    ]));
+    const wids = roadsTabRows().filter((r) => r.kind === 'txdot').map((r) => r.wid);
+    assert.equal(wids.length, 2);
+    assert.equal(new Set(wids).size, 2, 'starring one closure on a route must not star every closure on it');
+  });
+  resetWatch();
+});
+
+test('a road starred during a DriveTexas outage is found again when the live feed returns', async () => {
+  resetWatch();
+  await withRoadsState(async () => {
+    await hydrateSnapshot(snapshotBody([snapRow({ from: 'FM0126 A', to: 'FM0126 B' })]));
+    const starred = roadsTabRows().find((r) => r.kind === 'txdot').wid;
+    watchToggle('roads', starred); // the user stars it while the live source is down
+
+    renderRoadsWith({ roadClosures: { lines: [txdotLine('FM0126', 30.5, FM_START)], points: [] } }, (host) => {
+      assert.match(host.innerHTML, new RegExp(`data-watch-id="${starred}" aria-pressed="true"`),
+        'the recovered live row must carry the key the snapshot row was starred under');
+      assert.ok(!/you are watching/.test(host.innerHTML),
+        'a road drawn one line below must never be reported missing from the closure list');
+      assert.ok(!/data-watch-drop/.test(host.innerHTML),
+        'and a source transition may never offer to destroy the star');
+    });
+  });
+  assert.equal(watchList('roads').length, 1, 'the star survives the transition');
+  resetWatch();
+});
+
+test('a snapshot written before the limits were archived carries no identity and no star', async () => {
+  resetWatch();
+  watchToggle('roads', 'txdot:whatever');
+  await withRoadsState(async () => {
+    await hydrateSnapshot(snapshotBody([snapRow({})])); // pre-v0.99.84 row: no from/to at all
+    const rows = roadsTabRows().filter((r) => r.kind === 'txdot');
+    assert.equal(rows.length, 1, 'the closure still draws; only its identity is unavailable');
+    assert.equal(rows[0].wid, '', 'a colliding stand-in key is worse than none');
+    assert.ok(!/watch-star/.test(roadsRowHtml(rows[0])), 'and no star writes a key nothing can resolve');
+
+    renderRoadsWith({ roadClosures: ST.roadClosures, roadsFallbackAt: ST.roadsFallbackAt }, (host) => {
+      assert.match(host.innerHTML, /1 road you are watching cannot be checked/);
+      assert.ok(!/not in the current closure list/.test(host.innerHTML),
+        'an unkeyable list cannot assert a watched road reopened');
+      assert.ok(!/data-watch-drop/.test(host.innerHTML));
+    });
+  });
+  assert.deepEqual(arr(watchList('roads')), ['txdot:whatever'], 'the upgrade path must not evict a watch');
+  resetWatch();
+});
+
+test('a DriveTexas outage does not stop the crossing feeds answering for their own rows', () => {
+  resetWatch();
+  watchToggle('roads', 'curated:reopened-one');
+  watchToggle('roads', 'txdot:whatever');
+  renderRoadsWith(Object.assign({}, ROADS_FIXTURE, {
+    roadsFallbackAt: Date.now() - 600000,
+    roadClosures: { lines: [], points: [] },
+  }), (host) => {
+    assert.match(host.innerHTML, /1 road you are watching is not in the current closure list/,
+      'the curated feed answered, so its own missing row is still a fact it can report');
+    assert.match(host.innerHTML, /1 road you are watching cannot be checked/,
+      'only the watch whose source is down is unmeasurable');
+    assert.equal([...host.innerHTML.matchAll(/data-watch-drop="roads"/g)].length, 1,
+      'one drop control, over the checkable line only');
+
+    host.wired.find((w) => w.sel === '[data-watch-drop]').fn(CLICK);
+    assert.deepEqual(arr(watchList('roads')), ['txdot:whatever'],
+      'the drop must never reach a watch no source could check');
+  });
+  resetWatch();
+});
+
+test('the Roads scroll guard notices a closure whose limits moved under it', () => {
+  resetWatch();
+  watchToggle('roads', roadRowKey('txdot', roadId({ route_name: 'FM0126', from_limit: 'FM0126 A', to_limit: 'FM0126 B' })));
+  // this row is the newest, so it leads the list watched or not: the edit below moves its key and
+  // nothing else the fingerprint reads, not even the row order
+  const LEAD_START = iso(5);
+  renderRoadsWith(Object.assign({}, ROADS_FIXTURE, {
+    roadClosures: { lines: [txdotLine('FM0126', 30.5, LEAD_START), txdotLine('IH0010', 30.6, IH_START)], points: [] },
+  }), (host) => {
+    assert.match(host.innerHTML, /aria-pressed="true"/, 'the watched row starts out painted as watched');
+    host.innerHTML = 'CLOBBERED';
+    // same route, name, label, condition, time and place: only the limits, and so the watch key
+    ST.roadClosures = {
+      lines: [txdotLine('FM0126', 30.5, LEAD_START, 'FM0126 C', 'FM0126 D'), txdotLine('IH0010', 30.6, IH_START)],
+      points: [],
+    };
+    SB.renderRoadsTab();
+    assert.notEqual(host.innerHTML, 'CLOBBERED',
+      'a row whose key changed must repaint, or the star stays drawn on a row that no longer holds it');
+    assert.ok(!/aria-pressed="true"/.test(host.innerHTML), 'and the repaint shows the row unwatched');
+  });
+  resetWatch();
+});
+
+test('the Roads tab still paints when the jurisdiction feed loaded but carries nothing', () => {
+  resetWatch();
+  // state.crossStatus is the whole document, so a reader that spreads it instead of its .crossings
+  // throws and the tab never assigns innerHTML at all
+  renderRoadsWith({
+    crossings: [], crossStatus: { crossings: [] }, roadClosures: { lines: [], points: [] },
+    myPos: { lat: 30.1, lng: -97.8 },
+  }, (host) => {
+    assert.match(host.innerHTML, /rcv-none/, 'the empty state must render rather than the tab throwing');
   });
   resetWatch();
 });
@@ -548,9 +788,11 @@ test('watchNoticeHtml renders nothing when every watched item is on screen', () 
 
 /* ---------- i18n and accessibility contracts ---------- */
 
-const WATCH_KEYS = ['watch.add', 'watch.remove', 'watch.section', 'watch.show', 'watch.drop',
-  'watch.gauges.hidden', 'watch.gauges.absent', 'watch.gauges.unknown',
-  'watch.roads.absent', 'watch.roads.unknown'];
+// every string watchNoticeHtml can reach, including the singular siblings watchCountText picks
+const WATCH_COUNT_KEYS = ['watch.gauges.hidden', 'watch.gauges.absent', 'watch.gauges.unknown',
+  'watch.roads.hidden', 'watch.roads.absent', 'watch.roads.unknown'];
+const WATCH_KEYS = ['watch.add', 'watch.remove', 'watch.section', 'watch.show', 'watch.drop']
+  .concat(WATCH_COUNT_KEYS, WATCH_COUNT_KEYS.map((k) => `${k}.one`));
 
 test('every watchlist string exists in both languages, with its placeholders intact', () => {
   for (const k of WATCH_KEYS) {
@@ -564,6 +806,36 @@ test('every watchlist string exists in both languages, with its placeholders int
         `${k} placeholder ${token} does not match across languages`);
     }
   }
+});
+
+test('every count-bearing watch string has a singular sibling in both languages', () => {
+  for (const k of WATCH_COUNT_KEYS) {
+    for (const lang of ['en', 'es']) {
+      const one = I18N[lang][`${k}.one`];
+      assert.equal(typeof one, 'string', `${lang} is missing ${k}.one`);
+      assert.match(one, /(^|\s)1\s/, `${lang} ${k}.one must name the one item it counts`);
+      assert.ok(!/\{n\}/.test(one), `${lang} ${k}.one carries its own count, like team.queue.one`);
+    }
+  }
+});
+
+test('one watched item reads as one item, with agreement, in both languages', () => {
+  const saved = SB.t;
+  try {
+    for (const lang of ['en', 'es']) {
+      SB.t = (k) => (typeof I18N[lang][k] === 'string' ? I18N[lang][k] : k);
+      const one = watchNoticeHtml('gauges', { hidden: [], absent: ['RETIRED'] }, {});
+      assert.ok(!/1 gauges|1 medidores/.test(one), `${lang} must not count one item in the plural`);
+      assert.match(one, lang === 'en' ? /1 gauge you are watching is not/ : /1 medidor que sigue no está/);
+
+      const many = watchNoticeHtml('gauges', { hidden: [], absent: ['A', 'B'] }, {});
+      assert.match(many, lang === 'en' ? /2 gauges you are watching are not/ : /2 medidores que sigue no están/);
+
+      const road = watchNoticeHtml('roads', { hidden: [], absent: ['txdot:x'] }, { unknown: true });
+      assert.match(road, lang === 'en' ? /1 road you are watching cannot be checked/
+        : /1 camino que sigue no se puede verificar/);
+    }
+  } finally { SB.t = saved; }
 });
 
 test('the unknown strings deny the zero reading rather than implying one', () => {

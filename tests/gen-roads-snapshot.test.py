@@ -41,9 +41,13 @@ BBOX = (-100.0, 29.0, -97.0, 31.0)
 
 
 def feature(n):
-    return {'properties': {'OBJECTID': n, 'condition': 'Flooding', 'route_name': 'FM%04d' % n,
-                           'description': 'Water over roadway.', 'start_time': '2026-07-26T00:00:00Z',
-                           'end_time': None},
+    props = {'OBJECTID': n, 'condition': 'Flooding', 'route_name': 'FM%04d' % n,
+             'description': 'Water over roadway.', 'start_time': '2026-07-26T00:00:00Z',
+             'end_time': None}
+    if n:  # n 0 stands in for a closure DriveTexas publishes no limits for
+        props['from_limit'] = 'FM%04d A' % n
+        props['to_limit'] = 'FM%04d B' % n
+    return {'properties': props,
             'geometry': {'type': 'LineString', 'coordinates': [[-98.5, 29.7], [-98.4, 29.75]]}}
 
 
@@ -149,6 +153,26 @@ check('MUTATION · a truncated fetch keeps the previous archive rather than publ
 
 wrote, ok_rc = run_main(3)
 check('a complete fetch does publish', len(wrote['roads']) == 3, str(len(wrote['roads'])) + ' roads')
+
+# Route + limits is the segment identity js/sources.js roadId hashes. Without the limits every
+# closure on one route archives to a single key, and none of them matches the live feed, so the
+# Roads tab reports a watched road it is drawing as missing.
+prev = GR.urllib.request.urlopen
+field_urls, GR.urllib.request.urlopen = serve(1)
+GR.fetch_features(BBOX)
+GR.urllib.request.urlopen = prev
+check('the query asks upstream for the segment limits',
+      'from_limit' in field_urls[0] and 'to_limit' in field_urls[0], field_urls[0])
+
+by_route = {r['route']: r for r in wrote['roads']}
+check('the archived row carries the limits roadId keys on',
+      by_route['FM0001']['from'] == 'FM0001 A' and by_route['FM0001']['to'] == 'FM0001 B',
+      json.dumps(by_route.get('FM0001')))
+# an archived empty limit and a snapshot written before limits were archived are different facts:
+# the first still keys like the live feed, the second cannot be keyed at all
+check('a closure with no limits upstream still archives both keys',
+      by_route['FM0000']['from'] == '' and by_route['FM0000']['to'] == '',
+      json.dumps(by_route.get('FM0000')))
 
 # The archive stays honest on its own: the previous file keeps its older stamp and the board ages
 # it. What a silent exit 0 threw away was the DEGRADED signal, which is what run-cycle.sh records

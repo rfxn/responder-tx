@@ -142,25 +142,15 @@ test('renderer guard: the degraded tooltip names sources in both languages', () 
   assert.deepEqual(hits, [], 'hardcoded English source names are back in the degraded tooltip (use t(REFRESH_SOURCE_KEYS[i]))');
   assert.ok(!/SOURCE_NAMES/.test(boot), 'the SOURCE_NAMES English array must stay gone');
 
-  const decl = boot.match(/const REFRESH_SOURCE_KEYS = \[([^\]]*)\];/);
-  assert.ok(decl, 'REFRESH_SOURCE_KEYS not found in js/boot.js');
-  const keys = [...decl[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  // the shipped list, not a regex over its declaration
+  const keys = Array.from(require('./harness.js').loadHeaderStatus().REFRESH_SOURCE_KEYS);
+  assert.ok(keys.length > 3, 'REFRESH_SOURCE_KEYS came back empty; the sweep below would be vacuous');
   for (const k of keys) {
     assert.ok(k in I18N.en && k in I18N.es, `${k} is not a key in both languages`);
   }
-
-  // arity: one label per settled promise, or every failure past the short one is mislabeled
-  const settled = boot.match(/Promise\.allSettled\(\[([\s\S]*?)\]\)/);
-  assert.ok(settled, 'the refresh() Promise.allSettled call was not found');
-  let depth = 0;
-  let arity = 1;
-  for (const ch of settled[1]) {
-    if ('([{'.includes(ch)) depth += 1;
-    else if (')]}'.includes(ch)) depth -= 1;
-    else if (ch === ',' && depth === 0) arity += 1;
-  }
-  assert.equal(keys.length, arity,
-    'REFRESH_SOURCE_KEYS must have exactly one entry per settled source, in the same order');
+  /* Arity and order are positional against Promise.allSettled, so they are driven for real in
+     tests/silent-failure.test.js: it fails each source in turn and asserts the tooltip names the
+     matching slot. A count parsed out of the source cannot see a reorder that keeps the count. */
 });
 
 test('renderer guard: enum label maps carry i18n keys, not English labels', () => {
@@ -168,15 +158,22 @@ test('renderer guard: enum label maps carry i18n keys, not English labels', () =
     const src = strippedSource(f);
     assert.ok(!/\bCAT_LABEL\b/.test(src), `${f}: CAT_LABEL map reintroduced (use catLabel()/catWord())`);
   }
-  const panels = strippedSource('panels.js');
-  const crossing = (panels.match(/const CROSSING_STATUS = \{[\s\S]*?\};/) || [''])[0];
-  assert.ok(crossing.length, 'CROSSING_STATUS map missing from panels.js');
-  assert.ok(!/label:/.test(crossing), 'CROSSING_STATUS holds label: strings (use key: xword.*)');
-  const sources = strippedSource('sources.js');
-  const road = (sources.match(/const ROAD_COND = \{[\s\S]*?\};/) || [''])[0];
-  assert.ok(road.length, 'ROAD_COND map missing from sources.js');
-  assert.ok(!/label:/.test(road), 'ROAD_COND holds label: strings (use key: road.cond.*)');
-  assert.ok(/ROAD_COND_FALLBACK = \{ key:/.test(sources), 'ROAD_COND_FALLBACK must carry an i18n key');
+  /* The shipped tables, so an entry that carries English instead of a key, or a key that never
+     reached one of the two languages, fails here rather than rendering a raw name in the field. */
+  const app = require('./harness.js').loadApp();
+  const entries = [
+    ...Object.entries(app.CROSSING_STATUS).map(([k, v]) => [`CROSSING_STATUS.${k}`, v]),
+    ...Object.entries(app.ROAD_COND).map(([k, v]) => [`ROAD_COND.${k}`, v]),
+    ['ROAD_COND_FALLBACK', app.ROAD_COND_FALLBACK],
+  ];
+  assert.ok(entries.length > 5, 'the enum tables came back empty; the sweep below would be vacuous');
+  for (const [name, v] of entries) {
+    assert.ok(!('label' in v), `${name} holds a label: string; enum rows carry an i18n key`);
+    assert.ok(v.key, `${name} has no i18n key`);
+    for (const lang of ['en', 'es']) assert.ok(I18N[lang][v.key], `${lang} missing ${v.key} (${name})`);
+  }
+  // an unknown road condition must still resolve to something the client can localize
+  assert.equal(app.roadCondType({ condition: 'no-such-condition' }).key, app.ROAD_COND_FALLBACK.key);
 });
 
 test('i18n: device-alerts (push) keys exist in both languages, 911 framing intact', () => {
@@ -347,12 +344,29 @@ test('the migration cue is a dismissible in-place pointer, not a fifth toast', (
   assert.ok(tabs.includes('id="moved-cue"'), 'the cue must sit where the moved control used to live');
 
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
-  const fn = panels.match(/function renderMovedCues\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderMovedCues() not found in js/panels.js');
-  assert.match(fn[0], /MOVED_CUES\.filter\(\(\[key\]\) => !movedCueSeen\(key\)\)/,
-    'the cue list must be filtered to the ones NOT yet dismissed');
-  assert.ok(/moved-x/.test(fn[0]), 'the cue must carry its own dismiss control');
-  assert.ok(/localStorage\.setItem\(`respondertx\.moved\./.test(panels), 'dismissal must persist');
+  /* Rendered and dismissed for real. The dismissal has to survive a re-render, which is the whole
+     point of the cue: a pointer that returns after being dismissed is a nag. */
+  const app = require('./harness.js').loadApp();
+  const sb = app._sandbox;
+  const host = { innerHTML: '', querySelectorAll: () => [] };
+  const savedQs = sb.document.querySelector;
+  sb.document.querySelector = (sel) => (sel === '#moved-cue' ? host : null);
+  try {
+    sb.localStorage.clear();
+    sb.renderMovedCues();
+    const first = /data-cue="([a-z]+)"/.exec(host.innerHTML);
+    assert.ok(first, 'the cue rendered nothing at all');
+    assert.equal((host.innerHTML.match(/class="moved-note"/g) || []).length, 1,
+      'one cue at a time; a stack of pointers is the toast lane this deliberately is not');
+    assert.match(host.innerHTML, new RegExp(`class="moved-x" data-x="${first[1]}"`),
+      'the cue must carry its own dismiss control');
+
+    sb.dismissMovedCue(first[1]);
+    assert.ok(!host.innerHTML.includes(`data-cue="${first[1]}"`),
+      'a dismissed cue came back on the next render');
+    sb.renderMovedCues();
+    assert.ok(!host.innerHTML.includes(`data-cue="${first[1]}"`), 'the dismissal did not persist');
+  } finally { sb.document.querySelector = savedQs; sb.localStorage.clear(); }
 
   const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'app.css'), 'utf8');
   const toastRule = css.match(/#update-toast, #sw-toast, #intake-toast, #op-toast \{[^}]*\}/);
@@ -460,18 +474,13 @@ test('i18n: feed and export control keys exist in both languages', () => {
 });
 
 /* Views-sheet parity. The lens picker's rows are built in js/map.js, not in index.html, so the
-   positional markup check above cannot see them. Read the VIEW_ROWS table out of the source and
-   assert every key it names resolves in BOTH languages: a row whose label or subtitle key was
-   never translated renders as a raw key string to a Spanish session. */
-const VIEW_ROWS_RE = /const VIEW_ROWS = \[([\s\S]*?)\];/;
-
+   positional markup check above cannot see them. Every key the shipped table names must resolve in
+   BOTH languages: a row whose label or subtitle key was never translated renders as a raw key
+   string to a Spanish session. */
 function viewRowKeys() {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'map.js'), 'utf8');
-  const m = src.match(VIEW_ROWS_RE);
-  assert.ok(m, 'VIEW_ROWS table not found in js/map.js');
-  const rows = [...m[1].matchAll(/\[\s*'([a-z]+)',\s*'[^']*',\s*'([^']+)',\s*'([^']+)'\s*\]/g)];
-  assert.equal(rows.length, 6, `expected 6 view rows, parsed ${rows.length}`);
-  return rows.map((r) => ({ name: r[1], labelKey: r[2], subKey: r[3] }));
+  const rows = Array.from(require('./harness.js').loadMapApp().VIEW_ROWS, (r) => Array.from(r));
+  assert.equal(rows.length, 6, `expected 6 view rows, got ${rows.length}`);
+  return rows.map(([name, , labelKey, subKey]) => ({ name, labelKey, subKey }));
 }
 
 test('i18n: every views-sheet row label and subtitle exists in both languages', () => {
@@ -545,8 +554,27 @@ test('renderer guard: the filters badge label is not a hardcoded literal', () =>
   const board = strippedSource('board.js');
   assert.ok(!/'☰ Filters'|`☰ Filters/.test(board),
     'js/board.js rebuilds the filters label from an English literal (route it through t(\'feed.filters\'))');
-  assert.ok(/t\('feed\.filters'\)/.test(board) && /t\('feed\.filters\.n'\)/.test(board),
-    'updateFiltersBadge() should read both feed.filters and feed.filters.n');
+
+  // both labels, rendered: the count variant is a different key and only the filtered state reaches it
+  const app = require('./harness.js').loadApp();
+  const sb = app._sandbox;
+  const toggle = { textContent: '', classList: { toggle() {} } };
+  const savedQs = sb.document.querySelector;
+  const savedT = sb.t;
+  const savedFilters = app.state.filters;
+  sb.document.querySelector = (sel) => (sel === '#filters-toggle' ? toggle : { hidden: true });
+  sb.t = (k) => (k === 'feed.filters.n' ? 'FILTERS ({n})' : 'FILTERS');
+  try {
+    app.state.filters = {};
+    sb.updateFiltersBadge();
+    assert.equal(toggle.textContent, 'FILTERS', 'the resting label must come from feed.filters');
+    app.state.filters = { type: 'rescue', county: 'Kerr' };
+    sb.updateFiltersBadge();
+    assert.equal(toggle.textContent, 'FILTERS (2)',
+      'a filtered feed must use the count key and interpolate the number into it');
+  } finally {
+    sb.document.querySelector = savedQs; sb.t = savedT; app.state.filters = savedFilters;
+  }
 });
 
 /* Structural literal guard (v0.99.3). The denylist above could not see a NEW hardcoded string, and
@@ -681,21 +709,62 @@ test('index.html: every title and aria-label is routed through i18n', () => {
 /* The data-age bar has two behaviours a translation pass can silently break: the per-second tick
  * must keep short-circuiting on an unchanged signature, and the dismissal key must not carry a
  * localized token or switching language would un-dismiss the bar. */
-test('the data-age bar localizes before the tick short-circuit, and its dismissal key stays language-free', () => {
-  const boot = strippedSource('boot.js');
-  const fn = boot.match(/function renderDataAgeBar\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderDataAgeBar() not found in js/boot.js');
-  const body = fn[0];
-  for (const k of ['age.lbl.gauges', 'age.lbl.alerts', 'age.snapshot', 'age.never', 'age.old', 'age.usgs']) {
-    assert.ok(body.includes(`'${k}'`), `renderDataAgeBar() no longer reads ${k}`);
+/* Driven through the shipped t(), which is where a language lives as far as this function is
+   concerned. The harness t() echoes keys, so it is replaced with a two-language table: that records
+   which keys the render really asked for AND makes a language switch observable. */
+function ageBar() {
+  const hdr = require('./harness.js').loadHeaderStatus();
+  const asked = [];
+  let lang = 'en';
+  hdr.sandbox.t = (k) => { asked.push(k); return `${lang}:${k}`; };
+  const usgs = { addTo(m) { m.on.add(usgs); return usgs; } };
+  const map = { on: new Set(), hasLayer: (l) => map.on.has(l), removeLayer: (l) => map.on.delete(l) };
+  Object.assign(hdr.state, { alertsLoadedOnce: true, gauges: [], snapshotAt: null,
+    bootAt: Date.now() - 60000, map, layers: { usgs }, usgsSites: [{}] });
+  const bar = hdr.node('#data-age-bar');
+  const render = (minsOld, l) => {
+    if (l) lang = l;
+    hdr.state.sourceHealth = { gauges: Date.now() - minsOld * 60000, alerts: Date.now() };
+    hdr.sandbox.renderDataAgeBar();
+    return bar;
+  };
+  return { hdr, bar, asked, render, setLang: (l) => { lang = l; } };
+}
+
+test('every branch of the data-age bar reads its label from t(), never a literal', () => {
+  const b = ageBar();
+  b.render(20);                                   // stale gauges: age.old + the USGS fallback note
+  b.hdr.state.sourceHealth.gauges = null;         // never loaded
+  b.hdr.sandbox.renderDataAgeBar();
+  b.hdr.state.snapshotAt = Date.now() - 45 * 60000; // a committed snapshot behind the live feed
+  b.hdr.sandbox.renderDataAgeBar();
+  b.hdr.state.snapshotAt = null;
+  b.render(20);
+  b.hdr.state.sourceHealth.alerts = Date.now() - 40 * 60000; // alerts now the worst source
+  b.hdr.sandbox.renderDataAgeBar();
+  for (const k of ['age.lbl.gauges', 'age.lbl.alerts', 'age.snapshot', 'age.never', 'age.old',
+    'age.usgs', 'age.dismiss']) {
+    assert.ok(b.asked.includes(k), `renderDataAgeBar() never asked for ${k}`);
   }
-  assert.match(body, /const key = `\$\{worst\.k\}\|\$\{cls\}`/,
-    'the dismissal key must stay ${worst.k}|${cls}: a localized token in it un-dismisses the bar on a language switch');
-  assert.match(body, /const sig = `\$\{key\}\|\$\{text\}`/, 'the tick signature must include the rendered text');
-  const lastTextAssign = [...body.matchAll(/\btext = /g)].pop();
-  assert.ok(lastTextAssign && body.indexOf('const sig =') > lastTextAssign.index,
-    'text must be localized BEFORE the signature is compared, or the tick renders a stale language');
-  assert.match(body, /if \(el\.dataset\.sig === sig\) return;/, 'the per-second tick lost its DOM short-circuit');
+});
+
+test('the data-age bar repaints on a language switch, and a dismissal survives one', () => {
+  const b = ageBar();
+  const en = b.render(20, 'en').innerHTML;
+  assert.match(en, /en:age\.old/, 'the bar rendered without its localized text');
+  const key = b.bar.dataset.key;
+
+  const es = b.render(20, 'es').innerHTML;
+  assert.match(es, /es:age\.old/,
+    'the language switch left the old text on screen; text must be localized before the tick signature is compared');
+  assert.equal(b.bar.dataset.key, key,
+    'the dismissal key changed with the language; a localized token in it un-dismisses the bar on a switch');
+
+  b.hdr.sandbox.sessionStorage.setItem('respondertx.ageBarDismiss', key); // dismissed while reading English
+  b.render(20, 'en');
+  assert.equal(b.bar.hidden, true, 'the dismissal did not hold');
+  b.render(20, 'es');
+  assert.equal(b.bar.hidden, true, 'switching language brought a dismissed warning back');
 });
 
 test('i18n: the life-safety cue keys exist in both languages with placeholders intact', () => {

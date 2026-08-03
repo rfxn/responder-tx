@@ -154,8 +154,8 @@ test('a subscribed device gets its card, and therefore its off switch, in every 
 test('the off switch is drawn and correctly wired in exactly the two toggleable states', () => {
   const tapped = (device) => {
     const btn = { addEventListener(ev, fn) { if (ev === 'click') btn.fn = fn; } };
-    const html = renderCard(device, { nodes: { '#push-toggle': btn } }).innerHTML;
-    return { html, fn: btn.fn };
+    const drawn = renderCard(device, { nodes: { '#push-toggle': btn } }).innerHTML;
+    return { html: drawn, fn: btn.fn };
   };
 
   const on = tapped('on');
@@ -197,20 +197,71 @@ test('only a real local subscription counts as subscribed, never a truthy stand-
   assert.equal(pushCardVisible({}), false, 'an empty fact bag is not a capable browser');
 });
 
-test('initPushCard consults the predicate over real environment facts, and needs a live backend', () => {
-  const fn = BOARD.match(/async function initPushCard\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'initPushCard not found in js/board.js');
-  assert.match(fn[0], /const facts = pushEnvFacts\(\);/, 'the predicate must see capability, not just two flags');
-  assert.match(fn[0], /facts\.subscribed = pushLocal\(\)\.on === true;/, 'the subscription fact comes from the local record');
-  assert.match(fn[0], /facts\.flagged = new URLSearchParams\(location\.search\)\.has\('push'\);/, '?push handling was dropped');
-  assert.match(fn[0], /if \(!pushCardVisible\(facts\)\) return;/);
-  // the status probe now guards every state: an install hint or a blocked notice must not
-  // advertise a channel that has no worker behind it
-  const gate = fn[0].indexOf("fetch('api/push/status')");
-  const stateRead = fn[0].indexOf('const st = pushCardState(facts)');
-  assert.ok(gate !== -1 && stateRead !== -1 && gate < stateRead,
-    'the backend check must run before the card commits to a state, for every state');
-  assert.match(fn[0], /if \(!d \|\| !d\.configured \|\| !d\.vapidKey\) return;/);
+/* Boots the card for real against a stubbed backend, so what a resident meets is the answer.
+   `backend` is what api/push/status does: a body, an HTTP status, or a thrown transport error. */
+async function bootCard(device, backend) {
+  const d = PUSH_DEVICE[device];
+  const keep = { qs: SB.document.querySelector, notif: SB.Notification, pm: SB.PushManager,
+    secure: SB.isSecureContext, nav: SB.navigator, ua: SB.navigator.userAgent, fetch: SB.fetch,
+    search: SB.location.search, sync: SB.pushBootSync };
+  SB.isSecureContext = true;
+  SB.navigator = { ...keep.nav, userAgent: d.ua || 'Mozilla/5.0',
+    serviceWorker: { ready: Promise.resolve({ pushManager: { getSubscription: async () => null } }) } };
+  SB.Notification = { permission: d.permission };
+  if (d.hasPush) SB.PushManager = function PushManager() {}; else delete SB.PushManager;
+  SB.location.search = backend.flagged ? '?push=1' : '';
+  SB.localStorage.setItem('respondertx.push', JSON.stringify({ on: d.subscribed, prefs: {} }));
+  SB.pushBootSync = () => {}; // its own re-subscribe path is covered by the registry suite
+  SB.fetch = async () => {
+    if (backend.threw) throw new Error('offline');
+    return { ok: backend.status === 200, status: backend.status, json: async () => backend.body };
+  };
+  const host = pushHost();
+  SB.document.querySelector = (s) => (s === '#push-body' ? host : null);
+  try {
+    await SB.initPushCard();
+    return host.innerHTML;
+  } finally {
+    SB.document.querySelector = () => null;
+    SB.pushOpenManageFor('');
+    Object.assign(SB, { Notification: keep.notif, isSecureContext: keep.secure, navigator: keep.nav,
+      fetch: keep.fetch, pushBootSync: keep.sync });
+    SB.document.querySelector = keep.qs;
+    SB.location.search = keep.search;
+    if (keep.pm === undefined) delete SB.PushManager; else SB.PushManager = keep.pm;
+    SB.localStorage.removeItem('respondertx.push');
+  }
+}
+
+const LIVE_BACKEND = { status: 200, body: { configured: true, vapidKey: 'k', lastEval: 0 } };
+
+test('initPushCard draws the card only for a device that can act, and only over a live backend', async () => {
+  assert.match(await bootCard('off', LIVE_BACKEND), /push-card/,
+    'a plain capable browser that never opted in must meet the card');
+  assert.match(await bootCard('blocked', LIVE_BACKEND), /push-card/);
+
+  // a device with no push at all is not offered a channel it cannot use
+  assert.equal(await bootCard('unsupported', LIVE_BACKEND), '',
+    'an unsupported browser must not be shown the card');
+  // ...unless the link that carries ?push= says otherwise (the iOS install hint rides that path)
+  assert.match(await bootCard('ios', { ...LIVE_BACKEND, flagged: true }), /push-card/,
+    '?push= must still reach the install hint');
+});
+
+test('initPushCard commits to no state until the backend has answered', async () => {
+  for (const device of ['off', 'on', 'blocked']) {
+    assert.equal(await bootCard(device, { status: 503, body: null }), '',
+      `${device}: an absent backend must hide the card, not advertise an unwired channel`);
+    assert.equal(await bootCard(device, { status: 200, body: { configured: false, vapidKey: 'k' } }), '',
+      `${device}: an unconfigured backend must hide the card, key or no key`);
+    assert.equal(await bootCard(device, { status: 200, body: { configured: true } }), '',
+      `${device}: no VAPID key means no channel, whatever the card would have said`);
+    // E1: an unreachable backend is a different fact from an absent one and must say so
+    assert.match(await bootCard(device, { status: 500, body: null }), /push-fix/,
+      `${device}: a bad status must be reported, never rendered as "no device alerts here"`);
+    assert.match(await bootCard(device, { threw: true }), /push-fix/,
+      `${device}: a transport failure must be reported, never silently swallowed`);
+  }
 });
 
 /* ---------- the permission prompt stays inside a tap ---------- */
@@ -247,9 +298,8 @@ test('Notification.requestPermission is reachable from exactly one place, and on
   // the boot self-heal re-subscribes only where permission was already granted
   const sync = BOARD.match(/async function pushBootSync\(\)[\s\S]*?\n\}/)[0];
   assert.ok(!/requestPermission/.test(sync), 'pushBootSync must never prompt');
-  const plan = BOARD.match(/function pushBootPlan\(f\)[\s\S]*?\n\}/)[0];
-  assert.match(plan, /return f\.permission === 'granted' \? 'resubscribe' : 'off';/,
-    'a missing subscription without a granted permission must go off, never re-prompt');
+  // the plan a missing subscription produces without a granted permission is run in board.test.js
+  // ("pushBootPlan: ... honest off on revocation"), which is what proves it never re-prompts
 });
 
 /* ---------- the promoted door ---------- */
@@ -298,13 +348,13 @@ test('the gauge-popup bell opens the sheet on the followed-gauges pane with that
     { lid: 'GRDT2', name: 'Guadalupe at Gonzales', latitude: 29.50, longitude: -97.45 },
     { lid: 'SRRT2', name: 'San Marcos at Luling', latitude: 29.68, longitude: -97.65 },
   ];
-  const sheet = { hidden: true };
+  const notifySheet = { hidden: true };
   try {
-    renderCard('on', { prefs: { scope: 'statewide' }, nodes: { '#notify-sheet': sheet } }, (host) => {
+    renderCard('on', { prefs: { scope: 'statewide' }, nodes: { '#notify-sheet': notifySheet } }, (host) => {
       assert.ok(!host.innerHTML.includes('data-lid='), 'the picker must start collapsed');
       host.asked.length = 0;
       SB.pushOpenManageFor('srrt2');
-      assert.equal(sheet.hidden, false, 'the bell must open the notify sheet');
+      assert.equal(notifySheet.hidden, false, 'the bell must open the notify sheet');
       assert.match(host.innerHTML, /data-sec="gauges" aria-expanded="true"/,
         'it must land on the followed-gauges pane, not on the pane the card was last left on');
       assert.match(host.innerHTML, /class="push-g-row push-nearby-row preselect" data-lid="SRRT2"/,
@@ -431,12 +481,6 @@ test('a render reveals the entry rows and publishes the card state onto them', (
    repeated that claim on two more surfaces (the gear row and the Alerts-tab row), and a surface
    that repeats a claim has to repeat the honesty branch with it. */
 test('no entry point claims ON for a subscription that can deliver nothing', () => {
-  const fn = BOARD.match(/function pushEntryStateKey\(cardState, deliversAny\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'pushEntryStateKey() not found');
-  assert.match(fn[0], /cardState === 'on' && !deliversAny \? 'push\.state\.silent'/,
-    'the entry rows must take the silent claim, exactly as the card does');
-  assert.match(fn[0], /cardState === 'unreachable'/,
-    'an unreachable backend must not leave the entry rows reading as OFF');
   assert.equal(pushEntryStateKey('on', true), 'push.state.on');
   assert.equal(pushEntryStateKey('on', false), 'push.state.silent', 'a silent subscription must not read as on');
   assert.equal(pushEntryStateKey('off', false), 'push.state.off');
@@ -482,11 +526,11 @@ test('the card still carries the best-effort framing, unweakened, on every rende
   // every state a resident can arrive in, including the ones a first-time visitor lands on
   for (const device of ['off', 'on', 'blocked', 'ios', 'unsupported']) {
     for (const prefs of [{}, { scope: 'statewide', ffe: true }]) {
-      const html = renderCard(device, { prefs }).innerHTML;
-      assert.match(html, /<div class="push-note">push\.note<\/div>/,
+      const drawn = renderCard(device, { prefs }).innerHTML;
+      assert.match(drawn, /<div class="push-note">push\.note<\/div>/,
         `${device} dropped the compact honesty line`);
-      assert.match(html, /<div class="push-sub">push\.sub<\/div>/, `${device} dropped the what-you-get paragraph`);
-      assert.match(html, /<div class="push-disclaimer">push\.disclaimer<\/div>/,
+      assert.match(drawn, /<div class="push-sub">push\.sub<\/div>/, `${device} dropped the what-you-get paragraph`);
+      assert.match(drawn, /<div class="push-disclaimer">push\.disclaimer<\/div>/,
         `${device} dropped the full disclaimer paragraph`);
     }
   }

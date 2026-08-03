@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.85",
+      "date": "2026-08-02",
+      "line": "Wildfire popups said no perimeters are drawn while the board was drawing them, and now say what a mapped outline means. Drive Mode's nearest cameras searched 9 of 19 networks, missing 174 cameras in Lubbock, Laredo, Corpus Christi, Del Rio, Eagle Pass, Galveston and four more. A wildfire layer that cannot be read says so instead of reporting no incidents."
+    },
+    {
       "v": "v0.99.84",
       "date": "2026-08-02",
       "line": "A road starred while the TxDOT feed was down is found again when the feed returns, and closures sharing a route are tracked separately. A watched road is reported gone only when the source covering it answered. Watchlist notices read correctly for a single item, in English and Spanish."

@@ -1,5 +1,27 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.85 · 2026-08-02 (the popup stops denying what the map draws)
+
+-- Bug Fixes --
+- [Fix] Wildfire popups and the layer name said no perimeters are drawn while the
+      board was drawing them. They now say what a mapped outline means, and that
+      an absent one is not a claim the fire is small
+- [Fix] Drive Mode searched only 9 of the 19 camera networks for the nearest
+      cameras, so 174 cameras in Lubbock, Laredo, Corpus Christi, Del Rio, Eagle
+      Pass, Galveston and four other networks never appeared
+- [Fix] A wildfire layer that cannot be read now says so instead of reporting no
+      incidents
+- [Fix] A shared camera link no longer opens behind the first-run overlay
+- [Fix] The board answered "bad request" when a notice, note or message could not
+      be written to disk; a lost intake is no longer reported as operator error
+- [Fix] A team marker with no timestamp showed a broken age; the age is omitted
+
+-- Changes --
+- [Change] The publish step of the data cycle is time-bounded, so a stalled publish
+         costs one cycle instead of several
+- [Change] Event configuration and playback crest data are checked on load, so a
+         failed request is no longer read as an empty result
+
 ## v0.99.84 · 2026-08-02 (one road identity, live feed or snapshot)
 
 -- Bug Fixes --

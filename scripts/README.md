@@ -32,12 +32,13 @@ suspended or mid-task).
 | `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, stall-watchdog, **and** freshness-monitor system-cron entries. |
 | `gen-lan-cert.sh` | Generate the self-signed TLS cert (`cert.pem` + `key.pem` under `/root/.config/responder/tls`, **outside** the repo) that `server.py` serves for LAN HTTPS. Idempotent (skips unless `--force`); prints the fingerprint + SANs. See "LAN HTTPS (self-signed)". |
 
-Three generators run out of band because their inputs are near-static, and none is
+Four generators run out of band because their inputs are near-static, and none is
 part of the 15-minute cycle: `gen-cameras.py` (the camera inventory →
 `data/cameras.json`), `gen-records.py` (the NWPS all-time crest of record per gauge
-→ `data/records.json`), and `gen-river-sentry.py` (river-sentry tower positions →
-`data/river-sentry.json`). Re-run them by hand after an AO change or when a source
-network changes.
+→ `data/records.json`), `gen-river-sentry.py` (river-sentry tower positions →
+`data/river-sentry.json`), and `gen-tide-meta.py` (a coordinate for every tide station
+in `event.json` → `data/tide-meta.json`). Re-run them by hand after an AO change or
+when a source network changes.
 
 Out of band is not unwatched. Each refuses to overwrite a good file from a degraded
 run, and each treats an output that exists but will not read as a reason to stop

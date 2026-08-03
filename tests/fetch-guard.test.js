@@ -239,7 +239,7 @@ test('no client file substitutes an empty list for a missing payload key', () =>
 const CENSUS = {
   'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 3, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
   'map.js': 3, 'master.js': 1, 'notes.js': 4, 'panels.js': 9, 'playback.js': 4,
-  'sources.js': 15, 'team.js': 2, 'usng.js': 0,
+  'sources.js': 16, 'team.js': 2, 'usng.js': 0,
 };
 
 test('the client fetch census is unchanged, so no new call site slipped past this audit', () => {
@@ -301,6 +301,12 @@ const SITES = [
     req: ["okJson(res, 'LSR')", "okList(data, 'features', 'LSR')"] },
   { f: 'sources.js', d: 'async function fetchTideStation(', c: TOP, v: 'GUARDED',
     req: ["okJson(obsR, 'CO-OPS obs')", "okList(obs, 'data', 'CO-OPS obs')", 'ok: false'] },
+  // a coordinate cache that would not load leaves state.tideMeta null: no station offers a focus
+  // control, and the layer says so rather than drawing an empty coast
+  { f: 'sources.js', d: 'async function fetchTideMeta()', c: TOP, v: 'HONEST',
+    req: ['if (!res.ok) throw', "typeof data.stations !== 'object'", 'state.tideMeta = data'] },
+  { f: 'sources.js', d: 'function renderTideStations()', c: TOP, v: 'HONEST',
+    req: ['!Object.keys(state.tideMarkers).length', "opNotice(t('note.tidemeta'))"] },
 
   // ---- panels.js ----
   { f: 'panels.js', d: 'async function openCrestSummary()', c: TOP, v: 'GUARDED',

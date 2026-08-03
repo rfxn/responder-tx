@@ -1221,6 +1221,12 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .tide-surge { flex: 0 0 auto; min-width: 78px; text-align: right; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .tide-surge.muted { color: var(--ink-muted); font-weight: 500; }
 .tide-row.unavail .tide-name { color: var(--ink-muted); font-weight: 500; }
+button.tide-focus {
+  background: none; border: none; padding: 0; text-align: left; cursor: pointer;
+  color: var(--accent); text-decoration: underline; text-underline-offset: 2px;
+}
+button.tide-focus:hover, button.tide-focus:focus-visible { color: var(--ink-1); }
+.tides-quiet-toggle { margin: 6px 0 4px; }
 .tide-cite { font-size: 10.5px; color: var(--ink-muted); margin: 7px 2px 2px; }
 .tide-cite a { color: var(--accent); text-decoration: none; }
 
@@ -1495,6 +1501,8 @@ button.inspect-gauge:hover { color: var(--accent); }
   .card-actions { gap: 7px; margin-top: 8px; }
   .act-btn { min-height: 44px; font-size: 12.5px; }
   .tel-link { min-height: 44px; }
+  button.tide-focus { min-height: 44px; display: flex; align-items: center; }
+  .tides-quiet-toggle { min-height: 44px; }
   .badge.src-link { max-width: 150px; }
   /* Alerts density on phones (owner: cards ran too tall) — .card.alert-card outranks the ≤768 .card padding */
   .card.alert-card { padding: 7px 10px; margin-bottom: 5px; }
@@ -1784,6 +1792,23 @@ button.inspect-gauge:hover { color: var(--accent); }
   display: inline-flex; vertical-align: middle; box-shadow: none; border-width: 1.5px;
 }
 
+/* NOAA CO-OPS tide station. Banded by the same surge residual the coastal card colours by, and
+   'unknown' is a station that could not be read or has no prediction, never a calm one. */
+.tide-marker {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--ink-muted); border: 2px solid var(--surface-1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+}
+.tide-marker.tide-major { background: var(--cat-major); }
+.tide-marker.tide-moderate { background: var(--cat-moderate); }
+.tide-marker.tide-below { background: var(--good); }
+.tide-marker.tide-steady { background: var(--ink-2); }
+.tide-marker.tide-unknown { background: transparent; border-style: dashed; border-color: var(--ink-muted); }
+.tide-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; font-size: 12px; line-height: 1; vertical-align: middle;
+}
+
 /* mobile tap targets — small map markers get a transparent ~44px hit halo centered on the
    anchor (marker still points at its true coordinate); visible glyph unchanged. Scoped to the
    marker pane so legend swatches keep their small size (owner UX: markers hard to tap on a phone) */
@@ -1792,12 +1817,14 @@ button.inspect-gauge:hover { color: var(--accent); }
   .leaflet-marker-pane .cam-icon,
   .leaflet-marker-pane .rsentry-icon,
   .leaflet-marker-pane .wildfire-icon,
+  .leaflet-marker-pane .tide-marker,
   .leaflet-marker-pane .lsr-icon,
   .leaflet-marker-pane .usgs-dot { position: relative; }
   .leaflet-marker-pane .reopen-icon::before,
   .leaflet-marker-pane .cam-icon::before,
   .leaflet-marker-pane .rsentry-icon::before,
   .leaflet-marker-pane .wildfire-icon::before,
+  .leaflet-marker-pane .tide-marker::before,
   .leaflet-marker-pane .lsr-icon::before,
   .leaflet-marker-pane .usgs-dot::before {
     content: ''; position: absolute; top: 50%; left: 50%;

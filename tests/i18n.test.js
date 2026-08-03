@@ -588,7 +588,7 @@ test('renderer guard: the filters badge label is not a hardcoded literal', () =>
  * Exemptions are token-shaped, never phrase-shaped. ACRONYMS clears organization, protocol and
  * product names (a caps run made only of those is a proper noun). EXEMPT_RUNS carries the few
  * machine and interop strings no reader is meant to translate, each named individually. */
-const ACRONYMS = new Set(['NOAA', 'NHC', 'NWS', 'NWPS', 'NWM', 'MRMS', 'HRRR', 'NEXRAD', 'SLOSH', 'MOM',
+const ACRONYMS = new Set(['NOAA', 'CO-OPS', 'NHC', 'NWS', 'NWPS', 'NWM', 'MRMS', 'HRRR', 'NEXRAD', 'SLOSH', 'MOM',
   'USGS', 'HIVIS', 'IEM', 'FEMA', 'NSS', 'TXDOT', 'TXGIO', 'USNG', 'MGRS', 'GPS', 'HLS', 'S3',
   'HTTP', 'HTTPS', 'API', 'URL', 'JSON', 'CSV', 'IV', 'LSR', 'LID', 'ARC', 'QR', 'ICS', 'RSS']);
 const EXEMPT_RUNS = new Map([

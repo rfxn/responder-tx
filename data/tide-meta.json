@@ -1,0 +1,169 @@
+{
+  "generated": "2026-08-03T15:50:13Z",
+  "source": {
+    "name": "NOAA CO-OPS station metadata (MDAPI)",
+    "url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.html"
+  },
+  "stations": {
+    "8770475": {
+      "lat": 29.8667,
+      "lon": -93.93,
+      "name": "Port Arthur"
+    },
+    "8770520": {
+      "lat": 29.98,
+      "lon": -93.8817,
+      "name": "Rainbow Bridge"
+    },
+    "8770613": {
+      "lat": 29.68167,
+      "lon": -94.985,
+      "name": "Morgans Point, Barbours Cut"
+    },
+    "8770777": {
+      "lat": 29.7263,
+      "lon": -95.2658,
+      "name": "Manchester"
+    },
+    "8770808": {
+      "lat": 29.5947,
+      "lon": -94.3903,
+      "name": "High Island"
+    },
+    "8770822": {
+      "lat": 29.6893,
+      "lon": -93.8418,
+      "name": "Texas Point, Sabine Pass"
+    },
+    "8770971": {
+      "lat": 29.515,
+      "lon": -94.5133,
+      "name": "Rollover Pass"
+    },
+    "8771013": {
+      "lat": 29.48131,
+      "lon": -94.91725,
+      "name": "Eagle Point, Galveston Bay"
+    },
+    "8771341": {
+      "lat": 29.35746,
+      "lon": -94.72472,
+      "name": "Galveston Bay Entrance, North Jetty"
+    },
+    "8771450": {
+      "lat": 29.31,
+      "lon": -94.7933,
+      "name": "Galveston Pier 21"
+    },
+    "8771486": {
+      "lat": 29.3026,
+      "lon": -94.8971,
+      "name": "Galveston Railroad Bridge"
+    },
+    "8771972": {
+      "lat": 29.095,
+      "lon": -95.1133,
+      "name": "San Luis Pass"
+    },
+    "8772471": {
+      "lat": 28.9357,
+      "lon": -95.2942,
+      "name": "Freeport Harbor"
+    },
+    "8772985": {
+      "lat": 28.77164,
+      "lon": -95.61684,
+      "name": "Sargent"
+    },
+    "8773037": {
+      "lat": 28.4069,
+      "lon": -96.7124,
+      "name": "Seadrift"
+    },
+    "8773146": {
+      "lat": 28.71,
+      "lon": -95.9139,
+      "name": "Matagorda City"
+    },
+    "8773259": {
+      "lat": 28.6406,
+      "lon": -96.6098,
+      "name": "Port Lavaca"
+    },
+    "8773701": {
+      "lat": 28.4517,
+      "lon": -96.3883,
+      "name": "Port O'Connor"
+    },
+    "8773767": {
+      "lat": 28.4269,
+      "lon": -96.3301,
+      "name": "Matagorda Bay Entrance Channel"
+    },
+    "8774513": {
+      "lat": 28.1183,
+      "lon": -97.0217,
+      "name": "Copano Bay"
+    },
+    "8774770": {
+      "lat": 28.02167,
+      "lon": -97.04667,
+      "name": "Rockport"
+    },
+    "8775132": {
+      "lat": 27.8804,
+      "lon": -97.2735,
+      "name": "La Quinta Channel North"
+    },
+    "8775222": {
+      "lat": 27.8461,
+      "lon": -97.5207,
+      "name": "Viola Turning Basin"
+    },
+    "8775237": {
+      "lat": 27.8397,
+      "lon": -97.0725,
+      "name": "Port Aransas"
+    },
+    "8775241": {
+      "lat": 27.8366,
+      "lon": -97.0391,
+      "name": "Aransas, Aransas Pass"
+    },
+    "8775283": {
+      "lat": 27.81861,
+      "lon": -97.20895,
+      "name": "Enbridge, Ingleside"
+    },
+    "8775296": {
+      "lat": 27.8149,
+      "lon": -97.3892,
+      "name": "USS Lexington, Corpus Christi Bay"
+    },
+    "8775792": {
+      "lat": 27.6333,
+      "lon": -97.2367,
+      "name": "Packery Channel"
+    },
+    "8779280": {
+      "lat": 26.2624,
+      "lon": -97.2853,
+      "name": "Realitos Peninsula"
+    },
+    "8779748": {
+      "lat": 26.0731,
+      "lon": -97.1675,
+      "name": "South Padre Island CG Station"
+    },
+    "8779749": {
+      "lat": 26.0675,
+      "lon": -97.1548,
+      "name": "SPI Brazos Santiago"
+    },
+    "8779770": {
+      "lat": 26.06117,
+      "lon": -97.21553,
+      "name": "Port Isabel"
+    }
+  }
+}

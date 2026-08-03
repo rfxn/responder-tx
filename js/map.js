@@ -533,6 +533,7 @@ function initMap() {
     if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer === state.layers.riverSentry) fetchRiverSentry();
     if (e.layer === state.layers.wildfire) fetchWildfire();
+    if (e.layer === state.layers.tideStations) loadTides();
     if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { opNotice(t('note.tropfail')); }); }
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
     if ((state.camLayerList || []).includes(e.layer)) loadCameras().catch(() => { opNotice(t('note.camfail')); });
@@ -603,6 +604,8 @@ function initMap() {
   // wildfire incidents an agency has opened a record for — OFF by default, lazy-loaded; REPORTED
   // ORIGIN POINTS, never a fire perimeter, and acreage/containment are reported figures
   state.layers.wildfire = L.layerGroup();
+  // NOAA CO-OPS tide stations — OFF by default (coastal only), lazy-loaded on first enable
+  state.layers.tideStations = L.layerGroup();
   // cameras: one group per AO region (every source pooled into the region it sits in), all OFF by
   // default, lazy-loaded, clustered; plain group if the markercluster plugin failed to load
   const camGroup = () => (L.markerClusterGroup
@@ -644,6 +647,7 @@ function initMap() {
     'Crossings reported closed (Central Texas jurisdictions)': state.layers.crossStatus,
     'River Sentry siren sites (reported locations · not live status)': state.layers.riverSentry,
     'Wildfire incidents (reported points · mapped perimeters where published)': state.layers.wildfire,
+    'Coastal water levels (NOAA CO-OPS tide stations)': state.layers.tideStations,
     ...camOverlays,
   }, { collapsed: true }).addTo(state.map);
 
@@ -1028,6 +1032,7 @@ const PILL_LAYERS = [
   ['roadReopen', 'layers.reopen'],
   ['riverSentry', 'layers.rsentry'],
   ['wildfire', 'layers.wildfire'],
+  ['tideStations', 'layers.tides'],
 ]; // region camera pills are appended by initCamRegionRows()
 
 // a static row carries an i18n key; a region camera row takes its name from the event config
@@ -1131,6 +1136,7 @@ const SHEET_GROUPS = [
     ['crossStatus', '🚨', 'layers.xstatus', 'sheet.s.xstatus', 'official', false],
     ['lwc', '📍', 'layers.crossall', 'sheet.s.crossall', 'official', false],
     ['riverSentry', '<span class="rsentry-icon">📢</span>', 'layers.rsentry', 'sheet.s.rsentry', null, false],
+    ['tideStations', '<span class="tide-icon">⇅</span>', 'layers.tides', 'sheet.s.tides', 'official', false],
   ]],
   ['sheet.g.rain', WX_RAIN_ROWS.concat([
     ['mrms', '🌧', 'layers.rain', 'sheet.s.rain', null, false],

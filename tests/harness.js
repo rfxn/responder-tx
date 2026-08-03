@@ -183,6 +183,8 @@ const EXPORTS = [
   'pushLocal', 'pushLocalSet', 'pushPrefs', 'pushDisable', 'pushFollowGauge',
   'wildfirePopupHtml', 'wildfireNoticeText', 'wildfireStale', 'wildfireContained', 'wildfireAgeH',
   'wildfireSource', 'WILDFIRE_STALE_H',
+  'TIDE_NEUTRAL_FT', 'tideBand', 'tideQuiet', 'tideSplit', 'fetchTideMeta', 'tideStationLatLon',
+  'renderTideStations', 'tidePopupHtml', 'paintTides', 'loadTides', 'fetchTides', 'focusTideStation',
 ];
 
 // panels.js is in the loadApp bundle only — loadMapApp swaps it for map.js — so these must stay
@@ -199,7 +201,9 @@ const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn
   'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H',
   'crossingList', 'heroCards', 'badgeText', 'BADGE_UNKNOWN', 'shlLiveUpdatedHtml',
   'roadsTabRows', 'roadsTxdotRows', 'roadsCuratedRows', 'roadsJurisdictionRows', 'roadsRowHtml', 'roadRowKey',
-  'xstatusAgeD', 'XSTATUS_UNCONFIRMED_D'];
+  'xstatusAgeD', 'XSTATUS_UNCONFIRMED_D',
+  'renderTides', 'tideRowHtml', 'tideNameCell', 'tideSurgeColor', 'tideDirGlyph',
+  'TIDE_BAND_COLOR', 'TIDES_QUIET_KEY'];
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
 const MAP_EXPORTS = EXPORTS.concat(['VIEW_ROWS',

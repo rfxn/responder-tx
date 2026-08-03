@@ -51,6 +51,8 @@ const ENTRY_POINTS = [
   // sources.js
   'fetchAlerts', 'fetchGauges', 'fetchLsrs', 'fetchRoadClosures', 'fetchFcstMax',
   'fetchUsgsIv', 'fetchTropical', 'openAlertTextById', 'dismissEmergencyBanner', 'prettyRoute',
+  // the three marker layers relocalizeDynamic() repaints on a live language switch
+  'renderWildfire', 'renderRiverSentry', 'renderTideStations',
   // cameras.js (called from map.js, sources.js, boot.js, panels.js)
   'loadCameras', 'renderCameras', 'openCamViewer', 'closeCamViewer', 'camNetLabel', 'nearestRiverCam',
   // panels.js / board.js / boot.js

@@ -8,10 +8,21 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { loadApp, loadMapApp, loadWiredMap } = require('./harness.js');
+const { loadApp, loadMapApp, loadFullApp, loadWiredMap } = require('./harness.js');
 
 const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+
+// the "?" glossary lives in js/boot.js and paints into #glossary-body, so the bundle with boot.js
+// in it builds the panel for real rather than the file being regexed for the key
+function glossaryHtml() {
+  const SB = loadFullApp()._sandbox;
+  const body = { innerHTML: '' };
+  const prev = SB.document.querySelector;
+  SB.document.querySelector = (sel) => (sel === '#glossary-body' ? body : null);
+  try { SB.renderGlossary(); } finally { SB.document.querySelector = prev; }
+  return body.innerHTML;
+}
 
 const app = loadApp();
 const { wildfirePopupHtml, wildfireNoticeText, wildfireStale, wildfireContained, wildfireAgeH,
@@ -205,8 +216,9 @@ test('the layer is named in the legend and the glossary, and hides under playbac
     assert.ok(legend.includes(k), `the map legend does not name ${k}`);
   }
   assert.match(legend, /wildfire-icon/, 'the legend names the layer without showing its glyph');
-  // js/boot.js is in no executable bundle, so the glossary entry stays a text check
-  assert.match(read('js/boot.js'), /glossary\.wildfire/, 'the glossary does not name the marker');
+  const glossary = glossaryHtml();
+  assert.match(glossary, /glossary\.wildfire/, 'the glossary does not name the marker');
+  assert.match(glossary, /wildfire-icon/, 'the glossary names the marker without showing its glyph');
   const hidden = mapApp.pbLiveHideAll().find(([k]) => k === 'wildfire');
   assert.ok(hidden, 'there is no incident archive, so a live wildfire layer under playback impersonates the past');
   assert.equal(hidden[1], 'layers.wildfire', 'playback must be able to name the layer it took away');
@@ -223,7 +235,7 @@ test('the layer travels in a shared link, in both directions and without stackin
     w.layers.wildfire.addTo(w.map);
     assert.match(S.buildShareUrl(), /[?&]fire=1\b/, 'a shared link silently drops the wildfire layer');
   } finally { S.document.querySelector = prev; }
-  // js/boot.js parses the incoming ?fire=1 and is in no executable bundle, so that half stays textual
+  // the inbound ?fire=1 parser lives inside boot(), which cannot be called: matched, not run
   const boot = read('js/boot.js').match(/for \(const \[qk, lk\] of \[\['usgs'[\s\S]*?\]\) \{/);
   assert.ok(boot, 'the share-param parser was not found');
   assert.match(boot[0], /\['fire', 'wildfire'\]/, 'an incoming ?fire=1 link does not reopen the layer');

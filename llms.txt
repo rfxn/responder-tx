@@ -1,9 +1,10 @@
 # ResponderTX
 
-> A live, source cited flood operating picture for Texas: river gauges with observed and
-> forecast NWS flood category, forecast crest heights and times, flash flood warnings and
-> emergencies, road and low water crossing closures, cameras, and an observed to forecast
-> radar timeline. Free, no account, no tracking, open source under the GNU GPL v2.
+> A live, source cited hazard operating picture for Texas: river gauges with observed and
+> forecast NWS flood category, forecast crest heights and times, NWS warnings from flash
+> flood to tornado, tropical track and storm surge risk, wildfire incidents and mapped
+> perimeters, road and low water crossing closures, open shelters, cameras, and an observed
+> to forecast radar timeline. Free, no account, no tracking, open source under the GNU GPL v2.
 
 **ResponderTX is not an emergency reporting channel.** It is situational awareness. It is
 not a dispatch system, it is not an official warning source, and it is not monitored by
@@ -42,6 +43,8 @@ carry the same discipline.
   flood moves downstream.
 - [Low water crossing status](https://respondertx.org/data/crossing-status.json)
 - [Shelters and hotlines](https://respondertx.org/data/shelters-live.json)
+- [Wildfire incidents and perimeters](https://respondertx.org/data/wildfire.json): reported
+  incidents with per source status, and mapped perimeters where anyone has published one.
 - [Playback archive index](https://respondertx.org/history/index.json): how far back the
   committed archive reaches.
 - [Event configuration](https://respondertx.org/data/event.json): the region, map framing,
@@ -68,8 +71,10 @@ Primary providers: the National Weather Service (`api.weather.gov`), NOAA's Nati
 Prediction Service (`api.water.noaa.gov`), the U.S. Geological Survey
 (`waterservices.usgs.gov`), the Iowa Environmental Mesonet at Iowa State University, NOAA
 CO-OPS tides, the National Hurricane Center, TxDOT DriveTexas, the Texas Geographic
-Information Office, ATX Floods, and city, county and port camera networks. Attribute the
-operator that actually runs the service, not ResponderTX.
+Information Office, ATX Floods, the Texas A&M Forest Service and the National Interagency
+Fire Center for wildfire, FEMA's National Shelter System for open shelters, and city,
+county and port camera networks. Attribute the operator that actually runs the service,
+not ResponderTX.
 
 ## Project
 

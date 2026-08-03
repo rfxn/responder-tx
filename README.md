@@ -29,12 +29,13 @@ stale is ever shown as live.
   Built for responders, open to all
 </p>
 
-A live, zero-backend web board that fuses a single flood operating picture for
+A live, zero-backend web board that fuses a single hazard operating picture for
 Texas: river gauges with **forecast** crests, crest-wave timing, record-crest
-watch, NWS flash-flood alerts, a unified observed-to-forecast radar timeline, road
-and low-water-crossing status, a statewide camera network, and a human-triaged
-field feed. Built for a first responder working from a truck, and for anyone
-watching the public mirror.
+watch, NWS warnings from flash flood to tornado, tropical track and storm-surge
+risk, wildfire incidents and perimeters, a unified observed-to-forecast radar
+timeline, road and low-water-crossing status, open shelters, a statewide camera
+network, and a human-triaged field feed. Built for a first responder working from
+a truck, and for anyone watching the public mirror.
 
 > Copyright (C) 2026 [R-fx Networks](https://www.rfxn.com) &lt;proj@rfxn.com&gt; &#183; Ryan MacDonald &#183; Licensed under [GNU GPL v2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
 
@@ -127,10 +128,12 @@ Cloudflare Durable Object that stays dormant unless someone joins a team.
 ## Data sources
 
 Every live hazard layer is a **keyless, CORS-open** public endpoint, so the board
-runs from any static host with no server of its own. Camera stills are the one
-exception: they are fetched through a same-origin `/api/cam` proxy (a Pages
-Function on the mirror, a `server.py` route on the LAN host) because the source
-imagery is not CORS-open. Each card names its provenance.
+runs from any static host with no server of its own. Two kinds of source are
+fetched differently. Camera stills come through a same-origin `/api/cam` proxy (a
+Pages Function on the mirror, a `server.py` route on the LAN host) because the
+source imagery is not CORS-open. Shelters and wildfire are collected by the
+generator cycle and published as committed JSON, so the browser reads them from
+the same origin as the board. Each card names its provenance.
 
 | Data | Provider | Host / API |
 |------|----------|------------|
@@ -145,6 +148,8 @@ imagery is not CORS-open. Each card names its provenance.
 | Road closures + traffic cameras | [TxDOT DriveTexas](https://drivetexas.org/) | `services5.arcgis.com`, `its.txdot.gov` |
 | Low-water crossing locations | [Texas Geographic Information Office (TxGIO)](https://geographic.texas.gov/) | `feature.geographic.texas.gov` |
 | Low-water crossing status, Austin-area flood cameras | [ATX Floods](https://atxfloods.com/) (Beholder Technology, LLC) | `atxfloods.com` |
+| Open shelter status | [FEMA National Shelter System](https://gis.fema.gov/) (American Red Cross sync) | `gis.fema.gov`, collected by the cycle |
+| Wildfire incidents and mapped perimeters | [Texas A&amp;M Forest Service](https://tfswildfires.com/public/) &#183; [National Interagency Fire Center (WFIGS)](https://data-nifc.opendata.arcgis.com/) | `tfswildfires.com`, `services3.arcgis.com`, collected by the cycle |
 | City, county, port, border and coastal cameras | Houston TranStar, City of Austin, City of Arlington, City of Lubbock, City of Corpus Christi, City of El Paso, City of Laredo, City of Eagle Pass, City of Del Rio, Hays County OES, Port Houston, Port of Galveston, Saltwater Recon, WeatherBug, New Mexico DOT, National Park Service | stills via the same-origin `/api/cam` proxy; live feeds play direct from the operator |
 | Address / place geocoding | [OpenStreetMap Nominatim](https://nominatim.org/) | `nominatim.openstreetmap.org` |
 | Basemap tiles | [CARTO](https://carto.com/basemaps/) &#183; [OpenStreetMap](https://www.openstreetmap.org/copyright) | `basemaps.cartocdn.com`, `tile.openstreetmap.org` |
@@ -166,13 +171,14 @@ the live sources, writes `data/*.json` plus the feeds, and commits them, so the
 
 <p align="center"><img src="assets/architecture.svg" alt="ResponderTX system architecture: browser SPA fetching public data sources, the LAN server.py host vs the read-only Cloudflare Pages mirror, and the per-cycle generator pipeline that commits data/ as the archive" width="960"></p>
 
-The browser SPA is split into focused modules: `core` (config/state), `map`,
-`playback`, `sources`, `cameras`, `panels`, `board`, `boot`, `notes`, `i18n`,
-`usng`, `team` (opt-in live team sharing), and the LAN-only `chat` and `master`
-(both stripped from the public deploy). A service worker (`sw.js`) caches the app
-shell, the last-good data payloads and the playback archive, and receives device
-alerts. See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, request flow,
-and the public-mirror strip contract.
+The browser SPA is split into focused modules: `bootfloor` (the below-floor
+notice, loaded first), `core` (config/state), `map`, `playback`, `sources`,
+`cameras`, `panels`, `board`, `boot`, `notes`, `i18n`, `usng`, `team` (opt-in
+live team sharing), and the LAN-only `chat` and `master` (both stripped from the
+public deploy). A service worker (`sw.js`) caches the app shell, the last-good
+data payloads and the playback archive, and receives device alerts. See
+[ARCHITECTURE.md](ARCHITECTURE.md) for the module map, request flow, and the
+public-mirror strip contract.
 
 ## Honesty & aging discipline
 

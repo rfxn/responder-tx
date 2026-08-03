@@ -1,6 +1,6 @@
 # About ResponderTX
 
-ResponderTX is a live, zero-backend flood operating picture for Texas. It fuses
+ResponderTX is a live, zero-backend hazard operating picture for Texas. It fuses
 authoritative hazard data with a human-triaged field feed into one map that a
 responder can read in under ten seconds. This page is the trust and methodology
 statement behind the board.
@@ -23,8 +23,10 @@ public at <https://github.com/rfxn/responder-tx>.
 ## What it is
 
 - A **single operating picture** that fuses river gauges (observed *and* forecast
-  flood category), NWS flash-flood alerts, a unified observed-to-forecast radar
-  timeline, road and low-water-crossing status, a statewide camera fleet, and a
+  flood category), NWS warnings across the warned hazards from flash flood to
+  tornado, tropical track and storm-surge risk, wildfire incidents and mapped
+  perimeters, a unified observed-to-forecast radar timeline, road and
+  low-water-crossing status, open shelters, a statewide camera fleet, and a
   curated field feed.
 - **Forecast-first.** Every major crest this event appeared in the NWPS forecast
   field hours before the water arrived. The board is built to anticipate, not just
@@ -80,9 +82,10 @@ Service and River Forecast Centers, the National Hurricane Center and CO-OPS Tid
 University), RainViewer, TxDOT DriveTexas, Esri ArcGIS Online (which hosts the NHC
 tropical layers, the SLOSH surge tiles and DriveTexas), the Texas Geographic
 Information Office, ATX Floods, OpenStreetMap with Nominatim and Overpass, and CARTO
-basemaps. Two exceptions to "directly": gauge hydrographs prefer a same-origin proxy
-and fall back to NOAA, and FEMA National Shelter System data is collected server-side
-by the publishing cycle.
+basemaps. Three exceptions to "directly": gauge hydrographs prefer a same-origin proxy
+and fall back to NOAA, FEMA National Shelter System data is collected server-side by
+the publishing cycle, and so are the wildfire incidents and perimeters that come from
+the Texas A&amp;M Forest Service and the National Interagency Fire Center (WFIGS).
 
 Camera stills come from city, county, port, border, state and federal (USGS, National
 Park Service) networks, a neighboring-state DOT, and private webcam operators. The

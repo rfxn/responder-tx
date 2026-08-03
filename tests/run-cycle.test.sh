@@ -147,6 +147,7 @@ run_cycle() {  # sets RC and writes $WORK/cycle.log; RESPONDER_TEST_FAIL names t
     RESPONDER_TEST_SLOW="${SLOW:-}" \
     RESPONDER_STEP_BUDGET_S="${STEP_BUDGET:-}" \
     RESPONDER_CYCLE_BUDGET_S="${CYCLE_BUDGET:-}" \
+    RESPONDER_PUBLISH_BUDGET_S="${PUBLISH_BUDGET:-300}" \
     bash "$REPO/scripts/run-cycle.sh" "$@" > "$WORK/run.out" 2>&1
     RC=$?
 }
@@ -568,6 +569,30 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Test 26: the publish phase is budgeted too --------------------------------------------------
+# It was the only unbudgeted step, and it runs holding the cycle lock, so deploy.sh's own retry
+# ladders (13 bundle tries x 15s, uncapped curls) could stall the board's publishing for several
+# cycles rather than one. A hung publish must be killed, bucketed as a TIMEOUT, and leave the data
+# committed locally for the next cycle to republish.
+setup
+printf '%s\n' '#!/bin/bash' 'echo "stub deploy: hanging"' 'sleep 60' > "$REPO/scripts/deploy.sh"
+chmod +x "$REPO/scripts/deploy.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a deploy that hangs' )
+BEFORE=$(origin_count)
+START=$(date +%s)
+FAILING="" PUBLISH_BUDGET=5 run_cycle
+ELAPSED=$(( $(date +%s) - START ))
+if [ "$RC" -ne 0 ] && [ "$ELAPSED" -lt 45 ] \
+   && grep -q 'TIMEOUT: deploy.sh outran its 5s publish budget' "$WORK/cycle.log" \
+   && grep -q 'committed:' "$WORK/cycle.log" \
+   && [ "$(origin_count)" -eq "$BEFORE" ]; then
+    pass "26 a hung publish is killed at its budget, bucketed TIMEOUT, and republished next cycle (${ELAPSED}s)"
+else
+    fail "26 the publish phase must be bounded (rc=$RC elapsed=${ELAPSED}s origin=$(origin_count) before=$BEFORE)"
+    cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
 # --- Tests 24-25: an uncommitted data/event.json is announced, not silently half-applied ---------
 # Test 13 above pins that the edit takes effect immediately, which is the point AND the hazard: the
 # generators use it while deploy.sh ships HEAD's, so the board is configured for a different AO
@@ -609,17 +634,18 @@ line = re.search(r"^DATA_LINE=\"([0-9,]+) ", open(sys.argv[1]).read(), re.M).gro
 m = sorted(int(x) for x in line.split(","))
 print(min(min((b - a) for a, b in zip(m, m[1:])), 60 - m[-1] + m[0]) * 60)
 ' "$REPO_ROOT/scripts/install-cron.sh")
-# Worst observed publish phase (cycle-check, commit, deploy, nudge) was ~135s while the deploy gate
-# ran node plus cycle-check only. That gate now also runs the python suites every cycle (~6s) and
-# the shell suites whenever scripts/ or tests/ changed since the last green gate (~100s, once per
-# code change), so the reserve carries both: 135 + 6 + 100 rounded to 260s.
-PUBLISH_RESERVE_S=260
-if [ -n "$CYCLE_BUDGET_DEFAULT" ] && [ -n "$BIGGEST_STEP" ] && [ -n "$INTERVAL_S" ] \
+# The publish reserve is the one the cycle actually enforces on deploy.sh, read from source rather
+# than restated here: a reserve this file believed in while nothing enforced it is how the publish
+# phase stayed the only unbudgeted step. Worst observed publish phase is ~261s (a code-change cycle,
+# where the deploy gate also runs the shell suites); a data-only cycle is ~30s.
+PUBLISH_RESERVE_S=$(grep -oP 'PUBLISH_BUDGET_S="\$\{RESPONDER_PUBLISH_BUDGET_S:-\K[0-9]+' "$CYCLE_SRC")
+if [ -n "$CYCLE_BUDGET_DEFAULT" ] && [ -n "$BIGGEST_STEP" ] && [ -n "$INTERVAL_S" ] && [ -n "$PUBLISH_RESERVE_S" ] \
    && [ "$(( CYCLE_BUDGET_DEFAULT + PUBLISH_RESERVE_S ))" -le "$INTERVAL_S" ] \
-   && [ "$BIGGEST_STEP" -le "$CYCLE_BUDGET_DEFAULT" ]; then
-    pass "21 budgets fit the cron window (${CYCLE_BUDGET_DEFAULT}s + ${PUBLISH_RESERVE_S}s reserve <= ${INTERVAL_S}s; biggest step ${BIGGEST_STEP}s)"
+   && [ "$BIGGEST_STEP" -le "$CYCLE_BUDGET_DEFAULT" ] \
+   && grep -q 'command timeout -k "\$KILL_GRACE_S" "\$PUBLISH_BUDGET_S" bash' "$CYCLE_SRC"; then
+    pass "21 budgets fit the cron window (${CYCLE_BUDGET_DEFAULT}s + ${PUBLISH_RESERVE_S}s enforced publish budget <= ${INTERVAL_S}s; biggest step ${BIGGEST_STEP}s)"
 else
-    fail "21 the generator budget plus the publish reserve must fit the cron interval (budget=${CYCLE_BUDGET_DEFAULT} step=${BIGGEST_STEP} interval=${INTERVAL_S})"
+    fail "21 the generator budget plus the ENFORCED publish budget must fit the cron interval (budget=${CYCLE_BUDGET_DEFAULT} publish=${PUBLISH_RESERVE_S:-unset} step=${BIGGEST_STEP} interval=${INTERVAL_S})"
 fi
 
 echo "----"

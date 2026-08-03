@@ -592,8 +592,10 @@ class Handler(SimpleHTTPRequestHandler):
             with _inbox_lock:
                 _rotate_inbox_if_due()
                 self._append_line(INBOX, entry)
-        except (ValueError, OSError):
+        except ValueError:
             self.send_error(400)
+        except OSError:
+            self.send_error(500)  # the intake write failed; the operator's message was not malformed
 
     def _append_note(self):
         try:
@@ -625,8 +627,10 @@ class Handler(SimpleHTTPRequestHandler):
                     return
                 entry['parent'] = parent
             self._append_line(NOTES_INBOX, entry)
-        except (ValueError, TypeError, OSError):
+        except (ValueError, TypeError):
             self.send_error(400)
+        except OSError:
+            self.send_error(500)  # the intake write failed; the operator's note was not malformed
 
     # Shared multi-operator notice intake: the '+ New notice' form on a LAN board POSTs its
     # notice here; gen-notices.py folds accepted lines into data/requests.json each cycle so
@@ -678,8 +682,10 @@ class Handler(SimpleHTTPRequestHandler):
             if isinstance(radius, (int, float)) and not isinstance(radius, bool) and 0 < radius <= 100:
                 entry['radiusMi'] = round(float(radius), 1)
             self._append_line(NOTICES_INBOX, entry)
-        except (ValueError, TypeError, OSError):
+        except (ValueError, TypeError):
             self.send_error(400)
+        except OSError:
+            self.send_error(500)  # the intake write failed; the operator's notice was not malformed
 
     def end_headers(self):
         # data + api must never be cached — live board state

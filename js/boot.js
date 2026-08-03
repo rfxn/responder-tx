@@ -595,10 +595,13 @@ function openAbout() {
 const ONBOARD_KEY = 'respondertx.onboardSeen';
 const OB_PANELS = 3;
 
-// deep-link entries land somewhere specific — never interrupt them with onboarding
+/* A link that lands somewhere specific is never interrupted by onboarding. Read off
+   LINK_VIEW_PARAMS and CAM_LEGACY_PARAMS rather than copied, because the hand-copy went stale and
+   missed ?camreg=; only the record-opening params, which frame no view, are listed here. */
+const OB_RECORD_PARAMS = ['playback', 'hydro', 'view', 'river', 'fq', 'cam', 'pbt', 'tab', 'team'];
 function onboardDeepLink() {
   const q = new URLSearchParams(location.search);
-  return ['playback', 'hydro', 'view', 'fq', 'cams', 'cam', 'pbt', 'mlat', 'mlon', 'team'].some((k) => q.get(k));
+  return LINK_VIEW_PARAMS.concat(OB_RECORD_PARAMS, Object.keys(CAM_LEGACY_PARAMS)).some((k) => q.has(k));
 }
 
 function obGo(i) {
@@ -638,7 +641,7 @@ function initOnboarding() {
 
 async function loadEventConfig() {
   try {
-    const ev = await fetch('data/event.json').then((r) => r.json());
+    const ev = await fetch('data/event.json').then((r) => okJson(r, 'event config'));
     applyEventConfig(ev);
     if (ev.name) {
       // brand is logo imgs (no h1 since the lockup rebrand); the name lands on alt text + tab title

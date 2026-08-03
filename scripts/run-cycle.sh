@@ -73,6 +73,10 @@ BUDGET_CALTOPO_S=120
 # push, upload, smoke) to finish. Trimmed from 660s when that gate widened to the python and shell
 # suites; tests/run-cycle.test.sh asserts this against the publish reserve and the cron interval.
 CYCLE_BUDGET_S="${RESPONDER_CYCLE_BUDGET_S:-600}"
+# The publish reserve, enforced rather than assumed: deploy.sh's own retry ladders are unbounded and
+# it runs holding the cycle lock, so an overrun costs several cycles instead of one. Killed here the
+# data stays committed locally and the next cycle republishes. tests/run-cycle.test.sh reads this.
+PUBLISH_BUDGET_S="${RESPONDER_PUBLISH_BUDGET_S:-300}"
 STEP_BUDGET_OVERRIDE="${RESPONDER_STEP_BUDGET_S:-}"  # operational escape hatch; also how the suite forces a timeout
 KILL_GRACE_S=20   # SIGTERM, then SIGKILL: long enough for a generator to drop its temp file
 MIN_STEP_S=5      # never hand `timeout` a budget of 0 — GNU timeout reads 0 as "no timeout"
@@ -331,12 +335,16 @@ log "committed: $(git log --oneline -1)"
 # red gate still put the commit on origin. The commit above must still precede it, because the
 # artifact deploy.sh builds is `git archive HEAD` and unpublished data would otherwise ship; a
 # local commit is not a publish, and nothing reaches origin or the mirror until the gate is green.
-log "step: deploy.sh (gate HEAD + git push + CF Pages deploy + smoke)"
-if bash "${PIPE_ROOT}/scripts/deploy.sh"; then
+log "step: deploy.sh (gate HEAD + git push + CF Pages deploy + smoke, budget ${PUBLISH_BUDGET_S}s)"
+if command timeout -k "$KILL_GRACE_S" "$PUBLISH_BUDGET_S" bash "${PIPE_ROOT}/scripts/deploy.sh"; then
     log "deploy OK"
 else
     rc=$?
-    log "WARN: deploy.sh failed (exit ${rc}); the data is committed locally and NOT pushed — next cycle re-gates and republishes"
+    if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+        log "TIMEOUT: deploy.sh outran its ${PUBLISH_BUDGET_S}s publish budget and was killed; the data is committed locally and NOT pushed. Next cycle re-gates and republishes"
+    else
+        log "WARN: deploy.sh failed (exit ${rc}); the data is committed locally and NOT pushed. Next cycle re-gates and republishes"
+    fi
     exit "$rc"
 fi
 

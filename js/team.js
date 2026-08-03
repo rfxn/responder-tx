@@ -232,8 +232,10 @@
   function markerPopupHtml(mk) {
     const canRemove = T.role === 'member';
     const who = assigneeName(mk);
+    const age = ageStr(mk.ts);
     return `<div class="ttm-pop"><strong>${esc(kindLabel(mk.kind))}</strong>${mk.label ? `: ${esc(mk.label)}` : ''}<br>` +
-      `<span class="ttm-by">${esc(tt('team.marker.by', 'dropped by'))} ${esc(mk.by || '?')} · ${esc(ageStr(mk.ts))} ${esc(tt('team.ago', 'ago'))}</span>` +
+      `<span class="ttm-by">${esc(tt('team.marker.by', 'dropped by'))} ${esc(mk.by || '?')}` +
+      (age ? ` · ${esc(age)} ${esc(tt('team.ago', 'ago'))}` : '') + '</span>' +
       (who ? `<br><span class="ttm-assignee">${esc(tt('team.marker.assignee', 'Assigned to'))}: ${esc(who)}</span>` : '') +
       (canRemove ? `<br><button class="ttm-del" data-mid="${esc(mk.id)}">${esc(tt('team.marker.remove', 'Remove marker'))}</button>` : '') + '</div>';
   }
@@ -468,8 +470,12 @@
 
   /* ---------- roster helpers ---------- */
 
+  // a missing or unparseable stamp has no age: '' so the caller drops the clause instead of
+  // printing "NaNs ago", or an age measured from the epoch for a null
   function ageStr(lastSeen) {
+    if (!lastSeen) return '';
     const s = Math.max(0, Math.round((Date.now() - lastSeen) / 1000));
+    if (!Number.isFinite(s)) return '';
     if (s < 60) return `${s}s`;
     if (s < 3600) return `${Math.round(s / 60)}m`;
     return `${Math.round(s / 3600)}h`;
@@ -1591,4 +1597,7 @@
 
   // pure store-and-forward queue ops, exposed for the node test harness (no DOM, no network)
   window.teamQueueOps = { push: qPush, sanitize: qSanitize, valid: qValidFix, MAX: QUEUE_MAX };
+
+  // pure string builders, same reason: the marker popup is asserted by calling it, not by grepping it
+  window.teamMarkerOps = { popupHtml: markerPopupHtml, ageStr };
 })();

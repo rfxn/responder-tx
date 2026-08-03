@@ -293,7 +293,10 @@ const SITES = [
   { f: 'sources.js', d: 'async function fetchRiverSentry()', c: TOP, v: 'HONEST',
     req: ['Array.isArray(data.towers)', "opNotice(t('note.rsentryfail'))"] },
   { f: 'sources.js', d: 'async function fetchWildfire()', c: TOP, v: 'HONEST',
-    req: ['Array.isArray(data.fires)', 'Array.isArray(data.sources)', "opNotice(t('note.wildfirefail'))"] },
+    req: ['Array.isArray(data.fires)', 'Array.isArray(data.sources)', 'state.wildfireUnknown =',
+      'opNotice(', "t('note.wildfirefail')"] },
+  { f: 'sources.js', d: 'function wildfireNoticeText()', c: TOP, v: 'HONEST',
+    req: ['state.wildfireUnknown', "t('wf.unknown')"] },
   { f: 'sources.js', d: 'async function fetchLsrs()', c: TOP, v: 'GUARDED',
     req: ["okJson(res, 'LSR')", "okList(data, 'features', 'LSR')"] },
   { f: 'sources.js', d: 'async function fetchTideStation(', c: TOP, v: 'GUARDED',
@@ -322,6 +325,9 @@ const SITES = [
   { f: 'playback.js', d: 'function pbFetchJson(', c: TOP, v: 'HONEST', req: ['if (!res.ok) throw'] },
   { f: 'playback.js', d: 'async function pbInitMonolith(', c: TOP, v: 'HONEST',
     req: ['Array.isArray(d.frames)', 'empty history'] },
+  // the fourth crest-summary reader; the three in panels.js were already guarded and this one was not
+  { f: 'playback.js', d: 'async function loadPlaybackData()', c: TOP, v: 'GUARDED',
+    req: ["okJson(r, 'crest summary')"] },
 
   // ---- cameras.js ----
   { f: 'cameras.js', d: 'function loadCameras()', c: TOP, v: 'GUARDED',
@@ -338,6 +344,10 @@ const SITES = [
     req: ["t('search.lookupfail')", "t('search.noresult')"] },
   { f: 'boot.js', d: 'async function hydrateGaugesSnapshot()', c: TOP, v: 'HONEST',
     req: ['!d.gauges.length'] },
+  // the AO, map centre, USGS tiling box and tide stations all come from here, so a 200 carrying an
+  // error body must not be applied as configuration
+  { f: 'boot.js', d: 'async function loadEventConfig()', c: TOP, v: 'GUARDED',
+    req: ["okJson(r, 'event config')"] },
 
   // ---- board.js ----
   { f: 'board.js', d: 'async function nominatimSearchN(', c: TOP, v: 'GUARDED',
@@ -356,7 +366,7 @@ const SITES = [
 ];
 
 test('every audited call site still carries the guard its verdict claims', () => {
-  assert.ok(SITES.length >= 34, 'the audit table must not shrink silently');
+  assert.ok(SITES.length >= 38, 'the audit table must not shrink silently');
   for (const s of SITES) {
     const body = fnBody(s.f, s.d, s.c);
     for (const token of s.req) {

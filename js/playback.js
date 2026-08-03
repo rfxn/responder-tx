@@ -438,7 +438,9 @@ async function loadPlaybackData() {
   const d = state.pbData;
   // chapter marks: major-peak gauges from the crest summary, most significant first (best-effort)
   try {
-    const cs = await fetch(`data/crest-summary.json?_=${Math.floor(Date.now() / 300000)}`).then((r) => (r.ok ? r.json() : null));
+    // okJson like the three other crest-summary readers: a non-2xx takes the catch, not the success
+    // path, where it would be indistinguishable from an event in which nothing crested
+    const cs = await fetch(`data/crest-summary.json?_=${Math.floor(Date.now() / 300000)}`).then((r) => okJson(r, 'crest summary'));
     state.pbCrests = (cs && cs.gauges) || [];
     state.pbChapters = state.pbCrests.filter((g) => g.peak_category === 'major').slice(0, 8);
   } catch { state.pbCrests = []; state.pbChapters = []; }

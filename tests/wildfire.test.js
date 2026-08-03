@@ -89,7 +89,7 @@ test('the popup says what the numbers are and what the point is, so neither is r
   assert.match(html, /wf\.point/, 'the point is the reported origin, not the edge of the fire');
   assert.match(html, /wf\.k\.updated/, 'the popup must state when the incident record was last updated');
   for (const lang of ['en', 'es']) {
-    assert.match(I18N[lang]['wf.point'], /perimet|perímet/i, 'the string must deny fire perimeters');
+    assert.match(I18N[lang]['wf.point'], /perimet|perímet/i, 'the string must say what a perimeter means here');
     assert.match(I18N[lang]['wf.lag'], /hours|horas/i, 'the string must say the figures can lag');
   }
   // a source that published no build stamp says its currency is unknown rather than staying silent
@@ -156,7 +156,8 @@ test('the lazy fetch treats an absent list as unreadable, never as a fire-free d
   assert.ok(fn.includes('Array.isArray(data.fires)') && fn.includes('Array.isArray(data.sources)'),
     'a payload missing either list must throw rather than publish an empty layer');
   assert.ok(fn.includes('state._wildfireLoaded = false'), 'a failure must allow a retry on the next toggle');
-  assert.ok(fn.includes("opNotice(t('note.wildfirefail'))"), 'a failure must be visible to the reader');
+  // the executing half is the last test in this file; this only holds the notice on the failure path
+  assert.ok(fn.includes('opNotice(') && fn.includes("t('note.wildfirefail')"), 'a failure must be visible to the reader');
   assert.ok(fn.includes('data/wildfire.json'), 'the layer must read the committed same-origin file');
   assert.ok(!/https?:\/\//.test(fn), 'the layer must not reach a third party at runtime');
 });
@@ -437,6 +438,22 @@ test('rendering a payload with perimeters does not throw', () => {
   assert.equal(added.length, 2, 'one perimeter ring plus one incident marker');
 });
 
+/* The board denied perimeters in every incident popup for six releases after it started drawing
+   them. Both halves run here so the claim and the behaviour cannot drift apart again. */
+test('the perimeter line in the incident popup stays true of a board that draws perimeters', () => {
+  assert.equal(renderInto({ sources: [], fires: [FIRE_PT], perimeters: [PERIM] }).length, 2,
+    'a mapped perimeter must actually be drawn, or the popup line below is the honest one');
+  assert.match(popup(FIRE), /wf\.point/, 'the line must reach every incident popup');
+  for (const lang of ['en', 'es']) {
+    const s = I18N[lang]['wf.point'];
+    assert.doesNotMatch(s, /no perimeters are drawn|no se dibujan perímetros/i,
+      'the board draws mapped perimeters, so the popup may not deny them');
+    assert.match(s, /origin|origen/i, 'the point is still the reported origin and not the fire edge');
+    assert.match(s, /small|pequeñ/i, 'an absent outline must not be read as a small fire');
+    assert.ok(!s.includes('—'), `em-dash in ${lang} wf.point`);
+  }
+});
+
 test('a perimeter popup builds without reaching outside its own scope', () => {
   // the actual v0.99.79 defect: the popup body referenced a helper local to another function
   assert.doesNotThrow(() => mapApp._sandbox.perimeterPopupHtml(PERIM));
@@ -573,4 +590,34 @@ test('the generator exit code answers for the incidents, not the enrichment', ()
     'a failed incident source must still degrade the cycle');
   assert.match(tail, /if perim_src\["status"\] != "ok":/,
     'a failed enrichment must still be reported on stderr');
+});
+
+/* E1: state.wildfireUnknown shipped with zero readers, so an unreadable file and a fire-free Texas
+   were the same fact everywhere downstream of the fetch. Executed, not grepped. */
+test('an unreadable wildfire file is unknown, and the sentence the reader gets says so', async () => {
+  const MS = mapApp.state, MSB = mapApp._sandbox;
+  const saved = { wildfire: MS.wildfire, unknown: MS.wildfireUnknown, loaded: MS._wildfireLoaded,
+    fetch: MSB.fetch, opNotice: MSB.opNotice };
+  const said = [];
+  try {
+    MS.wildfire = null;
+    MS.wildfireUnknown = false;
+    MS._wildfireLoaded = false;
+    MSB.fetch = () => Promise.reject(new Error('offline'));
+    MSB.opNotice = (s) => said.push(s);
+    await MSB.fetchWildfire();
+    assert.equal(MS.wildfireUnknown, true, 'a failed read with no last-good is unknown, not empty');
+    assert.equal(MS._wildfireLoaded, false, 'and must stay retryable on the next toggle');
+    // the flag has to be READ: with no payload the sentence builder otherwise reports an absence
+    assert.equal(MSB.wildfireNoticeText(), 'wf.unknown',
+      'an unreadable file must never produce the "no wildfire incidents" sentence');
+    assert.equal(said.length, 1, 'the reader is told exactly once');
+    assert.equal(said[0], 'wf.unknown', 'and is told the sources could not be read');
+    for (const lang of ['en', 'es']) {
+      assert.match(I18N[lang][said[0]], /not a report|no es un informe/i);
+    }
+  } finally {
+    MS.wildfire = saved.wildfire; MS.wildfireUnknown = saved.unknown;
+    MS._wildfireLoaded = saved.loaded; MSB.fetch = saved.fetch; MSB.opNotice = saved.opNotice;
+  }
 });

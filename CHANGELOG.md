@@ -1,5 +1,16 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.88 · 2026-08-03 (coastal stations map from the list, calm ones fold away)
+
+-- New Features --
+- [New] Tapping a tide station name in Coastal water levels turns on a new station
+      layer and frames that station on the map, with its observed level, surge
+      residual, trend and reading time in the popup
+- [New] Stations sitting within half a foot of the predicted tide and not moving fold
+      into a single row that says how many are hidden; one tap shows them. A station
+      that could not be read, or that has no prediction to compare against, is never
+      folded
+
 ## v0.99.87 · 2026-08-03 (a fault in the board stops reading as a fault in the feed)
 
 -- Bug Fixes --

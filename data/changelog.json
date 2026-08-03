@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.88",
+      "date": "2026-08-03",
+      "line": "Tide station names in Coastal water levels are now tappable: a tap turns on a new station layer and frames that station on the map with its level, surge residual and trend. Stations steady within half a foot of the predicted tide fold away behind a count; a station that could not be read, or that has no prediction, is never folded."
+    },
+    {
       "v": "v0.99.87",
       "date": "2026-08-03",
       "line": "When the wildfire data arrived but the board could not draw it, the message pointed at the source even though the source had answered. The board now says the failure is its own and that a reload may clear it."

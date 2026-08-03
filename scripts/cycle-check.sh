@@ -19,8 +19,8 @@ pass() { echo "OK:   $*"; }
 failck() { echo "FAIL: $*"; FAILURES=$((FAILURES + 1)); }
 
 # Two lanes. The DATA lane (JSON validity, feeds, snapshot, staged files, cursors, schemas) always
-# reads the working tree: that is the data the cycle is about to commit. The CODE lane (JS syntax,
-# version agreement, the 911-gate and brand-hook source checks) reads HEAD under --code-from-head,
+# reads the working tree: that is the data the cycle is about to commit. The CODE lane is every
+# check that reads $CODE_ROOT, and it reads HEAD under --code-from-head,
 # so a release agent's half-finished version bump cannot fail a data cycle and strand the public
 # board on stale flood data. Without the flag the code lane reads the tree at full strength, which
 # is what a release agent needs before committing a bump.
@@ -705,11 +705,8 @@ EOF
 }
 if check_usgs_bbox; then pass "USGS bbox area cap (${USGS_TILE_DETAIL}; event.json + CONFIG fallback both tile under the limit)"; else failck "USGS bbox area cap (gaugeBbox exceeds what WaterServices accepts)"; fi
 
-# m. offline warm depth. HISTORY_WARM_MAX_DAYS declares how many days of playback an offline
-# responder gets; HISTORY_WARM_MAX_BYTES only caps what a field phone stores. The two described one
-# bound and disagreed silently as the archive grew, warming two days of eight, so the delivered depth
-# is replayed here against the index's real chunk sizes. The data lane warns rather than fails: a
-# growing archive must never stop a flood publish.
+# m. offline warm depth. HISTORY_WARM_MAX_DAYS and HISTORY_WARM_MAX_BYTES bound the same depth, so
+# the delivered depth is replayed here against the index's real chunk sizes rather than assumed.
 WARM_DETAIL=""
 check_history_warm() {
     local days bytes
@@ -758,7 +755,7 @@ EOF
 if check_history_warm; then
     pass "offline warm depth (${WARM_DETAIL})"
 elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
-    echo "WARN: offline warm depth: the byte ceiling no longer holds the declared day count. The release lane fails on this; a data cycle does not, because a growing archive must not stop a flood publish."
+    echo "WARN: offline warm depth: the byte ceiling no longer holds the declared day count. This run only warns, but deploy.sh re-runs this check at HEAD with no flag before it publishes, and hard-fails there. Fix it now or the next publish stops."
 else
     failck "offline warm depth (HISTORY_WARM_MAX_BYTES cannot hold HISTORY_WARM_MAX_DAYS at the index's real chunk sizes)"
 fi
@@ -767,7 +764,7 @@ fi
 # are near-static, so nothing in the 15-minute cycle notices when their output stops describing
 # anything anyone verified. The camera inventory is the worst case: its per-camera liveness claims
 # expire at gen-cameras.py CAM_MAX_AGE_D, past which the board offers cameras it no longer knows are
-# alive. Release lane fails, data lane warns: a stale hand-run must never stop a flood publish.
+# alive.
 STATIC_DETAIL=""
 check_static_age() {
     STATIC_DETAIL=$(python3 - <<'EOF'
@@ -832,7 +829,7 @@ EOF
 if check_static_age; then
     pass "out-of-cycle artifact age (${STATIC_DETAIL})"
 elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
-    echo "WARN: out-of-cycle artifact age: a hand-run generator's output has aged past its limit and nothing else watches it. The release lane fails on this; a data cycle does not, because a stale camera inventory must not stop a flood publish."
+    echo "WARN: out-of-cycle artifact age: a hand-run generator's output has aged past its limit and nothing else watches it. This run only warns, but deploy.sh re-runs this check at HEAD with no flag before it publishes, and hard-fails there. Re-run the generator now or the next publish stops."
 else
     failck "out-of-cycle artifact age (data/cameras.json or data/records.json past its limit; re-run the generator)"
 fi

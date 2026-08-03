@@ -137,7 +137,7 @@
       ? `<div class="chat-action">⚙ ${esc(m.text)} <span class="chat-ts">${esc(fmtWhen(m.ts).split(' · ')[0])}</span></div>`
       : `<div class="chat-msg ${m.role === 'user' ? 'from-user' : 'from-claude'}"><div class="chat-bubble">${esc(m.text)}</div>` +
         `<div class="chat-ts">${m.role === 'user' ? 'you' : 'claude'} · ${esc(fmtWhen(m.ts))}</div></div>`)).join('')
-      || '<div class="chat-action">No messages yet. Ask a question or redirect the session; it checks the inbox every ~5 min.</div>';
+      || '<div class="chat-action">No messages yet. Ask a question or redirect the session; it checks the inbox every ~3 min.</div>';
     if (atBottom) el.scrollTop = el.scrollHeight;
     const latest = chat.msgs.filter((m) => m.role !== 'user').map((m) => new Date(m.ts).getTime());
     if (latest.length) {
@@ -156,7 +156,7 @@
       inp.value = '';
       chat.msgs.push({ ts: new Date().toISOString(), role: 'user', text });
       renderChat();
-      document.getElementById('chat-note').textContent = 'sent ✓ · the session polls every ~5 min';
+      document.getElementById('chat-note').textContent = 'sent ✓ · the session polls every ~3 min';
     } catch (e) { document.getElementById('chat-note').textContent = `send failed (${e.message}); LAN server down?`; }
   }
 

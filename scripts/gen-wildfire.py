@@ -34,7 +34,6 @@ import urllib.request
 
 ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "wildfire.json")
-EVENT = os.path.join(ROOT, "data", "event.json")
 UA = "responder-tx-ops/gen-wildfire (rfxnryan@gmail.com)"
 
 TFS_URL = "https://tfswildfires.com/public/api/incidents"

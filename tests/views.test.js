@@ -452,15 +452,89 @@ test('the duplicate doors are gone from the layer sheet and the Gauges filter ba
   assert.ok(!/summary\.menu/.test(gauges[0]), 'the Gauges filter bar still carries the crest-summary label');
 });
 
-test('the retired doors left no copy behind in either language', () => {
+/* Retired-surface guard, derived rather than listed. This test used to name four retired keys, so
+   it only ever caught what someone remembered to add to it, and 24 orphans accumulated behind it.
+   Both directions are computed from source now: every key the table defines must be reachable, and
+   every key the source asks for must exist. */
+
+const I18N_SCAN_FILES = fs.readdirSync(path.join(ROOT, 'js'))
+  .filter((f) => f.endsWith('.js')).map((f) => `js/${f}`).concat(['sw.js', 'index.html']);
+
+// js/i18n.js's own `'key': 'text'` lines are declarations, not uses
+const i18nScanSource = () => I18N_SCAN_FILES.map((f) => (f === 'js/i18n.js'
+  ? read(f).split('\n').filter((l) => !/^\s*'[a-zA-Z0-9._]+':/.test(l)).join('\n')
+  : read(f))).join('\n');
+
+const rxQuote = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const quotedLiterals = (src) =>
+  new Set([...src.matchAll(/['"`]([a-zA-Z][a-zA-Z0-9._]*)['"`]/g)].map((m) => m[1]));
+
+/* Key names the code builds at run time. Each construct contributes ONE pattern from its own
+   static parts, so a prefix from `src.${k}.title` cannot rescue an unrelated `*.title` key:
+   `pre.${x}` / `pre.${x}.suf` / `${x}.suf` / 'pre.' + x + '.suf' / a bare 'pre.' argument. */
+function computedKeyPatterns(src) {
+  const pats = [];
+  const add = (pre, suf) => { if (pre || suf) pats.push(new RegExp(`^${rxQuote(pre)}[a-zA-Z0-9_.-]+${rxQuote(suf)}$`)); };
+  for (const m of src.matchAll(/`((?:[a-zA-Z][a-zA-Z0-9]*\.)*)\$\{[^{}`]*\}((?:\.[a-zA-Z0-9]+)*)`/g)) add(m[1], m[2]);
+  for (const m of src.matchAll(/'((?:[a-zA-Z][a-zA-Z0-9]*\.)+)'\s*\+\s*[^'"`+;)]+\+\s*'((?:\.[a-zA-Z0-9]+)+)'/g)) add(m[1], m[2]);
+  for (const m of src.matchAll(/'((?:[a-zA-Z][a-zA-Z0-9]*\.)+)'/g)) add(m[1], '');
+  return pats;
+}
+
+test('every i18n key is reachable from shipped source, literally or by a computed name', () => {
   const i18n = require('./i18n-load.js');
-  for (const k of ['sheet.g.history', 'sheet.playback', 'sheet.s.playback', 'summary.menu.title']) {
-    for (const lang of ['en', 'es']) assert.ok(!(k in i18n[lang]), `${lang} still defines ${k}, whose only surface is gone`);
-    for (const f of ['js/map.js', 'js/panels.js', 'js/board.js', 'js/boot.js', 'js/playback.js']) {
-      assert.ok(!read(f).includes(`'${k}'`), `${f} still reads the retired key ${k}`);
-    }
+  const src = i18nScanSource();
+  const literal = quotedLiterals(src);
+  const computed = computedKeyPatterns(src);
+  // non-vacuity: a derivation that resolves nothing would pass this test on an empty repo
+  assert.ok(literal.size > 500, `only ${literal.size} literal key references parsed; the sweep is vacuous`);
+  assert.ok(computed.length > 20, `only ${computed.length} computed key patterns derived; the sweep is vacuous`);
+
+  const testSrc = fs.readdirSync(path.join(ROOT, 'tests'))
+    .filter((f) => /\.(js|py|sh)$/.test(f)).map((f) => read(`tests/${f}`)).join('\n');
+  const namedByTest = quotedLiterals(testSrc);
+  const orphans = Object.keys(i18n.en)
+    .filter((k) => !literal.has(k) && !computed.some((p) => p.test(k)) && !namedByTest.has(k));
+  assert.deepEqual(orphans, [],
+    'these keys ship to every client in both languages and no surface reads them; delete both copies. '
+    + 'A key kept alive only by a test key-list is dead too: drop the list entry with it.');
+});
+
+test('every i18n key the shipped source asks for exists in both languages', () => {
+  const i18n = require('./i18n-load.js');
+  const src = i18nScanSource();
+  const shaped = /^[a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+$/;
+  const FILE_EXT = /\.(js|json|xml|html|css|png|svg|txt|md|ics|webmanifest|jpg|jpeg|gz)$/;
+
+  // direct t('…') call sites and the data-i18n* attributes applyI18n() re-reads
+  const asked = new Set();
+  for (const m of src.matchAll(/\bt\(\s*['"`]([^'"`$]+)['"`]\s*\)/g)) asked.add(m[1]);
+  for (const m of src.matchAll(/data-i18n(?:-title|-aria)?="([^"]+)"/g)) asked.add(m[1]);
+  const wanted = [...asked].filter((k) => shaped.test(k));
+  assert.ok(wanted.length > 300, `only ${wanted.length} t() call sites parsed; the sweep is vacuous`);
+
+  /* Most keys reach the client inside a table literal (SHEET_GROUPS, PILL_LAYERS, PB_LIVE_HIDE),
+     never through a visible t(). A key-shaped literal sharing a namespace with three or more live
+     keys is one of those, so a retired key left behind in a row is caught rather than shipped as a
+     raw name in the UI. */
+  const nsCount = new Map();
+  for (const k of Object.keys(i18n.en)) {
+    const ns = k.slice(0, k.lastIndexOf('.') + 1);
+    nsCount.set(ns, (nsCount.get(ns) || 0) + 1);
   }
-  // a migration cue that points at a control which no longer exists is worse than no cue
+  for (const k of quotedLiterals(src)) {
+    if (!shaped.test(k) || FILE_EXT.test(k) || k in i18n.en) continue;
+    if ((nsCount.get(k.slice(0, k.lastIndexOf('.') + 1)) || 0) >= 3) wanted.push(k);
+  }
+
+  for (const lang of ['en', 'es']) {
+    const missing = wanted.filter((k) => !(k in i18n[lang]));
+    assert.deepEqual(missing, [], `${lang} would render these raw key names instead of a string`);
+  }
+});
+
+test('the retired doors left no migration cue pointing at a control that is gone', () => {
+  const i18n = require('./i18n-load.js');
   for (const lang of ['en', 'es']) {
     assert.ok(!i18n[lang]['moved.exports'].includes('🔔'),
       `${lang} moved.exports still points at the bell retired in v0.99.42`);

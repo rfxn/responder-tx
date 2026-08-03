@@ -186,7 +186,8 @@ function renderSourceHealth() {
 
 /* Long-lived tabs run old code forever: badge immediately, then roll to the new build once fully
    idle. This polls data/version.json every refresh, so it must stay the tiny artifact it is; the
-   full changelog is ~145 KB and is fetched once, on demand, by openChangelog() alone. */
+   full changelog is two orders of magnitude larger and is fetched once, on demand, by
+   openChangelog() alone. */
 async function checkAppVersion() {
   try {
     const d = await fetch(`data/version.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
@@ -254,7 +255,8 @@ function postponeRollover() {
    open, serves its cached shell for the navigation, and the tab boots the SAME build it just tried
    to leave. That is what put the public board in an update-prompt loop on v0.99.73 while the origin
    served .74. Every path that means "apply the update" has to hand over first, then reload, and the
-   controllerchange listener above already does the reload once the new worker takes control.
+   controllerchange listener in registerServiceWorker() already does the reload once the new worker
+   takes control.
    navUrl is applied before the handover so the reload lands on it; the timer is the escape hatch for
    a handover that never completes. */
 function applyUpdateAndReload(navUrl) {

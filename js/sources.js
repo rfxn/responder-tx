@@ -90,7 +90,7 @@ const alertAreaLead = (p) => (alertAreaParts(p).inAo[0] || '?').replace(/,\s*[A-
    "Blowing Dust Warning" is a zone product, and /dust/i cannot tell them apart. An unrecognised
    string returns HTTP 200 with zero features rather than an error, so a typo here would publish
    "no tornado warnings" instead of failing; tests/hazard-table.test.js checks every string against
-   the live /alerts/types list and against the scripts/gen-caltopo.py mirror.
+   a pinned snapshot of /alerts/types and against the scripts/gen-caltopo.py mirror.
    class routes the surface: acute reaches every glance surface, watch and standing do not. */
 const HAZARD_EVENTS = {
   'Tornado Warning': { cls: 'acute', rank: 3 },
@@ -318,7 +318,8 @@ function alertLifetimeMs(f) {
 
 const alertStaleAfterMs = (f) => Math.max(ALERT_STALE_FLOOR_MS, 0.25 * (alertLifetimeMs(f) || 0));
 
-// a tornado warning with no update for eight minutes is stale; a three-day heat warning is not
+// staleness scales with the product's own lifetime: a short-fuse warning ages far sooner than a
+// multi-day heat warning, but never sooner than ALERT_STALE_FLOOR_MS
 function alertFreshClass(f, at) {
   const sent = ((f && f.properties) || {}).sent;
   const age = (at == null ? Date.now() : new Date(at).getTime()) - new Date(sent).getTime();
@@ -2510,7 +2511,7 @@ function renderLsrs() {
 }
 
 /* ---------- NOAA CO-OPS coastal water levels: observed vs predicted storm-surge residual ----------
-   Lazy: fetched on Resources-tab open and refreshed on the data cycle only while that tab is visible.
+   Lazy: fetched on Gauges-tab open and refreshed on the data cycle only while that tab is visible.
    Per-station failures degrade to an unavailable row; a total feed failure keeps the last-good rows. */
 
 // station seed comes from data/event.json tideStations (coastal events only); empty = no card, no fetches

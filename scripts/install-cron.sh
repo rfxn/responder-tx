@@ -1,5 +1,5 @@
 #!/bin/bash
-# install-cron.sh [--chat|--chat-ack-only|--watchdog|--monitor] [--remove] [--dry-run] —
+# install-cron.sh [--chat|--chat-ack-only|--watchdog|--monitor|--backup|--hooks] [--remove] [--dry-run] —
 # idempotently install/remove the durable Responder system-cron entries.
 #   (default)        the 15-min data-refresh cycle (run-cycle.sh)
 #   --chat           the chat-inbox poll (chat-poll.sh) — full headless-claude

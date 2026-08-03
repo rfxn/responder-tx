@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.87 · 2026-08-03 (a fault in the board stops reading as a fault in the feed)
+
+-- Bug Fixes --
+- [Fix] When the wildfire data arrived but the board could not draw it, the message
+      said the incidents were unavailable, which pointed at the source. The source
+      had answered. The board now says the failure is its own and that a reload may
+      clear it
+
 ## v0.99.86 · 2026-08-03 (unused strings out, stale claims corrected)
 
 -- Bug Fixes --

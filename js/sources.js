@@ -2224,14 +2224,21 @@ async function fetchWildfire() {
     if (!data || !Array.isArray(data.fires) || !Array.isArray(data.sources)) throw new Error('wildfire payload has no fires/sources');
     state.wildfire = data;
     state.wildfireUnknown = false;
-    renderWildfire();
-    const said = wildfireNoticeText();
-    if (said) opNotice(said);
   } catch (err) {
     state._wildfireLoaded = false; // allow a retry the next time the layer is toggled on
     state.wildfireUnknown = !state.wildfire;
     // nothing on the map: the sentence builder answers. Last-good drawn: only the refresh failed.
     opNotice(state.wildfireUnknown ? wildfireNoticeText() : t('note.wildfirefail'));
+    return;
+  }
+  // the read succeeded, so a throw from here is ours and must not be reported against the feed
+  try {
+    renderWildfire();
+    const said = wildfireNoticeText();
+    if (said) opNotice(said);
+  } catch (err) {
+    state._wildfireLoaded = false;
+    opNotice(t('note.wildfiredraw'));
   }
 }
 

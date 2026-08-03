@@ -778,6 +778,11 @@ test('a render failure is not reported as a source failure', async () => {
       'a render exception must never produce the "sources could not be read" sentence');
     assert.equal(d.said.length, 1, 'the reader must still be told something, not left with a dead layer');
     assert.equal(d.loaded, false, 'and the layer must stay retryable');
+    // v0.99.79 was a render throw reported against the feed; the two faults must read differently
+    assert.equal(d.said[0], 'note.wildfiredraw',
+      'a render exception must name the board as the fault, not the source');
+    assert.notEqual(d.said[0], 'note.wildfirefail',
+      'note.wildfirefail is the refresh-failed sentence and must not cover a draw failure');
   } finally { d.restore(); }
 });
 

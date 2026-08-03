@@ -18,6 +18,7 @@ is no bundler; each file adds to a shared global `state` and `CONFIG` defined in
 
 | Module | Responsibility |
 |--------|----------------|
+| `bootfloor.js` | ES5, eval-free below-floor notice: checks the `window.__boardBooted` sentinel after `load` and reveals a bilingual full-screen notice when the bundle never parsed |
 | `core.js` | `APP_VERSION`, `CONFIG` (endpoints, poll interval, staleness thresholds, map center/bbox), global `state` |
 | `i18n.js` | English / Spanish string tables and the `t()` translation helper |
 | `usng.js` | WGS84 lat/lon &#8594; USNG/MGRS conversion (validated against the NGA `mgrs` library) |
@@ -108,10 +109,10 @@ Every 15 minutes (`8,23,38,53` on the system crontab, via `scripts/run-cycle.sh`
 | `gen-notices.py` | `data/requests.json` | LAN intake merge (never committed by the cycle) |
 | `gen-shelters.py` | `data/shelters-live.json` | Live shelter status, published only where a source states one |
 | `gen-crossings-status.py` | `data/crossing-status.json` | Jurisdiction-reported low-water-crossing status; only non-open rows publish |
-| `gen-wildfire.py` | `data/wildfire.json` | Reported wildfire incident points (TFS + NIFC WFIGS), per-source status and capture stamp; never perimeters |
+| `gen-wildfire.py` | `data/wildfire.json` | Reported wildfire incidents and mapped perimeters (TFS + NIFC WFIGS), per-source status and capture stamp |
 | `gen-crest-summary.py` | `data/crest-summary.json` | Per-gauge event peak stages for after-action / FEMA review |
 | `gen-feeds.py` | `feed.xml`, `crests.ics` | Public RSS + crest calendar |
-| `gen-caltopo.py` | `data/caltopo-export.json` | CalTopo / SARTopo GeoJSON layer at a fixed URL |
+| `gen-caltopo.py` | `data/caltopo-export.json`, `data/board.kml`, `data/board-live.kml`, `data/board-georss.xml` | The whole board as an importable layer at fixed URLs: GeoJSON for CalTopo / SARTopo, KML plus a refreshing NetworkLink for Google Earth and GIS clients, and Atom + GeoRSS |
 
 Three generators run out of band because their inputs are near-static:
 `gen-cameras.py` (the camera inventory), `gen-records.py` (the NWPS crest of record
@@ -123,15 +124,17 @@ content-hashed and immutable, so a client fetches only the days it lacks.
 `data/history.json` remains as a bounded compatibility copy of the newest
 `COMPAT_WINDOW_DAYS` of frames for clients that predate the chunk index.
 
-`scripts/cycle-check.sh` is the pre-commit sanity bundle: eleven checks covering
-JSON validity, `node --check` on `js/*.js`, version agreement across `js/core.js`,
-the `index.html` stamps, `sw.js`, `data/changelog.json` and `CHANGELOG.md`, feed
-freshness, snapshot sanity, the staged-file guard, 911-gate Escape immunity, the
-event-config brand hook, chat-cursor monotonicity, the data-contract schemas, and
-the 911 footer on every lens. It runs two lanes: the data lane always validates the
-working tree the cycle is about to commit, while the code lane can read `HEAD`
-(`--code-from-head`) so a release agent's half-finished version bump cannot fail a
-data cycle. `scripts/deploy.sh` re-verifies version agreement, builds a stripped
+`scripts/cycle-check.sh` is the pre-commit sanity bundle: JSON validity,
+`node --check` on `js/*.js`, version agreement across `js/core.js`, the
+`index.html` stamps, `sw.js`, `data/changelog.json` and `CHANGELOG.md`, feed
+freshness, snapshot sanity, the staged-file guard, the 911 gates, the
+data-contract schemas, and the config bounds that consuming code depends on
+staying in range. The script names every check as it runs and prints the total,
+so run it for the current roster rather than trusting a list here. It runs two
+lanes: the data lane always validates the working tree the cycle is about to
+commit, while the code lane can read `HEAD` (`--code-from-head`) so a release
+agent's half-finished version bump cannot fail a data cycle.
+`scripts/deploy.sh` re-verifies version agreement, builds a stripped
 archive from `HEAD` (removing the LAN-only `chat.js` and `master.js`), confirms no
 chat references survive at the origin, and publishes to Cloudflare Pages.
 

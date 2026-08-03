@@ -13,10 +13,12 @@ capability arc lives in `CHANGELOG.md` and the forward direction in `ROADMAP.md`
 
 Maintain a single live operating picture that fuses:
 
-1. **Authoritative hazard data** (automated, keyless): NWS flood alerts with
-   flash-flood-emergency detection, NOAA/NWPS river gauges with flood categories
-   and forecasts, USGS stage/flow, NEXRAD + HRRR radar, MRMS rainfall, NWM
-   inundation, and live TDEM/TxDOT road-hazard and camera feeds.
+1. **Authoritative hazard data** (automated, keyless): NWS warnings across the
+   warned hazards, from flash flood to tornado, with emergency detection;
+   NOAA/NWPS river gauges with flood categories and forecasts; USGS stage/flow;
+   NEXRAD + HRRR radar; MRMS rainfall; NWM inundation; tropical track and surge;
+   wildfire incidents and perimeters; and live TDEM/TxDOT road-hazard and camera
+   feeds.
 2. **A curated life-safety feed** (human-in-the-loop): notices for rescue,
    evacuation, cut-off areas, shelter, road status, and welfare context —
    verified and maintained by the board curator, cited to a source, and aged on a
@@ -146,7 +148,7 @@ unless noted.
 
 | Layer | Source | Notes |
 |-------|--------|-------|
-| Flood alerts + emergencies | api.weather.gov (flood events; FFE via damage-threat/description) | AO-vs-elsewhere fold; polygons; 7-day expired history |
+| Hazard alerts + emergencies | api.weather.gov (a fixed event table: flood, tornado, severe thunderstorm, dust storm, snow squall, extreme wind, plus watches and standing conditions such as Fire Weather; FFE and tornado emergencies via damage-threat/description) | AO-vs-elsewhere fold; polygons; ranked across hazard types; 7-day expired history |
 | Gauge flood status + forecast | api.water.noaa.gov/nwps (`floodCategory`, forecast) | trend glyphs, stale-sensor suppression, crest-wave + record-watch |
 | Stage history + hydrograph | NWPS stageflow (our cached proxy) | 48h sparkline + full modal with crest-of-record line |
 | RFC 5-day forecast-max | NWPS/RFC | forecast-crest rings where NWPS lacks the field |
@@ -158,6 +160,12 @@ unless noted.
 | Low-water crossings | TxGIO inventory + curated tracker | inventory is LOCATIONS only (not live status); curated tracker is cited + aged |
 | Cameras | TxDOT MapLarge/ITS + USGS HIVIS | live HLS + snapshot, stale badging, auto-linked into gauge popups |
 | Storm reports (LSR) | IEM Local Storm Reports | ground-truth diamonds, road-name highlighting, aged to history |
+| Tropical track + storm-surge risk | NHC via Esri Living Atlas (tracks, cones, SLOSH) | tracker auto-enables on an active TX tropical warning or watch |
+| Coastal water level vs prediction | NOAA CO-OPS | surge residual; coastal events only, stations seeded from `data/event.json` |
+| Crossings reported closed | ATX Floods (Central Texas jurisdictions), published by the cycle | only non-open rows publish; a coverage hole never reads as an all-clear |
+| Open shelters | FEMA National Shelter System, published by the cycle | status published only where a source states one |
+| Wildfire incidents + perimeters | Texas A&M Forest Service + NIFC WFIGS, published by the cycle | per-source status; a fire over 100 acres with no mapped perimeter draws an equal-area circle, styled unlike a real perimeter |
+| River Sentry siren sites | a public "River Sentry Towers" Google My Maps, author not identified, published by the cycle | reported locations only, never live siren state |
 
 Provenance is explicit: an OFFICIAL vs CURATED badge marks every ambiguous
 signal (v0.81.0). All layers honor the aging/staleness invariants and stay out of
@@ -183,27 +191,27 @@ the offline basemap-tile cache (live data is never implied fresh offline).
 ## 11. Strategic direction — from single-event instrument to product
 
 The board is feature-complete against its original backlog and honesty-first by
-construction. The forward strategy (detailed in `ROADMAP.md`) is the path from a
+construction. The forward strategy (detailed in `ROADMAP.md`) was the path from a
 mature single-event *instrument* to a **generally available product**, along
-three axes:
+three axes. All three have landed. The middle one's remainder was dropped rather
+than built, because the naming decision that drove it went the other way.
 
-1. **Trustworthy / productionized** — automated tests + CI on the honesty-
-   critical logic; a durable scheduled data pipeline that runs independent of an
-   interactive curator session; visible degraded-source states; defense-in-depth
-   hardening; and trust/governance content (methodology & accuracy, privacy,
-   about).
-2. **Generalized** — parameterize the remaining single-event hardcoding into
-   region-agnostic config packs (ROADMAP #25) and prove the board on a region
-   beyond the Hill Country. The hydrology core (NWPS gauges + NWS alerts) is
-   already national and keyless. The owner's direction is **all-hazard over
-   time** (floods now; storms/tornadoes later) — the board's machinery is largely
-   hazard-agnostic. The board keeps its current "ResponderTX" identity; any
-   generalized brand/name is a pending owner decision and is out of scope here.
-3. **Reliably updatable + deliverable** — a service worker with a real update
-   strategy first (also fixes offline cold-boot), then safe re-installability, and
-   then web-push threshold alerts. Notification *delivery* is the one universal
-   table stake the board still lacks and the highest-value fast-follow once the
-   service worker exists.
+1. **Trustworthy / productionized** · DELIVERED. Automated tests and CI on the
+   honesty-critical logic, a durable system-cron data pipeline that runs
+   independent of any interactive curator session, per-source fresh/aging/stale
+   detail behind the data-age bar, defense-in-depth hardening, and the trust and
+   methodology content in `ABOUT.md`, reachable from the board itself.
+2. **Generalized** · the hydrology core (NWPS gauges + NWS alerts) is already
+   national and keyless, and the owner's all-hazard direction has landed: severe
+   and tornado warnings, tropical track and surge, and wildfire all draw today.
+   What remained was a sweep of the surviving Texas literals (ROADMAP #25), and
+   that was deprioritised 2026-07-30 when the owner decided the board stays
+   **ResponderTX** on respondertx.org. The `data/event.json` event-pack half
+   survives on merit: it re-points the board at a new event with no code change.
+3. **Reliably updatable + deliverable** · DELIVERED. The app-shell service worker
+   with user-controlled updates, the install manifest, and opt-in device alerts
+   (flash-flood emergencies, an area-wide gauge tier, and specific gauges a user
+   follows, in English or Spanish) all ship today.
 
 Throughout, the standing invariants hold: honesty over vanity, aging everywhere,
 model never reads as observed, stale never masquerades as live, source citations

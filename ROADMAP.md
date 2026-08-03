@@ -1,11 +1,9 @@
-# ResponderTX · MASTER ROADMAP (updated 2026-07-26)
+# ResponderTX · MASTER ROADMAP
 
-Current build: **v0.99.53** (see `CHANGELOG.md` for the full v0.1.0 → v0.99.53 arc,
-which is the authoritative record of what has shipped). This roadmap tracks
-delivered capabilities and the forward queue; per-cycle volatile status lives in
-CHANGELOG/HANDOFF, not here. The forward queue below was re-derived from source
-on 2026-07-25 after the v0.97.82–v0.98.6 arc and reconciled against the
-v0.98.7–v0.99.34 arc on 2026-07-26.
+The current build is whatever `APP_VERSION` says in `js/core.js`, and
+`CHANGELOG.md` is the authoritative record of what has shipped. This roadmap
+tracks delivered capabilities and the forward queue; per-cycle volatile status
+lives in CHANGELOG/HANDOFF, not here.
 
 > The v0.99.35–v0.99.52 arc came from a product-owner assessment (UX audit,
 > competitive analysis, backlog reconciliation) and then from the failure class
@@ -129,9 +127,12 @@ and grew the camera fleet past six thousand.
 
 Archive integrity closed in the v0.98.7–v0.99.34 arc: both the gauge and the road
 record are retained wide and published narrow, and the whole-record file is a
-bounded view rather than a full-file delta every cycle. What remains splits two
-ways. **Resilience** is the two single-host feeds. **Legibility to outsiders** is
-generalization and the in-app provenance surface. See the forward queue.
+bounded view rather than a full-file delta every cycle. **Resilience** closed with
+N5 at v0.99.76: HRRR has no alternate anywhere and now degrades honestly instead
+of stepping through blank model hours, and the DriveTexas second source waits only
+on an owner-minted key. **Legibility to outsiders** closed with the in-app about
+and methodology view (v0.99.46); generalization went the other way when the owner
+declined the rebrand. See the forward queue.
 
 **Delivered capability clusters** (lead version in parentheses):
 
@@ -139,7 +140,15 @@ generalization and the in-app provenance surface. See the forward queue.
   AO-vs-elsewhere fold (A1, v0.69.0), on-map polygons, new-emergency banner,
   7-day expired-alert history, in-app alert-text reader with the named river
   reach (v0.96.3), and the hazard allowlist widened beyond flood-only for the
-  tropical arc (v0.97.47).
+  tropical arc (v0.97.47) and then to the full warned set at v0.99.56: tornado,
+  severe thunderstorm, dust storm, snow squall and extreme wind warnings, each
+  with its own Drive Mode action, plus watches and standing conditions such as
+  Fire Weather, ranked across hazard types rather than within one.
+- **Wildfire** · a layer, off until turned on, carrying incidents reported by the
+  Texas A&M Forest Service and NIFC WFIGS with per-source status (v0.99.68),
+  scoped to Texas plus a 50-mile band (v0.99.69), then the mapped perimeter
+  polygons themselves (v0.99.79) and a dashed equal-area circle for a fire of 100
+  acres or more that nobody has mapped yet (v0.99.81).
 - **Gauges & forecast** — NWPS bbox gauges with flood categories and
   rising/falling trend, stale-sensor suppression (v0.75.4), 48h sparkline + full
   hydrograph modal with the crest-of-record line (W6, v0.62.0), RFC 5-day
@@ -254,17 +263,11 @@ generalization and the in-app provenance surface. See the forward queue.
   surface stripped from the artifact: ops chat, master view, Field Notes, and
   since v0.98.5 the whole `scripts/` tree and `server.py`.
 
-**Genuinely still open** (detail in the forward queue): device alerts built and
-deployed but undiscoverable behind `?push=1` · a still-closed road able to paint
-a reopened badge when the upstream re-codes its condition · multi-source failover
-for the two remaining single-host feeds (HRRR, DriveTexas) · no in-app
-about/methodology/privacy surface ·
-deploy-credential decoupling from the rfxn-infra vault · region/event-pack
-generalization remainder (#25) · team Phase-2 SAR · severe/tornado + wildfire
-all-hazard remainder · T5 evacuation zones (data-gated) · V4 wall view ·
+**Genuinely still open** (detail in the forward queue): deploy-credential
+decoupling from the rfxn-infra vault · a DriveTexas WZDx key, the last half of N5
+· a terms surface · T5 evacuation zones (data-gated) · V4 wall view ·
 camera-imagery retention (object-store scale, not repo scale) · CalTopo live-sync
-stretch (subscription-gated) · small polish (#18 measure tool, #19 watchlist
-star).
+stretch (subscription-gated) · team SOS (owner-gated) · the #18 measure tool.
 
 Refuted on re-verification, do not re-queue: **A3** desktop KPI declutter (the
 tiles went at v0.97.93; no `kpi` identifier survives anywhere in the tree) and
@@ -441,8 +444,12 @@ write surfaces are deliberately deferred until a new owner ask (see Anti-backlog
 - **#18. Leaflet.PolylineMeasure (vendored)** — OPEN (minor). Distance/bearing to
   hazards already exists in Drive Mode and the point inspector; a dedicated
   measure tool is not vendored.
-- **#19. Watchlist star (per-item follow)** — OPEN (minor). Smart sort + "In
-  view" filter (v0.92.0) exist; an explicit pin-to-top star does not.
+- **#19. Watchlist star (per-item follow)** — DELIVERED (v0.99.83, hardened
+  v0.99.84). A star on each Gauges and Roads row pins that row to the top of its
+  tab, held on the device in `localStorage` under `respondertx.watch.v1`. A
+  watched row the list did not draw is reported rather than dropped: the view
+  filter is hiding it (with one tap to show it), it is gone from the data, or the
+  source that covers it never answered. Only the user ever removes a star.
 - **#20. Verified live-resource adds** — DELIVERED / ongoing (resources.json:
   CrowdSource Rescue, iSTAT, SARiverFlood HALT, scam-watch, recovery portals;
   curated each cycle).
@@ -455,20 +462,15 @@ write surfaces are deliberately deferred until a new owner ask (see Anti-backlog
 - **#23. USGS STN HWM hook** — OPEN, gated (needs a live STN event).
 - **#24. usng.js swap-in** — OPEN, deferred (our converter is validated ±1 m;
   only if datum edge cases surface).
-- **#25. Multi-event config presets / region generalization** — IN PROGRESS,
-  substantially advanced. `data/event.json` now drives name, region,
-  center/zoom, gaugeBbox, and start time, and the **TS Bertha coastal pivot
-  (v0.97.47) is the first live proof of re-targeting**: the whole board moved
-  from the Hill Country to the upper Texas coast through config, and the public
-  feed/crest/history exports became event-scoped (v0.97.60). Remaining scope is
-  narrowed to hazard/event packs and non-TX literals. Acceptance checklist (the
-  concrete hardcoding inventory that blocks non-Texas adoption): the NWS alerts
-  URL (`area=TX`), the DriveTexas/TxGIO road + crossing layers, the eight
-  Texas-city camera networks, the coastal tide-station seed, the LSR
-  flood-in-AO bbox test. The AO quick-jump presets came off that list at
-  v0.97.65 (they are `data/event.json` data now), and the capture bbox joined
-  `event.json` at the capture/display split. Sequenced after the owner's
-  name/domain decision.
+- **#25. Multi-event config presets / region generalization** — **DEPRIORITISED
+  2026-07-30**; see NEXT item 8 for the reasoning. `data/event.json` drives name,
+  region, center/zoom, the AO quick-jump presets (v0.97.65), both bounding boxes
+  and the archive start, and the **TS Bertha coastal pivot (v0.97.47) is the live
+  proof of re-targeting**: the whole board moved from the Hill Country to the
+  upper Texas coast through config, and the public feed/crest/history exports
+  became event-scoped (v0.97.60). What was left of the item was the non-TX
+  literal sweep, whose only driver was the rebrand the owner declined, so it is
+  dropped. The event-pack half is kept.
 - **#26. HTTPS service worker / full offline PWA** — DELIVERED. The app-shell
   service worker with user-controlled updates shipped v0.97.63, and the branded
   install manifest returned v0.97.60 (the v0.96.1 removal condition, a real SW
@@ -692,15 +694,16 @@ engineering.
 
 ### LATER (post-event or gated)
 
-19. **All-hazard remainder** · mostly DELIVERED, and no longer sequenced behind #25
+19. ~~**All-hazard remainder**~~ · DELIVERED, and no longer sequenced behind #25
     (that item was dropped 2026-07-30). Tropical/coastal shipped v0.97.47-53;
     tornado, severe thunderstorm, dust storm, snow squall and extreme wind warnings
     shipped v0.99.56 with per-hazard Drive Mode actions; watches and standing
     conditions such as Fire Weather are in the `js/sources.js` event table; wildfire
-    **incidents** ship from TFS + NIFC WFIGS via `scripts/gen-wildfire.py`. What is
-    actually left is **fire perimeters**: the layer publishes origin points and says
-    so in its own layer name, and NIFC WFIGS publishes perimeter polygons that nothing
-    here reads yet. That is a build, not a data gate.
+    incidents ship from TFS + NIFC WFIGS via `scripts/gen-wildfire.py`, and the NIFC
+    WFIGS perimeter polygons draw over them from v0.99.79, with a dashed equal-area
+    circle standing in for a fire of 100 acres or more that nobody has mapped yet
+    (v0.99.81) and a failed perimeter read reported as such rather than as missing
+    incidents (v0.99.82).
 20. **T5 evacuation zones** — data-gated; mirror authoritative status, never
     invent an order.
 21. **Camera-imagery retention** · gated on storage, not on code. There is no
@@ -716,8 +719,9 @@ engineering.
     print-stylesheet tokens; pairs with the fullscreen plugin (#30).
 23. **#22 OpenFEMA declarations chip · #21 CoCoRaHS precip · #23 USGS STN HWM
     hook** — [data], mostly recovery/AAR, event-gated.
-24. **Minor polish** — A3 desktop KPI declutter, A8 LSR freshness ranking, #18
-    measure tool, #19 watchlist star, offline tile-failure banner (compat-9).
+24. **Minor polish** — the #18 measure tool and the offline tile-failure banner
+    (compat-9). A3, A8 and #19 came off this list: the first two were refuted on
+    re-verification and the watchlist star shipped v0.99.83.
 25. **#28 X ingest worker · #29 remaining partnership feeds (PulsePoint,
     Broadcastify, LCRA, what3words)** — [infra], gated on partnerships or paid
     APIs; ingest never auto-publishes.

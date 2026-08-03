@@ -46,8 +46,8 @@ Before opening a PR, run the tests and the pre-commit sanity bundle:
 
 ```bash
 bash tests/run.sh        # node, shell and python suites; log captured, failures named
-scripts/cycle-check.sh   # eleven checks: JSON, JS syntax, version agreement, feeds,
-                         # snapshot, staged files, the 911 gates, schemas, cursors
+scripts/cycle-check.sh   # the pre-commit validation bundle; it names every check it
+                         # runs, so the output is the roster
 ```
 
 A release also moves `APP_VERSION` in `js/core.js`, `SW_VERSION` in `sw.js`, every

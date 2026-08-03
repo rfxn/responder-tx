@@ -199,6 +199,35 @@ finally:
     server._rate_buckets.clear()
     shutil.rmtree(tmp)
 
+# --- a failed intake write is the server's fault: all three arms answered 400, telling the
+# operator their notice was malformed while it was the disk that failed, and losing the notice ---
+def _boom(self, path, entry):
+    raise OSError(28, 'No space left on device')
+
+
+_real_append, _real_rotate = server.Handler._append_line, server._rotate_inbox_if_due
+server.Handler._append_line = _boom
+server._rotate_inbox_if_due = lambda: None
+try:
+    ARMS = [('chat', server.Handler._append_chat, {'text': 'boat needed at the low crossing'}),
+            ('notes', server.Handler._append_note, {'text': 'water over FM 1431', 'kind': 'general'}),
+            ('requests', server.Handler._append_request,
+             {'summary': 'road cut', 'place': 'Kingsland', 'county': 'Llano'})]
+    for name, fn, body in ARMS:
+        h = make_handler('192.168.1.90', '/api/' + name)
+        h._read_body = lambda b=body: b
+        fn(h)
+        check('%s: a failed intake write is 500, not a 400 blaming the operator' % name, h.sent == [500])
+    # non-vacuity: a genuinely malformed body must still be the client's fault
+    h = make_handler('192.168.1.90', '/api/notes')
+    h._read_body = lambda: {'text': '   '}
+    server.Handler._append_note(h)
+    check('notes: an empty note is still 400', h.sent == [400])
+finally:
+    server.Handler._append_line = _real_append
+    server._rotate_inbox_if_due = _real_rotate
+    server._rate_buckets.clear()
+
 print('---')
 if FAILS:
     print('%d FAILURE(S)' % FAILS)

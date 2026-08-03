@@ -234,8 +234,8 @@ function driveItems() {
   // verify-before-routing: the 2 nearest cameras tail the list like the reopened rows — never competing with hazards
   const cams = [];
   if (p && state.cameras) {
-    const pool = [['txdot', 'txdot'], ['river', 'river'], ['austin', 'austin'], ['atxfloods', 'atxfloods'], ['houston', 'houston'], ['arlington', 'arlington'], ['elpbridge', 'elpbridge'], ['hays', 'hays'], ['porthou', 'porthou']]
-      .flatMap(([arr, kind]) => (state.cameras[arr] || []).map((c) => ({ c, kind })));
+    // CAM_NETS is the registry: a hand-copy of it here left 10 networks unreachable from Drive Mode
+    const pool = CAM_NETS.flatMap(([arr, kind]) => (state.cameras[arr] || []).map((c) => ({ c, kind })));
     for (const x of pool) { if (Number.isFinite(x.c.lat) && Number.isFinite(x.c.lon)) x.d = distMi(p.lat, p.lng, x.c.lat, x.c.lon); }
     for (const x of pool.filter((y) => y.d != null).sort((a, b) => a.d - b.d).slice(0, 2)) {
       cams.push({

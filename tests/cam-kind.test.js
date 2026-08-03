@@ -1,6 +1,6 @@
 'use strict';
 
-/* Live video vs still photo. The board pools nine camera networks under one 📷, and the
+/* Live video vs still photo. The board pools every camera network under one 📷, and the
    difference between them decides what an operator is actually looking at: a moving picture of
    the crossing now, or a single frame that the aging gate allows to be up to CAM_STALE_MINS old.
    Two invariants are guarded here. The kind is read off the camera's own row, never off a list of
@@ -14,7 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadApp } = require('./harness.js');
 
-const { camIsLive, CAM_NETS } = loadApp();
+const { camIsLive, CAM_NETS, driveItems, state } = loadApp();
 const ROOT = path.join(__dirname, '..');
 const readFile = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const CAMS = JSON.parse(readFile('data/cameras.json'));
@@ -25,6 +25,30 @@ function everyCam() {
   for (const [arr, net] of CAM_NETS) for (const c of CAMS[arr] || []) out.push({ c, net });
   return out;
 }
+
+// the camera arrays the published file actually carries; bbox is four numbers, not cameras
+const DATA_NETS = Object.keys(CAMS)
+  .filter((k) => Array.isArray(CAMS[k]) && CAMS[k].some((c) => c && typeof c === 'object'));
+
+/* Drive Mode's "2 nearest cameras" pool was a hand-copy of CAM_NETS frozen at nine networks while
+   the data grew past it, so a driver in Laredo or Lubbock was told nothing was near. Derived from
+   the published file so a second hand-copy cannot pass this. */
+test('every camera network the data publishes is reachable from Drive Mode', () => {
+  assert.ok(DATA_NETS.length > 9, `non-vacuity: data/cameras.json carries ${DATA_NETS.length} camera arrays`);
+  const saved = { alerts: state.alerts, crossings: state.crossings, gauges: state.gauges,
+    myPos: state.myPos, cameras: state.cameras };
+  const unreachable = [];
+  try {
+    for (const net of DATA_NETS) {
+      state.alerts = []; state.crossings = []; state.gauges = [];
+      state.myPos = { lat: 31, lng: -99 };
+      state.cameras = { [net]: [{ id: `${net}-probe`, name: `${net} probe`, lat: 31, lon: -99 }] };
+      if (!driveItems().some((r) => r.cam)) unreachable.push(net);
+    }
+  } finally { Object.assign(state, saved); }
+  assert.deepEqual(unreachable, [],
+    `these published camera networks never surface in Drive Mode: ${unreachable.join(', ')}`);
+});
 
 test('camIsLive: a stream URL makes a camera live, its absence makes it a still', () => {
   assert.equal(camIsLive({ httpsurl: 'https://s76.us-east-1.skyvdn.com/rtplive/TX_ABL_001/playlist.m3u8' }), true);

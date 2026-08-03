@@ -637,7 +637,7 @@ function initMap() {
     'Low-water crossings (locations · not live status)': state.layers.lwc,
     'Crossings reported closed (Central Texas jurisdictions)': state.layers.crossStatus,
     'River Sentry siren sites (reported locations · not live status)': state.layers.riverSentry,
-    'Wildfire incidents (reported points · not perimeters)': state.layers.wildfire,
+    'Wildfire incidents (reported points · mapped perimeters where published)': state.layers.wildfire,
     ...camOverlays,
   }, { collapsed: true }).addTo(state.map);
 

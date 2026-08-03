@@ -2229,7 +2229,8 @@ async function fetchWildfire() {
   } catch (err) {
     state._wildfireLoaded = false; // allow a retry the next time the layer is toggled on
     state.wildfireUnknown = !state.wildfire;
-    opNotice(t('note.wildfirefail'));
+    // nothing on the map: the sentence builder answers. Last-good drawn: only the refresh failed.
+    opNotice(state.wildfireUnknown ? wildfireNoticeText() : t('note.wildfirefail'));
   }
 }
 
@@ -2237,6 +2238,8 @@ async function fetchWildfire() {
    layer says which of the two it is out loud the moment it is switched on. Returns the sentence
    or '' when the markers speak for themselves. */
 function wildfireNoticeText() {
+  // E1: the file was unreadable, so there is no source list to reason about and no reportable zero
+  if (state.wildfireUnknown) return t('wf.unknown');
   const srcs = wildfireSources();
   const failed = srcs.filter((s) => s.status !== 'ok');
   // a failed perimeter read leaves the incident list complete, so saying the list is incomplete

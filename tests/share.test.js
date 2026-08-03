@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { loadApp } = require('./harness.js');
+const { loadApp, loadMapApp, loadHeaderStatus } = require('./harness.js');
 
 const app = loadApp();
 const { buildShareUrl, applyShareParams, state } = app;
@@ -341,6 +341,31 @@ test('buildShareUrl: every region on travels as the statewide token, not as a li
     // 'all' keeps meaning statewide if a region is added later; a frozen list would not
     assert.equal(new URLSearchParams(buildShareUrl().split('?')[1]).get('camreg'), CAM_REGION_ALL);
   });
+});
+
+/* First-run onboarding must stand down for a link that already names where to land. Its list was a
+   hand-copy that still named the retired ?cams= and never learned ?camreg=, so every shared camera
+   link opened behind the overlay. Executed against the real function, and derived from the params
+   the app actually emits so a future param cannot be forgotten here. */
+test('onboarding stands down for every param a shared link can carry', () => {
+  const S = loadHeaderStatus().sandbox;
+  const mapApp = loadMapApp();
+  const asks = (search) => { S.location.search = search; return !!S.onboardDeepLink(); };
+  try {
+    assert.equal(asks(''), false, 'a plain first load still gets its onboarding');
+    assert.equal(asks('?utm_source=x'), false, 'an unrelated param is not a deep link');
+    assert.equal(asks('?camreg=austin'), true, 'a shared camera link must not open behind the overlay');
+    assert.equal(asks('?camreg=all'), true);
+    for (const k of app.LINK_VIEW_PARAMS) {
+      assert.equal(asks(`?${k}=1`), true, `a link carrying ?${k}= lands somewhere specific`);
+    }
+    for (const k of Object.keys(mapApp.CAM_LEGACY_PARAMS)) {
+      assert.equal(asks(`?${k}=1`), true, `the legacy camera param ?${k}= still opens cameras`);
+    }
+    for (const k of ['playback', 'hydro', 'view', 'fq', 'cam', 'pbt', 'team', 'tab']) {
+      assert.equal(asks(`?${k}=x`), true, `?${k}= opens one record and must not be interrupted`);
+    }
+  } finally { S.location.search = ''; }
 });
 
 test('the statewide token and an explicit list are both read on the way in', () => {

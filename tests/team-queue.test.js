@@ -9,9 +9,9 @@ const vm = require('node:vm');
 /*
  * js/team.js is a classic-script IIFE whose top level only declares functions and wires
  * window.* exports (no DOM or network at load). Evaluating it verbatim in a vm sandbox
- * surfaces window.teamQueueOps, the pure store-and-forward queue ops under test.
+ * surfaces window.teamQueueOps and window.teamMarkerOps, the pure ops under test.
  */
-function loadTeamQueueOps() {
+function loadTeamSandbox() {
   const el = () => ({
     style: {}, dataset: {}, hidden: false, textContent: '', innerHTML: '',
     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
@@ -31,6 +31,8 @@ function loadTeamQueueOps() {
     location: { origin: 'https://example.test', pathname: '/', search: '' },
     history: { replaceState() {} },
     fetch: () => Promise.reject(new Error('network disabled in tests')),
+    // core.js is not loaded here; team.js reads esc off the shared classic-script scope
+    esc: (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`),
     window: {},
   };
   sandbox.window = sandbox;
@@ -38,10 +40,13 @@ function loadTeamQueueOps() {
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'team.js'), 'utf8'), sandbox, { filename: 'team.js' });
   assert.ok(sandbox.teamQueueOps, 'team.js exposes window.teamQueueOps');
-  return sandbox.teamQueueOps;
+  assert.ok(sandbox.teamMarkerOps, 'team.js exposes window.teamMarkerOps');
+  return sandbox;
 }
 
-const ops = loadTeamQueueOps();
+const teamSandbox = loadTeamSandbox();
+const ops = teamSandbox.teamQueueOps;
+const marker = teamSandbox.teamMarkerOps;
 const fix = (ts, over) => Object.assign({ lat: 29.75, lon: -99.35, acc: 8, hdg: null, spd: null, ts }, over);
 
 test('queue — the bound matches the relay batch cap (480 ≈ 2h of 15s fixes)', () => {
@@ -100,4 +105,27 @@ test('queue — flush order is oldest-first (slice from the head is the batch)',
   for (let i = 1; i <= 10; i++) ops.push(q, fix(i * 1000), ops.MAX);
   const batch = q.slice(0, ops.MAX); // mirrors flushQueue's batch construction
   assert.deepEqual(batch.map((f) => f.ts), [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]);
+});
+
+/* A marker relayed without a usable ts rendered the literal "NaNs ago" in the field: two of the
+   three ageStr call sites papered over it with `|| Date.now()`, and this one did not. */
+test('marker popup — an undated marker drops the age clause rather than printing NaN', () => {
+  for (const ts of [undefined, null, 0, '', 'not-a-date', NaN]) {
+    const html = marker.popupHtml({ id: 'm1', kind: 'hazard', by: 'K9-2', ts });
+    assert.ok(!/NaN/.test(html), `ts=${String(ts)} rendered NaN: ${html}`);
+    assert.ok(!/\d{4,}h/.test(html), `ts=${String(ts)} measured an age from the epoch: ${html}`);
+    assert.ok(!/·\s*(ago|team\.ago)/.test(html), `ts=${String(ts)} left a dangling "ago": ${html}`);
+    assert.match(html, /K9-2/, 'who dropped it is still reported');
+  }
+  // non-vacuity: a real stamp still says how long ago, so the guard did not silence the age
+  const fresh = marker.popupHtml({ id: 'm2', kind: 'hazard', by: 'K9-2', ts: Date.now() - 120000 });
+  assert.match(fresh, /2m/, 'a dated marker must still carry its age');
+});
+
+test('ageStr — an unusable stamp has no age, and a usable one still reads in s/m/h', () => {
+  for (const ts of [undefined, null, 0, '', 'not-a-date', NaN]) assert.equal(marker.ageStr(ts), '', String(ts));
+  assert.equal(marker.ageStr(Date.now() - 30000), '30s');
+  assert.equal(marker.ageStr(Date.now() - 300000), '5m');
+  assert.equal(marker.ageStr(Date.now() - 7200000), '2h');
+  assert.equal(marker.ageStr(Date.now() + 60000), '0s', 'a clock-skewed future stamp is not a negative age');
 });

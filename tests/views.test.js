@@ -451,10 +451,7 @@ test('the trigger re-syncs on every path that can change the active lens', () =>
     const m = pb.match(new RegExp(`function ${fn}\\(\\)[\\s\\S]*?\\n\\}`));
     assert.ok(m && /syncViewsTrigger\(\)/.test(m[0]), `${fn}() must re-sync the trigger`);
   }
-  // a live language switch repaints every dynamic surface; the lens tag is one of them
-  const boot = read('js/boot.js');
-  const rl = boot.match(/function relocalizeDynamic\(\)[\s\S]*?\n\}/);
-  assert.ok(rl && /syncViewsTrigger\(\)/.test(rl[0]), 'relocalizeDynamic() must re-sync the trigger');
+  // the live-language-switch path is the same claim RUN, in tests/relocalize.test.js
 });
 
 test('every lens entrance and exit goes through the openView router', () => {

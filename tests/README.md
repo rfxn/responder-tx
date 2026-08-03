@@ -164,19 +164,21 @@ them), concatenates the ones under test, and evaluates the combined source once
 in a Node `vm` sandbox stocked with minimal mock browser globals (`document`,
 `localStorage`, a Leaflet `L` stub, etc.).
 
-Four loaders, in increasing order of how much of the app they start:
+Five loaders, in increasing order of how much of the app they start:
 
 | loader | what it gives you |
 |---|---|
 | `loadApp()` | core + usng + playback + sources + cameras + **panels** + board |
-| `loadMapApp()` | the same, with **map.js** in place of panels.js (they are mutually exclusive) |
+| `loadMapApp()` | the same, with **map.js** in place of panels.js |
+| `loadFullApp()` | every file in `index.html` order, **boot.js included**: the only bundle with map.js and panels.js together, so `relocalizeDynamic()` and the rest of boot.js's cross-file callers can be run |
 | `loadWiredMap()` | a private bundle with `initMap()` actually **run**: `fire('overlayadd', { layer: layers.wildfire })` executes the shipped handler, `spyOn('fetchX')` records the call |
 | `loadHeaderStatus()` | core..board plus **boot.js**, against a DOM that records `classList` and attribute writes |
 
 `._sandbox` exposes every top-level `function` **declaration** on the sandbox
 global, so `loadApp()._sandbox.renderRoadsTab()` calls the shipped function with
 no harness change. A top-level `const NAME = () =>` is lexical and is NOT on the
-sandbox: it has to be named in `EXPORTS` / `PANEL_EXPORTS` / `MAP_EXPORTS`.
+sandbox: it has to be named in `EXPORTS` / `PANEL_EXPORTS` / `MAP_EXPORTS` /
+`BOOT_EXPORTS`.
 
 Gotchas that have each cost a release:
 
@@ -191,8 +193,9 @@ Gotchas that have each cost a release:
   unconditionally. That exact mistake let a missing star element pass in
   v0.99.83. Register the selectors you deliberately provide and return `null`
   for the rest, so a node the shipped code starts needing fails loudly.
-- `loadApp()` / `loadMapApp()` are **cached** and shared by every test in a file.
-  Restore anything you mutate in a `finally`. `loadWiredMap()` is per call.
+- `loadApp()` / `loadMapApp()` / `loadFullApp()` are **cached** and shared by every
+  test in a file. Restore anything you mutate in a `finally`. `loadWiredMap()` is
+  per call.
 - Listeners the files register on `document` at load time are kept in
   `_sandbox.__docHandlers` (a `type -> [fn]` Map), so the modal focus trap in
   `core.js` can be fired with a synthetic event instead of matched. Handlers

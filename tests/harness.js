@@ -245,6 +245,24 @@ function loadMapApp() {
   return mapCached;
 }
 
+// boot.js entry points the tests exercise (same rule as EXPORTS above)
+const BOOT_EXPORTS = ['relocalizeDynamic', 'renderGlossary'];
+
+let fullCached = null;
+
+/* The whole page in index.html's order, boot.js included. It is the only bundle holding map.js and
+   panels.js together, which is what relocalizeDynamic() needs: it reaches both plus sources.js in
+   one call. Additive: loadApp/loadMapApp keep their narrower bundles, which many suites rely on. */
+function loadFullApp() {
+  if (!fullCached) {
+    fullCached = buildBundle(
+      ['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'panels.js', 'board.js', 'boot.js'],
+      MAP_EXPORTS.concat(PANEL_EXPORTS, BOOT_EXPORTS),
+    );
+  }
+  return fullCached;
+}
+
 /* ---------- a wired map: initMap() actually run, so layer wiring is executed rather than grepped
 
    The v0.99.79 wildfire outage was invisible to 36 tests because every one of them matched the
@@ -412,4 +430,4 @@ function loadHeaderStatus() {
   return { ...sandbox.__HDR, node: (sel) => sandbox.document.querySelector(sel), timers, sandbox };
 }
 
-module.exports = { loadApp, loadMapApp, loadWiredMap, buildSandbox, loadHeaderStatus };
+module.exports = { loadApp, loadMapApp, loadFullApp, loadWiredMap, buildSandbox, loadHeaderStatus };

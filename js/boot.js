@@ -682,6 +682,11 @@ function relocalizeDynamic() {
   renderTides();
   renderSourceHealth();
   renderMovedCues();
+  // marker aria-labels are baked with esc(t(...)) at draw time; each of these repaints in place
+  // and adds no layer to the map, so a language switch cannot turn a layer on
+  renderWildfire();
+  renderRiverSentry();
+  renderTideStations();
   // the card bakes esc(t(...)) at render time, so applyI18n(document) cannot reach it and a
   // language switch used to leave it in the old language beside relocalized headings
   pushRerender();

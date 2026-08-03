@@ -36,16 +36,20 @@ function makeElementStub() {
     value: '',
     textContent: '',
     innerHTML: '',
+    title: '',
     hidden: false,
-    appendChild() {}, append() {}, remove() {}, add() {},
+    checked: false,
+    disabled: false,
+    appendChild() {}, append() {}, prepend() {}, remove() {}, add() {}, insertAdjacentHTML() {},
     addEventListener() {}, removeEventListener() {},
-    setAttribute() {}, getAttribute() { return ''; },
+    setAttribute() {}, getAttribute() { return ''; }, removeAttribute() {}, hasAttribute() { return false; },
     querySelector() { return makeElementStub(); },
     querySelectorAll() { return []; },
     getElement() { return null; },
     dispatchEvent() { return true; },
     closest() { return null; },
-    scrollIntoView() {},
+    scrollIntoView() {}, focus() {}, blur() {}, click() {},
+    getBoundingClientRect() { return { top: 0, left: 0, width: 0, height: 0, bottom: 0, right: 0 }; },
   };
   return el;
 }
@@ -64,12 +68,14 @@ function buildSandbox() {
     body: makeElementStub(),
   };
 
-  const storage = new Map();
-  const localStorageStub = {
-    getItem(k) { return storage.has(k) ? storage.get(k) : null; },
-    setItem(k, v) { storage.set(k, String(v)); },
-    removeItem(k) { storage.delete(k); },
-    clear() { storage.clear(); },
+  const makeStorage = () => {
+    const cell = new Map();
+    return {
+      getItem(k) { return cell.has(k) ? cell.get(k) : null; },
+      setItem(k, v) { cell.set(k, String(v)); },
+      removeItem(k) { cell.delete(k); },
+      clear() { cell.clear(); },
+    };
   };
 
   // Leaflet stub — recursive so load-time chains (L.TileLayer.extend({...})) resolve too.
@@ -91,7 +97,11 @@ function buildSandbox() {
     // window.* is the sandbox itself (see below); js/bootfloor.js binds load/error here
     addEventListener() {}, removeEventListener() {},
     navigator: { clipboard: null, share: null, geolocation: null },
-    localStorage: localStorageStub,
+    localStorage: makeStorage(),
+    sessionStorage: makeStorage(),
+    MutationObserver: function MutationObserver() {
+      return { observe() {}, disconnect() {}, takeRecords() { return []; } };
+    },
     location: { origin: 'https://example.test', pathname: '/', search: '' },
     getComputedStyle() { return { getPropertyValue() { return ''; } }; },
     CSS: { escape: (v) => String(v).replace(/(["'\\\]])/g, '\\$1') }, // reveal selectors are built with it
@@ -99,6 +109,7 @@ function buildSandbox() {
     Option: function Option(text, value) { this.text = text; this.value = value; },
     fetch() { return Promise.reject(new Error('network disabled in tests')); },
     t(key) { return key; }, // i18n.js is not loaded; key-echo keeps t()-calling helpers exercisable
+    getLang() { return 'en'; }, // same reason: i18n.js publishes it and map.js calls it at init
     L,
   };
   sandbox.window = sandbox;
@@ -213,6 +224,125 @@ function loadMapApp() {
   return mapCached;
 }
 
+/* ---------- a wired map: initMap() actually run, so layer wiring is executed rather than grepped
+
+   The v0.99.79 wildfire outage was invisible to 36 tests because every one of them matched the
+   text of js/map.js. A commented-out `if (e.layer === state.layers.wildfire) fetchWildfire();`
+   still matches that text. Running initMap() against these stubs registers the app's REAL event
+   handlers, so firing `overlayadd` proves the wiring instead of describing it. Only the browser
+   and Leaflet are stubbed here; every line of app logic in the path is the shipped one. */
+
+/* Leaflet layer factories must return DISTINGUISHABLE objects: the whole point of the overlay
+   handlers is `e.layer === state.layers.x`, and the module-level L proxy answers every call with
+   itself, so every layer would compare equal to every other one. */
+const LAYER_FACTORIES = ['layerGroup', 'featureGroup', 'tileLayer', 'marker', 'circle', 'circleMarker',
+  'polygon', 'polyline', 'rectangle', 'geoJSON', 'geoJson', 'markerClusterGroup', 'imageOverlay',
+  'videoOverlay', 'divIcon', 'icon'];
+
+function makeRecordingL(mapStub) {
+  let seq = 0;
+  const layer = (kind) => {
+    const id = `${kind}#${++seq}`;
+    const own = { __kind: kind, __id: id, options: {}, _layers: {},
+      // real, so "ships off by default" is a question the map can answer
+      addTo(target) { if (target && typeof target.addLayer === 'function') target.addLayer(self); return self; } };
+    const self = new Proxy(own, {
+      get(target, key) {
+        if (key === Symbol.toPrimitive) return () => id;
+        if (key === 'then' || key === 'constructor') return undefined; // never look like a thenable
+        if (!(key in target)) target[key] = () => self;
+        return target[key];
+      },
+      set(target, key, value) { target[key] = value; return true; },
+    });
+    return self;
+  };
+  const cache = {};
+  const L = new Proxy(function () {}, {
+    get(target, key) {
+      if (key === Symbol.toPrimitive) return () => 'L-stub';
+      if (key === 'map') return () => mapStub;
+      if (LAYER_FACTORIES.includes(key)) {
+        const factory = () => layer(key);
+        if (key === 'tileLayer') { factory.wms = () => layer('wms'); factory.canvas = () => layer('tileCanvas'); }
+        return factory;
+      }
+      if (!(key in cache)) cache[key] = L;
+      return cache[key];
+    },
+    apply() { return L; },
+    construct() { return L; },
+  });
+  return L;
+}
+
+function makeMapStub() {
+  const handlers = new Map();
+  const on = new Set();
+  const latLng = { lat: 30, lng: -99 };
+  const bounds = { getWest: () => -100, getEast: () => -98, getSouth: () => 29, getNorth: () => 31,
+    getNorthWest: () => ({ lat: 31, lng: -100 }), getSouthEast: () => ({ lat: 29, lng: -98 }),
+    getNorthEast: () => ({ lat: 31, lng: -98 }), getSouthWest: () => ({ lat: 29, lng: -100 }),
+    contains: () => true, getCenter: () => latLng, pad() { return bounds; }, isValid: () => true };
+  const point = (x, y) => ({ x, y, divideBy: () => point(x, y), floor: () => point(Math.floor(x), Math.floor(y)) });
+  const map = {
+    __handlers: handlers,
+    on(events, fn) {
+      String(events).split(/\s+/).filter(Boolean)
+        .forEach((e) => { if (!handlers.has(e)) handlers.set(e, []); handlers.get(e).push(fn); });
+      return map;
+    },
+    off() { return map; }, once(e, fn) { return map.on(e, fn); },
+    __on: on,
+    addLayer(l) { on.add(l); return map; },
+    removeLayer(l) { on.delete(l); return map; },
+    hasLayer(l) { return on.has(l); },
+    eachLayer(fn) { on.forEach(fn); },
+    addControl() { return map; }, removeControl() { return map; },
+    setView() { return map; }, setZoom() { return map; }, getZoom() { return 10; }, getMinZoom() { return 5; },
+    flyTo() { return map; }, panTo() { return map; }, fitBounds() { return map; }, stop() { return map; },
+    getCenter() { return latLng; }, getBounds() { return bounds; }, getSize() { return { x: 900, y: 700 }; },
+    createPane() { return { style: {} }; }, getPane() { return { style: {} }; },
+    getContainer() { return makeElementStub(); }, invalidateSize() {}, whenReady() { return map; },
+    locate() { return map; }, stopLocate() { return map; }, distance() { return 0; },
+    latLngToContainerPoint() { return point(0, 0); }, containerPointToLatLng() { return latLng; },
+    project() { return point(0, 0); }, unproject() { return latLng; },
+    zoomControl: { setPosition() {} },
+    attributionControl: { setPrefix() { return map.attributionControl; }, getContainer: makeElementStub,
+      addAttribution() {}, removeAttribution() {} },
+  };
+  return { map, handlers };
+}
+
+/* Loads a private (never the cached) bundle, runs the real initMap(), and hands back the handlers
+   the app registered. `fire('overlayadd', { layer: layers.wildfire })` then executes the shipped
+   handler body. Each call is independent: initMap mutates state heavily. */
+function loadWiredMap() {
+  const app = buildBundle(['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js'], MAP_EXPORTS);
+  const sandbox = app._sandbox;
+  const { map, handlers } = makeMapStub();
+  sandbox.L = makeRecordingL(map);
+  sandbox.initMap();
+  const fire = (event, payload) => {
+    const list = handlers.get(event);
+    if (!list || !list.length) throw new Error(`no '${event}' handler was registered by initMap()`);
+    list.forEach((fn) => fn(payload));
+    return list.length;
+  };
+  /* Replaces a sandbox global with a call recorder and returns the log. Only function
+     DECLARATIONS are replaceable this way; a const arrow is lexical and cannot be reached. */
+  const spyOn = (...names) => {
+    const calls = [];
+    for (const name of names) {
+      if (typeof sandbox[name] !== 'function') throw new Error(`${name} is not a sandbox function; cannot spy on it`);
+      sandbox[name] = (...args) => { calls.push({ name, args }); return Promise.resolve(); };
+    }
+    calls.names = () => calls.map((c) => c.name);
+    return calls;
+  };
+  return { app, sandbox, state: app.state, layers: app.state.layers, map, handlers, fire, spyOn };
+}
+
 /* Header-status sandbox. The freshness-slot invariant is behavioral, not textual: a transient
    notice must not be able to leave the degraded chip, its tooltip or its role behind. That needs
    elements that actually record classList/attribute writes, which the minimal stub above does not,
@@ -261,4 +391,4 @@ function loadHeaderStatus() {
   return { ...sandbox.__HDR, node: (sel) => sandbox.document.querySelector(sel), timers, sandbox };
 }
 
-module.exports = { loadApp, loadMapApp, buildSandbox, loadHeaderStatus };
+module.exports = { loadApp, loadMapApp, loadWiredMap, buildSandbox, loadHeaderStatus };

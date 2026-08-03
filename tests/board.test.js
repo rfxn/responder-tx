@@ -7,6 +7,76 @@ const path = require('node:path');
 const { loadApp } = require('./harness.js');
 
 const { smartScore, shortId, allRequests, state, CONFIG, pushCardState, pushFreshState } = loadApp();
+const SB = loadApp()._sandbox;
+
+/* ---------- the alerts card as the browser really paints it ----------
+
+   The claims below are about what renderPushCard() puts on screen, so they are read off markup it
+   actually emitted. A regex over js/board.js cannot tell a drawn card from one that throws on first
+   paint, which is how a whole layer shipped dead in v0.99.79 behind green source-text assertions. */
+
+// browser environments, not fact bags: pushEnvFacts() reads each one back out for itself
+const PUSH_DEVICE = {
+  off: { permission: 'default', subscribed: false, hasPush: true },
+  on: { permission: 'granted', subscribed: true, hasPush: true },
+  blocked: { permission: 'denied', subscribed: false, hasPush: true },
+  ios: { permission: 'default', subscribed: false, hasPush: false, ua: 'iPhone' },
+  unsupported: { permission: 'default', subscribed: false, hasPush: false },
+};
+
+// the accordion rows are the only nodes the card looks up on itself; answering them out of markup
+// it really emitted stops a row it has quietly dropped from being faked back into existence
+function pushHost() {
+  const host = {
+    innerHTML: '', firstChild: true, taps: {},
+    querySelectorAll(sel) {
+      if (sel !== '.push-sec[data-sec]') return [];
+      return [...host.innerHTML.matchAll(/push-sec" data-sec="([a-z]+)"/g)].map(([, key]) => ({
+        getAttribute: (a) => (a === 'data-sec' ? key : null),
+        addEventListener: (ev, fn) => { if (ev === 'click') host.taps[key] = fn; },
+      }));
+    },
+  };
+  return host;
+}
+
+/* Renders `device` once and returns the host. Only the selectors passed in `nodes` are answered, so
+   a node the card starts needing shows up as a change here rather than as a mock that agrees with
+   anything. `body(host)` runs after the first paint; the cleanup closes any pane it left open,
+   because pushSection is module state every test in this file shares. */
+function renderCard(device, { prefs = {}, nodes = {} } = {}, body) {
+  const d = PUSH_DEVICE[device];
+  const keep = { qs: SB.document.querySelector, notif: SB.Notification, pm: SB.PushManager,
+    secure: SB.isSecureContext, sw: SB.navigator.serviceWorker, ua: SB.navigator.userAgent };
+  SB.isSecureContext = true;
+  SB.navigator.serviceWorker = {};
+  SB.navigator.userAgent = d.ua || 'Mozilla/5.0';
+  SB.Notification = { permission: d.permission };
+  if (d.hasPush) SB.PushManager = function PushManager() {}; else delete SB.PushManager;
+  SB.localStorage.setItem('respondertx.push', JSON.stringify({ on: d.subscribed, prefs }));
+  const host = pushHost();
+  const reg = Object.assign({ '#push-body': host }, nodes);
+  // a control the card draws inside itself resolves only once it has really drawn it, as it would
+  // in a browser where the lookup runs after #push-body was overwritten
+  const drawn = (sel) => sel === '#push-body' || !/^#push-/.test(sel)
+    || host.innerHTML.includes(`id="${sel.slice(1)}"`);
+  SB.document.querySelector = (s) =>
+    (Object.prototype.hasOwnProperty.call(reg, s) && drawn(s) ? reg[s] : null);
+  try {
+    SB.renderPushCard();
+    if (body) body(host);
+    return host;
+  } finally {
+    const open = host.innerHTML.match(/data-sec="([a-z]+)" aria-expanded="true"/);
+    if (open) host.taps[open[1]]();
+    SB.document.querySelector = () => null; // so the preselect reset cannot reopen the sheet
+    SB.pushOpenManageFor('');
+    SB.document.querySelector = keep.qs; SB.Notification = keep.notif;
+    SB.isSecureContext = keep.secure; SB.navigator.serviceWorker = keep.sw; SB.navigator.userAgent = keep.ua;
+    if (keep.pm === undefined) delete SB.PushManager; else SB.PushManager = keep.pm;
+    SB.localStorage.removeItem('respondertx.push'); // the bundle is cached across tests in this file
+  }
+}
 
 /* ---------- smartScore: priority weight with half-life age decay ---------- */
 
@@ -166,34 +236,35 @@ test('pushPendingHtml renders a translated explanation when off, and nothing whe
   }
 });
 
-test('renderPushCard emits the pending note unconditionally, not behind a dead gate', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
-  const fn = src.match(/function renderPushCard\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderPushCard not found in js/board.js');
-  assert.match(fn[0], /^\s*pushPendingHtml\(st, pushManagePreselect\) \+$/m,
-    'the card must concatenate the note directly, with nothing short-circuiting it');
+test('a follow requested with alerts off explains itself on the card it lands on', () => {
+  const keep = state.gauges;
+  state.gauges = [{ lid: 'SRRT2', name: 'San Marcos at Luling', latitude: 29.68, longitude: -97.65 }];
+  try {
+    // the real entry point: the gauge-popup bell, which pins the gauge and opens the notify sheet
+    const html = renderCard('off', { nodes: { '#notify-sheet': { hidden: true } } },
+      () => SB.pushOpenManageFor('srrt2')).innerHTML;
+    assert.match(html, /<div class="push-m-note">push\.manage\.pending<\/div>/,
+      'the card must say why the picker did not open');
+    assert.ok(html.indexOf('push.manage.pending') < html.indexOf('push.pitch'),
+      'the answer to the tap must come before the general pitch');
+  } finally { state.gauges = keep; }
 });
 
 /* Owner report: "the Alerts construct within the settings menu is a wall of text". Measured at
    390x844 before the restructure: 67 words of prose stood between opening Settings and the on/off
    switch, which rendered last in the card and below the fold of the height-capped menu. The order
    is now state, switch, per-type rows, and the honesty text is compact-plus-disclosure. These
-   assertions are on emission ORDER, which is the property that regressed. */
-const PUSH_CARD_SRC = (() => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
-  const fn = src.match(/function renderPushCard\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderPushCard not found in js/board.js');
-  return fn[0];
-})();
-
-const emitOrder = (...needles) => needles.map((n) => {
-  const at = PUSH_CARD_SRC.indexOf(n);
-  assert.notEqual(at, -1, `renderPushCard no longer emits ${n}`);
+   assertions are on emission ORDER, which is the property that regressed, measured on the markup
+   the card really paints rather than on the shape of the source that paints it. */
+const emitOrder = (html, ...needles) => needles.map((n) => {
+  const at = html.indexOf(n);
+  assert.notEqual(at, -1, `the rendered card no longer carries ${n}`);
   return at;
 });
 
 test('the alerts card leads with the state and the switch, not with prose', () => {
-  const [head, status, toggle, types, note, about, sub, disclaimer] = emitOrder(
+  const html = renderCard('on', { prefs: { scope: 'statewide', ffe: true } }).innerHTML;
+  const [head, status, toggle, types, note, about, sub, disclaimer] = emitOrder(html,
     'push-head', 'push.state.', 'push-toggle', 'push-types', 'push.note', 'push.about', 'push.sub', 'push.disclaimer');
   assert.ok(head < status && status < toggle, 'the state must open the card, with the switch beside it');
   assert.ok(toggle < types, 'the on/off switch must precede the per-type rows');
@@ -203,20 +274,26 @@ test('the alerts card leads with the state and the switch, not with prose', () =
 
 test('the honesty text survives: compact line always plain, full paragraphs one visible tap away', () => {
   // v0.97.69/v0.97.79 shipped the honest on/off/blocked state and the not-a-911-replacement framing
-  assert.match(PUSH_CARD_SRC, /class="push-note">\$\{esc\(t\('push\.note'\)\)\}/,
-    'the compact honesty line must render unconditionally, outside the <details>');
-  assert.ok(!/push-note[\s\S]{0,80}\?/.test(PUSH_CARD_SRC), 'the honesty line must not sit behind a ternary');
-  const det = PUSH_CARD_SRC.slice(PUSH_CARD_SRC.indexOf('<details'), PUSH_CARD_SRC.indexOf("'</details>'"));
-  assert.ok(det.includes("t('push.sub')") && det.includes("t('push.disclaimer')"),
+  const html = renderCard('on', { prefs: { scope: 'statewide', ffe: true } }).innerHTML;
+  const det = html.slice(html.indexOf('<details'), html.indexOf('</details>'));
+  assert.ok(!det.includes('push-note'), 'the compact honesty line must render outside the <details>');
+  assert.match(html, /<div class="push-note">push\.note<\/div>/);
+  assert.ok(det.includes('push.sub') && det.includes('push.disclaimer'),
     'the full paragraphs must still be emitted, inside the disclosure');
-  assert.ok(det.includes('<summary>'), 'the disclosure must carry a visible summary');
-  /* The state line is emitted for every card state, never gated. The one branch is honesty, not a
-     gate: a subscribed device whose settings can deliver nothing must not wear the green ON, so it
-     takes push.state.silent and the push-silent tone instead. Everything else renders plainly. */
-  assert.match(PUSH_CARD_SRC, /class="push-status push-\$\{on && !delivers\.any \? 'silent' : st\}">/,
-    'the state line must fall back to the silent tone when nothing can be delivered');
-  assert.match(PUSH_CARD_SRC, /esc\(t\(on && !delivers\.any \? 'push\.state\.silent' : `push\.state\.\$\{st\}`\)\)/,
-    'the state must still render one key per state, with the silent claim as the only exception');
+  assert.match(det, /<summary>push\.about<\/summary>/, 'the disclosure must carry a visible summary');
+
+  /* The state line is emitted for every card state, never gated, one key per state. The one branch
+     is honesty, not a gate: a subscribed device whose settings can deliver nothing must not wear the
+     green ON, and tests/push-places.test.js owns that case. */
+  for (const device of ['on', 'off', 'blocked', 'ios', 'unsupported']) {
+    const each = renderCard(device, { prefs: { scope: 'statewide', ffe: true } }).innerHTML;
+    assert.match(each, new RegExp(`<div class="push-status push-${device}">push\\.state\\.${device}<`),
+      `${device} must render its own state line, in its own tone`);
+    assert.equal((each.match(/class="push-status/g) || []).length, 1,
+      `${device} rendered more than one state line`);
+    assert.match(each, /<div class="push-note">push\.note<\/div>/,
+      `${device} lost the compact honesty line`);
+  }
 });
 
 const { pushFixKey } = loadApp();

@@ -413,6 +413,51 @@ const I18N = require('./i18n-load.js');
 
 const BOARD = fs.readFileSync(path.join(__dirname, '..', 'js', 'board.js'), 'utf8');
 const { pushNormalizePrefs, pushNormalizePlaces, pushScopeState, pushPlacesHtml, pushRadiusLabel } = loadApp();
+const SB = loadApp()._sandbox;
+
+/* Renders the shipped renderPushCard() for a subscribed device with `prefs`, then hands the host to
+   `body` so a pane can be tapped open. A regex over js/board.js cannot tell a drawn card from one
+   that throws on first paint, so what the card claims about coverage is read off markup it emitted.
+   The cleanup closes any pane left open, because pushSection is module state the file shares. */
+function renderSubscribed(prefs, body) {
+  const keep = { qs: SB.document.querySelector, notif: SB.Notification, pm: SB.PushManager,
+    secure: SB.isSecureContext, sw: SB.navigator.serviceWorker, ua: SB.navigator.userAgent };
+  SB.isSecureContext = true;
+  SB.navigator.serviceWorker = {};
+  SB.navigator.userAgent = 'Mozilla/5.0';
+  SB.Notification = { permission: 'granted' };
+  SB.PushManager = function PushManager() {};
+  SB.localStorage.setItem('respondertx.push', JSON.stringify({ on: true, prefs }));
+  const host = {
+    innerHTML: '', firstChild: true, taps: {},
+    querySelectorAll(sel) {
+      if (sel !== '.push-sec[data-sec]') return [];
+      return [...host.innerHTML.matchAll(/push-sec" data-sec="([a-z]+)"/g)].map(([, key]) => ({
+        getAttribute: (a) => (a === 'data-sec' ? key : null),
+        addEventListener: (ev, fn) => { if (ev === 'click') host.taps[key] = fn; },
+      }));
+    },
+  };
+  SB.document.querySelector = (s) => (s === '#push-body' ? host : null);
+  try {
+    SB.renderPushCard();
+    if (body) body(host);
+    return host;
+  } finally {
+    const open = host.innerHTML.match(/data-sec="([a-z]+)" aria-expanded="true"/);
+    if (open) host.taps[open[1]]();
+    SB.document.querySelector = keep.qs; SB.Notification = keep.notif;
+    SB.isSecureContext = keep.secure; SB.navigator.serviceWorker = keep.sw; SB.navigator.userAgent = keep.ua;
+    if (keep.pm === undefined) delete SB.PushManager; else SB.PushManager = keep.pm;
+    SB.localStorage.removeItem('respondertx.push'); // the bundle is cached across tests in this file
+  }
+}
+
+// a pane that was never drawn is the failure, not a TypeError on a missing handler
+function openPane(host, key) {
+  assert.ok(host.taps[key], `the card drew no ${key} row to open`);
+  host.taps[key]();
+}
 
 test('the client prefs normalizer mirrors the registry: unstated area is none, points are rounded', () => {
   assert.equal(pushNormalizePrefs({ ffe: true }).scope, 'none');
@@ -493,12 +538,35 @@ test('pushDelivers separates a subscription that can be reached from one that ca
 });
 
 test('the card never headlines a green ON over a subscription that can deliver nothing', () => {
-  const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
-  assert.match(render, /push-status push-\$\{on && !delivers\.any \? 'silent' : st\}/,
-    'an undeliverable subscription must not wear the on tone');
-  assert.match(render, /'push\.state\.silent'/, 'an undeliverable subscription must not claim it is on');
-  assert.match(render, /scopeState === 'ok' && !delivers\.any \? `<div class="push-fix">\$\{esc\(t\('push\.silent\.types'\)\)\}/,
-    'a covering area with every type off is the silent case the scope note does not reach');
+  // every way to be subscribed and unreachable: no area, an empty places list, and every type off
+  for (const prefs of [
+    { ffe: true, tier: null, gauges: [], scope: 'none', places: [] },
+    { ffe: true, tier: null, gauges: [], scope: 'places', places: [] },
+    { ffe: false, tier: null, gauges: [], scope: 'statewide', places: [] },
+  ]) {
+    const html = renderSubscribed(prefs).innerHTML;
+    assert.match(html, /<div class="push-status push-silent">push\.state\.silent<\/div>/,
+      `${JSON.stringify(prefs)} wore the on tone over a device that receives silence`);
+    assert.ok(!html.includes('push-status push-on'), 'the on tone must not be painted alongside it');
+  }
+
+  // and a subscription that really can deliver keeps the plain ON, by either route
+  for (const prefs of [
+    { ffe: true, scope: 'statewide' },
+    { ffe: false, tier: null, gauges: [{ lid: 'SRRT2', tier: 'major' }], scope: 'none', places: [] },
+  ]) {
+    const html = renderSubscribed(prefs).innerHTML;
+    assert.match(html, /<div class="push-status push-on">push\.state\.on<\/div>/,
+      `${JSON.stringify(prefs)} can deliver and must say so`);
+  }
+
+  // a covering area with every type off is the silent case the scope note does not reach, and it
+  // is stated where the types are chosen, not only in the headline
+  renderSubscribed({ ffe: false, tier: null, gauges: [], scope: 'statewide', places: [] }, (host) => {
+    openPane(host, 'what');
+    assert.match(host.innerHTML, /<div class="push-fix">push\.silent\.types<\/div>/,
+      'the What pane must say that nothing selected means nothing delivered');
+  });
 });
 
 /* The gear row is unconditional markup, so it is present on a board with no push worker behind it.
@@ -532,21 +600,43 @@ test('a status probe that fails is reported, not published as "no device alerts 
 });
 
 test('the card offers the area choice ahead of the alert types, and explains an area that cannot fire', () => {
-  const render = BOARD.match(/function renderPushCard\(\)[\s\S]*?\n\}/)[0];
   // the accordion replaced the flat chip rows, so the ordering is now which PANE comes first
-  const where = render.indexOf("sec('where'");
-  const what = render.indexOf("sec('what'");
-  assert.ok(where !== -1 && what !== -1 && where < what, 'where you want alerts comes before which alerts');
-  const scopeCtl = render.indexOf("baseGroup(t('push.type.scope')");
-  assert.ok(scopeCtl > where && scopeCtl < what, 'the area control must live inside the Where pane');
-  assert.ok(render.indexOf('ffeRow()') > what, 'the Flash Flood Emergency switch must live inside the What pane');
-  assert.match(render, /push\.scope\.statewide/, 'statewide must stay an explicit, reachable choice');
-  assert.match(render, /push\.scope\.places/);
-  assert.match(render, /scopeState !== 'ok' \? `<div class="push-fix">\$\{esc\(t\(`push\.scope\.\$\{scopeState\}`\)\)\}<\/div>`/,
-    'an area that covers nothing must say so on the card');
-  // the honesty framing is unconditional, exactly as before this feature
-  assert.match(render, /`<div class="push-note">\$\{esc\(t\('push\.note'\)\)\}<\/div>` \+/);
-  assert.match(render, /push\.disclaimer/);
+  renderSubscribed({ ffe: true, scope: 'statewide' }, (host) => {
+    const where = host.innerHTML.indexOf('data-sec="where"');
+    const what = host.innerHTML.indexOf('data-sec="what"');
+    assert.ok(where !== -1 && what !== -1 && where < what, 'where you want alerts comes before which alerts');
+
+    openPane(host, 'where');
+    const scopeCtl = host.innerHTML.indexOf('data-pref="scope:');
+    assert.ok(scopeCtl > host.innerHTML.indexOf('data-sec="where"') && scopeCtl < host.innerHTML.indexOf('data-sec="what"'),
+      'the area control must live inside the Where pane');
+    for (const scope of ['statewide', 'places']) {
+      assert.match(host.innerHTML, new RegExp(`data-pref="scope:${scope}"[^>]*>push\\.scope\\.${scope}<`),
+        `${scope} must stay an explicit, reachable choice`);
+    }
+    assert.ok(!host.innerHTML.includes('data-pref="ffe:'),
+      'the Flash Flood Emergency switch belongs to the What pane, not this one');
+
+    openPane(host, 'what');   // single-open accordion: opening What closes Where behind it
+    const ffe = host.innerHTML.indexOf('data-pref="ffe:');
+    assert.ok(ffe > host.innerHTML.indexOf('data-sec="what"'),
+      'the Flash Flood Emergency switch must live inside the What pane');
+    assert.ok(!host.innerHTML.includes('data-pref="scope:'), 'the Where pane must have closed behind it');
+  });
+
+  // an area that covers nothing says so where the choice is made, once per unreachable scope
+  for (const [scope, places] of [['none', []], ['places', []]]) {
+    renderSubscribed({ ffe: true, scope, places }, (host) => {
+      openPane(host, 'where');
+      assert.match(host.innerHTML, new RegExp(`<div class="push-fix">push\\.scope\\.${pushScopeState({ scope, places })}<`),
+        `a ${scope} area that covers nothing must say so on the card`);
+    });
+  }
+  renderSubscribed({ ffe: true, scope: 'statewide' }, (host) => {
+    openPane(host, 'where');
+    assert.ok(!/push\.scope\.(unset|empty)/.test(host.innerHTML),
+      'a covering area must not be told it covers nothing');
+  });
 });
 
 test('the places editor states what is stored, every time it renders', () => {

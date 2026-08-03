@@ -261,8 +261,17 @@ Focused on the guarantees the board makes, not a coverage number:
 
 Render paths, popup builders and map event wiring ARE exercised, through
 `loadWiredMap()` and a recording `L`: `buildShareUrl`, the layer sheet, the
-overlay lazy-loads and the wildfire/gauge marker rendering all run for real.
-Still out of reach from node: anything in `js/boot.js`, `js/team.js`,
-`js/notes.js`, `js/chat.js` or `sw.js` outside the `loadHeaderStatus()` bundle,
-and anything whose answer depends on real layout. Regenerate the USNG ground
-truth with `python3 -c "import mgrs; print(mgrs.MGRS().toMGRS(LAT, LON))"`.
+overlay lazy-loads, the saved-view restore, the offline tile save, the
+rising-gauge focus and the wildfire/gauge marker rendering all run for real.
+
+`sw.test.js` keeps the listeners `sw.js` registers rather than counting them, so
+its `fire(s, 'activate' | 'fetch' | 'push' | 'message' | 'pushsubscriptionchange')`
+runs the shipped handler and settles whatever it passed to `waitUntil` /
+`respondWith`. The cache routing, the archive warm, the push fallback and the
+rotation self-heal are all asserted on outcomes.
+
+Still out of reach from node: anything registered inside `js/boot.js`'s
+`DOMContentLoaded` init (the update chip, the hazard-line delegate), `js/team.js`,
+`js/notes.js`, `js/chat.js`, and anything whose answer depends on real layout.
+Regenerate the USNG ground truth with
+`python3 -c "import mgrs; print(mgrs.MGRS().toMGRS(LAT, LON))"`.

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.86",
+      "date": "2026-08-03",
+      "line": "Retired 25 unused interface strings from both languages. Master oversight styles an unrecognised member status consistently, drops an unreadable timestamp instead of printing NaN, and no longer loads the roster twice when the panel opens."
+    },
+    {
       "v": "v0.99.85",
       "date": "2026-08-02",
       "line": "Wildfire popups said no perimeters are drawn while the board was drawing them, and now say what a mapped outline means. Drive Mode's nearest cameras searched 9 of 19 networks, missing 174 cameras in Lubbock, Laredo, Corpus Christi, Del Rio, Eagle Pass, Galveston and four more. A wildfire layer that cannot be read says so instead of reporting no incidents."

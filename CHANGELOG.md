@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.86 · 2026-08-03 (unused strings out, stale claims corrected)
+
+-- Bug Fixes --
+- [Fix] Master oversight styles an unrecognised member status consistently in the
+      roster and on the map, drops an unreadable timestamp instead of printing
+      "NaN", and no longer loads the roster twice when the panel opens
+- [Fix] The ops chat said the session checks the inbox every 5 minutes; it is 3
+
+-- Changes --
+- [Change] Retired 25 unused interface strings from both languages, including the
+         per-source camera layer names replaced by the regional camera rows
+- [Change] The merged radar and forecast view is now the only layout; the unused
+         alternate arrangement and its strings are gone
+
 ## v0.99.85 · 2026-08-02 (the popup stops denying what the map draws)
 
 -- Bug Fixes --

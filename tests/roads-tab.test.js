@@ -382,7 +382,8 @@ test('tapping a Roads row focuses it on the map the way the reopened rows do', (
   const fn = panels.match(/function renderRoadsTab\(\)[\s\S]*?\n\}/)[0];
   assert.match(fn, /querySelectorAll\('\.road-row\[data-lat\]'\)/, 'mapped rows must be wired for focus');
   assert.match(fn, /state\.map\.setView\(\[\+d\.dataset\.lat, \+d\.dataset\.lon\]/, 'a tap must focus the row on the map');
-  assert.match(fn, /if \(ev\.target\.closest\('a'\)\) return;/, 'the source link must not hijack the row tap');
+  assert.match(fn, /ev\.target\.closest\('a'\)/, 'the source link must not hijack the row tap');
+  assert.match(fn, /ev\.target\.closest\('\.watch-star'\)/, 'nor may the watch star, which sits inside the row');
   // and the block v0.99.36 fixed is untouched: reopened roads still render into their own sibling host
   assert.match(panels, /el\.id = 'reopened-roads'/, 'the reopened-roads host must survive');
   assert.match(panels, /function renderCrossings\(\)[\s\S]*?renderReopenedRoads\(\);/, 'reopenings still render with the crossings');

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.82';
+const APP_VERSION = 'v0.99.83';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -265,6 +265,7 @@ const state = {
   showAgedReopened: false,
   showRecovery: false,
   roadMemory: null,
+  watch: null, // starred gauge lids and road keys; null until watchAll() reads storage
   roadsTabFp: null, // last Roads-tab render fingerprint; an unchanged list must not reset the scroll
   roadsFallbackAt: null, // snapshot `generated` epoch while the committed fallback is serving, else null
   roadsUnknown: false, // live feed failed AND no snapshot: the closure set is unknown, never "none"
@@ -628,6 +629,100 @@ function saveGaugeFilter() {
   try { localStorage.setItem(GAUGE_FILTER_KEY, JSON.stringify(state.gaugeFilter)); } catch { /* quota — the filter is best-effort */ }
 }
 const gaugeStateShown = (s) => !state.gaugeFilter || state.gaugeFilter[s] !== false;
+
+/* Watchlist. A starred row pins to the top of its tab so a responder holding a handful of gauges
+   or closures stops hunting for them in a thousand-row list. Storage carries ids only, and nothing
+   in a render or fetch path may remove one: a gauge missing from a failed sweep is not an unwatch,
+   so a watched id the list cannot draw is REPORTED (watchAudit) rather than dropped. */
+const WATCH_KEY = 'respondertx.watch.v1';
+const WATCH_KINDS = ['gauges', 'roads'];
+
+function watchAll() {
+  if (!state.watch) {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(WATCH_KEY) || 'null'); } catch { saved = null; } // private mode or a corrupt value: start empty rather than throw
+    const w = {};
+    for (const k of WATCH_KINDS) {
+      const list = saved && Array.isArray(saved[k]) ? saved[k] : [];
+      w[k] = [...new Set(list.filter((v) => typeof v === 'string' && v))];
+    }
+    state.watch = w;
+  }
+  return state.watch;
+}
+
+const watchList = (kind) => (watchAll()[kind] || []).slice();
+const watchHas = (kind, id) => (watchAll()[kind] || []).indexOf(String(id)) !== -1;
+
+function watchSave() {
+  try { localStorage.setItem(WATCH_KEY, JSON.stringify(watchAll())); } catch { /* quota: the stars hold for this session only */ }
+}
+
+function watchToggle(kind, id) {
+  const list = watchAll()[kind];
+  const key = String(id === undefined || id === null ? '' : id);
+  if (!list || !key) return false;
+  const at = list.indexOf(key);
+  if (at === -1) list.push(key); else list.splice(at, 1);
+  watchSave();
+  return at === -1;
+}
+
+// the only removal path that is not a star tap, and it is still the user's own tap
+function watchDrop(kind, ids) {
+  const list = watchAll()[kind];
+  if (!list) return;
+  for (const id of ids || []) {
+    const at = list.indexOf(String(id));
+    if (at !== -1) list.splice(at, 1);
+  }
+  watchSave();
+}
+
+// watched rows lead; both groups keep whatever order the caller sorted them into
+const watchFirst = (list, kind, keyOf) =>
+  list.filter((x) => watchHas(kind, keyOf(x))).concat(list.filter((x) => !watchHas(kind, keyOf(x))));
+
+/* Three different facts about a watched item the list did not draw: a filter is hiding it, the
+   data does not carry it, or the source never answered. Collapsing any two into "nothing to see"
+   is the failure class this board tracks, so the caller gets them counted apart. */
+function watchAudit(kind, present, visible) {
+  const inData = new Set(present);
+  const drawn = new Set(visible || present);
+  const out = { hidden: [], absent: [] };
+  for (const id of watchList(kind)) {
+    if (drawn.has(id)) continue;
+    (inData.has(id) ? out.hidden : out.absent).push(id);
+  }
+  return out;
+}
+
+function watchStarHtml(kind, id, name) {
+  const on = watchHas(kind, id);
+  const label = t(on ? 'watch.remove' : 'watch.add').replace('{name}', name || '');
+  return `<button type="button" class="watch-star${on ? ' on' : ''}" data-watch-kind="${esc(kind)}" data-watch-id="${esc(id)}" ` +
+    `aria-pressed="${on ? 'true' : 'false'}" aria-label="${esc(label)}" title="${esc(label)}">${on ? '★' : '☆'}</button>`;
+}
+
+// `unknown` means a source this list depends on has not answered, so absent items may not be
+// reported as gone; that state offers no drop control for the same reason
+function watchNoticeHtml(kind, audit, o) {
+  const opts = o || {};
+  let html = '';
+  if (audit.hidden.length) {
+    html += `<div class="rcv-note watch-note">${esc(t(`watch.${kind}.hidden`).replace('{n}', audit.hidden.length))} ` +
+      `<button type="button" class="watch-act" data-watch-show="${esc(kind)}">${esc(t('watch.show'))}</button></div>`;
+  }
+  if (audit.absent.length) {
+    const body = opts.unknown
+      ? t(`watch.${kind}.unknown`).replace('{n}', audit.absent.length)
+      : t(`watch.${kind}.absent`).replace('{n}', audit.absent.length).replace('{ids}', audit.absent.join(', '));
+    html += `<div class="rcv-note watch-note">${esc(body)}` +
+      (opts.unknown ? '' : ` <button type="button" class="watch-act" data-watch-drop="${esc(kind)}">${esc(t('watch.drop'))}</button>`) +
+      '</div>';
+  }
+  return html;
+}
 
 /* ---------- aging & history — timed-out items suppress to toggleable layers, never delete ---------- */
 

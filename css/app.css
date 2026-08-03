@@ -513,6 +513,27 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .resource-item.reopened.aged { color: var(--ink-aged); border-left-color: var(--ink-muted); }
 .resource-item.reopened.aged strong, .resource-item.reopened.aged .addr { color: var(--ink-aged); }
 
+/* Watchlist star. Absolutely placed so a 44px target does not add 27px to every row of a
+   thousand-gauge list; the row reserves the width it sits in with its own padding-right. */
+.watch-star {
+  position: absolute; top: 50%; right: 2px; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; min-width: 44px; height: 44px; min-height: 44px;
+  padding: 0; border: 0; background: none; line-height: 1;
+  font-size: 17px; color: var(--ink-muted); cursor: pointer;
+  transition: color 0.15s ease;
+}
+.watch-star.on { color: var(--cat-action); }
+.watch-star:hover { color: var(--accent); }
+.card.gauge-card, .resource-item.road-row { position: relative; padding-right: 48px; }
+.watch-note { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.watch-act {
+  font-size: 11.5px; padding: 4px 10px; min-height: 32px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface-2); color: var(--accent); cursor: pointer;
+}
+.watch-act:hover { border-color: var(--accent); }
+
 #new-request-form { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px; background: var(--surface-2); display: none; }
 #new-request-form.open { display: block; }
 #new-request-form .row { display: flex; gap: 6px; margin-bottom: 6px; }
@@ -2461,7 +2482,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .pb-band { animation: none; opacity: 0.8; }
   /* movement that comes from a transition rather than a keyframe */
   #sidebar, .ob-panels, .recenter-drawer, .ls-knob::after, .ls-sub-caret, .ao-caret,
-  .compass-btn.live svg, .rtl-xfade, .pb-xfade,
+  .compass-btn.live svg, .rtl-xfade, .pb-xfade, .watch-star,
   body.pb-tween .pb-ghit .gauge-icon { transition: none; }
 }
 
@@ -2479,6 +2500,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   .ao-current { min-height: 44px; }
   .ao-chip { min-height: 44px; }
   #sheet-handle button { min-width: 44px; min-height: 44px; }
+  .watch-act { min-height: 44px; }
   /* the AO chip grew down into the row beneath it, so the stack under it starts lower */
   .layer-pills { top: 60px; }
   #pb-badge { top: 62px; }

@@ -20,7 +20,7 @@
       noteams: 'No active teams. Teams appear here as they are created.',
       members: 'Members', viewers: 'Viewers', novm: 'no members', focus: 'Focus map',
       allviewers: 'All viewers', noviewers: 'No viewers in any team right now.',
-      k9: 'K9', ground: 'ground', markers: 'markers', idle: 'idle', created: 'created',
+      k9: 'K9', ground: 'ground', markers: 'markers', idle: 'idle',
       seen: 'seen', nofix: 'no fix', on: 'team', unnamed: 'Unnamed team',
       lost: 'lost contact', lastknown: 'last known',
       st: { infield: 'in field', standby: 'standby', rehab: 'rehab', unavailable: 'unavailable' },
@@ -36,7 +36,7 @@
       noteams: 'No hay equipos activos. Aparecerán aquí al crearse.',
       members: 'Miembros', viewers: 'Observadores', novm: 'sin miembros', focus: 'Centrar mapa',
       allviewers: 'Todos los observadores', noviewers: 'Ningún observador en ningún equipo ahora.',
-      k9: 'K9', ground: 'terrestres', markers: 'marcadores', idle: 'inactivo', created: 'creado',
+      k9: 'K9', ground: 'terrestres', markers: 'marcadores', idle: 'inactivo',
       seen: 'visto', nofix: 'sin ubicación', on: 'equipo', unnamed: 'Equipo sin nombre',
       lost: 'sin contacto', lastknown: 'última conocida',
       st: { infield: 'en campo', standby: 'en espera', rehab: 'descanso', unavailable: 'no disponible' },
@@ -47,6 +47,10 @@
   };
   const lang = () => (window.getLang && L10N[window.getLang()] ? window.getLang() : 'en');
   const M = (k) => L10N[lang()][k];
+  // one closed status set for the whole file: an unrecognised status reads as in-field everywhere
+  // rather than styled in the roster and unstyled on the map
+  const STATUSES = Object.keys(L10N.en.st);
+  const stKey = (s) => (STATUSES.includes(s) ? s : 'infield');
   const stLabel = (s) => (L10N[lang()].st[s] || s);
 
   const mv = {
@@ -147,8 +151,7 @@
   function fallbackIcon(m, color, stale) {
     const k9 = m.mtype === MTYPES_K9;
     const dot = k9 ? '<span class="tm-dot tm-dot-k9">🐕</span>' : '<span class="tm-dot"></span>';
-    const st = /^[a-z0-9-]+$/.test(m.status || '') ? m.status : 'infield';
-    const cls = 'team-marker team-st-' + st + (stale ? ' team-stale' : '');
+    const cls = 'team-marker team-st-' + stKey(m.status) + (stale ? ' team-stale' : '');
     return L.divIcon({ className: '', html: '<div class="' + cls + '" style="--tc:' + safeColor(color, '#40c4ff') +
       '">' + dot + '<span class="tm-label">' + esc(m.handle) + '</span></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
   }
@@ -240,17 +243,18 @@
   function ageStr(ts) {
     if (!ts) return '';
     const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (!Number.isFinite(s)) return ''; // matches js/team.js: an unparseable stamp has no age, never "NaNh"
     if (s < 60) return s + 's';
     if (s < 3600) return Math.round(s / 60) + 'm';
     return Math.round(s / 3600) + 'h';
   }
 
   function makeup(members) {
-    const o = { k9: 0, ground: 0, st: { infield: 0, standby: 0, rehab: 0, unavailable: 0 }, sp: {} };
+    const o = { k9: 0, ground: 0, st: {}, sp: {} };
+    for (const s of STATUSES) o.st[s] = 0;
     for (const m of members) {
       if (m.mtype === MTYPES_K9) o.k9++; else o.ground++;
-      const st = o.st[m.status] != null ? m.status : 'infield';
-      o.st[st]++;
+      o.st[stKey(m.status)]++;
       if (m.specialty && m.mtype !== MTYPES_K9) o.sp[m.specialty] = (o.sp[m.specialty] || 0) + 1;
     }
     return o;
@@ -261,7 +265,7 @@
     const chips = [];
     if (mk.k9) chips.push('<span class="mv-chip mv-chip-k9">🐕 ' + mk.k9 + ' ' + esc(M('k9')) + '</span>');
     if (mk.ground) chips.push('<span class="mv-chip">' + mk.ground + ' ' + esc(M('ground')) + '</span>');
-    for (const s of ['infield', 'standby', 'rehab', 'unavailable']) {
+    for (const s of STATUSES) {
       if (mk.st[s]) chips.push('<span class="mv-chip mv-st-' + s + '">' + mk.st[s] + ' ' + esc(stLabel(s)) + '</span>');
     }
     for (const sp of Object.keys(mk.sp)) chips.push('<span class="mv-chip">' + esc(sp) + ' ×' + mk.sp[sp] + '</span>');
@@ -278,7 +282,7 @@
       const dog = (m.mtype === MTYPES_K9 && m.k9Name) ? ' · ' + esc(m.k9Name) : '';
       return '<div class="mv-mrow' + (stale ? ' mv-stale' : '') + '">' +
         '<span class="mv-sw" style="background:' + esc(m.color || '#40c4ff') + '"></span>' +
-        '<span class="mv-mh">' + esc(m.handle) + dog + ' <span class="mv-st-' + (m.status || 'infield') + '">' + esc(stLabel(m.status || 'infield')) + '</span></span>' +
+        '<span class="mv-mh">' + esc(m.handle) + dog + ' <span class="mv-st-' + stKey(m.status) + '">' + esc(stLabel(stKey(m.status))) + '</span></span>' +
         '<span class="mv-age' + (stale && m.lastPos ? ' mv-lost' : '') + '">' + esc(age) + '</span></div>';
     }).join('') || '<div class="mv-age">' + esc(M('novm')) + '</div>';
 
@@ -329,9 +333,10 @@
     } catch { showErr(M('errnet')); }
   }
 
+  // arms the timer only; every caller does its own immediate load() so opening the panel always
+  // repaints from a fresh fetch rather than whatever the last tick left behind
   function startPolling() {
     if (mv.timer) return;
-    load();
     mv.timer = setInterval(() => {
       if (document.visibilityState === 'visible' && (mv.open || mv.overlay)) load();
     }, POLL_MS);
@@ -348,6 +353,6 @@
   document.getElementById('mv-refresh').addEventListener('click', load);
   document.getElementById('mv-overlay').addEventListener('change', (e) => {
     mv.overlay = e.target.checked;
-    if (mv.overlay) { startPolling(); renderOverlay(); } else clearOverlay();
+    if (mv.overlay) { startPolling(); load(); renderOverlay(); } else clearOverlay();
   });
 })();

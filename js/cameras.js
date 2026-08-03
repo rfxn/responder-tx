@@ -109,11 +109,10 @@ function renderCameras() {
   const regions = camRegions();
   const buckets = {}, liveN = {};
   for (const p of camRegionsAll()) { buckets[p.id] = []; liveN[p.id] = 0; }
-  let unplaceable = 0;
   for (const [arr, net] of CAM_NETS) {
     for (const c of state.cameras[arr] || []) {
       const m = mark(c, net);
-      if (!m) { unplaceable++; continue; } // no usable coordinates: counted, not quietly skipped
+      if (!m) continue; // no usable coordinates, so no marker to place
       const rid = camRegionId(c.lat, c.lon, regions);
       buckets[rid].push(m);
       if (camIsLive(c)) liveN[rid]++;
@@ -121,7 +120,6 @@ function renderCameras() {
   }
   state.camCounts = {};
   state.camLive = {};
-  state.camNoCoords = unplaceable;
   for (const p of camRegionsAll()) {
     state.camCounts[p.id] = buckets[p.id].length;
     state.camLive[p.id] = liveN[p.id];
@@ -363,7 +361,7 @@ function loadItsSnapshot(c, stage, meta, bust, gen) {
   });
 }
 
-// direct-JPEG city stills (austin/houston/arlington/atxfloods) proxied same-origin; net is both the
+// every direct-JPEG still network in CAM_STILL_NOTES, proxied same-origin; net is both the
 // /api/cam path segment and the camTitle kind
 function loadCityStill(c, stage, meta, bust, gen, net) {
   loadProxyStill(stage, meta, bust, gen, {

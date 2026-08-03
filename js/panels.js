@@ -467,7 +467,7 @@ function renderRecoveryBody(crest) {
   const byLid = {};
   for (const g of state.gauges) byLid[g.lid] = g;
   const classified = rows
-    .map((row) => ({ row, live: byLid[row.lid] || null, trend: gaugeTrend(row.lid), kind: null }))
+    .map((row) => ({ row, live: byLid[row.lid] || null, trend: gaugeTrend(row.lid) }))
     .map((x) => Object.assign(x, { kind: gaugeRecoveryState(x.row, x.live, x.trend) }))
     .filter((x) => x.kind);
   const falling = classified.filter((x) => x.kind === 'falling');
@@ -717,7 +717,7 @@ async function openBasinView(slug) {
 }
 
 // leaving Basin Focus must drop the corridor rings: they carry no legend once the view is gone,
-// and renderGauges re-applies them on every 90s marker rebuild until the frame is cleared
+// and renderGauges re-applies them on every marker rebuild until the frame is cleared
 function closeBasinView() {
   $('#basin-view').hidden = true;
   state.basinHiLids = null;
@@ -726,8 +726,8 @@ function closeBasinView() {
 }
 
 /* The degraded set is deliberately absent from state.gauges, so every bucket below is blind to it.
-   It still belongs in the list: 411 of 1018 sites unlistable is not a filter, it is a hole. Its own
-   fold, its own counts, never merged into the severity buckets or the tab badge. */
+   It still belongs in the list: a large slice of the network unlistable is not a filter, it is a
+   hole. Its own fold, its own counts, never merged into the severity buckets or the tab badge. */
 const degradedGaugePool = () => {
   const all = state.gaugesDegraded || [];
   return state.inView ? all.filter((g) => inMapView(g.latitude, g.longitude)) : all;

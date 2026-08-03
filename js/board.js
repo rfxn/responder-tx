@@ -1199,8 +1199,8 @@ function mapFrame() {
   return [+c.lat.toFixed(4), +c.lng.toFixed(4), state.map.getZoom()];
 }
 
-/* Layer toggles and pans arrive in bursts: a camera parent moves thirteen layers, a fitBounds
-   fires moveend more than once. Coalesce them into one write. The viewReady gate is the same one
+/* Layer toggles and pans arrive in bursts: a camera parent moves every region row in its band, a
+   fitBounds fires moveend more than once. Coalesce them into one write. The viewReady gate is the same one
    the tab handler uses, so the boot-time restore never writes back over what it is restoring. */
 let viewSaveTimer = null;
 function scheduleViewSave() {
@@ -1860,13 +1860,13 @@ function pushUnfollowGauge(lid) {
   pushSetPrefs(p);
 }
 
-// "Notify me" entry point (gauge popup / hydrograph modal): open the notify sheet on the followed
-// gauges pane with that gauge pinned atop the picker. Never auto-follows: the tier tap is the
-// choice, and it is the one intent-based exception to the all-panes-closed default.
 function pushManageAvailable() {
   return Boolean(state.pushVapidKey); // set only for a device that can really subscribe, with a configured backend
 }
 
+// "Notify me" entry point (gauge popup / hydrograph modal): opens the notify sheet with that gauge
+// pinned atop the picker. Never auto-follows: the tier tap is the choice, and it is the one
+// intent-based exception to the all-panes-closed default.
 function pushOpenManageFor(lid) {
   pushManagePreselect = String(lid || '').toUpperCase();
   openNotifySheet('gauges');

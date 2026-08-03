@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.99.85';
+const SW_VERSION = '0.99.86';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 // version-independent: /data/ is not versioned by app release, and the last-good copies here are
 // the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
@@ -214,10 +214,8 @@ async function historyChunkCacheFirst(request) {
   return fresh;
 }
 
-// HISTORY_WARM_MAX_DAYS is the one bound that decides how deep the archive warms. The byte budget is
-// read off the index at run time so archive growth cannot silently shrink that depth; the ceiling
-// only caps what a field phone is asked to store. cycle-check.sh asserts the ceiling still holds the
-// declared depth at the index's real chunk sizes.
+// Two bounds on one depth: whichever binds first ends the warm. cycle-check.sh asserts they still
+// agree at the index's real chunk sizes.
 const HISTORY_WARM_MAX_DAYS = 8;
 const HISTORY_WARM_MAX_BYTES = 8000000;
 const HISTORY_WARM_MAX_AGE_MS = 12 * 3600000; // a warm younger than this is left alone, so a busy

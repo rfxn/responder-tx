@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.85';
+const APP_VERSION = 'v0.99.86';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -60,8 +60,6 @@ const CONFIG = {
   hrrrMetaUrl: (min) => `https://mesonet.agron.iastate.edu/data/gis/images/4326/hrrr/refd_${String(min).padStart(4, '0')}.json`,
   // hourly layers ≤12h track the latest hourly run; beyond that IEM falls back to the older synoptic run — mixing runs in one scrub would lie
   hrrrMaxHours: 12,
-  // merge the observed-radar + HRRR-forecast toggles into one "Radar & forecast" feature (one scrub, one legend)
-  wxUnified: true,
   // IEM MRMS accumulation windows probed live 2026-07-18: these four serve tiles; 3h/6h/12h do not exist
   mrmsWindows: ['1h', '24h', '48h', '72h'],
   mrmsUrl: (w) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/q2-${w === '1h' ? 'n1p' : `p${w}`}-900913/{z}/{x}/{y}.png`,
@@ -363,7 +361,6 @@ const state = {
   camCounts: null, // null = the inventory has not been counted yet, which the pills read as unknown
   camLive: null,
   camLayerList: null,
-  camNoCoords: null,
   camHls: null,
   camObjUrl: null,
 
@@ -538,14 +535,13 @@ function usgsBboxCost(b) {
 }
 
 // split a bbox into the fewest near-square tiles that each stay under budget
-function usgsBboxTiles(b, budget) {
-  const cap = budget || USGS_BBOX_BUDGET;
+function usgsBboxTiles(b) {
   const cost = usgsBboxCost(b);
   if (!Number.isFinite(cost) || cost <= 0) return [];
   const x0 = Math.min(b.xmin, b.xmax), y0 = Math.min(b.ymin, b.ymax);
   const w = Math.abs(b.xmax - b.xmin), h = Math.abs(b.ymax - b.ymin);
   const r5 = (v) => Math.round(v * 1e5) / 1e5;
-  const base = Math.max(1, Math.ceil(cost / cap));
+  const base = Math.max(1, Math.ceil(cost / USGS_BBOX_BUDGET));
   // a split landing exactly on the budget can be tipped over it by the 5dp edge rounding below
   for (let need = base; need < base + 4; need++) {
     let best = null;
@@ -564,7 +560,7 @@ function usgsBboxTiles(b, budget) {
         });
       }
     }
-    if (tiles.every((tl) => usgsBboxCost(tl) <= cap)) return tiles;
+    if (tiles.every((tl) => usgsBboxCost(tl) <= USGS_BBOX_BUDGET)) return tiles;
   }
   return []; // unreachable in practice; an empty split makes fetchUsgsIv throw rather than guess
 }
@@ -608,9 +604,8 @@ function fmtWhen(iso) {
   return `${rel} · ${abs} CT`;
 }
 
-/* Legend filter. Degraded rows default ON, the deliberate inverse of the NWPS default: they hide
-   theirs because 9.8% of 12,222 national gauges is map noise, ours is ~29% of ~290 in one AO and
-   hiding a dead sensor is the failure the aging rules exist to prevent. */
+// Legend filter. Degraded rows default ON, the inverse of the NWPS default: hiding a dead sensor
+// is the failure the aging rules exist to prevent.
 const GAUGE_FILTER_KEY = 'respondertx.gaugeFilter.v1';
 function defaultGaugeFilter() {
   const f = {};

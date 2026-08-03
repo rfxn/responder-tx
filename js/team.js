@@ -44,7 +44,7 @@
     watchId: null, pollTimer: null, postTimer: null,
     layer: null, markerLayer: null, markers: {}, teamMarkers: {}, lastKnown: {},
     lastMembers: [], lastViewers: [], lastMarkers: [], defaults: null, appliedDefaults: false,
-    facilities: null, mapWired: false,
+    facilities: null,
     selfTrail: [], selfPos: null, active: false, armDrop: false, queue: [],
   };
 
@@ -531,7 +531,7 @@
     if (btn) btn.click();
   }
 
-  // active team → Team floats to far-left (before Feed); on leave it returns to its home just left of Resources, the rightmost tab. idempotent.
+  // active team → Team floats to far-left (before Feed); on leave it returns to its home just left of the Roads tab. idempotent.
   function updateTeamTabOrder() {
     applyTeamTabVisibility();
     const tabsEl = document.querySelector('.tabs');

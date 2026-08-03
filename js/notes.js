@@ -2,8 +2,8 @@
 
 // Field Notes — community/responder annotation flyout + teal map pins.
 // Data: data/notes.json (curated, ships with the mirror) merged with
-// data/notes-inbox.jsonl (LAN posts via POST /api/notes). On the public
-// mirror the POST path is absent — the board degrades to read-only.
+// data/notes-inbox.jsonl (LAN posts via POST /api/notes). scripts/deploy.sh
+// strips this file, so nothing here runs on the public mirror.
 (function () {
   const NOTE_CATS = { info: 'ℹ️', hazard: '⚠️', road: '🚧', water: '🌊', photo: '📷' };
   const NOTE_CAT_LABEL = { info: 'Info', hazard: 'Hazard', road: 'Road status', water: 'Water level', photo: 'Photo-worthy' };
@@ -290,7 +290,6 @@
       entry.lat = +N.pendingLL.lat.toFixed(5);
       entry.lon = +N.pendingLL.lng.toFixed(5);
     } else if (N.composeKind === 'comment') {
-      entry.kind = 'comment';
       entry.parent = N.replyTo;
     } else {
       entry.kind = 'general';
@@ -410,7 +409,8 @@
     setInterval(() => { if (document.visibilityState === 'visible' && !N.open) loadNotes(); }, POLL_CLOSED_MS);
   }
 
-  // boot.js boot() (also DOMContentLoaded, registered first) has built the map by the time this runs
+  // boot() injects this file from inside its own DOMContentLoaded handler, so the map is already
+  // built; the loading branch survives only for a hand-added <script> tag
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

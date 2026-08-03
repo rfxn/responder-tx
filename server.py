@@ -489,7 +489,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
         method = self.command
         body = None
-        if method in ('POST', 'PUT'):
+        if method == 'POST':
             try:
                 n = int(self.headers.get('Content-Length', 0) or 0)
             except ValueError:

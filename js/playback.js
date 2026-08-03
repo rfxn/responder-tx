@@ -5,9 +5,9 @@
 // true while playback replays history: live layer/radar/rain-window mutations stay locked
 const pbBlocksLive = (s) => !!(s.pb && !s.pb.live);
 
-/* ---------- historical playback (v0.82) — replay archived gauge frames over 3d/7d/14d ----------
-   Honest by design: only layers with a real archive replay (gauges from data/history.json,
-   radar from IEM archive tiles); alerts/roads/LSRs stay live and the bar says so. */
+/* ---------- historical playback: replay archived frames over the PB_RANGES windows ----------
+   Honest by design: a layer either replays from a real archive, re-renders as-of the frame from
+   item timestamps, or hides. Nothing live may draw under the PLAYBACK badge; see PB_LIVE_HIDE. */
 
 const PB_RADAR_URL = (stamp) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${stamp}/{z}/{x}/{y}.png`;
 // archived MRMS accumulations (probed 2026-07-18: mrms::p{1,24,48,72}h-YYYYMMDDHHMM serves tiles, hourly stamps only)
@@ -299,8 +299,8 @@ function pbDecode(code) {
    plus history/day/YYYY-MM-DD.json. Only the days the chosen window touches are fetched, newest
    first, and each one splices in as it lands, so the bar is scrubbable long before the oldest
    day arrives. A day's URL carries its content hash, so an immutable cache header is a fact
-   about the URL and not a promise about the file. data/history.json remains the whole-record
-   compatibility view for gen-crest-summary.py and for clients cached from an older deploy. */
+   about the URL and not a promise about the file. data/history.json is a bounded recent-window
+   view kept only as the fallback for clients cached from an older deploy. */
 const PB_INDEX_URL = 'history/index.json';
 const PB_CHUNK_PARALLEL = 4;
 
@@ -405,7 +405,6 @@ async function pbInitChunked(idx) {
     loaded: {}, failed: {}, inflight: {},
   };
   if (idx.roadIndex) { data.roadIndex = idx.roadIndex; data.roadsFrom = idx.roadsFrom; }
-  if (idx.retained) data.retained = idx.retained;
   if (idx.thinned) data.thinned = idx.thinned;
   state.pbData = data;
   state.pbRoadsFromT = idx.roadsFrom ? new Date(idx.roadsFrom).getTime() : Infinity;
@@ -682,7 +681,7 @@ async function openPlayback() {
     opNotice(t('playback.unavail'));
     return;
   }
-  if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, speed: 0.5, capKey: null };
+  if (!state.pb) state.pb = { days: 3, idx: state.pbData.frames.length - 1, live: true, playing: false, raf: null, lastStep: 0, capKey: null };
   state.pb.speed = 0.5; // every entry resets to the readable default; a changed speed lasts only until close
   $('#playback-bar').hidden = false;
   $('#pb-speed').textContent = `${state.pb.speed}×`;

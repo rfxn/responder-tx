@@ -1,5 +1,11 @@
 'use strict';
 
+// core.js must load first: every function below reads CONFIG or state. This used to be enforced by
+// accident, through a top-level table that read CONFIG; assert it instead of relying on one.
+if (typeof CONFIG === 'undefined' || typeof state === 'undefined') {
+  throw new ReferenceError('js/map.js requires js/core.js to be loaded first');
+}
+
 /* ---------- theme ---------- */
 
 // boost variant tracks the surface under it: dark CARTO base gets light-on-dark labels, light/streets get dark-on-light
@@ -1010,10 +1016,8 @@ function initAoJump() {
 
 /* ---------- active-layer pills — name each non-default overlay that is ON; hidden at rest ---------- */
 
-const PILL_LAYERS = (CONFIG.wxUnified
-  ? [['wx', 'layers.wx']]
-  : [['radar', 'layers.radar'], ['fcstRadar', 'layers.fcstradar']]
-).concat([
+const PILL_LAYERS = [
+  ['wx', 'layers.wx'],
   ['tropical', 'layers.tropical'],
   ['surge', 'layers.surge'],
   ['mrms', 'layers.rain'],
@@ -1024,7 +1028,7 @@ const PILL_LAYERS = (CONFIG.wxUnified
   ['roadReopen', 'layers.reopen'],
   ['riverSentry', 'layers.rsentry'],
   ['wildfire', 'layers.wildfire'],
-]); // region camera pills are appended by initCamRegionRows()
+]; // region camera pills are appended by initCamRegionRows()
 
 // a static row carries an i18n key; a region camera row takes its name from the event config
 function pillLabel(k, key) {
@@ -1049,8 +1053,8 @@ function wxToggle() {
   state.layers.fcstRadar.addTo(state.map);
 }
 
-// beyond this the camera regions are named as a count, not one pill each: thirteen pills wrap
-// into three rows over the map, which is what a statewide toggle would produce in one tap
+// beyond this the camera regions are named as a count, not one pill each: naming every region at
+// once wraps the pill row over the map, which is what a statewide toggle produces in one tap
 const CAM_PILL_MAX = 2;
 
 function renderLayerPills() {
@@ -1105,15 +1109,11 @@ function initLayerPills() {
    Rows toggle via map.addLayer/removeLayer on control-registered layers, so the map still fires
    overlayadd/overlayremove — pills, MRMS legend, radar scrub, and camera/LWC lazy-loads keep working. */
 
-// merged (wxUnified) collapses radar + forecast into one virtual 'wx' row; legacy keeps the two separate rows
-const WX_RAIN_ROWS = CONFIG.wxUnified
-  ? [['wx', '📡', 'layers.wx', 'sheet.s.wx', null, false]]
-  : [
-    ['radar', '📡', 'layers.radar', 'sheet.s.radar', null, false],
-    ['fcstRadar', '🌦', 'layers.fcstradar', 'sheet.s.fcstradar', null, false],
-  ];
+// observed radar + HRRR forecast present as one virtual 'wx' row: one scrub, one legend
+const WX_RAIN_ROWS = [['wx', '📡', 'layers.wx', 'sheet.s.wx', null, false]];
 
-// one camera row per AO region, filled from the event config by initCamRegionRows()
+// one camera row per camRegionsAll() entry, filled by initCamRegionRows(): the AO regions come from
+// the event config, the neighbour-state buckets and the residual do not
 const CAM_ROWS = [];
 
 // [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?, camSub?, region?]
@@ -1216,7 +1216,7 @@ const camParentOn = (rows) => rows.filter((r) => layerRowOn(r[0]) === true).leng
 function camParentToggle(band) {
   const rows = camParentRows(band);
   const turnOff = camTriState(camParentOn(rows), rows.length) === 'on';
-  state.lsBulk = true; // 13 layers, one repaint: the sheet and the pill row redraw after the loop
+  state.lsBulk = true; // one repaint: the sheet and the pill row redraw after the loop, not per row
   try {
     for (const [k] of rows) {
       const lyr = state.layers[k];
@@ -1862,7 +1862,7 @@ function watchFcstTiles(layer) {
   layer.on('tileerror', mark('tileFail'));
 }
 
-// one supersampled, mobile-tuned HRRR hour layer (mirrors the observed-radar frame tuning), mounted at opacity 0
+// one HRRR hour layer, mounted at opacity 0 so the scrub can cross-fade into it
 function fcstMakeHourLayer(h) {
   const l = L.tileLayer.wms(CONFIG.hrrrWmsUrl, {
     layers: fcstLayerName(h), format: 'image/png', transparent: true, version: '1.1.1',

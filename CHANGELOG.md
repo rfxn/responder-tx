@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.83 · 2026-08-02 (the rows you are watching stay at the top)
+
+-- New Features --
+- [New] A star on each Gauges and Roads row pins that row to the top of its tab,
+      kept on this device. Rows you are not watching keep the sort they already had
+- [New] When a row you are watching is not on screen, the tab says which of three
+      things happened: the view filter is hiding it, with one tap to show it; it is
+      no longer in the data; or a source did not answer. A star is only ever removed
+      when you remove it
+
 ## v0.99.82 · 2026-07-31 (a missing outline is not a missing fire)
 
 -- Bug Fixes --

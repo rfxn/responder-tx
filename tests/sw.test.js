@@ -27,6 +27,11 @@ function makeCaches(seed = {}) {
     async keys() { return [...store.keys()]; },
     async open(name) { if (!store.has(name)) store.set(name, new Map()); return wrap(name); },
     async delete(name) { return store.delete(name); },
+    async match(k) { // CacheStorage.match: first hit across every cache, the way stampedCacheFirst reads it
+      const key = String(k && k.url ? k.url : k);
+      for (const m of store.values()) if (m.has(key)) return m.get(key);
+      return undefined;
+    },
   };
 }
 
@@ -35,36 +40,83 @@ function mkRes(body, ok = true) {
   return { ok, url: '', clone() { return this; }, async json() { return body; }, async text() { return String(body); } };
 }
 
-// Evaluate sw.js top-level in a vm with minimal SW globals; the epilogue
-// exports the constants under test (same non-invasive pattern as harness.js).
+/* Evaluate sw.js top-level in a vm with minimal SW globals; the epilogue exports the constants
+   under test (same non-invasive pattern as harness.js). The listeners sw.js registers are KEPT,
+   not just counted, so `fire()` below can run the shipped install/activate/fetch/push handlers
+   instead of matching their text. Everything the worker reaches through `self` records what it
+   was asked to do. */
 function loadSw(caches = makeCaches(), fetchImpl = null) {
   const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const listeners = [];
+  const handlers = new Map();
+  const log = { notifications: [], skipWaiting: 0, claimed: 0, subscribes: [], opened: [], focused: [], fetches: [] };
   const sandbox = {
     self: {
-      addEventListener(type) { listeners.push(type); },
+      addEventListener(type, fn) {
+        listeners.push(type);
+        if (!handlers.has(type)) handlers.set(type, []);
+        handlers.get(type).push(fn);
+      },
       location: { origin: 'https://respondertx.org', href: 'https://respondertx.org/sw.js' },
       navigator: {},
+      skipWaiting() { log.skipWaiting++; },
+      clients: {
+        async claim() { log.claimed++; },
+        async matchAll() { return log.windows || []; },
+        async openWindow(u) { log.opened.push(u); },
+      },
+      registration: {
+        async showNotification(title, opts) { log.notifications.push({ title, opts }); },
+        pushManager: {
+          async subscribe(opts) {
+            log.subscribes.push(opts);
+            return { toJSON: () => ({ endpoint: 'https://push.test/rotated' }) };
+          },
+        },
+      },
     },
     caches,
     URL,
-    fetch: fetchImpl || (async () => { throw new Error('offline'); }),
+    atob: (s) => Buffer.from(s, 'base64').toString('binary'),
+    fetch: async (...args) => {
+      log.fetches.push(args);
+      return (fetchImpl || (async () => { throw new Error('offline'); }))(...args);
+    },
   };
   vm.createContext(sandbox);
   vm.runInContext(`${src}\nvar __exports = { SW_VERSION, PRECACHE, PRECACHE_PATHS, PRECACHE_UNSTAMPED, LAZY_PATHS, CACHE_STATIC, CACHE_DATA, CACHE_PUSH, CACHE_HISTORY, PUSH_FALLBACK, dataCacheKey, adoptLegacyDataCache, historyDayOf, pruneHistoryChunks, historyIndexNetworkFirst, historyChunkCacheFirst, warmHistoryCache, HISTORY_INDEX_RE, HISTORY_DAY_RE, HISTORY_DAYS_KEPT, HISTORY_WARM_MAX_BYTES, HISTORY_WARM_MAX_DAYS, HISTORY_WARM_MAX_AGE_MS, historyWarmBudget, historyDayBytes };`, sandbox);
   sandbox.__exports.listeners = listeners;
+  sandbox.__exports.handlers = handlers;
+  sandbox.__exports.log = log;
   sandbox.__exports.caches = caches;
   sandbox.__exports.self = sandbox.self;
   return sandbox.__exports;
 }
 
+/* Runs the handler sw.js really registered for `type` and settles whatever it passed to
+   waitUntil/respondWith, so an assertion can be made about the outcome rather than the source. */
+async function fire(s, type, event = {}) {
+  const list = s.handlers.get(type) || [];
+  assert.ok(list.length, `sw.js registered no '${type}' listener`);
+  const waits = [];
+  const ev = { ...event };
+  ev.waitUntil = (p) => { waits.push(p); };
+  ev.respondWith = (p) => { ev.responded = p; waits.push(p); };
+  for (const fn of list) fn(ev);
+  await Promise.all(waits.map((p) => Promise.resolve(p).catch((e) => e)));
+  if (ev.responded) { try { ev.response = await ev.responded; } catch (e) { ev.error = e; } }
+  await new Promise((r) => setImmediate(r)); // let a detached best-effort task (the archive warm) settle
+  return ev;
+}
+
+const getEvent = (url, extra = {}) => ({ request: { method: 'GET', mode: 'cors', url, ...extra } });
+
 const sw = loadSw();
 
-test('SW_VERSION agrees with APP_VERSION in js/core.js', () => {
-  const core = fs.readFileSync(path.join(ROOT, 'js', 'core.js'), 'utf8');
-  const m = core.match(/APP_VERSION = 'v([^']+)'/);
-  assert.ok(m, 'APP_VERSION not found in js/core.js');
-  assert.equal(sw.SW_VERSION, m[1]);
+test('SW_VERSION agrees with the APP_VERSION the client actually runs on', () => {
+  const { APP_VERSION } = require('./harness.js').loadApp();
+  assert.match(APP_VERSION, /^v\d+\.\d+\.\d+$/, 'APP_VERSION is not a version string');
+  assert.equal(sw.SW_VERSION, APP_VERSION.replace(/^v/, ''));
 });
 
 test('the app shell is version-keyed and the data cache deliberately is not', () => {
@@ -77,15 +129,42 @@ test('the app shell is version-keyed and the data cache deliberately is not', ()
   assert.notEqual(sw.CACHE_STATIC, sw.CACHE_DATA);
 });
 
-test('the data cache survives the activate cleanup, like the push cache', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  const sweep = src.match(/\.filter\(\(n\) => n\.indexOf\('respondertx-'\)[\s\S]*?\)\n/);
-  assert.ok(sweep, 'activate cleanup sweep not found');
-  for (const c of ['CACHE_STATIC', 'CACHE_DATA', 'CACHE_PUSH']) {
-    assert.ok(sweep[0].includes(`n !== ${c}`), `activate cleanup must exclude ${c}`);
-  }
-  assert.match(src, /await adoptLegacyDataCache\(names\);[\s\S]*?caches\.delete/,
-    'the carry-over must run before the retired caches are deleted');
+test('a real activate keeps the four live caches, drops the retired ones, and claims the clients', async () => {
+  const caches = makeCaches({
+    [`respondertx-static-${sw.SW_VERSION}`]: { './': 'this shell' },
+    'respondertx-static-0.90.0': { './': 'a retired shell' },
+    'respondertx-data': { 'https://respondertx.org/data/gauges-snapshot.json': 'last good' },
+    'respondertx-push': { '/push-lang': 'es' },
+    'respondertx-history': { [IDX]: 'archive index' },
+    'respondertx-data-0.90.0': { 'https://respondertx.org/data/roads-snapshot.json': 'retired copy' },
+    'someone-elses-cache': { '/x': 'not ours' },
+  });
+  const s = loadSw(caches);
+  await fire(s, 'activate');
+
+  assert.deepEqual((await caches.keys()).sort(), [
+    'respondertx-data', 'respondertx-history', 'respondertx-push',
+    `respondertx-static-${sw.SW_VERSION}`, 'someone-elses-cache',
+  ].sort(), 'the activate sweep took a cache the board needs, or left a retired one behind');
+  assert.equal(caches._store.get('respondertx-data').get('https://respondertx.org/data/gauges-snapshot.json'),
+    'last good', 'the offline data fallback must survive the release that installed this worker');
+  assert.equal(caches._store.get('respondertx-push').get('/push-lang'), 'es');
+  assert.equal(caches._store.get('respondertx-history').get(IDX), 'archive index');
+  assert.equal(s.log.claimed, 1, 'the new worker must take control of the open tabs');
+});
+
+test('activate carries the retired data cache over BEFORE it deletes it', async () => {
+  // ordering, not text: adoption running after the sweep would drop the last-good copies on the
+  // floor exactly once, on the release that stopped wiping them
+  const caches = makeCaches({
+    'respondertx-data-0.97.87': { 'https://respondertx.org/data/gauges-snapshot.json': 'carried' },
+  });
+  const s = loadSw(caches);
+  await fire(s, 'activate');
+  assert.deepEqual((await caches.keys()).sort(), ['respondertx-data', 'respondertx-history'].sort(),
+    'the retired per-version data cache must be gone and the adopted one in its place');
+  assert.equal(caches._store.get('respondertx-data').get('https://respondertx.org/data/gauges-snapshot.json'),
+    'carried', 'the carry-over ran after the delete, so the last-good data was lost');
 });
 
 test('adoptLegacyDataCache carries the last-good data over from the retired per-version caches', async () => {
@@ -181,13 +260,68 @@ const SWLOC = 'https://respondertx.org/sw.js';
 const IDX = 'https://respondertx.org/history/index.json';
 const DAY = (d, h) => `https://respondertx.org/history/day/${d}.json?h=${h}`;
 
-test('the playback archive lives outside /data/, so it needs its own route to be cached at all', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  // the /data/ route is the only thing that ever filled a cache, and history/ does not match it
-  assert.ok(!'/history/index.json'.startsWith('/data/'));
-  assert.ok(!'/history/day/2026-07-25.json'.startsWith('/data/'));
-  assert.match(src, /HISTORY_INDEX_RE\.test\(url\.pathname\)[\s\S]{0,120}historyIndexNetworkFirst/);
-  assert.match(src, /HISTORY_DAY_RE\.test\(url\.pathname\)[\s\S]{0,120}historyChunkCacheFirst/);
+/* The fetch listener is the whole offline story: every route below is reached only by firing the
+   handler sw.js registered, so a deleted route, a reordered guard or a throw on first dispatch
+   fails here instead of shipping green behind a regex. */
+
+test('the fetch router sends each artifact to the cache that owns its lifetime', async () => {
+  const caches = makeCaches();
+  const s = loadSw(caches, async (req) => mkRes(`body of ${req.url}`));
+  const store = (n) => [...(caches._store.get(n) || new Map()).keys()];
+
+  const nav = await fire(s, 'fetch', getEvent('https://respondertx.org/', { mode: 'navigate' }));
+  assert.ok(nav.responded, 'a navigation must be answered by the worker, or there is no offline shell');
+  assert.deepEqual(store(`respondertx-static-${sw.SW_VERSION}`), ['./']);
+
+  // the playback archive lives outside /data/, so the data route never saw it and it needs its own
+  const idx = await fire(s, 'fetch', getEvent(`${IDX}?_=99`));
+  assert.ok(idx.responded, 'history/index.json is unrouted, so offline playback has no index');
+  assert.deepEqual(store('respondertx-history'), [IDX], 'the index is keyed bare so a new buster still hits');
+
+  await fire(s, 'fetch', getEvent(DAY('2026-07-25', 'abc')));
+  assert.deepEqual(store('respondertx-history').sort(), [IDX, DAY('2026-07-25', 'abc')].sort(),
+    'a day chunk is keyed on its whole hashed URL');
+
+  await fire(s, 'fetch', getEvent('https://respondertx.org/data/gauges-snapshot.json?_=1'));
+  assert.deepEqual(store('respondertx-data'), ['https://respondertx.org/data/gauges-snapshot.json']);
+
+  await fire(s, 'fetch', getEvent('https://respondertx.org/js/vendor/images/layers.png'));
+  assert.ok(store(`respondertx-static-${sw.SW_VERSION}`).some((u) => u.includes('layers.png')),
+    'leaflet asks for its images unstamped, so they need the vendor-images route');
+});
+
+test('the fetch router keeps its hands off everything it must not intercept', async () => {
+  const s = loadSw(makeCaches(), async (req) => mkRes(`body of ${req.url}`));
+  const untouched = [
+    getEvent('https://respondertx.org/api/push/subscribe'),
+    getEvent('https://respondertx.org/api/chat'),
+    getEvent('https://api.water.noaa.gov/nwps/v1/gauges'),
+    getEvent('https://tile.openstreetmap.org/8/1/2.png'),
+    getEvent('https://respondertx.org/data/notes.json', { method: 'POST' }),
+    getEvent('https://respondertx.org/robots.txt'),
+    getEvent('https://respondertx.org/data/history.geojson'),
+  ];
+  for (const ev of untouched) {
+    const fired = await fire(s, 'fetch', ev);
+    assert.equal(fired.responded, undefined,
+      `the worker answered ${ev.request.method} ${ev.request.url}; it must pass straight through`);
+  }
+  assert.deepEqual(s.log.fetches, [], 'passing through means issuing no request of our own');
+});
+
+test('a stamped asset is fetched once and served from cache on every later open', async () => {
+  const { assetUrl, APP_VERSION } = require('./harness.js').loadApp();
+  const url = `https://respondertx.org/${assetUrl('js/team.js')}`;
+  assert.ok(url.includes(`?v=${APP_VERSION.replace(/^v/, '')}`), 'assetUrl must stamp the release onto a lazy path');
+
+  const caches = makeCaches();
+  let hits = 0;
+  const s = loadSw(caches, async () => { hits++; return mkRes('team code'); });
+  const first = await fire(s, 'fetch', getEvent(url));
+  assert.ok(first.responded, 'a ?v= stamped asset is unrouted; a lazily fetched file would refetch every open');
+  assert.equal(hits, 1);
+  await fire(s, 'fetch', getEvent(url));
+  assert.equal(hits, 1, 'the second open must be served from the cache the first fetch filled');
 });
 
 test('the archive cache is version-independent, distinct, and survives the activate cleanup', () => {
@@ -195,8 +329,7 @@ test('the archive cache is version-independent, distinct, and survives the activ
   assert.ok(!sw.CACHE_HISTORY.includes(sw.SW_VERSION), 'a release must not empty the offline archive');
   assert.equal(sw.CACHE_HISTORY.indexOf('respondertx-'), 0);
   for (const other of [sw.CACHE_STATIC, sw.CACHE_DATA, sw.CACHE_PUSH]) assert.notEqual(sw.CACHE_HISTORY, other);
-  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  assert.match(src, /n !== CACHE_PUSH && n !== CACHE_HISTORY/, 'activate cleanup must exclude CACHE_HISTORY');
+  // survival across the activate sweep is asserted by running it, above
   // the legacy carry-over reads respondertx-data-* only, so the new cache cannot disturb it
   assert.ok(sw.CACHE_HISTORY.indexOf(`${sw.CACHE_DATA}-`) !== 0);
 });
@@ -414,14 +547,13 @@ test('re-listing a lazy path in PRECACHE_PATHS cannot put it back on the install
   assert.equal([...sw.PRECACHE].filter((u) => both.includes(u.split('?')[0])).join(', '), '');
 });
 
-test('a lazy asset is still stamped, so one fetch caches it for every later open', () => {
-  // stampedCacheFirst is keyed on the ?v= query; an unstamped lazy URL would refetch every time
-  const core = fs.readFileSync(path.join(ROOT, 'js', 'core.js'), 'utf8');
-  assert.match(core, /const assetUrl = \(path\) => `\$\{path\}\?v=\$\{APP_VERSION/,
-    'lazy URLs must carry the release stamp or the service worker will not cache-first them');
-  const swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  assert.match(swSrc, /if \(url\.searchParams\.has\('v'\)\) event\.respondWith\(stampedCacheFirst\(req\)\)/,
-    'the stamped cache-first route is what makes a lazily fetched asset survive to the next open');
+test('every lazy path the client asks for carries the release stamp', () => {
+  // stampedCacheFirst is keyed on the ?v= query; an unstamped lazy URL would refetch every time,
+  // and the round trip is asserted end to end by the stamped-asset route test above
+  const { assetUrl, APP_VERSION } = require('./harness.js').loadApp();
+  for (const p of sw.LAZY_PATHS) {
+    assert.equal(assetUrl(p), `${p}?v=${APP_VERSION.replace(/^v/, '')}`, `${p} would be requested unstamped`);
+  }
 });
 
 /* ---------- web push (P1 payload-free) ---------- */
@@ -461,25 +593,102 @@ test('every precached file exists in the repo', () => {
   }
 });
 
-test('a payload-free push still lands on a page that shows the alerts card', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  assert.match(src, /data: \{ url: \(data && data\.url\) \|\| '\/\?push=1' \}/,
-    'the payload-free fallback url must carry the flag, or the notification lands with no off switch');
+// a push event whose data behaves the way the browser's PushMessageData does
+const pushEvent = (payload) => ({
+  data: payload === undefined ? null : { json() { if (payload === 'BROKEN') throw new Error('not json'); return payload; } },
 });
 
-test('push handler prefers the payload language over the cached hint (P2)', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
-  assert.match(src, /data\.lang === 'es' \|\| data\.lang === 'en'/, 'payload lang wins when present');
-  assert.match(src, /await pushLang\(\)/, 'cached hint still localizes payload-free fallbacks');
+test('a payload-free push still shows exactly one notification, on a page that keeps its off switch', async () => {
+  const s = loadSw();
+  await fire(s, 'push', pushEvent(undefined));
+  assert.equal(s.log.notifications.length, 1, 'a silent push costs the subscription; there must always be exactly one');
+  const [n] = s.log.notifications;
+  assert.equal(n.title, sw.PUSH_FALLBACK.en.title);
+  assert.equal(n.opts.body, sw.PUSH_FALLBACK.en.body);
+  assert.equal(n.opts.data.url, '/?push=1',
+    'the flag is what keeps the alerts card, and its off switch, on the landing page');
+  assert.equal(n.opts.tag, 'respondertx-push');
+  assert.equal(n.opts.lang, 'en');
 });
 
-test('pushsubscriptionchange re-subscribes and migrates prefs (P3 self-heal)', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
-  assert.match(src, /api\/push\/resubscribe/, 'migrates the server row via resubscribe');
-  assert.match(src, /oldEndpoint/, 'presents the old endpoint as the credential');
-  assert.match(src, /\/push-key/, 'mirrored VAPID key covers a missing oldSubscription');
-  assert.match(src, /\/push-prefs/, 'mirrored prefs back the fresh-subscribe fallback');
-  assert.match(src, /api\/push\/subscribe/, 'fresh subscribe fallback when the old row is gone');
+test('an unparseable payload is still one notification, not a throw and not a silent drop', async () => {
+  const s = loadSw();
+  await fire(s, 'push', pushEvent('BROKEN'));
+  assert.equal(s.log.notifications.length, 1);
+  assert.equal(s.log.notifications[0].title, sw.PUSH_FALLBACK.en.title);
+});
+
+test('the payload language wins over the cached hint, and the hint localizes payload-free pushes', async () => {
+  const spanishHint = () => makeCaches({ 'respondertx-push': { '/push-lang': mkRes('es\n') } });
+
+  const bare = loadSw(spanishHint());
+  await fire(bare, 'push', pushEvent(undefined));
+  assert.equal(bare.log.notifications[0].title, sw.PUSH_FALLBACK.es.title,
+    'a payload-free push must be localized from the cached subscriber hint');
+
+  const english = loadSw(spanishHint());
+  await fire(english, 'push', pushEvent({ lang: 'en', title: 'Flash Flood Emergency · Blanco River' }));
+  assert.equal(english.log.notifications[0].opts.lang, 'en',
+    "the payload's own language matches the stored subscription pref and must win over the hint");
+  assert.equal(english.log.notifications[0].title, 'Flash Flood Emergency · Blanco River');
+
+  const junk = loadSw(spanishHint());
+  await fire(junk, 'push', pushEvent({ lang: 'fr' }));
+  assert.equal(junk.log.notifications[0].opts.lang, 'es', 'an unknown payload language falls back to the hint');
+  assert.equal(junk.log.notifications[0].title, sw.PUSH_FALLBACK.es.title);
+});
+
+/* P3 self-heal: the push service rotated our endpoint. The subscription has to be rebuilt with the
+   same server key and the server row migrated, or the subscriber goes quiet with nothing to show
+   for it. Every branch below is reached by firing the shipped handler. */
+
+const subChangeSw = (cacheSeed, fetchImpl) => loadSw(makeCaches({ 'respondertx-push': cacheSeed }), fetchImpl);
+const posts = (s) => s.log.fetches.map(([url, opts]) => ({ url, body: JSON.parse(opts.body) }));
+
+test('a rotated endpoint re-subscribes with the old key and migrates the server row', async () => {
+  const s = subChangeSw({ '/push-lang': mkRes('es') }, async () => mkRes('ok'));
+  await fire(s, 'pushsubscriptionchange', {
+    oldSubscription: { endpoint: 'https://push.test/expired', options: { applicationServerKey: 'KEYBYTES' } },
+  });
+  // built in the vm realm, so compare fields rather than deepEqual against a host-realm literal
+  assert.equal(s.log.subscribes.length, 1);
+  assert.equal(s.log.subscribes[0].userVisibleOnly, true);
+  assert.equal(s.log.subscribes[0].applicationServerKey, 'KEYBYTES',
+    'the expiring subscription carries the server key; re-subscribing without it is rejected');
+  const sent = posts(s);
+  assert.equal(sent.length, 1, 'a successful migration must not also fresh-subscribe');
+  assert.equal(sent[0].url, 'api/push/resubscribe');
+  assert.equal(sent[0].body.oldEndpoint, 'https://push.test/expired', 'the old endpoint is the credential');
+  assert.equal(sent[0].body.subscription.endpoint, 'https://push.test/rotated');
+});
+
+test('when the server row is gone the change falls back to a fresh subscribe with the mirrored prefs', async () => {
+  const s = subChangeSw({ '/push-lang': mkRes('es'), '/push-prefs': mkRes('{"emergency":true,"radiusKm":40}') },
+    async (url) => mkRes('gone', String(url).indexOf('resubscribe') < 0));
+  await fire(s, 'pushsubscriptionchange', {
+    oldSubscription: { endpoint: 'https://push.test/expired', options: { applicationServerKey: 'KEYBYTES' } },
+  });
+  const sent = posts(s);
+  assert.deepEqual(sent.map((p) => p.url), ['api/push/resubscribe', 'api/push/subscribe']);
+  assert.deepEqual(sent[1].body.prefs, { emergency: true, radiusKm: 40 },
+    'the mirrored prefs are the only copy left; losing them silently downgrades what the subscriber gets');
+  assert.equal(sent[1].body.lang, 'es');
+});
+
+test('a change with no old subscription re-subscribes from the mirrored VAPID key', async () => {
+  const key = Buffer.from([1, 2, 3, 4]).toString('base64url');
+  const s = subChangeSw({ '/push-key': mkRes(key) }, async () => mkRes('ok'));
+  await fire(s, 'pushsubscriptionchange', {});
+  assert.equal(s.log.subscribes.length, 1, 'the mirrored key must cover a missing oldSubscription');
+  assert.deepEqual([...s.log.subscribes[0].applicationServerKey], [1, 2, 3, 4]);
+  assert.equal(posts(s)[0].body.oldEndpoint, '', 'there is no old endpoint to present, and that is not an error');
+});
+
+test('with no key anywhere the change gives up quietly rather than subscribing to nothing', async () => {
+  const s = subChangeSw({}, async () => mkRes('ok'));
+  await fire(s, 'pushsubscriptionchange', {});
+  assert.deepEqual(s.log.subscribes, []);
+  assert.deepEqual(s.log.fetches, []);
 });
 
 /* 2026-07-30: the public board sat in an update-prompt loop on v0.99.73 while the origin served
@@ -488,28 +697,86 @@ test('pushsubscriptionchange re-subscribes and migrates prefs (P3 self-heal)', (
    serves its cached shell, so the tab re-booted the build it was trying to leave. The 10 minute
    ROLL_HOLD_MS guard turned the reload storm into a recurring prompt, and the comment on it blamed
    CDN lag, which is why it went unchased. */
-test('every path that applies an update hands the worker over before reloading', () => {
+/* The boot-side half of the handover, run rather than read: loadHeaderStatus() evaluates js/boot.js,
+   so applyUpdateAndReload() and performRollover() are callable against a service-worker registration
+   that records what it was told. */
+function updateCtx(opts = {}) {
+  const h = require('./harness.js').loadHeaderStatus();
+  const sb = h.sandbox;
+  const log = { posted: [], reloads: 0, replaced: 0 };
+  sb.location.reload = () => { log.reloads++; };
+  sb.location.replace = () => { log.replaced++; };
+  sb.history = { replaceState() {} };
+  sb.navigator.serviceWorker = { controller: opts.controlled === false ? null : {}, addEventListener() {} };
+  h.state.swWaitingReg = opts.waiting === false ? null
+    : { waiting: { postMessage: (m) => log.posted.push(m) } };
+  return { h, sb, log };
+}
+
+test('applying an update posts the handover and only then reloads', () => {
+  const { h, log } = updateCtx();
+  h.sandbox.applyUpdateAndReload();
+  assert.deepEqual(log.posted.map((m) => m.type), ['SKIP_WAITING'],
+    'a reload does not activate a waiting worker; without this the tab re-boots the build it is leaving');
+  assert.equal(log.reloads, 0, 'the reload waits for the new worker to take control');
+  const armed = h.timers[h.timers.length - 1];
+  assert.ok(armed && armed.ms >= 1000, 'a handover that never completes must not strand the reader');
+  armed.fn();
+  assert.equal(log.reloads, 1, 'the escape hatch must reload when the handover goes unanswered');
+  armed.fn();
+  assert.equal(log.reloads, 1, 'and it must not reload twice');
+});
+
+test('a first install and a worker-less tab reload straight away instead of waiting for a handover', () => {
+  const first = updateCtx({ controlled: false });
+  first.h.sandbox.applyUpdateAndReload();
+  assert.deepEqual(first.log.posted, [], 'a first install has no controller and is not an update');
+  assert.equal(first.log.reloads, 1);
+
+  const none = updateCtx({ waiting: false });
+  none.h.sandbox.applyUpdateAndReload();
+  assert.deepEqual(none.log.posted, []);
+  assert.equal(none.log.reloads, 1, 'with nothing waiting there is nothing to hand over, so reload');
+});
+
+test('the auto rollover applies the update through the handover, never a bare navigation', () => {
+  const roll = (shareUrl) => {
+    const { h, sb, log } = updateCtx();
+    sb.rolloverBusy = () => ''; // the idle gate is its own question; this is what happens once idle
+    sb.buildShareUrl = shareUrl;
+    h.state.updateTarget = '0.99.99';
+    const applied = [];
+    sb.applyUpdateAndReload = (u) => applied.push(u);
+    sb.performRollover();
+    return { applied, log };
+  };
+
+  const ok = roll(() => 'https://respondertx.org/?mlat=30.1&mz=11');
+  assert.deepEqual(ok.applied, ['/?mlat=30.1&mz=11'],
+    'the rollover must hand over and carry the captured view; a bare navigation re-serves the old cached shell');
+  assert.equal(ok.log.reloads + ok.log.replaced, 0, 'the handover, not the tab, decides when to reload');
+
+  const broken = roll(() => { throw new Error('serializer failed'); });
+  assert.deepEqual(broken.applied, [undefined],
+    'a capture that failed still has to hand over, or the tab re-boots the build it is leaving');
+});
+
+test('the worker honours SKIP_WAITING, and ignores every other message', async () => {
+  const s = loadSw();
+  await fire(s, 'message', { data: { type: 'SKIP_WAITING' } });
+  assert.equal(s.log.skipWaiting, 1, 'without this the handover is a no-op and the prompt loop returns');
+  for (const data of [null, undefined, {}, { type: 'skip_waiting' }, 'SKIP_WAITING']) {
+    await fire(s, 'message', { data });
+  }
+  assert.equal(s.log.skipWaiting, 1, 'only the exact message may take the worker over');
+});
+
+test('the update chip applies the update rather than reloading bare', () => {
+  /* Source scan, deliberately: the chip handler is registered inside boot.js's DOMContentLoaded
+     init, which is not reachable from node without standing up the whole page. */
   const boot = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
-  assert.match(boot, /function applyUpdateAndReload\(/, 'the handover must exist in one place');
-  const fn = boot.slice(boot.indexOf('function applyUpdateAndReload('), boot.indexOf('function performRollover('));
-  assert.match(fn, /SKIP_WAITING/, 'it must ask the waiting worker to take over');
-  assert.match(fn, /reg\.waiting/, 'and only when one is actually waiting');
-  assert.match(fn, /navigator\.serviceWorker\.controller/,
-    'a first install has no controller and must not be treated as an update');
-  assert.match(fn, /setTimeout\([\s\S]{0,160}?location\.reload/,
-    'a handover that never completes must not strand the reader');
-
-  // the rollover and the chip are the two "apply the update" affordances; neither may reload bare
-  const roll = boot.slice(boot.indexOf('function performRollover('), boot.indexOf('function registerServiceWorker('));
-  assert.match(roll, /applyUpdateAndReload\(/, 'the auto rollover must hand over');
-  assert.doesNotMatch(roll, /location\.replace\(/, 'a bare navigation re-serves the old cached shell');
-
   const chip = (boot.match(/#update-chip'\)\.addEventListener\('click',[^;]*/) || [''])[0];
   assert.match(chip, /applyUpdateAndReload\(/,
     'the chip says "tap to reload" and must actually apply the update');
   assert.doesNotMatch(chip, /location\.reload\(\)/, 'a bare reload leaves the old worker in control');
-
-  // and the worker must still honour the message
-  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /SKIP_WAITING'\)\s*self\.skipWaiting\(\)|SKIP_WAITING[\s\S]{0,40}skipWaiting\(\)/,
-    'sw.js must act on SKIP_WAITING or the handover is a no-op');
 });

@@ -14,7 +14,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadApp } = require('./harness.js');
 
-const { camIsLive, CAM_NETS, driveItems, state } = loadApp();
+const APP = loadApp();
+const { camIsLive, CAM_NETS, driveItems, state } = APP;
 const ROOT = path.join(__dirname, '..');
 const readFile = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const CAMS = JSON.parse(readFile('data/cameras.json'));
@@ -141,22 +142,78 @@ test('the viewer plays exactly what the marker calls live, and nothing else', ()
    frame of unknown age read as current. The absent stamp now has to be stated as its own condition,
    and it has to be derived from the missing header rather than from a list of source names, so any
    feed that drops its Last-Modified is covered the moment it does. */
-test('a still with no capture time says so, and never wears the plain snapshot chip', () => {
-  const fn = SRC.match(/async function loadProxyStill\([\s\S]*?\n\}/);
-  assert.ok(fn, 'loadProxyStill not found in js/cameras.js');
-  const body = fn[0];
-  assert.match(body, /cam\.nostamp/, 'the viewer has no no-capture-time state');
-  assert.match(body, /cam\.nostamp\.note/, 'the no-capture-time state carries no explanation');
-  // the honest render is chosen by the parsed stamp, not by which source the camera came from
+/* Run the still loader against a response that does and does not publish X-Cam-Captured, and read
+   what it wrote to the meta row. stage/meta arrive as parameters, so no page is needed; the only
+   stand-ins are the network and the object-URL factory. */
+async function renderStill(captured, ok = true) {
+  const sb = APP._sandbox;
+  const node = () => {
+    const el = {
+      innerHTML: '', children: [],
+      appendChild(x) { el.children.push(x); },
+      // only the control this render actually creates is answerable; anything else is absent
+      querySelector: (s) => (s === '.cam-refresh' ? { addEventListener() {} } : null),
+    };
+    return el;
+  };
+  const stage = node();
+  const meta = node();
+  const savedFetch = sb.fetch;
+  const savedUrl = sb.URL;
+  sb.URL = { createObjectURL: () => 'blob:cam', revokeObjectURL() {} };
+  sb.fetch = async () => ({
+    ok, status: ok ? 200 : 502,
+    headers: { get: (h) => (h === 'X-Cam-Captured' ? captured : null) },
+    blob: async () => 'jpegbytes',
+  });
+  state.camGen = 7;
+  state.camObjUrl = null;
+  try {
+    await sb.loadProxyStill(stage, meta, false, 7, {
+      url: () => 'api/cam/austin/AUS-1',
+      parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; },
+      alt: 'a city still',
+    });
+  } finally { sb.fetch = savedFetch; sb.URL = savedUrl; }
+  return { stage, meta };
+}
+
+test('a still with no capture time says so, and never wears the plain snapshot chip', async () => {
+  const stale = APP.CAM_STALE_MINS;
+  assert.ok(stale > 0, 'the aging gate must have a window to fire in');
+
+  const fresh = await renderStill(new Date().toISOString());
+  assert.match(fresh.meta.innerHTML, /cam\.snapshot/, 'a stamped, fresh frame wears the plain snapshot chip');
+  assert.match(fresh.meta.innerHTML, /cam\.captured/, 'and states when it was captured');
+  assert.ok(!/cam\.nostamp/.test(fresh.meta.innerHTML));
+  assert.equal(fresh.stage.children.length, 1, 'the frame itself has to reach the stage');
+
+  const old = await renderStill(new Date(Date.now() - (stale + 60) * 60000).toISOString());
+  assert.match(old.meta.innerHTML, /cam\.stale/, 'a frame past the window has to be aged');
+  assert.ok(!/cam\.snapshot/.test(old.meta.innerHTML), 'an aged frame must not also wear the plain chip');
+
+  const none = await renderStill('');
+  assert.match(none.meta.innerHTML, /cam\.nostamp/,
+    'a feed that publishes no capture time cannot be aged, so the frame must not read as current');
+  assert.match(none.meta.innerHTML, /cam\.nostamp\.note/, 'the no-capture-time state carries no explanation');
+  assert.ok(!/cam\.snapshot/.test(none.meta.innerHTML),
+    'the plain snapshot chip claims a currency the feed never stated');
+  assert.ok(!/cam\.captured/.test(none.meta.innerHTML),
+    'an empty "captured ·" row is exactly what let a frame of unknown age read as current');
+});
+
+test('a still the proxy could not fetch says so instead of leaving the last frame up', async () => {
+  const failed = await renderStill(new Date().toISOString(), false);
+  assert.match(failed.stage.innerHTML, /cam\.snap\.unavail/);
+  assert.equal(failed.meta.innerHTML, '', 'a stale chip over a missing frame would be a false currency claim');
+});
+
+test('the still render is chosen by the parsed stamp, never by the source name', () => {
+  // whole-body negative invariant: one call cannot express "this function never mentions X"
+  const body = SRC.match(/async function loadProxyStill\([\s\S]*?\n\}/);
+  assert.ok(body, 'loadProxyStill not found in js/cameras.js');
   for (const [, net] of CAM_NETS) {
-    assert.ok(!body.includes(`'${net}'`), `loadProxyStill branches on the '${net}' source`);
-  }
-  // the snapshot chip and the captured row must both sit inside the has-a-stamp branch
-  const nostampAt = body.indexOf('cam.nostamp');
-  for (const key of ['cam.snapshot', 'cam.captured', 'cam.stale']) {
-    const at = body.indexOf(key);
-    assert.notEqual(at, -1, `${key} vanished from the viewer`);
-    assert.ok(at < nostampAt, `${key} is rendered outside the has-a-stamp branch`);
+    assert.ok(!body[0].includes(`'${net}'`), `loadProxyStill branches on the '${net}' source`);
   }
 });
 

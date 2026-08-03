@@ -13,9 +13,9 @@ const assert = require('node:assert/strict');
 const { scanAll } = require('./source-text-scan.js');
 
 // Assertions whose subject is file text rather than a value the app produced. Lower it, never raise it.
-const SOURCE_TEXT_BASELINE = 874;
+const SOURCE_TEXT_BASELINE = 803;
 // Tests in which EVERY assertion is source-text, so the feature could be deleted and the test would pass.
-const UNEXECUTED_TEST_BASELINE = 157;
+const UNEXECUTED_TEST_BASELINE = 143;
 
 const scan = scanAll();
 

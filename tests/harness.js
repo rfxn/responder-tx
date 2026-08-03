@@ -64,7 +64,11 @@ function buildSandbox() {
     createElement() { return makeElementStub(); },
     getElementById() { return makeElementStub(); },
     addEventListener() {},
-    documentElement: { getAttribute() { return ''; }, setAttribute() {}, style: {} },
+    documentElement: {
+      getAttribute() { return ''; },
+      setAttribute() {},
+      style: { setProperty() {}, removeProperty() {}, getPropertyValue() { return ''; } },
+    },
     body: makeElementStub(),
   };
 
@@ -114,13 +118,17 @@ function buildSandbox() {
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
+  // deferred through sandbox.setTimeout so a test that replaces the clock also owns the frame
+  sandbox.requestAnimationFrame = (fn) => sandbox.setTimeout(fn, 0);
+  sandbox.cancelAnimationFrame = (id) => sandbox.clearTimeout(id);
   return sandbox;
 }
 
 // Symbols exercised by the tests. Some are `const`/arrow (lexical, not on the
 // global object), so the epilogue must name them explicitly to export them.
 const EXPORTS = [
-  'CONFIG', 'state', 'FLOOD_CATS', 'CAT_RANK', 'PRI_WEIGHT', 't',
+  'APP_VERSION', 'CONFIG', 'state', 'FLOOD_CATS', 'CAT_RANK', 'PRI_WEIGHT', 't',
+  'AO_FULL_ID', 'assetUrl',
   'esc', 'fmtNum', 'safeUrl', 'telHref', 'ageMins', 'distMi', 'freshClass',
   'usgsBboxCost', 'usgsBboxTiles', 'usgsMergeSites', 'fetchUsgsIv',
   'USGS_BBOX_LIMIT', 'USGS_BBOX_BUDGET', 'USGS_BBOX_MAX_TILES',

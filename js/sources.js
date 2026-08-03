@@ -2579,14 +2579,113 @@ async function fetchTides() {
   if (rows.some((r) => r.ok)) { state.tides = rows; state.tidesAt = Date.now(); } // keep last-good if the whole feed is down
 }
 
+/* The residual band the card colours by, and the only band anything else may call quiet.
+   tideSurgeColor and tideQuiet both read it, so the fold can never drift from the colour. */
+const TIDE_NEUTRAL_FT = 0.5;
+
+// 'unknown' is a station that could not be read or has no prediction to subtract; never 'steady'
+function tideBand(r) {
+  if (!r || r.ok !== true || typeof r.surge !== 'number' || !Number.isFinite(r.surge)) return 'unknown';
+  if (r.surge >= 1.5) return 'major';
+  if (r.surge >= TIDE_NEUTRAL_FT) return 'moderate';
+  if (r.surge <= -TIDE_NEUTRAL_FT) return 'below';
+  return 'steady';
+}
+
+/* Nothing worth reading: inside the neutral band AND not moving. An unreadable station and one
+   reporting observations with no prediction are UNKNOWN, so neither may ever fold away as calm. */
+const tideQuiet = (r) => tideBand(r) === 'steady' && r.dir === 'steady';
+
+const tideSplit = (rows) => {
+  const list = Array.isArray(rows) ? rows : [];
+  return { loud: list.filter((r) => !tideQuiet(r)), quiet: list.filter((r) => tideQuiet(r)) };
+};
+
+/* Station coordinates come from data/tide-meta.json, a committed one-time cache written by
+   scripts/gen-tide-meta.py. Per-station metadata requests are not an option at runtime: the card
+   already spends two CO-OPS requests per station and the API answers 429 to a burst. */
+async function fetchTideMeta() {
+  if (state.tideMeta) return;
+  try {
+    const res = await fetch(`data/tide-meta.json?_=${Date.now()}`);
+    if (!res.ok) throw new Error(`tide-meta HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data || !data.stations || typeof data.stations !== 'object') throw new Error('tide-meta payload has no stations');
+    state.tideMeta = data;
+  } catch { /* no cache: every station simply goes without a focus control, and the next load retries */ }
+}
+
+function tideStationLatLon(id) {
+  const s = ((state.tideMeta || {}).stations || {})[id];
+  if (!s || !Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return null;
+  return [s.lat, s.lon];
+}
+
+const TIDE_ATTRIB = 'Coastal water levels: NOAA CO-OPS';
+
+function renderTideStations() {
+  const layer = (state.layers || {}).tideStations;
+  if (!layer) return;
+  layer.clearLayers();
+  state.tideMarkers = {};
+  const rows = Array.isArray(state.tides) ? state.tides : [];
+  const lbl = esc(t('layers.tides'));
+  for (const r of rows) {
+    const ll = tideStationLatLon(r.id);
+    if (!ll) continue;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="tide-marker tide-${tideBand(r)}" role="img" aria-label="${lbl}" title="${esc(r.name)}"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    const m = L.marker(ll, { icon, attribution: TIDE_ATTRIB });
+    m.bindPopup(() => tidePopupHtml(r));
+    layer.addLayer(m);
+    state.tideMarkers[r.id] = m;
+  }
+  // an unreadable coordinate cache is an empty layer, not a coast with no stations
+  if (rows.length && !Object.keys(state.tideMarkers).length && !state.tideMetaNoted
+      && state.map && state.map.hasLayer(layer)) {
+    state.tideMetaNoted = true;
+    opNotice(t('note.tidemeta'));
+  }
+}
+
+function tidePopupHtml(r) {
+  const head = `<div class="popup-title">${esc(r.name)}</div>`;
+  const cite = `<div class="popup-meta" style="opacity:.7;margin-top:4px">${esc(t('tides.source'))}</div>` +
+    '<div class="popup-link"><a href="https://tidesandcurrents.noaa.gov/" target="_blank" rel="noopener">' +
+    `${esc(t('word.source'))}</a></div>`;
+  if (r.ok !== true) return `${head}<div class="popup-meta">${esc(t('tides.unavail'))}</div>${cite}`;
+  const surgeTxt = typeof r.surge === 'number' && Number.isFinite(r.surge)
+    ? `${r.surge >= 0 ? '+' : ''}${r.surge.toFixed(1)} ft · ${t(`tides.dir.${r.dir}`)}`
+    : t('tides.nopred');
+  return head +
+    `<div class="popup-meta">${esc(t('tides.col.obs'))}: ${esc(r.obs.toFixed(2))} ft</div>` +
+    `<div class="popup-meta">${esc(t('tides.col.surge'))}: ${esc(surgeTxt)}</div>` +
+    (r.t ? `<div class="popup-meta">${esc(t('tides.asof').replace('{t}', r.t.slice(11, 16)))}</div>` : '') +
+    cite;
+}
+
+// the card and the map layer read the same rows, so one repaint feeds both
+function paintTides() {
+  if (typeof renderTides === 'function') renderTides(); // panels.js is absent from the map-only bundle
+  renderTideStations();
+}
+
 // refetch unless a fetch is already in flight or we already have fresh (<90s) rows (tab-toggle spam guard)
 async function loadTides() {
-  if (!coopStations().length) { renderTides(); return; } // inland event: no stations configured, no card
-  if (state.tidesLoading) { renderTides(); return; }
-  if (state.tides && state.tidesAt && Date.now() - state.tidesAt < 90000) { renderTides(); return; }
+  if (!coopStations().length) { paintTides(); return; } // inland event: no stations configured, no card
+  if (state.tidesLoading) { paintTides(); return; }
+  if (state.tides && state.tidesAt && Date.now() - state.tidesAt < 90000) {
+    paintTides();
+    if (!state.tideMeta) { await fetchTideMeta(); paintTides(); } // a first paint can precede the coordinate cache
+    return;
+  }
   state.tidesLoading = true;
-  renderTides(); // paint the loading state before the network round-trip
-  try { await fetchTides(); } catch { /* fetchTides already swallows per-station errors */ }
-  finally { state.tidesLoading = false; renderTides(); }
+  paintTides(); // paint the loading state before the network round-trip
+  try { await Promise.all([fetchTides(), fetchTideMeta()]); } catch { /* each half swallows its own errors */ }
+  finally { state.tidesLoading = false; paintTides(); }
 }
 

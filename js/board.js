@@ -217,6 +217,23 @@ function focusGauges(gauges, lead) {
   });
 }
 
+/* Coastal-card focus: turn the station layer on if it is off, frame the station, open its reading.
+   Returns false when no coordinate is cached for the id, which is the same condition under which
+   the card declines to draw the control at all, so a tap can never land on nothing. */
+function focusTideStation(id) {
+  const ll = tideStationLatLon(id);
+  if (!ll || !state.map) return false;
+  const layer = (state.layers || {}).tideStations;
+  // playback owns layer state: pan to the station, but never add a live layer under a historical frame
+  if (layer && !state.map.hasLayer(layer) && !pbBlocksLive(state)) layer.addTo(state.map);
+  renderTideStations();
+  state.map.setView(ll, Math.max(state.map.getZoom(), 11), { animate: true });
+  const m = (state.tideMarkers || {})[id];
+  if (m && m.openPopup) m.openPopup();
+  revealMapOnPhone();
+  return true;
+}
+
 const IN_VIEW_KEY = 'respondertx.inview';
 function setInView(on) {
   state.inView = on;
@@ -972,7 +989,7 @@ function buildShareUrl() {
   if (state.map.hasLayer(state.layers.mrms)) p.set('rain', state.rainWindow); // rollover/share carry the rainfall window
   // non-default layer toggles travel too (set only when ON — default URLs stay short); parsed at boot
   for (const [key, lk] of [['radar', 'radar'], ['fcst', 'fcstRadar'], ['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen'],
-    ['rs', 'riverSentry'], ['fire', 'wildfire']]) {
+    ['rs', 'riverSentry'], ['fire', 'wildfire'], ['tide', 'tideStations']]) {
     if (state.layers[lk] && state.map.hasLayer(state.layers[lk])) p.set(key, '1');
   }
   // cameras travel as one ?camreg= list of region ids; the retired per-source params stay readable
@@ -1166,7 +1183,7 @@ function readViewState() {
    control by control), and neither are ?hydro=/?cam=, which open one record and say nothing about
    how the map should be framed. */
 const LINK_VIEW_PARAMS = ['mlat', 'mlon', 'mz', 'ao', 'rain', 'radar', 'fcst', 'usgs', 'lwc',
-  'inun', 'reopen', 'rs', 'fire', 'camreg'];
+  'inun', 'reopen', 'rs', 'fire', 'tide', 'camreg'];
 const linkOwnsView = (q) => LINK_VIEW_PARAMS.some((k) => q.has(k));
 
 function saveViewState() {

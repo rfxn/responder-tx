@@ -1167,7 +1167,7 @@ async function boot() {
   const shareQs = new URLSearchParams(location.search);
   const camOn = (lk) => { if (state.layers[lk]) state.layers[lk].addTo(state.map); };
   for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen'],
-    ['rs', 'riverSentry'], ['fire', 'wildfire']]) {
+    ['rs', 'riverSentry'], ['fire', 'wildfire'], ['tide', 'tideStations']]) {
     if (shareQs.get(qk) === '1') camOn(lk);
   }
   // ?camreg=<id,id> names the camera regions to open, ?camreg=all opens every one of them; unknown

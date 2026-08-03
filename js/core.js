@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.87';
+const APP_VERSION = 'v0.99.88';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -284,6 +284,9 @@ const state = {
   tides: null, // coastal water-level rows (NOAA CO-OPS); null until first Resources-tab open, then per-station
   tidesAt: 0,
   tidesLoading: false,
+  tideMeta: null, // committed CO-OPS station coordinates (data/tide-meta.json); null = no station can be focused
+  tideMarkers: {}, // station id → map marker, so the card can open the reading it names
+  tideMetaNoted: false, // the "no station coordinates" notice has been raised once this session
 
   lsCamOpen: new Set(), // camera sub-groups expanded this session (ephemeral, not persisted)
   lsBulk: false, // a parent toggle is mid-flight: repaint once at the end, not once per child layer

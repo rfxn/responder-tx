@@ -1085,12 +1085,37 @@ function unconfirmedShelterCount() {
 
 const tideDirGlyph = (dir) => (dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→');
 // higher positive residual = more water than the astronomical tide predicts = worse; below-predicted reads good
-function tideSurgeColor(surge) {
-  if (surge == null) return 'var(--ink-muted)';
-  if (surge >= 1.5) return 'var(--cat-major)';
-  if (surge >= 0.5) return 'var(--cat-moderate)';
-  if (surge <= -0.5) return 'var(--good)';
-  return 'var(--ink-2)';
+const TIDE_BAND_COLOR = {
+  major: 'var(--cat-major)',
+  moderate: 'var(--cat-moderate)',
+  below: 'var(--good)',
+  steady: 'var(--ink-2)',
+  unknown: 'var(--ink-muted)',
+};
+const tideSurgeColor = (r) => TIDE_BAND_COLOR[tideBand(r)];
+
+const TIDES_QUIET_KEY = 'respondertx.tidesQuiet';
+
+// a station whose coordinate never reached the cache gets plain text, never a control that does nothing
+function tideNameCell(r) {
+  if (!tideStationLatLon(r.id)) return `<span class="tide-name">${esc(r.name)}</span>`;
+  const label = esc(t('tides.focus').replace('{name}', r.name));
+  return `<button type="button" class="tide-name tide-focus" data-tide-id="${esc(r.id)}" ` +
+    `title="${label}" aria-label="${label}">${esc(r.name)}</button>`;
+}
+
+function tideRowHtml(r) {
+  if (!r.ok) {
+    return `<div class="tide-row unavail">${tideNameCell(r)}` +
+      '<span class="tide-obs"></span><span class="tide-surge muted">' + esc(t('tides.unavail')) + '</span></div>';
+  }
+  const surgeTxt = r.surge == null
+    ? esc(t('tides.nopred'))
+    : `${r.surge >= 0 ? '+' : ''}${r.surge.toFixed(1)} ft ${tideDirGlyph(r.dir)}`;
+  const surgeCls = r.surge == null ? ' muted' : '';
+  return `<div class="tide-row">${tideNameCell(r)}` +
+    `<span class="tide-obs">${r.obs.toFixed(2)} ft</span>` +
+    `<span class="tide-surge${surgeCls}" style="color:${tideSurgeColor(r)}">${surgeTxt}</span></div>`;
 }
 
 function renderTides() {
@@ -1101,7 +1126,9 @@ function renderTides() {
   el.hidden = false;
   const rows = state.tides;
   const open = localStorage.getItem('respondertx.tidesOpen') !== '0'; // default open once the operator picks the tab
+  const quietOpen = localStorage.getItem(TIDES_QUIET_KEY) === '1'; // the calm set folds away by default
   const live = rows ? rows.filter((r) => r.ok) : [];
+  // counted over every configured station, never over the visible subset the fold leaves behind
   const countTxt = rows
     ? t('tides.live').replace('{n}', live.length).replace('{m}', rows.length)
     : (state.tidesLoading ? t('tides.loading') : t('tides.tap'));
@@ -1109,30 +1136,25 @@ function renderTides() {
   if (rows) {
     const surgeKey = (r) => (r.ok && r.surge != null ? r.surge : -Infinity);
     const sorted = rows.slice().sort((a, b) => surgeKey(b) - surgeKey(a));
+    const { loud, quiet } = tideSplit(sorted);
     const freshT = live.map((r) => r.t).sort().slice(-1)[0];
     const asOf = freshT ? t('tides.asof').replace('{t}', freshT.slice(11, 16)) : '';
+    const foldBtn = quiet.length
+      ? `<button class="aged-toggle tides-quiet-toggle" id="tides-quiet-toggle" aria-expanded="${quietOpen}">` +
+        `${esc(t(quietOpen ? 'toggle.hide' : 'toggle.show'))} ${esc(watchCountText('tides.quiet', quiet.length))}</button>`
+      : '';
     body =
       `<div class="tide-sub">${esc(t('tides.sub'))}${asOf ? ` · ${esc(asOf)}` : ''}</div>` +
       `<div class="tide-row tide-hdr"><span class="tide-name">${esc(t('tides.col.station'))}</span>` +
       `<span class="tide-obs">${esc(t('tides.col.obs'))}</span>` +
       `<span class="tide-surge">${esc(t('tides.col.surge'))}</span></div>` +
-      sorted.map((r) => {
-        if (!r.ok) {
-          return '<div class="tide-row unavail"><span class="tide-name">' + esc(r.name) + '</span>' +
-            '<span class="tide-obs"></span><span class="tide-surge muted">' + esc(t('tides.unavail')) + '</span></div>';
-        }
-        const surgeTxt = r.surge == null
-          ? esc(t('tides.nopred'))
-          : `${r.surge >= 0 ? '+' : ''}${r.surge.toFixed(1)} ft ${tideDirGlyph(r.dir)}`;
-        const surgeCls = r.surge == null ? ' muted' : '';
-        return `<div class="tide-row"><span class="tide-name">${esc(r.name)}</span>` +
-          `<span class="tide-obs">${r.obs.toFixed(2)} ft</span>` +
-          `<span class="tide-surge${surgeCls}" style="color:${tideSurgeColor(r.surge)}">${surgeTxt}</span></div>`;
-      }).join('') +
+      loud.map((r) => tideRowHtml(r)).join('') +
+      foldBtn +
+      (quietOpen ? quiet.map((r) => tideRowHtml(r)).join('') : '') +
       `<div class="tide-cite">${esc(t('tides.source'))} · ` +
       `<a href="https://tidesandcurrents.noaa.gov/" target="_blank" rel="noopener">tidesandcurrents.noaa.gov</a></div>`;
   }
-  el.innerHTML = `<button class="wave-toggle tides-toggle${open ? ' open' : ''}" id="tides-toggle">` +
+  el.innerHTML = `<button class="wave-toggle tides-toggle${open ? ' open' : ''}" id="tides-toggle" aria-expanded="${open}">` +
     `<span>${esc(t('tides.title'))}</span>` +
     `<span class="wave-count">${esc(countTxt)} ${open ? '▾' : '▸'}</span></button>` +
     `<div class="tide-body"${open && rows ? '' : ' hidden'}>${body}</div>`;
@@ -1141,6 +1163,15 @@ function renderTides() {
     localStorage.setItem('respondertx.tidesOpen', willOpen ? '1' : '0');
     if (willOpen && !state.tides) loadTides(); else renderTides();
   });
+  const quietBtn = $('#tides-quiet-toggle');
+  if (quietBtn) {
+    quietBtn.addEventListener('click', () => {
+      localStorage.setItem(TIDES_QUIET_KEY, quietOpen ? '0' : '1');
+      renderTides();
+    });
+  }
+  el.querySelectorAll('.tide-focus').forEach((b) =>
+    b.addEventListener('click', () => focusTideStation(b.dataset.tideId)));
 }
 
 /* ---------- threat-to-life strip ---------- */

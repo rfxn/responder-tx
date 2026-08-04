@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.90",
+      "date": "2026-08-04",
+      "line": "Mapped fire outlines now stay on the map for up to 6 hours when the perimeter source cannot be read, marked as carried forward with the time they were read, and the board no longer posts a notice when only the outlines are missing."
+    },
+    {
       "v": "v0.99.89",
       "date": "2026-08-03",
       "line": "Switching language now repaints the wildfire, River Sentry siren and coastal station map markers, so their labels, including the ones a screen reader reads, no longer stay in the old language."

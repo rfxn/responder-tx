@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.90 · 2026-08-04 (mapped fire edges survive a source hiccup)
+
+-- Changes --
+- [Change] A failed read of the mapped fire perimeters no longer clears the outlines
+         already drawn. The last set published is kept for up to 6 hours, marked as
+         carried forward and stamped with when it was actually read
+- [Change] Removed the board notice about unreadable fire outlines. Only the outlines
+         are affected when that read fails, and every incident popup already says an
+         absent outline means nobody mapped that edge
+
 ## v0.99.89 · 2026-08-03 (map markers follow a live language switch)
 
 -- Bug Fixes --

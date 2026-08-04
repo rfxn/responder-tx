@@ -2206,6 +2206,8 @@ function rsentryPopupHtml(tw) {
    holds records modified up to a fortnight ago, so past this window an incident is still drawn,
    it just stops being asserted as something anyone is working. */
 const WILDFIRE_STALE_H = 24;
+// the edge read, an enrichment: it answers for outlines only, never for the incident list
+const WILDFIRE_PERIM_KEY = 'wfigs-perimeters';
 const wildfireSources = () => (((state.wildfire || {}).sources) || []);
 const wildfireAgeH = (f) => (Date.now() - new Date(f && f.observed).getTime()) / 3600000;
 const wildfireStale = (f) => !(wildfireAgeH(f) < WILDFIRE_STALE_H); // NaN counts as stale
@@ -2248,13 +2250,15 @@ async function fetchWildfire() {
 function wildfireNoticeText() {
   // E1: the file was unreadable, so there is no source list to reason about and no reportable zero
   if (state.wildfireUnknown) return t('wf.unknown');
-  const srcs = wildfireSources();
+  /* Only the incident sources decide this sentence. A perimeter read that failed or was carried
+     forward leaves the incident list whole, and wf.point already tells the reader that a missing
+     outline means nobody mapped that edge, so there is nothing here for the reader to act on. */
+  const srcs = wildfireSources().filter((s) => s.key !== WILDFIRE_PERIM_KEY);
   const failed = srcs.filter((s) => s.status !== 'ok');
-  // a failed perimeter read leaves the incident list complete, so saying the list is incomplete
-  // would overstate it: name the edges as the thing that is missing instead
-  if (failed.length && failed.every((s) => s.key === 'wfigs-perimeters')) return t('wf.noedges');
   if (failed.length) return t(failed.length < srcs.length ? 'wf.partial' : 'wf.unknown');
   if (((state.wildfire || {}).fires || []).length) return '';
+  // an absence is only reportable when an incident source actually reported it
+  if (!srcs.length) return t('wf.unknown');
   const stamp = srcs.map((s) => s.captured).filter(Boolean).sort()[0];
   return stamp ? t('wf.none').replace('{t}', fmtWhen(stamp)) : t('wf.none.undated');
 }

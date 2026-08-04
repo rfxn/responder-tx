@@ -15,7 +15,9 @@ Zero active wildfires is the normal Texas state for most of the year, so an empt
 publishes cleanly with status "ok" and count 0. A failed read never does: a source that could not
 be read publishes status "failed" with a null count and contributes no records, and the run exits
 non-zero so run-cycle.sh signs the cycle DEGRADED. When neither source can be read nothing is
-written at all, and the previous file keeps its own older stamp for the board to age.
+written at all, and the previous file keeps its own older stamp for the board to age. Perimeters are
+the exception to the empty rule: a failed edge read republishes the last good set for up to
+PERIM_CARRY_H, marked "carried" and keeping the stamps of the read that produced it.
 
 acres and contain are None when the source did not report them. WFIGS omits containment on about
 two thirds of its records, and a 0 substituted for a null would assert an uncontained fire that
@@ -75,6 +77,11 @@ PERIM_FIELDS = ("poly_IncidentName,poly_GISAcres,poly_IRWINID,poly_DateCurrent,"
 # fire edge is a daily interpretation of imagery, not a survey.
 PERIM_OFFSET = "0.0005"
 PERIM_MAX_VERTS = 40000   # a runaway geometry must not become the payload; refuse instead
+# A failed edge read must not delete edges nobody restamped, so the last good set is republished
+# with its own stamps and a status saying it was not freshly read. Bounded well inside the client's
+# 24h wildfire staleness floor (WILDFIRE_STALE_H in js/sources.js), because a retained outline may
+# never be the reason a fire still reads as current.
+PERIM_CARRY_H = 6
 
 
 def load_scope():
@@ -146,14 +153,19 @@ def iso_from_ms(v):
         return None
 
 
-def iso_from_text(v):
+def dt_from_text(v):
     if not isinstance(v, str) or not v.strip():
         return None
     try:
         dt = datetime.datetime.fromisoformat(v.strip().replace("Z", "+00:00"))
     except ValueError:
         return None
-    return iso_z(dt if dt.tzinfo else dt.replace(tzinfo=datetime.timezone.utc))
+    return dt if dt.tzinfo else dt.replace(tzinfo=datetime.timezone.utc)
+
+
+def iso_from_text(v):
+    dt = dt_from_text(v)
+    return iso_z(dt) if dt else None
 
 
 def number(v, lo=None, hi=None, ndigits=1):
@@ -363,6 +375,47 @@ def write_payload(payload):
         raise
 
 
+def read_previous():
+    """The payload this run is about to replace, or None. Unreadable is not a failure here: it
+    only means there is nothing to carry."""
+    try:
+        with open(OUT, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"warn: previous wildfire.json unreadable, nothing to carry forward: {e}",
+              file=sys.stderr)
+        return None
+    return doc if isinstance(doc, dict) else None
+
+
+def carry_perimeters(prev, now_dt):
+    """(perimeters, source row) republished from the previous file, or (None, None) when there is
+    nothing to carry or it has aged past PERIM_CARRY_H. The retained rows and the source stamp are
+    untouched; only the status says the data was not read this cycle."""
+    perims = (prev or {}).get("perimeters")
+    if not isinstance(perims, list) or not perims:
+        return None, None
+    row = next((s for s in prev.get("sources") or [] if isinstance(s, dict)
+                and s.get("key") == "wfigs-perimeters"), {})
+    if row.get("status") == "failed":
+        return None, None
+    # the clock is when these edges were last READ, propagated across carries so a run of failures
+    # cannot ratchet it forward one cycle at a time
+    since = row.get("carriedFrom") or prev.get("generated")
+    read_dt = dt_from_text(since)
+    if read_dt is None:
+        print("warn: previous perimeters carry no readable stamp, publishing none", file=sys.stderr)
+        return None, None
+    age_h = (now_dt - read_dt).total_seconds() / 3600.0
+    if not 0 <= age_h <= PERIM_CARRY_H:
+        print(f"note: last good perimeters are {age_h:.1f}h old, past the {PERIM_CARRY_H}h carry "
+              "window; publishing none", file=sys.stderr)
+        return None, None
+    return perims, dict(SOURCES["wfigs-perimeters"], key="wfigs-perimeters", status="carried",
+                        captured=row.get("captured"), count=len(perims),
+                        carriedFrom=iso_z(read_dt))
+
+
 def collect_perimeters(scope):
     """(perimeters, captured). A fire edge where an agency has mapped one; most fires have none,
     which is why the points layer stays. Raises on a truncated read, like the incident collector:
@@ -457,30 +510,40 @@ def main():
     tfs_fires, tfs_src = collect("tfs", collect_tfs, scope)
     wfigs_fires, wfigs_src = collect("wfigs", collect_wfigs, scope)
     perims, perim_src = collect("wfigs-perimeters", collect_perimeters, scope)
-    sources = [tfs_src, wfigs_src, perim_src]
 
     # the points layer is the board's wildfire answer; perimeters are an enrichment, so a
     # perimeter failure must not sink a good incident read. E1 keeps it visible in sources[].
     if all(s["status"] == "failed" for s in (tfs_src, wfigs_src)):
         sys.exit("gen-wildfire: no source could be read, keeping the previous file and its older stamp")
 
+    now_dt = datetime.datetime.now(datetime.timezone.utc)
+    if perim_src["status"] == "failed":
+        kept, kept_src = carry_perimeters(read_previous(), now_dt)
+        if kept is not None:
+            perims, perim_src = kept, kept_src
+    sources = [tfs_src, wfigs_src, perim_src]
+
     fires = sorted(tfs_fires + wfigs_fires, key=lambda x: (x["observed"], x["id"]), reverse=True)
-    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = iso_z(now_dt)
     write_payload({"generated": now, "sources": sources, "fires": fires, "perimeters": perims})
 
     detail = " · ".join(
         f"{s['key']} {s['status']}"
-        + (f" {s['count']} @ {s['captured'] or 'no upstream stamp'}" if s["status"] == "ok" else "")
+        + (f" {s['count']} @ {s['captured'] or 'no upstream stamp'}"
+           if s["status"] in ("ok", "carried") else "")
         for s in sources)
     print(f"wildfire.json: {len(fires)} incidents, {len(perims)} perimeters ({detail}) @ {now}")
     # A half-sourced INCIDENT read is not a clean cycle. A failed perimeter read is not the same
     # thing: perimeters are an enrichment most fires never have, and the layer's answer is the
     # points. Spending the cycle's DEGRADED signal on it measured 2 of 15 cycles in one night,
-    # which devalues that signal for the gauges and roads it exists for. The failure stays visible
-    # without it: the source row publishes failed, and the client says so when the layer opens.
+    # which devalues that signal for the gauges and roads it exists for. It stays visible in the
+    # source row and on stderr; the board says nothing, because the incident list is whole.
     if any(s["status"] != "ok" for s in (tfs_src, wfigs_src)):
         return 1
-    if perim_src["status"] != "ok":
+    if perim_src["status"] == "carried":
+        print("note: perimeter read failed; republished %d edges last read %s"
+              % (perim_src["count"], perim_src["carriedFrom"]), file=sys.stderr)
+    elif perim_src["status"] != "ok":
         print("note: perimeter enrichment failed; the incident layer published in full",
               file=sys.stderr)
     return 0

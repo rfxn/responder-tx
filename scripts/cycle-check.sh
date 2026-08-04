@@ -427,12 +427,19 @@ if d is not None:
     for i, s in enumerate(d["sources"]):
         if not s.get("key") or not s.get("name") or not s.get("url"):
             die("wildfire.json: sources[%d] missing key/name/url" % i)
-        if s.get("status") not in ("ok", "failed"):
-            die("wildfire.json: sources[%d] status must be ok or failed, not %r" % (i, s.get("status")))
+        if s.get("status") not in ("ok", "failed", "carried"):
+            die("wildfire.json: sources[%d] status must be ok, failed or carried, not %r" % (i, s.get("status")))
         # a failed source that also reports rows would launder a partial read as a whole one
         if s["status"] == "failed" and s.get("count"):
             die("wildfire.json: sources[%d] failed but reports count %r" % (i, s.get("count")))
-        if s["status"] == "ok" and s.get("captured"):
+        # carried republishes the last good read, so it has to name the read it came from: without
+        # that stamp nothing could age the retained rows or bound how long they stay
+        if s["status"] == "carried":
+            if not s.get("carriedFrom"):
+                die("wildfire.json: sources[%d] is carried but names no carriedFrom read to age it from" % i)
+            if parse_iso(s["carriedFrom"]) > parse_iso(d["generated"]):
+                die("wildfire.json: sources[%d] carriedFrom is later than generated" % i)
+        if s["status"] in ("ok", "carried") and s.get("captured"):
             parse_iso(s["captured"])
         keys.add(s["key"])
     ok_keys = {s["key"] for s in d["sources"] if s["status"] == "ok"}

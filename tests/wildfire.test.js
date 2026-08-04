@@ -615,13 +615,18 @@ test('the circle is drawn unlike a perimeter, so the two are never confused', ()
   assert.ok(!perim.opts.dashArray, 'a mapped perimeter must stay solid');
 });
 
-/* ---------- an enrichment failure is reported, not escalated ----------
-   Perimeters timed out on 2 of 15 cycles in one night. Spending the data cycle's DEGRADED signal
-   on a rarely-populated enrichment devalues it for the gauges and roads it exists for, and the
-   incident list is still complete when only the edges are missing. */
+/* ---------- an enrichment failure is not the reader's problem ----------
+   Perimeters fail on about one cycle in ten and most cycles have no edge to draw anyway, so a
+   board-level notice about them fired on noise the reader could neither act on nor tell apart from
+   the ordinary case. It was removed in v0.99.90. The trap is the fall-through: a perimeter-only
+   failure that reaches wf.partial would tell the reader the INCIDENT list is short, which is the
+   overstatement v0.99.82 shipped to fix. Silence is honest because the board never claims a fire
+   has no mapped edge; wf.point says an absent outline means unmapped, never small. */
 
 const OKSRC = (key) => ({ key, name: key, url: 'u', status: 'ok', captured: '2026-07-30T00:00:00Z', count: 1 });
 const BADSRC = (key) => ({ key, name: key, url: 'u', status: 'failed', captured: null, count: null });
+const CARRIEDSRC = (key) => ({ key, name: key, url: 'u', status: 'carried',
+  captured: '2026-07-30T00:00:00Z', count: 1, carriedFrom: '2026-07-30T00:05:00Z' });
 
 function noticeFor(sources, fires) {
   const MS = mapApp.state, MSB = mapApp._sandbox;
@@ -632,29 +637,48 @@ function noticeFor(sources, fires) {
   } finally { MS.wildfire = prev; }
 }
 
-test('a perimeter-only failure names the edges, not the whole list, as missing', () => {
-  const said = noticeFor([OKSRC('tfs'), OKSRC('wfigs'), BADSRC('wfigs-perimeters')], [FIRE_PT]);
-  assert.equal(said, 'wf.noedges');
-  for (const lang of ['en', 'es']) {
-    const s = I18N[lang]['wf.noedges'];
-    assert.ok(s && !s.includes('—'), `wf.noedges missing or em-dashed in ${lang}`);
+test('a perimeter-only failure says nothing, and above all does not call the list short', () => {
+  for (const edges of [BADSRC('wfigs-perimeters'), CARRIEDSRC('wfigs-perimeters')]) {
+    const said = noticeFor([OKSRC('tfs'), OKSRC('wfigs'), edges], [FIRE_PT]);
+    assert.notEqual(said, 'wf.partial',
+      `edges ${edges.status} must never assert the incident list is incomplete`);
+    assert.equal(said, '', `edges ${edges.status} leave the incident list whole, so there is nothing to say`);
   }
-  // and it must not claim the incident list is short when it is not
-  assert.ok(!/incomplete/i.test(I18N.en['wf.noedges']), 'must not call the incident list incomplete');
+  // the removed string may not linger in either language, and no surface may ask for it
+  for (const lang of ['en', 'es']) {
+    assert.equal(I18N[lang]['wf.noedges'], undefined, `wf.noedges still ships in ${lang}`);
+  }
+  // silence stays honest only while the popup keeps saying what a missing outline means
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['wf.point'], /small|pequeñ/i,
+      'an absent outline must still be denied as evidence of a small fire');
+  }
+});
+
+test('a failed or carried edge read still draws every incident, and carried edges still draw', () => {
+  const carried = renderInto({ generated: 'x', sources: [OKSRC('tfs'), OKSRC('wfigs'), CARRIEDSRC('wfigs-perimeters')],
+    fires: [FIRE_PT], perimeters: [PERIM] });
+  assert.equal(carried.length, 2, 'a carried perimeter is real data and must be drawn like any other');
+  const lost = renderInto({ generated: 'x', sources: [OKSRC('tfs'), OKSRC('wfigs'), BADSRC('wfigs-perimeters')],
+    fires: [FIRE_PT], perimeters: [] });
+  assert.equal(lost.length, 1, 'the incident marker survives an edge read that produced nothing');
 });
 
 test('an incident source failing still says the list is incomplete', () => {
   assert.equal(noticeFor([BADSRC('tfs'), OKSRC('wfigs'), OKSRC('wfigs-perimeters')], [FIRE_PT]), 'wf.partial');
+  // and it still reports when the edges failed in the same cycle: the two are independent facts
+  assert.equal(noticeFor([BADSRC('tfs'), OKSRC('wfigs'), BADSRC('wfigs-perimeters')], [FIRE_PT]), 'wf.partial');
   assert.equal(noticeFor([BADSRC('tfs'), BADSRC('wfigs'), BADSRC('wfigs-perimeters')], []), 'wf.unknown');
+  assert.equal(noticeFor([BADSRC('tfs'), BADSRC('wfigs'), OKSRC('wfigs-perimeters')], []), 'wf.unknown',
+    'a healthy edge read cannot rescue an incident list nobody could read');
 });
 
-test('the generator exit code answers for the incidents, not the enrichment', () => {
-  const src = read('scripts/gen-wildfire.py');
-  const tail = src.slice(src.indexOf('detail = " · ".join'));
-  assert.match(tail, /if any\(s\["status"\] != "ok" for s in \(tfs_src, wfigs_src\)\):\n\s+return 1/,
-    'a failed incident source must still degrade the cycle');
-  assert.match(tail, /if perim_src\["status"\] != "ok":/,
-    'a failed enrichment must still be reported on stderr');
+test('a fire-free day with a failed edge read is still reported as fire-free, not as partial', () => {
+  const said = noticeFor([OKSRC('tfs'), OKSRC('wfigs'), BADSRC('wfigs-perimeters')], []);
+  assert.equal(said, 'wf.none', 'both incident sources answered, so the absence is reportable');
+  // a payload naming no incident source cannot support that sentence at all
+  assert.equal(noticeFor([BADSRC('wfigs-perimeters')], []), 'wf.unknown');
+  assert.equal(noticeFor([], []), 'wf.unknown');
 });
 
 /* E1: state.wildfireUnknown shipped with zero readers, so an unreadable file and a fire-free Texas
@@ -757,6 +781,22 @@ test('a pre-perimeter file is still a good file, so the edges may never be requi
     assert.equal(d.unknown, false, 'a client that rejected a pre-perimeter file would empty the layer');
     assert.equal(d.payload.fires.length, 1);
   } finally { d.restore(); }
+});
+
+/* The owner's ask in v0.99.90: the reader must get NOTHING when only the edge read failed. Driven
+   through the real fetch, because it is opNotice() and not the sentence builder that reaches a
+   reader, and an empty sentence still posting a banner would look identical in a unit assertion. */
+test('a failed edge read reaches the reader as silence, not as a banner', async () => {
+  for (const edges of [BADSRC('wfigs-perimeters'), CARRIEDSRC('wfigs-perimeters')]) {
+    const d = driveFetch({ transport: served({ generated: '2026-07-30T21:00:00Z',
+      sources: SOURCES.concat([edges]), fires: [FIRE_PT], perimeters: [] }) });
+    try {
+      await d.run();
+      assert.deepEqual(d.said, [], `edges ${edges.status} must post no notice at all`);
+      assert.equal(d.unknown, false, 'and the incident file was read perfectly well');
+      assert.equal(d.payload.fires.length, 1, 'every incident still reaches the map');
+    } finally { d.restore(); }
+  }
 });
 
 test('an HTTP error and a failed read both stay retryable on the next toggle', async () => {

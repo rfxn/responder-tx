@@ -10,6 +10,7 @@ Drives the generator against stubbed responses under a fixture RESPONDER_ROOT (n
 never the real data/), then runs the cycle-check schema gate extracted from scripts/cycle-check.sh
 against the generator's own output, so the gate and the generator are verified together.
 Run: python3 tests/gen-wildfire.test.py"""
+import datetime
 import importlib.util
 import io
 import json
@@ -517,6 +518,113 @@ check('a perimeter timeout alone exits CLEAN, so the cycle keeps DEGRADED for th
       'code=%s %s' % (r['code'], r['doc']['sources']))
 check('a failed incident source still exits degraded even when perimeters are fine',
       run(wfigs=ARCGIS_ERR)['code'] != 0, run(wfigs=ARCGIS_ERR)['code'])
+
+# --- E1 · a failed edge read must not delete edges nobody restamped --------------------------
+# The bound comes from the generator itself, so a change to PERIM_CARRY_H moves these cases with it
+# rather than leaving them asserting a number the code stopped using.
+CARRY_H = MOD.PERIM_CARRY_H
+KEPT = [{'id': 'wfigs-perim:{X}', 'irwin': '{X}', 'name': 'Kept', 'scope': 'tx', 'acres': 120.5,
+         'observed': '2026-07-30T02:00:00Z', 'method': 'Image Interpretation',
+         'category': 'Wildfire Daily Fire Perimeter',
+         'rings': [[[-99.0, 31.0], [-99.0, 31.1], [-98.9, 31.1], [-98.9, 31.0], [-99.0, 31.0]]]}]
+PERIM_CAPTURED = '2026-07-30T02:05:00Z'
+
+
+def ago(h):
+    dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=h)
+    return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def prev_edges(generated_h, perims=None, status='ok', captured=PERIM_CAPTURED, carried_from=None):
+    """A previously published file whose edge read was `status`, generated `generated_h` ago."""
+    perims = KEPT if perims is None else perims
+    row = {'key': 'wfigs-perimeters',
+           'name': 'National Interagency Fire Center (WFIGS perimeters)',
+           'url': 'https://data-nifc.opendata.arcgis.com/', 'status': status,
+           'captured': captured, 'count': None if status == 'failed' else len(perims)}
+    if carried_from:
+        row['carriedFrom'] = carried_from
+    return json.dumps({
+        'generated': ago(generated_h),
+        'sources': [{'key': 'tfs', 'name': 'Texas A&M Forest Service',
+                     'url': 'https://tfswildfires.com/public/', 'status': 'ok',
+                     'captured': ago(generated_h), 'count': 0}, row],
+        'fires': [], 'perimeters': perims})
+
+
+r = run(perim=OSError('timed out'), previous=prev_edges(0.5))
+D = r['doc']
+S = src(D, 'wfigs-perimeters')
+check('CARRY · a failed edge read republishes the last good perimeters instead of deleting them',
+      r['code'] == 0 and D['perimeters'] == KEPT, 'code=%s %s' % (r['code'], D['perimeters']))
+check('CARRY · the retained set is marked carried and counted, never laundered as a fresh read',
+      S['status'] == 'carried' and S['count'] == 1, S)
+check('CARRY · the retained set keeps the stamps of the read that produced it, not this clock',
+      S['captured'] == PERIM_CAPTURED and S['carriedFrom'] != D['generated']
+      and D['perimeters'][0]['observed'] == KEPT[0]['observed'],
+      '%s · generated %s' % (S, D['generated']))
+check('CARRY · the incident sources are untouched by the carry and still publish their own reads',
+      [f['src'] for f in D['fires']] == ['tfs', 'wfigs']
+      and src(D, 'tfs')['status'] == 'ok', [f['src'] for f in D['fires']])
+
+r = run(perim=OSError('timed out'), previous=prev_edges(CARRY_H - 0.5))
+check('CARRY · a set just inside the %gh window is still republished' % CARRY_H,
+      src(r['doc'], 'wfigs-perimeters')['status'] == 'carried' and r['doc']['perimeters'] == KEPT,
+      r['doc']['sources'])
+r = run(perim=OSError('timed out'), previous=prev_edges(CARRY_H + 0.5))
+check('CARRY · a set past the %gh window is dropped rather than drawn forever' % CARRY_H,
+      src(r['doc'], 'wfigs-perimeters')['status'] == 'failed' and r['doc']['perimeters'] == [],
+      r['doc']['sources'])
+
+# the clock is the last REAL read: a run of failures republishing every 15 minutes must not push it
+r = run(perim=OSError('timed out'),
+        previous=prev_edges(0.05, status='carried', carried_from=ago(CARRY_H + 0.5)))
+check('CARRY · a carry cannot ratchet itself forward one cycle at a time',
+      src(r['doc'], 'wfigs-perimeters')['status'] == 'failed' and r['doc']['perimeters'] == [],
+      r['doc']['sources'])
+ORIG = ago(1)
+r = run(perim=OSError('timed out'), previous=prev_edges(0.05, status='carried', carried_from=ORIG))
+check('CARRY · a second carry keeps naming the same original read',
+      src(r['doc'], 'wfigs-perimeters').get('carriedFrom') == ORIG,
+      src(r['doc'], 'wfigs-perimeters'))
+
+# absence: none of these may crash the cycle, and none may publish an edge it cannot vouch for
+for label, prev in (('no previous file at all', None),
+                    ('an unreadable previous file', '{not json at all'),
+                    ('a previous file holding no edges', prev_edges(0.5, perims=[])),
+                    ('a previous file whose own edge read failed',
+                     prev_edges(0.5, status='failed')),
+                    ('a previous file with no readable stamp',
+                     json.dumps({'perimeters': KEPT, 'sources': [], 'fires': []})),
+                    ('a previous file stamped in the future', prev_edges(-2))):
+    r = run(perim=OSError('timed out'), previous=prev)
+    check('CARRY · %s publishes no edges, marked failed, without failing the run' % label,
+          r['code'] == 0 and r['doc']['perimeters'] == []
+          and src(r['doc'], 'wfigs-perimeters')['status'] == 'failed',
+          'code=%s %s' % (r['code'], r['doc'] and r['doc']['sources']))
+
+r = run(perim=collection([perim_feature()]), previous=prev_edges(0.5))
+check('CARRY · a healthy edge read publishes what it read and is never marked carried',
+      src(r['doc'], 'wfigs-perimeters')['status'] == 'ok'
+      and [p['name'] for p in r['doc']['perimeters']] == ['Frontera'], r['doc']['perimeters'])
+
+CARRIED_ROW = {'key': 'wfigs-perimeters',
+               'name': 'National Interagency Fire Center (WFIGS perimeters)',
+               'url': 'https://data-nifc.opendata.arcgis.com/', 'status': 'carried',
+               'captured': '2026-07-29T03:55:03Z', 'count': 1,
+               'carriedFrom': '2026-07-29T03:58:00Z'}
+rc, log = run_schema_gate(payload([FIRE], sources=GOOD_SOURCES + [CARRIED_ROW]))
+check('the schema gate accepts a carried source row', rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([FIRE], sources=GOOD_SOURCES + [
+    {k: v for k, v in CARRIED_ROW.items() if k != 'carriedFrom'}]))
+check('the schema gate rejects a carried row that names no read to age it from',
+      rc != 0 and 'names no carriedFrom read' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([FIRE], sources=GOOD_SOURCES + [
+    dict(CARRIED_ROW, carriedFrom='2026-07-29T05:00:00Z')]))
+check('the schema gate rejects a carried row claiming a read later than the file itself',
+      rc != 0 and 'later than generated' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(run(perim=OSError('timed out'), previous=prev_edges(0.5))['doc'])
+check('a carried run also writes what the release gate accepts', rc == 0, 'rc=%s %s' % (rc, log))
 
 print('----')
 if FAILS == 0:

@@ -1,9 +1,9 @@
 {
- "generated": "2026-08-16T12:24:36Z",
+ "generated": "2026-08-16T12:39:24Z",
  "event": "August 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-08-16T11:53:00Z"
+  "last": "2026-08-16T12:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -851,6 +851,25 @@
    "src": "usgs"
   },
   {
+   "lid": "NADT2",
+   "name": "La Nana Creek at Nacogdoches",
+   "peak": 15.98,
+   "peak_time": "2026-08-16T12:23:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-08-15T09:23:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 22.18,
+    "record_date": "1979-06-02",
+    "peak_pct": 72.0,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "NCCT2",
    "name": "Big Cow Creek near Newton",
    "peak": 15.55,
@@ -869,25 +888,6 @@
    },
    "stale": false,
    "src": "usgs"
-  },
-  {
-   "lid": "NADT2",
-   "name": "La Nana Creek at Nacogdoches",
-   "peak": 15.07,
-   "peak_time": "2026-08-15T13:23:00Z",
-   "peak_category": "minor",
-   "unit": "ft",
-   "first_in_flood": "2026-08-15T09:23:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
-   "record": {
-    "record_ft": 22.18,
-    "record_date": "1979-06-02",
-    "peak_pct": 67.9,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
   },
   {
    "lid": "RWDT2",

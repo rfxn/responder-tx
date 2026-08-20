@@ -1,9 +1,9 @@
 {
- "generated": "2026-08-20T23:09:45Z",
+ "generated": "2026-08-20T23:24:38Z",
  "event": "August 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-08-20T22:53:00Z"
+  "last": "2026-08-20T23:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [

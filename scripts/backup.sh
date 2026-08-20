@@ -36,9 +36,13 @@ DEST="${RESPONDER_BACKUP_DIR:-/root/backups/responder}"
 MIRROR="$DEST/mirror.git"
 STATUS="$DEST/status.json"
 MIN_FREE_MB="${RESPONDER_BACKUP_MIN_FREE_MB:-2048}"
-KEEP_HOURLY="${RESPONDER_BACKUP_KEEP_HOURLY:-6}"
-KEEP_DAILY="${RESPONDER_BACKUP_KEEP_DAILY:-7}"
-KEEP_WEEKLY="${RESPONDER_BACKUP_KEEP_WEEKLY:-4}"
+# Depth is spread across tiers rather than stacked inside one: every bundle is a full copy of the
+# same append-only history, and retention only runs after a fresh bundle has passed verify.
+KEEP_HOURLY="${RESPONDER_BACKUP_KEEP_HOURLY:-1}"
+KEEP_DAILY="${RESPONDER_BACKUP_KEEP_DAILY:-2}"
+KEEP_WEEKLY="${RESPONDER_BACKUP_KEEP_WEEKLY:-1}"
+# Bundles grew 42MB -> 117MB in 18 days, so the footprint has to be asserted, not assumed
+BUDGET_MB="${RESPONDER_BACKUP_BUDGET_MB:-800}"
 
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 started_epoch=$(date +%s)
@@ -159,8 +163,14 @@ for prefix in repo state manifest; do
 done
 
 mirror_mb=$(du -sm "$MIRROR" | awk '{print $1}')
-write_status "OK" "bundle $(command basename "$BUNDLE"), ${commits} commits, mirror ${mirror_mb}MB, pruned ${pruned}"
-echo "backup: OK tier=${TIER} head=${head_hash} commits=${commits} bundle=$(( $(command stat -c %s "$BUNDLE") / 1048576 ))MB mirror=${mirror_mb}MB pruned=${pruned} free=${free_mb}MB"
+footprint_mb=$(du -sm "$DEST" | awk '{print $1}')
+budget_note=""
+if [ "$footprint_mb" -gt "$BUDGET_MB" ]; then
+    budget_note=", OVER BUDGET ${footprint_mb}/${BUDGET_MB}MB"
+    echo "backup: WARN footprint ${footprint_mb}MB exceeds budget ${BUDGET_MB}MB; history growth has outrun the keep counts" >&2
+fi
+write_status "OK" "bundle $(command basename "$BUNDLE"), ${commits} commits, mirror ${mirror_mb}MB, pruned ${pruned}, footprint ${footprint_mb}MB${budget_note}"
+echo "backup: OK tier=${TIER} head=${head_hash} commits=${commits} bundle=$(( $(command stat -c %s "$BUNDLE") / 1048576 ))MB mirror=${mirror_mb}MB pruned=${pruned} footprint=${footprint_mb}MB free=${free_mb}MB"
 [ "$origin_gap" -gt 0 ] && echo "backup: note: ${origin_gap} commit(s) not yet on origin; the offsite copy lags until the next successful deploy" >&2
 trap - EXIT
 exit 0

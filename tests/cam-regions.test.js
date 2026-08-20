@@ -480,10 +480,13 @@ test('every shipped river camera has actually produced an image', () => {
   const noStamp = rows.filter((c) => !c.newest).map((c) => c.camId);
   assert.deepEqual(noStamp, [], 'a camera that has never returned a frame is listed as available');
   assert.equal(MAX_AGE_D, 30);
+  // Aged against the file's own stamp; how long it then sits is cycle-check's artifact-age job
+  const genAt = Date.parse(CAMS.generated);
+  assert.ok(Number.isFinite(genAt), `cameras.json has no parseable generated stamp: ${CAMS.generated}`);
   const tooOld = rows
-    .map((c) => [c.camId, (Date.now() - Date.parse(c.newest)) / 86400000])
-    .filter(([, d]) => !Number.isFinite(d) || d > MAX_AGE_D + 1); // +1d: the file is committed, not live
-  assert.deepEqual(tooOld, [], 'a long-dead camera is still shipped');
+    .map((c) => [c.camId, (genAt - Date.parse(c.newest)) / 86400000])
+    .filter(([, d]) => !Number.isFinite(d) || d > MAX_AGE_D + 1); // +1d covers the generator's own run
+  assert.deepEqual(tooOld, [], 'a camera the generator should have dropped is in the inventory');
 });
 
 // Replaces a denylist of three camIds that were dead when it was written: one recovered upstream

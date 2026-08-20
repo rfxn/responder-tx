@@ -404,6 +404,15 @@ const readFile = (f) => fs.readFileSync(path.join(ROOT_DIR, f), 'utf8');
 const CAMS = JSON.parse(readFile('data/cameras.json'));
 const MAX_AGE_D = Number(readFile('scripts/gen-cameras.py').match(/CAM_MAX_AGE_D = (\d+)/)[1]);
 
+// Aged against the file's own stamp; how long it then sits is cycle-check's artifact-age job
+const staleAtGeneration = (rows, key) => {
+  const genAt = Date.parse(CAMS.generated);
+  assert.ok(Number.isFinite(genAt), `cameras.json has no parseable generated stamp: ${CAMS.generated}`);
+  return rows
+    .map((c) => [c[key], (genAt - Date.parse(c.newest)) / 86400000])
+    .filter(([, d]) => !Number.isFinite(d) || d > MAX_AGE_D + 1); // +1d covers the generator's own run
+};
+
 test('the ATX Floods low-water-crossing cams are on the board', () => {
   const rows = CAMS.atxfloods || [];
   assert.ok(rows.length >= 10, `ATX Floods inventory is ${rows.length}`);
@@ -422,10 +431,8 @@ test('every shipped ATX Floods camera has actually produced a recent image', () 
   const rows = CAMS.atxfloods || [];
   const noStamp = rows.filter((c) => !c.newest).map((c) => c.id);
   assert.deepEqual(noStamp, [], 'a camera that has never returned a frame is listed as available');
-  const tooOld = rows
-    .map((c) => [c.id, (Date.now() - Date.parse(c.newest)) / 86400000])
-    .filter(([, d]) => !Number.isFinite(d) || d > MAX_AGE_D + 1); // +1d: the file is committed, not live
-  assert.deepEqual(tooOld, [], 'a long-dead camera is still shipped');
+  assert.deepEqual(staleAtGeneration(rows, 'id'), [],
+    'a camera the generator should have dropped is in the inventory');
 });
 
 test('the ATX Floods credit names the operator of the service, not just the City', () => {
@@ -480,13 +487,8 @@ test('every shipped river camera has actually produced an image', () => {
   const noStamp = rows.filter((c) => !c.newest).map((c) => c.camId);
   assert.deepEqual(noStamp, [], 'a camera that has never returned a frame is listed as available');
   assert.equal(MAX_AGE_D, 30);
-  // Aged against the file's own stamp; how long it then sits is cycle-check's artifact-age job
-  const genAt = Date.parse(CAMS.generated);
-  assert.ok(Number.isFinite(genAt), `cameras.json has no parseable generated stamp: ${CAMS.generated}`);
-  const tooOld = rows
-    .map((c) => [c.camId, (genAt - Date.parse(c.newest)) / 86400000])
-    .filter(([, d]) => !Number.isFinite(d) || d > MAX_AGE_D + 1); // +1d covers the generator's own run
-  assert.deepEqual(tooOld, [], 'a camera the generator should have dropped is in the inventory');
+  assert.deepEqual(staleAtGeneration(rows, 'camId'), [],
+    'a camera the generator should have dropped is in the inventory');
 });
 
 // Replaces a denylist of three camIds that were dead when it was written: one recovered upstream

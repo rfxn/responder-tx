@@ -486,11 +486,14 @@ test('every shipped river camera has actually produced an image', () => {
   assert.deepEqual(tooOld, [], 'a long-dead camera is still shipped');
 });
 
-test('the two cameras that had never produced a frame are not in the inventory', () => {
-  const ids = new Set((CAMS.river || []).map((c) => c.camId));
-  for (const dead of ['TX_Ray_Roberts_Lake_near_Pilot_Point', 'TX_Trinity_Rvr_at_Hwy_287_nr_Cayuga_TX',
-    'TX_New_Year_Ck_at_FM_1155_nr_Chappel_Hill']) {
-    assert.ok(!ids.has(dead), `${dead} is back in the shipped inventory`);
+// Replaces a denylist of three camIds that were dead when it was written: one recovered upstream
+// and false-failed the deploy gate for three days. live_twice() in gen-cameras.test.py covers the drop.
+test('no shipped river camera carries a stamp the generator could not have observed', () => {
+  const skew = 3600000; // the file is committed, so a stamp may lead this run by the gen-to-commit gap
+  for (const c of CAMS.river || []) {
+    const t = Date.parse(c.newest);
+    assert.ok(Number.isFinite(t), `${c.camId} ships an unparseable newest stamp: ${c.newest}`);
+    assert.ok(t <= Date.now() + skew, `${c.camId} ships a frame stamped in the future: ${c.newest}`);
   }
 });
 

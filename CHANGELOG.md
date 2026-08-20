@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.91 · 2026-08-20 (river camera list matches what the cameras are sending)
+
+-- Bug Fixes --
+- [Fix] River cameras that had stopped sending pictures for more than a month were
+      still listed as available. The list now tracks what each camera is actually
+      sending, and one camera that resumed is back on it
+
 ## v0.99.90 · 2026-08-04 (mapped fire edges survive a source hiccup)
 
 -- Changes --

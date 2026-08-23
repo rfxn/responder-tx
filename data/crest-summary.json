@@ -1,9 +1,9 @@
 {
- "generated": "2026-08-23T19:54:39Z",
+ "generated": "2026-08-23T20:09:46Z",
  "event": "August 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-08-23T19:38:00Z"
+  "last": "2026-08-23T19:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -981,6 +981,25 @@
    "src": "usgs"
   },
   {
+   "lid": "BAMT2",
+   "name": "Elm Creek (Colorado Basin WCTX) at Ballinger",
+   "peak": 7.15,
+   "peak_time": "2026-08-23T19:53:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-08-23T19:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 14.5,
+    "record_date": "1906-08-01",
+    "peak_pct": 49.3,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "ODCT2",
    "name": "Terry Gully at FM 1442",
    "peak": 6.52,
@@ -1020,7 +1039,7 @@
    "src": "usgs"
   }
  ],
- "retained_gauges": 55,
+ "retained_gauges": 56,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

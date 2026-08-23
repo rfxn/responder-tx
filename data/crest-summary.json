@@ -1,9 +1,9 @@
 {
- "generated": "2026-08-23T21:09:40Z",
+ "generated": "2026-08-23T21:24:30Z",
  "event": "August 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-08-23T20:53:00Z"
+  "last": "2026-08-23T21:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -405,8 +405,8 @@
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-08-23T19:53:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-08-23T20:53:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 14.5,
     "record_date": "1906-08-01",

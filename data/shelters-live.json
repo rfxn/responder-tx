@@ -1,1 +1,1 @@
-{"generated":"2026-08-27T19:39:00Z","source":{"name":"FEMA National Shelter System (ARC sync)","url":"https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0"},"shelters":[{"name":"R. D. Evans Community Cente","address":"3242 Lackland Road, Fort Worth, TX 76116","lat":32.72633,"lon":-97.43526,"status":"OPEN","occupancy":42,"org":"ARC Partner"}]}
+{"generated":"2026-08-27T19:54:02Z","source":{"name":"FEMA National Shelter System (ARC sync)","url":"https://gis.fema.gov/arcgis/rest/services/NSS/OpenShelters/MapServer/0"},"shelters":[]}

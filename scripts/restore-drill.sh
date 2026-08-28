@@ -23,7 +23,7 @@ REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd) || exit 1
 # "need a repository to verify a bundle" without one. Under cron the CWD is $HOME, not the repo,
 # which is why this script passed by hand and failed every night.
 cd "$REPO_ROOT" || exit 1
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"  # appended, not prepended: a caller that selected a toolchain (CI setup-node) must not be shadowed by the image's own node
 
 DEST="${RESPONDER_BACKUP_DIR:-/root/backups/responder}"
 STATUS="$DEST/drill-status.json"
@@ -118,7 +118,8 @@ for f in json.load(open(sys.argv[1])).get('state_files') or []: print(f)" "$MANI
 fi
 
 # the suite is the definition of a working tree here, and it runs offline
-test_out=$(node --test tests/ 2>&1) || fail "the restored tree fails its own test suite"
+# name the files and pin the reporter: Node 22+ runs a bare dir as one failing test, and 24 drops the "# pass" line
+test_out=$(node --test --test-reporter=tap tests/*.test.js 2>&1) || fail "the restored tree fails its own test suite"
 passed=$(printf '%s' "$test_out" | grep -oE '^# pass [0-9]+' | awk '{print $3}')
 [ -n "$passed" ] && [ "$passed" -gt 0 ] || fail "the restored tree ran no tests"
 

@@ -10,6 +10,8 @@ FAIL=0
 ok()   { echo "PASS: $1"; PASS=$((PASS + 1)); }
 bad()  { echo "FAIL: $1"; FAIL=$((FAIL + 1)); }
 check(){ if [ "$1" -eq 0 ]; then ok "$2"; else bad "$2"; fi; }
+# a red drill used to print only the test name, so days of CI failures carried no reason with them
+check_log(){ if [ "$1" -eq 0 ]; then ok "$2"; else bad "$2"; sed 's/^/    | /' "$3" >&2; fi; }
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/responder-backup-test.XXXXXX") || exit 1
 trap 'rm -rf "$WORK"' EXIT
@@ -69,7 +71,7 @@ check $? "backup: a refusal is recorded in status.json, not swallowed"
 
 # --- restore-drill.sh
 ./scripts/restore-drill.sh >"$WORK/drill.log" 2>&1
-check $? "drill: passes against a healthy backup"
+check_log $? "drill: passes against a healthy backup" "$WORK/drill.log"
 grep -q '"verdict": "OK"' "$BDIR/drill-status.json"
 check $? "drill: records OK in drill-status.json"
 
@@ -99,7 +101,7 @@ check $? "drill: asserts the oldest gauges-capture blob is readable in the resto
 # repository to resolve against, so the drill failed every night while passing by hand for a day
 # before anyone looked at drill-status.json.
 ( cd / && "$FIX/scripts/restore-drill.sh" >"$WORK/cwd.log" 2>&1 )
-check $? "drill: MUTATION passes when run from / , the way cron runs it"
+check_log $? "drill: MUTATION passes when run from / , the way cron runs it" "$WORK/cwd.log"
 grep -q '"verdict": "OK"' "$BDIR/drill-status.json"
 check $? "drill: records OK after a run from a foreign cwd, not just a clean exit"
 ( cd /tmp && "$FIX/scripts/backup.sh" --tier daily >"$WORK/cwd2.log" 2>&1 )

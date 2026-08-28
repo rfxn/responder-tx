@@ -59,7 +59,8 @@ run_one() {
 }
 
 if [ "$SUITE" = node ] || [ "$SUITE" = all ]; then
-    run_one "node unit suite" node --test tests/
+    # same reason as restore-drill.sh: a bare dir is one failing test on Node 22+, and 24 defaults to the spec reporter
+    run_one "node unit suite" node --test --test-reporter=tap tests/*.test.js
 fi
 
 # The shell and python suites are enumerated from disk, never from a list kept here. A hand-kept

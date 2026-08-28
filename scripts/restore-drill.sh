@@ -37,7 +37,8 @@ write_status() {
   "verdict": "$1",
   "detail": "$2",
   "at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "manifest": "${MANIFEST:-}"
+  "manifest": "${MANIFEST:-}",
+  "manifest_age_min": ${MANIFEST_AGE_MIN:-null}
 }
 EOF
 }
@@ -68,6 +69,10 @@ for t in "${tiers[@]}"; do
 done
 [ "${#candidates[@]}" -gt 0 ] || fail "no manifest under ${DEST}; has backup.sh ever run?"
 MANIFEST=$(ls -1t "${candidates[@]}" | head -1) || fail "cannot rank the manifests under ${DEST}"
+# A pass proves the bundle restores, not that it is recent. Staleness is the freshness monitor's
+# call; recording the age here stops an OK verdict from reading as "backups are healthy".
+MANIFEST_MTIME=$(command stat -c %Y "$MANIFEST" 2>/dev/null) || MANIFEST_MTIME=""  # unreadable: age stays null rather than falsely 0
+[ -n "$MANIFEST_MTIME" ] && MANIFEST_AGE_MIN=$(( ( $(date -u '+%s') - MANIFEST_MTIME ) / 60 ))
 
 tier_dir=$(command dirname "$MANIFEST")
 read_key() { python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2],''))" "$MANIFEST" "$1"; }
@@ -123,7 +128,7 @@ test_out=$(node --test --test-reporter=tap tests/*.test.js 2>&1) || fail "the re
 passed=$(printf '%s' "$test_out" | grep -oE '^# pass [0-9]+' | awk '{print $3}')
 [ -n "$passed" ] && [ "$passed" -gt 0 ] || fail "the restored tree ran no tests"
 
-detail="head ${got_head:0:12}, ${got_commits} commits, ${passed} tests pass, bundle $(command basename "$bundle")"
+detail="head ${got_head:0:12}, ${got_commits} commits, ${passed} tests pass, bundle $(command basename "$bundle") (${MANIFEST_AGE_MIN:-unknown} min old)"
 write_status "OK" "$detail"
 echo "restore-drill: OK ${detail}"
 trap - EXIT

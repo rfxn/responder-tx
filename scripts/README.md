@@ -615,6 +615,34 @@ the outbox nor the state file (use it to check the board by hand). Exit code is
 `RESPONDER_CYCLE_LOG` for the deploy-history read. Log tees to
 `/var/log/responder-freshness.log` (falls back to `/tmp`).
 
+### Backup health rides along here
+
+`backup.sh` writes `status.json` on every exit path and `restore-drill.sh` writes
+`drill-status.json`, and for a long time **nothing read either file**. On
+2026-08-25 the hourly backup began refusing (the root filesystem crossed its
+2 GB free-space floor) and recorded `FAIL` every hour for three days while every
+health signal the board had still read `OK`. The drill kept reporting `OK` too,
+because it faithfully re-verified the last good bundle from the 25th.
+
+This monitor is the only cron that already reaches the ops chat, so the backup
+check lives here. Each run reads the newest manifest across all three tiers and
+the last recorded backup verdict, and alerts when **either** the newest backup is
+older than `RESPONDER_BACKUP_STALE_MIN` (default 360 min) **or** the last run
+recorded `FAIL`. Both are needed: a refusing backup is caught the same hour by
+the verdict, while a cron that stopped firing altogether leaves a healthy-looking
+`OK` behind a manifest that quietly ages out. The alert quotes the `detail` the
+backup itself recorded, so the message names the real cause rather than just the
+symptom.
+
+It keeps its own state file (`RESPONDER_BACKUP_STATE`, default
+`/tmp/responder-backup-health-state`, holding `verdict last_alert_epoch`),
+deliberately separate from the mirror state so neither condition can mask the
+other, and it is transition-gated with its own cooldown
+(`RESPONDER_BACKUP_COOLDOWN`, default 6h) and posts one recovery notice when it
+clears. A host with no backup directory at `RESPONDER_BACKUP_DIR` is logged as
+not checked rather than alerted, so a non-backup host is not a false alarm. An
+alerting backup verdict sets exit `1` just as a mirror alert does.
+
 ### Operator runbook: what to do when it fires
 
 Run `scripts/freshness-monitor.sh --dry-run` first to see the current verdict and
@@ -628,11 +656,14 @@ the three local ages, then act on the cause line it prints:
 | the commit and push path is not landing | Run `git status` and `git log --oneline -3` in the repo. Usually a push rejection (remote moved) or a dirty tree blocking the cycle: `git pull --rebase origin main`, then `scripts/run-cycle.sh`. |
 | the publish path (deploy or Cloudflare) is serving stale data | Run `scripts/deploy.sh` by hand and read the pre-flight output. Most often the Cloudflare token is unreadable (see "Deploy token / ansible-vault") or wrangler failed. The data is already safe in git; the deploy is the only missing step. |
 | UNREACHABLE | Check the site from another network before touching the pipeline. If respondertx.org is genuinely down, this is a Cloudflare or DNS problem, not a data problem, and the local pipeline needs no action. |
+| Backup alert | Read the quoted `detail` first: it is what `backup.sh` itself recorded. A free-space refusal needs room on the backup volume (`df -h`, then reclaim), after which the next hourly run recovers on its own and posts a recovery notice. If instead the newest backup simply aged out with no `FAIL` recorded, the backup cron stopped firing: confirm with `crontab -l` and `tail -50 /var/log/responder-backup.log`. Nothing here blocks publishing, so it never needs a rushed fix during an event. |
 
 Test coverage lives in `tests/freshness-monitor.test.sh` (fresh, stale, transient
 failure, streak, cooldown, fresh-install, recovery, plus all four sign-off forms
-degraded and clean, and a mid-run `cycle start` banner); it uses a `file://`
-mirror URL, so it never touches the network or the real repo data.
+degraded and clean, and a mid-run `cycle start` banner; then backup health:
+healthy, a run that refused, a stale manifest behind an `OK` verdict, cooldown,
+recovery, and an absent backup dir); it uses a `file://` mirror URL and a
+throwaway backup dir, so it never touches the network or the real repo data.
 
 ## Disaster recovery (`backup.sh`, `restore-drill.sh`, `hooks/pre-push`)
 

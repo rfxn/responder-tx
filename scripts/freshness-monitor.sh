@@ -35,6 +35,12 @@ CRIT_COOLDOWN="${RESPONDER_MONITOR_CRIT_COOLDOWN:-3600}"  # CRITICAL/UNREACHABLE
 ESCALATE_FACTOR="${RESPONDER_MONITOR_ESCALATE_FACTOR:-2}" # re-alert regardless of cooldown once the staleness has multiplied this much since the last alert
 FETCH_TIMEOUT="${RESPONDER_MONITOR_TIMEOUT:-25}"
 
+# Backup health rides along here because this is the only cron that already reaches the ops chat.
+BACKUP_DIR="${RESPONDER_BACKUP_DIR:-/root/backups/responder}"
+BACKUP_STALE_MIN="${RESPONDER_BACKUP_STALE_MIN:-360}"  # 6h: the hourly tier can miss a few runs before it means anything
+BACKUP_STATE_FILE="${RESPONDER_BACKUP_STATE:-/tmp/responder-backup-health-state}"  # "verdict last_alert_epoch", kept apart from the mirror state so neither condition masks the other
+BACKUP_COOLDOWN="${RESPONDER_BACKUP_COOLDOWN:-21600}"
+
 LOGFILE="${RESPONDER_MONITOR_LOG:-/var/log/responder-freshness.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron
     LOGFILE=/tmp/responder-freshness.log
@@ -149,6 +155,29 @@ cycle_published() {
 # fmt_min MINUTES — "N min" or "unknown" for an empty reading.
 fmt_min() {
     if [ -n "$1" ]; then printf '%s min' "$1"; else printf 'unknown'; fi
+}
+
+# newest_backup_age_min DIR — minutes since the newest manifest across tiers, empty if there is none.
+newest_backup_age_min() {
+    local newest mt now
+    newest=$(command ls -1t "$1"/hourly/manifest-*.json "$1"/daily/manifest-*.json "$1"/weekly/manifest-*.json 2>/dev/null | command head -1)  # a tier with no backup yet is not an error
+    [ -n "$newest" ] || return 0
+    mt=$(command stat -c %Y "$newest" 2>/dev/null) || return 0  # unreadable: age stays unknown rather than falsely current
+    [ -n "$mt" ] || return 0
+    now=$(command date -u '+%s')
+    echo $(( (now - mt) / 60 ))
+}
+
+# backup_status_field DIR KEY — one field from the backup's status.json, empty if unreadable.
+backup_status_field() {
+    BS_IN="$1/status.json" BS_KEY="$2" python3 - <<'PY'
+import json, os, sys
+try:
+    with open(os.environ["BS_IN"], encoding="utf-8") as f:
+        print(str(json.load(f).get(os.environ["BS_KEY"], "")).strip())
+except (OSError, ValueError, TypeError):
+    sys.exit(0)
+PY
 }
 
 # outbox_append TARGET ROLE TEXT — append ONE {ts,role,text}, re-reading the CURRENT
@@ -356,7 +385,75 @@ else
     write_state "$VERDICT" "$STREAK" "$LASTALERT" "$LASTAGE"
 fi
 
-if alerting "$VERDICT"; then
+# --- Backup health. backup.sh writes status.json on every exit path and restore-drill.sh writes
+# drill-status.json, and nothing read either one: an hourly backup refused for three days running
+# while every health signal the board had still read OK.
+check_backup_health() {
+    if [ ! -d "$BACKUP_DIR" ]; then
+        log "backup health: no backup dir at ${BACKUP_DIR}, not checked"
+        return 0
+    fi
+    local age last_verdict detail bverdict reason word_re
+    bverdict=OK; reason=""; word_re='^[A-Z]+$'
+    age=$(newest_backup_age_min "$BACKUP_DIR")
+    last_verdict=$(backup_status_field "$BACKUP_DIR" verdict)
+    detail=$(backup_status_field "$BACKUP_DIR" detail)
+    if [ -z "$age" ]; then
+        bverdict=FAIL; reason="No backup has ever been written under ${BACKUP_DIR}"
+    elif [ "$age" -ge "$BACKUP_STALE_MIN" ]; then
+        bverdict=FAIL; reason="The newest backup is $(fmt_min "$age") old, past the $(fmt_min "$BACKUP_STALE_MIN") floor"
+    elif [ "$last_verdict" = FAIL ]; then
+        bverdict=FAIL; reason="The last backup run refused or failed"
+    fi
+    if [ "$bverdict" = FAIL ] && [ -n "$detail" ]; then
+        reason="${reason}. It reported: ${detail}"
+    fi
+    log "backup health: verdict=${bverdict} newest=$(fmt_min "$age") last_run=${last_verdict:-none} floor=${BACKUP_STALE_MIN}min"
+
+    local st_verdict st_lastalert
+    st_verdict=OK; st_lastalert=0
+    if [ -f "$BACKUP_STATE_FILE" ]; then
+        read -r st_verdict st_lastalert < "$BACKUP_STATE_FILE" || true  # short/absent line: keep the defaults above
+        [[ "${st_verdict:-}" =~ $word_re ]] || st_verdict=OK
+        st_lastalert=$(printf '%s' "${st_lastalert:-0}" | command tr -cd '0-9'); st_lastalert="${st_lastalert:-0}"
+    fi
+
+    local text alerted
+    text=""; alerted="$st_lastalert"
+    if [ "$bverdict" = FAIL ]; then
+        if [ "$st_verdict" = FAIL ] && [ "$st_lastalert" -gt 0 ] && [ $(( NOW - st_lastalert )) -lt "$BACKUP_COOLDOWN" ]; then
+            log "backup alert suppressed: still FAIL, last alert $(( NOW - st_lastalert ))s ago (< ${BACKUP_COOLDOWN}s cooldown)"
+        else
+            text="Backup alert. ${reason}. A restore is only as good as the newest backup, so this one needs a look. Runbook: scripts/README.md, section \"Disaster recovery\"."
+        fi
+    elif [ "$st_verdict" = FAIL ]; then
+        text="Backups recovered. The newest backup is $(fmt_min "$age") old and the last run reported ${last_verdict:-OK}."
+    fi
+
+    if [ -n "$text" ]; then
+        if [ "$DRY_RUN" -eq 1 ]; then
+            log "DRY-RUN: would post to ${OUTBOX}: ${text}"
+        elif outbox_append "$OUTBOX" "action" "$text"; then
+            log "posted to ops chat: ${text}"
+            if [ "$bverdict" = FAIL ]; then alerted="$NOW"; fi
+        else
+            log "WARN: outbox append contended; backup notice not posted, retries next run"
+        fi
+    fi
+    if [ "$bverdict" != FAIL ]; then alerted=0; fi
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log "DRY-RUN: backup state left at ${st_verdict} ${st_lastalert}"
+    else
+        printf '%s %s\n' "$bverdict" "$alerted" > "${BACKUP_STATE_FILE}.tmp" \
+            && command mv "${BACKUP_STATE_FILE}.tmp" "$BACKUP_STATE_FILE"
+    fi
+    [ "$bverdict" = OK ]
+}
+
+BACKUP_ALERTING=0
+check_backup_health || BACKUP_ALERTING=1
+
+if alerting "$VERDICT" || [ "$BACKUP_ALERTING" -ne 0 ]; then
     exit 1
 fi
 exit 0

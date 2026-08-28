@@ -74,6 +74,12 @@ check $? "backup: a refusal is recorded in status.json, not swallowed"
 check_log $? "drill: passes against a healthy backup" "$WORK/drill.log"
 grep -q '"verdict": "OK"' "$BDIR/drill-status.json"
 check $? "drill: records OK in drill-status.json"
+# an OK verdict against a three-day-old bundle once read as "backups are healthy"
+python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1]))
+sys.exit(0 if isinstance(d.get('manifest_age_min'), int) else 1)" "$BDIR/drill-status.json"
+check $? "drill: records how old the bundle it verified is, so OK cannot imply recent"
 
 # MUTATION: a flipped byte must be caught by the manifest sha, not discovered during an incident
 cp -r "$BDIR" "$WORK/corrupt"

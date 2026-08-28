@@ -74,8 +74,20 @@ run_monitor() {  # runs the monitor against the temp state + file:// mirror; set
     RESPONDER_MONITOR_CRIT_COOLDOWN="${CRITCOOL:-3600}" \
     RESPONDER_MONITOR_ESCALATE_FACTOR="${ESCF:-2}" \
     RESPONDER_MONITOR_TIMEOUT=10 \
+    RESPONDER_BACKUP_DIR="${BDIR:-$WORK/backups}" \
+    RESPONDER_BACKUP_STATE="$WORK/backup-state" \
+    RESPONDER_BACKUP_STALE_MIN="${BSTALE:-360}" \
+    RESPONDER_BACKUP_COOLDOWN="${BCOOL:-21600}" \
     bash "$MON" > "$WORK/run.out" 2>&1
     RC=$?
+}
+
+mk_backup() {  # AGE_MIN VERDICT — a backup dir whose newest manifest is AGE_MIN old
+    mkdir -p "$WORK/backups/hourly"
+    local m="$WORK/backups/hourly/manifest-test.json"
+    printf '{"head":"abc","bundle":"repo-test.bundle"}\n' > "$m"
+    touch -d "-$1 min" "$m"
+    printf '{"verdict":"%s","detail":"seeded by the test"}\n' "$2" > "$WORK/backups/status.json"
 }
 
 # --- Test 1: fresh mirror => no alert ---------------------------------------
@@ -317,6 +329,83 @@ if [ "$(count_msgs "$OUT")" -eq 0 ] && grep -q 'alert suppressed: same verdict C
     pass "17 a legacy 3-field state file still suppresses, and is rewritten with the age column"
 else
     fail "17 legacy state file tolerated"; cat "$STATE"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 18-23: backup health. backup.sh and restore-drill.sh wrote status files that nothing
+# read, so an hourly backup that refused for three days left every health signal reading OK.
+
+# 18: a recent, healthy backup is silent
+setup; mk_backup 20 OK
+run_monitor
+if [ "$RC" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 0 ] \
+   && grep -q 'backup health: verdict=OK' "$WORK/monitor.log" && grep -qE '^OK 0$' "$WORK/backup-state"; then
+    pass "18 a recent healthy backup raises nothing"
+else
+    fail "18 healthy backup stays quiet (rc=$RC, $(count_msgs "$OUT") msgs)"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# 19: the live incident. The backup ran on time and REFUSED, so age alone would never catch it.
+setup; mk_backup 20 FAIL
+run_monitor
+if [ "$RC" -eq 1 ] && [ "$(count_msgs "$OUT")" -eq 1 ] \
+   && has_text "$OUT" "The last backup run refused or failed" && has_text "$OUT" "seeded by the test"; then
+    pass "19 a backup that refused alerts and quotes what it reported"
+else
+    fail "19 a refusing backup alerts (rc=$RC, $(count_msgs "$OUT") msgs)"; cat "$OUT"
+fi
+if ! python3 - "$OUT" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+sys.exit(0 if any("—" in (m.get("text") or "") for m in d["messages"]) else 1)
+PY
+then
+    pass "19b the backup alert text carries no em-dash"
+else
+    fail "19b backup alert text must avoid em-dashes"
+fi
+rm -rf "$WORK"
+
+# 20: a stopped backup cron leaves a stale manifest behind a status.json that still reads OK
+setup; mk_backup 5000 OK
+run_monitor
+if [ "$RC" -eq 1 ] && has_text "$OUT" "The newest backup is 5000 min old"; then
+    pass "20 a stale backup alerts even though the last recorded run said OK"
+else
+    fail "20 staleness alerts independently of the recorded verdict"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
+# 21: a persisting failure does not repeat inside its cooldown
+setup; mk_backup 20 FAIL
+run_monitor; run_monitor
+if [ "$(count_msgs "$OUT")" -eq 1 ] && grep -q 'backup alert suppressed' "$WORK/monitor.log"; then
+    pass "21 a still-failing backup does not repeat inside the cooldown"
+else
+    fail "21 backup cooldown suppresses the repeat (got $(count_msgs "$OUT"))"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+# 22: recovery is announced, so a cleared alert does not just go quiet
+setup; mk_backup 20 FAIL
+run_monitor
+mk_backup 20 OK
+run_monitor
+if [ "$RC" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 2 ] && has_text "$OUT" "Backups recovered"; then
+    pass "22 backups recovering posts a recovery notice"
+else
+    fail "22 recovery notice posted (rc=$RC, $(count_msgs "$OUT") msgs)"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
+# 23: a host with no backup dir is not a backup emergency, but it is said out loud
+setup
+run_monitor
+if [ "$RC" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 0 ] && grep -q 'no backup dir at' "$WORK/monitor.log"; then
+    pass "23 an absent backup dir is skipped and logged, not alerted"
+else
+    fail "23 absent backup dir tolerated"; cat "$WORK/run.out"
 fi
 rm -rf "$WORK"
 

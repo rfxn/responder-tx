@@ -400,3 +400,72 @@ exists but is key-gated.
 
 Registry query that produced this (41 rows, `state=texas` filtered client-side):
 `curl 'https://datahub.transportation.gov/resource/69qe-yiui.json?$limit=400'`
+
+## What a flood-shaped board gets wrong about fire (2026-08-29, Ross Fire)
+
+Written during the Ross Fire (Palo Pinto, 85,303 ac). The board was built flood-first
+and the fire layer inherited flood assumptions that do not transfer. v0.99.92 and
+v0.99.93 fixed some of these; the rest are recorded so the next fire event does not
+rediscover them.
+
+**Acreage is not risk, and neither is containment.** A crest is a forecast with a time
+and a value, comparable across gauges, and stage *is* the hazard. Fire has no such
+scalar. On 2026-08-21 a 30-acre fire near St. Jo (`Starkey`) carried an NWS Fire
+Warning reading "EVACUATE NOW" while Ross at 85,303 acres had every evacuation lifted.
+Containment moves the wrong way too: Ross went 26% to 31% while growing 3 acres,
+because containment measures completed line, an input about crews, not an output about
+threat. v0.99.92 added a size ramp because reported size was reaching the marker not at
+all, which was worse; it is a legibility fix, not a risk ranking. **Do not build a
+severity ordering on acreage or containment.** The only threat tier either source
+states is WFIGS `IncidentComplexityLevel` (Ross: "Type 3 Incident").
+
+**A perimeter and a flood polygon are not the same kind of object.** A flood polygon is
+a model output regenerated every cycle. A fire perimeter is one human interpretation of
+one aircraft pass, and it ages on its own clock. NIFC publishes both `poly_DateCurrent`
+(record currency) and `poly_PolygonDateTime` (when the outline was actually collected);
+we published the first and dated the edge from it, so Ross's outline read ~7h old
+against a polygon flown 109h earlier. Fixed v0.99.92. `WILDFIRE_STALE_H = 24` remains
+uniform, which is right for a 3-acre contained fire and wrong for a running campaign
+fire where 16 hours is thousands of acres.
+
+**Point-of-origin geography is a flood habit.** A gauge is a point and stays one. Every
+upstream fire feed labels an incident by the county it started in. Ross is labeled Palo
+Pinto; roughly half its perimeter vertices are in Jack County, and Jack is the county
+that got the 2026-08-25 evacuation order. **Any county filter, any "fires near me", and
+any county-keyed alert join is silently wrong for exactly the largest fires.** Not fixed.
+
+**Jurisdiction splits in a way flood does not.** Gauges are federal and uniform. Fire
+protection is split: TFS covers state and private land only (all live TFS records are
+`TXTXS`), federal agencies cover their own. Dropping WFIGS in-state hid every
+federal-land Texas fire by construction. Fixed v0.99.93 by deduping on
+`POOProtectingUnit` rather than on state.
+
+**Evacuation is the primary action and it is specific, not behavioural.** Flood's action
+is "turn around, don't drown", which needs no data and can be a static disclaimer.
+Fire's is "leave now, by this route, to this shelter". It arrives in exactly one
+machine-readable place, the NWS `Fire Warning` product, which the hazard table already
+admits as `order` class. Two traps if that path is ever extended: `Fire Warning` carries
+`severity=Unknown, urgency=Unknown, response=Monitor` while `Red Flag Warning` carries
+`severity=Severe`, so **ranking by CAP severity puts fire weather above EVACUATE NOW**;
+and it has no VTEC, so the cancellation is another `Fire Warning` with the same event
+string and must be read from the text. CAP retention is ~7 days, so these are only
+capturable on ingest. `Evacuation Immediate` fired once nationwide in four months and is
+not the product to build around.
+
+**Smoke has no flood analogue, and the obvious proxy is a false friend.** Smoke closes
+roads far outside any perimeter and is why SH 254 is shut. The only active Texas
+`Air Quality Alert` during this fire was a TCEQ Ozone Action Day for DFW, unrelated to
+smoke. **Mapping `Air Quality Alert` to wildfire smoke would have been wrong on day one.**
+
+**A thunderstorm inverts its meaning between the two hazards.** A flood board reads a
+cell near a fire as rain and suppression help. A fire board must read it as outflow
+winds and a sudden direction reversal, which is the classic entrapment setup. NWS Fort
+Worth issued exactly this on 2026-08-27 over the Ross Fire.
+
+**The fire-specific form of E1.** `CLAUDE.md` E1 says a failed fetch must never become a
+published value. Fire adds the harder sibling: **a successful fetch of a stale upstream
+assertion must not either.** NIFC, SACC and the Esri national layer all currently
+publish `0 structures destroyed` for Ross because they derive from the ICS-209 filed
+before the assessment finished; TFS's own update reports 157 destroyed, 18 of them
+occupied residences. Every one of those feeds succeeded. Only a cross-source
+disagreement check catches this shape.

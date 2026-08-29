@@ -518,7 +518,8 @@ if d is not None:
                         % (i, out, buf))
                 if f["scope"] != "buffer":
                     die("wildfire.json: fires[%d] is outside Texas but labelled %r" % (i, f["scope"]))
-    for i, p in enumerate(d.get("perimeters") or []):
+    perims = d.get("perimeters") or []
+    for i, p in enumerate(perims):
         for k in ("local", "state", "complexity"):
             if p.get(k) is not None and not isinstance(p[k], str):
                 die("wildfire.json: perimeters[%d] %s is neither a string nor null" % (i, k))
@@ -530,6 +531,17 @@ if d is not None:
                 die("wildfire.json: perimeters[%d] mapped is neither an ISO stamp nor null" % i)
             if p.get("observed") and parse_iso(p["mapped"]) > parse_iso(p["observed"]):
                 die("wildfire.json: perimeters[%d] mapped is later than observed" % i)
+        if "orphan" in p and p["orphan"] is not None and not isinstance(p["orphan"], bool):
+            die("wildfire.json: perimeters[%d] orphan %r is neither true, false nor null"
+                % (i, p["orphan"]))
+    # orphan says whether any incident in this same file backs the edge, so it is answered for every
+    # edge or for none. A half-answered column would leave the client guessing which half is real.
+    flagged = [p for p in perims if "orphan" in p]
+    if flagged and len(flagged) != len(perims):
+        die("wildfire.json: %d of %d perimeters carry an orphan flag; a partial column cannot be trusted"
+            % (len(flagged), len(perims)))
+    if perims and not flagged:
+        print("note: wildfire.json predates the perimeter orphan column; the next cycle republishes it")
 
 d = optional("data/caltopo-export.json")
 if d is not None:

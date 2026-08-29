@@ -17,6 +17,7 @@ DEGRADED instead of clean, which is the signal the freshness monitor reads.
 import datetime
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -38,6 +39,24 @@ MAX_PAGES = 8      # runaway guard; the statewide set runs in the tens even in a
 # healthy answers measure ~0.3s, so a short deadline plus retries beats one long wait on a hang
 TIMEOUT = 12
 BACKOFFS = [2, 5]
+# raising this past gen-caltopo.py's own desc cap would let that cap cut the ellipsis back off
+DESC_MAX = 200
+DESC_TAG_RE = re.compile(r"<[^>]*>")
+DESC_WS_RE = re.compile(r"\s+")
+DESC_LEAD_RE = re.compile(r"^[\s–—-]+")
+
+
+def clean_desc(raw):
+    """Markup and TxDOT's leading "- " artifact dropped exactly as js/sources.js stripHtml does,
+    so a snapshot row reads identically to a live one, then capped on a word with an ellipsis."""
+    s = DESC_LEAD_RE.sub("", DESC_WS_RE.sub(" ", DESC_TAG_RE.sub(" ", str(raw or ""))).strip())
+    if len(s) <= DESC_MAX:
+        return s
+    cut = s[:DESC_MAX - 1]
+    space = cut.rfind(" ")
+    if space >= DESC_MAX // 2:
+        cut = cut[:space]
+    return cut.rstrip() + "…"
 
 
 def arcgis_has_more(doc):
@@ -158,7 +177,7 @@ def main():
                 # route collapses to a single key
                 "from": p.get("from_limit") or "",
                 "to": p.get("to_limit") or "",
-                "desc": (p.get("description") or "")[:120],
+                "desc": clean_desc(p.get("description")),
                 "start": p.get("start_time"),
                 "end": p.get("end_time"),
                 "v": [round(first[1], 4), round(first[0], 4)],

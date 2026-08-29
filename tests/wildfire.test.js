@@ -12,6 +12,12 @@ const { loadApp, loadMapApp, loadFullApp, loadWiredMap } = require('./harness.js
 
 const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+/* boot() cannot be called against these stubs, so its two call sites are matched. Comments are
+   stripped and the slice starts at boot() itself: a commented-out call still matches the raw file,
+   and that is exactly the shape that let the whole layer ship dead in v0.99.79. */
+const BOOT_SRC = read('js/boot.js');
+const BOOT_FN = BOOT_SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  .split('async function boot()')[1] || '';
 
 // the "?" glossary lives in js/boot.js and paints into #glossary-body, so the bundle with boot.js
 // in it builds the panel for real rather than the file being regexed for the key
@@ -237,9 +243,8 @@ test('the layer travels in a shared link, in both directions and without stackin
     assert.match(S.buildShareUrl(), /[?&]fire=1\b/, 'a shared link silently drops the wildfire layer');
   } finally { S.document.querySelector = prev; }
   // the inbound ?fire=1 parser lives inside boot(), which cannot be called: matched, not run
-  const boot = read('js/boot.js').match(/for \(const \[qk, lk\] of \[\['usgs'[\s\S]*?\]\) \{/);
-  assert.ok(boot, 'the share-param parser was not found');
-  assert.match(boot[0], /\['fire', 'wildfire'\]/, 'an incoming ?fire=1 link does not reopen the layer');
+  const shareParams = (BOOT_FN.match(/for \(const \[qk, lk\] of \[\['usgs'[\s\S]*?\]\) \{/) || [''])[0];
+  assert.match(shareParams, /\['fire', 'wildfire'\]/, 'an incoming ?fire=1 link does not reopen the layer');
   assert.ok(app.LINK_VIEW_PARAMS.includes('fire'), 'a link carrying ?fire= must win over the kept layer set');
 });
 
@@ -279,7 +284,13 @@ test('every wildfire string exists in both languages and carries no em-dash', ()
     'wf.unreported', 'wf.nearby', 'wf.crew', 'wf.k.size', 'wf.k.contain', 'wf.k.where',
     'wf.k.cause', 'wf.k.started', 'wf.k.updated', 'wf.k.unit', 'wf.k.org', 'wf.k.crew',
     'wf.k.number', 'wf.k.method', 'wf.k.mapped', 'wf.unnamed', 'wf.perim.sub',
-    'legend.wildfire.perim', 'wf.k.complexity', 'wf.edge.stale', 'wf.edge.undated'];
+    'legend.wildfire.perim', 'wf.k.complexity', 'wf.edge.stale', 'wf.edge.undated',
+    'sheet.s.wildfire.n', 'sheet.s.wildfire.na', 'hero.fire', 'hero.fire.sub', 'hero.fire.big'];
+  /* A string copied across untranslated is missing from es as surely as an absent key is. Only the
+     keys that carry prose are listed: 'wf.acres' is legitimately '{n} acres' in both languages. */
+  for (const k of ['sheet.s.wildfire.n', 'sheet.s.wildfire.na', 'hero.fire', 'hero.fire.sub', 'hero.fire.big']) {
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
+  }
   for (const k of keys) {
     assert.equal((i18n.match(new RegExp(`'${k.replace(/\./g, '\\.')}':`, 'g')) || []).length, 2,
       `${k} is missing from en or es`);
@@ -715,7 +726,7 @@ function driveFetch(opts) {
   return {
     said,
     urls,
-    run: () => MSB.fetchWildfire(),
+    run: (o) => MSB.fetchWildfire(o),
     notice: () => MSB.wildfireNoticeText(),
     get unknown() { return MS.wildfireUnknown; },
     get loaded() { return MS._wildfireLoaded; },
@@ -1036,4 +1047,247 @@ test('a stated complexity is shown, is never derived, and its absence is named',
   for (const k of ['wf.k.complexity', 'wf.edge.stale', 'wf.edge.undated']) {
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
+});
+
+/* ---------- a fire that is burning has to reach a reader who did not go looking ----------
+   Ross was 85,303 acres and 31% contained with the layer off by default, the payload unread until
+   someone switched the layer on, and no fire-related NWS product open anywhere in Texas. Nothing on
+   the board could have said so. Everything below runs the surfaces that changed that. */
+
+const AO_BIG = { ...FIRE_PT, id: 'tfs:big', name: 'Ross', scope: 'tx', acres: 85303, contain: 31, status: 'Active' };
+const AO_SMALL = { ...FIRE_PT, id: 'tfs:sm', name: 'Whitetail', scope: 'tx', acres: 300, contain: 20, status: 'Active' };
+const AO_OUT = { ...AO_BIG, id: 'tfs:out', name: 'Bufford Creek', contain: 100, status: 'Contained' };
+const BUFFER_BIG = { ...AO_BIG, id: 'wfigs:buf', src: 'wfigs', name: 'Rabbit Ear East', scope: 'buffer' };
+const payloadOf = (fires) => ({ generated: '2026-08-29T18:00:00Z', sources: SOURCES, fires, perimeters: [] });
+
+test('the layer opens itself for a large uncontained fire in the AO, and for nothing else', () => {
+  const w = loadWiredMap();
+  const S = w.sandbox;
+  const opens = (fires) => {
+    w.state.wildfireAutoDone = false;
+    w.map.removeLayer(w.layers.wildfire); // the stub removal raises no event, so no latch is burnt
+    w.state.wildfire = payloadOf(fires);
+    S.maybeAutoWildfire();
+    return S.layerRowOn('wildfire');
+  };
+  assert.equal(S.layerRowOn('wildfire'), false, 'the layer must still ship off, so this is a real change of state');
+  assert.equal(opens([AO_BIG]), true, '85,303 acres burning uncontained in the AO is the case this exists for');
+  assert.equal(opens([AO_SMALL, AO_OUT, BUFFER_BIG]), false,
+    'a small fire, a contained one and one merely near Texas are none of them that case');
+  const bar = mapApp.WILDFIRE_AUTO_ACRES;
+  assert.equal(bar, mapApp.WILDFIRE_TIERS[0][0], 'the bar must stay the marker ramp top band, not a fourth number');
+  assert.equal(opens([{ ...AO_BIG, acres: bar - 1 }]), false, 'an acre under the bar is under it');
+  assert.equal(opens([{ ...AO_BIG, acres: bar }]), true, 'and the bar itself is over it');
+  assert.equal(opens([{ ...AO_BIG, acres: null }]), false, 'an unreported acreage is not a reported large one');
+  assert.equal(opens([]), false, 'and a fire-free day opens nothing');
+});
+
+test('the auto-enable fires once, yields to a toggle-off, and has a kill switch', () => {
+  const w = loadWiredMap();
+  const S = w.sandbox;
+  w.state.wildfire = payloadOf([AO_BIG]);
+  S.maybeAutoWildfire();
+  assert.equal(S.layerRowOn('wildfire'), true);
+  assert.equal(w.state.wildfireAutoDone, true, 'the auto-enable must latch itself');
+
+  // the shipped overlayremove handler is what records a deliberate toggle-off
+  w.state.wildfireAutoDone = false;
+  w.map.removeLayer(w.layers.wildfire);
+  w.fire('overlayremove', { layer: w.layers.wildfire });
+  assert.equal(w.state.wildfireAutoDone, true, 'switching the layer off must stop it reopening itself');
+  S.maybeAutoWildfire();
+  assert.equal(S.layerRowOn('wildfire'), false, 'a fire still burning may not reopen a layer the reader closed');
+
+  // a saved view restoring the layer OFF is the same decision, made on an earlier visit
+  w.state.wildfireAutoDone = false;
+  assert.equal(S.applyLayerState([], ['wildfire']), true);
+  assert.equal(w.state.wildfireAutoDone, true, 'a restored OFF is the reader\'s decision too');
+
+  w.state.wildfireAutoDone = false;
+  w.app.CONFIG.wildfireAutoEnable = false;
+  try {
+    S.maybeAutoWildfire();
+    assert.equal(S.layerRowOn('wildfire'), false, 'the kill switch must turn the whole behaviour off');
+    assert.equal(w.state.wildfireAutoDone, false, 'and must not burn the latch on its way past');
+  } finally { w.app.CONFIG.wildfireAutoEnable = true; }
+});
+
+/* PB_LIVE_HIDE strips this layer on every playback engage, which is the board taking it away and
+   not the reader closing it. Latching on that would kill the auto-enable for the rest of the
+   session for anyone who scrubbed the archive once. */
+test('playback taking the layer away is not the reader closing it', () => {
+  const w = loadWiredMap();
+  const S = w.sandbox;
+  assert.ok(w.app.pbLiveHideAll().some(([k]) => k === 'wildfire'), 'playback no longer hides the layer; this guard is vacuous');
+  const prevPb = w.state.pb;
+  w.state.pb = Object.assign({}, prevPb, { live: false }); // engaged: pbBlocksLive() is now true
+  try {
+    w.fire('overlayremove', { layer: w.layers.wildfire });
+    assert.equal(w.state.wildfireAutoDone, false, 'a playback strip must not read as a toggle-off');
+  } finally { w.state.pb = prevPb; }
+  w.state.wildfire = payloadOf([AO_BIG]);
+  S.maybeAutoWildfire();
+  assert.equal(S.layerRowOn('wildfire'), true, 'a session that scrubbed the archive must still get the auto-enable');
+});
+
+/* ---------- the hero card ---------- */
+
+const APPSB = app._sandbox;
+// the harness t() echoes its key, so interpolated card text needs the real templates
+const HERO_T = { 'hero.fire': 'Fires', 'hero.fire.sub': 'reported uncontained',
+  'hero.fire.big': 'largest {name}, {a} acres reported', 'hero.unknown': 'source unavailable' };
+
+function fireCard(fires, unknown) {
+  const st = app.state;
+  const saved = { wildfire: st.wildfire, unknown: st.wildfireUnknown, t: APPSB.t };
+  try {
+    st.wildfire = fires === null ? null : payloadOf(fires);
+    st.wildfireUnknown = !!unknown;
+    APPSB.t = (k) => (k in HERO_T ? HERO_T[k] : k);
+    return app.heroCards().find((c) => c.key === 'fire') || null;
+  } finally { st.wildfire = saved.wildfire; st.wildfireUnknown = saved.unknown; APPSB.t = saved.t; }
+}
+
+test('the fire card counts what the map counts and names the largest', () => {
+  const card = fireCard([AO_BIG, AO_SMALL, AO_OUT, BUFFER_BIG]);
+  assert.ok(card, 'a burning fire must reach the hero strip');
+  assert.equal(card.n, 2, 'the count is the uncontained fires inside the AO, and only those');
+  assert.equal(card.sub, 'largest Ross, 85303 acres reported', 'the card must name the fire and its reported size');
+  assert.equal(card.tone, 'fire', 'the flood category ramp is not a scale a fire sits on');
+  assert.equal(typeof card.act, 'function', 'every hero card must reach a surface');
+  // the same predicate the markers are drawn from, so the card cannot drift from the map
+  assert.equal(fireCard([AO_BIG, AO_SMALL]).n, 2);
+  assert.equal(fireCard([{ ...AO_SMALL, acres: null }]).sub, 'reported uncontained',
+    'with no size reported anywhere the card states no size rather than inventing one');
+});
+
+test('with nothing uncontained burning the fire card stays out of the row', () => {
+  assert.equal(fireCard([AO_OUT, BUFFER_BIG]), null,
+    'a contained fire and one near Texas do not earn a slot beside five flood counts');
+  assert.equal(fireCard([]), null, 'and a reported fire-free day is not news the row has to carry');
+  assert.equal(fireCard(null), null, 'nor is a payload the board has not read yet');
+});
+
+test('an unreadable incident file renders on the card as unknown, never as zero fires', () => {
+  const card = fireCard(null, true);
+  assert.ok(card, 'an unreadable source is not a quiet one, and must still take its slot');
+  assert.equal(card.n, null, 'a count the board could not take must not be published as a number');
+  assert.equal(card.sub, 'source unavailable');
+  const html = app.heroCardsHtml([card]);
+  assert.match(html, /<span class="hc-n">\?<\/span>/, 'the null count must reach the reader as ?');
+  assert.doesNotMatch(html, /hc-n">0/, 'a failed read rendered as 0 asserts that nothing is burning');
+});
+
+/* Every corpus the hazard line draws from is flood-shaped, so a calm river used to render a green
+   all-clear with no cards at all while a fire burned. */
+test('a fire burning beside a calm river still reaches the strip', () => {
+  const st = app.state;
+  const el = { innerHTML: '', classList: { add() {}, remove() {}, toggle() {} }, querySelectorAll: () => [] };
+  const saved = { qs: APPSB.document.querySelector, loaded: st.alertsLoadedOnce, wildfire: st.wildfire,
+    alerts: st.alerts, gauges: st.gauges, lsrs: st.lsrs };
+  try {
+    APPSB.document.querySelector = (sel) => (sel === '#threat-strip' ? el : saved.qs.call(APPSB.document, sel));
+    st.alertsLoadedOnce = true;
+    st.alerts = []; st.gauges = []; st.lsrs = [];
+    st.wildfire = payloadOf([AO_BIG]);
+    APPSB.renderThreatStrip();
+    assert.match(el.innerHTML, /data-hero="fire"/, 'a quiet flood board must not hide a burning fire behind an all-clear');
+    el.innerHTML = '';
+    st.wildfire = payloadOf([AO_OUT]);
+    APPSB.renderThreatStrip();
+    assert.doesNotMatch(el.innerHTML, /hero-card/, 'with nothing burning the strip goes back to what it always did');
+  } finally {
+    APPSB.document.querySelector = saved.qs; st.alertsLoadedOnce = saved.loaded; st.wildfire = saved.wildfire;
+    st.alerts = saved.alerts; st.gauges = saved.gauges; st.lsrs = saved.lsrs;
+  }
+});
+
+/* ---------- the layer-sheet row, rendered rather than described ---------- */
+
+test('the wildfire row states what is burning before anyone opens the layer', () => {
+  const w = loadWiredMap();
+  const S = w.sandbox;
+  const prevT = S.t;
+  S.t = (k) => ({ 'sheet.s.wildfire.n': '{n} uncontained now, largest {a} acres',
+    'sheet.s.wildfire.na': '{n} uncontained now, no size reported',
+    'sheet.s.wildfire': 'Reported wildfire incidents',
+    'wf.unknown': 'The wildfire sources could not be read.' }[k] || k);
+  const sub = () => {
+    const body = { innerHTML: '', scrollTop: 0 };
+    const sheet = { querySelector: (sel) => ({ '.ls-head strong': { textContent: '' }, '.ls-close': { title: '' },
+      '.ls-note': { hidden: true, textContent: '' }, '.ls-body': body }[sel] || null) };
+    const prevGet = S.document.getElementById;
+    try {
+      S.document.getElementById = (id) => (id === 'layer-sheet' ? sheet : null);
+      S.renderLayerSheet();
+    } finally { S.document.getElementById = prevGet; }
+    const at = body.innerHTML.indexOf('data-layer="wildfire"');
+    assert.ok(at > 0, 'the sheet rendered no wildfire row');
+    return (body.innerHTML.slice(at, at + 600).match(/<span class="ls-sub">([^<]*)</) || [])[1];
+  };
+  try {
+    w.state.wildfire = payloadOf([AO_BIG, AO_SMALL, AO_OUT, BUFFER_BIG]);
+    assert.equal(sub(), '2 uncontained now, largest 85303 acres', 'the row must state the live count and the largest size');
+    w.state.wildfire = payloadOf([{ ...AO_SMALL, acres: null }]);
+    assert.equal(sub(), '1 uncontained now, no size reported', 'an unreported size must not be filled in');
+    w.state.wildfire = payloadOf([AO_OUT]);
+    assert.equal(sub(), 'Reported wildfire incidents', 'nothing burning falls back to the description, not to a zero');
+    w.state.wildfire = null;
+    w.state.wildfireUnknown = true;
+    assert.equal(sub(), 'The wildfire sources could not be read.',
+      'an unreadable file must never leave the row reading as a count of nothing');
+  } finally { S.t = prevT; }
+});
+
+/* ---------- the boot read ----------
+   The payload used to load only on the first overlayadd, so with the layer off nothing on the board
+   could count a fire. The read is now a boot-time one, and a boot read has no layer on screen to
+   explain: it must be silent, and the toggle-on must still speak for the layer it just opened. */
+
+test('the boot read is quiet, and a later toggle-on still speaks for the layer it opens', async () => {
+  assert.match(BOOT_FN, /fetchWildfire\(\{ quiet: true \}\)/,
+    'boot must read the incident file itself; nothing else does before the layer is opened');
+  const d = driveFetch({ transport: served({ generated: 'x', sources: SOURCES, fires: [], perimeters: [] }) });
+  try {
+    await d.run({ quiet: true });
+    assert.deepEqual(d.said, [], 'a boot read must not toast about a layer nobody has opened');
+    assert.equal(d.payload.fires.length, 0, 'and it must still land the payload the surfaces count from');
+    await d.run();
+    assert.deepEqual(d.said, ['wf.none'], 'an empty layer that says nothing when opened reads as broken');
+    assert.equal(d.urls.length, 1, 'and saying it must not cost a second read');
+  } finally { d.restore(); }
+});
+
+test('a boot read that fails throws at nobody, stays honest, and leaves the toggle-on able to retry', async () => {
+  let up = false;
+  const d = driveFetch({ transport: () => (up ? served(GOOD)() : Promise.reject(new Error('offline'))) });
+  try {
+    await assert.doesNotReject(() => d.run({ quiet: true }), 'a failed boot read must not reject into the rest of boot');
+    assert.equal(d.unknown, true, 'a failed read with no last-good is unknown, not a fire-free Texas');
+    assert.deepEqual(d.said, [], 'and boot has no layer on screen to explain it against');
+    assert.equal(d.loaded, false, 'the lazy path must still be able to try again');
+    up = true;
+    await d.run();
+    assert.equal(d.urls.length, 2, 'the toggle-on must actually re-read the file');
+    assert.equal(d.unknown, false, 'and a successful retry must clear the unknown');
+  } finally { d.restore(); }
+});
+
+/* The auto-enable puts a layer on screen unasked, so it may only do that for a layer that actually
+   drew. v0.99.79 is the reason: renderWildfire() threw and the layer went dark, and opening a dark
+   layer at a reader who is looking for a fire is worse than leaving it closed. */
+test('a layer that failed to draw is never opened at the reader', async () => {
+  const w = loadWiredMap();
+  const S = w.sandbox;
+  const said = [];
+  const broken = { clearLayers() {}, addLayer() { throw new Error('render blew up'); },
+    addTo(m) { m.addLayer(broken); return broken; } };
+  w.state.layers.wildfire = broken;
+  S.opNotice = (m) => said.push(m);
+  S.fetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(payloadOf([AO_BIG])) });
+  await S.fetchWildfire();
+  assert.deepEqual(said, ['note.wildfiredraw'], 'a draw failure must still name the board as the fault');
+  assert.equal(w.map.hasLayer(broken), false,
+    'a fire large enough to open the layer must not open one that would arrive blank');
+  assert.equal(w.state.wildfireAutoDone, false, 'and the one chance to open it must not be spent on a dead layer');
 });

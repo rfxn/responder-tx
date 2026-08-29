@@ -67,7 +67,8 @@ def wfigs_feature(name='Frontera', fid='2026-NMN4S-000055', lon=-103.216, lat=35
     props = {'IncidentName': name, 'UniqueFireIdentifier': fid, 'POOState': 'US-NM',
              'POOCounty': 'Quay', 'IncidentSize': 45, 'PercentContained': None,
              'ModifiedOnDateTime_dt': 1784666188770, 'FireDiscoveryDateTime': 1772139645000,
-             'POOProtectingAgency': 'SF', 'IncidentTypeCategory': 'WF'}
+             'POOProtectingAgency': 'SF', 'POOProtectingUnit': 'NMN4S',
+             'IncidentTypeCategory': 'WF'}
     props.update(over)
     return {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [lon, lat]},
             'properties': props}
@@ -358,11 +359,55 @@ fire = [f for f in run()['doc']['fires'] if f['src'] == 'wfigs'][0]
 check('an incident whose source states no complexity publishes null, not an invented tier',
       fire['complexity'] is None, fire)
 
-# --- scope: what each source is allowed to contribute ---------------------------------------
-r = run(wfigs=collection([wfigs_feature(POOState='US-TX', POOCounty='Bastrop')]))
-check('a Texas WFIGS record is dropped, because TFS is authoritative in state',
+# --- DEDUPE · TFS protects state and private land only ---------------------------------------
+# Dropping every Texas WFIGS record made federal-land fires invisible by construction, because TFS
+# never carries them. The discriminator is the unit that protects the point of origin.
+r = run(wfigs=collection([wfigs_feature(name='Ross', POOState='US-TX', POOCounty='Sutton',
+                                        POOProtectingUnit='TXTXS', POOProtectingAgency='SFS',
+                                        lon=-100.15, lat=30.37)]))
+check('DEDUPE · a Texas fire TFS itself protects is dropped, because TFS publishes that same fire',
       not [f for f in r['doc']['fires'] if f['src'] == 'wfigs']
       and src(r['doc'], 'wfigs')['status'] == 'ok', r['doc']['fires'])
+check('DEDUPE · the incident query asks upstream for the protecting unit it discriminates on',
+      'POOProtectingUnit' in query_url(r['calls'], 'wfigs'), query_url(r['calls'], 'wfigs'))
+# the live case this fix exists for: Big Bend NP, 5 acres, dropped for as long as the state rule stood
+r = run(wfigs=collection([wfigs_feature(name='Black', fid='2026-TXBBP-000123', POOState='US-TX',
+                                        POOCounty='Brewster', POOProtectingUnit='TXBBP',
+                                        POOProtectingAgency='NPS', IncidentSize=5,
+                                        lon=-103.25, lat=29.27)]))
+W = [f for f in r['doc']['fires'] if f['src'] == 'wfigs']
+check('DEDUPE · a Texas fire on National Park land is published, because TFS never carries it',
+      len(W) == 1 and W[0]['name'] == 'Black' and W[0]['state'] == 'TX' and W[0]['scope'] == 'tx',
+      W)
+r = run(wfigs=collection([wfigs_feature(name='Rita Blanca Unit 32', fid='2026-TXNFT-000032',
+                                        POOState='US-TX', POOCounty='Dallam',
+                                        POOProtectingUnit='TXNFT', POOProtectingAgency='USFS',
+                                        IncidentSize=8907, lon=-102.9, lat=36.0)]))
+check('DEDUPE · a Texas fire on Forest Service land is published for the same reason',
+      [f['name'] for f in r['doc']['fires'] if f['src'] == 'wfigs'] == ['Rita Blanca Unit 32'],
+      r['doc']['fires'])
+# AMBIGUOUS · the deliberate choice: an unrecognised or unstated unit publishes. A fire listed twice
+# is recoverable in the field; a fire the board omits is not.
+r = run(wfigs=collection([wfigs_feature(name='Unstated', POOState='US-TX',
+                                        POOProtectingUnit=None, lon=-97.74, lat=30.27)]))
+check('DEDUPE · a Texas fire whose protecting unit is unstated is published, not dropped on a guess',
+      [f['name'] for f in r['doc']['fires'] if f['src'] == 'wfigs'] == ['Unstated'], r['doc']['fires'])
+r = run(wfigs=collection([wfigs_feature(name='Parks', POOState='US-TX',
+                                        POOProtectingUnit='TXTXP', lon=-97.74, lat=30.27)]))
+check('DEDUPE · the unit is matched whole, so another Texas agency sharing the TXTX prefix survives',
+      [f['name'] for f in r['doc']['fires'] if f['src'] == 'wfigs'] == ['Parks'], r['doc']['fires'])
+r = run(wfigs=collection([wfigs_feature(name='Recased', POOState='US-TX',
+                                        POOProtectingUnit=' txtxs ', lon=-97.74, lat=30.27)]))
+check('DEDUPE · a re-cased or padded TXTXS is still the same unit and still a duplicate',
+      not [f for f in r['doc']['fires'] if f['src'] == 'wfigs'], r['doc']['fires'])
+r = run(wfigs=collection([wfigs_feature(name='Ross', POOState='US-TX', POOProtectingUnit='TXTXS',
+                                        lon=-100.15, lat=30.37),
+                          wfigs_feature(name='Velma', fid='2026-OKOKSC-260926', POOState='US-OK',
+                                        POOProtectingUnit='OKOKS', lon=-97.68, lat=34.46)]))
+check('DEDUPE · dropping a Texas duplicate leaves the out-of-state records in the same read alone',
+      [f['name'] for f in r['doc']['fires'] if f['src'] == 'wfigs'] == ['Velma'], r['doc']['fires'])
+
+# --- scope: what each source is allowed to contribute ---------------------------------------
 r = run(tfs=collection([tfs_feature(categoryType='Prescribed'),
                         tfs_feature(fid='ID-2', publicvisibility='Hidden'),
                         tfs_feature(fid='ID-3')],
@@ -595,6 +640,41 @@ r = run(perim=collection([perim_feature(ring=[[-80.0, 40.0], [-79.9, 40.0], [-79
 check('a perimeter wholly outside the scope is dropped',
       r['doc']['perimeters'] == [], r['doc']['perimeters'])
 
+# --- ORPHAN · an edge the incident list cannot account for ------------------------------------
+# The edge layer retains outlines after the incident record goes out, so an edge with nothing
+# behind it is ordinary. Alamo Creek drew on the live board with no incident anywhere in fires[].
+TFS_EMPTY = collection([], created='2026-07-29T03:55:03.767Z')
+TFS_ROSS = collection([tfs_feature(name='Ross')], created='2026-07-29T03:55:03.767Z')
+
+r = run(tfs=TFS_ROSS, wfigs=collection([]), perim=collection([perim_feature(name='Ross')]))
+check('ORPHAN · an edge whose incident is still open publishes orphan false',
+      r['doc']['perimeters'][0]['orphan'] is False, bare(r['doc']['perimeters'][0]))
+r = run(tfs=TFS_ROSS, wfigs=collection([]), perim=collection([perim_feature(name='Alamo Creek')]))
+P = r['doc']['perimeters'][0]
+check('ORPHAN · an edge no incident accounts for keeps its ring and says so, rather than vanishing',
+      P['orphan'] is True and P['acres'] == 120.5 and len(P['rings'][0]) == 5, bare(P))
+r = run(tfs=collection([tfs_feature(name='Renamed Since', number='267549')],
+                       created='2026-07-29T03:55:03.767Z'),
+        wfigs=collection([]), perim=collection([perim_feature(name='Ross')]))
+check('ORPHAN · a renamed fire still matches on the local incident number inside the same state',
+      r['doc']['perimeters'][0]['orphan'] is False, bare(r['doc']['perimeters'][0]))
+r = run(tfs=TFS_EMPTY, wfigs=collection([wfigs_feature(name='Renamed Since', IrwinID='{ABC-123}')]),
+        perim=collection([perim_feature(name='Ross')]))
+check('ORPHAN · an IRWIN id matches across a name change and across the state line',
+      r['doc']['perimeters'][0]['orphan'] is False, bare(r['doc']['perimeters'][0]))
+r = run(tfs=TFS_EMPTY, wfigs=collection([wfigs_feature(name='West Fork', POOState='US-NM')]),
+        perim=collection([perim_feature(name='West Fork', poly_IRWINID='',
+                                        attr_LocalIncidentIdentifier=None)]))
+check('ORPHAN · a name that collides across two states is not read as the incident behind the edge',
+      r['doc']['perimeters'][0]['orphan'] is True, bare(r['doc']['perimeters'][0]))
+# E1 · an unread incident source is not an absent fire, so the question goes unanswered
+r = run(wfigs=ARCGIS_ERR, perim=collection([perim_feature(name='Alamo Creek')]))
+check('ORPHAN · a failed incident read publishes orphan null, never an edge falsely marked out',
+      r['doc']['perimeters'][0]['orphan'] is None, bare(r['doc']['perimeters'][0]))
+r = run(tfs=OSError('timed out'), perim=collection([perim_feature(name='Alamo Creek')]))
+check('ORPHAN · the other incident source failing leaves the same question unanswered',
+      r['doc']['perimeters'][0]['orphan'] is None, bare(r['doc']['perimeters'][0]))
+
 # E1 · an enrichment that fails must not empty the layer it enriches
 r = run(perim=OSError('timed out'))
 D = r['doc']
@@ -643,6 +723,9 @@ KEPT = [{'id': 'wfigs-perim:{X}', 'irwin': '{X}', 'name': 'Kept', 'scope': 'tx',
          'observed': '2026-07-30T02:00:00Z', 'method': 'Image Interpretation',
          'category': 'Wildfire Daily Fire Perimeter',
          'rings': [[[-99.0, 31.0], [-99.0, 31.1], [-98.9, 31.1], [-98.9, 31.0], [-99.0, 31.0]]]}]
+# a carry republishes the row verbatim; orphan is the one column re-derived, against this cycle's
+# incidents rather than the ones the retained read saw
+CARRIED = [dict(KEPT[0], orphan=True)]
 PERIM_CAPTURED = '2026-07-30T02:05:00Z'
 
 
@@ -672,7 +755,7 @@ r = run(perim=OSError('timed out'), previous=prev_edges(0.5))
 D = r['doc']
 S = src(D, 'wfigs-perimeters')
 check('CARRY · a failed edge read republishes the last good perimeters instead of deleting them',
-      r['code'] == 0 and D['perimeters'] == KEPT, 'code=%s %s' % (r['code'], D['perimeters']))
+      r['code'] == 0 and D['perimeters'] == CARRIED, 'code=%s %s' % (r['code'], D['perimeters']))
 check('CARRY · the retained set is marked carried and counted, never laundered as a fresh read',
       S['status'] == 'carried' and S['count'] == 1, S)
 check('CARRY · the retained set keeps the stamps of the read that produced it, not this clock',
@@ -685,8 +768,11 @@ check('CARRY · the incident sources are untouched by the carry and still publis
 
 r = run(perim=OSError('timed out'), previous=prev_edges(CARRY_H - 0.5))
 check('CARRY · a set just inside the %gh window is still republished' % CARRY_H,
-      src(r['doc'], 'wfigs-perimeters')['status'] == 'carried' and r['doc']['perimeters'] == KEPT,
-      r['doc']['sources'])
+      src(r['doc'], 'wfigs-perimeters')['status'] == 'carried'
+      and r['doc']['perimeters'] == CARRIED, r['doc']['sources'])
+r = run(perim=OSError('timed out'), previous=prev_edges(0.5, perims=[dict(KEPT[0], orphan=False)]))
+check('CARRY · orphan is re-derived on a carry, never republished as the previous cycle read it',
+      r['doc']['perimeters'][0]['orphan'] is True, bare(r['doc']['perimeters'][0]))
 r = run(perim=OSError('timed out'), previous=prev_edges(CARRY_H + 0.5))
 check('CARRY · a set past the %gh window is dropped rather than drawn forever' % CARRY_H,
       src(r['doc'], 'wfigs-perimeters')['status'] == 'failed' and r['doc']['perimeters'] == [],
@@ -757,6 +843,21 @@ def perim_payload(rows):
 rc, log = run_schema_gate(perim_payload([PERIM_ROW]))
 check('the schema gate accepts a perimeter whose edge is days older than its record',
       rc == 0, 'rc=%s %s' % (rc, log))
+check('the schema gate treats a file predating the orphan column as an upgrade path, not a fault',
+      rc == 0 and 'predates the perimeter orphan column' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, orphan=True)]))
+check('the schema gate accepts an edge flagged as backed by no active incident',
+      rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, orphan=None)]))
+check('the schema gate accepts orphan null, which is the answer when an incident source failed',
+      rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, orphan='yes')]))
+check('the schema gate rejects an orphan flag that is neither true, false nor null',
+      rc != 0 and 'neither true, false nor null' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, orphan=False),
+                                         dict(PERIM_ROW, id='wfigs-perim:2')]))
+check('the schema gate rejects a half-answered orphan column rather than trusting the flagged half',
+      rc != 0 and 'partial column' in log, 'rc=%s %s' % (rc, log))
 rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, mapped=None, local=None, state=None,
                                               complexity=None)]))
 check('the schema gate accepts every new perimeter column as null, which is a fact not a gap',

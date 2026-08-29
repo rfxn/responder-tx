@@ -2214,9 +2214,14 @@ const wildfireStale = (f) => !(wildfireAgeH(f) < WILDFIRE_STALE_H); // NaN count
 // contained is a reported state, so it needs a reported number or a status word saying so
 const wildfireContained = (f) => f && (f.contain === 100 || /contain|out|control/i.test(String(f.status || '')));
 
-// lazy: fetched once on first overlayadd; same-origin static file, no CSP surface
-async function fetchWildfire() {
-  if (state._wildfireLoaded) return;
+/* Read once, either at boot ({ quiet: true }) or on the first overlayadd; same-origin static file,
+   no CSP surface. The quiet read is the board preloading a count it needs before anyone opens the
+   layer, so it raises no toast about a layer nobody is looking at. Every toggle-on still speaks,
+   including one that lands on an already-loaded payload: an empty layer reads as broken. */
+async function fetchWildfire(opts) {
+  const quiet = !!(opts && opts.quiet);
+  const speak = (msg) => { if (!quiet && msg) opNotice(msg); };
+  if (state._wildfireLoaded) { speak(wildfireNoticeText()); return; }
   state._wildfireLoaded = true;
   try {
     const res = await fetch(`data/wildfire.json?_=${Date.now()}`);
@@ -2230,18 +2235,27 @@ async function fetchWildfire() {
     state._wildfireLoaded = false; // allow a retry the next time the layer is toggled on
     state.wildfireUnknown = !state.wildfire;
     // nothing on the map: the sentence builder answers. Last-good drawn: only the refresh failed.
-    opNotice(state.wildfireUnknown ? wildfireNoticeText() : t('note.wildfirefail'));
+    speak(state.wildfireUnknown ? wildfireNoticeText() : t('note.wildfirefail'));
+    wildfireRepaint(); // the fire surfaces must show unknown rather than keep a stale count
     return;
   }
   // the read succeeded, so a throw from here is ours and must not be reported against the feed
+  let drew = false;
   try {
     renderWildfire();
-    const said = wildfireNoticeText();
-    if (said) opNotice(said);
+    drew = true;
   } catch (err) {
     state._wildfireLoaded = false;
-    opNotice(t('note.wildfiredraw'));
+    speak(t('note.wildfiredraw'));
   }
+  // a layer that failed to draw must not be opened at anyone: it would arrive blank or half-painted
+  if (drew) { speak(wildfireNoticeText()); maybeAutoWildfire(); }
+  wildfireRepaint(); // the count comes from the payload, which was read whether or not it drew
+}
+
+// the hero strip is painted from this payload, and nothing else fetches it again
+function wildfireRepaint() {
+  if (typeof renderThreatStrip === 'function') renderThreatStrip(); // panels.js is absent from the map-only bundle
 }
 
 /* An empty layer looks broken, and for most of a Texas year empty is the correct answer, so the
@@ -2380,6 +2394,45 @@ const wildfireMarkerPx = (f) => {
   const i = wildfireTier(f);
   return i < 0 ? WILDFIRE_BASE_PX : WILDFIRE_TIERS[i][1];
 };
+
+/* The set every fire surface counts: what an agency currently reports as burning inside the AO.
+   'buffer' is the only scope the popup disclaims as merely near Texas, so it is the only one
+   excluded here, and a payload written before the field existed keeps counting. */
+const wildfireActive = () => (((state.wildfire || {}).fires) || [])
+  .filter((f) => f && f.scope !== 'buffer' && !wildfireContained(f));
+
+// the largest reported size among them; null when nobody has reported a size at all
+const wildfireLargest = () => wildfireActive()
+  .filter((f) => Number.isFinite(f.acres))
+  .sort((a, b) => b.acres - a.acres)[0] || null;
+
+/* Default the layer ON the first time the AO holds a fire this size that nobody reports as
+   contained. The bar is the top band of the marker ramp rather than a fourth number of its own,
+   and it is meant to be rare: one Texas fire met it the day this shipped. Latches like the
+   tropical tracker, so a manual toggle-off (overlayremove) or a restored OFF is final. */
+const WILDFIRE_AUTO_ACRES = WILDFIRE_TIERS[0][0];
+const hasMajorWildfire = () => wildfireActive()
+  .some((f) => Number.isFinite(f.acres) && f.acres >= WILDFIRE_AUTO_ACRES);
+
+function maybeAutoWildfire() {
+  if (state.wildfireAutoDone || CONFIG.wildfireAutoEnable === false) return;
+  if (!state.map || !state.layers.wildfire || !hasMajorWildfire()) return;
+  state.wildfireAutoDone = true;
+  if (!state.map.hasLayer(state.layers.wildfire)) state.layers.wildfire.addTo(state.map);
+}
+
+/* The layer-sheet row's subtitle, so what is burning is readable without opening the layer.
+   An unreadable file says so; a read that found nothing falls back to the static description
+   rather than announcing a zero. */
+function wildfireRowSub() {
+  if (state.wildfireUnknown) return t('wf.unknown');
+  const active = wildfireActive();
+  if (!active.length) return t('sheet.s.wildfire');
+  const big = wildfireLargest();
+  return big
+    ? t('sheet.s.wildfire.n').replace('{n}', fmtNum(active.length)).replace('{a}', fmtNum(big.acres))
+    : t('sheet.s.wildfire.na').replace('{n}', fmtNum(active.length));
+}
 
 function renderWildfire() {
   const layer = state.layers.wildfire;

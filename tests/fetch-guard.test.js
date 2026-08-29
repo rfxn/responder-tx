@@ -292,7 +292,7 @@ const SITES = [
     req: ["okJson(r, 'TxGIO')", "okList(d, 'features', 'TxGIO')", "opNotice(t('note.lwcfail'))"] },
   { f: 'sources.js', d: 'async function fetchRiverSentry()', c: TOP, v: 'HONEST',
     req: ['Array.isArray(data.towers)', "opNotice(t('note.rsentryfail'))"] },
-  { f: 'sources.js', d: 'async function fetchWildfire()', c: TOP, v: 'HONEST',
+  { f: 'sources.js', d: 'async function fetchWildfire(', c: TOP, v: 'HONEST',
     req: ['Array.isArray(data.fires)', 'Array.isArray(data.sources)', 'state.wildfireUnknown =',
       'opNotice(', "t('note.wildfirefail')"] },
   { f: 'sources.js', d: 'function wildfireNoticeText()', c: TOP, v: 'HONEST',

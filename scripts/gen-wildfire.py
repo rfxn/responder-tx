@@ -3,8 +3,10 @@
 
 Two independent sources: Texas A&M Forest Service (in-state, the only feed that carries live
 Texas wildfire content) and NIFC WFIGS incident locations for the band just outside the state.
-WFIGS records whose point of origin is Texas are dropped, because TFS is authoritative in-state
-and a duplicate would double-count the same fire.
+A WFIGS record protected by the TFS unit is dropped, because TFS publishes that same fire itself.
+Every other Texas record is kept: TFS protects state and private land only, so a fire on National
+Park, Forest Service, BLM, Fish and Wildlife or tribal land is never in the TFS feed, and a record
+whose protecting unit is unstated is kept too, because a missing fire is worse than a repeated one.
 
 Scope is data/wildfire-scope.json, an outline of Texas plus a buffer in miles, and deliberately
 NOT data/event.json: event.json is the flood area of operations, and a flood re-target must not
@@ -22,7 +24,9 @@ PERIM_CARRY_H, marked "carried" and keeping the stamps of the read that produced
 acres and contain are None when the source did not report them. WFIGS omits containment on about
 two thirds of its records, and a 0 substituted for a null would assert an uncontained fire that
 nobody reported. A perimeter's observed is when the RECORD was last touched and mapped is when the
-edge was collected, which runs days behind it.
+edge was collected, which runs days behind it. An edge no incident in the file accounts for keeps
+its geometry and publishes orphan true rather than being deleted: the WFIGS edge layer retains
+outlines after a fire goes out, and where something burned stays true even once nobody is on it.
 """
 import datetime
 import json
@@ -63,12 +67,15 @@ MAX_PAGES = 4
 # is left out rather than carried as a column nothing populates.
 WFIGS_FIELDS = ("IncidentName,POOState,POOCounty,IncidentSize,PercentContained,"
                 "ModifiedOnDateTime_dt,FireDiscoveryDateTime,UniqueFireIdentifier,IrwinID,"
-                "POOProtectingAgency,IncidentTypeCategory,FireCause,"
+                "POOProtectingAgency,POOProtectingUnit,IncidentTypeCategory,FireCause,"
                 "TotalIncidentPersonnel,IncidentManagementOrganization,IncidentComplexityLevel")
 WFIGS_WHERE = "IncidentTypeCategory='WF' AND FireOutDateTime IS NULL"
+# TFS's own NWCG unit, matched exactly rather than by a TXTX prefix: a prefix would also swallow
+# another Texas agency's unit, and dropping a fire nobody else publishes is the failure to avoid.
+TFS_UNIT = "TXTXS"
 
-# Perimeters come from WFIGS for Texas fires TOO, unlike incident points: the in-state dedupe
-# above exists because TFS publishes its own points, and it publishes no perimeter of any kind.
+# Perimeters come from WFIGS for Texas fires TOO, unlike incident points: the dedupe above exists
+# because TFS publishes its own points, and it publishes no perimeter of any kind.
 WFIGS_PERIM_LAYER = ("https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services"
                      "/WFIGS_Interagency_Perimeters_Current/FeatureServer/0")
 PERIM_FIELDS = ("poly_IncidentName,poly_GISAcres,poly_IRWINID,poly_DateCurrent,"
@@ -337,8 +344,9 @@ def collect_wfigs(scope):
         try:
             p = f.get("properties") or {}
             state = str(p.get("POOState") or "").strip().upper()
-            # TFS is authoritative in Texas; the same fire from both sources would double-count
-            if state == "US-TX":
+            # only a fire TFS itself protects is a duplicate; every other Texas fire is ours to
+            # publish, including one whose unit the source left unstated
+            if str(p.get("POOProtectingUnit") or "").strip().upper() == TFS_UNIT:
                 continue
             pt = point_of(f)
             name = str(p.get("IncidentName") or "").strip()
@@ -413,7 +421,8 @@ def read_previous():
 def carry_perimeters(prev, now_dt):
     """(perimeters, source row) republished from the previous file, or (None, None) when there is
     nothing to carry or it has aged past PERIM_CARRY_H. The retained rows and the source stamp are
-    untouched; only the status says the data was not read this cycle."""
+    untouched apart from orphan, which mark_orphans re-derives against this cycle's incidents; only
+    the status says the data was not read this cycle."""
     perims = (prev or {}).get("perimeters")
     if not isinstance(perims, list) or not perims:
         return None, None
@@ -534,6 +543,37 @@ def rings_of(geom):
     return []
 
 
+def norm_key(v):
+    return str(v or "").strip().upper()
+
+
+def perimeter_matches(p, fires):
+    """Whether any incident in this file backs this edge. The generator-side twin of
+    perimeterMatches() in js/sources.js: local id within a state, then IRWIN, then name where
+    neither record contradicts the other's state. Generous on purpose, because a false match only
+    leaves an outline reading as it does today while a false miss libels a live fire as out."""
+    local, irwin, name = norm_key(p.get("local")), norm_key(p.get("irwin")), norm_key(p.get("name"))
+    state = norm_key(p.get("state"))
+    for f in fires:
+        fstate = norm_key(f.get("state"))
+        if local and state and norm_key(f.get("number")) == local and fstate == state:
+            return True
+        if irwin and norm_key(f.get("irwin")) == irwin:
+            return True
+        if name and norm_key(f.get("name")) == name and not (fstate and state and fstate != state):
+            return True
+    return False
+
+
+def mark_orphans(perims, fires, incidents_known):
+    """Flag each edge the incident list cannot account for. The WFIGS edge layer keeps outlines
+    after the incident record goes out, so an unmatched edge is ordinary and its geometry is still
+    true; it just must not read as an active incident. orphan is None when an incident source
+    failed, because an unread source is not an absent fire (E1)."""
+    for p in perims:
+        p["orphan"] = None if not incidents_known else not perimeter_matches(p, fires)
+
+
 def main():
     scope = load_scope()
     tfs_fires, tfs_src = collect("tfs", collect_tfs, scope)
@@ -553,15 +593,20 @@ def main():
     sources = [tfs_src, wfigs_src, perim_src]
 
     fires = sorted(tfs_fires + wfigs_fires, key=lambda x: (x["observed"], x["id"]), reverse=True)
+    mark_orphans(perims, fires, all(s["status"] == "ok" for s in (tfs_src, wfigs_src)))
     now = iso_z(now_dt)
     write_payload({"generated": now, "sources": sources, "fires": fires, "perimeters": perims})
 
+    orphans = sum(1 for p in perims if p.get("orphan"))
+    edges = "%d perimeters" % len(perims)
+    if orphans:
+        edges += " (%d backed by no active incident)" % orphans
     detail = " · ".join(
         f"{s['key']} {s['status']}"
         + (f" {s['count']} @ {s['captured'] or 'no upstream stamp'}"
            if s["status"] in ("ok", "carried") else "")
         for s in sources)
-    print(f"wildfire.json: {len(fires)} incidents, {len(perims)} perimeters ({detail}) @ {now}")
+    print(f"wildfire.json: {len(fires)} incidents, {edges} ({detail}) @ {now}")
     # A half-sourced INCIDENT read is not a clean cycle. A failed perimeter read is not the same
     # thing: perimeters are an enrichment most fires never have, and the layer's answer is the
     # points. Spending the cycle's DEGRADED signal on it measured 2 of 15 cycles in one night,

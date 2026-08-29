@@ -547,6 +547,8 @@ function initMap() {
     if (e.layer === state.layers.inundation) $('#inun-legend').hidden = true;
     if (e.layer === state.layers.tropical) { hideTropicalLegend(); state.tropicalAutoDone = true; } // manual toggle-off stops auto-enable
     if (e.layer === state.layers.crossStatus) state.xstatusAutoDone = true; // same: a deliberate toggle-off is not re-opened
+    // playback strips this layer itself (PB_LIVE_HIDE), and that removal is not the user's decision
+    if (e.layer === state.layers.wildfire && !pbBlocksLive(state)) state.wildfireAutoDone = true;
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = true;
     if (e.layer === state.layers.fcstRadar) fcstDisable();
     if (e.layer === state.layers.usgs) {
@@ -1285,7 +1287,8 @@ function lsRowHtml(row, dis) {
   const on = layerRowOn(k); // understands the virtual merged 'wx' row; null = no such layer
   if (on === null) return '';
   const name = region ? regionLabel(region, getLang()) : t(nameKey);
-  const sub = region ? camRegionSub(region) : t(subKey);
+  // a row whose count decides whether it is worth opening states that count, like the camera rows
+  const sub = region ? camRegionSub(region) : (k === 'wildfire' ? wildfireRowSub() : t(subKey));
   return `<button class="ls-row${on ? ' on' : ''}${child ? ' ls-child' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
     `<span class="ls-icon">${icon}</span>` +
     `<span class="ls-txt"><span class="ls-name">${esc(name)}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +
@@ -1468,6 +1471,7 @@ function applyLayerState(on, known) {
   // a restored OFF is the user's decision, exactly as a manual toggle-off is; auto-enable must not undo it
   if (wasKnown.has('tropical') && !want.has('tropical')) state.tropicalAutoDone = true;
   if (wasKnown.has('crossStatus') && !want.has('crossStatus')) state.xstatusAutoDone = true;
+  if (wasKnown.has('wildfire') && !want.has('wildfire')) state.wildfireAutoDone = true;
   renderLayerPills();
   layerSheetSync();
   return true;

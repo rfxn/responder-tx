@@ -371,12 +371,12 @@ test('the hero cards aggregate what the hazard line enumerates, and never restat
   assert.ok(/state\.crossings/.test(cards[0]), 'the cards dropped the crossing count the line cannot carry');
   /* E1: an unreadable source is not a zero. Counted, not merely matched: the same flags also pick
      the tone and the subtitle, so an `includes` passes with the count guard deleted, and two cards
-     share gaugesUnknown, so a presence test survives losing one of them. Four of the five counts
+     share gaugesUnknown, so a presence test survives losing one of them. Five of the six counts
      carry a guard; the hazard count needs none because the render gates on alertsLoadedOnce. */
   const nFields = (cards[0].match(/^\s*n:/gm) || []).length;
-  assert.equal(nFields, 5, 'expected one count per hero card');
+  assert.equal(nFields, 6, 'expected one count per hero card');
   const guarded = (cards[0].match(/^\s*n:\s*[A-Za-z.]*[Uu]nknown \? null :/gm) || []).length;
-  assert.equal(guarded, 4,
+  assert.equal(guarded, 5,
     'every count but the alert count must render null (?) when its source is unread, never 0');
   assert.ok(/c\.n === null \? '\?' : c\.n/.test(panels),
     'the null count must render as ? rather than falling back to a number');
@@ -423,7 +423,7 @@ test('every hero card is actionable and keeps its tone under hover', () => {
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
   const cards = panels.match(/function heroCards\(\)[\s\S]*?\n\}\n/)[0];
   const acts = (cards.match(/act:/g) || []).length;
-  assert.equal(acts, 5, 'expected five hero cards, each with an action');
+  assert.equal(acts, 6, 'expected six hero cards, each with an action');
   assert.ok(!/act:\s*(null|undefined)/.test(cards), 'a hero card has no action; every card must reach a surface');
   const hover = CSS.match(/\.hero-card:hover[^{]*\{[^}]*\}/);
   assert.ok(hover, '.hero-card hover rule not found');

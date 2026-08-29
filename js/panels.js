@@ -1224,11 +1224,20 @@ function heroCards() {
   const xingsUnconfirmed = xingsAll.length - xings.length;
   // no gauge loaded at all is an unreadable source, not a river running normal
   const gaugesUnknown = !state.gauges.length;
+  // the incident layer is the only surface carrying a burning fire, and it ships off
+  const fires = wildfireActive();
+  const bigFire = wildfireLargest();
+  const firePts = fires.map((f) => [f.lat, f.lon]).filter((p) => Number.isFinite(p[0]));
   const pts = (list) => list.map((g) => [g.latitude, g.longitude]).filter((p) => Number.isFinite(p[0]));
   const frame = (latlngs) => () => { fitTo(latlngs); revealMapOnPhone(); };
   const openTab = (tab) => () => document.querySelector(`.tabs button[data-tab="${tab}"]`).click();
+  // the card is the way in to a layer that is off, so it turns the layer on before framing it
+  const showFires = () => {
+    if (state.layers.wildfire && !state.map.hasLayer(state.layers.wildfire)) state.layers.wildfire.addTo(state.map);
+    frame(firePts)();
+  };
 
-  return [
+  const cards = [
     {
       key: 'haz',
       glyph: '⚠',
@@ -1280,6 +1289,25 @@ function heroCards() {
         : openTab('tab-roads'),
     },
   ];
+  /* Fire earns a slot only when there is something to report. Most of a Texas year has no
+     uncontained fire at all, and a permanent zero beside five flood counts trains the reader to
+     stop looking at the row. An unreadable file is not a quiet one, so it still takes the slot. */
+  if (fires.length || state.wildfireUnknown) {
+    cards.push({
+      key: 'fire',
+      glyph: '🔥',
+      n: state.wildfireUnknown ? null : fires.length,
+      // its own token: --cat-major is the flood ramp, and a fire is not on it
+      tone: state.wildfireUnknown ? 'ok' : 'fire',
+      label: t('hero.fire'),
+      sub: state.wildfireUnknown ? t('hero.unknown')
+        : (bigFire
+          ? t('hero.fire.big').replace('{name}', bigFire.name || t('wf.unnamed')).replace('{a}', fmtNum(bigFire.acres))
+          : t('hero.fire.sub')),
+      act: showFires,
+    });
+  }
+  return cards;
 }
 
 const heroCardsHtml = (cards) => `<div class="hero-cards">${cards.map((c) => (
@@ -1299,8 +1327,10 @@ function renderThreatStrip() {
   el.classList.remove('hero-only');
   // counts before the first alert load would assert a zero the board has not checked
   if (!state.alertsLoadedOnce) { el.innerHTML = pbNote; return; }
-  if (tickerItems().length) {
-    const cards = heroCards();
+  const cards = heroCards();
+  /* Fire can be the only thing the board has to say: every corpus the hazard line draws from is
+     flood-shaped, so a calm river beside a burning fire used to render an all-clear and no cards. */
+  if (tickerItems().length || cards.some((c) => c.key === 'fire')) {
     el.innerHTML = pbNote + heroCardsHtml(cards);
     /* a portrait phone hides the cards in css; this says the strip holds nothing else, so it can
        collapse its own padding with them rather than leaving an empty bar above the tabs */

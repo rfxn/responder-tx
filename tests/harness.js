@@ -183,6 +183,7 @@ const EXPORTS = [
   'pushLocal', 'pushLocalSet', 'pushPrefs', 'pushDisable', 'pushFollowGauge',
   'wildfirePopupHtml', 'wildfireNoticeText', 'wildfireStale', 'wildfireContained', 'wildfireAgeH',
   'wildfireSource', 'WILDFIRE_STALE_H',
+  'wildfireActive', 'wildfireLargest', 'hasMajorWildfire', 'WILDFIRE_AUTO_ACRES', 'wildfireRowSub',
   'TIDE_NEUTRAL_FT', 'tideBand', 'tideQuiet', 'tideSplit', 'fetchTideMeta', 'tideStationLatLon',
   'renderTideStations', 'tidePopupHtml', 'paintTides', 'loadTides', 'fetchTides', 'focusTideStation',
 ];
@@ -199,7 +200,7 @@ const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn
   'curatedShelterAgeH', 'SHELTER_CURATED_STALE_H', 'shelterOpen',
   'CROSSING_STATUS',
   'crestSourceCite', 'crestReconRows', 'crossingStale', 'crossingAgeH', 'CROSSING_STALE_H',
-  'crossingList', 'heroCards', 'badgeText', 'BADGE_UNKNOWN', 'shlLiveUpdatedHtml',
+  'crossingList', 'heroCards', 'heroCardsHtml', 'badgeText', 'BADGE_UNKNOWN', 'shlLiveUpdatedHtml',
   'roadsTabRows', 'roadsTxdotRows', 'roadsCuratedRows', 'roadsJurisdictionRows', 'roadsRowHtml', 'roadRowKey',
   'xstatusAgeD', 'XSTATUS_UNCONFIRMED_D',
   'renderTides', 'tideRowHtml', 'tideNameCell', 'tideSurgeColor', 'tideDirGlyph',

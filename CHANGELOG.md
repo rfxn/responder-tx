@@ -1,5 +1,32 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.93 · 2026-08-29 (fires reach the board without being looked for)
+
+-- New Features --
+- [New] A Fires card now sits with the other hero cards, counting what is reported
+      uncontained in the area and naming the largest. It opens the fire layer
+- [New] The wildfire layer now switches itself on the first time a fire of 10,000
+      acres or more in the area is reported uncontained. Switching it back off is
+      final, and the behaviour can be turned off in the event configuration
+- [New] The wildfire row in the layer list now carries a live count and the largest
+      reported size instead of a fixed description
+
+-- Bug Fixes --
+- [Fix] Wildfire incidents on federal land in Texas were never shown. They are
+      carried by a source the board was discarding in full on the assumption that
+      the state forest service covered every Texas fire, which it does not
+- [Fix] A mapped fire edge with no incident behind it is now marked as such rather
+      than reading as an active fire
+- [Fix] Road closure descriptions were cut at a fixed length with nothing to show
+      text had been removed, which cut the closure detail off the end of a sentence
+      that still read as complete. They now keep more text, cut at a word, and mark
+      the cut
+
+-- Changes --
+- [Change] The at a glance strip no longer stays quiet when the only active hazard
+         is a fire, so a calm river no longer reads as an all clear while a fire
+         burns
+
 ## v0.99.92 · 2026-08-29 (fire size on the map, and an honest age on the fire edge)
 
 -- New Features --

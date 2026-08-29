@@ -1214,6 +1214,10 @@ async function boot() {
     state.resources = state.resources || { shelters: [], hotlines: [], dataLinks: [] };
     renderResources();
   }
+  /* The incident file is read at boot, not only when someone opens the layer: until it is in hand
+     the board cannot count what is burning or open the layer for a large uncontained fire. Not
+     awaited, because a fire read must never hold up the flood board. */
+  fetchWildfire({ quiet: true }).catch(() => { /* fetchWildfire owns its own failure reporting; boot must not stall on one */ });
   await refresh();
   // battery/data saver: don't poll while backgrounded; catch up the moment we're visible again
   setInterval(() => {

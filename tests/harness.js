@@ -215,7 +215,7 @@ const MAP_EXPORTS = EXPORTS.concat(['VIEW_ROWS',
   'pbLiveHideAll', 'pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'pbGaugeNoteKey', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded', 'wxObsUnverified',
   'WILDFIRE_AREA_MIN_ACRES', 'fireAreaRadiusM', 'perimeterMatches',
   'WILDFIRE_TIERS', 'WILDFIRE_BASE_PX', 'wildfireTier', 'wildfireMarkerPx',
-  'perimeterAgeH', 'perimeterStale',
+  'perimeterAgeH', 'perimeterStale', 'perimeterUnbacked',
   'pbSbw', 'pbSbwSev', 'pbSbwKey', 'pbSbwStore', 'pbSbwInAO', 'pbEmergencyKey', 'pbStoryRebuild', 'PB_SBW_FLOOD',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
   'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey']);

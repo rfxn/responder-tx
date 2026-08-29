@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.94 · 2026-08-29 (a fire edge with no incident behind it says so)
+
+-- Bug Fixes --
+- [Fix] A mapped fire edge that no reported incident backs now says so and is drawn
+      apart from the active ones. It stays on the map and stays readable, and the
+      wording does not claim the fire is out, only that no active incident is
+      reported for that outline. An edge that is also old shows both facts
+
 ## v0.99.93 · 2026-08-29 (fires reach the board without being looked for)
 
 -- New Features --

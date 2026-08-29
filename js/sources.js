@@ -2339,13 +2339,15 @@ function fireAreaPopupHtml(f) {
    restamped, and upstream the two have run 4.5 days apart on a growing fire. */
 const perimeterAgeH = (p) => (Date.now() - new Date(p && p.mapped).getTime()) / 3600000;
 const perimeterStale = (p) => !(perimeterAgeH(p) < WILDFIRE_STALE_H); // an uncollected edge cannot be asserted as current
+// strictly true: null or absent means an incident read failed, and an unread source is no answer about this edge (E1)
+const perimeterUnbacked = (p) => !!p && p.orphan === true;
 
 /* Where an agency has mapped the fire edge. Most fires never get one, so this draws under the
    points rather than replacing them, and its absence is never a claim the fire is small. The
    geometry is a generalized daily interpretation of imagery, which the popup says out loud. */
 function renderPerimeters(layer, data) {
   for (const p of (Array.isArray(data.perimeters) ? data.perimeters : [])) {
-    const cls = `wildfire-perimeter${perimeterStale(p) ? ' aged' : ''}`;
+    const cls = `wildfire-perimeter${perimeterStale(p) ? ' aged' : ''}${perimeterUnbacked(p) ? ' unbacked' : ''}`;
     for (const ring of (Array.isArray(p.rings) ? p.rings : [])) {
       if (!Array.isArray(ring) || ring.length < 4) continue;
       const latlngs = ring
@@ -2380,6 +2382,8 @@ function perimeterPopupHtml(p) {
     + (aged ? `<div class="pop-meta xg-stale">${esc(p.mapped
       ? t('wf.edge.stale').replace('{h}', String(Math.round(perimeterAgeH(p))))
       : t('wf.edge.undated'))}</div>` : '')
+    // a second, independent fact: the age note above says nothing about whether an incident backs it
+    + (perimeterUnbacked(p) ? `<div class="pop-meta wf-unbacked">${esc(t('wf.edge.unbacked'))}</div>` : '')
     + `</div>`;
 }
 

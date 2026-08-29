@@ -679,6 +679,8 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
    past its own gutter and the pair reads as one run of text */
 .wf-v { grid-column: 2; margin: 0; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
 .wf-unknown { color: var(--ink-2); font-style: italic; opacity: .8; }
+/* a caveat, not a warning: the amber staleness treatment beside it would read as an alarm */
+.wf-unbacked { color: var(--ink-aged); }
 .wf-prov { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border, rgba(255,255,255,.12));
   font-size: 11px; line-height: 1.35; color: var(--ink-2); opacity: .85; }
 .wf-prov > div + div { margin-top: 2px; }
@@ -2596,6 +2598,8 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 /* the edge was collected before the staleness window, or carries no collection time at all: faded
    and dashed like .wildfire-icon.unconfirmed, and it keeps its fill so it stays unlike the circle */
 .wildfire-perimeter.aged { stroke-dasharray: 8 6; stroke-opacity: 0.6; fill-opacity: 0.08; }
+/* no incident backs this edge: hue only, so it composes with .aged and never wears the retired grey */
+.wildfire-perimeter.unbacked { stroke: #8c6239; fill: #8c6239; }
 .wildfire-perim-key {
   display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle;
   border: 2px solid #d9480f; background: rgba(247, 103, 7, .18);

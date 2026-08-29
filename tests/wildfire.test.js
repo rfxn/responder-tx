@@ -284,7 +284,7 @@ test('every wildfire string exists in both languages and carries no em-dash', ()
     'wf.unreported', 'wf.nearby', 'wf.crew', 'wf.k.size', 'wf.k.contain', 'wf.k.where',
     'wf.k.cause', 'wf.k.started', 'wf.k.updated', 'wf.k.unit', 'wf.k.org', 'wf.k.crew',
     'wf.k.number', 'wf.k.method', 'wf.k.mapped', 'wf.unnamed', 'wf.perim.sub',
-    'legend.wildfire.perim', 'wf.k.complexity', 'wf.edge.stale', 'wf.edge.undated',
+    'legend.wildfire.perim', 'wf.k.complexity', 'wf.edge.stale', 'wf.edge.undated', 'wf.edge.unbacked',
     'sheet.s.wildfire.n', 'sheet.s.wildfire.na', 'hero.fire', 'hero.fire.sub', 'hero.fire.big'];
   /* A string copied across untranslated is missing from es as surely as an absent key is. Only the
      keys that carry prose are listed: 'wf.acres' is legitimately '{n} acres' in both languages. */
@@ -911,8 +911,83 @@ test('an old or undated edge is drawn faded, the way an unrestamped incident is'
     'a four-day-old edge on a growing fire must not be drawn as the current line');
   assert.equal(cls(EDGE_UNDATED), 'wildfire-perimeter aged');
   const css = read('css/app.css');
-  assert.match(css, /\.wildfire-perimeter\.aged \{[^}]*fill-opacity/,
-    'the aged class carries no rule, so an old edge paints exactly like a current one');
+  /* Both edge treatments in one assertion, because the pair is the claim: aged owns the dash and
+     the opacities, unbacked owns hue alone, so an edge wearing both classes gets both rules. */
+  assert.ok(/\.wildfire-perimeter\.aged \{[^}]*fill-opacity/.test(css)
+    && /\.wildfire-perimeter\.unbacked \{[^}]*stroke:/.test(css)
+    && !/\.wildfire-perimeter\.unbacked \{[^}]*(dasharray|stroke-opacity|fill-opacity|display|visibility)/.test(css)
+    && /\.wf-unbacked \{[^}]*color/.test(css),
+    'a class carrying no rule paints exactly like a current edge, and a shared property clobbers');
+});
+
+/* ---------- an outline the incident list cannot account for ----------
+   The WFIGS "Current" edge layer keeps an outline after the incident record leaves the window, so
+   an edge outlives its fire. The ground it covers still burned, so it stays drawn and clickable and
+   keeps its fill; it may not read as a currently reported incident, and it never says the fire is
+   out. orphan is null when an incident source failed, and absent entirely on a payload the service
+   worker cached before the column existed: neither is an answer, and neither may be read as one. */
+
+const EDGE_ORPHAN = perimWith({ mapped: hoursAgo(2), orphan: true });
+const EDGE_BACKED = perimWith({ mapped: hoursAgo(2), orphan: false });
+const EDGE_UNANSWERED = perimWith({ mapped: hoursAgo(2), orphan: null });
+const EDGE_PREFLAG = perimWith({ mapped: EDGE_BACKED.mapped }); // written before the column existed
+
+test('only a stated orphan is unbacked, because an unanswerable question is not an answer', () => {
+  const { perimeterUnbacked } = mapApp; // a const arrow: reachable through the epilogue, not the sandbox
+  assert.equal(perimeterUnbacked(EDGE_ORPHAN), true);
+  assert.equal(perimeterUnbacked(EDGE_BACKED), false);
+  assert.equal(perimeterUnbacked(EDGE_UNANSWERED), false,
+    'a failed incident read leaves the question open, and open may not be published as orphaned');
+  assert.equal(perimeterUnbacked(EDGE_PREFLAG), false,
+    'a payload predating the column is unanswered too, and must never be flagged from its silence');
+  assert.equal(perimeterUnbacked(undefined), false, 'a junk row must not throw on the way to the map');
+});
+
+test('an unbacked edge is drawn as one, and an aged unbacked edge wears both treatments', () => {
+  const poly = (p) => renderDrawn({ sources: [], fires: [], perimeters: [p] }).find((o) => o.kind === 'polygon');
+  assert.equal(poly(EDGE_ORPHAN).opts.className, 'wildfire-perimeter unbacked');
+  assert.equal(poly(EDGE_BACKED).opts.className, 'wildfire-perimeter', 'a backed edge is drawn as it was');
+  assert.equal(poly(EDGE_UNANSWERED).opts.className, 'wildfire-perimeter', 'an unanswered edge claims nothing');
+  assert.equal(poly(EDGE_PREFLAG).opts.className, 'wildfire-perimeter');
+  assert.equal(poly(perimWith({ mapped: hoursAgo(109), orphan: true })).opts.className,
+    'wildfire-perimeter aged unbacked', 'an old edge nothing backs is both, and neither may drop the other');
+  // it is still an outline of ground that burned, so it may be marked but never hidden
+  const o = poly(EDGE_ORPHAN);
+  assert.ok(o.opts.fillOpacity > 0 && o.opts.opacity > 0, 'an unbacked edge may not be faded away');
+  assert.ok(o.popup, 'and it must still answer a click');
+});
+
+test('the popup says no incident backs the edge, beside rather than over the age note', () => {
+  const both = MSB.perimeterPopupHtml(perimWith({ mapped: hoursAgo(109), orphan: true }));
+  assert.match(both, /wf\.edge\.unbacked/, 'an orphaned edge must say so where the reader can read it');
+  assert.match(both, /wf\.edge\.stale/, 'and the age note it co-occurs with must survive it');
+  for (const orphan of [false, null, undefined]) {
+    assert.doesNotMatch(MSB.perimeterPopupHtml(perimWith({ mapped: hoursAgo(2), orphan })),
+      /wf\.edge\.unbacked/, `orphan=${String(orphan)} may not be reported as an orphan`);
+  }
+  assert.equal(MSB.perimeterPopupHtml(EDGE_BACKED), MSB.perimeterPopupHtml(EDGE_PREFLAG),
+    'a backed edge must read byte for byte as one written before the column existed');
+});
+
+test('the unbacked wording refuses the reading it exists to prevent: that the fire is out', () => {
+  const prevT = MSB.t;
+  try {
+    for (const lang of ['en', 'es']) {
+      MSB.t = (k) => I18N[lang][k] || k;
+      const line = I18N[lang]['wf.edge.unbacked'];
+      assert.ok(MSB.perimeterPopupHtml(EDGE_ORPHAN).includes(mapApp.esc(line)),
+        `the ${lang} sentence must reach the popup whole`);
+      assert.match(line, /incident|incidente/i, 'it must name what is missing, which is a reported incident');
+      // whichever sentence mentions the fire being out has to be the one refusing the claim
+      for (const s of line.split(/(?<=\.)\s+/)) {
+        if (!/\bout\b|apagad/i.test(s)) continue;
+        assert.match(s, /not a report|no es un informe/i,
+          `${lang} states the fire is out, which no source reported: ${s}`);
+      }
+    }
+  } finally { MSB.t = prevT; }
+  assert.notEqual(I18N.en['wf.edge.unbacked'], I18N.es['wf.edge.unbacked'],
+    'wf.edge.unbacked was never actually translated');
 });
 
 /* ---------- the reported acreage drawn at weight ----------

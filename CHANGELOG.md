@@ -1,5 +1,18 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.95 · 2026-08-29 (a fire's county is where it started, not where it reached)
+
+-- New Features --
+- [New] Where a fire has a mapped edge, the popup now says how far that edge reached
+      from the reported origin when it was last mapped. It is stated only where it
+      changes the picture, and it names the farthest point rather than a radius
+
+-- Changes --
+- [Change] The county on a fire is the county it was reported to have started in, not
+         the ground it covers. That row is now labelled as the reported origin, so a
+         fire that has burned across a county line is no longer read as sitting in
+         the one county it started in
+
 ## v0.99.94 · 2026-08-29 (a fire edge with no incident behind it says so)
 
 -- Bug Fixes --

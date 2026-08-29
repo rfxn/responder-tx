@@ -278,7 +278,7 @@ test('the marker reads as a hazard, retires when contained and dashes when unres
 test('every wildfire string exists in both languages and carries no em-dash', () => {
   const i18n = read('js/i18n.js');
   const keys = ['layers.wildfire', 'sheet.s.wildfire', 'legend.wildfire', 'glossary.wildfire',
-    'glossary.wildfire.label', 'wf.county', 'wf.acres', 'wf.contain',
+    'glossary.wildfire.label', 'wf.county', 'wf.acres', 'wf.contain', 'wf.k.reach', 'wf.reach',
     'wf.stale', 'wf.lag', 'wf.point', 'wf.captured', 'wf.nocurrency', 'wf.none',
     'wf.none.undated', 'wf.partial', 'wf.unknown', 'note.wildfirefail',
     'wf.unreported', 'wf.nearby', 'wf.crew', 'wf.k.size', 'wf.k.contain', 'wf.k.where',
@@ -288,7 +288,8 @@ test('every wildfire string exists in both languages and carries no em-dash', ()
     'sheet.s.wildfire.n', 'sheet.s.wildfire.na', 'hero.fire', 'hero.fire.sub', 'hero.fire.big'];
   /* A string copied across untranslated is missing from es as surely as an absent key is. Only the
      keys that carry prose are listed: 'wf.acres' is legitimately '{n} acres' in both languages. */
-  for (const k of ['sheet.s.wildfire.n', 'sheet.s.wildfire.na', 'hero.fire', 'hero.fire.sub', 'hero.fire.big']) {
+  for (const k of ['sheet.s.wildfire.n', 'sheet.s.wildfire.na', 'hero.fire', 'hero.fire.sub', 'hero.fire.big',
+    'wf.k.where', 'wf.k.reach', 'wf.reach']) {
     assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
   for (const k of keys) {
@@ -1365,4 +1366,133 @@ test('a layer that failed to draw is never opened at the reader', async () => {
   assert.equal(w.map.hasLayer(broken), false,
     'a fire large enough to open the layer must not open one that would arrive blank');
   assert.equal(w.state.wildfireAutoDone, false, 'and the one chance to open it must not be spent on a dead layer');
+});
+
+/* ---------- the county names where the fire started, not where it is ----------
+   Every upstream feed labels an incident by its county of ORIGIN. Ross was published as "Palo
+   Pinto County" with its reported point at 32.75982, which is the southern tip of a mapped edge
+   reaching to 33.16821, roughly 28 mi north and well into Jack County, where the evacuation order
+   was issued. The popup rendered that county as a bare location fact. */
+
+const ROSS = { id: 'tfs:ross', src: 'tfs', scope: 'tx', name: 'Ross', lat: 32.75982, lon: -98.34257,
+  status: 'Active', acres: 85303, contain: 31, county: 'Palo Pinto', state: 'TX',
+  observed: hoursAgo(1), started: hoursAgo(120), number: '267549', unit: 'TXTXS' };
+
+// seven vertices lifted from the published Ross geometry, the farthest one among them
+const ROSS_RING = [[-98.37033, 33.00622], [-98.34539, 32.7481], [-98.40491, 32.82621],
+  [-98.32586, 33.16821], [-98.2217, 33.05096], [-98.26662, 32.97595], [-98.37033, 33.00622]];
+
+const edgeFor = (fire, rings) => perimWith({ irwin: '', name: fire.name, state: fire.state,
+  local: fire.number, mapped: hoursAgo(6), rings });
+// the app's own 69 mi per degree of latitude, so a crafted reach is checkable by hand
+const vN = (lat, lon, mi) => [lon, lat + mi / 69];
+const vE = (lat, lon, mi) => [lon + (mi / 69) / Math.cos((lat * Math.PI) / 180), lat];
+
+/* The shipped strings, not the harness key-echo: the claim under test is what a reader is told,
+   and every row here is interpolated. */
+function popupIn(lang, fire, perimeters) {
+  const st = app.state;
+  const saved = { wildfire: st.wildfire, t: APPSB.t };
+  try {
+    st.wildfire = { generated: hoursAgo(0.1), sources: SOURCES, fires: [fire], perimeters: perimeters || [] };
+    APPSB.t = (k) => (k in I18N[lang] ? I18N[lang][k] : k);
+    return wildfirePopupHtml(fire);
+  } finally { st.wildfire = saved.wildfire; APPSB.t = saved.t; }
+}
+
+test('the county row is labelled as the reported origin, in both languages', () => {
+  assert.match(popupIn('en', ROSS),
+    /<dt class="wf-k">Reported origin<\/dt><dd class="wf-v">Palo Pinto County, TX<\/dd>/,
+    'the county a fire started in may not be presented as where the fire is');
+  assert.match(popupIn('es', ROSS),
+    /<dt class="wf-k">Origen reportado<\/dt><dd class="wf-v">Condado de Palo Pinto, TX<\/dd>/);
+});
+
+test('a matched edge states how far it reached from the origin, and takes the farthest vertex', () => {
+  const lat = 32, lon = -98;
+  const f = { ...ROSS, lat, lon };
+  // the far vertex sits mid-ring, so a reader of the first or last one measures 3 mi instead of 10
+  const ring = [vE(lat, lon, 3), vN(lat, lon, -2), vN(lat, lon, 10), vE(lat, lon, -4), vE(lat, lon, 3)];
+  const edge = edgeFor(f, [ring]);
+  assert.ok(Math.abs(mapApp.perimeterReachMi(edge, lat, lon) - 10) < 0.01,
+    `10 mi due north must measure as 10, not ${mapApp.perimeterReachMi(edge, lat, lon)}`);
+  assert.ok(Math.abs(mapApp.perimeterReachMi(edgeFor(f, [[vE(lat, lon, 8)]]), lat, lon) - 8) < 0.01,
+    'longitude must be scaled by cos(lat) or an east-west reach reads short');
+  assert.match(popupIn('en', f, [edge]),
+    /<dt class="wf-k">Farthest edge<\/dt><dd class="wf-v">10 mi from the origin when last mapped<\/dd>/);
+  assert.match(popupIn('es', f, [edge]),
+    /<dt class="wf-k">Borde más lejano<\/dt><dd class="wf-v">10 mi del origen en el último trazado<\/dd>/);
+  // it is the farthest reach and not a radius, and it is not a claim about the fire right now
+  for (const lang of ['en', 'es']) {
+    assert.match(I18N[lang]['wf.k.reach'], /farthest|lejano/i, `${lang} must not let the figure read as a radius`);
+    assert.match(I18N[lang]['wf.reach'], /last mapped|último trazado/i, `${lang} must not imply live extent`);
+  }
+});
+
+test('an edge that hugs its origin says nothing, and neither does a fire with no edge of its own', () => {
+  const lat = 32, lon = -98;
+  const f = { ...ROSS, lat, lon };
+  const at = (mi) => edgeFor(f, [[vN(lat, lon, mi), vE(lat, lon, 0.1), vN(lat, lon, -0.1), vN(lat, lon, mi)]]);
+  assert.equal(mapApp.WILDFIRE_REACH_MIN_MI, 5, 'the floor is the miles below which the origin still describes the fire');
+  assert.doesNotMatch(popupIn('en', f, [at(4.9)]), /Farthest edge/, 'under the floor the row is noise');
+  assert.match(popupIn('en', f, [at(5)]), /Farthest edge<\/dt><dd class="wf-v">5 mi from the origin/,
+    'the floor itself is over it');
+  assert.match(popupIn('en', f, [at(28.4)]), /<dd class="wf-v">28 mi from the origin/,
+    'a generalized daily outline is stated in whole miles');
+  assert.doesNotMatch(popupIn('en', f, []), /Farthest edge/, 'no mapped edge is nothing to state');
+  // the join is the same one the area circle uses, so a rejected edge may not lend its geometry
+  const twin = perimWith({ irwin: '', name: 'Ross', state: 'WA', local: '004212',
+    rings: [[vN(lat, lon, 30), vE(lat, lon, 1), vN(lat, lon, 30)]] });
+  assert.doesNotMatch(popupIn('en', f, [twin]), /Farthest edge/,
+    'an out-of-state namesake is not this fire\'s edge and must not be measured against it');
+});
+
+test('absent, empty or malformed geometry draws no reach row, never a zero and never a NaN', () => {
+  const lat = 32, lon = -98;
+  const f = { ...ROSS, lat, lon };
+  for (const rings of [undefined, null, [], 'nonsense', [[]], [null], [[null]], [['x']],
+    [[[NaN, NaN]]], [[['a', 'b']]], [[[-98, null]]], [[[-98, 32]]]]) {
+    const label = JSON.stringify(rings) || String(rings);
+    assert.equal(mapApp.perimeterReachMi(edgeFor(f, rings), lat, lon), null,
+      `rings=${label} must answer null rather than a distance`);
+    const html = popupIn('en', f, [edgeFor(f, rings)]);
+    assert.doesNotMatch(html, /Farthest edge/, `rings=${label} drew a reach row off nothing`);
+    assert.doesNotMatch(html, /NaN|\b0 mi\b/, `rings=${label} published a figure it does not have`);
+  }
+  assert.equal(mapApp.perimeterReachMi(null, lat, lon), null, 'no perimeter is nothing to measure');
+  assert.equal(mapApp.perimeterReachMi(PERIM, null, lon), null, 'a fire with no point cannot be measured from');
+  assert.equal(mapApp.perimeterReachMi(PERIM, lat, undefined), null);
+});
+
+test('the Ross case: an origin at the southern tip of an edge reaching 28 mi north', () => {
+  const edge = edgeFor(ROSS, [ROSS_RING]);
+  const mi = mapApp.perimeterReachMi(edge, ROSS.lat, ROSS.lon);
+  assert.ok(Math.abs(mi - 28.2) < 0.1, `the published geometry reaches 28.2 mi from the reported point, not ${mi}`);
+  const north = ROSS_RING.reduce((a, c) => (c[1] > a[1] ? c : a));
+  assert.ok(north[1] - ROSS.lat > 0.4, 'the farthest vertex must lie north of the origin, as it does upstream');
+  assert.ok(ROSS.lat - Math.min(...ROSS_RING.map((c) => c[1])) < 0.02,
+    'and the origin must sit at the southern tip, which is what makes the origin county misleading');
+  const html = popupIn('en', ROSS, [edge]);
+  assert.match(html, /<dd class="wf-v">Palo Pinto County, TX<\/dd>/, 'the reported county is still stated');
+  assert.match(html, /<dd class="wf-v">28 mi from the origin when last mapped<\/dd>/,
+    'and the reader is told the mapped edge got 28 mi away from it');
+  // the marker binds its popup lazily off state, so the row has to survive the real render too
+  const drawn = renderDrawn({ sources: SOURCES, fires: [ROSS], perimeters: [edge] });
+  assert.equal(drawn.length, 2, 'a matched edge suppresses the inferred circle: ring plus marker');
+  assert.match(drawn.find((o) => o.kind === 'marker').popup, /wf\.k\.reach/,
+    'the reach row must reach the popup the map actually binds, not only a direct call');
+});
+
+test('the join hands back the perimeter it matched, picked out of a list', () => {
+  const waEdge = perimWith({ id: 'wa', name: 'West Fork', local: '004212', state: 'WA', irwin: '' });
+  const txEdge = perimWith({ id: 'tx', name: 'West Fork', local: '267801', state: 'TX', irwin: '' });
+  const byIrwin = perimWith({ id: 'irwin', name: 'Elsewhere', local: '9', state: 'WA', irwin: '{A}' });
+  const byName = perimWith({ id: 'name', name: 'west fork', local: '', state: 'TX', irwin: '' });
+  assert.equal(mapApp.perimeterFor({ perimeters: [waEdge, txEdge] }, TX_FIRE), txEdge,
+    'the out-of-state twin sits first in the list and must not be the one handed back');
+  assert.equal(mapApp.perimeterFor({ perimeters: [waEdge, byIrwin] }, { ...TX_FIRE, irwin: '{A}' }), byIrwin);
+  assert.equal(mapApp.perimeterFor({ perimeters: [waEdge, byName] }, TX_FIRE), byName);
+  assert.equal(mapApp.perimeterFor({ perimeters: [waEdge] }, TX_FIRE), null, 'no match is null, never undefined');
+  assert.equal(mapApp.perimeterFor({ perimeters: [] }, TX_FIRE), null);
+  assert.equal(mapApp.perimeterFor({}, TX_FIRE), null, 'a payload carrying no perimeter list must not throw');
 });

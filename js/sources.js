@@ -2299,19 +2299,21 @@ const wildfireStateDiffers = (a, b) => {
 
 /* The local incident id in its own state first: the TFS feed carries no IRWIN at all, so every
    match used to ride on name equality, which two states can both publish. */
-function perimeterMatches(data, f) {
+function perimeterFor(data, f) {
   const perims = Array.isArray(data.perimeters) ? data.perimeters : [];
-  if (!perims.length) return false;
+  if (!perims.length) return null;
   const local = wildfireKey(f.number);
   const st = wildfireKey(f.state);
   const irwin = wildfireKey(f.irwin);
   const name = wildfireKey(f.name);
-  return perims.some((p) => {
+  return perims.find((p) => {
     if (local && st && wildfireKey(p.local) === local && wildfireKey(p.state) === st) return true;
     if (irwin && wildfireKey(p.irwin) === irwin) return true;
     return !!name && wildfireKey(p.name) === name && !wildfireStateDiffers(f.state, p.state);
-  });
+  }) || null;
 }
+
+function perimeterMatches(data, f) { return !!perimeterFor(data, f); }
 
 function renderFireAreas(layer, data) {
   for (const f of (Array.isArray(data.fires) ? data.fires : [])) {
@@ -2341,6 +2343,23 @@ const perimeterAgeH = (p) => (Date.now() - new Date(p && p.mapped).getTime()) / 
 const perimeterStale = (p) => !(perimeterAgeH(p) < WILDFIRE_STALE_H); // an uncollected edge cannot be asserted as current
 // strictly true: null or absent means an incident read failed, and an unread source is no answer about this edge (E1)
 const perimeterUnbacked = (p) => !!p && p.orphan === true;
+
+/* Farthest mapped vertex from the reported origin. Longitude scaled by cos(lat) like camRegionId(),
+   so this is real distance. null, never 0, when no vertex is usable: a zero would read as a fact. */
+function perimeterReachMi(p, lat, lon) {
+  if (!p || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const kx = Math.cos((lat * Math.PI) / 180);
+  let far = 0;
+  for (const ring of (Array.isArray(p.rings) ? p.rings : [])) {
+    if (!Array.isArray(ring)) continue;
+    for (const c of ring) {
+      if (!Array.isArray(c) || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
+      const dy = c[1] - lat, dx = (c[0] - lon) * kx;
+      far = Math.max(far, Math.sqrt(dy * dy + dx * dx));
+    }
+  }
+  return far > 0 ? far * MI_PER_DEG_LAT : null;
+}
 
 /* Where an agency has mapped the fire edge. Most fires never get one, so this draws under the
    points rather than replacing them, and its absence is never a claim the fire is small. The
@@ -2489,6 +2508,17 @@ function wfRow(labelKey, value, opts) {
     + `<dd class="${cls}">${esc(text)}</dd>`;
 }
 
+/* Under this the origin county still describes the fire and the row is noise: measured on the live
+   payload, the four other mapped Texas edges reach 0.9 to 3.9 mi while Ross reaches 28. */
+const WILDFIRE_REACH_MIN_MI = 5;
+
+// stated only where it corrects the origin, and only ever about the edge as it was last mapped
+function wildfireReachText(f) {
+  const mi = perimeterReachMi(perimeterFor(state.wildfire || {}, f), f.lat, f.lon);
+  return mi !== null && mi >= WILDFIRE_REACH_MIN_MI
+    ? t('wf.reach').replace('{n}', fmtNum(Math.round(mi))) : null;
+}
+
 function wildfirePopupHtml(f) {
   const src = wildfireSource(f);
   const num = (v) => (v === null || v === undefined ? null : fmtNum(v));
@@ -2509,6 +2539,7 @@ function wildfirePopupHtml(f) {
     // the only threat tier either source states; never derived, and never filled in from acreage
     + wfRow('wf.k.complexity', f.complexity, { showUnknown: true })
     + wfRow('wf.k.where', place)
+    + wfRow('wf.k.reach', wildfireReachText(f))
     + wfRow('wf.k.cause', f.cause)
     + wfRow('wf.k.started', f.started ? fmtWhen(f.started) : null)
     + wfRow('wf.k.updated', f.observed ? fmtWhen(f.observed) : null, { showUnknown: true, cls: stale ? 'xg-stale' : '' })

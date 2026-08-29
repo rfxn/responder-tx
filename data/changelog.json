@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.96",
+      "date": "2026-08-29",
+      "line": "A fire whose own source places it in Texas is now treated as a Texas fire even where the board's simplified state outline puts it just outside. One fire in Big Bend was being shown as merely near Texas and left out of the Texas fire count. The outline still decides how far outside the state a fire may be and still carry, so this corrects a label and never widens what the board covers."
+    },
+    {
       "v": "v0.99.95",
       "date": "2026-08-29",
       "line": "The county on a fire is the county it was reported to have started in, not the ground it covers, and that row is now labelled as the reported origin. Where a fire has a mapped edge, the popup also says how far that edge reached from the origin when it was last mapped, stated only where it changes the picture and naming the farthest point rather than a radius."

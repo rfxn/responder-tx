@@ -1,5 +1,14 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.96 · 2026-08-29 (a Texas fire is a Texas fire, whatever our outline says)
+
+-- Bug Fixes --
+- [Fix] A fire whose own source places it in Texas is now treated as a Texas fire even
+      where the board's simplified state outline puts it just outside. One fire in Big
+      Bend was being shown as merely near Texas and left out of the Texas fire count.
+      The outline still decides how far outside the state a fire may be and still
+      carries, so this corrects a label and never widens what the board covers
+
 ## v0.99.95 · 2026-08-29 (a fire's county is where it started, not where it reached)
 
 -- New Features --

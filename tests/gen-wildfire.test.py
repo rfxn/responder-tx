@@ -470,6 +470,53 @@ check('SCOPE · an incident well outside the buffer is dropped, and the run stil
 r = run(buffer_mi=0, wfigs=collection([wfigs_feature(lon=-93.75, lat=32.53, POOState='US-LA')]))
 check('SCOPE · a zero buffer keeps Texas and drops everything beyond the line',
       not [f for f in r['doc']['fires'] if f['src'] == 'wfigs'], r['doc']['fires'])
+
+# STATE · the source's own state beats the outline. The shipped ring is 152 points, too coarse for
+# the Rio Grande bend, and it put this live Big Bend NP fire 1.7 mi outside its own state: the popup
+# disclaimed a Texas fire as merely nearby and the hero count, which excludes buffer, never saw it.
+BLACK = dict(name='Black', fid='2026-TXBBP-000367', POOCounty='Brewster',
+             POOProtectingUnit='TXBBP', POOProtectingAgency='NPS', IncidentSize=5,
+             lon=-103.47251, lat=29.07034)
+
+
+def black(**over):
+    return collection([wfigs_feature(**dict(BLACK, **over))])
+
+
+def wfigs_fires(res):
+    return [f for f in res['doc']['fires'] if f['src'] == 'wfigs']
+
+
+r = run(wfigs=black(POOState='US-TX'))
+W = wfigs_fires(r)
+check('STATE · a record its source places in Texas is scoped tx even outside the simplified outline',
+      len(W) == 1 and W[0]['state'] == 'TX' and W[0]['scope'] == 'tx', W)
+rc, log = run_schema_gate(r['doc'])
+check('STATE · the gate accepts that Texas fire sitting outside the outline',
+      rc == 0, 'rc=%s %s' % (rc, log))
+# the control that proves the ring really does exclude this point rather than the test passing on
+# geometry it never left
+r = run(wfigs=black(POOState='US-NM'))
+W = wfigs_fires(r)
+check('STATE · the same point stated as another state is still buffer, so the ring still decides',
+      len(W) == 1 and W[0]['state'] == 'NM' and W[0]['scope'] == 'buffer', W)
+rc, log = run_schema_gate(r['doc'])
+check('STATE · the gate accepts an out-of-state record just outside the outline',
+      rc == 0, 'rc=%s %s' % (rc, log))
+for label, stated in (('unstated', None), ('empty', ''), ('unparseable', 'Texas')):
+    r = run(wfigs=black(POOState=stated))
+    W = wfigs_fires(r)
+    check('STATE · an %s state falls through to the geometric test unchanged' % label,
+          len(W) == 1 and W[0]['state'] is None and W[0]['scope'] == 'buffer', W)
+# Denver: a state claim may correct a label, never widen what the board carries
+r = run(wfigs=collection([wfigs_feature(name='Claimed', POOState='US-TX', lon=-104.99, lat=39.74)]))
+check('STATE · a stated Texas record past the buffer is still dropped, so coverage cannot widen',
+      r['code'] == 0 and not wfigs_fires(r), r['doc']['fires'])
+r = run(tfs=collection([tfs_feature(lon=-103.47251, lat=29.07034)],
+                       created='2026-07-29T03:55:03.767Z'))
+T = [f for f in r['doc']['fires'] if f['src'] == 'tfs']
+check('STATE · TFS protects Texas, so its records are scoped tx outside the outline too',
+      len(T) == 1 and T[0]['scope'] == 'tx', T)
 # The upstream envelope is only a prefilter and scope_of still does the exact test, but a fire the
 # query never returned can never reach it, so the envelope has to cover the buffer EVERYWHERE. A
 # pad derived from the ring's mean latitude falls ~3 mi short across the panhandle.
@@ -580,6 +627,25 @@ check('the schema gate accepts a Louisiana fire 17 mi from the line, which is in
 rc, log = run_schema_gate(payload([FIRE, dict(FIRE, id='tfs:ID-2', scope=None)]))
 check('the schema gate rejects a half-populated scope column rather than trusting the labelled half',
       rc != 0 and 'partial column' in log, 'rc=%s %s' % (rc, log))
+# GATE · the state override is re-derived from the payload's own state column, never taken off the
+# scope label: only a record whose source names Texas may be tx from outside the outline, and no
+# state claim reaches past the buffer.
+BB = dict(FIRE, lat=29.07034, lon=-103.47251)
+rc, log = run_schema_gate(payload([dict(BB, scope='tx', state='TX')]))
+check('the schema gate accepts a stated-Texas fire labelled tx from outside the outline',
+      rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(BB, scope='tx')]))
+check('the schema gate rejects an outside-the-outline fire labelled tx that states no state at all',
+      rc != 0 and 'no source state places it there' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(BB, scope='tx', state='NM')]))
+check('the schema gate rejects a fire labelled tx whose own source names another state',
+      rc != 0 and 'no source state places it there' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(BB, scope='buffer', state='TX')]))
+check('the schema gate still accepts the narrower buffer label on a stated-Texas fire',
+      rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(FIRE, lat=39.74, lon=-104.99, scope='tx', state='TX')]))
+check('the schema gate rejects a fire past the buffer even when its source claims Texas',
+      rc != 0 and 'past the' in log, 'rc=%s %s' % (rc, log))
 # --- perimeters: an edge where one is published, never a claim where none is -----------------
 r = run(perim=collection([perim_feature()]))
 D = r['doc']

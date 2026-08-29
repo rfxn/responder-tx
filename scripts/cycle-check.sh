@@ -478,7 +478,9 @@ if d is not None:
             die("wildfire.json: fires[%d] scope %r is neither tx nor buffer" % (i, f.get("scope")))
     # Re-derive the scope decision here rather than trusting the label the generator wrote. The
     # board carries Texas plus a border buffer, and a widened scope is exactly the kind of change
-    # that would otherwise publish out-of-state fires with nobody noticing.
+    # that would otherwise publish out-of-state fires with nobody noticing. A record whose own
+    # source names Texas may sit outside this simplified outline and still be labelled tx; nothing
+    # else may, and no state claim admits a fire past the buffer.
     sc = optional("data/wildfire-scope.json")
     if sc is not None and scoped:
         ring = [(float(x), float(y)) for x, y in sc["ring"]]
@@ -516,8 +518,9 @@ if d is not None:
                 if out > buf:
                     die("wildfire.json: fires[%d] sits %.0f mi outside Texas, past the %g mi buffer"
                         % (i, out, buf))
-                if f["scope"] != "buffer":
-                    die("wildfire.json: fires[%d] is outside Texas but labelled %r" % (i, f["scope"]))
+                if f["scope"] != "buffer" and str(f.get("state") or "").strip().upper() != "TX":
+                    die("wildfire.json: fires[%d] is outside Texas but labelled %r, and no source "
+                        "state places it there" % (i, f["scope"]))
     perims = d.get("perimeters") or []
     for i, p in enumerate(perims):
         for k in ("local", "state", "complexity"):

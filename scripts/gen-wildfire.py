@@ -142,11 +142,15 @@ def miles_to_ring(lat, lon, ring):
     return best
 
 
-def scope_of(lat, lon, ring, buffer_mi):
-    """"tx", "buffer", or None for a fire the board does not carry."""
+def scope_of(lat, lon, ring, buffer_mi, state=None):
+    """"tx", "buffer", or None for a fire the board does not carry. A source that states which state
+    the fire is in beats the ring, which is a simplified outline that puts Big Bend outside Texas.
+    It may only correct the label, never the coverage: past the buffer the fire is still dropped."""
     if in_ring(lat, lon, ring):
         return "tx"
-    return "buffer" if miles_to_ring(lat, lon, ring) <= buffer_mi else None
+    if miles_to_ring(lat, lon, ring) > buffer_mi:
+        return None
+    return "tx" if state == "TX" else "buffer"
 
 
 def iso_z(dt):
@@ -262,7 +266,8 @@ def collect_tfs(scope):
             observed = iso_from_text(p.get("lastupdated")) or iso_from_text(p.get("statustimestamp"))
             if not pt or not name or not p.get("id") or not observed:
                 continue
-            where = scope_of(pt[0], pt[1], scope[0], scope[1])
+            # TFS protects Texas land only, so every incident it publishes is a Texas one
+            where = scope_of(pt[0], pt[1], scope[0], scope[1], "TX")
             if where is None:
                 continue
             # the feed states its own units rather than implying them, so an incident measured in
@@ -343,7 +348,7 @@ def collect_wfigs(scope):
     for f in raw:
         try:
             p = f.get("properties") or {}
-            state = str(p.get("POOState") or "").strip().upper()
+            state = state_code(p.get("POOState"))
             # only a fire TFS itself protects is a duplicate; every other Texas fire is ours to
             # publish, including one whose unit the source left unstated
             if str(p.get("POOProtectingUnit") or "").strip().upper() == TFS_UNIT:
@@ -354,7 +359,7 @@ def collect_wfigs(scope):
             observed = iso_from_ms(p.get("ModifiedOnDateTime_dt"))
             if not pt or not name or not fid or not observed:
                 continue
-            where = scope_of(pt[0], pt[1], scope[0], scope[1])
+            where = scope_of(pt[0], pt[1], scope[0], scope[1], state)
             if where is None:
                 continue
             fires.append({
@@ -369,7 +374,7 @@ def collect_wfigs(scope):
                 "acres": number(p.get("IncidentSize"), lo=0),
                 "contain": number(p.get("PercentContained"), lo=0, hi=100),
                 "county": str(p.get("POOCounty") or "").strip() or None,
-                "state": state_code(state),
+                "state": state,
                 # open vocabulary again: the tier the source stated, never mapped to one of ours
                 "complexity": str(p.get("IncidentComplexityLevel") or "").strip() or None,
                 "observed": observed,
@@ -486,10 +491,11 @@ def collect_perimeters(scope):
                 continue
             # any vertex inside decides it: a perimeter on the state line is ours even when its
             # centre is not, and the centre of a horseshoe can sit outside its own fire
+            state = state_code(p.get("attr_POOState"))
             hit = None
             for ring in rings:
                 for lon, lat in ring:
-                    hit = scope_of(lat, lon, scope[0], scope[1])
+                    hit = scope_of(lat, lon, scope[0], scope[1], state)
                     if hit:
                         break
                 if hit:
@@ -510,7 +516,7 @@ def collect_perimeters(scope):
                 "local": str(p.get("attr_LocalIncidentIdentifier") or "").strip() or None,
                 "name": name,
                 "scope": hit,
-                "state": state_code(p.get("attr_POOState")),
+                "state": state,
                 "acres": number(p.get("poly_GISAcres"), lo=0),
                 "observed": iso_from_ms(p.get("poly_DateCurrent")) or iso_from_text(p.get("poly_DateCurrent")),
                 # when the EDGE was collected, days behind the record stamp that observed carries

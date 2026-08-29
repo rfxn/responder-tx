@@ -14,6 +14,7 @@ import datetime
 import importlib.util
 import io
 import json
+import math
 import os
 import re
 import shutil
@@ -21,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.error
+import urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -86,8 +88,11 @@ def perim_feature(name='Frontera', ring=None, **over):
     ring = ring or [[-99.0, 31.0], [-99.0, 31.1], [-98.9, 31.1], [-98.9, 31.0], [-99.0, 31.0]]
     props = {'poly_IncidentName': name, 'poly_GISAcres': 120.5,
              'poly_IRWINID': '{ABC-123}', 'poly_DateCurrent': 1785297127038,
+             'poly_PolygonDateTime': 1785000000000,
              'poly_FeatureCategory': 'Wildfire Daily Fire Perimeter',
-             'poly_MapMethod': 'Image Interpretation'}
+             'poly_MapMethod': 'Image Interpretation',
+             'attr_LocalIncidentIdentifier': '267549', 'attr_POOState': 'US-TX',
+             'attr_IncidentComplexityLevel': 'Type 3 Incident'}
     props.update(over)
     return {'type': 'Feature', 'geometry': {'type': 'Polygon', 'coordinates': [ring]},
             'properties': props}
@@ -182,6 +187,20 @@ def run(tfs=TFS_OK, wfigs=WFIGS_OK, meta=META_OK, previous=None, bbox=TX_BBOX,
 
 def src(doc, key):
     return next(s for s in doc['sources'] if s['key'] == key)
+
+
+def query_url(calls, lane):
+    return next(u for lane_seen, u, _ in calls if lane_seen == lane)
+
+
+def query_envelope(calls, lane):
+    """The bbox the generator actually asked upstream for, read back off the recorded query."""
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(query_url(calls, lane)).query)
+    return [float(v) for v in q['geometry'][0].split(',')]
+
+
+def bare(perim):
+    return {k: v for k, v in perim.items() if k != 'rings'}
 
 
 def extract_schema_gate():
@@ -327,18 +346,61 @@ fire = [f for f in r['doc']['fires'] if f['src'] == 'tfs'][0]
 check('a size in units other than acres publishes no acreage rather than a mislabelled number',
       fire['acres'] is None and fire['contain'] == 50, fire)
 
+# complexity is the one threat tier either source states. It is an open upstream vocabulary, so it
+# is published exactly as read, like status.
+r = run(wfigs=collection([wfigs_feature(IncidentComplexityLevel='Type 5 Incident')]))
+fire = [f for f in r['doc']['fires'] if f['src'] == 'wfigs'][0]
+check('an incident publishes the complexity tier its source stated, verbatim and unmapped',
+      fire['complexity'] == 'Type 5 Incident', fire)
+check('the incident query asks upstream for the complexity column it publishes',
+      'IncidentComplexityLevel' in query_url(r['calls'], 'wfigs'), query_url(r['calls'], 'wfigs'))
+fire = [f for f in run()['doc']['fires'] if f['src'] == 'wfigs'][0]
+check('an incident whose source states no complexity publishes null, not an invented tier',
+      fire['complexity'] is None, fire)
+
 # --- scope: what each source is allowed to contribute ---------------------------------------
 r = run(wfigs=collection([wfigs_feature(POOState='US-TX', POOCounty='Bastrop')]))
 check('a Texas WFIGS record is dropped, because TFS is authoritative in state',
       not [f for f in r['doc']['fires'] if f['src'] == 'wfigs']
       and src(r['doc'], 'wfigs')['status'] == 'ok', r['doc']['fires'])
 r = run(tfs=collection([tfs_feature(categoryType='Prescribed'),
-                        tfs_feature(fid='ID-2', publicvisibility='Hidden')],
+                        tfs_feature(fid='ID-2', publicvisibility='Hidden'),
+                        tfs_feature(fid='ID-3')],
                        created='2026-07-29T03:55:03.767Z'))
 check('a prescribed burn and a non-public incident are both dropped, and the read stays ok',
-      not [f for f in r['doc']['fires'] if f['src'] == 'tfs']
-      and src(r['doc'], 'tfs')['status'] == 'ok' and src(r['doc'], 'tfs')['count'] == 0,
+      [f['id'] for f in r['doc']['fires'] if f['src'] == 'tfs'] == ['tfs:ID-3']
+      and src(r['doc'], 'tfs')['status'] == 'ok' and src(r['doc'], 'tfs')['count'] == 1,
       r['doc']['sources'])
+
+# VOCAB · both filters read an open upstream vocabulary. A reword or a re-case drops every Texas
+# fire, and the fetch that carried it still succeeded, so the file would publish a manufactured
+# fire-free day. The guard keys on those two filters only.
+r = run(tfs=collection([tfs_feature(categoryType='Wildland Fire'),
+                        tfs_feature(fid='ID-2', categoryType='Wildland Fire')],
+                       created='2026-07-29T03:55:03.767Z'))
+check('VOCAB · a read the category filters rejected in full publishes failed, never as zero fires',
+      src(r['doc'], 'tfs')['status'] == 'failed' and src(r['doc'], 'tfs')['count'] is None
+      and r['code'] != 0 and not [f for f in r['doc']['fires'] if f['src'] == 'tfs'],
+      'code=%s %s' % (r['code'], r['doc']['sources']))
+r = run(tfs=collection([tfs_feature(publicvisibility='PUBLIC')],
+                       created='2026-07-29T03:55:03.767Z'))
+check('VOCAB · a re-cased visibility value trips the same guard rather than emptying the layer',
+      src(r['doc'], 'tfs')['status'] == 'failed' and src(r['doc'], 'tfs')['count'] is None,
+      r['doc']['sources'])
+r = run(tfs=collection([], created='2026-07-29T03:55:03.767Z'))
+check('VOCAB · an upstream that published no features at all is still a legal fire-free day',
+      r['code'] == 0 and src(r['doc'], 'tfs')['status'] == 'ok'
+      and src(r['doc'], 'tfs')['count'] == 0, r['doc']['sources'])
+r = run(tfs=collection([{'type': 'Feature', 'geometry': None, 'properties': None},
+                        {'type': 'Feature'}], created='2026-07-29T03:55:03.767Z'))
+check('VOCAB · a day of wholly malformed records does not masquerade as a vocabulary break',
+      r['code'] == 0 and src(r['doc'], 'tfs')['status'] == 'ok'
+      and src(r['doc'], 'tfs')['count'] == 0, r['doc']['sources'])
+r = run(tfs=collection([tfs_feature(categoryType='Prescribed'), tfs_feature(fid='ID-2', lon=-70.0)],
+                       created='2026-07-29T03:55:03.767Z'))
+check('VOCAB · an out-of-scope fire alongside a filtered one keeps the read ok, not failed',
+      r['code'] == 0 and src(r['doc'], 'tfs')['status'] == 'ok'
+      and src(r['doc'], 'tfs')['count'] == 0, r['doc']['sources'])
 r = run(tfs=collection([tfs_feature(lon=-70.0, lat=43.0)], created='2026-07-29T03:55:03.767Z'))
 check('an incident outside the area of operations is dropped',
       not [f for f in r['doc']['fires'] if f['src'] == 'tfs'], r['doc']['fires'])
@@ -363,6 +425,24 @@ check('SCOPE · an incident well outside the buffer is dropped, and the run stil
 r = run(buffer_mi=0, wfigs=collection([wfigs_feature(lon=-93.75, lat=32.53, POOState='US-LA')]))
 check('SCOPE · a zero buffer keeps Texas and drops everything beyond the line',
       not [f for f in r['doc']['fires'] if f['src'] == 'wfigs'], r['doc']['fires'])
+# The upstream envelope is only a prefilter and scope_of still does the exact test, but a fire the
+# query never returned can never reach it, so the envelope has to cover the buffer EVERYWHERE. A
+# pad derived from the ring's mean latitude falls ~3 mi short across the panhandle.
+BUF = 50
+CALLS = run(buffer_mi=BUF)['calls']
+BOX = query_envelope(CALLS, 'wfigs')
+RING_LONS = [p[0] for p in REPO_SCOPE['ring']]
+RING_LATS = [p[1] for p in REPO_SCOPE['ring']]
+TOP = max(abs(y) for y in RING_LATS)
+PAD_MI_TOP = (min(RING_LONS) - BOX[0]) * 69.0 * math.cos(math.radians(TOP))
+check('SCOPE · the query envelope covers the whole buffer at the outline poleward edge',
+      PAD_MI_TOP >= BUF - 0.01, '%.1f mi of a %g mi buffer at lat %.2f' % (PAD_MI_TOP, BUF, TOP))
+check('SCOPE · the envelope only ever widens the outline, never clips it',
+      BOX[0] < min(RING_LONS) and BOX[2] > max(RING_LONS)
+      and BOX[1] < min(RING_LATS) and BOX[3] > max(RING_LATS), BOX)
+check('SCOPE · the perimeter read asks upstream for the same envelope as the incident read',
+      query_envelope(CALLS, 'perim') == BOX, query_envelope(CALLS, 'perim'))
+
 r = run(scope=False)
 check('SCOPE · an unreadable scope file refuses to publish rather than guessing at coverage',
       r['code'] != 0 and r['doc'] is None, (r['code'], r['doc']))
@@ -467,6 +547,42 @@ check('the ring keeps [lon, lat] order, so the client flip lands in Texas',
 check('the perimeter read gets its own source row, so a failure is visible',
       src(D, 'wfigs-perimeters')['status'] == 'ok' and src(D, 'wfigs-perimeters')['count'] == 1,
       D['sources'])
+check('the perimeter query asks upstream for the collection time, join key, state and complexity',
+      all(k in query_url(r['calls'], 'perim') for k in
+          ('poly_PolygonDateTime', 'attr_LocalIncidentIdentifier', 'attr_POOState',
+           'attr_IncidentComplexityLevel')), query_url(r['calls'], 'perim'))
+
+# EDGE AGE · observed is when the RECORD was last touched; mapped is when the edge was collected.
+# The two ran 109h apart on an 85,000-acre fire, so dating one by the other reads a four-day-old
+# outline as hours old.
+check('a perimeter publishes when its edge was collected, not only when the record was touched',
+      P[0]['mapped'] == '2026-07-25T17:20:00Z' and P[0]['observed'] == '2026-07-29T03:52:07Z',
+      bare(P[0]))
+r = run(perim=collection([perim_feature(poly_PolygonDateTime='2026-07-25T17:20:00.000Z')]))
+check('a collection time published as text reads the same as one published in epoch millis',
+      r['doc']['perimeters'][0]['mapped'] == '2026-07-25T17:20:00Z', bare(r['doc']['perimeters'][0]))
+r = run(perim=collection([perim_feature(poly_PolygonDateTime=None)]))
+check('an unstated collection time publishes mapped null, never backfilled from observed or a clock',
+      r['doc']['perimeters'][0]['mapped'] is None
+      and r['doc']['perimeters'][0]['observed'] == '2026-07-29T03:52:07Z',
+      bare(r['doc']['perimeters'][0]))
+
+# JOIN · the incident number both sources carry. Name equality collides for real: WFIGS published
+# two live "West Fork" perimeters, one in Texas and one in Washington.
+check('a perimeter publishes the local incident number the TFS records carry as their own number',
+      P[0]['local'] == '267549', bare(P[0]))
+check('a perimeter state is normalized to the two-letter code the incident records already use',
+      P[0]['state'] == 'TX', bare(P[0]))
+check('a perimeter publishes the complexity tier verbatim, exactly as the source stated it',
+      P[0]['complexity'] == 'Type 3 Incident', bare(P[0]))
+r = run(perim=collection([perim_feature(attr_LocalIncidentIdentifier=None, attr_POOState=None,
+                                        attr_IncidentComplexityLevel='')]))
+Q = r['doc']['perimeters'][0]
+check('an unstated join key, state or complexity publishes null rather than an empty string',
+      Q['local'] is None and Q['state'] is None and Q['complexity'] is None, bare(Q))
+r = run(perim=collection([perim_feature(attr_POOState='Texas')]))
+check('a state that does not read as two letters publishes null, never a half-parsed one',
+      r['doc']['perimeters'][0]['state'] is None, bare(r['doc']['perimeters'][0]))
 
 # a fire whose edge crosses the line is ours even when most of it is not
 r = run(perim=collection([perim_feature(
@@ -625,6 +741,47 @@ check('the schema gate rejects a carried row claiming a read later than the file
       rc != 0 and 'later than generated' in log, 'rc=%s %s' % (rc, log))
 rc, log = run_schema_gate(run(perim=OSError('timed out'), previous=prev_edges(0.5))['doc'])
 check('a carried run also writes what the release gate accepts', rc == 0, 'rc=%s %s' % (rc, log))
+
+# --- the gate holds the perimeter columns to the same discipline as the incident ones ----------
+PERIM_ROW = {'id': 'wfigs-perim:267549', 'irwin': '', 'local': '267549', 'name': 'Ross',
+             'scope': 'tx', 'state': 'TX', 'acres': 85303, 'complexity': 'Type 3 Incident',
+             'observed': '2026-07-29T03:52:07Z', 'mapped': '2026-07-25T01:07:00Z',
+             'method': 'Image Interpretation', 'category': 'Wildfire Daily Fire Perimeter',
+             'rings': [[[-99.0, 31.0], [-99.0, 31.1], [-98.9, 31.1], [-98.9, 31.0], [-99.0, 31.0]]]}
+
+
+def perim_payload(rows):
+    return dict(payload([FIRE]), perimeters=rows)
+
+
+rc, log = run_schema_gate(perim_payload([PERIM_ROW]))
+check('the schema gate accepts a perimeter whose edge is days older than its record',
+      rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, mapped=None, local=None, state=None,
+                                              complexity=None)]))
+check('the schema gate accepts every new perimeter column as null, which is a fact not a gap',
+      rc == 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, mapped='2026-07-29T04:00:00Z')]))
+check('the schema gate rejects an edge collected after the record that carries it',
+      rc != 0 and 'later than observed' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, mapped=1785000000000)]))
+check('the schema gate rejects a collection time that is not an ISO stamp',
+      rc != 0 and 'ISO stamp' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, state='US-TX')]))
+check('the schema gate rejects a perimeter state left in its prefixed upstream form',
+      rc != 0 and 'two-letter' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, local=267549)]))
+check('the schema gate rejects a join key published as a number, which would never match TFS',
+      rc != 0 and 'neither a string nor null' in log, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(perim_payload([dict(PERIM_ROW, complexity=3)]))
+check('the schema gate rejects a perimeter complexity that is not the string the source stated',
+      rc != 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(payload([dict(FIRE, complexity=3)]))
+check('the schema gate rejects an incident complexity that is not a string',
+      rc != 0, 'rc=%s %s' % (rc, log))
+rc, log = run_schema_gate(run(perim=collection([perim_feature()]))['doc'])
+check('the generator writes the new perimeter columns in the form the release gate accepts',
+      rc == 0, 'rc=%s %s' % (rc, log))
 
 print('----')
 if FAILS == 0:

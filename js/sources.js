@@ -2276,15 +2276,27 @@ const SQ_M_PER_ACRE = 4046.86;
 const fireAreaRadiusM = (acres) => Math.sqrt((acres * SQ_M_PER_ACRE) / Math.PI);
 
 const wildfireKey = (v) => String(v || '').trim().toUpperCase();
+// two live perimeters are named "West Fork" in different states, so a stated disagreement rules a name out
+const wildfireStateDiffers = (a, b) => {
+  const x = wildfireKey(a);
+  const y = wildfireKey(b);
+  return !!x && !!y && x !== y;
+};
 
-// a fire is mapped when a perimeter shares its IRWIN id, or failing that its incident name
+/* The local incident id in its own state first: the TFS feed carries no IRWIN at all, so every
+   match used to ride on name equality, which two states can both publish. */
 function perimeterMatches(data, f) {
   const perims = Array.isArray(data.perimeters) ? data.perimeters : [];
   if (!perims.length) return false;
+  const local = wildfireKey(f.number);
+  const st = wildfireKey(f.state);
   const irwin = wildfireKey(f.irwin);
   const name = wildfireKey(f.name);
-  return perims.some((p) => (irwin && wildfireKey(p.irwin) === irwin)
-    || (name && wildfireKey(p.name) === name));
+  return perims.some((p) => {
+    if (local && st && wildfireKey(p.local) === local && wildfireKey(p.state) === st) return true;
+    if (irwin && wildfireKey(p.irwin) === irwin) return true;
+    return !!name && wildfireKey(p.name) === name && !wildfireStateDiffers(f.state, p.state);
+  });
 }
 
 function renderFireAreas(layer, data) {
@@ -2309,11 +2321,17 @@ function fireAreaPopupHtml(f) {
     + `${esc(t('wf.acres').replace('{n}', fmtNum(f.acres)))}</div></div>`;
 }
 
+/* p.mapped is when the edge was actually collected; p.observed only says when the record was last
+   restamped, and upstream the two have run 4.5 days apart on a growing fire. */
+const perimeterAgeH = (p) => (Date.now() - new Date(p && p.mapped).getTime()) / 3600000;
+const perimeterStale = (p) => !(perimeterAgeH(p) < WILDFIRE_STALE_H); // an uncollected edge cannot be asserted as current
+
 /* Where an agency has mapped the fire edge. Most fires never get one, so this draws under the
    points rather than replacing them, and its absence is never a claim the fire is small. The
    geometry is a generalized daily interpretation of imagery, which the popup says out loud. */
 function renderPerimeters(layer, data) {
   for (const p of (Array.isArray(data.perimeters) ? data.perimeters : [])) {
+    const cls = `wildfire-perimeter${perimeterStale(p) ? ' aged' : ''}`;
     for (const ring of (Array.isArray(p.rings) ? p.rings : [])) {
       if (!Array.isArray(ring) || ring.length < 4) continue;
       const latlngs = ring
@@ -2322,7 +2340,7 @@ function renderPerimeters(layer, data) {
       if (latlngs.length < 4) continue;
       const poly = L.polygon(latlngs, {
         pane: 'shadowPane', color: '#d9480f', weight: 2, opacity: 0.9,
-        fillColor: '#f76707', fillOpacity: 0.18, className: 'wildfire-perimeter',
+        fillColor: '#f76707', fillOpacity: 0.18, className: cls,
       });
       poly.bindPopup(perimeterPopupHtml(p));
       layer.addLayer(poly);
@@ -2336,12 +2354,32 @@ function perimeterPopupHtml(p) {
   if (Number.isFinite(p.acres)) rows.push(`${esc(t('wf.k.size'))}: ${esc(t('wf.acres').replace('{n}', fmtNum(p.acres)))}`);
   // the mapping method is the provenance: image interpretation and a GPS walk are different claims
   if (p.method) rows.push(`${esc(t('wf.k.method'))}: ${esc(p.method)}`);
-  if (p.observed) rows.push(`${esc(t('wf.k.mapped'))}: ${esc(fmtWhen(p.observed))}`);
+  const aged = perimeterStale(p);
+  const mappedCls = p.mapped ? (aged ? ' class="xg-stale"' : '') : ' class="wf-unknown"';
+  // always drawn: an unreported collection time is the fact the reader most needs to see
+  rows.push(`${esc(t('wf.k.mapped'))}: <span${mappedCls}>`
+    + `${esc(p.mapped ? fmtWhen(p.mapped) : t('wf.unreported'))}</span>`);
+  if (p.observed) rows.push(`${esc(t('wf.k.updated'))}: ${esc(fmtWhen(p.observed))}`);
   return `<div class="pop"><strong>${esc(p.name || t('wf.unnamed'))}</strong>`
     + `<div class="pop-sub">${esc(t('wf.perim.sub'))}</div>`
-    + (rows.length ? `<div class="pop-meta">${rows.join(' · ')}</div>` : '')
+    + `<div class="pop-meta">${rows.join(' · ')}</div>`
+    + (aged ? `<div class="pop-meta xg-stale">${esc(p.mapped
+      ? t('wf.edge.stale').replace('{h}', String(Math.round(perimeterAgeH(p))))
+      : t('wf.edge.undated'))}</div>` : '')
     + `</div>`;
 }
+
+/* The reported acreage drawn at weight, the same reported figure renderFireAreas() draws as a
+   circle. Decade bands off the 100-acre floor that circle already uses; an unreported acreage and
+   a contained fire both sit at the base, never at the ramp floor. */
+const WILDFIRE_BASE_PX = 26;
+const WILDFIRE_TIERS = [[10000, 38], [1000, 34], [WILDFIRE_AREA_MIN_ACRES, 30]];
+const wildfireTier = (f) => ((!f || wildfireContained(f) || !Number.isFinite(f.acres)) ? -1
+  : WILDFIRE_TIERS.findIndex(([acres]) => f.acres >= acres));
+const wildfireMarkerPx = (f) => {
+  const i = wildfireTier(f);
+  return i < 0 ? WILDFIRE_BASE_PX : WILDFIRE_TIERS[i][1];
+};
 
 function renderWildfire() {
   const layer = state.layers.wildfire;
@@ -2353,12 +2391,15 @@ function renderWildfire() {
   const lbl = esc(t('layers.wildfire'));
   for (const f of (Array.isArray(data.fires) ? data.fires : [])) {
     if (!Number.isFinite(f.lat) || !Number.isFinite(f.lon)) continue;
-    const cls = `wildfire-icon${wildfireContained(f) ? ' contained' : ''}${wildfireStale(f) ? ' unconfirmed' : ''}`;
+    const cls = `wildfire-icon${wildfireContained(f) ? ' contained' : ''}${wildfireStale(f) ? ' unconfirmed' : ''}`
+      + `${wildfireTier(f) === 0 ? ' large' : ''}`;
+    const px = wildfireMarkerPx(f);
     const icon = L.divIcon({
       className: '',
-      html: `<div class="${cls}" role="img" aria-label="${lbl}" title="${lbl}">🔥</div>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
+      html: `<div class="${cls}" role="img" aria-label="${lbl}" title="${lbl}"`
+        + ` style="width:${px}px;height:${px}px;font-size:${Math.round(px / 2)}px">🔥</div>`,
+      iconSize: [px, px],
+      iconAnchor: [px / 2, px / 2],
     });
     /* Above every gauge (js/sources.js gauge markers reach zIndexOffset 1000 for a major category),
        because Leaflet orders the marker pane by latitude, so a gauge a little to the south was
@@ -2408,6 +2449,8 @@ function wildfirePopupHtml(f) {
   const facts = `<dl class="wf-facts">`
     + wfRow('wf.k.size', f.acres === null || f.acres === undefined ? null : t('wf.acres').replace('{n}', num(f.acres)), { showUnknown: true })
     + wfRow('wf.k.contain', f.contain === null || f.contain === undefined ? null : t('wf.contain').replace('{n}', num(f.contain)), { showUnknown: true })
+    // the only threat tier either source states; never derived, and never filled in from acreage
+    + wfRow('wf.k.complexity', f.complexity, { showUnknown: true })
     + wfRow('wf.k.where', place)
     + wfRow('wf.k.cause', f.cause)
     + wfRow('wf.k.started', f.started ? fmtWhen(f.started) : null)

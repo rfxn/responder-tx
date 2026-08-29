@@ -462,6 +462,8 @@ if d is not None:
                 die("wildfire.json: fires[%d] %s is neither a number nor null" % (i, k))
         if isinstance(f.get("contain"), (int, float)) and not 0 <= f["contain"] <= 100:
             die("wildfire.json: fires[%d] contain %r is outside 0-100" % (i, f["contain"]))
+        if f.get("complexity") is not None and not isinstance(f["complexity"], str):
+            die("wildfire.json: fires[%d] complexity is neither a string nor null" % i)
     # An artifact written before the scope column existed is an upgrade path, not a fault: it notes
     # and self-resolves on the first cycle after the release. A record that carries SOME scope is
     # held to all of it.
@@ -516,6 +518,18 @@ if d is not None:
                         % (i, out, buf))
                 if f["scope"] != "buffer":
                     die("wildfire.json: fires[%d] is outside Texas but labelled %r" % (i, f["scope"]))
+    for i, p in enumerate(d.get("perimeters") or []):
+        for k in ("local", "state", "complexity"):
+            if p.get(k) is not None and not isinstance(p[k], str):
+                die("wildfire.json: perimeters[%d] %s is neither a string nor null" % (i, k))
+        if p.get("state") is not None and (len(p["state"]) != 2 or not p["state"].isalpha()):
+            die("wildfire.json: perimeters[%d] state %r is not a two-letter code" % (i, p["state"]))
+        # mapped is the edge, observed is the record: crossing them dates a stale outline as fresh
+        if p.get("mapped") is not None:
+            if not isinstance(p["mapped"], str):
+                die("wildfire.json: perimeters[%d] mapped is neither an ISO stamp nor null" % i)
+            if p.get("observed") and parse_iso(p["mapped"]) > parse_iso(p["observed"]):
+                die("wildfire.json: perimeters[%d] mapped is later than observed" % i)
 
 d = optional("data/caltopo-export.json")
 if d is not None:

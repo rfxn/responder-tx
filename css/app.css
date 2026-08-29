@@ -1773,9 +1773,9 @@ button.inspect-gauge:hover { color: var(--accent); }
   display: inline-flex; vertical-align: middle; box-shadow: none;
 }
 
-/* Reported wildfire incident. A circle, because unlike a siren site this IS a hazard, and it
-   carries the fire hazard colour rather than a severity one: neither source publishes a severity
-   and the board must not invent one from acreage. */
+/* Reported wildfire incident. One hazard colour and never a severity ramp: the only tier either
+   source states is complexity, and the popup prints it. Size is set inline from the reported
+   acreage (js/sources.js WILDFIRE_TIERS), so the width below is only the off-map fallback. */
 .wildfire-icon {
   display: flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; font-size: 13px; line-height: 1;
@@ -1783,10 +1783,12 @@ button.inspect-gauge:hover { color: var(--accent); }
   border: 2.5px solid var(--haz-fire); border-radius: 50%;
   box-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
+/* top reported-acreage band, uncontained: the same pulse .gauge-icon.cat-major uses */
+.wildfire-icon.large { animation: pulse 1.6s infinite; }
 /* still a road hazard and a smoke source, visually retired: a reported containment is a fact */
-.wildfire-icon.contained { border-color: var(--ink-muted); filter: grayscale(1); }
+.wildfire-icon.contained { border-color: var(--ink-muted); filter: grayscale(1); animation: none; }
 /* nobody has restamped it inside the window, so it is drawn without being asserted as current */
-.wildfire-icon.unconfirmed { border-style: dashed; opacity: 0.55; }
+.wildfire-icon.unconfirmed { border-style: dashed; opacity: 0.55; animation: none; }
 .map-legend .wildfire-icon, .ls-icon .wildfire-icon {
   width: 16px; height: 16px; margin-right: 6px; font-size: 10px;
   display: inline-flex; vertical-align: middle; box-shadow: none; border-width: 1.5px;
@@ -2498,6 +2500,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   #gps-wait,
   .locate-btn.locating,
   .gauge-icon.cat-major,
+  .wildfire-icon.large,
   .cutoff-circle,
   .pb-crest-line,
   .gauge-attn::after,
@@ -2587,6 +2590,9 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
 /* Fire perimeter. Drawn under the origin points, which stay the layer's primary answer because
    most fires never get an edge mapped at all. */
 .wildfire-perimeter { pointer-events: auto; }
+/* the edge was collected before the staleness window, or carries no collection time at all: faded
+   and dashed like .wildfire-icon.unconfirmed, and it keeps its fill so it stays unlike the circle */
+.wildfire-perimeter.aged { stroke-dasharray: 8 6; stroke-opacity: 0.6; fill-opacity: 0.08; }
 .wildfire-perim-key {
   display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle;
   border: 2px solid #d9480f; background: rgba(247, 103, 7, .18);

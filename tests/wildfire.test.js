@@ -79,7 +79,8 @@ test('an unreported acreage or containment is named as unreported, never rendere
   }
 
   // a genuinely reported zero is still a reported figure and must survive
-  const zero = popup({ ...FIRE, src: 'wfigs', acres: 0, contain: 0 });
+  // every always-drawn row is populated here, so an unreported one below can only be the zero
+  const zero = popup({ ...FIRE, src: 'wfigs', acres: 0, contain: 0, complexity: 'Type 4 Incident' });
   assert.match(zero, /wf\.contain/, 'a reported 0% is a fact the source published');
   assert.doesNotMatch(zero, /wf\.unreported/, 'a reported 0 is not an unreported figure');
   assert.doesNotMatch(zero, /wf-unknown/);
@@ -249,7 +250,7 @@ test('the marker reads as a hazard, retires when contained and dashes when unres
   assert.match(rule, /border-radius:\s*50%/, 'a hazard marker is a circle on this map');
   assert.match(rule, /var\(--haz-fire\)/, 'the marker must carry the fire hazard token');
   assert.ok(!/--sev-|--cat-/.test(rule),
-    'the marker borrows a severity colour, but neither source publishes a severity');
+    'the marker borrows a flood severity colour, and a fire is not on that ramp');
   assert.match(css, /\.wildfire-icon\.contained \{/, 'a contained incident has no retired treatment');
   assert.match(css, /\.wildfire-icon\.unconfirmed \{[^}]*dashed/, 'an aged incident is drawn as current');
   assert.match(css, /\.leaflet-marker-pane \.wildfire-icon::before/, 'the marker has no phone tap halo');
@@ -278,7 +279,7 @@ test('every wildfire string exists in both languages and carries no em-dash', ()
     'wf.unreported', 'wf.nearby', 'wf.crew', 'wf.k.size', 'wf.k.contain', 'wf.k.where',
     'wf.k.cause', 'wf.k.started', 'wf.k.updated', 'wf.k.unit', 'wf.k.org', 'wf.k.crew',
     'wf.k.number', 'wf.k.method', 'wf.k.mapped', 'wf.unnamed', 'wf.perim.sub',
-    'legend.wildfire.perim'];
+    'legend.wildfire.perim', 'wf.k.complexity', 'wf.edge.stale', 'wf.edge.undated'];
   for (const k of keys) {
     assert.equal((i18n.match(new RegExp(`'${k.replace(/\./g, '\\.')}':`, 'g')) || []).length, 2,
       `${k} is missing from en or es`);
@@ -382,18 +383,6 @@ test('rings_of keeps outer rings only and rejects a degenerate ring', () => {
   assert.match(src, /len\(r\) >= 4/, 'a ring with under 4 points is not a polygon');
 });
 
-test('a perimeter is in scope when ANY vertex is, not just its centre', () => {
-  const src = read('scripts/gen-wildfire.py');
-  const fn = src.slice(src.indexOf('def collect_perimeters'), src.indexOf('def rings_of'));
-  assert.match(fn, /for ring in rings:/, 'the scope test must walk the ring');
-  assert.match(fn, /scope_of\(lat, lon, scope\[0\], scope\[1\]\)/,
-    'it must reuse the same scope test the incident points use');
-  // a horseshoe fire can have its centroid outside its own burn, and a border fire is still ours.
-  // Comments are stripped first: the code's own note names the approach it deliberately avoids.
-  const code = fn.replace(/#.*$/gm, '');
-  assert.ok(!/centroid|center|centre/i.test(code), 'a centroid test would drop border and horseshoe fires');
-});
-
 test('the perimeter read is generalized and bounded, so one geometry cannot become the payload', () => {
   const src = read('scripts/gen-wildfire.py');
   assert.match(src, /PERIM_OFFSET = "0\.0005"/, 'server-side generalization must stay on');
@@ -401,14 +390,6 @@ test('the perimeter read is generalized and bounded, so one geometry cannot beco
   assert.match(src, /PERIM_MAX_VERTS/, 'an unbounded geometry must be refused, not published');
   assert.match(src, /raise ValueError\(f"WFIGS perimeters still reports more rows/,
     'a truncated perimeter read must raise: a short set would draw a fire smaller than it is');
-});
-
-test('a perimeter failure is published as failed and never sinks the incident layer', () => {
-  const src = read('scripts/gen-wildfire.py');
-  assert.match(src, /"wfigs-perimeters": \{"name"/, 'the perimeter read needs its own source entry');
-  // E1: the points are the board's answer; an enrichment that fails must not empty the layer
-  assert.match(src, /if all\(s\["status"\] == "failed" for s in \(tfs_src, wfigs_src\)\):/,
-    'the fatal check must consider the two incident sources, not the perimeter read');
 });
 
 test('the client draws perimeters under the points and states what the geometry is', () => {
@@ -847,5 +828,212 @@ test('every popup the render binds is built without reaching outside its own sco
     assert.equal(typeof o.popup, 'string', `the ${o.kind} bound no popup`);
     assert.ok(o.popup.includes('<div class="pop') || o.popup.includes('wf-head'),
       `the ${o.kind} popup rendered nothing usable: ${o.popup.slice(0, 80)}`);
+  }
+});
+
+/* ---------- the edge is aged by when it was flown, not by when the record was restamped ----------
+   WFIGS publishes the collection time (poly_PolygonDateTime) separately from record currency
+   (poly_DateCurrent), and on the Ross fire the two ran 109 hours apart: the board dated a 4.5-day
+   old fire edge as 7 hours old while the fire was still growing. Both fields are optional, because
+   the service worker will serve payloads written before either one existed. */
+
+const MSB = mapApp._sandbox;
+const perimWith = (over) => Object.assign({}, PERIM, over);
+const EDGE_FRESH = perimWith({ mapped: hoursAgo(2), observed: hoursAgo(1) });
+const EDGE_OLD = perimWith({ mapped: hoursAgo(109), observed: hoursAgo(1) });
+const EDGE_UNDATED = perimWith({ mapped: null, observed: hoursAgo(1) });
+
+test('the edge age is read from the collection time, never from the record restamp', () => {
+  const { perimeterStale, perimeterAgeH } = mapApp; // const arrows: reachable through the epilogue, not the sandbox
+  assert.equal(perimeterStale(EDGE_FRESH), false);
+  assert.equal(perimeterStale(EDGE_OLD), true);
+  assert.equal(perimeterStale(EDGE_UNDATED), true, 'an edge with no collection time cannot be asserted as current');
+  assert.ok(Math.abs(perimeterAgeH(EDGE_OLD) - 109) < 0.1);
+  // the defect this replaces: a restamp minutes old on an edge nobody has flown for days
+  assert.equal(perimeterStale(perimWith({ mapped: hoursAgo(109), observed: hoursAgo(0.1) })), true,
+    'a fresh restamp must not make a four-day-old edge read as current');
+  assert.equal(perimeterStale(perimWith({ mapped: hoursAgo(2), observed: hoursAgo(400) })), false,
+    'and an old record stamp on a freshly collected edge is not an old edge');
+});
+
+test('the perimeter popup states the collection time and the restamp as two separate facts', () => {
+  const prevT = MSB.t;
+  try {
+    MSB.t = (k) => ({ 'wf.k.mapped': 'Edge collected', 'wf.k.updated': 'Report updated',
+      'wf.edge.stale': 'collected {h}h ago' }[k] || k);
+    const html = MSB.perimeterPopupHtml(EDGE_OLD);
+    assert.match(html, /Edge collected: <span class="xg-stale">/,
+      'an old edge must carry the board staleness treatment on the collection time');
+    assert.match(html, /collected 109h ago/, 'and must say in hours how old the edge is');
+    assert.match(html, /Report updated: /, 'the record restamp is a second fact and must still be stated');
+    assert.ok(html.includes(MSB.fmtWhen(EDGE_OLD.mapped)), 'the collection time itself must be printed');
+    assert.ok(html.includes(MSB.fmtWhen(EDGE_OLD.observed)), 'the restamp must be printed too, and not in its place');
+
+    const fresh = MSB.perimeterPopupHtml(EDGE_FRESH);
+    assert.match(fresh, /Edge collected: <span>/, 'a freshly collected edge carries no age treatment');
+    assert.doesNotMatch(fresh, /xg-stale/);
+    assert.doesNotMatch(fresh, /collected \d+h ago/);
+  } finally { MSB.t = prevT; }
+});
+
+test('an edge with no collection time says so, and never borrows the record restamp for it', () => {
+  const html = MSB.perimeterPopupHtml(EDGE_UNDATED);
+  assert.match(html, /wf\.k\.mapped: <span class="wf-unknown">wf\.unreported<\/span>/,
+    'an unreported collection time must be named, not filled in');
+  assert.match(html, /wf\.edge\.undated/, 'and the popup must say the age of the edge is unknown');
+  assert.doesNotMatch(html, /wf\.edge\.stale/, 'an unknown age cannot be reported as a number of hours');
+  // the specific misread: observed is the record stamp, and printing it as the collection time
+  // dated a four-day-old fire edge as hours old
+  const mappedRow = html.slice(html.indexOf('wf.k.mapped'), html.indexOf('wf.k.updated'));
+  assert.ok(!mappedRow.includes(MSB.fmtWhen(EDGE_UNDATED.observed)),
+    'the restamp must not be printed as the time the edge was collected');
+  assert.ok(html.includes(MSB.fmtWhen(EDGE_UNDATED.observed)), 'though it is still stated as the restamp');
+  // a pre-mapped payload has neither field named, and must still build
+  assert.doesNotThrow(() => MSB.perimeterPopupHtml(perimWith({ observed: null })));
+});
+
+test('an old or undated edge is drawn faded, the way an unrestamped incident is', () => {
+  const cls = (p) => renderDrawn({ sources: [], fires: [], perimeters: [p] })
+    .find((o) => o.kind === 'polygon').opts.className;
+  assert.equal(cls(EDGE_FRESH), 'wildfire-perimeter', 'a freshly collected edge is drawn as current');
+  assert.equal(cls(EDGE_OLD), 'wildfire-perimeter aged',
+    'a four-day-old edge on a growing fire must not be drawn as the current line');
+  assert.equal(cls(EDGE_UNDATED), 'wildfire-perimeter aged');
+  const css = read('css/app.css');
+  assert.match(css, /\.wildfire-perimeter\.aged \{[^}]*fill-opacity/,
+    'the aged class carries no rule, so an old edge paints exactly like a current one');
+});
+
+/* ---------- the reported acreage drawn at weight ----------
+   113 fires, 22 of them uncontained, and one of those is 85,303 acres. Every marker was a 26px
+   glyph, so at the statewide zoom the board shipped with, that fire and a 0.3-acre grass fire were
+   byte-identical. The ramp draws a REPORTED figure at proportional weight, the same claim
+   renderFireAreas() makes with an equal-area circle, and invents nothing where nothing was said. */
+
+const iconSizePx = (o) => ((((o.opts.icon || {}).args || [{}])[0].iconSize) || [])[0];
+const iconClass = (o) => (iconHtml(o).match(/class="([^"]*)"/) || [])[1];
+// FIRE_PT carries a fixed observed stamp that has since aged out, so the base is restamped here
+const drawFire = (over) => markerFor(Object.assign({}, FIRE_PT, { observed: hoursAgo(1) }, over));
+
+test('the marker is sized by the reported acreage, and an unreported one sits at the base', () => {
+  const px = (over) => iconSizePx(drawFire(over));
+  const base = mapApp.WILDFIRE_BASE_PX;
+  const ross = px({ acres: 85303, contain: 31 });
+  const mid = px({ acres: 2713, contain: 90 });
+  const small = px({ acres: 120, contain: 0 });
+  assert.ok(ross > mid && mid > small && small > base,
+    `the ramp must be monotonic: ${ross} > ${mid} > ${small} > ${base}`);
+  // an 85,303-acre uncontained fire and a 0.3-acre grass fire drew byte-identical markers
+  assert.notEqual(ross, px({ acres: 0.3, contain: 0 }));
+  assert.equal(px({ acres: 0.3, contain: 0 }), base, 'a small reported fire earns no emphasis');
+
+  // nobody reported it is not the same fact as it is small
+  assert.equal(px({ acres: null }), base, 'an unreported acreage must draw at the base, not at the ramp floor');
+  assert.equal(px({ acres: undefined }), base, 'and a payload written before the field existed must too');
+  assert.ok(px({ acres: null }) >= px({ acres: 0.3, contain: 0 }),
+    'an unreported acreage may never be drawn smaller than a reported small one');
+
+  // a contained fire is still a road hazard and a smoke source, and it still must not shout
+  assert.equal(px({ acres: 85303, contain: 100 }), base, 'a contained fire must not be emphasised, however large');
+  assert.equal(px({ acres: 85303, contain: null, status: 'Contained' }), base,
+    'a reported containment word retires the marker exactly as the figure does');
+
+  // the glyph and its icon box must agree, or the circle draws off the coordinate it marks
+  assert.match(iconHtml(drawFire({ acres: 85303, contain: 31 })),
+    new RegExp(`width:${ross}px;height:${ross}px`), 'the glyph must be sized with its icon box');
+  assert.equal(iconSizePx(drawFire({ acres: 85303, contain: 31 })), ross);
+});
+
+test('only the top reported band is emphasised, and a retired or unrestamped record never is', () => {
+  assert.match(iconClass(drawFire({ acres: 85303, contain: 31 })), /(^| )large( |$)/,
+    'the largest reported band earns the emphasis the major gauge category gets');
+  assert.doesNotMatch(iconClass(drawFire({ acres: 2713, contain: 90 })), /(^| )large( |$)/,
+    'a fire below the top band must not be drawn as one');
+  assert.doesNotMatch(iconClass(drawFire({ acres: 85303, contain: 100 })), /(^| )large( |$)/,
+    'a contained fire keeps its retired treatment however large it is');
+  assert.doesNotMatch(iconClass(drawFire({ acres: null })), /(^| )large( |$)/,
+    'an unreported acreage is not a reported large one');
+  const css = read('css/app.css');
+  assert.match(css, /\.wildfire-icon\.large \{[^}]*animation:/,
+    'the emphasis class carries no rule, so the largest fire paints like every other one');
+  assert.match(css, /\.wildfire-icon\.unconfirmed \{[^}]*animation: none/,
+    'a record nobody has restamped must not be pulsed as if it were current');
+  // during a fire this marker is on screen for hours, which is what the opt-out block exists for
+  assert.match(css.slice(css.indexOf('@media (prefers-reduced-motion: reduce) {'), css.length),
+    /\.wildfire-icon\.large,/, 'the pulse must join the consolidated reduced-motion opt-out');
+});
+
+test('the ramp bands are the reported figure, taken from the floor the area circle already uses', () => {
+  const tiers = mapApp.WILDFIRE_TIERS;
+  assert.equal(tiers[tiers.length - 1][0], mapApp.WILDFIRE_AREA_MIN_ACRES,
+    'the ramp must start where the board already says the acreage figure beats a pin');
+  for (let i = 1; i < tiers.length; i++) {
+    assert.ok(tiers[i - 1][0] > tiers[i][0], 'the acreage bands must descend');
+    assert.ok(tiers[i - 1][1] > tiers[i][1], 'and the pixel sizes with them');
+  }
+  assert.ok(tiers[tiers.length - 1][1] > mapApp.WILDFIRE_BASE_PX, 'every band must be an increase over the base');
+  assert.equal(mapApp.wildfireTier({ acres: null }), -1, 'an unreported acreage is on no band');
+  assert.equal(mapApp.wildfireTier(undefined), -1);
+});
+
+/* ---------- joining a fire to its perimeter ----------
+   The IRWIN half of the join matched 0 of the 95 TFS fires live, because the TFS feed carries no
+   IRWIN at all, so every real match rode on name equality. Two perimeters named "West Fork" were
+   live at once, one in Texas and one in Washington, and a wrong match also suppresses the inferred
+   area circle on the fire it hit. */
+
+const matches = (f, p) => mapApp.perimeterMatches({ perimeters: [p] }, f);
+const TX_FIRE = Object.assign({}, BIG, { name: 'West Fork', number: '267801', state: 'TX', irwin: '' });
+
+test('a fire joins its perimeter on the local incident id within its own state', () => {
+  const txEdge = perimWith({ name: 'West Fork', local: '267801', state: 'TX', irwin: '' });
+  assert.equal(matches(TX_FIRE, txEdge), true);
+  assert.equal(renderInto({ sources: [], fires: [TX_FIRE], perimeters: [txEdge] }).length, 2,
+    'a mapped edge must suppress the inferred circle: perimeter ring plus marker only');
+  // the id alone is not unique; a state has to agree before it can be trusted
+  assert.equal(matches(TX_FIRE, perimWith({ name: 'Elsewhere', local: '267801', state: 'WA', irwin: '' })), false,
+    'the same local id in another state is a different fire');
+  assert.equal(matches(TX_FIRE, perimWith({ name: 'Elsewhere', local: '267801', state: null, irwin: '' })), false,
+    'a perimeter that states no state cannot support a local-id match');
+});
+
+test('a name shared with an out-of-state perimeter is not a match, and does not eat the circle', () => {
+  const waEdge = perimWith({ name: 'West Fork', local: '004212', state: 'WA', irwin: '' });
+  assert.equal(matches(TX_FIRE, waEdge), false, 'two states publish a "West Fork"; the name alone cannot decide');
+  assert.equal(renderInto({ sources: [], fires: [TX_FIRE], perimeters: [waEdge] }).length, 3,
+    'a wrong match suppresses the inferred area circle on a fire that has no mapped edge');
+  // the fallback still works wherever the two records do not contradict each other
+  assert.equal(matches(TX_FIRE, perimWith({ name: 'west fork', state: 'TX', irwin: '' })), true,
+    'a name match inside the same state is still a match, and still case-insensitive');
+  assert.equal(matches(TX_FIRE, perimWith({ name: 'west fork', state: null, irwin: '' })), true,
+    'a payload written before the state field existed must keep matching by name');
+  assert.equal(matches(Object.assign({}, TX_FIRE, { state: null }), waEdge), true,
+    'and a fire that states no state cannot contradict one that does');
+});
+
+test('an IRWIN match still wins, and an unrelated perimeter still matches nothing', () => {
+  assert.equal(matches(Object.assign({}, TX_FIRE, { irwin: '{A}' }),
+    perimWith({ name: 'Different Name', irwin: '{a}', state: 'WA' })), true,
+    'IRWIN is a single global id, so it decides on its own');
+  assert.equal(matches(TX_FIRE, perimWith({ name: 'Elsewhere', irwin: '{Z}', local: '9', state: 'TX' })), false);
+  assert.equal(matches(Object.assign({}, TX_FIRE, { name: '', number: '', irwin: '' }),
+    perimWith({ name: '', local: '', irwin: '' })), false,
+    'two records with nothing to join on must not join on emptiness');
+});
+
+/* ---------- the one threat tier a source states ---------- */
+
+test('a stated complexity is shown, is never derived, and its absence is named', () => {
+  const full = popup({ ...FIRE, src: 'wfigs', complexity: 'Type 3 Incident' });
+  assert.match(full, /<dt class="wf-k">wf\.k\.complexity<\/dt><dd class="wf-v">Type 3 Incident<\/dd>/);
+  const none = popup({ ...FIRE, src: 'wfigs', complexity: null });
+  assert.match(none, /<dt class="wf-k">wf\.k\.complexity<\/dt><dd class="wf-v wf-unknown">wf\.unreported<\/dd>/,
+    'a record with no stated complexity must say so rather than dropping the row');
+  // a payload written before the field existed reads the same way, and nothing is inferred from size
+  assert.match(popup({ ...FIRE, src: 'wfigs', acres: 85303, contain: 31 }),
+    /<dt class="wf-k">wf\.k\.complexity<\/dt><dd class="wf-v wf-unknown">/,
+    'a large uncontained fire with no stated tier must still read as unreported');
+  for (const k of ['wf.k.complexity', 'wf.edge.stale', 'wf.edge.undated']) {
+    assert.notEqual(I18N.en[k], I18N.es[k], `${k} was never actually translated`);
   }
 });

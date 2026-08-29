@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.92",
+      "date": "2026-08-29",
+      "line": "Mapped fire edges now state when the outline was actually collected rather than when its record was last touched, which can differ by days: an edge older than a day is drawn dashed and faded and says how old it is, and one with no collection time says so. Reported fire size now reaches the map marker, so a larger reported fire draws larger and an uncontained fire of 10,000 acres or more is emphasised, while a contained fire and a fire with no reported size stay at the base size. Fires are matched to their mapped edge by incident number and state before name, and the popup shows incident complexity where the source states one."
+    },
+    {
       "v": "v0.99.91",
       "date": "2026-08-20",
       "line": "River cameras that had stopped sending pictures for more than a month are no longer listed as available. The list now tracks what each camera is actually sending, and one camera that resumed is back on it."

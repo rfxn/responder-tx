@@ -21,7 +21,8 @@ PERIM_CARRY_H, marked "carried" and keeping the stamps of the read that produced
 
 acres and contain are None when the source did not report them. WFIGS omits containment on about
 two thirds of its records, and a 0 substituted for a null would assert an uncontained fire that
-nobody reported.
+nobody reported. A perimeter's observed is when the RECORD was last touched and mapped is when the
+edge was collected, which runs days behind it.
 """
 import datetime
 import json
@@ -63,7 +64,7 @@ MAX_PAGES = 4
 WFIGS_FIELDS = ("IncidentName,POOState,POOCounty,IncidentSize,PercentContained,"
                 "ModifiedOnDateTime_dt,FireDiscoveryDateTime,UniqueFireIdentifier,IrwinID,"
                 "POOProtectingAgency,IncidentTypeCategory,FireCause,"
-                "TotalIncidentPersonnel,IncidentManagementOrganization")
+                "TotalIncidentPersonnel,IncidentManagementOrganization,IncidentComplexityLevel")
 WFIGS_WHERE = "IncidentTypeCategory='WF' AND FireOutDateTime IS NULL"
 
 # Perimeters come from WFIGS for Texas fires TOO, unlike incident points: the in-state dedupe
@@ -71,7 +72,8 @@ WFIGS_WHERE = "IncidentTypeCategory='WF' AND FireOutDateTime IS NULL"
 WFIGS_PERIM_LAYER = ("https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services"
                      "/WFIGS_Interagency_Perimeters_Current/FeatureServer/0")
 PERIM_FIELDS = ("poly_IncidentName,poly_GISAcres,poly_IRWINID,poly_DateCurrent,"
-                "poly_FeatureCategory,poly_MapMethod")
+                "poly_PolygonDateTime,poly_FeatureCategory,poly_MapMethod,"
+                "attr_LocalIncidentIdentifier,attr_POOState,attr_IncidentComplexityLevel")
 # ~55 m. Server-side generalization, because the raw geometry is unusable on this board: measured
 # 2026-07-30 over 6 in-scope fires, 11064 vertices and 243 KB became 202 vertices and 7 KB, and a
 # fire edge is a daily interpretation of imagery, not a survey.
@@ -100,7 +102,8 @@ def load_scope():
     lons = [p[0] for p in ring]
     lats = [p[1] for p in ring]
     pad_lat = buf / MI_PER_DEG_LAT
-    pad_lon = buf / max(1.0, MI_PER_DEG_LAT * math.cos(math.radians(sum(lats) / len(lats))))
+    # the poleward edge, not the mean: a mean latitude leaves the envelope short of the buffer up north
+    pad_lon = buf / max(1.0, MI_PER_DEG_LAT * math.cos(math.radians(max(abs(y) for y in lats))))
     bbox = {"xmin": min(lons) - pad_lon, "ymin": min(lats) - pad_lat,
             "xmax": max(lons) + pad_lon, "ymax": max(lats) + pad_lat}
     return ring, float(buf), bbox
@@ -179,6 +182,14 @@ def number(v, lo=None, hi=None, ndigits=1):
     return int(v) if v == int(v) else v
 
 
+def state_code(v):
+    """A two-letter state, from either "US-TX" or "TX", or None when the source named none."""
+    s = str(v or "").strip().upper()
+    if s.startswith("US-"):
+        s = s[3:]
+    return s if len(s) == 2 and s.isalpha() else None
+
+
 def get_json(url, label):
     """One read, retried through BACKOFFS. Both upstreams report trouble as an error body inside
     HTTP 200, so that retries too; a hard 4xx is a bad query and raises at once."""
@@ -226,13 +237,18 @@ def point_of(f):
 def collect_tfs(scope):
     """(fires, captured). Raises on any read the file must not publish as an empty day."""
     doc = get_json(TFS_URL, "TFS")
-    fires = []
-    for f in feature_list(doc, "TFS"):
+    feats = feature_list(doc, "TFS")
+    fires, vocab_dropped = [], 0
+    for f in feats:
         try:
-            p = f.get("properties") or {}
+            p = f.get("properties")
+            if not isinstance(p, dict) or not p:
+                raise ValueError("feature carries no properties to read")
             if str(p.get("categoryType") or "") != "Wildfire":
+                vocab_dropped += 1
                 continue
             if str(p.get("publicvisibility") or "") != "Visible":
+                vocab_dropped += 1
                 continue
             pt = point_of(f)
             name = str(p.get("name") or "").strip()
@@ -270,6 +286,10 @@ def collect_tfs(scope):
             })
         except Exception as e:  # noqa: BLE001 — one malformed feature must not drop the whole poll
             print(f"warn: skipped malformed TFS feature: {e!r}", file=sys.stderr)
+    # a reworded or re-cased category drops every Texas fire, and the fetch that carried it succeeded
+    if feats and vocab_dropped == len(feats):
+        raise ValueError(f"TFS: all {len(feats)} features were rejected by the categoryType and "
+                         "publicvisibility filters; a vocabulary change is not a fire-free day")
     return fires, iso_from_text(doc.get("created"))
 
 
@@ -341,7 +361,9 @@ def collect_wfigs(scope):
                 "acres": number(p.get("IncidentSize"), lo=0),
                 "contain": number(p.get("PercentContained"), lo=0, hi=100),
                 "county": str(p.get("POOCounty") or "").strip() or None,
-                "state": state[3:] if state.startswith("US-") else (state or None),
+                "state": state_code(state),
+                # open vocabulary again: the tier the source stated, never mapped to one of ours
+                "complexity": str(p.get("IncidentComplexityLevel") or "").strip() or None,
                 "observed": observed,
                 "started": iso_from_ms(p.get("FireDiscoveryDateTime")),
                 "unit": str(p.get("POOProtectingAgency") or "").strip() or None,
@@ -471,15 +493,22 @@ def collect_perimeters(scope):
                                  "refusing to publish a payload that size")
             name = str(p.get("poly_IncidentName") or "").strip()
             irwin = str(p.get("poly_IRWINID") or "").strip()
+            mapped = p.get("poly_PolygonDateTime")
             out.append({
                 "id": f"wfigs-perim:{irwin or name or len(out)}",
                 "irwin": irwin,
+                # the incident number TFS also publishes: a hard join where two fires share a name
+                "local": str(p.get("attr_LocalIncidentIdentifier") or "").strip() or None,
                 "name": name,
                 "scope": hit,
+                "state": state_code(p.get("attr_POOState")),
                 "acres": number(p.get("poly_GISAcres"), lo=0),
                 "observed": iso_from_ms(p.get("poly_DateCurrent")) or iso_from_text(p.get("poly_DateCurrent")),
+                # when the EDGE was collected, days behind the record stamp that observed carries
+                "mapped": iso_from_ms(mapped) or iso_from_text(mapped),
                 "method": str(p.get("poly_MapMethod") or "").strip() or None,
                 "category": str(p.get("poly_FeatureCategory") or "").strip() or None,
+                "complexity": str(p.get("attr_IncidentComplexityLevel") or "").strip() or None,
                 "rings": rings,
             })
         except ValueError:

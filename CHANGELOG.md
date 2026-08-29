@@ -1,5 +1,30 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.92 · 2026-08-29 (fire size on the map, and an honest age on the fire edge)
+
+-- New Features --
+- [New] The fire popup now shows the incident complexity where the source states
+      one, and says it is not reported where none is stated
+
+-- Bug Fixes --
+- [Fix] A mapped fire edge now states when the outline was actually collected
+      rather than when its record was last touched, which could differ by days.
+      An edge older than a day is drawn dashed and faded and says how old it is,
+      and an edge with no collection time says that instead of implying one
+- [Fix] A fire is matched to its mapped edge by incident number and state before
+      falling back to the incident name, so two fires that share a name in
+      different states no longer match each other
+- [Fix] When a wildfire source answers but every record in it is rejected, that
+      source is now published as failed instead of as zero fires
+
+-- Changes --
+- [Change] Reported fire size now reaches the map marker. A larger reported fire
+         draws larger, and a fire of 10,000 acres or more that is not contained is
+         emphasised. A contained fire, and a fire with no reported size, stay at
+         the base size
+- [Change] The buffer that carries fires just outside Texas now covers its full
+         distance at the northern edge of the state
+
 ## v0.99.91 · 2026-08-20 (river camera list matches what the cameras are sending)
 
 -- Bug Fixes --

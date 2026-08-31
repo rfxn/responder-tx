@@ -39,7 +39,7 @@ KILL_SWITCH="${RESPONDER_CHAT_WATCHDOG_OFF:-data/.chat-watchdog-off}"   # presen
 CREDS="${HOME}/.claude/.credentials.json"
 CLAUDE_CMD="${RESPONDER_CHAT_CLAUDE_CMD:-claude}"  # override is a test seam (env is controller-controlled, not attacker-influenceable)
 
-STALL_THRESHOLD="${RESPONDER_CHAT_STALL_THRESHOLD:-720}"    # message-age (s) past which the in-session revival is presumed dark (> its 10-min tick)
+STALL_THRESHOLD="${RESPONDER_CHAT_STALL_THRESHOLD:-2100}"   # message-age (s) past which the in-session revival is presumed dark (> its 30-min tick)
 COOLDOWN="${RESPONDER_CHAT_WATCHDOG_COOLDOWN:-900}"         # min gap (s) between recovery fires, on top of the single-flight lock
 DRAIN_STALE="${RESPONDER_CHAT_DRAIN_STALE:-1800}"           # a drain marker older than this is treated as abandoned, not active
 MAX_ATTEMPTS="${RESPONDER_CHAT_WATCHDOG_MAX_ATTEMPTS:-3}"   # recovery fires per cursor before giving up loudly (no infinite build loop)

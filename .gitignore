@@ -6,6 +6,8 @@ data/.chat-ack-cursor
 data/.chat-cursor-guard
 data/.chat-drain-active
 data/.chat-watchdog-off
+data/.tick-gate-state
+data/.tick-gate-off
 nohup.out
 *.log
 data/chat-outbox.json

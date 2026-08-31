@@ -898,7 +898,7 @@ check_bootstrap() {
     # An entrypoint that is absent is a different fact from one that is broken, and only the second
     # can strand a publish. Absent ones are skipped rather than failed, so this can never turn a
     # partial checkout into a stopped data cycle; the count below makes a vacuous pass visible.
-    for f in run-cycle.sh chat-poll.sh chat-watchdog.sh freshness-monitor.sh; do
+    for f in run-cycle.sh chat-poll.sh chat-watchdog.sh freshness-monitor.sh tick-gate.sh; do
         [ -f "$DATA_ROOT/scripts/$f" ] || continue
         bash -n "$DATA_ROOT/scripts/$f" || { echo "cron entrypoint scripts/${f} does not parse" >&2; return 1; }
         seen=$((seen + 1))
@@ -925,6 +925,60 @@ if check_bootstrap; then
     pass "cron bootstrap sanity (${BOOTSTRAP_DETAIL})"
 else
     failck "cron bootstrap sanity (a working-tree cron entrypoint is unrunnable)"
+fi
+
+# p2. Revival tick vs stall threshold. Two constants describe one bound: the watchdog presumes the
+# in-session tick is dark once a message outlives STALL_THRESHOLD, so a threshold shorter than the
+# tick interval makes every owner message trip a headless build the tick was about to answer. That
+# is silent and costs more than it saves, so both halves are computed from live sources rather than
+# asserted in prose. WARN only, never failck: this is scheduler config, it cannot make the published
+# board wrong, and a red gate here would stop a flood publish over a token-budget question.
+check_tick_cadence() {
+    # Both halves from the WORKING TREE, like the bootstrap check above: the scheduler reads the
+    # live .claude/scheduled_tasks.json, which is git-excluded and so never present in a HEAD
+    # checkout. Reading CODE_ROOT here would silently skip this on the deploy path (E3).
+    local tasks="$DATA_ROOT/.claude/scheduled_tasks.json" wd="$DATA_ROOT/scripts/chat-watchdog.sh"
+    [ -f "$tasks" ] && [ -f "$wd" ] || return 0  # absent on a fresh checkout: nothing to compare
+    TICK_DETAIL=$(TASKS="$tasks" WD="$wd" python3 - <<'PY'
+import json, os, re, sys
+
+stall = 0
+m = re.search(r'STALL_THRESHOLD="\$\{RESPONDER_CHAT_STALL_THRESHOLD:-(\d+)\}"', open(os.environ["WD"]).read())
+if m:
+    stall = int(m.group(1))
+try:
+    tasks = json.load(open(os.environ["TASKS"])).get("tasks", [])
+except (OSError, ValueError):
+    raise SystemExit(0)
+ticks = [t for t in tasks if "AUTONOMOUS REVIVAL TICK" in (t.get("prompt") or "")]
+if not ticks or not stall:
+    raise SystemExit(0)
+if len(ticks) > 1:
+    print(f"DRIFT {len(ticks)} revival ticks are armed; they will fire on top of each other")
+    raise SystemExit(0)
+minute = (ticks[0].get("cron") or "").split(" ")[0]
+mins = sorted({int(x) for x in minute.split(",") if x.isdigit()}) if minute != "*" else list(range(60))
+if not mins:
+    raise SystemExit(0)
+gap = min([b - a for a, b in zip(mins, mins[1:])] + [mins[0] + 60 - mins[-1]]) if len(mins) > 1 else 60
+if stall <= gap * 60:
+    print(f"DRIFT tick fires every {gap}m but the watchdog calls it dark after {stall}s; "
+          f"every message would trip a headless build before the tick answers")
+else:
+    print(f"tick every {gap}m, watchdog stall {stall}s")
+PY
+) || return 1
+    return 0
+}
+TICK_DETAIL=""
+if ! check_tick_cadence; then
+    echo "WARN: revival tick cadence: could not be evaluated"
+elif [ -z "$TICK_DETAIL" ]; then
+    :  # no tick armed, or no session-task file to read: not this check's business
+elif [ "${TICK_DETAIL#DRIFT }" != "$TICK_DETAIL" ]; then
+    echo "WARN: revival tick cadence: ${TICK_DETAIL#DRIFT }"
+else
+    echo "NOTE: revival tick cadence (${TICK_DETAIL})"  # NOTE, not OK: advisory, and outside the gate count below
 fi
 
 # q. export completeness claim. caltopo-export.json publishes candidates/truncated/dropped, and

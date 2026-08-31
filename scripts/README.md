@@ -23,11 +23,12 @@ suspended or mid-task).
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
-| `cycle-check.sh` | Pre-commit validation bundle, fourteen checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, and out-of-cycle artifact age. |
+| `cycle-check.sh` | Pre-commit validation bundle, seventeen gating checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, out-of-cycle artifact age, hazard allowlist agreement, cron bootstrap sanity, and the export completeness claim. It also prints one advisory `NOTE`/`WARN` on revival-tick cadence, which is scheduler config and deliberately outside the gate count. |
 | `deploy.sh` | Version-agreement pre-flight → test gate at HEAD (`node --test`, the python suites, the shell suites, `cycle-check.sh`) → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). Staging is a fresh `mktemp -d` per run, removed on every exit path, so the cron deploy and a hand-run deploy can never share a directory; set `RESPONDER_DEPLOY_DIR` to pin the path and keep the artifact for inspection (the caller then owns it, and two runs pointed at one path can still collide). |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `chat-watchdog.sh` | **The stall watchdog** — build-capable auto-recovery when the in-session revival goes dark. See "Stall watchdog". |
+| `tick-gate.sh` | **Admission control for the revival tick** — a zero-LLM verdict (`INBOX` / `BACKLOG` / `IDLE`) the tick reads before doing anything else. See "Tick gate". |
 | `freshness-monitor.sh` | **The public-mirror freshness monitor**: fetches respondertx.org's gauge snapshot over the network, ages its embedded stamp, cross-checks local pipeline health, and alerts the ops chat. See "Freshness monitor". |
 | `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, stall-watchdog, **and** freshness-monitor system-cron entries. |
 | `gen-lan-cert.sh` | Generate the self-signed TLS cert (`cert.pem` + `key.pem` under `/root/.config/responder/tls`, **outside** the repo) that `server.py` serves for LAN HTTPS. Idempotent (skips unless `--force`); prints the fingerprint + SANs. See "LAN HTTPS (self-signed)". |
@@ -465,6 +466,51 @@ falls back to `/tmp/responder-chat-poll.log`). Each line is UTC-timestamped. Not
 `.gitignore` alongside `data/.chat-cursor` (it is LAN-only runtime state — the
 data cycle stages files by name and never sweeps it in, but keep it untracked).
 
+## Tick gate (`tick-gate.sh`)
+
+The in-session revival tick is the only ops tier that costs model tokens. The
+other four (`run-cycle.sh`, `chat-poll.sh --ack-only`, `freshness-monitor.sh`,
+`backup.sh`) are pure Python and shell and cost nothing, and `chat-watchdog.sh`
+costs nothing until it actually fires.
+
+The tick's cost is dominated by re-reading an accumulated session context, not by
+the work it does: measured over 2026-08-20, forty ticks drove 366 model requests
+and 50.9M cache-read tokens, about 1.3M per tick, whether or not the tick shipped
+anything. Two things follow. Firing less often helps linearly. Making an idle
+tick terminate in one tool call instead of a full survey helps more.
+
+`tick-gate.sh` is that one tool call. It prints a verdict the tick obeys:
+
+| Verdict | Meaning |
+| --- | --- |
+| `INBOX <n>` | n unprocessed owner messages. Drain and act. **Never suppressed.** |
+| `BACKLOG` | Inbox clear and a discretionary work slot was available. The slot is claimed as it is reported. |
+| `IDLE <why>` | Stop immediately, before reading anything else. |
+
+Deciding "no backlog item is ready" is itself the expensive part of a tick, so
+the rate limit binds *before* that decision rather than after it: a `BACKLOG`
+verdict claims the slot under a `flock` as it reports it, whether or not the tick
+goes on to ship. `--peek` reports without claiming.
+
+Throttles, all env-overridable, none of which can delay an owner message:
+
+- **Backlog cooldown** (`RESPONDER_TICK_BACKLOG_COOLDOWN`, default 4h) between
+  discretionary slots. This is the main lever: the owner's continuous-improvement
+  thesis is served by a few substantive releases a day, not by forty shallow
+  wake-ups that each pay the context tax.
+- **Quiet hours** (`RESPONDER_TICK_QUIET_START` / `_END`, default 01:00-09:00
+  local) pause discretionary work only. The window may wrap midnight; equal
+  values disable it.
+- **Drain marker** (`data/.chat-drain-active`), read on the same `DRAIN_STALE`
+  clock the watchdog uses, so two actors never drain the same message.
+- **Override**: `touch data/.tick-gate-off` bypasses quiet hours and the cooldown
+  and restores continuous discretionary work.
+
+The inbox check runs first and outranks every throttle, so the throttles trade
+away only self-directed work, never responsiveness to the owner. An owner message
+still gets an instant ack from the `*/3` poll, a substantive reply from the next
+tick, and the watchdog behind both.
+
 ## Stall watchdog (`chat-watchdog.sh`)
 
 The ops chat has three delivery tiers. Two ride **system cron** and never miss:
@@ -477,7 +523,7 @@ crons kept running perfectly. `chat-watchdog.sh` closes that gap by putting the
 build-capable recovery on the reliable system-cron substrate.
 
 Each `*/3` run is cheap: it exits immediately unless a message has waited past
-`STALL_THRESHOLD` (default 720s, i.e. longer than the 10-min in-session tick)
+`STALL_THRESHOLD` (default 2100s, i.e. longer than the 30-min in-session tick)
 with `data/.chat-cursor` un-advanced. Only then does it fire **one**
 build-capable headless `claude -p` (`--permission-mode bypassPermissions`) with
 the same drain+act+ship+advance-cursor mandate as the revival tick, and verify

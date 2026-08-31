@@ -23,12 +23,13 @@ suspended or mid-task).
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
-| `cycle-check.sh` | Pre-commit validation bundle, seventeen gating checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, out-of-cycle artifact age, hazard allowlist agreement, cron bootstrap sanity, and the export completeness claim. It also prints one advisory `NOTE`/`WARN` on revival-tick cadence, which is scheduler config and deliberately outside the gate count. |
+| `cycle-check.sh` | Pre-commit validation bundle, seventeen gating checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, out-of-cycle artifact age, hazard allowlist agreement, cron bootstrap sanity, and the export completeness claim. It also prints one advisory `NOTE`/`WARN` on revival-tick cadence, which is scheduler config and deliberately outside the gate count. That advisory compares three live sources rather than a written-down constant: the armed cron, the watchdog's stall threshold, and the gate's quiet window. It reports the tick interval and daily fire count, and warns if the stall threshold has fallen below the tick interval or if the tick is armed for hours the gate can only refuse. |
 | `deploy.sh` | Version-agreement pre-flight → test gate at HEAD (`node --test`, the python suites, the shell suites, `cycle-check.sh`) → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). Staging is a fresh `mktemp -d` per run, removed on every exit path, so the cron deploy and a hand-run deploy can never share a directory; set `RESPONDER_DEPLOY_DIR` to pin the path and keep the artifact for inspection (the caller then owns it, and two runs pointed at one path can still collide). |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `chat-watchdog.sh` | **The stall watchdog** — build-capable auto-recovery when the in-session revival goes dark. See "Stall watchdog". |
 | `tick-gate.sh` | **Admission control for the revival tick** — a zero-LLM verdict (`INBOX` / `BACKLOG` / `IDLE`) the tick reads before doing anything else. See "Tick gate". |
+| `tick-burn.py` | Measures what the revival tick actually costs, attributing model requests and tokens from the session transcripts to the tick that caused them. Reports cache-read per tick and, more usefully, per request. Read-only, never published (`deploy.sh` asserts `scripts/` is absent from the artifact), and reports `UNKNOWN` with exit 3 rather than zero when no transcripts can be read. |
 | `freshness-monitor.sh` | **The public-mirror freshness monitor**: fetches respondertx.org's gauge snapshot over the network, ages its embedded stamp, cross-checks local pipeline health, and alerts the ops chat. See "Freshness monitor". |
 | `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, stall-watchdog, **and** freshness-monitor system-cron entries. |
 | `gen-lan-cert.sh` | Generate the self-signed TLS cert (`cert.pem` + `key.pem` under `/root/.config/responder/tls`, **outside** the repo) that `server.py` serves for LAN HTTPS. Idempotent (skips unless `--force`); prints the fingerprint + SANs. See "LAN HTTPS (self-signed)". |
@@ -474,10 +475,17 @@ other four (`run-cycle.sh`, `chat-poll.sh --ack-only`, `freshness-monitor.sh`,
 costs nothing until it actually fires.
 
 The tick's cost is dominated by re-reading an accumulated session context, not by
-the work it does: measured over 2026-08-20, forty ticks drove 366 model requests
-and 50.9M cache-read tokens, about 1.3M per tick, whether or not the tick shipped
-anything. Two things follow. Firing less often helps linearly. Making an idle
-tick terminate in one tool call instead of a full survey helps more.
+the work it does. Measure it rather than estimating it: `tick-burn.py --days 7`
+attributes real model requests and tokens to the tick that caused them, reading
+the session transcripts. It reports the unit that actually governs, **cache-read
+tokens per request**, which was 155k on 2026-08-31. That number is a property of
+session age, not of the tick: the same `IDLE` verdict cost 222k in a fresh
+session and 1.06M in a saturated one, a 12x spread for identical work.
+
+Three things follow. Firing less often helps linearly. Making an idle tick
+terminate in one tool call instead of a full survey helps more. And firing at all
+during a window where the gate can only refuse is pure loss, which is why the
+cron's hour field mirrors the quiet window rather than running 24h.
 
 `tick-gate.sh` is that one tool call. It prints a verdict the tick obeys:
 
@@ -494,10 +502,12 @@ goes on to ship. `--peek` reports without claiming.
 
 Throttles, all env-overridable, none of which can delay an owner message:
 
-- **Backlog cooldown** (`RESPONDER_TICK_BACKLOG_COOLDOWN`, default 4h) between
+- **Backlog cooldown** (`RESPONDER_TICK_BACKLOG_COOLDOWN`, default 6h) between
   discretionary slots. This is the main lever: the owner's continuous-improvement
   thesis is served by a few substantive releases a day, not by forty shallow
-  wake-ups that each pay the context tax.
+  wake-ups that each pay the context tax. A working tick averages 6.7M cache-read
+  tokens against a gated tick's 776k, so each slot removed is worth roughly nine
+  idle ones.
 - **Quiet hours** (`RESPONDER_TICK_QUIET_START` / `_END`, default 01:00-09:00
   local) pause discretionary work only. The window may wrap midnight; equal
   values disable it.

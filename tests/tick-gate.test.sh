@@ -246,6 +246,46 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 15/16: the SHIPPED discretionary cooldown, not one the case supplies -----
+# Every case above passes RESPONDER_TICK_BACKLOG_COOLDOWN, so none of them would notice the
+# default being restored to its old 4h. These two omit it and straddle the 6h boundary: a claim
+# 5h ago must still be cooling, one 7h ago must not. Quiet hours stay disabled so the verdict
+# turns on the cooldown alone and not on what time the suite happens to run.
+run_gate_shipped_cooldown() {
+    RESPONDER_CHAT_INBOX="$INBOXF" \
+    RESPONDER_CHAT_CURSOR="$CURSORF" \
+    RESPONDER_CHAT_DRAIN_MARKER="$MARKERF" \
+    RESPONDER_TICK_GATE_OFF="$OFFFILE" \
+    RESPONDER_TICK_GATE_STATE="$STATEF" \
+    RESPONDER_TICK_GATE_LOCK="$WORK/tick-gate.lock" \
+    RESPONDER_TICK_GATE_LOG="$WORK/tick-gate.log" \
+    RESPONDER_TICK_QUIET_START=0 \
+    RESPONDER_TICK_QUIET_END=0 \
+    bash "$GATE" --peek > "$WORK/run.out" 2> "$WORK/run.err"
+    RC=$?
+    VERDICT=$(sed -n '1p' "$WORK/run.out")
+}
+
+setup
+echo "$(($(date +%s) - 18000))" > "$STATEF"   # claimed 5h ago
+run_gate_shipped_cooldown
+if [ "$VERDICT" = "IDLE backlog-cooldown" ]; then
+    pass "15 shipped cooldown still cooling 5h after a claim (6h default)"
+else
+    fail "15 a claim 5h ago should still be cooling under the 6h default (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup
+echo "$(($(date +%s) - 25200))" > "$STATEF"   # claimed 7h ago
+run_gate_shipped_cooldown
+if [ "$VERDICT" = "BACKLOG" ]; then
+    pass "16 shipped cooldown has expired 7h after a claim"
+else
+    fail "16 a claim 7h ago should be past the 6h default (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL TICK-GATE TESTS PASSED"

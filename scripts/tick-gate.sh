@@ -38,7 +38,7 @@ STATE_FILE="${RESPONDER_TICK_GATE_STATE:-data/.tick-gate-state}"  # last claimed
 LOCKFILE="${RESPONDER_TICK_GATE_LOCK:-/tmp/responder-tick-gate.lock}"
 LOGFILE="${RESPONDER_TICK_GATE_LOG:-/var/log/responder-tick-gate.log}"
 
-COOLDOWN="${RESPONDER_TICK_BACKLOG_COOLDOWN:-14400}"  # 4h between discretionary work slots; the inbox path ignores this
+COOLDOWN="${RESPONDER_TICK_BACKLOG_COOLDOWN:-21600}"  # 6h between discretionary work slots; the inbox path ignores this
 QUIET_START="${RESPONDER_TICK_QUIET_START:-1}"        # local hour the quiet window opens (inclusive)
 QUIET_END="${RESPONDER_TICK_QUIET_END:-9}"            # local hour it closes (exclusive); equal values disable quiet hours
 

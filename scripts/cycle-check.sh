@@ -938,8 +938,9 @@ check_tick_cadence() {
     # live .claude/scheduled_tasks.json, which is git-excluded and so never present in a HEAD
     # checkout. Reading CODE_ROOT here would silently skip this on the deploy path (E3).
     local tasks="$DATA_ROOT/.claude/scheduled_tasks.json" wd="$DATA_ROOT/scripts/chat-watchdog.sh"
-    [ -f "$tasks" ] && [ -f "$wd" ] || return 0  # absent on a fresh checkout: nothing to compare
-    TICK_DETAIL=$(TASKS="$tasks" WD="$wd" python3 - <<'PY'
+    local gate="$DATA_ROOT/scripts/tick-gate.sh"
+    [ -f "$tasks" ] && [ -f "$wd" ] && [ -f "$gate" ] || return 0  # absent on a fresh checkout: nothing to compare
+    TICK_DETAIL=$(TASKS="$tasks" WD="$wd" GATE="$gate" python3 - <<'PY'
 import json, os, re, sys
 
 stall = 0
@@ -956,16 +957,63 @@ if not ticks or not stall:
 if len(ticks) > 1:
     print(f"DRIFT {len(ticks)} revival ticks are armed; they will fire on top of each other")
     raise SystemExit(0)
-minute = (ticks[0].get("cron") or "").split(" ")[0]
-mins = sorted({int(x) for x in minute.split(",") if x.isdigit()}) if minute != "*" else list(range(60))
-if not mins:
+
+
+def field(spec, index, ceiling):
+    """Expand one cron field to the set of values it fires on."""
+    out = set()
+    for part in (spec.split(" ")[index] if len(spec.split(" ")) > index else "*").split(","):
+        if part == "*":
+            return set(range(ceiling))
+        step = 1
+        if "/" in part:
+            part, _, s = part.partition("/")
+            step = int(s) if s.isdigit() else 1
+            if part == "*":
+                part = f"0-{ceiling - 1}"
+        if "-" in part:
+            a, _, b = part.partition("-")
+            if a.isdigit() and b.isdigit():
+                out.update(range(int(a), int(b) + 1, step))
+        elif part.isdigit():
+            out.add(int(part))
+    return out
+
+
+cron = ticks[0].get("cron") or ""
+mins = sorted(field(cron, 0, 60))
+hours = sorted(field(cron, 1, 24))
+if not mins or not hours:
     raise SystemExit(0)
 gap = min([b - a for a, b in zip(mins, mins[1:])] + [mins[0] + 60 - mins[-1]]) if len(mins) > 1 else 60
 if stall <= gap * 60:
     print(f"DRIFT tick fires every {gap}m but the watchdog calls it dark after {stall}s; "
           f"every message would trip a headless build before the tick answers")
+    raise SystemExit(0)
+
+# The hours the cron fires and the hours the gate will do discretionary work are two constants
+# describing one bound. A tick armed during the gate's quiet window can only ever be told to stop,
+# and it pays a full session context re-read to hear it (E5).
+gate_src = open(os.environ["GATE"]).read()
+
+
+def gate_int(name, default):
+    m = re.search(name + r'="\$\{[A-Z_]+:-(\d+)\}"', gate_src)
+    return int(m.group(1)) if m else default
+
+
+qs, qe = gate_int("QUIET_START", 1), gate_int("QUIET_END", 9)
+quiet = set()
+if qs != qe:
+    quiet = set(range(qs, qe)) if qs < qe else set(range(qs, 24)) | set(range(0, qe))
+wasted = sorted(set(hours) & quiet)
+fires = len(hours) * len(mins)
+if wasted:
+    print(f"DRIFT tick is armed for {len(wasted)}h inside the gate's quiet window "
+          f"({qs:02d}:00-{qe:02d}:00); those {len(wasted) * len(mins)} of {fires} daily fires "
+          f"can only be refused, at a full context re-read each")
 else:
-    print(f"tick every {gap}m, watchdog stall {stall}s")
+    print(f"tick every {gap}m over {len(hours)}h ({fires}/day), watchdog stall {stall}s")
 PY
 ) || return 1
     return 0

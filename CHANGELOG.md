@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.98 · 2026-09-01 (radar comes up with the storm)
+
+-- Changes --
+- [Change] Radar and the rain forecast now switch themselves on when Texas has an
+         active tropical storm, hurricane or storm surge warning or watch, the
+         same trigger that already raises the tropical tracker. They come up
+         together as the one radar row. If you switch the row off it stays off,
+         and once the warnings expire radar goes back to being a layer you turn
+         on yourself
+
 ## v0.99.97 · 2026-08-31 (a big fire's outline goes out of date faster)
 
 -- Changes --

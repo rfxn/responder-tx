@@ -551,6 +551,8 @@ function initMap() {
     if (e.layer === state.layers.wildfire && !pbBlocksLive(state)) state.wildfireAutoDone = true;
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = true;
     if (e.layer === state.layers.fcstRadar) fcstDisable();
+    // playback strips fcstRadar itself (PB_LIVE_HIDE), and that removal is not the user's decision
+    if ((e.layer === state.layers.radar || e.layer === state.layers.fcstRadar) && !pbBlocksLive(state)) state.wxAutoDone = true;
     if (e.layer === state.layers.usgs) {
       if (state.usgsAutoOn && !state.usgsAutoRemoving) state.usgsFallbackDismissed = true; // user closed the auto fallback — don't re-offer until the feed recovers
       state.usgsAutoOn = false;
@@ -1472,6 +1474,7 @@ function applyLayerState(on, known) {
   if (wasKnown.has('tropical') && !want.has('tropical')) state.tropicalAutoDone = true;
   if (wasKnown.has('crossStatus') && !want.has('crossStatus')) state.xstatusAutoDone = true;
   if (wasKnown.has('wildfire') && !want.has('wildfire')) state.wildfireAutoDone = true;
+  if (wasKnown.has('wx') && !want.has('wx')) state.wxAutoDone = true;
   renderLayerPills();
   layerSheetSync();
   return true;

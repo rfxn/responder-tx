@@ -145,7 +145,7 @@ const HEALTH_SOURCES = [
     name: 'fetchAlerts', fn: 'fetchAlerts', health: 'alerts', key: 'alerts',
     empty: { type: 'FeatureCollection', features: [] },
     stubs: ['showEmergencyBanner', 'dismissEmergencyBanner', 'recordAlertHist', 'renderAlertList',
-      'renderAlertPolys', 'renderTiles', 'maybeAutoTropical', 'syncAcutePoll'],
+      'renderAlertPolys', 'renderTiles', 'maybeAutoTropical', 'maybeAutoWx', 'syncAcutePoll'],
   },
   {
     name: 'fetchGauges', fn: 'fetchGauges', health: 'gauges', key: 'gauges',

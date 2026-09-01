@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.97';
+const APP_VERSION = 'v0.99.98';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -55,6 +55,8 @@ const CONFIG = {
   tropicalAutoEnable: true,
   // same for the wildfire layer, when a fire in the AO is reported large and uncontained
   wildfireAutoEnable: true,
+  // same for the merged radar + forecast row, on the same tropical threat that raises the tracker
+  wxAutoEnable: true,
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   // NOAA HRRR model reflectivity WMS (probed 2026-07-19): one layer per forecast minute (refd_0060…),
   // no TIME dim — layers always serve the latest run; run stamp via the per-layer metadata JSON
@@ -91,6 +93,7 @@ function applyEventConfig(ev) {
   }
   if (typeof ev.tropicalAutoEnable === 'boolean') CONFIG.tropicalAutoEnable = ev.tropicalAutoEnable;
   if (typeof ev.wildfireAutoEnable === 'boolean') CONFIG.wildfireAutoEnable = ev.wildfireAutoEnable;
+  if (typeof ev.wxAutoEnable === 'boolean') CONFIG.wxAutoEnable = ev.wxAutoEnable;
 }
 
 function aoFullBounds() {
@@ -285,6 +288,7 @@ const state = {
   tropicalAutoDone: false, // set once the tropical tracker has been auto-enabled or manually toggled off
   xstatusAutoDone: false, // same for the jurisdiction crossing layer, which enables itself only on a confirmable change
   wildfireAutoDone: false, // same for the wildfire layer, which enables itself on a large uncontained fire in the AO
+  wxAutoDone: false, // same for the merged radar + forecast row, which enables itself on an active tropical threat
   tides: null, // coastal water-level rows (NOAA CO-OPS); null until first Resources-tab open, then per-station
   tidesAt: 0,
   tidesLoading: false,

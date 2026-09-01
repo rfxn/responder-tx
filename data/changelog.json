@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.99.98",
+      "date": "2026-09-01",
+      "line": "Radar and the rain forecast now switch themselves on when Texas has an active tropical storm, hurricane or storm surge warning or watch, the same trigger that already raises the tropical tracker. They come up together as the one radar row. If you switch the row off it stays off, and once the warnings expire radar goes back to being a layer you turn on yourself."
+    },
+    {
       "v": "v0.99.97",
       "date": "2026-08-31",
       "line": "A mapped fire edge on a large, complex incident is now marked out of date after 12 hours rather than 24. Those fires are re-flown about once per operational period and can move thousands of acres between flights, so the longer window overstated how current the outline was. Smaller incidents keep the 24 hour window, as does any fire whose source states no complexity level."

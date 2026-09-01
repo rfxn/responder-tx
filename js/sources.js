@@ -341,6 +341,18 @@ function maybeAutoTropical() {
   if (!state.map.hasLayer(state.layers.tropical)) state.layers.tropical.addTo(state.map);
 }
 
+/* The cone says where the centre goes; the rain field is what closes the roads, and during a
+   landfall it is the layer people reach for first. So the merged radar + forecast row comes on
+   with the tracker, on the same threat gate, and stays an opt-in layer once the warnings expire. */
+function maybeAutoWx() {
+  if (state.wxAutoDone || CONFIG.wxAutoEnable === false) return;
+  if (!state.map || !state.layers.radar || !state.layers.fcstRadar) return;
+  if (pbBlocksLive(state)) return; // playback owns the layer set; re-check once it hands them back
+  if (!hasActiveTropicalThreat()) return;
+  state.wxAutoDone = true;
+  if (!layerRowOn('wx')) wxToggle();
+}
+
 async function fetchAlerts() {
   const res = await fetch(CONFIG.alertsUrl, { headers: { Accept: 'application/geo+json' } });
   const data = await okJson(res, 'NWS alerts');
@@ -363,6 +375,7 @@ async function fetchAlerts() {
   await renderAlertPolys();
   renderTiles();
   maybeAutoTropical(); // auto-enable the tracker when TX has an active tropical/hurricane threat
+  maybeAutoWx(); // and the radar + forecast pair on the same threat
   syncAcutePoll();
 }
 

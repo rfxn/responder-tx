@@ -376,6 +376,7 @@ async function fetchAlerts() {
   renderTiles();
   maybeAutoTropical(); // auto-enable the tracker when TX has an active tropical/hurricane threat
   maybeAutoWx(); // and the radar + forecast pair on the same threat
+  maybeAutoTides(); // coastal water levels, while a surge or coastal flood product is live
   syncAcutePoll();
 }
 
@@ -2739,6 +2740,24 @@ async function fetchTides() {
   // station list take longer rather than fail together and blank the whole card
   const rows = await mapPool(coopStations(), 4, fetchTideStation);
   if (rows.some((r) => r.ok)) { state.tides = rows; state.tidesAt = Date.now(); } // keep last-good if the whole feed is down
+}
+
+/* Coastal water is the threat these products name. A Tropical Storm Warning is not on the list on
+   purpose: it reaches a hundred miles inland, where there is no station and no surge to report. */
+const COASTAL_WATER_RE = /storm surge (warning|watch)|coastal flood (warning|watch|advisory)/i;
+function hasCoastalWaterThreat() {
+  return (state.alerts || []).some((f) => COASTAL_WATER_RE.test(f.properties.event || '') && alertOpen(f));
+}
+
+/* The readings live inside the shelters sheet, so during a landfall nobody finds them. Loading
+   them on the threat is what lets the hero card carry the worst station. Two CO-OPS requests per
+   station is not a cost to pay on a day with no coastal warning, hence the gate rather than boot. */
+const TIDES_AUTO_MS = 5 * 60000;
+function maybeAutoTides() {
+  if (!hasCoastalWaterThreat() || !coopStations().length || state.tidesLoading) return;
+  if (state.tidesAutoAt && Date.now() - state.tidesAutoAt < TIDES_AUTO_MS) return;
+  state.tidesAutoAt = Date.now(); // stamped before the call so a failing feed retries on the interval, not every poll
+  loadTides();
 }
 
 /* The residual band the card colours by, and the only band anything else may call quiet.

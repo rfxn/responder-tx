@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.99 · 2026-09-01 (how high the water is, on the front row)
+
+-- New Features --
+- [New] A Coastal water card joins the top row while a storm surge or coastal
+      flood warning, watch or advisory is in effect. It counts the tide
+      stations sitting at least half a foot above the tide predicted for that
+      moment and names the highest one with its measured figure, and it opens
+      the panel holding every station. The card appears only during one of
+      those products and is absent the rest of the year. Where no station can
+      be read the card says the source is unavailable rather than reporting
+      calm water
+
 ## v0.99.98 · 2026-09-01 (radar comes up with the storm)
 
 -- Changes --

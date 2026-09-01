@@ -422,3 +422,193 @@ test('the layer sheet and the pill row both name the coastal layer', () => {
   assert.ok(mapApp.layerRowKeys().includes('tideStations'), 'a saved view must be able to restore it');
   assert.ok(app.LINK_VIEW_PARAMS.includes('tide'), 'a link carrying ?tide= must win over the kept layer set');
 });
+
+/* ---------- the coastal water hero card (v0.99.99) ----------
+
+   The readings sit inside the shelters sheet, so during a landfall the board holds a measured
+   surge nobody can find. The card is threat-gated so it costs nothing on a dry day, and every
+   assertion below CALLS heroCards() rather than matching the text of panels.js. */
+
+const APPSB = app._sandbox;
+const HERO_T = {
+  'hero.tide': 'Coastal water',
+  'hero.tide.sub': 'stations above predicted tide',
+  'hero.tide.worst': 'highest {name}, {ft} ft above predicted',
+  'hero.unknown': 'source unavailable',
+};
+
+const openAlert = (event) => ({
+  properties: { event, ends: new Date(Date.now() + 6 * 3600000).toISOString() },
+});
+
+// run the shipped heroCards() against a given alert set and tide payload, then put the state back
+function tideCard(alerts, tides) {
+  const st = app.state;
+  const saved = { alerts: st.alerts, tides: st.tides, t: APPSB.t };
+  try {
+    st.alerts = alerts;
+    st.tides = tides;
+    APPSB.t = (k) => (k in HERO_T ? HERO_T[k] : k);
+    return app.heroCards().find((c) => c.key === 'tide') || null;
+  } finally { st.alerts = saved.alerts; st.tides = saved.tides; APPSB.t = saved.t; }
+}
+
+const SURGE_ROWS = [
+  row({ id: '8770520', name: 'Rainbow Bridge', surge: 2.1, dir: 'up' }),
+  row({ id: '8770475', name: 'Port Arthur', surge: 0.8, dir: 'up' }),
+  row({ id: '8770822', name: 'Texas Point', surge: 0.1, dir: 'steady' }),
+];
+
+test('a surge warning brings up the coastal card and names the worst station', () => {
+  const c = tideCard([openAlert('Storm Surge Warning')], SURGE_ROWS);
+  assert.ok(c, 'a live surge warning must earn a hero slot');
+  assert.equal(c.n, 2, 'the count is the stations at or above the moderate band, and only those');
+  assert.equal(c.sub, 'highest Rainbow Bridge, 2.1 ft above predicted',
+    'the card must name the station and its measured residual, not a category');
+  assert.equal(c.tone, 'major', 'a station past the major band sets the tone');
+  assert.equal(typeof c.act, 'function', 'the card must reach the surface holding the readings');
+});
+
+/* The card advertises a number that lives in one host. Sending the reader anywhere else is the
+   defect this test exists for: the first cut opened the shelters sheet, which does not hold it. */
+test('the card lands the reader on the host that holds the readings', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const bodies = [...html.matchAll(/<div class="tab-body" id="(tab-[a-z]+)"[^>]*>([\s\S]*?)<\/div>\s*(?=<div class="tab-body"|<\/)/g)];
+  const owner = bodies.find(([, , inner]) => inner.includes('id="tides-body"'))
+    || bodies.find((m) => m[0].includes('id="tides-body"'));
+  assert.ok(owner, '#tides-body is not inside a tab body; the card has no tab to open');
+  const tab = owner[1];
+  const c = tideCard([openAlert('Storm Surge Warning')], SURGE_ROWS);
+  const clicked = [];
+  const savedDoc = APPSB.document;
+  // heroCards() resolves `document` inside the vm realm, so the stub has to replace that one
+  APPSB.document = {
+    querySelector: (sel) => ({ click: () => clicked.push(sel) }),
+    getElementById: () => null,
+  };
+  try { c.act(); } finally { APPSB.document = savedDoc; }
+  assert.deepEqual(clicked, [`.tabs button[data-tab="${tab}"]`],
+    `the card must open ${tab}, the tab that actually contains #tides-body`);
+});
+
+test('a coastal flood product counts as the threat, an inland tropical one does not', () => {
+  for (const ev of ['Storm Surge Warning', 'Storm Surge Watch', 'Coastal Flood Warning',
+    'Coastal Flood Watch', 'Coastal Flood Advisory']) {
+    assert.ok(tideCard([openAlert(ev)], SURGE_ROWS), `${ev} names coastal water`);
+  }
+  for (const ev of ['Tropical Storm Warning', 'Hurricane Warning', 'Flood Watch', 'Wind Advisory']) {
+    assert.equal(tideCard([openAlert(ev)], SURGE_ROWS), null,
+      `${ev} reaches far inland, where there is no station and no surge to report`);
+  }
+});
+
+test('with no coastal threat the card stays out of the row entirely', () => {
+  assert.equal(tideCard([], SURGE_ROWS), null, 'a quiet coast earns no permanent zero beside five flood counts');
+  const expired = { properties: { event: 'Storm Surge Warning', ends: new Date(Date.now() - 7200000).toISOString() } };
+  assert.equal(tideCard([expired], SURGE_ROWS), null, 'an expired warning is not a live threat');
+});
+
+/* The E1 case: an unreadable feed must never render as flat water. */
+test('nothing readable is an unknown coast, never a calm one', () => {
+  for (const payload of [null, [], [{ id: '1', name: 'Down', ok: false }],
+    [row({ surge: null })], [row({ surge: NaN })]]) {
+    const c = tideCard([openAlert('Storm Surge Warning')], payload);
+    assert.ok(c, 'the threat is live, so the card must still take its slot');
+    assert.equal(c.n, null, 'an unreadable coast must show ? rather than 0');
+    assert.equal(c.sub, 'source unavailable', 'and must say so instead of reporting flat water');
+    assert.equal(c.tone, 'ok', 'an unknown coast must not paint itself as a measured emergency');
+  }
+});
+
+test('a readable coast that is genuinely calm reports zero, which is a measurement', () => {
+  const calm = [row({ surge: 0.1, dir: 'steady' }), row({ id: '2', name: 'Port Arthur', surge: -0.2 })];
+  const c = tideCard([openAlert('Coastal Flood Warning')], calm);
+  assert.equal(c.n, 0, 'stations that read fine and sit below the band are a real zero');
+  assert.equal(c.sub, 'stations above predicted tide', 'a genuine zero is not the unknown line');
+  assert.equal(c.tone, 'ok');
+});
+
+test('an unreadable station never dilutes the count of the ones that read', () => {
+  const mixed = SURGE_ROWS.concat([{ id: '9', name: 'Offline', ok: false }, row({ id: '8', name: 'NoPred', surge: null })]);
+  const c = tideCard([openAlert('Storm Surge Warning')], mixed);
+  assert.equal(c.n, 2, 'the count is over stations that reported a residual');
+  assert.equal(c.sub, 'highest Rainbow Bridge, 2.1 ft above predicted');
+});
+
+test('a moderate coast is warned, not majored', () => {
+  const c = tideCard([openAlert('Storm Surge Warning')], [row({ name: 'Port Arthur', surge: 0.9 })]);
+  assert.equal(c.tone, 'warn', 'below the major band the card must not borrow the major tone');
+  assert.equal(c.n, 1);
+});
+
+/* ---------- the load that feeds it ---------- */
+
+// runs fn with the auto-load path isolated: a station list configured and loadTides counted
+function withAutoLoad(fn) {
+  const st = app.state;
+  const saved = { alerts: st.alerts, tides: st.tides, at: st.tidesAutoAt, loading: st.tidesLoading,
+    stations: app.CONFIG.tideStations, load: APPSB.loadTides };
+  const calls = [];
+  app.CONFIG.tideStations = [{ id: '8770475', name: 'Port Arthur' }];
+  APPSB.loadTides = () => { calls.push(1); return Promise.resolve(); }; // never sets state.tides
+  st.tidesAutoAt = 0; st.tidesLoading = false; st.tides = null;
+  try { return fn(st, calls); } finally {
+    APPSB.loadTides = saved.load; app.CONFIG.tideStations = saved.stations;
+    st.alerts = saved.alerts; st.tides = saved.tides; st.tidesAutoAt = saved.at; st.tidesLoading = saved.loading;
+  }
+}
+
+test('the alerts poll loads the readings while a coastal product is live', () => {
+  withAutoLoad((st, calls) => {
+    st.alerts = [openAlert('Flood Watch')];
+    APPSB.maybeAutoTides();
+    assert.equal(calls.length, 0, 'no coastal product means no CO-OPS traffic at all');
+    st.alerts = [openAlert('Storm Surge Warning')];
+    APPSB.maybeAutoTides();
+    assert.equal(calls.length, 1, 'a live surge warning must fetch the readings');
+    APPSB.maybeAutoTides();
+    assert.equal(calls.length, 1, 'and must not refetch on the very next poll');
+    st.tidesAutoAt = Date.now() - 6 * 60000;
+    APPSB.maybeAutoTides();
+    assert.equal(calls.length, 2, 'but must refresh once the interval is up, so the card cannot go stale');
+  });
+});
+
+/* Two CO-OPS requests per station, and a null payload is the shape a total outage leaves behind.
+   Without the stamp-before-call the retry rides the alerts poll instead of the interval. */
+test('a feed that answers nothing retries on the interval rather than on every poll', () => {
+  withAutoLoad((st, calls) => {
+    st.alerts = [openAlert('Storm Surge Warning')];
+    for (let i = 0; i < 5; i++) APPSB.maybeAutoTides();
+    assert.equal(calls.length, 1, 'a null payload must not turn every alerts poll into 60+ CO-OPS requests');
+  });
+});
+
+test('an inland event with no stations configured never touches CO-OPS', () => {
+  withAutoLoad((st, calls) => {
+    app.CONFIG.tideStations = [];
+    st.alerts = [openAlert('Storm Surge Warning')];
+    APPSB.maybeAutoTides();
+    assert.equal(calls.length, 0, 'no configured station means there is nothing to ask for');
+  });
+});
+
+test('a fetch already in flight is not raced by the next poll', () => {
+  withAutoLoad((st, calls) => {
+    st.alerts = [openAlert('Storm Surge Warning')];
+    st.tidesLoading = true;
+    APPSB.maybeAutoTides();
+    assert.equal(calls.length, 0, 'the in-flight guard must hold');
+  });
+});
+
+test('both locales carry every key the card can render', () => {
+  const ES = require('./i18n-load.js').es;
+  for (const k of ['hero.tide', 'hero.tide.sub', 'hero.tide.worst']) {
+    assert.ok(EN[k], `${k} missing from en`);
+    assert.ok(ES[k], `${k} missing from es`);
+    assert.equal(/[—]/.test(EN[k] + ES[k]), false, `${k} must not carry an em-dash`);
+  }
+  assert.ok(EN['hero.tide.worst'].includes('{name}') && EN['hero.tide.worst'].includes('{ft}'));
+  assert.ok(ES['hero.tide.worst'].includes('{name}') && ES['hero.tide.worst'].includes('{ft}'));
+});

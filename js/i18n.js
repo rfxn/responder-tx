@@ -193,6 +193,9 @@
       'hero.fire': 'Fires',
       'hero.fire.sub': 'reported uncontained',
       'hero.fire.big': 'largest {name}, {a} acres reported',
+      'hero.tide': 'Coastal water',
+      'hero.tide.sub': 'stations above predicted tide',
+      'hero.tide.worst': 'highest {name}, {ft} ft above predicted',
       'hero.unknown': 'source unavailable',
 
       'cat.major': 'MAJOR flood',
@@ -1548,6 +1551,9 @@
       'hero.fire': 'Incendios',
       'hero.fire.sub': 'reportados sin contener',
       'hero.fire.big': 'el mayor {name}, {a} acres reportados',
+      'hero.tide': 'Agua costera',
+      'hero.tide.sub': 'estaciones sobre la marea prevista',
+      'hero.tide.worst': 'la mayor {name}, {ft} ft sobre lo previsto',
       'hero.unknown': 'fuente no disponible',
 
       'cat.major': 'inundación MAYOR',

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.98';
+const APP_VERSION = 'v0.99.99';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -291,6 +291,7 @@ const state = {
   wxAutoDone: false, // same for the merged radar + forecast row, which enables itself on an active tropical threat
   tides: null, // coastal water-level rows (NOAA CO-OPS); null until first Resources-tab open, then per-station
   tidesAt: 0,
+  tidesAutoAt: 0, // last threat-driven load; keeps a dead CO-OPS feed off every alerts poll
   tidesLoading: false,
   tideMeta: null, // committed CO-OPS station coordinates (data/tide-meta.json); null = no station can be focused
   tideMarkers: {}, // station id → map marker, so the card can open the reading it names

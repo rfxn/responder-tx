@@ -1307,6 +1307,33 @@ function heroCards() {
       act: showFires,
     });
   }
+  /* Coastal water takes a slot only while a surge or coastal flood product is live, because the
+     readings sit inside the shelters sheet and that is not where anyone looks during a landfall.
+     Nothing readable is an unknown coast, never a calm one: a station that could not be read and
+     one with no prediction to subtract are both excluded before the count, so an empty set after
+     that is the board saying it does not know rather than reporting flat water. */
+  if (hasCoastalWaterThreat()) {
+    const read = Array.isArray(state.tides) ? state.tides.filter((r) => tideBand(r) !== 'unknown') : [];
+    const up = read.filter((r) => r.surge >= TIDE_NEUTRAL_FT).sort((a, b) => b.surge - a.surge);
+    const tidesUnknown = !read.length;
+    cards.push({
+      key: 'tide',
+      glyph: '🌊',
+      n: tidesUnknown ? null : up.length,
+      tone: tidesUnknown ? 'ok' : (up.some((r) => tideBand(r) === 'major') ? 'major' : (up.length ? 'warn' : 'ok')),
+      label: t('hero.tide'),
+      sub: tidesUnknown ? t('hero.unknown')
+        : (up.length
+          ? t('hero.tide.worst').replace('{name}', up[0].name).replace('{ft}', up[0].surge.toFixed(1))
+          : t('hero.tide.sub')),
+      // #tides-body is a Gauges-tab host, so the card opens that tab and scrolls the readings up
+      act: () => {
+        openTab('tab-gauges')();
+        const host = document.getElementById('tides-body');
+        if (host && host.scrollIntoView) host.scrollIntoView({ block: 'nearest' });
+      },
+    });
+  }
   return cards;
 }
 
@@ -1330,7 +1357,7 @@ function renderThreatStrip() {
   const cards = heroCards();
   /* Fire can be the only thing the board has to say: every corpus the hazard line draws from is
      flood-shaped, so a calm river beside a burning fire used to render an all-clear and no cards. */
-  if (tickerItems().length || cards.some((c) => c.key === 'fire')) {
+  if (tickerItems().length || cards.some((c) => c.key === 'fire' || c.key === 'tide')) {
     el.innerHTML = pbNote + heroCardsHtml(cards);
     /* a portrait phone hides the cards in css; this says the strip holds nothing else, so it can
        collapse its own padding with them rather than leaving an empty bar above the tabs */

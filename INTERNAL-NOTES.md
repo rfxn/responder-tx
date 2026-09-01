@@ -424,9 +424,15 @@ a model output regenerated every cycle. A fire perimeter is one human interpreta
 one aircraft pass, and it ages on its own clock. NIFC publishes both `poly_DateCurrent`
 (record currency) and `poly_PolygonDateTime` (when the outline was actually collected);
 we published the first and dated the edge from it, so Ross's outline read ~7h old
-against a polygon flown 109h earlier. Fixed v0.99.92. `WILDFIRE_STALE_H = 24` remains
-uniform, which is right for a 3-acre contained fire and wrong for a running campaign
-fire where 16 hours is thousands of acres.
+against a polygon flown 109h earlier. Fixed v0.99.92. The uniform `WILDFIRE_STALE_H = 24`,
+right for a 3-acre contained fire and wrong for a running campaign fire where 16 hours is
+thousands of acres, was fixed v0.99.97: the edge window is 12h for a campaign-tier
+incident, keyed on WFIGS `IncidentComplexityLevel` because it is the only threat tier
+either source states and this note rules out ranking on acreage or containment. Types 1-3
+carry an organised IMT and are re-flown per 12h operational period; an absent or
+unparseable tier keeps 24h rather than guessing at a window it cannot speak for. The 24h
+figure still governs the INCIDENT list (`wildfireStale`), correctly, because that window
+is about how long a feed retains a record and not about how fast ground truth moves.
 
 **Point-of-origin geography is a flood habit.** A gauge is a point and stays one. Every
 upstream fire feed labels an incident by the county it started in. Ross is labeled Palo

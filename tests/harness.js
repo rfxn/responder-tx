@@ -217,6 +217,7 @@ const MAP_EXPORTS = EXPORTS.concat(['VIEW_ROWS',
   'perimeterReachMi', 'wildfireReachText', 'WILDFIRE_REACH_MIN_MI',
   'WILDFIRE_TIERS', 'WILDFIRE_BASE_PX', 'wildfireTier', 'wildfireMarkerPx',
   'perimeterAgeH', 'perimeterStale', 'perimeterUnbacked',
+  'perimeterCampaign', 'perimeterStaleH', 'WILDFIRE_CAMPAIGN_STALE_H',
   'pbSbw', 'pbSbwSev', 'pbSbwKey', 'pbSbwStore', 'pbSbwInAO', 'pbEmergencyKey', 'pbStoryRebuild', 'PB_SBW_FLOOD',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
   'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey']);

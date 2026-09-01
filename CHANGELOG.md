@@ -1,5 +1,15 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.99.97 · 2026-08-31 (a big fire's outline goes out of date faster)
+
+-- Changes --
+- [Change] A mapped fire edge on a large, complex incident is now marked out of
+         date after 12 hours rather than 24. Those fires are re-flown about once
+         per operational period and can move thousands of acres between flights,
+         so the longer window overstated how current the outline was. Smaller
+         incidents keep the 24 hour window, as does any fire whose source states
+         no complexity level
+
 ## v0.99.96 · 2026-08-29 (a Texas fire is a Texas fire, whatever our outline says)
 
 -- Bug Fixes --

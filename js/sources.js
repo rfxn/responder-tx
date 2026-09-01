@@ -2340,7 +2340,21 @@ function fireAreaPopupHtml(f) {
 /* p.mapped is when the edge was actually collected; p.observed only says when the record was last
    restamped, and upstream the two have run 4.5 days apart on a growing fire. */
 const perimeterAgeH = (p) => (Date.now() - new Date(p && p.mapped).getTime()) / 3600000;
-const perimeterStale = (p) => !(perimeterAgeH(p) < WILDFIRE_STALE_H); // an uncollected edge cannot be asserted as current
+
+/* How long an outline may be asserted as current depends on what it is an outline OF. 24h suits a
+   small local incident and badly oversells a campaign fire, where a shift is thousands of acres.
+   The tier comes from WFIGS IncidentComplexityLevel, the only threat tier either source states:
+   acreage and containment must not be ranked on (containment measures crew progress, not threat).
+   Types 1-3 carry an organised IMT and are re-flown per 12h operational period, so an outline past
+   one period has missed a flight. An absent or unparseable tier keeps 24h: an unread field must not
+   silently tighten or loosen the window it cannot speak for. */
+const WILDFIRE_CAMPAIGN_STALE_H = 12;
+const perimeterCampaign = (p) => {
+  const m = /type\s*([1-5])/i.exec(String((p && p.complexity) || ''));
+  return !!m && Number(m[1]) <= 3;
+};
+const perimeterStaleH = (p) => (perimeterCampaign(p) ? WILDFIRE_CAMPAIGN_STALE_H : WILDFIRE_STALE_H);
+const perimeterStale = (p) => !(perimeterAgeH(p) < perimeterStaleH(p)); // an uncollected edge cannot be asserted as current
 // strictly true: null or absent means an incident read failed, and an unread source is no answer about this edge (E1)
 const perimeterUnbacked = (p) => !!p && p.orphan === true;
 

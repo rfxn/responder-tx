@@ -921,6 +921,54 @@ test('an old or undated edge is drawn faded, the way an unrestamped incident is'
     'a class carrying no rule paints exactly like a current edge, and a shared property clobbers');
 });
 
+/* ---------- a campaign fire's outline goes out of date faster than a local one ----------
+   A uniform 24h window suits a small local incident and oversells a campaign fire, where one 12h
+   operational period is thousands of acres. The tier is WFIGS IncidentComplexityLevel, the only
+   threat tier either source states; acreage and containment are deliberately not ranked on, since
+   containment measures crew progress rather than threat. */
+
+const edgeAged = (h, over) => perimWith(Object.assign({ mapped: hoursAgo(h), observed: hoursAgo(1) }, over));
+
+test('a campaign-tier edge is stale at 16h where a local one is not', () => {
+  const { perimeterStale } = mapApp;
+  assert.equal(perimeterStale(edgeAged(16, { complexity: 'Type 3 Incident' })), true,
+    'a 16h-old outline on an IMT-managed fire has missed an operational period');
+  assert.equal(perimeterStale(edgeAged(16, { complexity: 'Type 5 Incident' })), false,
+    'the same age on a small local incident keeps the 24h window');
+  assert.equal(perimeterStale(edgeAged(16, {})), false,
+    'an absent tier must not silently tighten the window it cannot speak for');
+  // the tighter window must not become an ALWAYS-stale window: a freshly flown campaign edge is current
+  assert.equal(perimeterStale(edgeAged(2, { complexity: 'Type 1 Incident' })), false);
+});
+
+test('the campaign window covers types 1-3 only, and survives a tier it cannot parse', () => {
+  const { perimeterStaleH, perimeterCampaign, WILDFIRE_CAMPAIGN_STALE_H } = mapApp;
+  for (const n of [1, 2, 3]) {
+    assert.equal(perimeterCampaign({ complexity: `Type ${n} Incident` }), true, `type ${n} is a campaign fire`);
+    assert.equal(perimeterStaleH({ complexity: `Type ${n} Incident` }), WILDFIRE_CAMPAIGN_STALE_H);
+  }
+  for (const n of [4, 5]) {
+    assert.equal(perimeterCampaign({ complexity: `Type ${n} Incident` }), false, `type ${n} is a local incident`);
+    assert.equal(perimeterStaleH({ complexity: `Type ${n} Incident` }), WILDFIRE_STALE_H);
+  }
+  // anything unreadable falls back to the wider window rather than guessing a tier
+  for (const junk of [null, undefined, '', 'Complex', 'Type X Incident', 'Type 9 Incident', 42, {}]) {
+    assert.equal(perimeterCampaign({ complexity: junk }), false, `${JSON.stringify(junk)} states no tier`);
+    assert.equal(perimeterStaleH({ complexity: junk }), WILDFIRE_STALE_H);
+  }
+  assert.equal(perimeterStaleH(null), WILDFIRE_STALE_H, 'a missing perimeter is not a campaign fire');
+  assert.ok(WILDFIRE_CAMPAIGN_STALE_H < WILDFIRE_STALE_H, 'the campaign window is the tighter of the two');
+});
+
+test('the tighter window reaches the drawn edge, not just the predicate', () => {
+  const cls = (p) => renderDrawn({ sources: [], fires: [], perimeters: [p] })
+    .find((o) => o.kind === 'polygon').opts.className;
+  assert.equal(cls(edgeAged(16, { complexity: 'Type 3 Incident' })), 'wildfire-perimeter aged',
+    'a campaign edge past its operational period is drawn faded');
+  assert.equal(cls(edgeAged(16, { complexity: 'Type 5 Incident' })), 'wildfire-perimeter',
+    'and a local incident at the same age is still drawn as the current line');
+});
+
 /* ---------- an outline the incident list cannot account for ----------
    The WFIGS "Current" edge layer keeps an outline after the incident record leaves the window, so
    an edge outlives its fire. The ground it covers still burned, so it stays drawn and clickable and

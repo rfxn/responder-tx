@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-02T23:24:56Z",
+ "generated": "2026-09-02T23:40:04Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-02T23:08:00Z"
+  "last": "2026-09-02T23:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -830,8 +830,8 @@
   {
    "lid": "JYKT2",
    "name": "Pine Island Bayou near Batson",
-   "peak": 61.88,
-   "peak_time": "2026-09-02T23:08:00Z",
+   "peak": 61.99,
+   "peak_time": "2026-09-02T23:23:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-02T20:08:00Z",
@@ -840,7 +840,7 @@
    "record": {
     "record_ft": 67.17,
     "record_date": "2006-10-19",
-    "peak_pct": 92.1,
+    "peak_pct": 92.3,
     "exceeded": false,
     "approached": true
    },
@@ -887,8 +887,8 @@
   {
    "lid": "LIVT2",
    "name": "Long King Creek at Livingston",
-   "peak": 23.67,
-   "peak_time": "2026-09-02T22:23:00Z",
+   "peak": 23.7,
+   "peak_time": "2026-09-02T23:23:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-02T15:23:00Z",
@@ -897,7 +897,7 @@
    "record": {
     "record_ft": 30.49,
     "record_date": "1994-10-17",
-    "peak_pct": 77.6,
+    "peak_pct": 77.7,
     "exceeded": false,
     "approached": false
    },

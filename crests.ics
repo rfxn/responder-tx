@@ -6,11 +6,11 @@ METHOD:PUBLISH
 X-WR-CALNAME:Responder TX · forecast river crests
 BEGIN:VEVENT
 UID:crest-KOUT2-20260903T060000Z@responder.rfxn.com
-DTSTAMP:20260902T185528Z
+DTSTAMP:20260902T191014Z
 DTSTART:20260903T060000Z
 DTEND:20260903T070000Z
 SUMMARY:MAJOR crest · Village Creek near Kountze (23.3 ft)
-DESCRIPTION:Forecast MAJOR crest 23.3 ft (observed 13.72 ft). NOAA NWPS. Not a dispatch system\; call 911 for emergencies.
+DESCRIPTION:Forecast MAJOR crest 23.3 ft (observed 14.66 ft). NOAA NWPS. Not a dispatch system\; call 911 for emergencies.
 URL:https://respondertx.org/?hydro=KOUT2
 END:VEVENT
 END:VCALENDAR

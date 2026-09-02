@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-02T21:10:15Z",
+ "generated": "2026-09-02T21:24:55Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-02T20:53:00Z"
+  "last": "2026-09-02T21:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -830,8 +830,8 @@
   {
    "lid": "JYKT2",
    "name": "Pine Island Bayou near Batson",
-   "peak": 61.27,
-   "peak_time": "2026-09-02T20:38:00Z",
+   "peak": 61.34,
+   "peak_time": "2026-09-02T21:08:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-02T20:08:00Z",
@@ -840,7 +840,7 @@
    "record": {
     "record_ft": 67.17,
     "record_date": "2006-10-19",
-    "peak_pct": 91.2,
+    "peak_pct": 91.3,
     "exceeded": false,
     "approached": true
    },
@@ -1057,8 +1057,8 @@
   {
    "lid": "PWET2",
    "name": "Little Pine Island Bayou at Pine Wood Estates",
-   "peak": 11.41,
-   "peak_time": "2026-09-02T20:53:00Z",
+   "peak": 11.43,
+   "peak_time": "2026-09-02T21:08:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-02T13:38:00Z",

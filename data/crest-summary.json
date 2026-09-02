@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-02T23:09:58Z",
+ "generated": "2026-09-02T23:24:56Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-02T22:53:00Z"
+  "last": "2026-09-02T23:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -15,8 +15,8 @@
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-08-19T13:08:00Z",
-   "last_in_flood": "2026-08-20T02:53:00Z",
-   "ongoing": false,
+   "last_in_flood": "ongoing",
+   "ongoing": true,
    "record": {
     "record_ft": 16.4,
     "record_date": "1923-10-13",
@@ -830,8 +830,8 @@
   {
    "lid": "JYKT2",
    "name": "Pine Island Bayou near Batson",
-   "peak": 61.81,
-   "peak_time": "2026-09-02T22:38:00Z",
+   "peak": 61.88,
+   "peak_time": "2026-09-02T23:08:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-02T20:08:00Z",
@@ -840,7 +840,7 @@
    "record": {
     "record_ft": 67.17,
     "record_date": "2006-10-19",
-    "peak_pct": 92.0,
+    "peak_pct": 92.1,
     "exceeded": false,
     "approached": true
    },

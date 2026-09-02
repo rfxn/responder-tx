@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-02T16:54:57Z",
+ "generated": "2026-09-02T17:10:22Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-02T16:38:00Z"
+  "last": "2026-09-02T16:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -818,8 +818,8 @@
   {
    "lid": "VIMT2",
    "name": "Village Creek near Village Mills",
-   "peak": 74.46,
-   "peak_time": "2026-09-02T15:53:00Z",
+   "peak": 74.98,
+   "peak_time": "2026-09-02T16:53:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-07-16T22:00:00Z",
@@ -1038,8 +1038,8 @@
   {
    "lid": "PWET2",
    "name": "Little Pine Island Bayou at Pine Wood Estates",
-   "peak": 10.9,
-   "peak_time": "2026-09-02T16:23:00Z",
+   "peak": 10.93,
+   "peak_time": "2026-09-02T16:53:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-02T13:38:00Z",

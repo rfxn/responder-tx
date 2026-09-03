@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-03T15:09:58Z",
+ "generated": "2026-09-03T15:24:59Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-03T14:53:00Z"
+  "last": "2026-09-03T15:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -488,8 +488,8 @@
   {
    "lid": "JYKT2",
    "name": "Pine Island Bayou near Batson",
-   "peak": 65.93,
-   "peak_time": "2026-09-03T14:38:00Z",
+   "peak": 65.94,
+   "peak_time": "2026-09-03T15:08:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-09-02T20:08:00Z",
@@ -954,6 +954,25 @@
    "stale": false
   },
   {
+   "lid": "KOUT2",
+   "name": "Village Creek near Kountze",
+   "peak": 20.93,
+   "peak_time": "2026-09-03T15:08:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-09-03T00:08:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 35.96,
+    "record_date": "2017-08-30",
+    "peak_pct": 58.2,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "SAAT2",
    "name": "Medina River at San Antonio US 281S",
    "peak": 20.88,
@@ -972,25 +991,6 @@
    },
    "stale": false,
    "src": "usgs"
-  },
-  {
-   "lid": "KOUT2",
-   "name": "Village Creek near Kountze",
-   "peak": 20.77,
-   "peak_time": "2026-09-03T14:08:00Z",
-   "peak_category": "minor",
-   "unit": "ft",
-   "first_in_flood": "2026-09-03T00:08:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
-   "record": {
-    "record_ft": 35.96,
-    "record_date": "2017-08-30",
-    "peak_pct": 57.8,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
   },
   {
    "lid": "LMCT2",

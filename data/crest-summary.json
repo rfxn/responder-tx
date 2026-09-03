@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-03T20:09:57Z",
+ "generated": "2026-09-03T20:25:25Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-03T19:53:00Z"
+  "last": "2026-09-03T20:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -48,8 +48,8 @@
   {
    "lid": "JYKT2",
    "name": "Pine Island Bayou near Batson",
-   "peak": 66.47,
-   "peak_time": "2026-09-03T19:38:00Z",
+   "peak": 66.48,
+   "peak_time": "2026-09-03T20:08:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-09-02T20:08:00Z",
@@ -682,8 +682,8 @@
   {
    "lid": "KOUT2",
    "name": "Village Creek near Kountze",
-   "peak": 21.44,
-   "peak_time": "2026-09-03T19:08:00Z",
+   "peak": 21.52,
+   "peak_time": "2026-09-03T20:08:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-09-03T00:08:00Z",
@@ -692,7 +692,7 @@
    "record": {
     "record_ft": 35.96,
     "record_date": "2017-08-30",
-    "peak_pct": 59.6,
+    "peak_pct": 59.8,
     "exceeded": false,
     "approached": false
    },

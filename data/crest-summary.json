@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-03T02:57:00Z",
+ "generated": "2026-09-03T03:12:15Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-03T02:38:00Z"
+  "last": "2026-09-03T02:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -925,8 +925,8 @@
   {
    "lid": "RYET2",
    "name": "Menard Creek near Rye",
-   "peak": 21.94,
-   "peak_time": "2026-09-03T01:53:00Z",
+   "peak": 22.38,
+   "peak_time": "2026-09-03T02:53:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-02T22:53:00Z",
@@ -935,7 +935,7 @@
    "record": {
     "record_ft": 36.11,
     "record_date": "2017-08-29",
-    "peak_pct": 60.8,
+    "peak_pct": 62.0,
     "exceeded": false,
     "approached": false
    },
@@ -1081,8 +1081,8 @@
   {
    "lid": "BOPT2",
    "name": "Boggy Creek (E TX) at Park Road",
-   "peak": 12.04,
-   "peak_time": "2026-09-03T02:38:00Z",
+   "peak": 12.28,
+   "peak_time": "2026-09-03T02:53:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-07-14T14:00:00Z",

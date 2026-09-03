@@ -4,4 +4,13 @@ PRODID:-//Responder TX//Crest Calendar//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:Responder TX · forecast river crests
+BEGIN:VEVENT
+UID:crest-RYET2-20260904T000000Z@responder.rfxn.com
+DTSTAMP:20260903T182505Z
+DTSTART:20260904T000000Z
+DTEND:20260904T010000Z
+SUMMARY:MAJOR crest · Menard Creek near Rye (28.2 ft)
+DESCRIPTION:Forecast MAJOR crest 28.2 ft (observed 27.06 ft). NOAA NWPS. Not a dispatch system\; call 911 for emergencies.
+URL:https://respondertx.org/?hydro=RYET2
+END:VEVENT
 END:VCALENDAR

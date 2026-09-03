@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-03T18:25:05Z",
+ "generated": "2026-09-03T18:40:00Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-03T16:53:00Z"
+  "last": "2026-09-03T18:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -15,8 +15,8 @@
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-08-19T13:08:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-09-03T16:53:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 16.4,
     "record_date": "1923-10-13",
@@ -48,8 +48,8 @@
   {
    "lid": "JYKT2",
    "name": "Pine Island Bayou near Batson",
-   "peak": 66.21,
-   "peak_time": "2026-09-03T16:38:00Z",
+   "peak": 66.37,
+   "peak_time": "2026-09-03T18:23:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-09-02T20:08:00Z",
@@ -58,7 +58,7 @@
    "record": {
     "record_ft": 67.17,
     "record_date": "2006-10-19",
-    "peak_pct": 98.6,
+    "peak_pct": 98.8,
     "exceeded": false,
     "approached": true
    },
@@ -495,8 +495,8 @@
   {
    "lid": "VIMT2",
    "name": "Village Creek near Village Mills",
-   "peak": 76.99,
-   "peak_time": "2026-09-03T16:53:00Z",
+   "peak": 77.02,
+   "peak_time": "2026-09-03T18:23:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-07-16T22:00:00Z",
@@ -585,8 +585,8 @@
   {
    "lid": "RYET2",
    "name": "Menard Creek near Rye",
-   "peak": 26.86,
-   "peak_time": "2026-09-03T16:53:00Z",
+   "peak": 27.06,
+   "peak_time": "2026-09-03T18:23:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-09-02T22:53:00Z",
@@ -595,7 +595,7 @@
    "record": {
     "record_ft": 36.11,
     "record_date": "2017-08-29",
-    "peak_pct": 74.4,
+    "peak_pct": 74.9,
     "exceeded": false,
     "approached": false
    },
@@ -680,6 +680,25 @@
    "src": "usgs"
   },
   {
+   "lid": "KOUT2",
+   "name": "Village Creek near Kountze",
+   "peak": 21.29,
+   "peak_time": "2026-09-03T18:23:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-09-03T00:08:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 35.96,
+    "record_date": "2017-08-30",
+    "peak_pct": 59.2,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "SCRT2",
    "name": "Seco Creek at Rowe Ranch near D'Hanis",
    "peak": 21.09,
@@ -698,25 +717,6 @@
    },
    "stale": false,
    "src": "usgs"
-  },
-  {
-   "lid": "KOUT2",
-   "name": "Village Creek near Kountze",
-   "peak": 21.04,
-   "peak_time": "2026-09-03T16:08:00Z",
-   "peak_category": "moderate",
-   "unit": "ft",
-   "first_in_flood": "2026-09-03T00:08:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
-   "record": {
-    "record_ft": 35.96,
-    "record_date": "2017-08-30",
-    "peak_pct": 58.5,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
   },
   {
    "lid": "LLAT2",

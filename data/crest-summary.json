@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-03T13:54:59Z",
+ "generated": "2026-09-03T14:10:05Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-03T13:38:00Z"
+  "last": "2026-09-03T13:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -476,8 +476,8 @@
   {
    "lid": "VIMT2",
    "name": "Village Creek near Village Mills",
-   "peak": 76.67,
-   "peak_time": "2026-09-03T13:38:00Z",
+   "peak": 76.79,
+   "peak_time": "2026-09-03T13:53:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-07-16T22:00:00Z",
@@ -583,6 +583,25 @@
    "src": "usgs"
   },
   {
+   "lid": "RYET2",
+   "name": "Menard Creek near Rye",
+   "peak": 26.42,
+   "peak_time": "2026-09-03T13:53:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-09-02T22:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 36.11,
+    "record_date": "2017-08-29",
+    "peak_pct": 73.2,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "MLRT2",
    "name": "Llano River near Mason",
    "peak": 26.32,
@@ -596,25 +615,6 @@
     "record_ft": 46,
     "record_date": "1935-06-14",
     "peak_pct": 57.2,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
-  },
-  {
-   "lid": "RYET2",
-   "name": "Menard Creek near Rye",
-   "peak": 26.27,
-   "peak_time": "2026-09-03T13:38:00Z",
-   "peak_category": "moderate",
-   "unit": "ft",
-   "first_in_flood": "2026-09-02T22:53:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
-   "record": {
-    "record_ft": 36.11,
-    "record_date": "2017-08-29",
-    "peak_pct": 72.7,
     "exceeded": false,
     "approached": false
    },

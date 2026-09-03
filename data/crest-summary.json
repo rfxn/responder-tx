@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-03T15:55:05Z",
+ "generated": "2026-09-03T16:10:07Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-03T15:38:00Z"
+  "last": "2026-09-03T15:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -495,8 +495,8 @@
   {
    "lid": "VIMT2",
    "name": "Village Creek near Village Mills",
-   "peak": 76.88,
-   "peak_time": "2026-09-03T14:53:00Z",
+   "peak": 76.95,
+   "peak_time": "2026-09-03T15:53:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-07-16T22:00:00Z",
@@ -585,8 +585,8 @@
   {
    "lid": "RYET2",
    "name": "Menard Creek near Rye",
-   "peak": 26.54,
-   "peak_time": "2026-09-03T14:53:00Z",
+   "peak": 26.69,
+   "peak_time": "2026-09-03T15:53:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-09-02T22:53:00Z",
@@ -595,7 +595,7 @@
    "record": {
     "record_ft": 36.11,
     "record_date": "2017-08-29",
-    "peak_pct": 73.5,
+    "peak_pct": 73.9,
     "exceeded": false,
     "approached": false
    },

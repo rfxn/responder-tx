@@ -2,7 +2,7 @@
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     <name>Responder TX live map</name>
-    <description>Self-updating link to the Responder TX board. The linked document is re-fetched every 15 minutes, which is how often the board republishes. Situational awareness, not a dispatch system; call 911 for emergencies. Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.</description>
+    <description>Self-updating link to the Responder TX board. The linked document is re-fetched every 15 minutes, which is how often the board republishes. Situational awareness, not a dispatch system; call 911 for emergencies. Sources that did not answer this cycle are missing from this export rather than empty: iem-lsr. Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.</description>
     <NetworkLink>
       <name>Responder TX board</name>
       <open>1</open>

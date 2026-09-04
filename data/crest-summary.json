@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-04T18:56:26Z",
+ "generated": "2026-09-04T19:10:57Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-04T18:38:00Z"
+  "last": "2026-09-04T18:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -621,6 +621,25 @@
    "stale": false
   },
   {
+   "lid": "BOLT2",
+   "name": "San Bernard River near Boling",
+   "peak": 23.65,
+   "peak_time": "2026-09-04T18:53:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-09-04T18:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 43.79,
+    "record_date": "2017-08-31",
+    "peak_pct": 54.0,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "FCTT2",
    "name": "Cibolo Creek near Falls City",
    "peak": 23.48,
@@ -1174,7 +1193,7 @@
    "src": "usgs"
   }
  ],
- "retained_gauges": 64,
+ "retained_gauges": 65,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

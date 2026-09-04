@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-04T00:55:33Z",
+ "generated": "2026-09-04T01:10:17Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-04T00:38:00Z"
+  "last": "2026-09-04T00:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -242,8 +242,8 @@
   {
    "lid": "RYET2",
    "name": "Menard Creek near Rye",
-   "peak": 28.01,
-   "peak_time": "2026-09-03T23:53:00Z",
+   "peak": 28.05,
+   "peak_time": "2026-09-04T00:53:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-09-02T22:53:00Z",
@@ -252,7 +252,7 @@
    "record": {
     "record_ft": 36.11,
     "record_date": "2017-08-29",
-    "peak_pct": 77.6,
+    "peak_pct": 77.7,
     "exceeded": false,
     "approached": false
    },

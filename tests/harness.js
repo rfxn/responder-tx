@@ -57,6 +57,7 @@ function makeElementStub() {
 function buildSandbox() {
   // load-time document listeners are kept, not dropped: the modal focus trap is one of them
   const docHandlers = new Map();
+  const winHandlers = new Map();
   const documentStub = {
     title: '',
     readyState: 'loading', // classic scripts evaluate before DOMContentLoaded; notes.js branches on this
@@ -104,7 +105,11 @@ function buildSandbox() {
     document: documentStub,
     window: {},
     // window.* is the sandbox itself (see below); js/bootfloor.js binds load/error here
-    addEventListener() {}, removeEventListener() {},
+    addEventListener(type, fn) {
+      if (!winHandlers.has(type)) winHandlers.set(type, []);
+      winHandlers.get(type).push(fn);
+    },
+    removeEventListener() {},
     navigator: { clipboard: null, share: null, geolocation: null },
     localStorage: makeStorage(),
     sessionStorage: makeStorage(),
@@ -124,6 +129,7 @@ function buildSandbox() {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   sandbox.__docHandlers = docHandlers;
+  sandbox.__winHandlers = winHandlers;
   // deferred through sandbox.setTimeout so a test that replaces the clock also owns the frame
   sandbox.requestAnimationFrame = (fn) => sandbox.setTimeout(fn, 0);
   sandbox.cancelAnimationFrame = (id) => sandbox.clearTimeout(id);
@@ -289,9 +295,17 @@ function makeRecordingL(mapStub) {
   let seq = 0;
   const layer = (kind, proto = Object.prototype) => {
     const id = `${kind}#${++seq}`;
+    const ev = new Map();
     const own = Object.assign(Object.create(proto), { __kind: kind, __id: id, options: {}, _layers: {},
       // real, so "ships off by default" is a question the map can answer
-      addTo(target) { if (target && typeof target.addLayer === 'function') target.addLayer(self); return self; } });
+      addTo(target) { if (target && typeof target.addLayer === 'function') target.addLayer(self); return self; },
+      // kept, so a layer's own tileerror/load wiring can be fired as Leaflet would fire it
+      on(events, fn) {
+        String(events).split(/\s+/).filter(Boolean)
+          .forEach((e) => { if (!ev.has(e)) ev.set(e, []); ev.get(e).push(fn); });
+        return self;
+      },
+      __fire(e, payload) { (ev.get(e) || []).forEach((fn) => fn(payload)); return (ev.get(e) || []).length; } });
     const self = new Proxy(own, {
       get(target, key) {
         if (key === Symbol.toPrimitive) return () => id;

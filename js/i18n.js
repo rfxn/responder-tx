@@ -547,6 +547,8 @@
       'off.quota': '⚠ Device storage is full. {n} of {m} tiles saved; the rest will be blank offline.',
       'off.evicted': '⚠ The browser reclaimed saved tiles: {n} of {m} remain. Save again before relying on this area.',
       'off.unavail': '⚠ Saved tiles cannot be read on this device.',
+      'off.blank.offline': 'Map is blank here: no signal, and this area is not saved for offline use.',
+      'off.blank.failed': 'Some map tiles did not load, so parts of the map are blank. Another basemap may work.',
 
       'push.title': 'Notify me',
       'push.notify.title': 'Notify me: alerts on this device, RSS, crest calendar',
@@ -1903,6 +1905,8 @@
       'off.quota': '⚠ El almacenamiento del dispositivo está lleno. Se guardaron {n} de {m} teselas; el resto quedará en blanco sin conexión.',
       'off.evicted': '⚠ El navegador liberó teselas guardadas: quedan {n} de {m}. Guarde de nuevo antes de depender de esta zona.',
       'off.unavail': '⚠ No se pueden leer las teselas guardadas en este dispositivo.',
+      'off.blank.offline': 'El mapa está en blanco aquí: no hay señal y esta zona no está guardada para usarla sin conexión.',
+      'off.blank.failed': 'Algunas teselas del mapa no se cargaron, así que partes del mapa están en blanco. Puede funcionar otro mapa base.',
 
       'push.title': 'Notificarme',
       'push.notify.title': 'Notificarme: alertas en este dispositivo, RSS, calendario de crestas',

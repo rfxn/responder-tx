@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.2 · 2026-09-29 (a blank map says why)
+
+-- Bug Fixes --
+- [Fix] Blank squares on the map now come with a notice: with no signal it says
+      the area is not saved for offline use, and when the map provider fails it
+      says so. The map refills on its own when the connection returns
+
 ## v0.100.1 · 2026-09-29 (the map export names what a gauge can tell you)
 
 -- Bug Fixes --

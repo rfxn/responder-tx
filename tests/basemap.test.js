@@ -184,3 +184,79 @@ test('a store that cannot run the cleanup still serves the basemap', async () =>
 
   assert.equal(await w.sandbox.refreshOfflineStatus(), 2, 'every tile waits on this handle, so the cleanup must not wedge it');
 });
+
+/* A blank basemap square used to explain nothing. These fire tile events on the layers initMap()
+   built, so the wiring is exercised along with the handler. */
+function withNotices(w, onLine) {
+  const said = [];
+  w.sandbox.opNotice = (m) => said.push(m);
+  w.sandbox.navigator.onLine = onLine;
+  return said;
+}
+
+test('every basemap layer, labels included, explains its own blank tiles', () => {
+  const w = loadWiredMap();
+  const watched = [...Object.entries(w.state.baseLayers), ['labelBoost', w.layers.labelBoost]];
+  for (const [name, l] of watched) {
+    const said = withNotices(w, false);
+    assert.equal(l.__fire('tileerror', {}), 1, `${name} registered no tileerror handler`);
+    assert.deepEqual(said, ['off.blank.offline'], name);
+  }
+});
+
+test('offline, a spell of missing tiles is explained once, and again only after the map loads whole', () => {
+  const w = loadWiredMap();
+  const dark = w.state.baseLayers.dark;
+  const said = withNotices(w, false);
+
+  dark.__fire('loading');
+  dark.__fire('tileerror', {});
+  dark.__fire('tileerror', {});
+  dark.__fire('load');
+  dark.__fire('loading');
+  dark.__fire('tileerror', {}); // panning further into unsaved ground is the same spell
+  dark.__fire('load');
+  assert.deepEqual(said, ['off.blank.offline'], 'one notice per spell, not one per tile or per pan');
+
+  dark.__fire('loading');
+  dark.__fire('load'); // a saved area, or signal back: every tile painted
+  dark.__fire('loading');
+  dark.__fire('tileerror', {});
+  assert.deepEqual(said, ['off.blank.offline', 'off.blank.offline'], 'a new spell after a whole map is reported');
+});
+
+test('a tile host failure is not blamed on the signal, and losing signal afterwards still says so', () => {
+  const w = loadWiredMap();
+  const streets = w.state.baseLayers.streets;
+  const said = withNotices(w, true);
+
+  streets.__fire('tileerror', {});
+  assert.deepEqual(said, ['off.blank.failed']);
+  w.sandbox.navigator.onLine = false;
+  streets.__fire('tileerror', {});
+  assert.deepEqual(said, ['off.blank.failed', 'off.blank.offline'], 'a different cause is a different notice');
+});
+
+test('reconnecting refetches only the layers that went blank, and re-arms their notice', () => {
+  const w = loadWiredMap();
+  const online = w.sandbox.__winHandlers.get('online') || [];
+  assert.equal(online.length, 1, 'initMap() must listen for the connection coming back');
+
+  const dark = w.state.baseLayers.dark;
+  const labels = w.layers.labelBoost;
+  w.state.map.removeLayer(w.state.baseLayers.dark); // whatever the default, put dark on the map
+  w.state.map.addLayer(dark);
+  const redrawn = [];
+  dark.redraw = () => { redrawn.push('dark'); return dark; };
+  labels.redraw = () => { redrawn.push('labels'); return labels; };
+  const said = withNotices(w, false);
+
+  dark.__fire('tileerror', {});
+  w.sandbox.navigator.onLine = true;
+  online[0]();
+  assert.deepEqual(redrawn, ['dark'], 'Leaflet never retries an errored tile; a clean layer needs no refetch');
+
+  w.sandbox.navigator.onLine = false;
+  dark.__fire('tileerror', {});
+  assert.deepEqual(said, ['off.blank.offline', 'off.blank.offline'], 'the next outage is reported afresh');
+});

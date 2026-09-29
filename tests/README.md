@@ -191,7 +191,12 @@ Gotchas that have each cost a release:
   in a recording `L` (see `drawWith()` in `wildfire.test.js`).
   `loadWiredMap()` already hands out distinct layer objects, and its tile layers
   (`L.TileLayer.extend` classes included) keep `_url` and `options`, so a test can
-  assert the URL a layer fetches (see `basemap.test.js`).
+  assert the URL a layer fetches (see `basemap.test.js`). Its layers keep what
+  `on()` registers, so `layer.__fire('tileerror')` runs the app's own handler, and
+  `sandbox.__winHandlers` holds every `window.addEventListener` registration.
+- A recording-`L` layer answers **any unset property** with a function, which is
+  truthy. Code that reads a flag it never initialised (`if (!layer._x)`) passes in
+  the browser and fails in the harness; initialise the flag where the layer is built.
 - A recording DOM must **not** answer `querySelector` with a live stub
   unconditionally. That exact mistake let a missing star element pass in
   v0.99.83. Register the selectors you deliberately provide and return `null`

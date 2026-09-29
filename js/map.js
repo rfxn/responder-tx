@@ -128,7 +128,33 @@ const OfflineTileLayer = L.TileLayer.extend({
   },
 });
 
-function offlineTile(url, opts) { return new OfflineTileLayer(url, opts); }
+function offlineTile(url, opts) { return watchBaseTiles(new OfflineTileLayer(url, opts)); }
+
+// a blank basemap square says whether the device is offline or the tile host failed, once per spell
+function baseTileFailed(layer) {
+  layer._tileErr = true;
+  const kind = navigator.onLine === false ? 'offline' : 'failed';
+  if (layer._tileNotice === kind) return;
+  layer._tileNotice = kind;
+  opNotice(t(kind === 'offline' ? 'off.blank.offline' : 'off.blank.failed'));
+}
+
+function watchBaseTiles(layer) {
+  layer._tileErr = false;
+  layer._tileNotice = null;
+  return layer.on('loading', () => { layer._tileErr = false; })
+    .on('tileerror', () => baseTileFailed(layer))
+    .on('load', () => { if (!layer._tileErr) layer._tileNotice = null; });
+}
+
+// Leaflet never refetches an errored tile, so without this the blank squares outlive the outage
+function baseTilesReconnected() {
+  activeOfflineLayers().forEach((l) => {
+    if (!l._tileNotice) return;
+    l._tileNotice = null;
+    l.redraw();
+  });
+}
 
 // getTileUrl() locks z to the layer's live zoom, so build save URLs directly to reach z+1
 function offlineTileUrl(layer, c) {
@@ -530,6 +556,7 @@ function initMap() {
   state.map.getPane('surge').style.pointerEvents = 'none';
   // upscaled past z16 a place name balloons into a blur over the crisp street labels beneath it
   state.layers.labelBoost = offlineTile(labelBoostUrl(), { ...canvas, maxZoom: ESRI_CANVAS_NATIVE_Z, pane: 'labels' }).addTo(state.map);
+  window.addEventListener('online', baseTilesReconnected);
 
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
   // group of pre-loaded per-frame tile layers; playback crossfades opacity (no per-step tile reload)

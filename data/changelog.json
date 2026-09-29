@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.2",
+      "date": "2026-09-29",
+      "line": "Blank map squares now explain themselves: with no signal the board says the area is not saved for offline use, and when the map provider fails it says so. The map refills on its own when the connection returns."
+    },
+    {
       "v": "v0.100.1",
       "date": "2026-09-29",
       "line": "In the CalTopo and map exports, a gauge with no flood levels set now reads \"flood category not defined\" instead of \"no flooding\", and an out-of-service gauge says so. Forecast lines name the category in words."

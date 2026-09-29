@@ -719,9 +719,11 @@ engineering.
     print-stylesheet tokens; pairs with the fullscreen plugin (#30).
 23. **#22 OpenFEMA declarations chip · #21 CoCoRaHS precip · #23 USGS STN HWM
     hook** — [data], mostly recovery/AAR, event-gated.
-24. **Minor polish** — the #18 measure tool and the offline tile-failure banner
-    (compat-9). A3, A8 and #19 came off this list: the first two were refuted on
-    re-verification and the watchlist star shipped v0.99.83.
+24. **Minor polish** · the #18 measure tool. A3, A8, #19 and compat-9 came off
+    this list: the first two were refuted on re-verification, the watchlist star
+    shipped v0.99.83, and the offline tile-failure notice shipped v0.100.2 (a blank
+    basemap square says whether the device is offline or the tile host failed, and
+    reconnecting repaints it).
 25. **#28 X ingest worker · #29 remaining partnership feeds (PulsePoint,
     Broadcastify, LCRA, what3words)** — [infra], gated on partnerships or paid
     APIs; ingest never auto-publishes.

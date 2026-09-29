@@ -1,5 +1,31 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.0 · 2026-09-28 (a clear map, a Texas-shaped board, and radar with the flood)
+
+-- Bug Fixes --
+- [Fix] The dark and light base maps no longer show "API key required" tiles.
+      They now come from Esri and need no key. Past zoom 16 the nearest level
+      is enlarged, and areas saved offline on the old dark or light map need
+      saving again
+- [Fix] A gauge reading that cannot be a water level, such as a missing-value
+      code, is now treated as no reading and never as a flood category. Two
+      such readings had been listed as major crests and are removed
+
+-- Changes --
+- [Change] The live map, gauge lists and published snapshot now cover Texas and
+         about 15 miles past the state line, so Red River and Sabine gauges
+         stay while gauges deeper into neighbouring states are left off. The
+         quick-jump regions are redrawn to cover the whole state with less
+         overlap
+- [Change] For the late September 2026 flood event, radar and the rain forecast
+         also switch themselves on while a flash flood warning, flood watch,
+         severe thunderstorm warning or tornado warning is in effect in Texas.
+         Switching the row off keeps it off
+- [Change] Notices, shelters and crossing closures listed for the July floods
+         are retired, and recovery links are trimmed to those that apply to
+         any flood. Live road closures, reported crossings and live shelters
+         are unchanged
+
 ## v0.99.99 · 2026-09-01 (how high the water is, on the front row)
 
 -- New Features --

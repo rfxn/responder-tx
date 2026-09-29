@@ -49,8 +49,8 @@ if [ "$CODE_FROM_HEAD" -eq 1 ]; then
     while IFS= read -r f; do
         git show "HEAD:$f" > "$CODE_ROOT/$f" || { echo "FAIL: cannot read ${f} from HEAD" >&2; exit 1; }
     done < <(git ls-tree -r --name-only HEAD -- js index.html sw.js CHANGELOG.md data/changelog.json data/version.json \
-            scripts/gen-caltopo.py tests/harness.js tests/hazard-mirror.js \
-        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|version)\.json$|^scripts/gen-caltopo\.py$|^tests/(harness|hazard-mirror)\.js$')
+            scripts/gen-caltopo.py scripts/aoarea.py scripts/fetch-snapshot.py tests/harness.js tests/hazard-mirror.js \
+        | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|version)\.json$|^scripts/(gen-caltopo|aoarea|fetch-snapshot)\.py$|^tests/(harness|hazard-mirror)\.js$')
     echo "note: code-lane checks read HEAD ($(git rev-parse --short HEAD)); data-lane checks read the working tree"
 fi
 export CODE_ROOT DATA_ROOT
@@ -1133,9 +1133,74 @@ else
     failck "export completeness claim (caltopo-export.json counters contradict what it carries)"
 fi
 
+# r. AO area: every consumer silently falls back to the gaugeBbox rectangle on a bad aoArea
+AO_DETAIL=""
+check_ao_area() {
+    AO_DETAIL=$(python3 - "$CODE_ROOT/scripts" <<'EOF'
+import importlib.util, json, os, sys
+
+root = os.environ.get("DATA_ROOT", ".")
+with open(os.path.join(root, "data", "event.json"), encoding="utf-8") as f:
+    ev = json.load(f)
+if ev.get("aoArea") is None:
+    sys.stdout.write("no aoArea configured; gaugeBbox is the whole AO")
+    sys.exit(0)
+try:
+    sys.path.insert(0, sys.argv[1])
+    import aoarea
+    spec = importlib.util.spec_from_file_location("fetch_snapshot", os.path.join(sys.argv[1], "fetch-snapshot.py"))
+    fs = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fs)
+    display_rows, min_gauges, event_bbox = fs.display_rows, fs.min_gauges, fs.event_bbox
+except Exception as exc:  # noqa: BLE001, any load failure means the clip cannot be evaluated
+    raise SystemExit("cannot load scripts/fetch-snapshot.py + aoarea.py to evaluate the aoArea: %s" % exc)
+fs.ROOT = root
+area = aoarea.parse(ev["aoArea"])
+if area is None:
+    raise SystemExit("data/event.json aoArea is malformed (bufferMi >= 0 and at least 3 finite "
+                     "[lat, lon] vertices); every consumer falls back to the gaugeBbox rectangle")
+display = event_bbox("gaugeBbox")
+anchors = [(p.get("id"), a) for p in (ev.get("aoPresets") or []) for a in (p.get("anchors") or [])]
+outside = ["%s %s" % (pid, a) for pid, a in anchors
+           if not (isinstance(a, list) and len(a) == 2 and aoarea.in_scope(display, area, a[0], a[1]))]
+if outside:
+    raise SystemExit("aoArea leaves region anchors outside the AO: %s" % "; ".join(outside))
+src = "gauges-capture.json"
+if not os.path.exists(os.path.join(root, "data", src)):
+    src = "gauges-snapshot.json"
+with open(os.path.join(root, "data", src), encoding="utf-8") as f:
+    rows = json.load(f).get("gauges") or []
+shown = display_rows(rows, display, area)
+if rows and len(shown) < 0.25 * len(rows):
+    raise SystemExit("the aoArea keeps %d of %d gauges in %s; an outline that clips away most of the "
+                     "capture is a config error" % (len(shown), len(rows), src))
+floor = min_gauges(os.path.join(root, "data", "gauges-snapshot.json"), display, aoarea.fingerprint(area))
+detail = ("%d vertices, %g mi buffer, %d anchors inside, display keeps %d of %d in %s (floor %d)"
+          % (len(area["polygon"]), area["bufferMi"], len(anchors), len(shown), len(rows), src, floor))
+if len(shown) < floor:
+    sys.stdout.write(detail + "; under the display floor, so fetch-snapshot kept the previous snapshot")
+    sys.exit(3)
+sys.stdout.write(detail)
+EOF
+    ) || return $?
+    return 0
+}
+ao_rc=0
+check_ao_area || ao_rc=$?
+if [ "$ao_rc" -eq 0 ]; then
+    pass "AO area (${AO_DETAIL})"
+elif [ "$ao_rc" -eq 3 ]; then
+    pass "AO area (config sound)"
+    echo "WARN: AO area: ${AO_DETAIL}. A short upstream response, not a config fault; never a publish blocker."
+elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
+    echo "WARN: AO area: data/event.json aoArea is broken or clips away the board. This run only warns, but deploy.sh re-runs this check at HEAD with no flag before it publishes, and hard-fails there."
+else
+    failck "AO area (data/event.json aoArea malformed, misses a region, or leaves too few gauges)"
+fi
+
 if [ "$FAILURES" -eq 0 ]; then
-    echo "SUMMARY: all 17 checks passed"
+    echo "SUMMARY: all 18 checks passed"
     exit 0
 fi
-echo "SUMMARY: ${FAILURES} of 17 checks FAILED"
+echo "SUMMARY: ${FAILURES} of 18 checks FAILED"
 exit 1

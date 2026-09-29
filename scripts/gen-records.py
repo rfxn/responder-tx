@@ -31,6 +31,13 @@ BACKOFFS = [2, 5]
 # A preliminary ("P") crest posted during the current event must not become the
 # record it is being compared against, or over/near-record headlines go dark.
 PRELIM_EXCLUDE_DAYS = 60
+# mirrors js/core.js stageOk; see INTERNAL-NOTES.md "Impossible gauge stages"
+STAGE_MIN_FT = -300
+STAGE_MAX_FT = 25000
+
+
+def stage_ok(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and STAGE_MIN_FT < v < STAGE_MAX_FT
 
 
 def fetch_gauge(lid):
@@ -62,7 +69,7 @@ def record_crest(gauge, now):
     for c in crests:
         stage = c.get("stage")
         when = str(c.get("occurredTime") or "")
-        if not isinstance(stage, (int, float)) or stage <= 0 or len(when) < 10:
+        if not stage_ok(stage) or stage <= 0 or len(when) < 10:
             continue
         if c.get("preliminary") == "P":
             try:

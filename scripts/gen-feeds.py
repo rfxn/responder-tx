@@ -23,6 +23,13 @@ UA = "responder-tx-ops (rfxnryan@gmail.com)"
 # healthy answers measure ~0.1s, so a short deadline plus retries beats one long wait on a hang
 TIMEOUT = 12
 BACKOFFS = [2, 5]
+# mirrors js/core.js stageOk; see INTERNAL-NOTES.md "Impossible gauge stages"
+STAGE_MIN_FT = -300
+STAGE_MAX_FT = 25000
+
+
+def stage_ok(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and STAGE_MIN_FT < v < STAGE_MAX_FT
 
 
 def now_utc():
@@ -138,18 +145,19 @@ def rising_crests(snapshot):
         st = g.get("status") or {}
         o = st.get("observed") or {}
         fc = st.get("forecast") or {}
-        ocat = o.get("floodCategory") or "none"
+        obs = o.get("primary") if stage_ok(o.get("primary")) else None
+        ocat = (o.get("floodCategory") or "none") if obs is not None else "none"
         fcat = fc.get("floodCategory") or "none"
         crest = fc.get("primary")
         when = parse_iso(fc.get("validTime"))
-        if not isinstance(crest, (int, float)) or crest <= -999:
-            continue  # NWPS missing-value sentinel
+        if not stage_ok(crest):
+            continue  # NWPS missing-value sentinel, or a value no river can reach
         if not when or when.year < 2000:
             continue  # NWPS epoch/sentinel timestamp
         if fcat == "major" and RANK.get(fcat, 0) > RANK.get(ocat, 0):
             out.append({
                 "lid": g.get("lid"), "name": g.get("name"),
-                "obs": o.get("primary"), "ocat": ocat,
+                "obs": obs, "ocat": ocat,
                 "crest": fc.get("primary"), "when": fc.get("validTime"),
             })
     out.sort(key=lambda x: x["when"])
@@ -205,7 +213,8 @@ def build_rss(emergencies, tornadoes, crests, notices, built, title, desc,
     for c in crests:
         pub = built
         it_title = f"MAJOR crest forecast · {c['name']} ({c['crest']} ft)"
-        it_desc = f"Observed {c['obs']} ft ({c['ocat']}); forecast crest {c['crest']} ft MAJOR at {c['when']}. Source: NOAA NWPS."
+        obs = f"Observed {c['obs']} ft ({c['ocat']})" if c["obs"] is not None else "No current observed reading"
+        it_desc = f"{obs}; forecast crest {c['crest']} ft MAJOR at {c['when']}. Source: NOAA NWPS."
         link = f"{SITE}/?hydro={c['lid']}"
         items.append((pub, it_title, it_desc, link, f"crest-{c['lid']}-{c['when']}"))
     for n in notices:
@@ -250,13 +259,14 @@ def build_ics(crests, built):
         if not start:
             continue
         end = start + datetime.timedelta(hours=1)
+        obs = f"observed {c['obs']} ft" if c["obs"] is not None else "no current observed reading"
         lines += ["BEGIN:VEVENT",
                   f"UID:crest-{c['lid']}-{ics_stamp(start)}@responder.rfxn.com",
                   f"DTSTAMP:{ics_stamp(built)}",
                   f"DTSTART:{ics_stamp(start)}",
                   f"DTEND:{ics_stamp(end)}",
                   f"SUMMARY:{ics_escape('MAJOR crest · ' + c['name'] + ' (' + str(c['crest']) + ' ft)')}",
-                  f"DESCRIPTION:{ics_escape('Forecast MAJOR crest ' + str(c['crest']) + ' ft (observed ' + str(c['obs']) + ' ft). NOAA NWPS. Not a dispatch system; call 911 for emergencies.')}",
+                  f"DESCRIPTION:{ics_escape('Forecast MAJOR crest ' + str(c['crest']) + ' ft (' + obs + '). NOAA NWPS. Not a dispatch system; call 911 for emergencies.')}",
                   f"URL:{SITE}/?hydro={c['lid']}",
                   "END:VEVENT"]
     lines.append("END:VCALENDAR")

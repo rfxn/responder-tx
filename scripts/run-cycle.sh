@@ -42,7 +42,23 @@ if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable 
 fi
 exec > >(command tee -a "$LOGFILE") 2>&1
 
-log() { printf '%s %s\n' "$(command date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
+# The status file freshness-monitor.sh reads to tell a failing cycle from a dead cron.
+CYCLE_STATUS="${RESPONDER_CYCLE_STATUS:-/var/log/responder-cycle-status.json}"
+if ! [ -w "$(command dirname "$CYCLE_STATUS")" ]; then  # probe: /var/log may be unwritable for non-root cron
+    CYCLE_STATUS=/tmp/responder-cycle-status.json
+fi
+STAGE=start
+FIRST_ERROR=""
+LAST_LOGGED=""
+
+log() {
+    printf '%s %s\n' "$(command date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"
+    case "$*" in
+        ERROR:*) [ -n "$FIRST_ERROR" ] || FIRST_ERROR="$*" ;;
+        *) : ;;
+    esac
+    LAST_LOGGED="$*"
+}
 # $LINENO, not ${BASH_LINENO[0]}: for a top-level command the latter is the caller frame, which is
 # empty at top level, so every real failure logged the useless "near line 0"
 trap 'log "ERROR: cycle failed (exit $?) near line ${LINENO}"' ERR
@@ -133,9 +149,59 @@ skip() {
     log "SKIP: $2 not run ($3); keeping previous output and its older stamp"
 }
 
+# git_reason GIT_OUTPUT — git's own fatal/error line out of its stderr, else its last line.
+git_reason() {
+    local line
+    line=$(printf '%s\n' "$1" | grep -m1 -E '^(fatal|error):') \
+        || line=$(printf '%s\n' "$1" | grep -v '^[[:space:]]*$' | command tail -1) \
+        || line=''
+    printf '%s' "${line:-git printed no reason}"
+}
+
+# write_cycle_status RC — record this run for freshness-monitor.sh; see scripts/README.md "Cycle status file".
 # shellcheck disable=SC2317  # reached only via the EXIT trap set below
-drop_pipeline() {
-    rc=$?
+write_cycle_status() {
+    local tmp
+    tmp=$(command mktemp "${CYCLE_STATUS}.XXXXXX") || return 1
+    if CS_PREV="$CYCLE_STATUS" CS_RC="$1" CS_STAGE="$STAGE" CS_ERROR="${FIRST_ERROR:-$LAST_LOGGED}" \
+        python3 - > "$tmp" <<'PY'
+import json, os, sys, time
+now = int(time.time())
+stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now))
+rc = int(os.environ["CS_RC"])
+try:
+    with open(os.environ["CS_PREV"], encoding="utf-8") as f:
+        prev = json.load(f)
+    prev_fails = max(0, int(prev.get("consecutive_failures") or 0))
+    prev_since = prev.get("failing_since")
+except (OSError, ValueError, TypeError, AttributeError):
+    prev_fails, prev_since = 0, None
+if rc in (0, 3):
+    fails, since, err = 0, None, None
+else:
+    fails = prev_fails + 1
+    since = prev_since if prev_fails > 0 and isinstance(prev_since, str) and prev_since else stamp
+    err = " ".join(os.environ.get("CS_ERROR", "").split())[:400] or None
+json.dump({"finished_at": stamp, "finished_epoch": now, "exit_code": rc,
+           "stage": os.environ.get("CS_STAGE") or None, "first_error": err,
+           "consecutive_failures": fails, "failing_since": since}, sys.stdout, indent=2)
+print()
+PY
+    then
+        command mv -f "$tmp" "$CYCLE_STATUS"
+    else
+        command rm -f "$tmp"
+        return 1
+    fi
+}
+
+# shellcheck disable=SC2317  # reached only via the EXIT trap set below
+on_exit() {
+    local rc=$?
+    set +e  # cleanup must never replace the cycle's own exit code
+    if [ "$STAGE" != skip ] && [ "$DRY_RUN" -eq 0 ]; then
+        write_cycle_status "$rc" || log "WARN: could not write the cycle status file ${CYCLE_STATUS}"
+    fi
     if [ -n "$CODE_TMP" ]; then
         cd "$REPO_ROOT" || exit "$rc"
         git worktree remove --force "$CODE_TMP" >/dev/null 2>&1 || command rm -rf "$CODE_TMP"  # remove is the clean path; rm covers a half-created worktree
@@ -143,14 +209,18 @@ drop_pipeline() {
     fi
     exit "$rc"
 }
+trap on_exit EXIT
 
 # --- lock: one cycle at a time (session refresh + system cron share this file) ---
 LOCKFILE="${RESPONDER_CYCLE_LOCK:-/tmp/responder-cycle.lock}"
+STAGE=lock
 exec 9>"$LOCKFILE"
 if ! flock -n 9; then
+    STAGE=skip  # a skip is not a run; the holder records its own status when it finishes
     log "SKIP: another cycle holds $LOCKFILE"
     exit 0
 fi
+STAGE=materialize
 
 log "=== cycle start (dry_run=${DRY_RUN}) repo=${REPO_ROOT} ==="
 
@@ -170,11 +240,12 @@ if [ "$ALLOW_DIRTY_CODE" -eq 1 ]; then
 else
     dirty_scripts=$(git status --porcelain --untracked-files=all -- scripts/) || dirty_scripts=''
     CODE_TMP=$(command mktemp -d "${TMPDIR:-/tmp}/responder-pipeline.XXXXXX") || { log "ERROR: mktemp for the HEAD pipeline failed"; exit 1; }
-    trap drop_pipeline EXIT
-    # stdout only: git's progress chatter would repeat in the log every 15 minutes, stderr still speaks
-    if ! git worktree add --detach --no-checkout "$CODE_TMP" HEAD >/dev/null \
-       || ! git -C "$CODE_TMP" checkout HEAD -- scripts; then
-        log "ERROR: could not materialize HEAD scripts/ at ${CODE_TMP} (--allow-dirty-code runs the working tree instead)"
+    # git's output is held back on success (progress chatter every 15 minutes) and quoted on failure
+    mat_err=""
+    if ! mat_err=$(git worktree add --detach --no-checkout "$CODE_TMP" HEAD 2>&1 >/dev/null) \
+       || ! mat_err=$(git -C "$CODE_TMP" checkout HEAD -- scripts 2>&1); then
+        [ -z "$mat_err" ] || printf '%s\n' "$mat_err"
+        log "ERROR: could not materialize HEAD scripts/ at ${CODE_TMP}: $(git_reason "$mat_err") (--allow-dirty-code runs the working tree instead)"
         exit 1
     fi
     PIPE_ROOT="$CODE_TMP"
@@ -211,6 +282,7 @@ if [ -n "$dirty_event" ]; then
     git --no-pager diff --unified=0 -- data/event.json || :  # an untracked file has no diff; the status line above already named it
 fi
 
+STAGE=generators
 # the aggregate clock starts at the first generator, not at cycle start: materializing the HEAD
 # worktree is bounded work that must not eat a data source's budget
 GEN_DEADLINE=$(( $(command date +%s) + CYCLE_BUDGET_S ))
@@ -259,6 +331,7 @@ fi
 # cycle_end MSG — the ONE exit point for every publishing path, so a partially-degraded cycle can
 # never sign off as a clean success. Exit 3 = published what refreshed, some sources did not.
 cycle_end() {
+    STAGE=signoff
     if [ "$DEGRADED" -eq 1 ]; then
         log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | timed out: ${STEPS_TIMEOUT[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}"
         exit 3
@@ -268,6 +341,7 @@ cycle_end() {
 }
 
 # validation stays fatal: it gates whether the data on disk is publishable at all
+STAGE=validate
 log "step: cycle-check.sh (validation)"
 bash "${PIPE_ROOT}/scripts/cycle-check.sh" --code-from-head
 
@@ -275,6 +349,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     cycle_end "DRY-RUN OK: fetch + generators + validation composed; stopping before git/deploy"
 fi
 
+STAGE=commit
 DATA_FILES=(
     data/gauges-snapshot.json
     data/gauges-capture.json
@@ -335,6 +410,7 @@ log "committed: $(git log --oneline -1)"
 # red gate still put the commit on origin. The commit above must still precede it, because the
 # artifact deploy.sh builds is `git archive HEAD` and unpublished data would otherwise ship; a
 # local commit is not a publish, and nothing reaches origin or the mirror until the gate is green.
+STAGE=deploy
 log "step: deploy.sh (gate HEAD + git push + CF Pages deploy + smoke, budget ${PUBLISH_BUDGET_S}s)"
 if command timeout -k "$KILL_GRACE_S" "$PUBLISH_BUDGET_S" bash "${PIPE_ROOT}/scripts/deploy.sh"; then
     log "deploy OK"
@@ -350,6 +426,7 @@ fi
 
 # best-effort push-evaluator nudge (fast path; the Worker's */5 cron is the guaranteed path).
 # HMAC over the raw body with the shared key; NEVER fatal — push infra must not break the cycle.
+STAGE=nudge
 NUDGE_KEY_FILE=/root/.config/responder/push-nudge-key
 if [ -s "$NUDGE_KEY_FILE" ]; then
     log "step: push nudge (best-effort)"

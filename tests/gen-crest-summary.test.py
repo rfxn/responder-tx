@@ -6,7 +6,9 @@ playback archive that would not read used to drop out of that declaration silent
 artifact asserted the event started later than the record says. Separately, the set of gauges
 already published is the ratchet that keeps a display-scope change from un-reporting a peak
 (E6), and it used to default to empty when the previous summary would not read, which is the
-read failure doing the un-publishing. Runs against a throwaway git repo, never the real data/.
+read failure doing the un-publishing. The event.json aoArea clip is the one thing allowed to
+narrow that ratchet, and only the listing: the retained record keeps every peak. Runs against a
+throwaway git repo, never the real data/.
 Run: python3 tests/gen-crest-summary.test.py"""
 import json
 import os
@@ -18,6 +20,9 @@ from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GEN = os.path.join(HERE, '..', 'scripts', 'gen-crest-summary.py')
+AOAREA = os.path.join(HERE, '..', 'scripts', 'aoarea.py')
+with open(os.path.join(HERE, '..', 'data', 'event.json'), encoding='utf-8') as _f:
+    SHIPPED_AO = json.load(_f)['aoArea']
 
 FAILS = 0
 
@@ -82,9 +87,44 @@ def make_repo(tmp, name):
     os.makedirs(os.path.join(repo, 'data'))
     os.makedirs(os.path.join(repo, 'scripts'))
     shutil.copy(GEN, os.path.join(repo, 'scripts', 'gen-crest-summary.py'))
+    shutil.copy(AOAREA, os.path.join(repo, 'scripts', 'aoarea.py'))
     subprocess.run(('git', 'init', '-q', repo), check=True, capture_output=True)
     commit(repo, 0, 'first')
     commit(repo, 1, 'second')
+    return repo
+
+
+def ao_repo(tmp, name, with_ao):
+    """Texas, a Red River gauge on the Arkansas bank, Seiling OK, and a row with no coordinates,
+    all flooding, under a statewide gaugeBbox. Seiling and the unplaced row are already published."""
+    repo = os.path.join(tmp, name)
+    os.makedirs(os.path.join(repo, 'data'))
+    os.makedirs(os.path.join(repo, 'scripts'))
+    shutil.copy(GEN, os.path.join(repo, 'scripts', 'gen-crest-summary.py'))
+    shutil.copy(AOAREA, os.path.join(repo, 'scripts', 'aoarea.py'))
+    subprocess.run(('git', 'init', '-q', repo), check=True, capture_output=True)
+    event = {'name': 'fixture', 'gaugeBbox': {'xmin': -106.65, 'ymin': 25.83, 'xmax': -93.4, 'ymax': 36.5}}
+    if with_ao:
+        event['aoArea'] = SHIPPED_AO
+    for n in (0, 1):
+        stamp = iso(BASE + timedelta(minutes=20 * n))
+        obs = lambda cat: {'primary': 20.0 + n, 'primaryUnit': 'ft', 'floodCategory': cat, 'validTime': stamp}  # noqa: E731
+        rows = [
+            {'lid': 'EASTA', 'name': 'East River', 'latitude': 29.8, 'longitude': -95.2, 'status': {'observed': obs('minor')}},
+            {'lid': 'INGA4', 'name': 'Red River at Index', 'latitude': 33.551944, 'longitude': -94.041111,
+             'status': {'observed': obs('moderate')}},
+            {'lid': 'SEIO2', 'name': 'North Canadian River near Seiling', 'latitude': 36.183373,
+             'longitude': -98.921206, 'status': {'observed': obs('major')}},
+            {'lid': 'NOLOC', 'name': 'Unplaced gauge', 'status': {'observed': obs('minor')}},
+        ]
+        with open(os.path.join(repo, 'data', 'event.json'), 'w', encoding='utf-8') as f:
+            json.dump(event, f)
+        with open(os.path.join(repo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+            json.dump({'generated': stamp, 'gauges': rows}, f)
+        git(repo, 'add', 'data/event.json', 'data/gauges-capture.json')
+        git(repo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'c%d' % n)
+    with open(os.path.join(repo, 'data', 'crest-summary.json'), 'w', encoding='utf-8') as f:
+        json.dump({'gauges': [{'lid': 'SEIO2'}, {'lid': 'NOLOC'}]}, f)
     return repo
 
 
@@ -173,10 +213,95 @@ try:
     check('an ABSENT summary is a genuinely empty ratchet, not a read failure, and publishes',
           r7.returncode == 0 and [g['lid'] for g in summary(sticky)['gauges']] == ['EASTA'],
           r7.stderr[-400:])
+
+    # --- the aoArea clip narrows the listing, never the retained record ------------------------
+    ctl = ao_repo(tmp, 'noao', with_ao=False)
+    r8 = run_gen(ctl)
+    check('control: without an aoArea the published Oklahoma peak stays listed (the ratchet)',
+          r8.returncode == 0 and 'SEIO2' in {g['lid'] for g in summary(ctl)['gauges']}, r8.stderr[-400:])
+    clip = ao_repo(tmp, 'aoclip', with_ao=True)
+    r9 = run_gen(clip)
+    got = summary(clip) if r9.returncode == 0 else {'gauges': []}
+    lids = sorted(g['lid'] for g in got['gauges'])
+    check('the aoArea clip drops the deep Oklahoma gauge even though it was already published',
+          r9.returncode == 0 and 'SEIO2' not in lids, '%s %s' % (lids, r9.stderr[-300:]))
+    check('...and keeps Texas and the Red River gauge on the Arkansas bank', {'EASTA', 'INGA4'} <= set(lids), str(lids))
+    check('...and leaves a row it cannot place, rather than guessing it is out of state', 'NOLOC' in lids, str(lids))
+    check('E6 · the retained record still counts all four; only publication narrowed',
+          got.get('retained_gauges') == 4, str(got.get('retained_gauges')))
+    check('the run names what the clip dropped', '1 outside the aoArea: SEIO2' in r9.stdout, r9.stdout[:300])
 except Bail as e:
     check(str(e), False)
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
+
+# --- an impossible stage is no reading, and the category NWPS sent with it is void ------------
+# NWPS published SEIO2 at 10000030 ft and SGET2 at 10000000 ft, both "major", and the summary
+# carried both as ten-million-foot major crests. A reservoir that reports elevation must still count.
+def row(lid, primary, cat, stamp, lat=29.8, lon=-95.2):
+    return {'lid': lid, 'name': lid + ' River', 'latitude': lat, 'longitude': lon,
+            'status': {'observed': {'primary': primary, 'primaryUnit': 'ft', 'floodCategory': cat,
+                                    'validTime': stamp}}}
+
+
+STAGE_TIMELINE = [  # (SGET2-like, SEIO2-like, real flood that also got one bad reading, lake, low)
+    [('BOGA', 6.06, 'no_flooding'), ('BOGB', 3.4, 'no_flooding'), ('MIXD', 18.2, 'moderate'),
+     ('LAKE', 681.3, 'minor'), ('LOWS', 2.0, 'no_flooding')],
+    [('BOGA', 10000000, 'major'), ('BOGB', 10000030, 'major'), ('MIXD', 10000000, 'major'),
+     ('LAKE', 681.9, 'minor'), ('LOWS', -999, 'major')],
+    [('BOGA', 6.05, 'no_flooding'), ('BOGB', 3.5, 'no_flooding'), ('MIXD', 17.9, 'moderate'),
+     ('LAKE', 681.6, 'minor'), ('LOWS', -9999, 'major')],
+]
+
+tmp_stage = tempfile.mkdtemp(prefix='gen-crest-summary-stage.')
+try:
+    srepo = os.path.join(tmp_stage, 'stage')
+    os.makedirs(os.path.join(srepo, 'data'))
+    os.makedirs(os.path.join(srepo, 'scripts'))
+    shutil.copy(GEN, os.path.join(srepo, 'scripts', 'gen-crest-summary.py'))
+    shutil.copy(AOAREA, os.path.join(srepo, 'scripts', 'aoarea.py'))
+    subprocess.run(('git', 'init', '-q', srepo), check=True, capture_output=True)
+    for n, rows in enumerate(STAGE_TIMELINE):
+        stamp = iso(BASE + timedelta(minutes=20 * n))
+        with open(os.path.join(srepo, 'data', 'event.json'), 'w', encoding='utf-8') as f:
+            json.dump({'name': 'fixture', 'gaugeBbox': {'xmin': -98.0, 'ymin': 27.5,
+                                                        'xmax': -93.4, 'ymax': 31.0}}, f)
+        with open(os.path.join(srepo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+            json.dump({'generated': stamp, 'gauges': [row(lid, v, c, stamp) for lid, v, c in rows]}, f)
+        git(srepo, 'add', 'data/event.json', 'data/gauges-capture.json')
+        git(srepo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'n%d' % n)
+    # a reconstructed pre-archive frame carrying the same junk must not seed a peak either
+    day = ARCHIVE_START.strftime('%Y-%m-%d')
+    os.makedirs(os.path.join(srepo, 'history', 'day'))
+    with open(os.path.join(srepo, 'history', 'day', day + '.json'), 'w', encoding='utf-8') as f:
+        json.dump({'d': day, 'frames': [{'t': iso(ARCHIVE_START), 'src': 'nwps',
+                                         'gauges': {'BOGA': [10000000, 4], 'LAKE': [681.1, 2]}}]}, f)
+    with open(os.path.join(srepo, 'history', 'index.json'), 'w', encoding='utf-8') as f:
+        json.dump({'format': 1, 'days': [{'d': day, 'n': 1}], 'gaugeIndex': {
+            'BOGA': {'name': 'BOGA River', 'lat': 29.8, 'lon': -95.2},
+            'LAKE': {'name': 'LAKE River', 'lat': 29.8, 'lon': -95.2}}}, f)
+    rs = run_gen(srepo)
+    check('STAGE · the run with impossible stages in the archive exits 0', rs.returncode == 0,
+          rs.stderr[-400:])
+    peaks = {g['lid']: g for g in summary(srepo)['gauges']}
+    check('STAGE · a 10000000 ft "major" that never really flooded publishes no crest at all',
+          'BOGA' not in peaks, str(peaks.get('BOGA')))
+    check('STAGE · a 10000030 ft "major" that never really flooded publishes no crest at all',
+          'BOGB' not in peaks, str(peaks.get('BOGB')))
+    check('STAGE · a gauge that really flooded keeps its real peak and category, not the junk',
+          peaks.get('MIXD', {}).get('peak') == 18.2
+          and peaks.get('MIXD', {}).get('peak_category') == 'moderate', str(peaks.get('MIXD')))
+    check('STAGE · a reservoir reporting elevation (681.9 ft) is a real reading and still crests',
+          peaks.get('LAKE', {}).get('peak') == 681.9
+          and peaks.get('LAKE', {}).get('peak_category') == 'minor', str(peaks.get('LAKE')))
+    check('STAGE · the -999 / -9999 missing sentinels are still rejected, even tagged "major"',
+          'LOWS' not in peaks, str(peaks.get('LOWS')))
+    check('STAGE · no published peak sits outside the physical envelope',
+          all(-300 < g['peak'] < 25000 for g in peaks.values()), str(peaks))
+except Bail as e:
+    check(str(e), False)
+finally:
+    shutil.rmtree(tmp_stage, ignore_errors=True)
 
 print('---')
 if FAILS:

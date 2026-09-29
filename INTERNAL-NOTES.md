@@ -475,3 +475,81 @@ publish `0 structures destroyed` for Ross because they derive from the ICS-209 f
 before the assessment finished; TFS's own update reports 157 destroyed, 18 of them
 occupied residences. Every one of those feeds succeeded. Only a cross-source
 disagreement check catches this shape.
+
+## Impossible gauge stages (2026-09-28)
+
+**What NWPS sent.** In the committed capture archive (4,324 snapshots, 2026-07-05 to
+2026-09-29) exactly two gauges carried an impossible HIGH stage, both tagged `major`:
+SEIO2 (North Canadian River near Seiling) at `10000030` ft in 42 snapshots between
+2026-08-19T13:08Z and 2026-09-03T16:08Z, and SGET2 (Clear Creek near Sanger) at
+`10000000` ft in 2 snapshots at 2026-09-03T01:23Z. Each came with `secondary: -999`,
+an on-the-hour `validTime`, and normal readings (SEIO2 ~3.4 ft, SGET2 ~6.0 ft,
+`no_flooding`) either side. NWPS's own `stageflow/observed` series later rewrote those
+same timestamps to `-9999`, so the 10,000,000-class value is an unconverted missing
+code, not a reading. One other impossible value exists: TLCN5 (Tularosa Creek near Bent)
+at `-696.32` ft once on 2026-08-25, `not_defined`, between readings of ~2.07 ft. The
+lowest legitimate reading anywhere in the archive is -3.29 ft; the highest is 7,745.27 ft
+(SFMN5, a reservoir that reports elevation).
+
+**The rule.** A stage is a reading iff it is a number (not a bool) with
+`-300 < v < 25000` ft. 25,000 sits above Denali (20,310 ft), the highest US ground, and
+-300 below Death Valley (-282 ft), the lowest, so no water surface in the country can
+fall outside it whether the gauge reports stage or elevation. It subsumes the old
+`> -999` guard. An observation outside it is NO reading, and the category NWPS sent with
+it is void: the client splits the gauge into the degraded set as `stale` ("data not
+current", no level printed), the display snapshot rewrites it to NWPS's own
+`obs_not_current` / `-999` shape (forecast: `fcst_not_current`), and every generator
+drops it before it can become a peak, a frame, a feed line or a record. The capture file
+keeps the raw row (E6).
+
+**Why the Python helper is copied, not shared.** `cycle-check.sh --code-from-head`, which
+`run-cycle.sh` runs every cycle, materializes `scripts/gen-caltopo.py` alone and imports
+it; the generator tests copy one script into a fixture repo. A sibling module import would
+fail both and stop the board publishing. `scripts/aoarea.py` (AO clip, same release) is the
+deliberate exception: only fetch-snapshot.py and gen-crest-summary.py import it, and every
+loader of those two copies it alongside (the cycle's HEAD checkout of scripts/, cycle-check
+check r, the fixture setups); any new standalone loader must do the same or the gate goes
+red. Each generator carries a three-line
+`stage_ok()`; `tests/stage-bounds.test.js` calls every copy and `js/core.js stageOk()` on
+one probe vector and fails on any disagreement (E5).
+
+**Push alerts.** `workers/push-alerts` ranks gauges off the published
+`data/gauges-snapshot.json`, so the display rewrite is what keeps an impossible `major`
+from notifying. The worker has no stage guard of its own.
+
+## The AO outline: Texas plus a 15 mi border buffer (2026-09-28)
+
+Owner decision: show only gauges in Texas or within about 15 mi of the state line, so the
+Red River and Sabine gauges stay and deep OK/NM/AR/LA gauges go, on the map, the lists and
+the published snapshot. `gaugeBbox` alone could not express that: it is a rectangle, and
+295 of 1,019 gauges inside it were out of state.
+
+**The outline.** `data/event.json` `aoArea.polygon` is the US Census TIGERweb State
+boundary for Texas (`TIGERweb/State_County/MapServer/0`, January 1, 2026 vintage,
+`STUSAB='TX'`, full resolution, 62,863 vertices), simplified with Douglas-Peucker at a
+1.1 mi tolerance measured in the same metric as the membership test below: 410 vertices,
+no self-intersections, every original vertex within 1.1 mi of the simplified line. It
+includes Texas state waters, so the Gulf side sits about 10 mi offshore. Stored `[lat, lon]`,
+open ring, 4 decimals. To regenerate: query that layer with `outSR=4326&f=geojson`, split the
+ring at its west and east extremes, run DP on each chain, and check the result with
+`tests/ao-area.test.js` and `scripts/cycle-check.sh` check r.
+
+**The rule.** In the AO iff inside `gaugeBbox` AND (inside the polygon OR within
+`bufferMi` of any edge). Distance is planar miles in a frame centred on the point, longitude
+scaled by cos(point latitude), 69 mi per degree. It exists twice: `js/core.js`
+`aoContains()` and `scripts/aoarea.py` `in_scope()`, and `tests/ao-area.test.js` runs both on
+a statewide grid plus points straddling the 15 mi line. Absent or malformed `aoArea` falls
+back to the rectangle, never to an empty board; cycle-check r is what makes that loud.
+
+**Scope, E6.** Clipped: live NWPS gauges and every list derived from them, the cold-start
+snapshot, the offline cache, RFC forecast crests, USGS sites, low-water crossings, and the
+crest-summary listing (the clip overrides its sticky ratchet). Not clipped: `captureBbox`,
+`gauges-capture.json`, `gen-history.py` publication, road closures (TxDOT, Texas only),
+cameras (they keep their state buckets), shelters. `fetch-snapshot.py` now writes the capture
+even when the display falls under its floor, so a display-scope mistake cannot stall retention.
+
+**Region pills.** The preset boxes are framing only, but together they must cover the whole
+outline (`tests/ao-area.test.js` walks a 0.1 degree grid). Before this change 7% of Texas sat
+in no box, including Brownwood/Stephenville and the Winter Garden. `workers/push-alerts`
+still carries the old Bertha-era `AO_FALLBACK` box (-98.0, 27.5, -93.4, 31.0), used only until
+its first successful event.json fetch.

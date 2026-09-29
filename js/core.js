@@ -1,12 +1,14 @@
 'use strict';
 
-const APP_VERSION = 'v0.99.99';
+const APP_VERSION = 'v0.100.0';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
   center: [31.0, -99.0],
   zoom: 6,
   gaugeBbox: { xmin: -106.65, ymin: 25.83, xmax: -93.4, ymax: 36.5 },
+  // parsed data/event.json aoArea (outline + border buffer); null = gaugeBbox is the whole AO
+  aoArea: null,
   // sub-AO quick-jump presets from data/event.json; empty = only the Full AO pill renders
   aoPresets: null,
   // NOAA CO-OPS tide stations from data/event.json (coastal events only); empty = card hidden
@@ -57,6 +59,8 @@ const CONFIG = {
   wildfireAutoEnable: true,
   // same for the merged radar + forecast row, on the same tropical threat that raises the tracker
   wxAutoEnable: true,
+  // NWS event names an event config adds to that radar trigger (e.g. a flash flood week)
+  wxAutoEvents: [],
   rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
   // NOAA HRRR model reflectivity WMS (probed 2026-07-19): one layer per forecast minute (refd_0060…),
   // no TIME dim — layers always serve the latest run; run stamp via the per-layer metadata JSON
@@ -87,6 +91,8 @@ function applyEventConfig(ev) {
   if (Number.isFinite(ev.zoom)) CONFIG.zoom = ev.zoom;
   const b = ev.gaugeBbox;
   if (b && [b.xmin, b.ymin, b.xmax, b.ymax].every(Number.isFinite)) CONFIG.gaugeBbox = b;
+  const area = aoAreaParse(ev.aoArea);
+  if (area) CONFIG.aoArea = area;
   if (Array.isArray(ev.aoPresets)) CONFIG.aoPresets = ev.aoPresets;
   if (Array.isArray(ev.tideStations)) {
     CONFIG.tideStations = ev.tideStations.filter((s) => s && typeof s.id === 'string' && typeof s.name === 'string');
@@ -94,6 +100,9 @@ function applyEventConfig(ev) {
   if (typeof ev.tropicalAutoEnable === 'boolean') CONFIG.tropicalAutoEnable = ev.tropicalAutoEnable;
   if (typeof ev.wildfireAutoEnable === 'boolean') CONFIG.wildfireAutoEnable = ev.wildfireAutoEnable;
   if (typeof ev.wxAutoEnable === 'boolean') CONFIG.wxAutoEnable = ev.wxAutoEnable;
+  if (Array.isArray(ev.wxAutoEvents)) {
+    CONFIG.wxAutoEvents = ev.wxAutoEvents.filter((e) => typeof e === 'string' && e.trim()).map((e) => e.trim());
+  }
 }
 
 function aoFullBounds() {
@@ -104,6 +113,61 @@ function aoFullBounds() {
 function aoBoundsOk(b) {
   return Array.isArray(b) && b.length === 2 &&
     b.every((c) => Array.isArray(c) && c.length === 2 && c.every(Number.isFinite));
+}
+
+// the twin of scripts/aoarea.py parse(); any bad vertex rejects the whole outline rather than distorting it
+function aoAreaParse(area) {
+  if (!area || typeof area !== 'object' || !Array.isArray(area.polygon)) return null;
+  const buf = area.bufferMi;
+  if (!Number.isFinite(buf) || buf < 0) return null;
+  const pts = [];
+  for (const v of area.polygon) {
+    if (!Array.isArray(v) || v.length !== 2 || !v.every(Number.isFinite)
+      || v[0] < -90 || v[0] > 90 || v[1] < -180 || v[1] > 180) return null;
+    pts.push([v[0], v[1]]);
+  }
+  const last = pts[pts.length - 1];
+  if (pts.length > 1 && pts[0][0] === last[0] && pts[0][1] === last[1]) pts.pop();
+  if (pts.length < 3) return null;
+  const lats = pts.map((p) => p[0]), lons = pts.map((p) => p[1]);
+  return { polygon: pts, bufferMi: buf, s: Math.min(...lats), n: Math.max(...lats), w: Math.min(...lons), e: Math.max(...lons) };
+}
+
+// inside the outline, or within bufferMi of it; planar miles with longitude scaled by cos(lat), as in aoarea.py
+function aoAreaContains(area, lat, lon) {
+  if (!area) return true;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  const pts = area.polygon, buf = area.bufferMi;
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [yi, xi] = pts[i], [yj, xj] = pts[j];
+    if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  if (inside) return true;
+  const ky = MI_PER_DEG_LAT, kx = Math.cos((lat * Math.PI) / 180) * MI_PER_DEG_LAT;
+  if ((area.s - lat) * ky > buf || (lat - area.n) * ky > buf || (area.w - lon) * kx > buf || (lon - area.e) * kx > buf) return false;
+  const lim = buf * buf;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const ax = (pts[j][1] - lon) * kx, ay = (pts[j][0] - lat) * ky;
+    const dx = (pts[i][1] - lon) * kx - ax, dy = (pts[i][0] - lat) * ky - ay;
+    const l2 = dx * dx + dy * dy;
+    const t = l2 === 0 ? 0 : Math.min(1, Math.max(0, -(ax * dx + ay * dy) / l2));
+    const cx = ax + t * dx, cy = ay + t * dy;
+    if (cx * cx + cy * cy <= lim) return true;
+  }
+  return false;
+}
+
+// the display AO: inside gaugeBbox, then inside the aoArea outline or its buffer when one is configured
+function aoContains(lat, lon) {
+  const b = CONFIG.gaugeBbox;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  if (lat < b.ymin || lat > b.ymax || lon < b.xmin || lon > b.xmax) return false;
+  return aoAreaContains(CONFIG.aoArea, lat, lon);
+}
+
+function aoGauges(list) {
+  return (Array.isArray(list) ? list : []).filter((g) => g && aoContains(g.latitude, g.longitude));
 }
 
 // event-config regions name themselves; the built-in residual region takes its name from i18n
@@ -200,6 +264,10 @@ const FLOOD_CATS = ['action', 'minor', 'moderate', 'major'];
 const GAUGE_DEGRADED = ['nothresh', 'stale', 'oos'];
 const GAUGE_STATES = ['major', 'moderate', 'minor', 'action', 'none'].concat(GAUGE_DEGRADED);
 const NWPS_DEGRADED_CAT = { not_defined: 'nothresh', obs_not_current: 'stale', out_of_service: 'oos' };
+// mirrored in scripts/*.py stage_ok(); see INTERNAL-NOTES.md "Impossible gauge stages"
+const STAGE_MIN_FT = -300;
+const STAGE_MAX_FT = 25000;
+function stageOk(v) { return typeof v === 'number' && v > STAGE_MIN_FT && v < STAGE_MAX_FT; }
 const catLabel = (cat) => t('cat.' + cat);
 const gaugeStateLabel = (s) => (GAUGE_DEGRADED.includes(s) ? t('gstate.' + s) : catLabel(s));
 // data-enum → localized label; unknown values fall back to the raw enum so nothing renders as a bare key

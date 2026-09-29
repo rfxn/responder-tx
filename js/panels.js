@@ -431,7 +431,7 @@ function recoveryGaugeRowHtml(x) {
     ? `<span class="badge" style="border-color:var(--good);color:var(--good);font-weight:700">${esc(t('recovery.receded'))}</span>`
     : `<span class="badge" style="border-color:var(--cat-${esc(cat)});color:var(--cat-${esc(cat)});font-weight:700">▼ ${esc(t('recovery.falling'))} · ${esc(catLabel(cat).toUpperCase())}</span>`;
   const bits = [];
-  if (cur && Number.isFinite(cur.primary) && cur.primary > -999) bits.push(`${t('recovery.now')} ${fmtNum(cur.primary)} ${cur.primaryUnit || 'ft'} @ ${fmtCT(cur.validTime)}`);
+  if (cur && stageOk(cur.primary)) bits.push(`${t('recovery.now')} ${fmtNum(cur.primary)} ${cur.primaryUnit || 'ft'} @ ${fmtCT(cur.validTime)}`);
   bits.push(t('recovery.peaked').replace('{ft}', fmtNum(x.row.peak)).replace('{t}', fmtCT(x.row.peak_time)));
   if (x.kind === 'receded' && x.row.last_in_flood && x.row.last_in_flood !== 'ongoing') bits.push(`${t('recovery.since')} ${fmtCT(x.row.last_in_flood)}`);
   if (x.kind === 'falling' && x.trend && x.trend.dir === 'down') bits.push(t('recovery.rate').replace('{r}', x.trend.rate.toFixed(1)));
@@ -439,7 +439,7 @@ function recoveryGaugeRowHtml(x) {
     const f = x.live.status.forecast || {};
     const fRank = f.floodCategory === 'no_flooding' ? CAT_RANK.none
       : FLOOD_CATS.includes(f.floodCategory) ? CAT_RANK[f.floodCategory] : null;
-    if (fRank !== null && fRank < CAT_RANK[cat] && new Date(f.validTime) > new Date()) {
+    if (fRank !== null && fRank < CAT_RANK[cat] && stageOk(f.primary) && new Date(f.validTime) > new Date()) {
       bits.push(t('recovery.fcst').replace('{ft}', fmtNum(f.primary)).replace('{t}', fmtCT(f.validTime)));
     }
   }
@@ -512,7 +512,7 @@ function renderRecoveryBody(crest) {
   el.innerHTML = head +
     recoverySection(`📉 ${t('recovery.head.gauges')} (${classified.length})`, t('recovery.head.gauges.sub'), gaugeItems, 'recovery.gauges.none', gaugeCite) +
     recoverySection(`✓ ${t('recovery.head.roads')} (${freshReo.length})`, '', roadItems, 'recovery.roads.none', roadCite) +
-    recoverySection(`🏠 ${t('recovery.head.shelters')} (${shelters.length})`, '', shelters.length ? shelterItems : '', 'recovery.shelters.none') +
+    recoverySection(`🏠 ${t('recovery.head.shelters')}${state.sheltersUnknown && !shelters.length ? '' : ` (${shelters.length})`}`, '', shelterItems, 'recovery.shelters.none') +
     recoverySection(`🚰 ${t('recovery.head.notices')} (${recFresh.length})`, '', noticeItems, 'recovery.notices.none');
 }
 
@@ -570,7 +570,7 @@ function basinCrestLineHtml(x) {
       `${esc(t('basin.crested').replace('{t}', relWhen(row.peak_time)).replace('{ft}', fmtNum(row.peak)))}</span>`;
   }
   const f = g.status && g.status.forecast;
-  if (f && Number.isFinite(f.primary) && f.primary > -999 && crestT != null) {
+  if (f && stageOk(f.primary) && crestT != null) {
     const fCat = gaugeForecastCat(g);
     const col = fCat ? `var(--cat-${fCat})` : '#d9dee3';
     if (x.wave !== 'none' && Math.abs(crestT - now) <= 90 * 60000) {
@@ -589,7 +589,7 @@ function basinGaugeRowHtml(x, isFront) {
   const tr = stale ? null : gaugeTrend(g.lid);
   const site = g.name.slice(riverOf(g.name).length).trim() || g.name;
   const trendBit = tr ? ` ${tr.dir === 'up' ? '↑' : tr.dir === 'down' ? '↓' : '→'} ${tr.rate >= 0 ? '+' : ''}${tr.rate.toFixed(1)} ft/hr` : '';
-  const obsBit = (Number.isFinite(o.primary) && o.primary > -999)
+  const obsBit = stageOk(o.primary)
     ? `${esc(t('recovery.now'))} ${fmtNum(o.primary)} ${esc(o.primaryUnit || 'ft')} · <span class="cat-word" style="color:var(--cat-${stale ? 'none' : cat})">${esc(catWord(cat))}</span>${esc(trendBit)}`
     : esc(t('gauge.noreading'));
   const railCls = x.wave === 'passed' ? 'passed' : x.wave === 'coming' ? 'coming' : 'quiet';

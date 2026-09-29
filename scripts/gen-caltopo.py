@@ -58,6 +58,9 @@ LSR_CAP = 100
 # healthy answers measure ~0.2s, so a short deadline plus retries beats one long wait on a hang
 TIMEOUT = 12
 BACKOFFS = [2, 5]
+# mirrors js/core.js stageOk; see INTERNAL-NOTES.md "Impossible gauge stages"
+STAGE_MIN_FT = -300
+STAGE_MAX_FT = 25000
 
 # hexes mirror css/app.css dark-theme custom properties (--cat-*, --sev-*, --good, --ink-muted, --accent)
 CAT_COLOR = {"action": "#fab219", "minor": "#ec835a", "moderate": "#d03b3b", "major": "#a855f7"}
@@ -233,9 +236,14 @@ def ring(lat, lon, radius_km=1.5, points=24):
     return {"type": "Polygon", "coordinates": [coords]}
 
 
+def stage_ok(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and STAGE_MIN_FT < v < STAGE_MAX_FT
+
+
 def gauge_cat(g):
-    cat = ((g.get("status") or {}).get("observed") or {}).get("floodCategory") or ""
-    return cat if cat in CAT_COLOR else "none"
+    obs = (g.get("status") or {}).get("observed") or {}
+    cat = obs.get("floodCategory") or ""
+    return cat if cat in CAT_COLOR and stage_ok(obs.get("primary")) else "none"
 
 
 def build_gauges(snapshot):
@@ -248,11 +256,12 @@ def build_gauges(snapshot):
         obs = (g.get("status") or {}).get("observed") or {}
         fc = (g.get("status") or {}).get("forecast") or {}
         stage = obs.get("primary")
-        stage_txt = f"{stage} {obs.get('primaryUnit') or 'ft'}" if isinstance(stage, (int, float)) and stage > -999 else "no reading"
-        lines = [f"Observed: {stage_txt} ({cat.upper() if cat != 'none' else 'no flooding'})"]
+        # no reading supports no category claim, "no flooding" included
+        lines = [f"Observed: {stage} {obs.get('primaryUnit') or 'ft'} ({cat.upper() if cat != 'none' else 'no flooding'})"
+                 if stage_ok(stage) else "Observed: no reading"]
         fcrest = fc.get("primary")
         fwhen = parse_iso(fc.get("validTime"))
-        if isinstance(fcrest, (int, float)) and fcrest > -999 and fwhen and fwhen.year >= 2000:
+        if stage_ok(fcrest) and fwhen and fwhen.year >= 2000:
             lines.append(f"Forecast: {fcrest} {fc.get('primaryUnit') or 'ft'} ({fc.get('floodCategory')}) at {fc.get('validTime')}")
         style = {"marker-color": CAT_COLOR.get(cat, CAT_NONE),
                  "marker-size": "small" if cat == "none" else "medium"}

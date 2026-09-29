@@ -97,6 +97,9 @@ RECOVERED_DIR = "archive/recovered"
 NWPS_RESCUE_DIR = "archive/recovered/nwps-30d"
 CAT_CODE = {"no_flooding": 0, "action": 1, "minor": 2, "moderate": 3, "major": 4}
 STALE_HOURS = 12
+# mirrors js/core.js stageOk; see INTERNAL-NOTES.md "Impossible gauge stages"
+STAGE_MIN_FT = -300
+STAGE_MAX_FT = 25000
 FRAME_MIN_GAP_S = 14 * 60          # cadence is ~15 min with jitter; 14 min keeps one per cycle
 # raised from 600 KB in v0.97.97: the pre-2026-07-23 record fits whole, and the wire cost is
 # gzip, where the full file is ~230 KB. Thinning past this point keeps every crest frame.
@@ -125,6 +128,10 @@ EPOCH = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)  # sort floo
 # never bounded: they are what v0.97.97 made load-bearing.
 BACKFILL_BUDGET_S = float(os.environ.get("RESPONDER_BACKFILL_BUDGET_S") or 300)
 _backfill_deadline = None          # set per build_backfill() call; None means no budget in force
+
+
+def stage_ok(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and STAGE_MIN_FT < v < STAGE_MAX_FT
 
 
 def backfill_spent():
@@ -250,7 +257,7 @@ def frame_from(snap, snap_dt, gauge_index):
             stage = observed.get("primary")
         except (KeyError, TypeError):
             continue
-        if cat not in CAT_CODE or not isinstance(stage, (int, float)) or stage <= -999:
+        if cat not in CAT_CODE or not stage_ok(stage):
             continue
         code = CAT_CODE[cat]
         obs_dt = parse_iso(observed.get("validTime"))
@@ -319,7 +326,7 @@ def merge_gap_frames(frames, gauge_index, doc, default_src, ref=""):
         if not t or not dt or t in have:
             continue
         gauges = {lid: v for lid, v in (fr.get("gauges") or {}).items()
-                  if isinstance(v, list) and len(v) >= 2}
+                  if isinstance(v, list) and len(v) >= 2 and stage_ok(v[0])}
         if not gauges:
             continue
         out = {"t": t, "gauges": gauges, "_dt": dt, "src": fr.get("src") or default_src}
@@ -702,7 +709,7 @@ def load_gauge_meta(lids):
             cats = ((g.get("flood") or {}).get("categories") or {})
             for key in THRESHOLD_KEYS:
                 stage = (cats.get(key) or {}).get("stage")
-                if isinstance(stage, (int, float)) and stage > -999:
+                if stage_ok(stage):
                     entry[key] = stage
         except Exception as e:  # noqa: BLE001 — record the miss as a miss, keep fetching the rest
             print(f"  warn: NWPS metadata fetch failed for {lid}: {e}", file=sys.stderr)
@@ -780,7 +787,7 @@ def fetch_usgs_series(site_ids, start_iso, end_iso):
                 stage = float(r.get("value"))
             except (TypeError, ValueError):
                 continue
-            if not site or not dt or stage <= -999:
+            if not site or not dt or not stage_ok(stage):
                 continue
             key = (site, r.get("statistic_id") or "")
             by_key.setdefault(key, {})[dt.astimezone(datetime.timezone.utc)] = stage
@@ -813,7 +820,7 @@ def observed_points(data, start_dt, end_dt):
     for v in data:
         stage = v.get("primary")
         dt = parse_iso(v.get("validTime"))
-        if not isinstance(stage, (int, float)) or stage <= -999 or not dt:
+        if not stage_ok(stage) or not dt:
             continue
         dt = dt.astimezone(datetime.timezone.utc)
         if start_dt <= dt < end_dt:

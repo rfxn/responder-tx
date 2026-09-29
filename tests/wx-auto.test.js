@@ -126,6 +126,63 @@ test('the event-config kill switch turns the whole behaviour off', () => {
   } finally { w.app.CONFIG.wxAutoEnable = true; }
 });
 
+const FLASH_WEEK = ['Flash Flood Warning', 'Flood Watch', 'Severe Thunderstorm Warning', 'Tornado Warning'];
+
+function withWxEvents(w, events, fn) {
+  const prev = w.app.CONFIG.wxAutoEvents;
+  w.app.CONFIG.wxAutoEvents = events;
+  try { fn(); } finally { w.app.CONFIG.wxAutoEvents = prev; }
+}
+
+test('an event config can add flood and convective products to the radar trigger', () => {
+  for (const ev of FLASH_WEEK) {
+    const w = wired([alert(ev)]);
+    withWxEvents(w, FLASH_WEEK, () => w.sandbox.maybeAutoWx());
+    assert.equal(w.sandbox.layerRowOn('wx'), true, `${ev} must raise the radar pair when the event lists it`);
+    assert.equal(w.state.wxAutoDone, true, 'and burn the latch like the tropical path');
+  }
+});
+
+test('added products match case-insensitively and still respect expiry and the toggle-off latch', () => {
+  const lower = wired([alert('Flash Flood Warning')]);
+  withWxEvents(lower, ['flash flood warning'], () => lower.sandbox.maybeAutoWx());
+  assert.equal(lower.sandbox.layerRowOn('wx'), true, 'config casing must not matter');
+
+  const ended = wired([alert('Flash Flood Warning', -1 * HOUR)]);
+  withWxEvents(ended, FLASH_WEEK, () => ended.sandbox.maybeAutoWx());
+  assert.equal(ended.sandbox.layerRowOn('wx'), false, 'an expired warning is not a live trigger');
+
+  const closed = wired([alert('Flood Watch')]);
+  withWxEvents(closed, FLASH_WEEK, () => {
+    closed.sandbox.maybeAutoWx();
+    closed.sandbox.wxRemove();
+    closed.sandbox.maybeAutoWx();
+  });
+  assert.equal(closed.sandbox.layerRowOn('wx'), false, 'the reader closing the row still outranks the storm');
+});
+
+test('an added product widens radar only, never the tropical tracker', () => {
+  const w = wired([alert('Flood Watch')]);
+  withWxEvents(w, FLASH_WEEK, () => {
+    w.sandbox.maybeAutoTropical();
+    w.sandbox.maybeAutoWx();
+  });
+  assert.equal(w.map.hasLayer(w.layers.tropical), false, 'a flood watch is not a cyclone');
+  assert.equal(w.sandbox.layerRowOn('wx'), true, 'but radar comes up for it during the event');
+});
+
+test('applyEventConfig keeps only non-empty event names for the radar trigger', () => {
+  const w = wired([]);
+  const prev = w.app.CONFIG.wxAutoEvents;
+  try {
+    w.app.applyEventConfig({ wxAutoEvents: ['Flood Watch', 3, '', '  Tornado Warning ', null] });
+    assert.deepEqual(Array.from(w.app.CONFIG.wxAutoEvents), ['Flood Watch', 'Tornado Warning']);
+    w.app.applyEventConfig({ wxAutoEvents: 'Flood Watch' });
+    assert.deepEqual(Array.from(w.app.CONFIG.wxAutoEvents), ['Flood Watch', 'Tornado Warning'],
+      'a malformed value keeps the previous list');
+  } finally { w.app.CONFIG.wxAutoEvents = prev; }
+});
+
 /* The gate is shared with the tracker on purpose: two thresholds for one storm is the E5 shape
    that has bitten this repo before. If one moves, this fails rather than drifting silently. */
 test('radar and the tracker answer to the same threat gate', () => {

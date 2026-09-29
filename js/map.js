@@ -8,12 +8,18 @@ if (typeof CONFIG === 'undefined' || typeof state === 'undefined') {
 
 /* ---------- theme ---------- */
 
-// boost variant tracks the surface under it: dark CARTO base gets light-on-dark labels, light/streets get dark-on-light
+const ESRI_CANVAS = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas';
+// past z16 Canvas answers 200 with a "Map data not yet available" tile, so Leaflet must upscale z16
+const ESRI_CANVAS_NATIVE_Z = 16;
+const ESRI_ATTRIB = 'Powered by <a href="https://www.esri.com/">Esri</a> · Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, and the GIS user community';
+function esriCanvasUrl(service) { return `${ESRI_CANVAS}/${service}/MapServer/tile/{z}/{y}/{x}`; }
+
+// boost variant tracks the surface under it: dark base gets light-on-dark labels, light/streets get dark-on-light
 function labelBoostVariant() {
   return (state.activeBase || document.documentElement.getAttribute('data-theme')) === 'dark' ? 'dark' : 'light';
 }
 function labelBoostUrl() {
-  return `https://{s}.basemaps.cartocdn.com/${labelBoostVariant()}_only_labels/{z}/{x}/{y}{r}.png`;
+  return esriCanvasUrl(labelBoostVariant() === 'dark' ? 'World_Dark_Gray_Reference' : 'World_Light_Gray_Reference');
 }
 function syncLabelBoost() {
   state.layers.labelBoost.setUrl(labelBoostUrl());
@@ -43,18 +49,40 @@ function applyTheme(theme) {
 /* ---------- offline tiles (IndexedDB — works on plain LAN http, no Service Worker) ---------- */
 
 // Basemap tiles only. Data (gauges/alerts) is never cached — staleness stays governed by the data-age bar.
-const OFFLINE_TILE_CAP = 1500; // per-save ceiling — respects CARTO/OSM usage; over cap → user zooms in
+const OFFLINE_TILE_CAP = 1500; // per-save ceiling that respects tile-provider usage; over cap → user zooms in
 
 const OfflineTiles = (() => {
   const DB = 'respondertx-offline', STORE = 'tiles';
+  // keys are prefixed by the layer's URL template; no layer can read these back since CARTO went key-only
+  const RETIRED = 'https://{s}.basemaps.cartocdn.com/';
   let dbp = null;
+  // the purge is not an eviction, so the ledger drops by the same count or the panel blames the browser
+  function dropRetired(d) {
+    return new Promise((resolve, reject) => {
+      const range = IDBKeyRange.bound(RETIRED, `${RETIRED}\uffff`);
+      const store = d.transaction(STORE, 'readwrite').objectStore(STORE);
+      const n = store.count(range);
+      n.onerror = () => reject(n.error);
+      n.onsuccess = () => {
+        if (!n.result) { resolve(); return; }
+        const del = store.delete(range);
+        del.onerror = () => reject(del.error);
+        del.onsuccess = () => {
+          const led = offlineLedger();
+          if (led) setOfflineLedger(Math.max(0, led.n - n.result));
+          resolve();
+        };
+      };
+    });
+  }
   function db() {
     if (dbp) return dbp;
     dbp = new Promise((resolve, reject) => {
       let rq;
       try { rq = indexedDB.open(DB, 1); } catch (e) { reject(e); return; }
       rq.onupgradeneeded = () => { if (!rq.result.objectStoreNames.contains(STORE)) rq.result.createObjectStore(STORE); };
-      rq.onsuccess = () => resolve(rq.result);
+      // a failed cleanup must never hold the basemap hostage: every tile waits on this handle
+      rq.onsuccess = () => dropRetired(rq.result).catch(() => {}).then(() => resolve(rq.result));
       rq.onerror = () => reject(rq.error);
     });
     return dbp;
@@ -148,21 +176,31 @@ function setOfflineDepth(d) {
   renderLayerSheet();
 }
 
-// the zoom levels a save at this depth would cover, capped by what the active layers actually serve
+// the zoom levels a save at this depth would cover, capped by how far the active layers let the map zoom
 function offlineZooms(depth) {
   const layers = activeOfflineLayers();
   if (!layers.length || !state.map) return [];
   const z0 = state.map.getZoom();
-  const maxZ = Math.min(...layers.map((l) => l.options.maxZoom || 19));
+  const maxZ = Math.max(...layers.map((l) => l.options.maxZoom || 19));
   const out = [];
   for (let i = 0; i <= depth; i++) { if (z0 + i <= maxZ) out.push(z0 + i); }
   return out;
 }
 
+// past its native zoom a layer draws upscaled tiles from that zoom, so those are the ones to store
 function offlineJobs(depth) {
   const layers = activeOfflineLayers();
+  const planned = new Map(layers.map((l) => [l, new Set()]));
   const jobs = [];
-  for (const z of offlineZooms(depth)) for (const c of viewportTileCoords(z)) for (const l of layers) jobs.push({ l, c });
+  for (const z of offlineZooms(depth)) {
+    for (const l of layers) {
+      if (z > (l.options.maxZoom || 19)) continue; // the layer is not drawn at this zoom
+      const tz = Math.min(z, l.options.maxNativeZoom ?? z);
+      if (planned.get(l).has(tz)) continue;
+      planned.get(l).add(tz);
+      for (const c of viewportTileCoords(tz)) jobs.push({ l, c });
+    }
+  }
   return jobs;
 }
 
@@ -466,13 +504,13 @@ function initMap() {
   // autoPan clear of the AO chip / layer-pill band at the map top — popups otherwise clip against the container edge
   L.Popup.mergeOptions({ autoPanPaddingTopLeft: L.point(8, 120) });
   state.map = L.map('map', { zoomControl: false }).setView(CONFIG.center, CONFIG.zoom);
-  // collapse the attribution bar to a tap-to-open ⓘ — it otherwise crowds the legend on short screens; OSM/CARTO/TxDOT credits stay one tap away (ToS + source-citation intact)
+  // collapse the attribution bar to a tap-to-open ⓘ, since it otherwise crowds the legend on short screens; Esri/OSM/TxDOT credits stay one tap away (ToS + source-citation intact)
   state.map.attributionControl.setPrefix(`<span class="attr-i" title="${esc(t('attr.title'))}">ⓘ</span>`);
   const attrEl = state.map.attributionControl.getContainer();
   L.DomEvent.on(attrEl, 'click', (e) => { if (e.target.tagName === 'A') return; L.DomEvent.stop(e); attrEl.classList.toggle('attr-open'); });
-  const attrib = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
-  state.baseLayers.dark = offlineTile('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
-  state.baseLayers.light = offlineTile('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: attrib, maxZoom: 19 });
+  const canvas = { attribution: ESRI_ATTRIB, maxNativeZoom: ESRI_CANVAS_NATIVE_Z, maxZoom: 19 };
+  state.baseLayers.dark = offlineTile(esriCanvasUrl('World_Dark_Gray_Base'), canvas);
+  state.baseLayers.light = offlineTile(esriCanvasUrl('World_Light_Gray_Base'), canvas);
   state.baseLayers.streets = offlineTile('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19 });
 
   // label boost pane: above radar (350) and alert polygons (400), below markers (600)
@@ -490,7 +528,8 @@ function initMap() {
   state.map.createPane('surge');
   state.map.getPane('surge').style.zIndex = 340;
   state.map.getPane('surge').style.pointerEvents = 'none';
-  state.layers.labelBoost = offlineTile(labelBoostUrl(), { pane: 'labels', attribution: attrib, maxZoom: 19 }).addTo(state.map);
+  // upscaled past z16 a place name balloons into a blur over the crisp street labels beneath it
+  state.layers.labelBoost = offlineTile(labelBoostUrl(), { ...canvas, maxZoom: ESRI_CANVAS_NATIVE_Z, pane: 'labels' }).addTo(state.map);
 
   // all radar/rainfall layers are OFF by default (owner directive) — explicit enable via layer control
   // group of pre-loaded per-frame tile layers; playback crossfades opacity (no per-step tile reload)
@@ -566,7 +605,7 @@ function initMap() {
     state.activeBase = e.layer === state.baseLayers.streets ? 'streets'
       : e.layer === state.baseLayers.light ? 'light' : 'dark';
     localStorage.setItem('respondertx.base', state.activeBase);
-    // picking a CARTO base re-syncs the UI theme; Streets leaves the theme untouched
+    // picking the dark or light base re-syncs the UI theme; Streets leaves the theme untouched
     if (state.activeBase !== 'streets' && state.activeBase !== document.documentElement.getAttribute('data-theme')) applyTheme(state.activeBase);
     else syncLabelBoost();
   });
@@ -625,8 +664,8 @@ function initMap() {
   }
   initCamRegionRows(); // sheet rows + pills share the same region list as the layers just built
   L.control.layers({
-    'Dark (CARTO)': state.baseLayers.dark,
-    'Light (CARTO)': state.baseLayers.light,
+    'Dark (Esri)': state.baseLayers.dark,
+    'Light (Esri)': state.baseLayers.light,
     'Streets (OSM)': state.baseLayers.streets,
   }, {
     'Place labels (boost)': state.layers.labelBoost,

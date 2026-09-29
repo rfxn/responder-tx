@@ -52,7 +52,7 @@ started_epoch=$(date +%s)
 FAIL_REASON=""
 write_status() {
     local verdict="$1" detail="$2" head_hash count
-    head_hash=$(git rev-parse HEAD 2>/dev/null || echo unknown)  # unknown is honest if the repo itself is the casualty
+    head_hash=$(git rev-parse --verify -q HEAD) || head_hash=unknown  # a broken ref prints its own name, so --verify
     count=$(git rev-list --count HEAD 2>/dev/null || echo 0)     # same
     command mkdir -p "$DEST" 2>/dev/null || true                 # status is best-effort when the volume is the problem
     command cat > "$STATUS" <<EOF 2>/dev/null || true

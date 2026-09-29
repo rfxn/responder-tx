@@ -30,8 +30,8 @@ function hydrateFromCache() {
   try { c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { c = null; }
   if (!c) return false;
   if (!state.gauges.length && c.gauges) {
-    state.gauges = c.gauges;
-    state.gaugesDegraded = c.gaugesDegraded || []; // pre-v0.98.3 caches carry no degraded set
+    state.gauges = aoGauges(c.gauges);
+    state.gaugesDegraded = aoGauges(c.gaugesDegraded); // pre-v0.98.3 caches carry no degraded set
     renderGauges(); renderGaugesTab();
   }
   if (!state.alerts.length && c.alertsSlim) { state.alerts = c.alertsSlim; renderAlertList(); }
@@ -47,7 +47,7 @@ async function hydrateGaugesSnapshot() {
     const d = await fetch(`data/gauges-snapshot.json?_=${Date.now()}`).then((r) => (r.ok ? r.json() : null));
     if (state.gauges.length) return false; // a live NWPS refresh resolved during the fetch — never revert fresh gauges to snapshot
     if (!d || !d.gauges || !d.gauges.length) return false;
-    const split = splitGauges(d.gauges);
+    const split = splitGauges(aoGauges(d.gauges));
     state.gauges = split.live;
     state.gaugesDegraded = split.degraded;
     state.snapshotAt = new Date(d.generated).getTime();

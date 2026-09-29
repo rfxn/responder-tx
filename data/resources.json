@@ -1,107 +1,6 @@
 {
-  "generated": "2026-07-19T16:33:00Z",
-  "shelters": [
-    {
-      "name": "Calvary Temple Church (shelter + reunification center)",
-      "address": "3000 Loop 534, Kerrville, TX",
-      "county": "Kerr",
-      "lat": 30.0301,
-      "lon": -99.1162,
-      "status": "open",
-      "note": "Primary Kerrville shelter and family reunification point",
-      "source": "https://cbsaustin.com/news/local/flash-flood-emergency-declared-for-kerrville-area-as-catastrophic-flooding-prompts-rescues"
-    },
-    {
-      "name": "Impact Church (Goat Creek evacuation point)",
-      "address": "Goat Creek Rd, Kerrville, TX",
-      "county": "Kerr",
-      "lat": 30.0805,
-      "lon": -99.1735,
-      "status": "open",
-      "note": "Evacuation point for Goat Creek area",
-      "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-    },
-    {
-      "name": "City West Church",
-      "address": "3139 Junction Highway, Ingram, TX",
-      "county": "Kerr",
-      "lat": 30.0781,
-      "lon": -99.2312,
-      "status": "open",
-      "note": "Shelter for Ingram / West Kerr County residents",
-      "source": "https://www.kut.org/live-updates/kerrville-uvalde-flood-texas-hill-country-warning-evacuation"
-    },
-    {
-      "name": "Flores Elementary Campus",
-      "address": "901 N. Getty St, Uvalde, TX",
-      "county": "Uvalde",
-      "lat": 29.2223,
-      "lon": -99.7866,
-      "status": "open",
-      "note": "City of Uvalde emergency shelter",
-      "source": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
-    },
-    {
-      "name": "Dalton Elementary School",
-      "address": "600 N. Fourth St, Uvalde, TX",
-      "county": "Uvalde",
-      "lat": 29.2189,
-      "lon": -99.7812,
-      "status": "open",
-      "note": "City of Uvalde emergency shelter",
-      "source": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
-    },
-    {
-      "name": "Southwest Texas Junior College",
-      "address": "2401 Garner Field Rd, Uvalde, TX",
-      "county": "Uvalde",
-      "lat": 29.2224,
-      "lon": -99.7418,
-      "status": "open",
-      "note": "City of Uvalde emergency shelter",
-      "source": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
-    },
-    {
-      "name": "Red Cross · Uvalde County Fairplex",
-      "address": "215 Veterans Ln, Uvalde, TX",
-      "county": "Uvalde",
-      "lat": 29.2382,
-      "lon": -99.7754,
-      "status": "open",
-      "note": "American Red Cross shelter · ACCEPTS PETS",
-      "source": "https://www.kut.org/energy-environment/2026-07-16/flash-flood-emergencies-issued-for-kerr-and-uvalde-counties-amid-catastrophic-flooding"
-    },
-    {
-      "name": "Silver Sage (Bandera County emergency shelter)",
-      "address": "803 Buck Creek Dr, Bandera, TX",
-      "county": "Bandera",
-      "lat": 29.7305,
-      "lon": -99.0629,
-      "status": "open",
-      "note": "Open overnight and through Thursday for Bandera County residents (Medina River evacuations)",
-      "source": "https://www.banderabulletin.com/article/3295,emergency-shelter-opens-as-flood-threat-grows"
-    },
-    {
-      "name": "Medina County / City of Hondo evacuee shelter",
-      "address": "Hondo, TX · location via Medina County OEM",
-      "county": "Medina",
-      "lat": 29.3475,
-      "lon": -99.1414,
-      "status": "open",
-      "note": "Established for D'Hanis / Seco Creek evacuees; confirm location with Medina County OEM before routing",
-      "source": "https://www.kens5.com/article/news/local/greg-abbott-flooding-flash-emergency-response-texas-national-guard-blackhawk-dps-swiftwater-rescue-helicopters-highwater-vehicles/273-72364290-08d6-4db9-b979-fd4b04a7737c"
-    },
-    {
-      "name": "Llano County evacuation center",
-      "address": "Llano, TX · location via Llano County OEM",
-      "county": "Llano",
-      "lat": 30.7591,
-      "lon": -98.675,
-      "status": "open",
-      "note": "68 sheltered at peak, ~63 current; confirm location with county before routing",
-      "source": "https://www.newsfromthestates.com/article/live-updates-flood-risk-remains-parts-texas-after-days-rain"
-    }
-  ],
+  "generated": "2026-09-29T03:35:14Z",
+  "shelters": [],
   "hotlines": [
     {
       "name": "Life-threatening emergency",
@@ -161,24 +60,8 @@
       "url": "https://rebuildtx.org/"
     },
     {
-      "label": "Hill Country Flood Relief Fund (CFHC)",
-      "url": "https://cftexashillcountry.fcsuite.com/erp/donate/create/fund?funit_id=4255"
-    },
-    {
-      "label": "Rebuild Texas Fund · Summer 2026 Flood Recovery",
-      "url": "https://www.rebuildtx.org/fund/summer-2026-flood-recovery"
-    },
-    {
       "label": "gov.texas.gov/floodresponse · state flood recovery & rebuild hub (official)",
       "url": "https://gov.texas.gov/floodresponse/home"
-    },
-    {
-      "label": "FEMA Emergency Declaration EM-3649 · 28 TX counties, federal emergency & Public Assistance (declared Jul 18; Individual Assistance not yet designated) (official)",
-      "url": "https://www.fema.gov/disaster/3649"
-    },
-    {
-      "label": "Hill Country Daily Bread (38 Cascade Caverns Rd, Boerne) · cleanup buckets + emergency food",
-      "url": "https://www.hcdailybread.org/"
     }
   ]
 }

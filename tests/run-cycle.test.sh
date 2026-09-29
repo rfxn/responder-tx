@@ -28,6 +28,11 @@
 #  19 a killed step and a dead upstream are separate buckets, so a too-tight budget is findable
 #  20 the aggregate guard bounds the cycle even when several steps run long
 #  21 the budgets still fit the cron interval they exist to protect
+# A failing cycle must leave evidence, not just a missing sign-off (2026-09-05..28, a corrupt main ref):
+#  27 a fatal materialize failure records exit code, stage, git's own error and a failure count
+#  28 the count climbs across runs, and the monitor names the failing run instead of the host
+#  29 a run that publishes, degraded or clean, resets the count
+#  30 a lock skip and a dry run are not runs and leave the record alone
 # A scratch repo with stub generators and a bare origin keeps the real repo, the real Pages
 # project and the network untouched. Every lock, log and state path this suite touches is
 # redirected into $WORK: on 2026-07-25T01:23Z a hand-held flock on the production
@@ -142,6 +147,7 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
 run_cycle() {  # sets RC and writes $WORK/cycle.log; RESPONDER_TEST_FAIL names the generators that fail
     RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
     RESPONDER_CYCLE_LOCK="$WORK/cycle.lock" \
+    RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
     RESPONDER_TEST_FAIL="${FAILING:-}" \
     RESPONDER_TEST_CHECK_RC="${CHECK_RC:-0}" \
     RESPONDER_TEST_SLOW="${SLOW:-}" \
@@ -235,6 +241,7 @@ MON_OUT=$(
     RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
     RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
     RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
+    RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
     bash "$MON_SRC" --dry-run 2>&1
 )
 if printf '%s' "$MON_OUT$(cat "$WORK/monitor.log" 2>/dev/null)" | grep -q 'DEGRADED'; then
@@ -297,11 +304,13 @@ fi
 # production lock for an instant, and a live cycle asking in that instant skips a real publish;
 # it also failed spuriously whenever an unrelated cron cycle happened to be mid-run. Asserting
 # that no test file can even name the path is the stronger claim and costs production nothing.
-if grep -RIl --include='*.test.sh' --include='*.test.py' -e '/tmp/responder-cycle\.lock' \
-       -e '/tmp/responder-monitor\.' -e '/tmp/responder-chat\.' "$REPO_ROOT/tests" \
+PROD_PATHS=(-e '/tmp/responder-cycle\.lock' -e '/tmp/responder-monitor\.' -e '/tmp/responder-chat\.'
+    -e 'responder-cycle-status\.json' -e '/tmp/responder-freshness-state' -e '/tmp/responder-backup-health-state'
+    -e '/tmp/responder-tick-gate\.lock')
+if grep -RIl --include='*.test.sh' --include='*.test.py' "${PROD_PATHS[@]}" "$REPO_ROOT/tests" \
      | grep -qv "$(basename "$0")\$"; then
-    fail "10 a test file names a production lock path directly"
-    grep -RIn --include='*.test.sh' --include='*.test.py' -e '/tmp/responder-cycle\.lock' "$REPO_ROOT/tests"
+    fail "10 a test file names a production lock or state path directly"
+    grep -RIn --include='*.test.sh' --include='*.test.py' "${PROD_PATHS[@]}" "$REPO_ROOT/tests" | grep -v "$(basename "$0"):"
 else
     pass "10 no test file names a production lock path; every suite locks its own scratch copy"
 fi
@@ -619,6 +628,104 @@ if [ "$RC" -eq 0 ] \
 else
     fail "25 the event.json divergence must warn without stopping the publish (rc=$RC)"
     cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# --- Tests 27-30: every run past the lock leaves a status record -------------------------------
+status_field() {  # KEY — one field of the scratch status file as JSON, empty when unreadable
+    python3 -c 'import json, sys; print(json.dumps(json.load(open(sys.argv[1])).get(sys.argv[2])))' \
+        "$WORK/cycle-status.json" "$1" 2>/dev/null  # an absent file reads as empty, which every caller asserts against
+}
+
+setup
+GOOD_HEAD=$(git -C "$REPO" rev-parse HEAD)
+: > "$REPO/.git/refs/heads/main"  # the crash shape: the branch ref survives with nothing in it
+run_cycle
+if [ "$RC" -eq 1 ] \
+   && [ "$(status_field exit_code)" = 1 ] \
+   && [ "$(status_field stage)" = '"materialize"' ] \
+   && [ "$(status_field consecutive_failures)" = 1 ] \
+   && [ "$(status_field failing_since)" = "$(status_field finished_at)" ] \
+   && status_field first_error | grep -q 'could not materialize HEAD scripts/.*fatal: invalid reference: HEAD' \
+   && ! grep -q '=== ' <(grep -v 'cycle start' "$WORK/cycle.log"); then
+    pass "27 a fatal materialize failure records exit 1, the stage, git's own error and failure 1"
+else
+    fail "27 the failing run must leave a status record (rc=$RC)"; cat "$WORK/cycle-status.json" "$WORK/cycle.log"
+fi
+
+FIRST_SINCE=$(status_field failing_since)
+sleep 1
+run_cycle
+if [ "$RC" -eq 1 ] && [ "$(status_field consecutive_failures)" = 2 ] \
+   && [ "$(status_field failing_since)" = "$FIRST_SINCE" ]; then
+    pass "28 a second failing run counts 2 and keeps the time the streak began"
+else
+    fail "28 consecutive failures must accumulate (got $(status_field consecutive_failures), since $(status_field failing_since))"
+fi
+
+mkdir -p "$WORK/remote"
+printf '{"generated":"%s","gauges":[]}\n' "$OLD_STAMP" > "$WORK/remote/gauges-snapshot.json"
+printf '{\n "messages": []\n}\n' > "$REPO/data/chat-outbox.json"
+MON_OUT=$(
+    RESPONDER_MONITOR_URL="file://$WORK/remote/gauges-snapshot.json" \
+    RESPONDER_MONITOR_OUTBOX="$REPO/data/chat-outbox.json" \
+    RESPONDER_MONITOR_SNAPSHOT="$REPO/data/gauges-snapshot.json" \
+    RESPONDER_MONITOR_STATE="$WORK/monitor-state" \
+    RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
+    RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
+    RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
+    RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
+    RESPONDER_BACKUP_DIR="$WORK/no-backups" \
+    bash "$MON_SRC" --dry-run 2>&1
+)
+if printf '%s' "$MON_OUT" | grep -q 'Likely cause: the data cycle is running but failing every run for 2 runs since .* (stage materialize): ERROR: could not materialize HEAD scripts/.*fatal: invalid reference: HEAD' \
+   && ! printf '%s' "$MON_OUT" | grep -q 'cron or its host is down'; then
+    pass "28b the monitor reads the record the cycle wrote and names the failing run, not the host"
+else
+    fail "28b the monitor must name the failing cycle from the real status file"; printf '%s\n' "$MON_OUT"
+fi
+
+printf '%s\n' "$GOOD_HEAD" > "$REPO/.git/refs/heads/main"
+FAILING="fetch-snapshot" run_cycle
+if [ "$RC" -eq 3 ] && [ "$(status_field exit_code)" = 3 ] && [ "$(status_field consecutive_failures)" = 0 ] \
+   && [ "$(status_field failing_since)" = null ] && [ "$(status_field first_error)" = null ]; then
+    pass "29 a degraded run that published resets the failure count"
+else
+    fail "29 exit 3 must reset the count (rc=$RC)"; cat "$WORK/cycle-status.json"
+fi
+
+: > "$REPO/.git/refs/heads/main"
+run_cycle
+MID_FAILS=$(status_field consecutive_failures)
+printf '%s\n' "$GOOD_HEAD" > "$REPO/.git/refs/heads/main"
+FAILING="" run_cycle
+if [ "$MID_FAILS" = 1 ] && [ "$RC" -eq 0 ] && [ "$(status_field exit_code)" = 0 ] \
+   && [ "$(status_field consecutive_failures)" = 0 ] && [ "$(status_field stage)" = '"signoff"' ]; then
+    pass "29b a clean run after a failure resets the count and records the sign-off stage"
+else
+    fail "29b exit 0 must reset the count (rc=$RC)"; cat "$WORK/cycle-status.json"
+fi
+
+STATUS_BEFORE=$(sha256sum "$WORK/cycle-status.json")
+exec 8>"$WORK/cycle.lock"
+if flock -n 8; then
+    run_cycle
+    exec 8>&-
+    if [ "$RC" -eq 0 ] && grep -q 'SKIP: another cycle holds' "$WORK/cycle.log" \
+       && [ "$(sha256sum "$WORK/cycle-status.json")" = "$STATUS_BEFORE" ]; then
+        pass "30 a lock skip is not a run: the holder's record is left alone"
+    else
+        fail "30 a skip must not rewrite the status record (rc=$RC)"
+    fi
+else
+    exec 8>&-
+    fail "30 could not take the scratch lock to set up the skip case"
+fi
+run_cycle --dry-run
+if [ "$RC" -eq 0 ] && [ "$(sha256sum "$WORK/cycle-status.json")" = "$STATUS_BEFORE" ]; then
+    pass "30b a dry run publishes nothing and leaves the production record alone"
+else
+    fail "30b a dry run must not rewrite the status record (rc=$RC)"
 fi
 rm -rf "$WORK"
 

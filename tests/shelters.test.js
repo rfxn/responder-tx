@@ -216,3 +216,62 @@ test('shlNavHtml — no coordinates means no button rather than a dead one', () 
   assert.equal(shlNavHtml({ lat: 30.03, lon: null }), '');
   assert.equal(shlNavHtml({ lat: 'north', lon: -99.1 }), '');
 });
+
+/* ---------- the Recovery view never turns a failed shelter feed into "none listed" ---------- */
+
+function recoveryHtml(setup) {
+  const app = loadApp();
+  const SB = app._sandbox;
+  const node = { innerHTML: '', hidden: false, querySelectorAll() { return []; }, addEventListener() {} };
+  const savedQuery = SB.document.querySelector;
+  const saved = { resources: app.state.resources, live: app.state.sheltersLive, unknown: app.state.sheltersUnknown };
+  SB.document.querySelector = (sel) => (sel === '#recovery-body' ? node : savedQuery(sel));
+  try {
+    setup(app.state);
+    SB.renderRecoveryBody({ gauges: [] });
+  } finally {
+    SB.document.querySelector = savedQuery;
+    Object.assign(app.state, { resources: saved.resources, sheltersLive: saved.live, sheltersUnknown: saved.unknown });
+  }
+  return node.innerHTML;
+}
+
+test('Recovery view: an unreadable live shelter feed reads as unknown, never as zero or none', () => {
+  const html = recoveryHtml((st) => {
+    st.resources = { generated: new Date().toISOString(), shelters: [] };
+    st.sheltersLive = null;
+    st.sheltersUnknown = true;
+  });
+  assert.ok(html.includes('shl.live.unknown'), `the feed failure must be named: ${html}`);
+  assert.ok(!html.includes('recovery.shelters.none'), 'a failed feed must not read as no shelters listed');
+  assert.ok(!/recovery\.head\.shelters \(0\)/.test(html), 'and the header must not count zero for an unknown feed');
+});
+
+test('Recovery view: a live feed reporting no open shelters says so with its own time', () => {
+  const html = recoveryHtml((st) => {
+    st.resources = { generated: new Date().toISOString(), shelters: [] };
+    st.sheltersLive = { generated: '2026-09-29T03:24:33Z', shelters: [] };
+    st.sheltersUnknown = false;
+  });
+  assert.ok(html.includes('shl.live.none'), `the feed's own empty answer must be attributed to it: ${html}`);
+  assert.ok(/recovery\.head\.shelters \(0\)/.test(html), 'a readable empty feed is a genuine zero');
+});
+
+/* ---------- recovery rows never print an impossible forecast stage ---------- */
+
+test('recoveryGaugeRowHtml prints a real forecast stage and suppresses an impossible one', () => {
+  const SB = loadApp()._sandbox;
+  const soon = new Date(Date.now() + 6 * 3600000).toISOString();
+  const row = (fcst) => ({
+    kind: 'falling',
+    row: { lid: 'TSTT2', name: 'Test Creek', peak: 18.2, peak_time: '2026-09-28T12:00:00Z', peak_category: 'moderate', last_in_flood: 'ongoing' },
+    live: { lid: 'TSTT2', status: {
+      observed: { primary: 15.1, primaryUnit: 'ft', floodCategory: 'moderate', validTime: new Date().toISOString() },
+      forecast: { primary: fcst, floodCategory: 'minor', validTime: soon } } },
+    trend: null,
+  });
+  assert.ok(SB.recoveryGaugeRowHtml(row(12.3)).includes('recovery.fcst'), 'a plausible forecast stage still prints');
+  const bad = SB.recoveryGaugeRowHtml(row(10000000));
+  assert.ok(!bad.includes('recovery.fcst'), `an impossible forecast stage must not print: ${bad}`);
+  assert.ok(!bad.includes('10,000,000') && !bad.includes('10000000'), 'nor may the number leak anywhere in the row');
+});

@@ -35,6 +35,7 @@ FIX_HEAD=$(git rev-parse HEAD)
 
 BDIR="$WORK/backups"
 export RESPONDER_BACKUP_DIR="$BDIR"
+export RESPONDER_BACKUP_MIN_FREE_MB=1  # the fixture is tiny; the host tmpfs free space must not decide this suite
 
 # --- backup.sh
 ./scripts/backup.sh --tier daily >"$WORK/backup.log" 2>&1
@@ -137,6 +138,17 @@ RESPONDER_ALLOW_FORCE_PUSH=1 ./scripts/hooks/pre-push origin url >/dev/null 2>&1
 refs/heads/main $PREV refs/heads/main $HEADSHA
 EOF
 check $? "hook: the deliberate override works"
+
+# --- a crash-corrupted branch ref must still leave a status.json the monitor can parse
+BROKEN="$WORK/broken"
+git clone -q "$FIX" "$BROKEN"
+( cd "$BROKEN" || exit 1
+  ref=$(git symbolic-ref HEAD)
+  printf '\x9d\xd5\xb6\x88\x77\x68\x36\n' > ".git/$ref"
+  RESPONDER_BACKUP_DIR="$WORK/broken-backups" ./scripts/backup.sh --tier hourly >"$WORK/broken.log" 2>&1 )
+python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d['verdict'] == 'FAIL' and d['head'] == 'unknown' else 1)" \
+    "$WORK/broken-backups/status.json" 2>>"$WORK/broken.log"
+check_log $? "backup: a broken HEAD writes valid status JSON with head unknown" "$WORK/broken.log"
 
 echo "----"
 echo "backup.test.sh: ${PASS} passed, ${FAIL} failed"

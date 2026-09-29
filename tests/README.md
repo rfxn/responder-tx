@@ -44,8 +44,9 @@ every `js/*.js` and the release-cycle sanity bundle (`scripts/cycle-check.sh`).
 
 The cron scripts single-flight on fixed `/tmp` locks and log to `/var/log`. Every
 test that runs one must redirect **all** of them into its own `mktemp -d`:
-`RESPONDER_CYCLE_LOCK`, `RESPONDER_CYCLE_LOG`, `RESPONDER_MONITOR_LOCK`,
-`RESPONDER_MONITOR_STATE`, `RESPONDER_MONITOR_LOG`, `RESPONDER_CHAT_LOCK`,
+`RESPONDER_CYCLE_LOCK`, `RESPONDER_CYCLE_LOG`, `RESPONDER_CYCLE_STATUS`, `RESPONDER_MONITOR_LOCK`,
+`RESPONDER_MONITOR_STATE`, `RESPONDER_MONITOR_LOG`, `RESPONDER_BACKUP_STATE`,
+`RESPONDER_TICK_ALERT_STATE`, `RESPONDER_CHAT_LOCK`,
 `RESPONDER_CHAT_LOG`, `RESPONDER_CHAT_WATCHDOG_LOCK`,
 `RESPONDER_CHAT_WATCHDOG_STATE`, `RESPONDER_CHAT_WATCHDOG_LOG`.
 
@@ -135,7 +136,7 @@ cost bandwidth and time but not a cycle.
 
 ```
 *://tile.openstreetmap.org/*          OSM streets basemap
-*://*.basemaps.cartocdn.com/*         CARTO dark/light basemap and labels
+*://server.arcgisonline.com/*         Esri Canvas dark/light basemap and labels
 *://tiles.arcgis.com/*                NOAA/NHC SLOSH surge raster
 *://*.rainviewer.com/*                RainViewer radar tiles (host arrives at runtime)
 *://*.skyvdn.com/*                    TxDOT Lonestar HLS camera streams
@@ -188,7 +189,9 @@ Gotchas that have each cost a release:
 - The module-level `L` is a Proxy that returns **itself**, so every drawn layer
   compares equal to every other one. To assert draw order, kind or options, swap
   in a recording `L` (see `drawWith()` in `wildfire.test.js`).
-  `loadWiredMap()` already hands out distinct layer objects.
+  `loadWiredMap()` already hands out distinct layer objects, and its tile layers
+  (`L.TileLayer.extend` classes included) keep `_url` and `options`, so a test can
+  assert the URL a layer fetches (see `basemap.test.js`).
 - A recording DOM must **not** answer `querySelector` with a live stub
   unconditionally. That exact mistake let a missing star element pass in
   v0.99.83. Register the selectors you deliberately provide and return `null`

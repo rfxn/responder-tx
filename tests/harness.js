@@ -174,6 +174,7 @@ const EXPORTS = [
   'CALTOPO_EXPORT_URL', 'renderQr', 'caltopoStatusText',
   'mergeShelters', 'shelterDup', 'shelterKey',
   'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
+  'aoAreaParse', 'aoAreaContains', 'aoContains', 'aoGauges',
   'camRegions', 'camRegionsAll', 'camRegionId', 'camRegionKey', 'CAM_REGION_OTHER', 'CAM_REGION_MAX_MI', 'CAM_REGION_ALL', 'regionLabel',
   'CAM_STATE_REGIONS', 'camOutsideId', 'inCamBbox',
   'camIsLive', 'CAM_NETS', 'CAM_STALE_MINS',
@@ -222,10 +223,11 @@ const MAP_EXPORTS = EXPORTS.concat(['VIEW_ROWS',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
   'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey']);
 
-function buildBundle(files, exports) {
+function buildBundle(files, exports, beforeLoad) {
   const sources = files.map(read).join('\n;\n');
   const epilogue = `\n;globalThis.__RESPONDER = { ${exports.join(', ')} };\n`;
   const sandbox = buildSandbox();
+  if (beforeLoad) beforeLoad(sandbox);
   const context = vm.createContext(sandbox);
   vm.runInContext(sources + epilogue, context, { filename: 'responder-bundle.js' });
   const out = sandbox.__RESPONDER;
@@ -285,11 +287,11 @@ const LAYER_FACTORIES = ['layerGroup', 'featureGroup', 'tileLayer', 'marker', 'c
 
 function makeRecordingL(mapStub) {
   let seq = 0;
-  const layer = (kind) => {
+  const layer = (kind, proto = Object.prototype) => {
     const id = `${kind}#${++seq}`;
-    const own = { __kind: kind, __id: id, options: {}, _layers: {},
+    const own = Object.assign(Object.create(proto), { __kind: kind, __id: id, options: {}, _layers: {},
       // real, so "ships off by default" is a question the map can answer
-      addTo(target) { if (target && typeof target.addLayer === 'function') target.addLayer(self); return self; } };
+      addTo(target) { if (target && typeof target.addLayer === 'function') target.addLayer(self); return self; } });
     const self = new Proxy(own, {
       get(target, key) {
         if (key === Symbol.toPrimitive) return () => id;
@@ -301,13 +303,39 @@ function makeRecordingL(mapStub) {
     });
     return self;
   };
+  // keeps its template and options as Leaflet's does, so the URL a layer fetches is observable
+  const tileLayer = (url, opts, proto) => {
+    const l = layer('tileLayer', proto);
+    l._url = url;
+    l.options = { ...opts };
+    l.setUrl = (u) => { l._url = u; return l; };
+    return l;
+  };
+  // a real class, so the app's own `instanceof` checks and prototype methods run as shipped
+  const TileLayer = {
+    extend(proto) {
+      function Ext(url, opts) { return tileLayer(url, opts, Ext.prototype); }
+      Object.assign(Ext.prototype, proto);
+      return Ext;
+    },
+  };
+  // Leaflet 1.9.4's template rule, so a URL the offline save builds is the one Leaflet would request
+  const Util = new Proxy({
+    template: (str, data) => str.replace(/\{ *([\w_ -]+) *\}/g, (m, k) => {
+      const v = data[k];
+      if (v === undefined) throw new Error(`No value provided for variable ${m}`);
+      return typeof v === 'function' ? v(data) : v;
+    }),
+  }, { get: (t, k) => (k in t ? t[k] : L) });
   const cache = {};
   const L = new Proxy(function () {}, {
     get(target, key) {
       if (key === Symbol.toPrimitive) return () => 'L-stub';
       if (key === 'map') return () => mapStub;
+      if (key === 'TileLayer') return TileLayer;
+      if (key === 'Util') return Util;
       if (LAYER_FACTORIES.includes(key)) {
-        const factory = () => layer(key);
+        const factory = key === 'tileLayer' ? (url, opts) => tileLayer(url, opts) : () => layer(key);
         if (key === 'tileLayer') { factory.wms = () => layer('wms'); factory.canvas = () => layer('tileCanvas'); }
         return factory;
       }
@@ -323,6 +351,17 @@ function makeRecordingL(mapStub) {
 function makeMapStub() {
   const handlers = new Map();
   const on = new Set();
+  const panes = new Map();
+  const pane = (name) => {
+    if (!panes.has(name)) {
+      const cls = new Set();
+      panes.set(name, { style: {}, classList: {
+        add: (c) => cls.add(c), remove: (c) => cls.delete(c), contains: (c) => cls.has(c),
+        toggle: (c, force) => { const want = force === undefined ? !cls.has(c) : !!force; if (want) cls.add(c); else cls.delete(c); return want; },
+      } });
+    }
+    return panes.get(name);
+  };
   const latLng = { lat: 30, lng: -99 };
   const bounds = { getWest: () => -100, getEast: () => -98, getSouth: () => 29, getNorth: () => 31,
     getNorthWest: () => ({ lat: 31, lng: -100 }), getSouthEast: () => ({ lat: 29, lng: -98 }),
@@ -346,7 +385,7 @@ function makeMapStub() {
     setView() { return map; }, setZoom() { return map; }, getZoom() { return 10; }, getMinZoom() { return 5; },
     flyTo() { return map; }, panTo() { return map; }, fitBounds() { return map; }, stop() { return map; },
     getCenter() { return latLng; }, getBounds() { return bounds; }, getSize() { return { x: 900, y: 700 }; },
-    createPane() { return { style: {} }; }, getPane() { return { style: {} }; },
+    createPane: pane, getPane: pane,
     getContainer() { return makeElementStub(); }, invalidateSize() {}, whenReady() { return map; },
     locate() { return map; }, stopLocate() { return map; }, distance() { return 0; },
     latLngToContainerPoint() { return point(0, 0); }, containerPointToLatLng() { return latLng; },
@@ -362,10 +401,11 @@ function makeMapStub() {
    the app registered. `fire('overlayadd', { layer: layers.wildfire })` then executes the shipped
    handler body. Each call is independent: initMap mutates state heavily. */
 function loadWiredMap() {
-  const app = buildBundle(['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js'], MAP_EXPORTS);
-  const sandbox = app._sandbox;
   const { map, handlers } = makeMapStub();
-  sandbox.L = makeRecordingL(map);
+  // installed before load: map.js builds its tile-layer classes from L at top level
+  const app = buildBundle(['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js'], MAP_EXPORTS,
+    (sb) => { sb.L = makeRecordingL(map); });
+  const sandbox = app._sandbox;
   sandbox.initMap();
   const fire = (event, payload) => {
     const list = handlers.get(event);

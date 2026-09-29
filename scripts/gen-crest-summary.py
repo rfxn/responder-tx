@@ -17,7 +17,8 @@ that predates the chunk index.
 Scope works the same way as gen-history.py: the walk retains every gauge, and
 the display filter is applied once, at the end, against the union of every
 gaugeBbox this repo has ever committed. A display-scope change narrows the live
-board and never deletes a recorded peak.
+board and never deletes a recorded peak. The listing is then clipped to the current
+aoArea (Texas plus its border buffer): publication may narrow, retention does not.
 
 Honest by construction: peaks whose observation was stale at peak time are
 flagged, not dropped; nothing is interpolated or invented.
@@ -28,6 +29,9 @@ import os
 import subprocess
 import sys
 import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import aoarea  # noqa: E402
 
 ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAPTURE_PATH = "data/gauges-capture.json"
@@ -41,6 +45,13 @@ CAT_RANK = {"minor": 2, "moderate": 3, "major": 4}
 CODE_CAT = {2: "minor", 3: "moderate", 4: "major"}
 STALE_HOURS = 12
 RECORD_NEAR_PCT = 0.90
+# mirrors js/core.js stageOk; see INTERNAL-NOTES.md "Impossible gauge stages"
+STAGE_MIN_FT = -300
+STAGE_MAX_FT = 25000
+
+
+def stage_ok(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and STAGE_MIN_FT < v < STAGE_MAX_FT
 
 
 def load_event():
@@ -200,7 +211,7 @@ def fold_backfill(gauges):
             except (IndexError, TypeError):
                 continue
             cat = CODE_CAT.get(code)
-            if cat is None or not isinstance(stage, (int, float)):
+            if cat is None or not stage_ok(stage):
                 continue
             gi = index.get(lid) or {}
             rec = gauges.setdefault(lid, {
@@ -244,7 +255,7 @@ def walk(commits, gauges):
                 if cat not in FLOOD_CATS:
                     continue
                 stage = observed.get("primary")
-                if not isinstance(stage, (int, float)) or stage <= -999:
+                if not stage_ok(stage):  # the category NWPS sent with it is void too
                     continue
                 lid = g["lid"]
             except (KeyError, TypeError):
@@ -286,15 +297,25 @@ def published_lids():
                  "only grown")
 
 
-def project_display(gauges, boxes, sticky):
-    """Publication layer. The ONLY place display scope is applied."""
-    keep, held = {}, 0
+def ao_clipped(rec, area):
+    """Outside the aoArea; a row with no coordinates cannot be placed, so the clip leaves it."""
+    lat, lon = rec.get("lat"), rec.get("lon")
+    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+        return False
+    return not aoarea.contains(area, lat, lon)
+
+
+def project_display(gauges, boxes, sticky, area=None):
+    """Publication layer, the ONLY place display scope is applied; the aoArea clip overrides the ratchet."""
+    keep, held, clipped = {}, 0, []
     for lid, rec in gauges.items():
-        if lid in sticky or in_any_bbox(rec.get("lat"), rec.get("lon"), boxes):
-            keep[lid] = rec
-        else:
+        if not (lid in sticky or in_any_bbox(rec.get("lat"), rec.get("lon"), boxes)):
             held += 1
-    return keep, held
+        elif ao_clipped(rec, area):
+            clipped.append(lid)
+        else:
+            keep[lid] = rec
+    return keep, held, sorted(clipped)
 
 
 def mark_ongoing(gauges, last_snap):
@@ -330,13 +351,16 @@ def main():
         sys.exit("no committed snapshots found — nothing to summarize")
     ev = load_event()
     boxes = event_bboxes(ev)
+    area = aoarea.parse(ev.get("aoArea"))
+    if ev.get("aoArea") is not None and area is None:
+        print("warn: event.json aoArea is malformed; the listing is not clipped to it", file=sys.stderr)
     gauges = {}
     backfill_from, archive_ok = fold_backfill(gauges)
     gauges, skipped, first_snap, last_snap = walk(commits, gauges)
     if not gauges:
         sys.exit("no gauges reached minor+ flood in the snapshot history")
     retained = len(gauges)
-    gauges, held = project_display(gauges, boxes, published_lids())
+    gauges, held, clipped = project_display(gauges, boxes, published_lids(), area)
     if not gauges:
         sys.exit("no gauges left after display projection — check event.json gaugeBbox")
     mark_ongoing(gauges, last_snap)
@@ -386,7 +410,8 @@ def main():
         raise
     print(f"crest-summary.json: {len(commits)} commits walked ({skipped} skipped), "
           f"retained {retained} gauges, published {len(rows)} ({n_backfill} peaks from "
-          f"reconstruction/recovery, {held} out of display scope, held not deleted), "
+          f"reconstruction/recovery, {held} out of display scope, held not deleted; "
+          f"{len(clipped)} outside the aoArea{': ' + ' '.join(clipped) if clipped else ''}), "
           f"window {out['window']['first']} → {last_snap}"
           + ("" if archive_ok else " (START NOT ESTABLISHED: the archive did not read)"))
     for r in rows:

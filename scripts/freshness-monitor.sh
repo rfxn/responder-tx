@@ -2,7 +2,7 @@
 # freshness-monitor.sh [--dry-run] — external data-freshness monitor for the
 # PUBLIC mirror. Fetches respondertx.org's gauge snapshot over the network,
 # ages its embedded generation stamp, and cross-checks local pipeline health
-# (cycle output, data commit, last deploy) so a stale board is attributed to the
+# (cycle status, cycle output, data commit, last deploy) so a stale board is attributed to the
 # right failure. Alerts go to the LAN ops chat outbox, transition-gated with a
 # cooldown. See scripts/README.md "Freshness monitor (freshness-monitor.sh)".
 set -euo pipefail
@@ -26,7 +26,11 @@ MIRROR_URL="${RESPONDER_MONITOR_URL:-https://respondertx.org/data/gauges-snapsho
 OUTBOX="${RESPONDER_MONITOR_OUTBOX:-data/chat-outbox.json}"
 SNAPSHOT="${RESPONDER_MONITOR_SNAPSHOT:-data/gauges-snapshot.json}"
 CYCLE_LOG="${RESPONDER_CYCLE_LOG:-/var/log/responder-cycle.log}"
-STATE_FILE="${RESPONDER_MONITOR_STATE:-/tmp/responder-freshness-state}"  # "verdict streak last_alert_epoch last_alert_age_min"; a reboot reset costs at most one extra alert
+CYCLE_STATUS="${RESPONDER_CYCLE_STATUS:-/var/log/responder-cycle-status.json}"
+if [ -z "${RESPONDER_CYCLE_STATUS:-}" ] && [ ! -e "$CYCLE_STATUS" ]; then
+    CYCLE_STATUS=/tmp/responder-cycle-status.json  # run-cycle.sh's fallback when /var/log is unwritable
+fi
+STATE_FILE="${RESPONDER_MONITOR_STATE:-/tmp/responder-freshness-state}"  # "verdict streak last_alert_epoch last_alert_age_min verdict_since_epoch"; tick-gate.sh reads it too
 WARN_MIN="${RESPONDER_MONITOR_WARN_MIN:-45}"        # 3 missed 15-min cycles
 CRIT_MIN="${RESPONDER_MONITOR_CRIT_MIN:-90}"        # 6 missed 15-min cycles
 FAIL_STREAK="${RESPONDER_MONITOR_FAIL_STREAK:-3}"   # consecutive fetch failures before the mirror counts as unreachable
@@ -38,7 +42,7 @@ FETCH_TIMEOUT="${RESPONDER_MONITOR_TIMEOUT:-25}"
 # Backup health rides along here because this is the only cron that already reaches the ops chat.
 BACKUP_DIR="${RESPONDER_BACKUP_DIR:-/root/backups/responder}"
 BACKUP_STALE_MIN="${RESPONDER_BACKUP_STALE_MIN:-360}"  # 6h: the hourly tier can miss a few runs before it means anything
-BACKUP_STATE_FILE="${RESPONDER_BACKUP_STATE:-/tmp/responder-backup-health-state}"  # "verdict last_alert_epoch", kept apart from the mirror state so neither condition masks the other
+BACKUP_STATE_FILE="${RESPONDER_BACKUP_STATE:-/tmp/responder-backup-health-state}"  # "verdict last_alert_epoch verdict_since_epoch", apart from the mirror state so neither masks the other
 BACKUP_COOLDOWN="${RESPONDER_BACKUP_COOLDOWN:-21600}"
 
 LOGFILE="${RESPONDER_MONITOR_LOG:-/var/log/responder-freshness.log}"
@@ -103,13 +107,49 @@ print(int((time.time() - epoch) // 60))
 PY
 }
 
-# commit_age_min PATH — minutes since the last commit touching PATH, empty if unknown.
+# commit_age_min PATH — minutes since the last commit touching PATH; "GITFAULT <reason>" when git cannot answer.
 commit_age_min() {
-    local ct now
-    ct=$(git log -1 --format=%ct -- "$1" 2>/dev/null) || return 0  # not a repo / path outside it: age stays unknown
-    [ -n "$ct" ] || return 0
+    local abs out ct reason now
+    case "$1" in
+        /*) abs="$1" ;;
+        *) abs="${REPO_ROOT}/$1" ;;
+    esac
+    case "$abs" in
+        "${REPO_ROOT}"/*) ;;
+        *) return 0 ;;  # a snapshot outside this repo has no history here to read
+    esac
+    if ! out=$(git log -1 --format=%ct -- "$1" 2>&1); then
+        reason=$(printf '%s\n' "$out" | grep -m1 -E '^(fatal|error):') || reason=$(printf '%s\n' "$out" | command tail -1)
+        printf 'GITFAULT %s' "${reason:-git exited non-zero}"
+        return 0
+    fi
+    ct=$(printf '%s\n' "$out" | grep -m1 -E '^[0-9]+$') || return 0  # never committed: an absence, not a fault
     now=$(command date -u '+%s')
     echo $(( (now - ct) / 60 ))
+}
+
+# cycle_status — run-cycle.sh's last-run record, one field per line: ABSENT, UNREADABLE, or
+# OK then age_min, exit_code, consecutive_failures, failing_since, stage, first_error.
+cycle_status() {
+    CS_IN="$CYCLE_STATUS" python3 - <<'PY'
+import json, os, time
+path = os.environ["CS_IN"]
+if not os.path.exists(path):
+    print("ABSENT")
+    raise SystemExit(0)
+try:
+    with open(path, encoding="utf-8") as f:
+        d = json.load(f)
+    fields = [max(0, int((time.time() - int(d["finished_epoch"])) // 60)), int(d["exit_code"]),
+              max(0, int(d.get("consecutive_failures") or 0)), d.get("failing_since"), d.get("stage"),
+              d.get("first_error")]
+except (OSError, ValueError, TypeError, KeyError, AttributeError):
+    print("UNREADABLE")
+    raise SystemExit(0)
+print("OK")
+for v in fields:
+    print(" ".join(str(v if v is not None else "").split()))
+PY
 }
 
 # deploy_age_min — minutes since the cycle log's last successful deploy, empty if unknown.
@@ -238,23 +278,24 @@ sys.exit(4)
 PY
 }
 
-# read_state — load STATE into ST_VERDICT/ST_STREAK/ST_LASTALERT/ST_LASTAGE; absent file is the fresh-install
-# default, and a legacy 3-field line leaves ST_LASTAGE at 0, which only costs one extra escalation alert.
+# read_state — load STATE into ST_VERDICT/ST_STREAK/ST_LASTALERT/ST_LASTAGE/ST_SINCE; absent file is the
+# fresh-install default, and a legacy short line leaves the missing columns at 0.
 read_state() {
-    ST_VERDICT=NONE; ST_STREAK=0; ST_LASTALERT=0; ST_LASTAGE=0
+    ST_VERDICT=NONE; ST_STREAK=0; ST_LASTALERT=0; ST_LASTAGE=0; ST_SINCE=0
     local word_re='^[A-Z]+$'
     if [ -f "$STATE_FILE" ]; then
-        read -r ST_VERDICT ST_STREAK ST_LASTALERT ST_LASTAGE < "$STATE_FILE" || true  # short/absent line: keep defaults
+        read -r ST_VERDICT ST_STREAK ST_LASTALERT ST_LASTAGE ST_SINCE _ < "$STATE_FILE" || true  # short/absent line: keep defaults
         [[ "${ST_VERDICT:-}" =~ $word_re ]] || ST_VERDICT=NONE
         ST_STREAK=$(printf '%s' "${ST_STREAK:-0}" | command tr -cd '0-9'); ST_STREAK="${ST_STREAK:-0}"
         ST_LASTALERT=$(printf '%s' "${ST_LASTALERT:-0}" | command tr -cd '0-9'); ST_LASTALERT="${ST_LASTALERT:-0}"
         ST_LASTAGE=$(printf '%s' "${ST_LASTAGE:-0}" | command tr -cd '0-9'); ST_LASTAGE="${ST_LASTAGE:-0}"
+        ST_SINCE=$(printf '%s' "${ST_SINCE:-0}" | command tr -cd '0-9'); ST_SINCE="${ST_SINCE:-0}"
     fi
 }
 
-# write_state VERDICT STREAK LASTALERT LASTAGE — persist monitor state atomically.
+# write_state VERDICT STREAK LASTALERT LASTAGE SINCE — persist monitor state atomically.
 write_state() {
-    printf '%s %s %s %s\n' "$1" "$2" "$3" "${4:-0}" > "${STATE_FILE}.tmp" && command mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    printf '%s %s %s %s %s\n' "$1" "$2" "$3" "${4:-0}" "${5:-0}" > "${STATE_FILE}.tmp" && command mv "${STATE_FILE}.tmp" "$STATE_FILE"
 }
 
 read_state
@@ -269,12 +310,39 @@ if REMOTE_GEN=$(fetch_generated "$MIRROR_URL"); then
 fi
 
 LOCAL_AGE=$(snapshot_age_min "$SNAPSHOT")
-COMMIT_AGE=$(commit_age_min "$SNAPSHOT")
+COMMIT_READ=$(commit_age_min "$SNAPSHOT")
+COMMIT_AGE=""
+GIT_FAULT=""
+case "$COMMIT_READ" in
+    GITFAULT*) GIT_FAULT="${COMMIT_READ#GITFAULT }" ;;
+    *) COMMIT_AGE="$COMMIT_READ" ;;
+esac
+COMMIT_DESC=$(fmt_min "$COMMIT_AGE")
+[ -z "$GIT_FAULT" ] || COMMIT_DESC="UNREADABLE (git: ${GIT_FAULT})"
 DEPLOY_AGE=$(deploy_age_min)
 SIGNOFF=$(cycle_signoff)
 DEGRADED_SRC=$(cycle_degraded_sources "$SIGNOFF")
 PUBLISHED=$(cycle_published "$SIGNOFF")
-PIPELINE="last cycle output $(fmt_min "$LOCAL_AGE"), last data commit $(fmt_min "$COMMIT_AGE"), last successful deploy $(fmt_min "$DEPLOY_AGE")"
+
+mapfile -t CS < <(cycle_status)
+CS_KIND="${CS[0]:-UNREADABLE}"  # the reader printing nothing at all is a failed read, not an absent file
+CS_AGE="${CS[1]:-}"; CS_RC="${CS[2]:-}"; CS_FAILS="${CS[3]:-0}"
+CS_SINCE="${CS[4]:-}"; CS_STAGE="${CS[5]:-}"; CS_ERROR="${CS[6]:-}"
+CYCLE_RECENT=0
+CYCLE_FAILING=0
+if [ "$CS_KIND" = OK ]; then
+    if [ "$CS_AGE" -lt "$WARN_MIN" ]; then CYCLE_RECENT=1; fi  # a run inside the window three missed cycles span
+    if [ "$CS_FAILS" -gt 0 ]; then CYCLE_FAILING=1; fi
+fi
+# a failing streak ends with no sign-off, so any sign-off in the log predates it and is not this story
+if [ "$CYCLE_FAILING" -eq 1 ]; then DEGRADED_SRC=""; fi
+
+PIPELINE="last cycle output $(fmt_min "$LOCAL_AGE"), last data commit ${COMMIT_DESC}, last successful deploy $(fmt_min "$DEPLOY_AGE")"
+case "$CS_KIND" in
+    OK) PIPELINE="${PIPELINE}, last cycle run finished $(fmt_min "$CS_AGE") ago with exit ${CS_RC}" ;;
+    UNREADABLE) PIPELINE="${PIPELINE}, cycle status file ${CYCLE_STATUS} UNREADABLE" ;;
+    *) : ;;  # no status file: an install that predates it, nothing to report
+esac
 if [ -n "$DEGRADED_SRC" ]; then
     PIPELINE="${PIPELINE}, last cycle DEGRADED (${DEGRADED_SRC})"
     [ "$PUBLISHED" -eq 1 ] || PIPELINE="${PIPELINE}, and published nothing"
@@ -294,10 +362,17 @@ else
     STREAK=$((STREAK + 1))
     if [ "$STREAK" -lt "$FAIL_STREAK" ]; then
         log "mirror unreadable (${STREAK}/${FAIL_STREAK} consecutive); treating as transient, no alert. ${PIPELINE}"
-        [ "$DRY_RUN" -eq 1 ] || write_state "$ST_VERDICT" "$STREAK" "$ST_LASTALERT" "$ST_LASTAGE"
+        [ "$DRY_RUN" -eq 1 ] || write_state "$ST_VERDICT" "$STREAK" "$ST_LASTALERT" "$ST_LASTAGE" "$ST_SINCE"
         exit 0
     fi
     VERDICT=UNREACHABLE
+fi
+
+# when the current verdict began; a legacy state line has no such column, so its clock restarts once
+if [ "$VERDICT" = "$ST_VERDICT" ] && [ "$ST_SINCE" -gt 0 ]; then
+    SINCE="$ST_SINCE"
+else
+    SINCE="$NOW"
 fi
 
 # Cause attribution: a stale mirror is only a publish-path fault when local output is current.
@@ -305,7 +380,13 @@ CAUSE=""
 if [ "$VERDICT" = UNREACHABLE ]; then
     CAUSE="the mirror or the network path to it is down, so its freshness cannot be confirmed"
 elif [ "$VERDICT" != FRESH ]; then
-    if [ -n "$DEGRADED_SRC" ] && [ "$PUBLISHED" -eq 1 ]; then
+    RUN_WORD=runs
+    [ "$CS_FAILS" != 1 ] || RUN_WORD=run
+    if [ "$CYCLE_FAILING" -eq 1 ] && [ "$CYCLE_RECENT" -eq 1 ]; then
+        CAUSE="the data cycle is running but failing every run for ${CS_FAILS} ${RUN_WORD} since ${CS_SINCE:-an unrecorded time} (stage ${CS_STAGE:-unknown}): ${CS_ERROR:-no error line was recorded}"
+    elif [ -n "$GIT_FAULT" ]; then
+        CAUSE="git cannot read the repository history (${GIT_FAULT}), so no data commit can land"
+    elif [ -n "$DEGRADED_SRC" ] && [ "$PUBLISHED" -eq 1 ]; then
         # the cycle IS running and IS publishing; one upstream is not answering. Saying "the cron
         # or its host is down" here would send an operator to the wrong place entirely.
         CAUSE="the cycle is running and publishing what it can, but a source is not refreshing (${DEGRADED_SRC})"
@@ -313,6 +394,8 @@ elif [ "$VERDICT" != FRESH ]; then
         # the cycle ran and signed off without reaching the publish path, because the sources it
         # needed did not answer. Still upstream, still not the cron, but nothing new was published.
         CAUSE="the cycle is running but a source is not refreshing (${DEGRADED_SRC}), so it had nothing new to publish"
+    elif { [ -z "$LOCAL_AGE" ] || [ "$LOCAL_AGE" -ge "$WARN_MIN" ]; } && [ "$CYCLE_RECENT" -eq 1 ]; then
+        CAUSE="the data cycle is running and exiting cleanly (last run $(fmt_min "$CS_AGE") ago), yet its local output is not refreshing"
     elif [ -z "$LOCAL_AGE" ] || [ "$LOCAL_AGE" -ge "$WARN_MIN" ]; then
         CAUSE="the data cycle is not producing fresh local output, so the cron or its host is down"
     elif [ -n "$COMMIT_AGE" ] && [ "$COMMIT_AGE" -ge "$WARN_MIN" ]; then
@@ -380,9 +463,9 @@ if [ -n "$POST_TEXT" ]; then
 fi
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    log "DRY-RUN: state left at ${ST_VERDICT} ${ST_STREAK} ${ST_LASTALERT} ${ST_LASTAGE}"
+    log "DRY-RUN: state left at ${ST_VERDICT} ${ST_STREAK} ${ST_LASTALERT} ${ST_LASTAGE} ${ST_SINCE}"
 else
-    write_state "$VERDICT" "$STREAK" "$LASTALERT" "$LASTAGE"
+    write_state "$VERDICT" "$STREAK" "$LASTALERT" "$LASTAGE" "$SINCE"
 fi
 
 # --- Backup health. backup.sh writes status.json on every exit path and restore-drill.sh writes
@@ -410,13 +493,16 @@ check_backup_health() {
     fi
     log "backup health: verdict=${bverdict} newest=$(fmt_min "$age") last_run=${last_verdict:-none} floor=${BACKUP_STALE_MIN}min"
 
-    local st_verdict st_lastalert
-    st_verdict=OK; st_lastalert=0
+    local st_verdict st_lastalert st_since since
+    st_verdict=OK; st_lastalert=0; st_since=0
     if [ -f "$BACKUP_STATE_FILE" ]; then
-        read -r st_verdict st_lastalert < "$BACKUP_STATE_FILE" || true  # short/absent line: keep the defaults above
+        read -r st_verdict st_lastalert st_since _ < "$BACKUP_STATE_FILE" || true  # short/absent line: keep the defaults above
         [[ "${st_verdict:-}" =~ $word_re ]] || st_verdict=OK
         st_lastalert=$(printf '%s' "${st_lastalert:-0}" | command tr -cd '0-9'); st_lastalert="${st_lastalert:-0}"
+        st_since=$(printf '%s' "${st_since:-0}" | command tr -cd '0-9'); st_since="${st_since:-0}"
     fi
+    since="$NOW"
+    if [ "$bverdict" = "$st_verdict" ] && [ "$st_since" -gt 0 ]; then since="$st_since"; fi
 
     local text alerted
     text=""; alerted="$st_lastalert"
@@ -442,9 +528,9 @@ check_backup_health() {
     fi
     if [ "$bverdict" != FAIL ]; then alerted=0; fi
     if [ "$DRY_RUN" -eq 1 ]; then
-        log "DRY-RUN: backup state left at ${st_verdict} ${st_lastalert}"
+        log "DRY-RUN: backup state left at ${st_verdict} ${st_lastalert} ${st_since}"
     else
-        printf '%s %s\n' "$bverdict" "$alerted" > "${BACKUP_STATE_FILE}.tmp" \
+        printf '%s %s %s\n' "$bverdict" "$alerted" "$since" > "${BACKUP_STATE_FILE}.tmp" \
             && command mv "${BACKUP_STATE_FILE}.tmp" "$BACKUP_STATE_FILE"
     fi
     [ "$bverdict" = OK ]

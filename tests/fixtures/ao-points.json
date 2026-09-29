@@ -1,0 +1,18 @@
+{
+  "note": "Shared by tests/ao-area.test.js and tests/fetch-snapshot.test.py so the JS and Python AO rules are held to one list of verdicts against the shipped data/event.json.",
+  "points": [
+    { "name": "Houston", "lat": 29.76, "lon": -95.37, "inAo": true },
+    { "name": "El Paso", "lat": 31.76, "lon": -106.49, "inAo": true },
+    { "name": "Brownsville", "lat": 25.90, "lon": -97.50, "inAo": true },
+    { "name": "INGA4 Red River at Index, Arkansas side near Texarkana", "lat": 33.551944, "lon": -94.041111, "inAo": true },
+    { "name": "FLTA4 Red River at Fulton, Arkansas, 13.7 mi out", "lat": 33.6073, "lon": -93.8138, "inAo": true },
+    { "name": "LPTL1 Sabine River at Logansport, Louisiana side", "lat": 31.972222, "lon": -94.006111, "inAo": true },
+    { "name": "TRLO2 Red River near Terral, Oklahoma side", "lat": 33.878711, "lon": -97.93448, "inAo": true },
+    { "name": "Nuevo Laredo, inside the buffer, which applies on both sides of the line", "lat": 27.48, "lon": -99.52, "inAo": true },
+    { "name": "Seiling, Oklahoma", "lat": 36.15, "lon": -98.93, "inAo": false },
+    { "name": "CPDN5 Pecos River at Carlsbad, New Mexico", "lat": 32.409275, "lon": -104.2149722, "inAo": false },
+    { "name": "Sabinas, Coahuila, 58 mi past the Rio Grande", "lat": 27.85, "lon": -101.12, "inAo": false },
+    { "name": "SVPL1 Red River at Shreveport, Louisiana, 17.6 mi out", "lat": 32.515278, "lon": -93.740278, "inAo": false },
+    { "name": "HRGA4 Little River at Horatio, Arkansas, 19.4 mi out", "lat": 33.919444, "lon": -94.3875, "inAo": false }
+  ]
+}

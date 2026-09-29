@@ -392,6 +392,66 @@ check('recovery fills a gap and keeps the source frame\'s own provenance',
 check('recovered frames are merged in time order',
       [f['t'] for f in native] == sorted(f['t'] for f in native))
 
+# --- an impossible stage is no reading, and the category NWPS sent with it is void ------------
+# NWPS published SEIO2 at 10000030 ft "major"; the frames carried it and the playback drew it.
+snap_dt = datetime(2026, 9, 3, 1, 23, tzinfo=timezone.utc)
+
+
+def stage_row(lid, primary, cat):
+    return {'lid': lid, 'name': lid, 'latitude': 30.0, 'longitude': -97.0,
+            'status': {'observed': {'primary': primary, 'floodCategory': cat, 'validTime': iso(snap_dt)}}}
+
+
+frame = GH.frame_from({'gauges': [
+    stage_row('SEIO2', 10000030, 'major'), stage_row('SGET2', 10000000, 'major'),
+    stage_row('LOWT2', -999, 'major'), stage_row('NEGT2', -696.32, 'no_flooding'),
+    stage_row('LAKET2', 681.2, 'no_flooding'), stage_row('RIVT2', 14.6, 'minor')]}, snap_dt, {})
+check('STAGE · a frame keeps real readings, a reservoir elevation among them',
+      frame.get('LAKET2') == [681.2, 0] and frame.get('RIVT2') == [14.6, 2], str(frame))
+check('STAGE · a frame drops 10000030 / 10000000 "major", the -999 sentinel and a -696 ft stage',
+      not ({'SEIO2', 'SGET2', 'LOWT2', 'NEGT2'} & set(frame)), str(frame))
+
+gap = [{'t': '2026-07-20T00:00:00Z', 'gauges': {'A': [1.0, 0]}, '_dt': datetime(2026, 7, 20, tzinfo=timezone.utc)}]
+GH.merge_gap_frames(gap, {}, {'frames': [
+    {'t': '2026-07-19T00:00:00Z', 'gauges': {'A': [10000000, 4], 'B': [5.5, 1]}, 'src': 'nwps'},
+    {'t': '2026-07-18T00:00:00Z', 'gauges': {'A': [10000030, 4]}, 'src': 'nwps'}]}, 'git')
+check('STAGE · a recovered frame is read without its impossible entries, its real ones kept',
+      [f['gauges'] for f in gap] == [{'B': [5.5, 1]}, {'A': [1.0, 0]}], str(gap))
+
+lo, hi = datetime(2026, 9, 1, tzinfo=timezone.utc), datetime(2026, 9, 4, tzinfo=timezone.utc)
+pts = GH.observed_points([{'validTime': '2026-09-02T22:00:00Z', 'primary': 10000030},
+                          {'validTime': '2026-09-02T22:30:00Z', 'primary': -9999},
+                          {'validTime': '2026-09-02T23:00:00Z', 'primary': 3.61}], lo, hi)
+check('STAGE · the reconstruction series keeps only readings a river can make',
+      [p[1] for p in pts] == [3.61], str(pts))
+
+stage_tmp = tempfile.mkdtemp(prefix='gen-history-stage.')
+try:
+    srepo = make_repo(stage_tmp)
+    for n, bad in enumerate((12.0, 10000030, 12.4)):
+        stamp = iso(BASE + timedelta(minutes=20 * n))
+        cap = capture(n)
+        cap['gauges'][0]['status']['observed'].update(primary=bad, floodCategory='major' if bad > 1e6 else 'minor')
+        with open(os.path.join(srepo, 'data', 'event.json'), 'w', encoding='utf-8') as f:
+            json.dump({'name': 'fixture', 'start': '2026-07-22T00:00:00Z', 'gaugeBbox': WIDE}, f)
+        with open(os.path.join(srepo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+            json.dump(cap, f)
+        git(srepo, 'add', 'data/event.json', 'data/gauges-capture.json')
+        git(srepo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'stage %d' % n)
+    rs = run_gen(srepo)
+    check('STAGE · the run over a capture holding 10000030 "major" exits 0', rs.returncode == 0, rs.stderr[-400:])
+    sframes = history(srepo)['frames']
+    bad_lid = SITES[0][0]
+    check('STAGE · every capture still yields its frame; the junk reading is simply absent from it',
+          len(sframes) == 3 and bad_lid not in sframes[1]['gauges'] and len(sframes[1]['gauges']) == 3,
+          str([sorted(f['gauges']) for f in sframes]))
+    check('STAGE · no published frame carries a stage outside the physical envelope',
+          all(-300 < v[0] < 25000 for f in sframes for v in f['gauges'].values()))
+except Bail as e:
+    check(str(e), False)
+finally:
+    shutil.rmtree(stage_tmp, ignore_errors=True)
+
 # --- the bounded compatibility view (v0.98.9) -------------------------------
 # data/history.json is rewritten in full every 15-minute cycle, so an unbounded one costs the
 # whole archive in git every cycle. It is bounded instead, and must SAY it is bounded: a partial

@@ -12,7 +12,8 @@ suspended or mid-task).
 
 | Script | Purpose |
 | --- | --- |
-| `fetch-snapshot.py` | One NWPS request at `captureBbox` → `data/gauges-capture.json` (full statewide capture, the durable archive) **and** `data/gauges-snapshot.json` (that capture filtered to `gaugeBbox`, the display-scoped public cold-start file). Both compact `{generated, bbox, gauges:[{lid,name,latitude,longitude,status}]}`. Aborts non-zero on HTTP error or a partial response so a bad fetch never overwrites good files: a same-bbox refresh must return at least half that file's previous count, a bbox re-target only has to clear the absolute floor of 25. Both files are validated before either is written. Writes atomically (temp file + rename). |
+| `fetch-snapshot.py` | One NWPS request at `captureBbox` → `data/gauges-capture.json` (full statewide capture, the durable archive) **and** `data/gauges-snapshot.json` (that capture clipped to `gaugeBbox` and the `aoArea` outline plus its border buffer, the display-scoped public cold-start file). Both compact `{generated, bbox, gauges:[{lid,name,latitude,longitude,status}]}`. Aborts non-zero on HTTP error or a partial response so a bad fetch never overwrites good files: a same-scope refresh must return at least half that file's previous count, a bbox or aoArea re-target only has to clear the absolute floor of 25. A partial capture writes neither file; a display scope under its floor keeps the previous display file but still writes the capture. Writes atomically (temp file + rename). |
+| `aoarea.py` | The display AO rule (inside `gaugeBbox`, then inside the `event.json` `aoArea` outline or within its `bufferMi`), imported by `fetch-snapshot.py`, `gen-crest-summary.py` and `cycle-check.sh`. Twin of `js/core.js` `aoContains()`; `tests/ao-area.test.js` holds both to one set of verdicts. |
 | `gen-roads-snapshot.py` | Archive the DriveTexas road-closure set → `data/roads-capture.json` (statewide) **and** `data/roads-snapshot.json` (filtered to `gaugeBbox`), same capture-vs-display split as the gauge fetch (best-effort; keeps prior files on fetch failure). |
 | `rescue-nwps.py` | One-shot recovery: pull the NWPS 30-day observed buffer for every lid ever seen in this repo → `archive/recovered/nwps-30d/<LID>.json.gz` + `_manifest.json`. Not part of the cycle. |
 | `gen-history.py` | Walk the committed `gauges-capture.json` history (falling back to `gauges-snapshot.json` before the capture split), merge the `archive/recovered/` blobs, reconstruct the pre-archive window → `history/index.json` + content-hashed immutable `history/day/*.json`, plus `data/history.json` as a bounded compatibility copy and `data/gauge-meta.json`. Retains every gauge; applies display scope once, at publish time. |
@@ -20,15 +21,15 @@ suspended or mid-task).
 | `gen-shelters.py` | Live shelter status → `data/shelters-live.json`. Publishes OPEN only where a source states it. |
 | `gen-crossings-status.py` | Jurisdiction-reported low-water-crossing status → `data/crossing-status.json`. Only non-open rows publish, because the feed timestamps a record change rather than a confirmation. |
 | `gen-wildfire.py` | Reported wildfire incidents from Texas A&M Forest Service and NIFC WFIGS → `data/wildfire.json`. Points, never perimeters. Each source publishes its own `ok`/`failed` status and its own upstream capture stamp, so an empty-but-valid read (the normal Texas state for most of the year) is distinguishable from a read that failed. Unreported acreage and containment publish as `null`, never as `0`. |
-| `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`. |
+| `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`, and the listing is also clipped to the `aoArea`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
-| `cycle-check.sh` | Pre-commit validation bundle, seventeen gating checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, out-of-cycle artifact age, hazard allowlist agreement, cron bootstrap sanity, and the export completeness claim. It also prints one advisory `NOTE`/`WARN` on revival-tick cadence, which is scheduler config and deliberately outside the gate count. That advisory compares three live sources rather than a written-down constant: the armed cron, the watchdog's stall threshold, and the gate's quiet window. It reports the tick interval and daily fire count, and warns if the stall threshold has fallen below the tick interval or if the tick is armed for hours the gate can only refuse. |
+| `cycle-check.sh` | Pre-commit validation bundle, eighteen gating checks: JSON validity, JS syntax, version agreement, feed freshness, snapshot sanity, staged-file guard, 911-gate Escape immunity, the event-config brand hook, chat-cursor monotonicity, the data-contract schemas, the 911 footer on every lens, the USGS bbox area cap, the offline warm depth, out-of-cycle artifact age, hazard allowlist agreement, cron bootstrap sanity, the export completeness claim, and the AO area (the `aoArea` outline parses, every region anchor sits inside it, and the clipped display keeps enough gauges for `fetch-snapshot.py` to publish; warn-only in the data lane). It also prints one advisory `NOTE`/`WARN` on revival-tick cadence, which is scheduler config and deliberately outside the gate count. That advisory compares three live sources rather than a written-down constant: the armed cron, the watchdog's stall threshold, and the gate's quiet window. It reports the tick interval and daily fire count, and warns if the stall threshold has fallen below the tick interval or if the tick is armed for hours the gate can only refuse. |
 | `deploy.sh` | Version-agreement pre-flight → test gate at HEAD (`node --test`, the python suites, the shell suites, `cycle-check.sh`) → `git push` → build stripped archive (drops `js/chat.js` + `js/master.js`, empty chat-outbox) → `wrangler pages deploy` → live smoke. The strip gate asks for every stripped path twice: cache-busted (the origin, and the pass/fail condition) and plain (the CDN edge, warned about by name but never fatal, since a zone-level cache rule is dashboard config a deploy cannot fix). Staging is a fresh `mktemp -d` per run, removed on every exit path, so the cron deploy and a hand-run deploy can never share a directory; set `RESPONDER_DEPLOY_DIR` to pin the path and keep the artifact for inspection (the caller then owns it, and two runs pointed at one path can still collide). |
 | `run-cycle.sh` | **The durable cycle runner** — orchestrates all of the above. |
 | `chat-poll.sh` | **The durable ops-chat processor** — instant auto-ack + tightly-scoped headless `claude -p`. |
 | `chat-watchdog.sh` | **The stall watchdog** — build-capable auto-recovery when the in-session revival goes dark. See "Stall watchdog". |
-| `tick-gate.sh` | **Admission control for the revival tick** — a zero-LLM verdict (`INBOX` / `BACKLOG` / `IDLE`) the tick reads before doing anything else. See "Tick gate". |
+| `tick-gate.sh` | **Admission control for the revival tick** — a zero-LLM verdict (`INBOX` / `ALERT` / `BACKLOG` / `IDLE`) the tick reads before doing anything else. See "Tick gate". |
 | `tick-burn.py` | Measures what the revival tick actually costs, attributing model requests and tokens from the session transcripts to the tick that caused them. Reports cache-read per tick and, more usefully, per request. Read-only, never published (`deploy.sh` asserts `scripts/` is absent from the artifact), and reports `UNKNOWN` with exit 3 rather than zero when no transcripts can be read. |
 | `freshness-monitor.sh` | **The public-mirror freshness monitor**: fetches respondertx.org's gauge snapshot over the network, ages its embedded stamp, cross-checks local pipeline health, and alerts the ops chat. See "Freshness monitor". |
 | `install-cron.sh` | Idempotent installer/uninstaller for the data-cycle, chat-poll, stall-watchdog, **and** freshness-monitor system-cron entries. |
@@ -225,9 +226,10 @@ Exit codes:
 | `3` | **published, but degraded**: some sources did not refresh |
 | other | `deploy.sh`'s own exit code, propagated after a successful commit+push |
 
-`freshness-monitor.sh` reads the degraded verdict out of the cycle log and, when
-the mirror is stale because a source is not answering, says so instead of
-blaming a dead cron. Coverage lives in `tests/run-cycle.test.sh`.
+`freshness-monitor.sh` reads the degraded verdict out of the cycle log and the
+last run's outcome out of the cycle status file (below), and, when the mirror is
+stale because a source is not answering or the cycle itself is failing, says so
+instead of blaming a dead cron. Coverage lives in `tests/run-cycle.test.sh`.
 
 ### Lock (flock)
 
@@ -245,6 +247,39 @@ Everything (this script plus every subprocess) is tee'd to
 to `/tmp/responder-cycle.log` if `/var/log` is not writable). Each line is
 UTC-timestamped. The cron entry sends its own stdout to `/dev/null` because the
 script already persists the durable copy — tail the logfile to watch cycles.
+
+### Cycle status file
+
+A sign-off line only exists when a cycle reaches `cycle_end()`. From 2026-09-05
+to 2026-09-28 a crash-corrupted `refs/heads/main` failed every run at the
+materialize step, no run ever signed off, and the freshness monitor, reading
+only sign-offs and data ages, blamed a dead cron 609 times while the cron ran
+every 15 minutes. So every run that gets past the lock now records its outcome,
+from an `EXIT` trap, whatever path it exits by:
+
+```json
+{
+  "finished_at": "2026-09-28T12:08:31Z",
+  "finished_epoch": 1790597311,
+  "exit_code": 1,
+  "stage": "materialize",
+  "first_error": "ERROR: could not materialize HEAD scripts/ at /tmp/responder-pipeline.Ab12Cd: fatal: invalid reference: HEAD (--allow-dirty-code runs the working tree instead)",
+  "consecutive_failures": 2300,
+  "failing_since": "2026-09-05T01:23:04Z"
+}
+```
+
+- Path: `/var/log/responder-cycle-status.json`, falling back to
+  `/tmp/responder-cycle-status.json` when `/var/log` is not writable, overridable
+  with `RESPONDER_CYCLE_STATUS`. Written to a temp file and renamed into place.
+- `stage` is the last stage entered: `lock`, `materialize`, `generators`,
+  `validate`, `commit`, `deploy`, `nudge`, or `signoff` for a run that signed off.
+- `first_error` is the first `ERROR:` line the run logged, else its last logged
+  line; `null` on success. A materialize failure quotes git's own `fatal:` line.
+- `consecutive_failures` counts runs in a row that exited with anything other
+  than `0` or `3`, and `failing_since` is when that streak began. Exit `0` and
+  exit `3` (published, degraded) reset both.
+- A lock `SKIP` and a `--dry-run` are not runs and never touch the file.
 
 ## Capture bbox vs display bbox
 
@@ -492,13 +527,40 @@ cron's hour field mirrors the quiet window rather than running 24h.
 | Verdict | Meaning |
 | --- | --- |
 | `INBOX <n>` | n unprocessed owner messages. Drain and act. **Never suppressed.** |
+| `ALERT <what> <detail>` | A monitored fault has held past its threshold, e.g. `ALERT freshness CRITICAL for 75m since 2026-09-28T10:13Z` or `ALERT backup FAIL for 130m since …`. Diagnose and fix it before anything else. The slot is claimed as it is reported. |
 | `BACKLOG` | Inbox clear and a discretionary work slot was available. The slot is claimed as it is reported. |
 | `IDLE <why>` | Stop immediately, before reading anything else. |
 
+Priority is `INBOX`, then `ALERT`, then `BACKLOG`, then `IDLE`. Line 2 carries the
+evidence; when a held fault is being rate-limited it is named there on every
+verdict (`freshness CRITICAL held 240m, its next ALERT slot in 60m`), so a tick
+that stops still sees it.
+
+`ALERT` exists because of 2026-09-05..28: the freshness monitor posted a CRITICAL
+alert to the ops chat every hour for 24 days, nobody acted, and a tick that did
+fire could only answer `IDLE`. The gate reads the two state files the monitor
+already keeps, `RESPONDER_MONITOR_STATE` (the mirror verdict, whose fifth column
+is when it began) and `RESPONDER_BACKUP_STATE` (the backup verdict, third
+column), at the same default paths the monitor writes; `tests/tick-gate.test.sh`
+asserts the two scripts agree on those paths and that the gate parses what the
+monitor really writes.
+
+- **Conditions**: the mirror verdict `CRITICAL`, and the backup verdict `FAIL`.
+  Freshness outranks backup when both hold; the other gets the next tick.
+- **Threshold** (`RESPONDER_TICK_ALERT_AFTER_MIN`, default 60): a fault younger
+  than this is left to the monitor's own ops-chat alert. A state line written
+  before the start column existed never raises `ALERT` until the monitor rewrites
+  it, which it does on its next run.
+- **Per-condition cooldown** (`RESPONDER_TICK_ALERT_COOLDOWN`, default 3h): at
+  most one `ALERT` slot per condition per window, recorded in
+  `data/.tick-gate-alert-state` (`RESPONDER_TICK_ALERT_STATE`, git-ignored, one
+  `<condition> <epoch>` line each). Across the 16 active hours a fault the tick
+  cannot fix therefore costs at most six working ticks a day, not all 32.
+
 Deciding "no backlog item is ready" is itself the expensive part of a tick, so
-the rate limit binds *before* that decision rather than after it: a `BACKLOG`
-verdict claims the slot under a `flock` as it reports it, whether or not the tick
-goes on to ship. `--peek` reports without claiming.
+the rate limit binds *before* that decision rather than after it: a `BACKLOG` or
+`ALERT` verdict claims its slot under a `flock` as it reports it, whether or not
+the tick goes on to ship. `--peek` reports without claiming.
 
 Throttles, all env-overridable, none of which can delay an owner message:
 
@@ -509,12 +571,15 @@ Throttles, all env-overridable, none of which can delay an owner message:
   tokens against a gated tick's 776k, so each slot removed is worth roughly nine
   idle ones.
 - **Quiet hours** (`RESPONDER_TICK_QUIET_START` / `_END`, default 01:00-09:00
-  local) pause discretionary work only. The window may wrap midnight; equal
-  values disable it.
+  local) pause discretionary work and `ALERT` alike; a held fault waits for the
+  first active-hours tick. The window may wrap midnight; equal values disable it.
 - **Drain marker** (`data/.chat-drain-active`), read on the same `DRAIN_STALE`
-  clock the watchdog uses, so two actors never drain the same message.
-- **Override**: `touch data/.tick-gate-off` bypasses quiet hours and the cooldown
-  and restores continuous discretionary work.
+  clock the watchdog uses, so two actors never drain the same message. It defers
+  `ALERT` too: the draining session is already live in the repo.
+- **Override**: `touch data/.tick-gate-off` bypasses quiet hours, the backlog
+  cooldown and the `ALERT` cooldown, and restores continuous work. It is a
+  throttle bypass, not a kill switch: with it present, a held fault raises
+  `ALERT` on every tick.
 
 The inbox check runs first and outranks every throttle, so the throttles trade
 away only self-directed work, never responsiveness to the owner. An owner message
@@ -605,13 +670,27 @@ Each run:
    (3 missed cycles), **CRITICAL at 90 min** (6 missed cycles).
 2. **Reads local pipeline health**: the age of the local cycle output
    (`data/gauges-snapshot.json`), the age of the last commit touching it, the
-   last `deploy OK` in the cycle log, and the cycle's **last sign-off**.
-3. **Attributes the fault** from those two halves. A degraded sign-off means a
-   source is not refreshing, and it outranks every local reading, because the
-   cycle plainly ran. Otherwise: local output stale means the cycle or its host is
-   down; local output fresh but the commit not landing means the commit and push
-   path broke; both current with a stale mirror means the publish path (deploy or
-   Cloudflare) is at fault.
+   last `deploy OK` in the cycle log, the cycle's **last sign-off**, and the
+   **cycle status file** (see "Cycle status file" under the cycle section).
+3. **Attributes the fault** from those two halves, in this order:
+   - A **recent run that failed** (a status record inside the 45-minute warn
+     window with `consecutive_failures` above 0) outranks everything: *the data
+     cycle is running but failing every run for N runs since T (stage S):
+     first error*. A failing run never signs off, so any sign-off still in the
+     log predates the streak and is dropped from the alert.
+   - **git failing to read history** (`git log` exiting non-zero) is named as
+     *git cannot read the repository history (fatal: …)*, and the pipeline line
+     says `last data commit UNREADABLE (git: …)`. It is never "unknown": a
+     failed read is not an absence.
+   - A **degraded sign-off** means a source is not refreshing, because the cycle
+     plainly ran.
+   - **Local output stale**: if a run finished inside the warn window and exited
+     cleanly, *the data cycle is running and exiting cleanly … yet its local
+     output is not refreshing*. Only when the status file is absent or its last
+     run is older than that does it say the cron or its host is down.
+   - Local output fresh but the commit not landing means the commit and push
+     path broke; both current with a stale mirror means the publish path (deploy
+     or Cloudflare) is at fault.
 
    The sign-off is `run-cycle.sh`'s `cycle_end()`, which is the single exit point
    for **four** messages, one per publishing path:
@@ -653,14 +732,18 @@ Fail-safe and quiet by construction:
   because the monitor posts a recovery notice, which makes silence after an alert
   read as recovery: on 2026-07-29 one CRITICAL verdict held for 5h while the
   staleness went 95 to 305 min, and the flat gap kept all 20 checks silent.
-- **No prior state is normal.** A missing state file, missing outbox, missing
-  cycle log, or missing git history all degrade to "unknown" and never fabricate
-  an alert or crash (upgrade path from any earlier version).
+- **No prior state is normal; a failed read is not.** A missing state file,
+  outbox, cycle log or cycle status file, or a snapshot path with no commit yet,
+  degrades to "unknown" (or is simply left out) and never fabricates an alert or
+  crashes (upgrade path from any earlier version). A status file that exists but
+  cannot be parsed is reported as `UNREADABLE`, and `git log` failing is
+  reported as `UNREADABLE (git: …)`, because those are faults, not absences.
 - Single-flight `flock` on `/tmp/responder-freshness-monitor.lock`; state in
   `/tmp/responder-freshness-state`
-  (`verdict streak last_alert_epoch last_alert_age_min`), where a reboot reset
-  costs at most one extra alert. A pre-upgrade 3-field line is read, with the
-  missing age column defaulting to 0.
+  (`verdict streak last_alert_epoch last_alert_age_min verdict_since_epoch`),
+  where a reboot reset costs at most one extra alert. Shorter pre-upgrade lines
+  are read with the missing columns at 0; a missing start column restarts that
+  verdict's clock once. `tick-gate.sh` reads the start column (see "Tick gate").
 
 Flags and tunables: `--dry-run` computes and logs the verdict, writing neither
 the outbox nor the state file (use it to check the board by hand). Exit code is
@@ -668,7 +751,9 @@ the outbox nor the state file (use it to check the board by hand). Exit code is
 `RESPONDER_MONITOR_URL`, `_WARN_MIN`, `_CRIT_MIN`, `_FAIL_STREAK`, `_COOLDOWN`,
 `_CRIT_COOLDOWN`, `_ESCALATE_FACTOR`, `_TIMEOUT`, `_STATE`, `_LOCK`, `_LOG`,
 `_OUTBOX`, `_SNAPSHOT`, plus
-`RESPONDER_CYCLE_LOG` for the deploy-history read. Log tees to
+`RESPONDER_CYCLE_LOG` for the deploy-history read and `RESPONDER_CYCLE_STATUS`
+for the last-run record (unset, it reads `/var/log/responder-cycle-status.json`,
+or the `/tmp` fallback when that is absent). Log tees to
 `/var/log/responder-freshness.log` (falls back to `/tmp`).
 
 ### Backup health rides along here
@@ -691,7 +776,8 @@ backup itself recorded, so the message names the real cause rather than just the
 symptom.
 
 It keeps its own state file (`RESPONDER_BACKUP_STATE`, default
-`/tmp/responder-backup-health-state`, holding `verdict last_alert_epoch`),
+`/tmp/responder-backup-health-state`, holding
+`verdict last_alert_epoch verdict_since_epoch`),
 deliberately separate from the mirror state so neither condition can mask the
 other, and it is transition-gated with its own cooldown
 (`RESPONDER_BACKUP_COOLDOWN`, default 6h) and posts one recovery notice when it
@@ -706,6 +792,9 @@ the three local ages, then act on the cause line it prints:
 
 | Alert says | Do this |
 | --- | --- |
+| the data cycle is running but failing every run | The cron is fine; every run dies. The alert quotes the stage and the first error, and `/var/log/responder-cycle-status.json` holds the same record. For stage `materialize` the fault is git: run `git rev-parse HEAD` and `git fsck` in the repo. A branch ref emptied by a crash is repaired by pointing it back at the right commit (`git update-ref refs/heads/main <sha>`) only after confirming that commit against `git ls-remote origin main` and the reflog. Then run `scripts/run-cycle.sh` by hand and confirm the status file shows `consecutive_failures: 0`. |
+| git cannot read the repository history | Same repair as a `materialize` failure above. This fires when the monitor has no recent cycle record to quote, so also check that the cron is still running. |
+| the data cycle is running and exiting cleanly, yet its local output is not refreshing | A generator is reporting success without writing fresh data. `grep 'step: fetch-snapshot' -A5 /var/log/responder-cycle.log \| tail -20` and compare the snapshot's `generated` stamp with the run times. |
 | the data cycle is not producing fresh local output | `tail -50 /var/log/responder-cycle.log`, confirm the cron is still installed (`crontab -l`), clear a stale `/tmp/responder-cycle.lock` if a run died holding it, then `scripts/run-cycle.sh` by hand. |
 | the cycle is running and publishing what it can, but a source is not refreshing | The pipeline is healthy; one upstream is not. `grep 'WARN:\|SKIP:' /var/log/responder-cycle.log \| tail -20` names it. For an NWPS `429` this usually clears itself, so confirm nothing local is hammering the API (see "Browser verification" in `tests/README.md`) and let the next cycle retry. |
 | the cycle is running but a source is not refreshing, so it had nothing new to publish | Same upstream story, one step worse: enough sources failed that no data file changed, so the cycle signed off without committing or deploying and the mirror is frozen at the last good publish. Still not the cron. `grep '=== ' /var/log/responder-cycle.log \| tail -5` shows the sign-off, `grep 'WARN:\|SKIP:' /var/log/responder-cycle.log \| tail -20` names the sources. If it persists past a few cycles the upstream outage is broad; check the source's own status page before touching anything local. |
@@ -718,8 +807,12 @@ Test coverage lives in `tests/freshness-monitor.test.sh` (fresh, stale, transien
 failure, streak, cooldown, fresh-install, recovery, plus all four sign-off forms
 degraded and clean, and a mid-run `cycle start` banner; then backup health:
 healthy, a run that refused, a stale manifest behind an `OK` verdict, cooldown,
-recovery, and an absent backup dir); it uses a `file://` mirror URL and a
-throwaway backup dir, so it never touches the network or the real repo data.
+recovery, and an absent backup dir; then the cycle status file: failing, absent,
+stale, clean-but-stale-output and unreadable; a git history that cannot be read;
+and the verdict-start columns `tick-gate.sh` reads); it uses a `file://` mirror
+URL and a throwaway backup dir, so it never touches the network or the real repo
+data. `tests/run-cycle.test.sh` drives the real writer and reader together
+against a scratch repo whose `refs/heads/main` is emptied the way the crash left it.
 
 ## Disaster recovery (`backup.sh`, `restore-drill.sh`, `hooks/pre-push`)
 

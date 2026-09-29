@@ -80,9 +80,9 @@ most of them directly: the National Weather Service, NOAA's National Water Predi
 Service and River Forecast Centers, the National Hurricane Center and CO-OPS Tides
 &amp; Currents, the U.S. Geological Survey, the Iowa Environmental Mesonet (Iowa State
 University), RainViewer, TxDOT DriveTexas, Esri ArcGIS Online (which hosts the NHC
-tropical layers, the SLOSH surge tiles and DriveTexas), the Texas Geographic
-Information Office, ATX Floods, OpenStreetMap with Nominatim and Overpass, and CARTO
-basemaps. Three exceptions to "directly": gauge hydrographs prefer a same-origin proxy
+tropical layers, the SLOSH surge tiles, DriveTexas and the dark and light basemaps),
+the Texas Geographic Information Office, ATX Floods, and OpenStreetMap with Nominatim
+and Overpass. Three exceptions to "directly": gauge hydrographs prefer a same-origin proxy
 and fall back to NOAA, FEMA National Shelter System data is collected server-side by
 the publishing cycle, and so are the wildfire incidents and perimeters that come from
 the Texas A&amp;M Forest Service and the National Interagency Fire Center (WFIGS).

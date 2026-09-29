@@ -152,7 +152,7 @@ the same origin as the board. Each card names its provenance.
 | Wildfire incidents and mapped perimeters | [Texas A&amp;M Forest Service](https://tfswildfires.com/public/) &#183; [National Interagency Fire Center (WFIGS)](https://data-nifc.opendata.arcgis.com/) | `tfswildfires.com`, `services3.arcgis.com`, collected by the cycle |
 | City, county, port, border and coastal cameras | Houston TranStar, City of Austin, City of Arlington, City of Lubbock, City of Corpus Christi, City of El Paso, City of Laredo, City of Eagle Pass, City of Del Rio, Hays County OES, Port Houston, Port of Galveston, Saltwater Recon, WeatherBug, New Mexico DOT, National Park Service | stills via the same-origin `/api/cam` proxy; live feeds play direct from the operator |
 | Address / place geocoding | [OpenStreetMap Nominatim](https://nominatim.org/) | `nominatim.openstreetmap.org` |
-| Basemap tiles | [CARTO](https://carto.com/basemaps/) &#183; [OpenStreetMap](https://www.openstreetmap.org/copyright) | `basemaps.cartocdn.com`, `tile.openstreetmap.org` |
+| Basemap tiles | [Esri](https://www.esri.com/) &#183; [OpenStreetMap](https://www.openstreetmap.org/copyright) | `server.arcgisonline.com`, `tile.openstreetmap.org` |
 | Map engine | [Leaflet](https://leafletjs.com/) + MarkerCluster | vendored in `js/vendor/`, no CDN |
 
 Curated seed data (assistance requests, resources/shelters/hotlines, and known

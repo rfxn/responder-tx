@@ -105,7 +105,7 @@ test('emergencyBannerMode — after the first load only newly arrived emergencie
 
 const isoMinAgo = (min) => new Date(Date.now() - min * 60000).toISOString();
 const gauge = (floodCategory, minAgo) => ({
-  status: { observed: { floodCategory, validTime: minAgo == null ? undefined : isoMinAgo(minAgo) } },
+  status: { observed: { floodCategory, primary: 8.4, validTime: minAgo == null ? undefined : isoMinAgo(minAgo) } },
 });
 
 test('gaugeObsStale — fresh observation is not stale', () => {

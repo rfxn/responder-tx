@@ -130,7 +130,7 @@ TEAM_RE = re.compile(r'^/api/team/(?:create|' + _TEAM_UUID + r'/(?:join|leave|po
 ADMIN_TTL = 5
 # XSS backstop behind esc() at the innerHTML render sites; keep in sync with _headers (public mirror)
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-       "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com "
+       "img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com "
        "https://mesonet.agron.iastate.edu https://*.rainviewer.com https://tiles.arcgis.com "
        "https://maps.water.noaa.gov https://usgs-nims-images.s3.amazonaws.com; "
        "connect-src 'self' https://api.weather.gov https://api.water.noaa.gov https://maps.water.noaa.gov "
@@ -138,7 +138,7 @@ CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
        "https://services5.arcgis.com https://services9.arcgis.com https://feature.geographic.texas.gov "
        "https://nominatim.openstreetmap.org https://overpass-api.de https://api.tidesandcurrents.noaa.gov "
        "https://usgs-nims-images.s3.amazonaws.com https://tile.openstreetmap.org "
-       "https://*.basemaps.cartocdn.com https://*.skyvdn.com https://zoocams.elpasozoo.org; "
+       "https://server.arcgisonline.com https://*.skyvdn.com https://zoocams.elpasozoo.org; "
        "media-src 'self' blob: https://*.skyvdn.com https://zoocams.elpasozoo.org; "
        "font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; "
        "base-uri 'self'; form-action 'self'; frame-ancestors 'self'")

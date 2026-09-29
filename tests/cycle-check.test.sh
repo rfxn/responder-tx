@@ -778,6 +778,109 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 50-54: the AO area (check r) ------------------------------------
+# Every display consumer falls back to the gaugeBbox rectangle on a malformed aoArea, so a broken
+# outline or one that misses a region would change what the board shows with nothing failing. The
+# check runs the real scripts/aoarea.py + fetch-snapshot.py against the working-tree data.
+ao_fixture() {  # $1 = how data/event.json aoArea should be wrong (or "ok")
+    cp "$REPO_ROOT/scripts/aoarea.py" "$REPO_ROOT/scripts/fetch-snapshot.py" "$REPO/scripts/"
+    python3 - "$REPO" "$REPO_ROOT" "$1" <<'PY'
+import json, os, sys
+repo, src, how = sys.argv[1:4]
+ev = json.load(open(os.path.join(src, "data", "event.json"), encoding="utf-8"))
+area = ev["aoArea"]
+presets = [{"id": "houston", "label": "Houston", "labelEs": "Houston",
+            "bounds": [[29.0, -96.0], [30.5, -94.5]], "anchors": [[29.76, -95.37]]}]
+if how == "twopoint":
+    area = dict(area, polygon=area["polygon"][:2])
+elif how == "nohouston":
+    area = dict(area, polygon=[p for p in area["polygon"] if p[1] < -96.5])
+elif how == "tiny":
+    presets = []
+    area = {"bufferMi": 0, "polygon": [[28.9, -99.05], [28.9, -98.95], [29.25, -98.95], [29.25, -99.05]]}
+json.dump({"gaugeBbox": ev["gaugeBbox"], "aoArea": area, "aoPresets": presets},
+          open(os.path.join(repo, "data", "event.json"), "w"))
+tx = [{"lid": "TX%03d" % i, "latitude": 29.0 + (i % 10) * 0.2, "longitude": -99.0 + (i // 10) * 0.2, "status": {}}
+      for i in range(40)]
+ok = [{"lid": "OK%03d" % i, "latitude": 35.5, "longitude": -98.0 - i * 0.1, "status": {}} for i in range(5)]
+json.dump({"generated": "2026-09-28T00:00:00Z", "gauges": tx + ok},
+          open(os.path.join(repo, "data", "gauges-capture.json"), "w"))
+PY
+    ( cd "$REPO" && git add -A && git commit --quiet -m "AO fixture ($1)" )
+}
+
+setup
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   AO area (no aoArea configured; gaugeBbox is the whole AO)' "$WORK/out"; then
+    pass "50 an event.json with no aoArea is legal: the rectangle is the whole AO"
+else
+    fail "50 absent aoArea passes (rc=${A})"; cat "$WORK/out"
+fi
+ao_fixture ok
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   AO area (.*display keeps 40 of 45 in gauges-capture.json' "$WORK/out"; then
+    pass "51 the shipped outline passes and reports the Oklahoma gauges it clips"
+else
+    fail "51 shipped outline passes (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+setup
+ao_fixture twopoint
+run_check; A=$?
+if [ "$A" -ne 0 ] && grep -q 'FAIL: AO area' "$WORK/out" && grep -q 'aoArea is malformed' "$WORK/out"; then
+    pass "52 MUTATION · a two-point outline fails the release lane"
+else
+    fail "52 two-point outline fails (rc=${A})"; cat "$WORK/out"
+fi
+run_check --code-from-head; A=$?
+if [ "$A" -eq 0 ] && grep -q 'WARN: AO area' "$WORK/out"; then
+    pass "53 ...and only warns in the data lane, so a config error never stops a flood publish"
+else
+    fail "53 data lane warns only (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+for how in nohouston tiny; do
+    setup
+    ao_fixture "$how"
+    run_check; A=$?
+    case "$how" in
+        nohouston) want='aoArea leaves region anchors outside the AO: houston' ;;
+        tiny) want='the aoArea keeps 2 of 45 gauges in gauges-capture.json' ;;
+    esac
+    if [ "$A" -ne 0 ] && grep -q "$want" "$WORK/out"; then
+        pass "54 MUTATION · a well-formed outline that is wrong ($how) fails, naming why"
+    else
+        fail "54 wrong outline ($how) fails (rc=${A})"; cat "$WORK/out"
+    fi
+    rm -rf "$WORK"
+done
+
+# a partial upstream capture under the display floor is data, not config: warn, never fail the gate
+setup
+ao_fixture ok
+python3 - "$REPO" "$REPO_ROOT" <<'PY'
+import json, os, sys
+repo, src = sys.argv[1:3]
+sys.path.insert(0, os.path.join(src, "scripts"))
+import aoarea
+ev = json.load(open(os.path.join(repo, "data", "event.json"), encoding="utf-8"))
+b = ev["gaugeBbox"]
+rows = [{"lid": "TX%03d" % i, "latitude": 30.0, "longitude": -97.0, "status": {}} for i in range(100)]
+json.dump({"generated": "2026-09-28T00:00:00Z", "bbox": [b["xmin"], b["ymin"], b["xmax"], b["ymax"]],
+           "ao": aoarea.fingerprint(aoarea.parse(ev["aoArea"])), "gauges": rows},
+          open(os.path.join(repo, "data", "gauges-snapshot.json"), "w"))
+PY
+( cd "$REPO" && git add -A && git commit --quiet -m "display snapshot larger than the partial capture" )
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'OK:   AO area (config sound)' "$WORK/out" && grep -q 'WARN: AO area: .*under the display floor' "$WORK/out"; then
+    pass "55 a partial capture under the display floor warns and never fails the release lane"
+else
+    fail "55 partial capture warns only (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CYCLE-CHECK IMMUNITY TESTS PASSED"

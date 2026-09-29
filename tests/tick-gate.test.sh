@@ -17,6 +17,10 @@
 #   13 a quiet window that wraps midnight is evaluated correctly, both containing and
 #      excluding the current local hour, computed from that hour rather than hardcoded
 #   14 unread inbox lines are not suppressed by quiet hours either => INBOX <n>
+#   17-28 ALERT: a freshness CRITICAL or backup FAIL held past the threshold raises ALERT; a
+#      fresh one does not; INBOX outranks it; one slot per condition per 3h; quiet hours and
+#      the override behave as they do for BACKLOG; and the gate reads the state files the
+#      monitor really writes, at the paths it really writes them
 # A throwaway temp dir per case, with every path the script reads passed by env var,
 # keeps the real repo data/ and /var/log untouched. Run: bash tests/tick-gate.test.sh
 set -uo pipefail
@@ -51,6 +55,9 @@ reset_gate_env() {  # defaults for a case that is not exercising that particular
     COOLSEC=14400
     QSTART=0
     QEND=0
+    MONSTATE="$WORK/monitor-state"
+    BKSTATE="$WORK/backup-state"
+    ALERTF="$WORK/.tick-gate-alert-state"
 }
 
 run_gate() {  # ARGS...: invokes tick-gate.sh against the case's env; sets RC and VERDICT
@@ -60,6 +67,10 @@ run_gate() {  # ARGS...: invokes tick-gate.sh against the case's env; sets RC an
     RESPONDER_CHAT_DRAIN_STALE="$STALESEC" \
     RESPONDER_TICK_GATE_OFF="$OFFFILE" \
     RESPONDER_TICK_GATE_STATE="$STATEF" \
+    RESPONDER_TICK_ALERT_STATE="$ALERTF" \
+    RESPONDER_MONITOR_STATE="$MONSTATE" \
+    RESPONDER_BACKUP_STATE="$BKSTATE" \
+    RESPONDER_TICK_ALERT_AFTER_MIN="${ALERT_AFTER:-}" \
     RESPONDER_TICK_GATE_LOCK="$WORK/tick-gate.lock" \
     RESPONDER_TICK_GATE_LOG="$WORK/tick-gate.log" \
     RESPONDER_TICK_BACKLOG_COOLDOWN="$COOLSEC" \
@@ -257,6 +268,9 @@ run_gate_shipped_cooldown() {
     RESPONDER_CHAT_DRAIN_MARKER="$MARKERF" \
     RESPONDER_TICK_GATE_OFF="$OFFFILE" \
     RESPONDER_TICK_GATE_STATE="$STATEF" \
+    RESPONDER_TICK_ALERT_STATE="$ALERTF" \
+    RESPONDER_MONITOR_STATE="$MONSTATE" \
+    RESPONDER_BACKUP_STATE="$BKSTATE" \
     RESPONDER_TICK_GATE_LOCK="$WORK/tick-gate.lock" \
     RESPONDER_TICK_GATE_LOG="$WORK/tick-gate.log" \
     RESPONDER_TICK_QUIET_START=0 \
@@ -283,6 +297,182 @@ if [ "$VERDICT" = "BACKLOG" ]; then
     pass "16 shipped cooldown has expired 7h after a claim"
 else
     fail "16 a claim 7h ago should be past the 6h default (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 17-28: ALERT. For 24 days the monitor posted CRITICAL hourly and the tick, knowing only
+# INBOX/BACKLOG/IDLE, answered IDLE. Every case below runs on the SHIPPED 60m threshold and 3h
+# per-condition cooldown unless it says otherwise; only the paths are redirected.
+mk_mon() {  # VERDICT HELD_MIN — a monitor state whose VERDICT began HELD_MIN ago
+    local now; now=$(date +%s)
+    printf '%s 0 %s 120 %s\n' "$1" "$now" "$((now - $2 * 60))" > "$MONSTATE"
+}
+mk_bk() {  # VERDICT HELD_MIN — a backup-health state whose VERDICT began HELD_MIN ago
+    local now; now=$(date +%s)
+    printf '%s %s %s\n' "$1" "$now" "$((now - $2 * 60))" > "$BKSTATE"
+}
+claim_ago() {  # CONDITION MIN — pretend CONDITION's last ALERT slot was claimed MIN ago
+    printf '%s %s\n' "$1" "$(( $(date +%s) - $2 * 60 ))" > "$ALERTF"
+}
+
+setup; mk_mon CRITICAL 120
+run_gate
+case "$VERDICT" in
+    "ALERT freshness CRITICAL for 120m since "*)
+        if grep -qE '^freshness [0-9]+$' "$ALERTF"; then
+            pass "17 a CRITICAL held 2h raises ALERT freshness and claims its slot"
+        else
+            fail "17 ALERT must record its claim"; cat "$ALERTF"
+        fi ;;
+    *) fail "17 sustained CRITICAL should ALERT (got '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+
+run_gate
+if [ "$VERDICT" = "BACKLOG" ] && grep -q 'freshness CRITICAL held 120m, its next ALERT slot in 1[0-9][0-9]m' "$WORK/run.out"; then
+    pass "18 an immediate second run does not ALERT again, and says the condition is held"
+else
+    fail "18 a claimed ALERT must rate-limit (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 20
+run_gate
+if [ "$VERDICT" = "BACKLOG" ] && [ ! -e "$ALERTF" ]; then
+    pass "19 a CRITICAL only 20m old does not spend a tick yet (shipped 60m threshold)"
+else
+    fail "19 a fresh CRITICAL must not ALERT (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 120; write_inbox 2
+run_gate
+if [ "$VERDICT" = "INBOX 2" ] && [ ! -e "$ALERTF" ]; then
+    pass "20 unread owner messages outrank a sustained ALERT, which stays unclaimed"
+else
+    fail "20 INBOX must outrank ALERT (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 600; claim_ago freshness 120
+run_gate
+V_2H=$VERDICT
+claim_ago freshness 240
+run_gate
+case "$V_2H|$VERDICT" in
+    "BACKLOG|ALERT freshness CRITICAL for 600m"*)
+        pass "21 the shipped per-condition cooldown holds 2h after a claim and has lapsed by 4h" ;;
+    *) fail "21 ALERT cooldown should be 3h (2h: '$V_2H', 4h: '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 120; QSTART=$CONTAIN_START; QEND=$CONTAIN_END
+run_gate
+if [ "$VERDICT" = "IDLE quiet-hours" ] && [ ! -e "$ALERTF" ] \
+   && grep -q 'freshness CRITICAL for 120m since .*held for active hours' "$WORK/run.out"; then
+    pass "22 quiet hours hold a sustained ALERT, unclaimed, and say so"
+else
+    fail "22 quiet hours must hold ALERT (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+
+touch "$OFFFILE"
+run_gate
+V1=$VERDICT
+run_gate
+case "$V1|$VERDICT" in
+    "ALERT freshness"*"|ALERT freshness"*)
+        if grep -q '(gate override active)' "$WORK/run.out"; then
+            pass "23 the override lifts quiet hours and the ALERT cooldown, exactly as it does for BACKLOG"
+        else
+            fail "23 an overridden ALERT names the override"; cat "$WORK/run.out"
+        fi ;;
+    *) fail "23 override should ALERT through quiet hours and cooldown (got '$V1' then '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+rm -rf "$WORK"
+
+setup; mk_bk FAIL 90
+run_gate
+case "$VERDICT" in
+    "ALERT backup FAIL for 90m since "*) pass "24 a backup FAIL held 90m raises ALERT backup" ;;
+    *) fail "24 sustained backup FAIL should ALERT (got '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 120; mk_bk FAIL 120
+run_gate
+V1=$VERDICT
+run_gate
+case "$V1|$VERDICT" in
+    "ALERT freshness"*"|ALERT backup"*)
+        pass "25 freshness outranks backup, and each condition keeps its own slot" ;;
+    *) fail "25 both held: freshness then backup (got '$V1' then '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+rm -rf "$WORK"
+
+setup
+printf 'CRITICAL 0 %s 120\n' "$(( $(date +%s) - 7200 ))" > "$MONSTATE"  # the pre-upgrade 4-field line
+printf 'FAIL %s\n' "$(date +%s)" > "$BKSTATE"
+run_gate
+V_LEGACY=$VERDICT; RC_LEGACY=$RC
+mk_mon WARN 300
+run_gate
+if [ "$RC_LEGACY" -eq 0 ] && [ "$V_LEGACY" = "BACKLOG" ] && [ "$VERDICT" = "IDLE backlog-cooldown" ]; then
+    pass "26 a legacy state with no start column, and a long WARN, raise no ALERT"
+else
+    fail "26 legacy / WARN states must not ALERT (legacy '$V_LEGACY' rc=$RC_LEGACY, warn '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 120
+run_gate --peek
+V_PEEK=$VERDICT
+PEEK_STATE=$([ -e "$ALERTF" ] && echo present || echo absent)
+run_gate --json
+FIELD=$(verdict_field "$VERDICT")
+if [ "${V_PEEK%% *}" = "ALERT" ] && [ "$PEEK_STATE" = absent ] && json_valid_str "$VERDICT" && [ "$FIELD" = "ALERT" ] \
+   && printf '%s' "$VERDICT" | grep -q 'freshness CRITICAL for 120m'; then
+    pass "27 --peek reports ALERT without claiming; --json carries it as valid JSON"
+else
+    fail "27 peek/json ALERT (peek '$V_PEEK' state=$PEEK_STATE json '$VERDICT')"
+fi
+rm -rf "$WORK"
+
+# --- Test 28: the gate reads what freshness-monitor.sh really writes, where it really writes it (E3/E5)
+MON_SRC="$REPO_ROOT/scripts/freshness-monitor.sh"
+DEFAULTS_OK=1
+for var in RESPONDER_MONITOR_STATE RESPONDER_BACKUP_STATE; do
+    in_gate=$(grep -oP "\\\$\\{${var}:-\\K[^}]+" "$GATE" | head -1)
+    in_mon=$(grep -oP "\\\$\\{${var}:-\\K[^}]+" "$MON_SRC" | head -1)
+    if [ -z "$in_gate" ] || [ "$in_gate" != "$in_mon" ]; then
+        DEFAULTS_OK=0
+        fail "28 ${var} defaults differ between tick-gate.sh ('${in_gate}') and freshness-monitor.sh ('${in_mon}')"
+    fi
+done
+[ "$DEFAULTS_OK" -eq 0 ] || pass "28 tick-gate.sh and freshness-monitor.sh default to the same two state files"
+
+setup
+mkdir -p "$WORK/remote" "$WORK/data" "$WORK/backups/hourly"
+printf '{"generated":"%s","gauges":[]}\n' "$(date -u -d '-200 min' '+%Y-%m-%dT%H:%M:%SZ')" > "$WORK/remote/gauges-snapshot.json"
+cp "$WORK/remote/gauges-snapshot.json" "$WORK/data/gauges-snapshot.json"
+printf '{"head":"abc"}\n' > "$WORK/backups/hourly/manifest-test.json"
+printf '{"verdict":"FAIL","detail":"seeded by the test"}\n' > "$WORK/backups/status.json"
+RESPONDER_MONITOR_URL="file://$WORK/remote/gauges-snapshot.json" \
+RESPONDER_MONITOR_OUTBOX="$WORK/data/chat-outbox.json" \
+RESPONDER_MONITOR_SNAPSHOT="$WORK/data/gauges-snapshot.json" \
+RESPONDER_MONITOR_STATE="$MONSTATE" \
+RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
+RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
+RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
+RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
+RESPONDER_BACKUP_DIR="$WORK/backups" \
+RESPONDER_BACKUP_STATE="$BKSTATE" \
+    bash "$MON_SRC" > "$WORK/monitor.out" 2>&1
+ALERT_AFTER=0 run_gate
+V1=$VERDICT
+ALERT_AFTER=0 run_gate
+if [ "${V1#ALERT freshness CRITICAL for 0m since }" != "$V1" ] && [ "${VERDICT#ALERT backup FAIL for 0m since }" != "$VERDICT" ]; then
+    pass "28b the gate reads the start column the monitor just wrote in both files (held 0m)"
+else
+    fail "28b monitor-written state must drive ALERT (got '$V1' then '$VERDICT')"; cat "$MONSTATE" "$BKSTATE" "$WORK/run.out"
 fi
 rm -rf "$WORK"
 

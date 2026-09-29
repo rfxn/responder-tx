@@ -442,7 +442,7 @@ test('caltopo status strings carry the counts they promise, in both languages', 
 
 const { feedCalmOk } = loadApp();
 
-const catGauge = (floodCategory) => ({ status: { observed: { floodCategory, validTime: isoMinAgo(30) } } });
+const catGauge = (floodCategory) => ({ status: { observed: { floodCategory, primary: 8.4, validTime: isoMinAgo(30) } } });
 const openAlert = () => ({ id: 'urn:test:1', properties: { event: 'Flood Warning', areaDesc: 'Kerr, TX' } });
 
 // quiet baseline: feeds loaded, nothing running. Each case perturbs one hazard source.

@@ -9,6 +9,10 @@
 #   5 cooldown suppresses a repeat alert for the same verdict
 #   6 no prior state file and no outbox (fresh install) => tolerated, alert lands
 #   7 stale then fresh => one recovery notice
+#   24-28 the cycle status file: a failing cycle is named with its error, never blamed on the host;
+#         no status file, a stale one, a clean one and an unreadable one each read honestly
+#   29 git failing to read history is a named fault, not "unknown"
+#   30 both state files carry when their verdict began, which tick-gate.sh reads
 # A file:// mirror URL and a throwaway temp dir keep the real repo data and the
 # network untouched. Run: bash tests/freshness-monitor.test.sh
 set -uo pipefail
@@ -62,11 +66,12 @@ setup() {  # fresh temp workdir: fresh local pipeline state, empty outbox, no mo
 run_monitor() {  # runs the monitor against the temp state + file:// mirror; sets RC
     RESPONDER_MONITOR_URL="${URL:-file://$WORK/remote/gauges-snapshot.json}" \
     RESPONDER_MONITOR_OUTBOX="$WORK/data/chat-outbox.json" \
-    RESPONDER_MONITOR_SNAPSHOT="$WORK/data/gauges-snapshot.json" \
+    RESPONDER_MONITOR_SNAPSHOT="${SNAP:-$WORK/data/gauges-snapshot.json}" \
     RESPONDER_MONITOR_STATE="$STATE" \
     RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
     RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
     RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
+    RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
     RESPONDER_MONITOR_WARN_MIN="${WARN:-45}" \
     RESPONDER_MONITOR_CRIT_MIN="${CRIT:-90}" \
     RESPONDER_MONITOR_FAIL_STREAK="${STREAK:-3}" \
@@ -78,7 +83,7 @@ run_monitor() {  # runs the monitor against the temp state + file:// mirror; set
     RESPONDER_BACKUP_STATE="$WORK/backup-state" \
     RESPONDER_BACKUP_STALE_MIN="${BSTALE:-360}" \
     RESPONDER_BACKUP_COOLDOWN="${BCOOL:-21600}" \
-    bash "$MON" > "$WORK/run.out" 2>&1
+    bash "${MON_BIN:-$MON}" > "$WORK/run.out" 2>&1
     RC=$?
 }
 
@@ -95,7 +100,7 @@ setup
 run_monitor
 if [ "$RC" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 0 ] \
    && grep -q 'verdict=FRESH' "$WORK/monitor.log" \
-   && [ -f "$STATE" ] && grep -q '^FRESH 0 0 0$' "$STATE"; then
+   && [ -f "$STATE" ] && grep -qE '^FRESH 0 0 0 [0-9]+$' "$STATE"; then
     pass "1 fresh mirror: no alert, verdict FRESH, state written"
 else
     fail "1 fresh mirror produces no alert"; cat "$WORK/run.out"
@@ -174,7 +179,7 @@ run_monitor
 if [ "$rc_after" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 2 ] \
    && has_text "$OUT" "Data freshness recovered" \
    && has_text "$OUT" "Prior state was CRITICAL" \
-   && grep -q '^FRESH 0 0 0$' "$STATE"; then
+   && grep -qE '^FRESH 0 0 0 [0-9]+$' "$STATE"; then
     pass "7 mirror catches up: exactly one recovery notice, state back to FRESH"
 else
     fail "7 recovery notice posted once"; cat "$OUT"; cat "$WORK/run.out"
@@ -325,8 +330,8 @@ setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 120
 printf 'CRITICAL 0 %s\n' "$(date -u '+%s')" > "$STATE"
 run_monitor
 if [ "$(count_msgs "$OUT")" -eq 0 ] && grep -q 'alert suppressed: same verdict CRITICAL' "$WORK/monitor.log" \
-   && grep -qE '^CRITICAL 0 [0-9]+ 0$' "$STATE"; then
-    pass "17 a legacy 3-field state file still suppresses, and is rewritten with the age column"
+   && grep -qE '^CRITICAL 0 [0-9]+ 0 [0-9]+$' "$STATE"; then
+    pass "17 a legacy 3-field state file still suppresses, and is rewritten with the age and since columns"
 else
     fail "17 legacy state file tolerated"; cat "$STATE"; cat "$WORK/run.out"
 fi
@@ -339,7 +344,7 @@ rm -rf "$WORK"
 setup; mk_backup 20 OK
 run_monitor
 if [ "$RC" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 0 ] \
-   && grep -q 'backup health: verdict=OK' "$WORK/monitor.log" && grep -qE '^OK 0$' "$WORK/backup-state"; then
+   && grep -q 'backup health: verdict=OK' "$WORK/monitor.log" && grep -qE '^OK 0 [0-9]+$' "$WORK/backup-state"; then
     pass "18 a recent healthy backup raises nothing"
 else
     fail "18 healthy backup stays quiet (rc=$RC, $(count_msgs "$OUT") msgs)"; cat "$WORK/run.out"
@@ -406,6 +411,120 @@ if [ "$RC" -eq 0 ] && [ "$(count_msgs "$OUT")" -eq 0 ] && grep -q 'no backup dir
     pass "23 an absent backup dir is skipped and logged, not alerted"
 else
     fail "23 absent backup dir tolerated"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 24-28: run-cycle.sh's status file. For 24 days every cycle died at materialize on a
+# corrupt main ref and the monitor said "the cron or its host is down" 609 times while cron ran fine.
+MAT_ERR='ERROR: could not materialize HEAD scripts/ at /tmp/x: fatal: invalid reference: HEAD'
+
+mk_status() {  # AGE_MIN EXIT FAILS — a status record whose run finished AGE_MIN ago
+    python3 - "$WORK/cycle-status.json" "$1" "$2" "$3" "$MAT_ERR" <<'PY'
+import json, sys, time
+path, age, rc, fails, err = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
+end = int(time.time()) - age * 60
+stamp = lambda e: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(e))
+json.dump({"finished_at": stamp(end), "finished_epoch": end, "exit_code": rc,
+           "stage": "materialize" if fails else "signoff", "first_error": err if fails else None,
+           "consecutive_failures": fails, "failing_since": stamp(end - fails * 900) if fails else None},
+          open(path, "w"))
+PY
+}
+
+# 24: the incident. A months-old DEGRADED sign-off still sits in the log, which used to win.
+stale_both; mk_cycle_log 'cycle complete' degraded; mk_status 4 1 2300; run_monitor
+expect_cause "24 a failing cycle is named with its failure count, stage and first error" \
+    "the data cycle is running but failing every run for 2300 runs since" "cron or its host is down"
+if has_text "$OUT" "(stage materialize): ${MAT_ERR}" && ! has_text "$OUT" "last cycle DEGRADED" \
+   && has_text "$OUT" "last cycle run finished 4 min ago with exit 1"; then
+    pass "24b the alert quotes the error and drops the sign-off that predates the failing streak"
+else
+    fail "24b failing-cycle evidence in the alert"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
+# 25: an install with no status file yet keeps the old wording, word for word
+stale_both; mk_cycle_log 'no data changes vs HEAD; nothing to commit, skipping push/deploy'; run_monitor
+expect_cause "25 no status file: the host-down wording holds" \
+    "the data cycle is not producing fresh local output, so the cron or its host is down"
+if ! has_text "$OUT" "last cycle run"; then
+    pass "25b no status file adds no cycle-run facet to the pipeline line"
+else
+    fail "25b an absent status file must not invent a last run"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
+# 26: the last recorded run is hours old, so the cycle really has stopped running
+stale_both; mk_status 300 1 3; run_monitor
+expect_cause "26 a status file with no recent run keeps the host-down wording" \
+    "so the cron or its host is down" "failing every run"
+if has_text "$OUT" "last cycle run finished 300 min ago with exit 1"; then
+    pass "26b the stale run's age and exit are still reported as evidence"
+else
+    fail "26b stale status evidence"; cat "$OUT"
+fi
+rm -rf "$WORK"
+
+# 27: the cycle runs and exits clean, yet local output is stale: not a dead host either
+stale_both; mk_status 6 0 0; run_monitor
+expect_cause "27 a recent clean run with stale output is not blamed on the host" \
+    "the data cycle is running and exiting cleanly (last run 6 min ago), yet its local output is not refreshing" \
+    "cron or its host is down"
+rm -rf "$WORK"
+
+# 28: E1, a status file that cannot be read is said to be unreadable
+stale_both; printf '{"finished_epoch": ' > "$WORK/cycle-status.json"; run_monitor
+if [ "$RC" -eq 1 ] && has_text "$OUT" "cycle status file $WORK/cycle-status.json UNREADABLE"; then
+    pass "28 an unreadable status file is named as unreadable, not treated as absent"
+else
+    fail "28 unreadable status file"; cat "$OUT" "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Test 29: E1 for the data commit. The corrupt ref also made `git log` fail, and the alert said
+# "last data commit unknown", which reads as an absence rather than the fault it was.
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 120
+GREPO="$WORK/grepo"
+mkdir -p "$GREPO/scripts" "$GREPO/data"
+cp "$MON" "$GREPO/scripts/freshness-monitor.sh"
+mk_snapshot "$GREPO/data/gauges-snapshot.json" 3
+(
+    cd "$GREPO" || exit 1
+    git init --quiet && git symbolic-ref HEAD refs/heads/main && git add -A \
+        && git -c user.name=Fixture -c user.email=fixture@example.test commit --quiet -m base
+) > /dev/null 2>&1
+MON_BIN="$GREPO/scripts/freshness-monitor.sh" SNAP="$GREPO/data/gauges-snapshot.json" run_monitor
+if has_text "$OUT" "last data commit 0 min" && ! has_text "$OUT" "UNREADABLE"; then
+    pass "29 control: a healthy history reads as an age"
+else
+    fail "29 control: healthy git history"; cat "$OUT" "$WORK/run.out"
+fi
+printf '{\n "messages": []\n}\n' > "$OUT"; rm -f "$STATE"
+: > "$GREPO/.git/refs/heads/main"
+MON_BIN="$GREPO/scripts/freshness-monitor.sh" SNAP="$GREPO/data/gauges-snapshot.json" run_monitor
+if has_text "$OUT" "last data commit UNREADABLE (git: fatal:" && ! has_text "$OUT" "last data commit unknown"; then
+    pass "29b a git failure reading the last data commit is a named fault, not unknown"
+else
+    fail "29b git fault must be named"; cat "$OUT" "$WORK/run.out"
+fi
+expect_cause "29c with no cycle status, the broken history is the named cause" \
+    "git cannot read the repository history (fatal:" "publish path"
+rm -rf "$WORK"
+
+# --- Test 30: when each verdict began, which tick-gate.sh uses to tell sustained from fresh -----
+field_of() { awk -v f="$2" '{print $f}' "$1"; }
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 120; mk_backup 20 FAIL
+run_monitor; S1=$(field_of "$STATE" 5); B1=$(field_of "$WORK/backup-state" 3)
+sleep 1
+run_monitor; S2=$(field_of "$STATE" 5); B2=$(field_of "$WORK/backup-state" 3)
+sleep 1
+mk_snapshot "$WORK/remote/gauges-snapshot.json" 2; mk_backup 20 OK
+run_monitor; S3=$(field_of "$STATE" 5); B3=$(field_of "$WORK/backup-state" 3)
+if [ -n "$S1" ] && [ "$S1" -gt 0 ] && [ "$S1" = "$S2" ] && [ "$S3" -gt "$S1" ] \
+   && [ -n "$B1" ] && [ "$B1" -gt 0 ] && [ "$B1" = "$B2" ] && [ "$B3" -gt "$B1" ]; then
+    pass "30 a held verdict keeps its start epoch in both state files, and a new verdict restarts it"
+else
+    fail "30 verdict-since columns (mirror $S1 $S2 $S3, backup $B1 $B2 $B3)"
 fi
 rm -rf "$WORK"
 

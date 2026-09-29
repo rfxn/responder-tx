@@ -344,11 +344,19 @@ function maybeAutoTropical() {
 /* The cone says where the centre goes; the rain field is what closes the roads, and during a
    landfall it is the layer people reach for first. So the merged radar + forecast row comes on
    with the tracker, on the same threat gate, and stays an opt-in layer once the warnings expire. */
+// an event config can widen the radar trigger beyond the cyclone for the life of that event
+function hasActiveWxTrigger() {
+  if (hasActiveTropicalThreat()) return true;
+  const extra = new Set((CONFIG.wxAutoEvents || []).map((e) => e.toLowerCase()));
+  return extra.size > 0 && (state.alerts || []).some((f) =>
+    extra.has(String(f.properties.event || '').toLowerCase()) && alertOpen(f));
+}
+
 function maybeAutoWx() {
   if (state.wxAutoDone || CONFIG.wxAutoEnable === false) return;
   if (!state.map || !state.layers.radar || !state.layers.fcstRadar) return;
   if (pbBlocksLive(state)) return; // playback owns the layer set; re-check once it hands them back
-  if (!hasActiveTropicalThreat()) return;
+  if (!hasActiveWxTrigger()) return;
   state.wxAutoDone = true;
   if (!layerRowOn('wx')) wxToggle();
 }
@@ -941,7 +949,12 @@ function renderAlertHistory(el) {
    carries the rest so the map and the legend can show them as what they are. */
 // the NWPS-reported degraded set. One predicate for the split, the card, the popup and the
 // guards below, so no surface can disagree with another about what a gauge is.
-const gaugeDegraded = (g) => !!NWPS_DEGRADED_CAT[g && g.status && g.status.observed && g.status.observed.floodCategory];
+const gaugeDegraded = (g) => !!NWPS_DEGRADED_CAT[g && g.status && g.status.observed && g.status.observed.floodCategory] || gaugeUnreadable(g);
+// a reported stage no river can read voids the category NWPS sent with it
+function gaugeUnreadable(g) {
+  const o = g && g.status && g.status.observed;
+  return !!o && !stageOk(o.primary);
+}
 
 function splitGauges(list) {
   const live = [], degraded = [];
@@ -958,7 +971,7 @@ async function fetchGauges() {
   const res = await fetch(url);
   const data = await okJson(res, 'NWPS');
   // E1: an unreadable body must not wipe the board to zero gauges and stand the snapshot down
-  const split = splitGauges(okList(data, 'gauges', 'NWPS'));
+  const split = splitGauges(aoGauges(okList(data, 'gauges', 'NWPS')));
   state.gauges = split.live;
   state.gaugesDegraded = split.degraded;
   markHealthy('gauges');
@@ -974,7 +987,7 @@ async function fetchGauges() {
 // recency cutoff — a frozen gauge keeps reporting a real floodCategory, so obs-age is the only tell
 function gaugeObsStale(g) {
   const iso = g.status && g.status.observed && g.status.observed.validTime;
-  if (!iso) return true;
+  if (!iso || gaugeUnreadable(g)) return true;
   const m = ageMins(iso);
   return Number.isNaN(m) || m > CONFIG.gaugeStaleHours * 60;
 }
@@ -1013,8 +1026,9 @@ function gaugeStateCounts() {
 const riverOf = (name) => String(name || '').split(/ (?:at|near|below|above) /)[0];
 
 function gaugeForecastCat(g) {
-  const c = g.status && g.status.forecast && g.status.forecast.floodCategory;
-  return FLOOD_CATS.includes(c) ? c : null;
+  const f = g.status && g.status.forecast;
+  const c = f && f.floodCategory;
+  return FLOOD_CATS.includes(c) && stageOk(f.primary) ? c : null;
 }
 
 function gaugeRising(g) {
@@ -1034,7 +1048,7 @@ function recordContext(g) {
   if (gaugeDegraded(g)) return null; // its forecast is not current either: no margin to report off it
   const rec = state.records && state.records[g.lid];
   const f = g.status && g.status.forecast;
-  if (!rec || !f || !(f.primary > 0) || !(rec.record_ft > 0)) return null;
+  if (!rec || !f || !stageOk(f.primary) || !(f.primary > 0) || !(rec.record_ft > 0)) return null;
   const margin = +(rec.record_ft - f.primary).toFixed(1); // >0 fcst below record, ≤0 at/above
   const year = (rec.record_date || '').slice(0, 4);
   return { recFt: rec.record_ft, year, margin, atOrAbove: margin <= 0, near: margin > 0 && margin <= RECORD_NEAR_FT };
@@ -1055,7 +1069,7 @@ function recordTrends() {
   const cutoff = Date.now() - 2 * 3600000;
   for (const g of state.gauges) {
     const o = g.status.observed;
-    if (!(o.primary > -999) || !o.validTime) continue;
+    if (!stageOk(o.primary) || !o.validTime) continue;
     const t = Date.parse(o.validTime);
     const arr = hist[g.lid] = (hist[g.lid] || []).filter((p) => p[0] >= cutoff);
     if (!arr.length || arr[arr.length - 1][0] < t) arr.push([t, o.primary]);
@@ -1083,7 +1097,7 @@ function gaugeRecoveryState(row, live, trend) {
   if (!live || gaugeRising(live)) return null;
   if (trend && trend.dir === 'down') return 'falling';
   const o = live.status.observed.primary;
-  if (Number.isFinite(o) && Number.isFinite(row.peak) && new Date(row.peak_time) < new Date()
+  if (stageOk(o) && Number.isFinite(row.peak) && new Date(row.peak_time) < new Date()
     && o <= row.peak - RECOVERY_OFF_CREST_FT) return 'falling';
   const fc = live.status.forecast || {};
   const fRank = fc.floodCategory === 'no_flooding' ? CAT_RANK.none
@@ -1105,7 +1119,7 @@ function basinCrestTime(g, row) {
     if (Number.isFinite(pt)) return pt;
   }
   const f = g.status && g.status.forecast;
-  if (f && Number.isFinite(f.primary) && f.primary > -999 && f.validTime) {
+  if (f && stageOk(f.primary) && f.validTime) {
     const ft = Date.parse(f.validTime);
     if (Number.isFinite(ft) && ft > 0) return ft; // NWPS "no current forecast" carries year 0001
   }
@@ -1125,7 +1139,7 @@ function basinWaveState(g, row, nowMs) {
   const f = (g.status && g.status.forecast) || {};
   const o = (g.status && g.status.observed) || {};
   const material = !!gaugeForecastCat(g)
-    || (Number.isFinite(f.primary) && Number.isFinite(o.primary) && o.primary > -999 && f.primary - o.primary >= BASIN_WAVE_RISE_FT);
+    || (stageOk(f.primary) && stageOk(o.primary) && f.primary - o.primary >= BASIN_WAVE_RISE_FT);
   if (!material) return { crestT, wave: 'none' };
   return { crestT, wave: crestT <= now ? 'passed' : 'coming' };
 }
@@ -1236,7 +1250,7 @@ function renderGauges() {
    that is worse than printing nothing, so every reading surface gates on this. */
 function gaugeHasReading(g) {
   const o = (g.status && g.status.observed) || {};
-  if (!(o.primary > -999) || !o.validTime) return false;
+  if (!stageOk(o.primary) || !o.validTime) return false;
   const ts = Date.parse(o.validTime);
   return Number.isFinite(ts) && ts > Date.parse('1900-01-01T00:00:00Z');
 }
@@ -1330,9 +1344,9 @@ function drawHydro(g, detail, obsData, fcstRes) {
   const fcstData = fcstRes && Array.isArray(fcstRes.data) ? fcstRes.data : [];
   const now = Date.now();
   const back = now - 24 * 3600000; // 24h observed history
-  const obs = obsData.filter((p) => new Date(p.validTime).getTime() >= back && p.primary > -999)
+  const obs = obsData.filter((p) => new Date(p.validTime).getTime() >= back && stageOk(p.primary))
     .map((p) => ({ t: new Date(p.validTime).getTime(), v: p.primary }));
-  const fcst = fcstData.filter((p) => p.primary > -999).map((p) => ({ t: new Date(p.validTime).getTime(), v: p.primary }));
+  const fcst = fcstData.filter((p) => stageOk(p.primary)).map((p) => ({ t: new Date(p.validTime).getTime(), v: p.primary }));
   if (obs.length < 2 && fcst.length < 2) { $('#hydro-note').textContent = t('hydro.nodata'); return; }
   const cats = (detail.flood && detail.flood.categories) || {};
   const stages = FLOOD_CATS.map((c) => ({ c, v: cats[c] && cats[c].stage })).filter((s) => s.v > 0);
@@ -1437,7 +1451,7 @@ async function drawSparkline(g, canvas, note) {
     const cutoff = Date.now() - CONFIG.sparkHours * 3600000;
     // E1: a body with no series did not answer, so it must reach the catch as "unavailable"
     // rather than fall through to "no recent readings" for a gauge that may well have them
-    let pts = okList(series, 'data', 'gauge series').filter((p) => new Date(p.validTime).getTime() >= cutoff && p.primary > -999);
+    let pts = okList(series, 'data', 'gauge series').filter((p) => new Date(p.validTime).getTime() >= cutoff && stageOk(p.primary));
     if (pts.length < 2) { note.textContent = t('spark.nodata'); return; }
     const step = Math.max(1, Math.floor(pts.length / 220));
     pts = pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
@@ -1488,11 +1502,6 @@ async function drawSparkline(g, canvas, note) {
 
 /* ---------- RFC forecast-max crests (5-day max stage per gauge) ---------- */
 
-function inGaugeBbox(lat, lon) {
-  const b = CONFIG.gaugeBbox;
-  return lat >= b.ymin && lat <= b.ymax && lon >= b.xmin && lon <= b.xmax;
-}
-
 // issued_time is "YYYY-MM-DD HH:MM:SS UTC", not ISO
 const fcstIssuedIso = (t) => String(t || '').replace(' ', 'T').replace(' UTC', 'Z');
 
@@ -1511,7 +1520,7 @@ async function fetchFcstMax() {
   state.fcstMax = okList(data, 'features', 'RFC fcst').filter((f) => {
     if (!f.geometry || !Array.isArray(f.geometry.coordinates)) return false;
     const [lon, lat] = f.geometry.coordinates;
-    return inGaugeBbox(lat, lon) && !nwpsLids.has(f.properties.nws_lid);
+    return aoContains(lat, lon) && !nwpsLids.has(f.properties.nws_lid);
   });
   markHealthy('fcstMax');
   renderFcstMax();
@@ -1521,6 +1530,7 @@ function renderFcstMax() {
   state.layers.fcstMax.clearLayers();
   for (const f of state.fcstMax) {
     const p = f.properties;
+    if (!stageOk(p.max_value)) continue;
     const [lon, lat] = f.geometry.coordinates;
     const cat = FLOOD_CATS.includes(p.max_status) ? p.max_status : 'none';
     const size = CAT_SIZE[cat];
@@ -1556,7 +1566,7 @@ async function fetchUsgsTile(tile) {
     const last = vals && vals[vals.length - 1];
     if (!last) continue;
     const ft = parseFloat(last.value);
-    if (!Number.isFinite(ft) || ft <= -999) continue;
+    if (!stageOk(ft)) continue;
     const loc = si.geoLocation.geogLocation;
     sites.push({ site: si.siteCode[0].value, name: si.siteName, lat: loc.latitude, lon: loc.longitude, ft, t: last.dateTime });
   }
@@ -1583,7 +1593,7 @@ async function fetchUsgsIv() {
   const results = await Promise.allSettled(tiles.map((tile, i) => fetchUsgsTileRetry(tile, i)));
   const ok = results.filter((r) => r.status === 'fulfilled');
   if (!ok.length) throw new Error(`USGS IV: all ${tiles.length} sub-requests failed`);
-  const sites = usgsMergeSites(ok.map((r) => r.value));
+  const sites = usgsMergeSites(ok.map((r) => r.value)).filter((s) => aoContains(s.lat, s.lon));
   state.usgsFetchedAt = Date.now();
   // NWPS gauges carry flood categories — keep USGS to the sites NWPS lacks
   state.usgsSites = sites.filter((s) => !state.gauges.some((g) => distMi(s.lat, s.lon, g.latitude, g.longitude) < 0.3));
@@ -2125,7 +2135,7 @@ function renderLwc(features) {
   const attrib = state.lwcPartial ? `${LWC_ATTRIB} · ${t('lwc.partial')}` : LWC_ATTRIB;
   for (const f of features) {
     const c = f.geometry && f.geometry.coordinates;
-    if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
+    if (!c || !aoContains(c[1], c[0])) continue;
     const m = L.circleMarker([c[1], c[0]], { renderer: canvas, radius: 3.5, color: '#2b8ce8', weight: 1, fillColor: '#5ab0ff', fillOpacity: 0.5, attribution: attrib });
     m.bindPopup(() => lwcPopupHtml(f.properties)); // lazy: thousands of eager popup strings stall the layer toggle
     layer.addLayer(m);

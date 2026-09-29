@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-29T15:55:13Z",
+ "generated": "2026-09-29T16:10:12Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-29T15:38:00Z"
+  "last": "2026-09-29T15:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -223,8 +223,8 @@
   {
    "lid": "CODT2",
    "name": "Sandy Creek near Cordele",
-   "peak": 27.84,
-   "peak_time": "2026-09-29T02:57:00Z",
+   "peak": 27.85,
+   "peak_time": "2026-09-29T15:53:00Z",
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-09-29T02:57:00Z",

@@ -246,6 +246,18 @@ def gauge_cat(g):
     return cat if cat in CAT_COLOR and stage_ok(obs.get("primary")) else "none"
 
 
+# worded as the board's gstate.* labels; a gauge with no flood levels is not a gauge reporting no flooding
+NWPS_CAT_LABEL = {"no_flooding": "no flooding", "low_threshold": "no flooding",
+                  "not_defined": "flood category not defined", "obs_not_current": "data not current",
+                  "out_of_service": "out of service"}
+
+
+def cat_label(nwps_cat):
+    if nwps_cat in CAT_COLOR:
+        return nwps_cat.upper()
+    return NWPS_CAT_LABEL.get(nwps_cat, "flood category unknown")
+
+
 def build_gauges(snapshot):
     out = []
     for g in snapshot.get("gauges", []):
@@ -257,12 +269,12 @@ def build_gauges(snapshot):
         fc = (g.get("status") or {}).get("forecast") or {}
         stage = obs.get("primary")
         # no reading supports no category claim, "no flooding" included
-        lines = [f"Observed: {stage} {obs.get('primaryUnit') or 'ft'} ({cat.upper() if cat != 'none' else 'no flooding'})"
+        lines = [f"Observed: {stage} {obs.get('primaryUnit') or 'ft'} ({cat_label(obs.get('floodCategory'))})"
                  if stage_ok(stage) else "Observed: no reading"]
         fcrest = fc.get("primary")
         fwhen = parse_iso(fc.get("validTime"))
         if stage_ok(fcrest) and fwhen and fwhen.year >= 2000:
-            lines.append(f"Forecast: {fcrest} {fc.get('primaryUnit') or 'ft'} ({fc.get('floodCategory')}) at {fc.get('validTime')}")
+            lines.append(f"Forecast: {fcrest} {fc.get('primaryUnit') or 'ft'} ({cat_label(fc.get('floodCategory'))}) at {fc.get('validTime')}")
         style = {"marker-color": CAT_COLOR.get(cat, CAT_NONE),
                  "marker-size": "small" if cat == "none" else "medium"}
         out.append(feature(

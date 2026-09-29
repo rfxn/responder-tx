@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.1",
+      "date": "2026-09-29",
+      "line": "In the CalTopo and map exports, a gauge with no flood levels set now reads \"flood category not defined\" instead of \"no flooding\", and an out-of-service gauge says so. Forecast lines name the category in words."
+    },
+    {
       "v": "v0.100.0",
       "date": "2026-09-28",
       "line": "The dark and light base maps no longer show \"API key required\" tiles; they now come from Esri and need no key, and areas saved offline on the old dark or light map need saving again. The live map, gauge lists and published snapshot cover Texas and about 15 miles past the state line, keeping Red River and Sabine gauges, and the quick-jump regions now cover the whole state. For the late September 2026 flood event, radar and the rain forecast switch themselves on while a flash flood warning, flood watch, severe thunderstorm warning or tornado warning is in effect in Texas. A gauge reading that cannot be a water level is now treated as no reading, which removes two false major crests. Notices, shelters and crossing closures from the July floods are retired, and recovery links are trimmed to those that apply to any flood."

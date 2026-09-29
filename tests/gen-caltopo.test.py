@@ -167,6 +167,35 @@ gen = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gen)
 
 
+
+# the observed parenthetical names the NWPS category truthfully: no flood levels is not "no flooding"
+def _g(lid, stage, cat, fcat=None):
+    st = {"observed": {"primary": stage, "primaryUnit": "ft", "floodCategory": cat,
+                       "validTime": "2026-09-29T12:00:00Z"}}
+    if fcat:
+        st["forecast"] = {"primary": 5.5, "primaryUnit": "ft", "floodCategory": fcat,
+                          "validTime": "2026-09-30T12:00:00Z"}
+    return {"lid": lid, "name": lid, "latitude": 30.0, "longitude": -97.0, "status": st}
+
+
+_desc = {m["key"]: f["properties"]["description"] for _r, f, m in gen.build_gauges({"gauges": [
+    _g("NDFT2", 4.2, "not_defined", "not_defined"), _g("NOFT2", 3.1, "no_flooding", "no_flooding"),
+    _g("LOWT2", 0.4, "low_threshold"), _g("OOST2", 2.0, "out_of_service"), _g("MINT2", 12.0, "minor", "moderate"),
+    _g("ODDT2", 1.0, "something_new")]})}
+check('a gauge with no flood levels is never exported as "no flooding"',
+      "Observed: 4.2 ft (flood category not defined)" in _desc["NDFT2"]
+      and "no flooding" not in _desc["NDFT2"].lower(), _desc["NDFT2"])
+check('a genuinely quiet gauge still reads "no flooding"', "Observed: 3.1 ft (no flooding)" in _desc["NOFT2"], _desc["NOFT2"])
+check('below the low-water threshold is a true "no flooding"', "Observed: 0.4 ft (no flooding)" in _desc["LOWT2"], _desc["LOWT2"])
+check('an out-of-service gauge says so', "Observed: 2.0 ft (out of service)" in _desc["OOST2"], _desc["OOST2"])
+check('a flood category still prints in capitals', "Observed: 12.0 ft (MINOR)" in _desc["MINT2"]
+      and "(MODERATE) at" in _desc["MINT2"], _desc["MINT2"])
+check('the forecast line names the category in words, never the raw NWPS code',
+      "not_defined" not in _desc["NDFT2"] and "no_flooding" not in _desc["NOFT2"], _desc["NDFT2"] + _desc["NOFT2"])
+check('an unknown NWPS category is not guessed into "no flooding"',
+      "(flood category unknown)" in _desc["ODDT2"] and "no flooding" not in _desc["ODDT2"].lower(), _desc["ODDT2"])
+
+
 tmp = tempfile.mkdtemp()
 try:
     write_fixtures(tmp)

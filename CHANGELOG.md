@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.1 · 2026-09-29 (the map export names what a gauge can tell you)
+
+-- Bug Fixes --
+- [Fix] In the CalTopo and map exports, a gauge with no flood levels set now
+      reads "flood category not defined" instead of "no flooding", and an
+      out-of-service gauge says so. Forecast lines name the category in words
+
 ## v0.100.0 · 2026-09-28 (a clear map, a Texas-shaped board, and radar with the flood)
 
 -- Bug Fixes --

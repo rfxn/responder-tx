@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.5",
+      "date": "2026-09-30",
+      "line": "The Houston roadway flood risk count reads correctly when a single area is at risk, in English and Spanish."
+    },
+    {
       "v": "v0.100.4",
       "date": "2026-09-30",
       "line": "A Houston roadway flood risk layer from Houston TranStar and the Harris County Flood Control District marks areas where the risk of roadway flooding is high. It is off by default and does not confirm that any road is flooded or closed."

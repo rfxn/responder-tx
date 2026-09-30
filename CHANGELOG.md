@@ -1,5 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.5 · 2026-09-30 (one area reads as one)
+
+-- Bug Fixes --
+- [Fix] The Houston roadway flood risk count reads correctly when a single area
+      is at risk, in English and Spanish
+
 ## v0.100.4 · 2026-09-30 (Houston roadway flood risk)
 
 -- New Features --

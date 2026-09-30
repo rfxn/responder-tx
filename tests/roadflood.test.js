@@ -466,3 +466,11 @@ test('every new string exists in both languages, is translated, and carries no e
     assert.match(I18N[lang]['about.data'], /TranStar/, 'the about page must name the new collected source');
   }
 });
+
+test('a single area reads as one, in both languages', () => {
+  for (const [lang, want] of [['en', 'At high risk of roadway flooding now: 1 · not confirmed closures'],
+    ['es', 'Con alto riesgo de inundación vial ahora: 1 · no son cierres confirmados']]) {
+    const sub = withData(payload([WARN]), () => withT(I18N[lang], () => MSB.roadFloodRowSub()));
+    assert.equal(sub, want, lang);
+  }
+});

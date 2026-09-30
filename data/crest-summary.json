@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-30T06:55:15Z",
+ "generated": "2026-09-30T07:10:23Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-30T06:38:00Z"
+  "last": "2026-09-30T06:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1154,6 +1154,25 @@
    "stale": false
   },
   {
+   "lid": "AMAT2",
+   "name": "Canadian River at Amarillo",
+   "peak": 7.15,
+   "peak_time": "2026-09-30T06:53:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-09-30T06:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 25,
+    "record_date": "1904-10-01",
+    "peak_pct": 28.6,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "ODCT2",
    "name": "Terry Gully at FM 1442",
    "peak": 6.52,
@@ -1193,7 +1212,7 @@
    "src": "usgs"
   }
  ],
- "retained_gauges": 65,
+ "retained_gauges": 66,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

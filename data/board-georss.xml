@@ -5,12 +5,64 @@
   <id>https://respondertx.org/data/board-georss.xml</id>
   <link rel="self" type="application/atom+xml" href="https://respondertx.org/data/board-georss.xml" />
   <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-  <updated>2026-09-30T08:25:13Z</updated>
+  <updated>2026-09-30T08:40:13Z</updated>
   <rights>Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.</rights>
   <author>
     <name>Responder TX</name>
   </author>
   <generator uri="https://respondertx.org">Responder TX board</generator>
+  <entry>
+    <title>Flash Flood Warning · Deaf Smith, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:3dc63c666d65ac60</id>
+    <updated>2026-09-30T08:39:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Flash Flood Warning issued September 30 at 3:39AM CDT until September 30 at 4:15AM CDT by NWS Amarillo TX
+Severity: warning
+Expires: 2026-09-30T04:15:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.a7b63b921a813f901d276bf6a2eda358d23345ac.001.1
+Updated: 2026-09-30T03:39:00-05:00</summary>
+    <georss:polygon>35.18 -103.03 35.18 -102.36 34.75 -102.37 34.75 -103.04 35.04 -103.04 35.18 -103.03</georss:polygon>
+  </entry>
+  <entry>
+    <title>Flash Flood Warning · Deaf Smith, TX; Oldham, TX; Potter, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:858d1163a49fcc0e</id>
+    <updated>2026-09-30T08:34:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Flash Flood Warning issued September 30 at 3:34AM CDT until September 30 at 5:15AM CDT by NWS Amarillo TX
+Severity: warning
+Expires: 2026-09-30T05:15:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e5f1d3e5c574568bdf4ebda59db7a367a19f1f3d.001.1
+Updated: 2026-09-30T03:34:00-05:00</summary>
+    <georss:polygon>35.19 -102.36 35.31 -102.25 35.31 -102.17 35.32 -102.1 35.18 -102.15 35.18 -102.17 35.08 -102.17 34.95 -102.37 35.19 -102.36</georss:polygon>
+  </entry>
+  <entry>
+    <title>Flash Flood Warning · Bailey, TX; Parmer, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:f37725b7dc1dd523</id>
+    <updated>2026-09-30T08:29:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Flash Flood Warning issued September 30 at 3:29AM CDT until September 30 at 6:30AM CDT by NWS Lubbock TX
+Severity: warning
+Expires: 2026-09-30T06:30:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1841286b1cea8a2146c1aa9e52ff8c1f30181b91.001.1
+Updated: 2026-09-30T03:29:00-05:00</summary>
+    <georss:polygon>34.31 -103.01 34.42 -102.62 34.09 -102.62 33.89 -103.05 34.02 -103.04 34.3 -103.04 34.31 -103.01</georss:polygon>
+  </entry>
+  <entry>
+    <title>Flash Flood Warning · Castro, TX; Lamb, TX; Parmer, TX; Swisher, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:c41b8d86b8f9e093</id>
+    <updated>2026-09-30T08:25:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Flash Flood Warning issued September 30 at 3:25AM CDT until September 30 at 6:30AM CDT by NWS Lubbock TX
+Severity: warning
+Expires: 2026-09-30T06:30:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.658bb53001e728336a30b28689824276c5989e50.001.1
+Updated: 2026-09-30T03:25:00-05:00</summary>
+    <georss:polygon>34.31 -102.62 34.42 -102.62 34.47 -102.49 34.75 -102.08 34.75 -101.85 34.31 -102 34.31 -102.09 34.2 -102.09 34.16 -102.61 34.3 -102.62 34.31 -102.61 34.31 -102.62</georss:polygon>
+  </entry>
   <entry>
     <title>Flash Flood Warning · Potter, TX; Randall, TX</title>
     <id>tag:respondertx.org,2026:folder-alerts:fa4972a9368ab2c8</id>
@@ -49,19 +101,6 @@ Expires: 2026-09-30T05:15:00-05:00
 Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.8d32046bbad97317011b4b4042f3bfd899ea6cb0.001.1
 Updated: 2026-09-30T02:49:00-05:00</summary>
     <georss:polygon>35.07 -102.17 35.06 -102.03 35.03 -101.94 35 -101.89 34.99 -101.91 34.98 -101.94 34.98 -101.97 35 -102.08 35.01 -102.17 35.07 -102.17</georss:polygon>
-  </entry>
-  <entry>
-    <title>Flash Flood Warning · Deaf Smith, TX; Oldham, TX; Potter, TX</title>
-    <id>tag:respondertx.org,2026:folder-alerts:858d1163a49fcc0e</id>
-    <updated>2026-09-30T07:49:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="NWS alerts (active)" />
-    <summary type="text">Flash Flood Warning issued September 30 at 2:49AM CDT until September 30 at 5:15AM CDT by NWS Amarillo TX
-Severity: warning
-Expires: 2026-09-30T05:15:00-05:00
-Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1fd33dff4d72ace11dd323a25febe4c7e439f521.001.1
-Updated: 2026-09-30T02:49:00-05:00</summary>
-    <georss:polygon>35.19 -102.36 35.31 -102.25 35.31 -102.17 35.32 -102.1 35.18 -102.15 35.18 -102.17 35.08 -102.17 34.95 -102.37 35.19 -102.36</georss:polygon>
   </entry>
   <entry>
     <title>Flash Flood Warning · Deaf Smith, TX; Randall, TX</title>
@@ -127,19 +166,6 @@ Expires: 2026-09-30T07:00:00-05:00
 Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.c522da734b5c8fc952b10d1ad13390226829aecf.001.1
 Updated: 2026-09-30T02:22:00-05:00</summary>
     <georss:polygon>30.28 -101.06 30.29 -100.71 29.5 -101.17 29.51 -101.17 29.52 -101.19 29.52 -101.24 29.54 -101.26 29.57 -101.24 29.6 -101.25 29.62 -101.25 29.63 -101.27 29.62 -101.28 29.59 -101.28 29.58 -101.29 29.6 -101.31 29.64 -101.3 29.65 -101.3 29.66 -101.31 29.66 -101.35 30.28 -101.06</georss:polygon>
-  </entry>
-  <entry>
-    <title>Flash Flood Warning · Deaf Smith, TX</title>
-    <id>tag:respondertx.org,2026:folder-alerts:3dc63c666d65ac60</id>
-    <updated>2026-09-30T05:41:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="NWS alerts (active)" />
-    <summary type="text">Flash Flood Warning issued September 30 at 12:41AM CDT until September 30 at 4:15AM CDT by NWS Amarillo TX
-Severity: warning
-Expires: 2026-09-30T04:15:00-05:00
-Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.42ef16f149bc8c19720b22bcc9611a46443257db.001.1
-Updated: 2026-09-30T00:41:00-05:00</summary>
-    <georss:polygon>35.18 -103.03 35.18 -102.36 34.75 -102.37 34.75 -103.04 35.04 -103.04 35.18 -103.03</georss:polygon>
   </entry>
   <entry>
     <title>Flood Warning · Brewster, TX</title>
@@ -1002,16 +1028,16 @@ Updated: 2026-09-30T08:08:00Z</summary>
     <georss:polygon>35.03551 -102.13414 35.03899 -102.1347 35.04224 -102.13635 35.04503 -102.13896 35.04717 -102.14237 35.04852 -102.14634 35.04898 -102.1506 35.04852 -102.15486 35.04717 -102.15883 35.04503 -102.16224 35.04224 -102.16485 35.03899 -102.1665 35.03551 -102.16706 35.03202 -102.1665 35.02877 -102.16485 35.02598 -102.16224 35.02384 -102.15883 35.02249 -102.15486 35.02203 -102.1506 35.02249 -102.14634 35.02384 -102.14237 35.02598 -102.13896 35.02877 -102.13635 35.03202 -102.1347 35.03551 -102.13414</georss:polygon>
   </entry>
   <entry>
-    <title>Crest: Canadian River at Amarillo · peak 7.77 ft</title>
+    <title>Crest: Canadian River at Amarillo · peak 7.92 ft</title>
     <id>tag:respondertx.org,2026:folder-crests:AMAT2</id>
-    <updated>2026-09-30T07:53:00Z</updated>
+    <updated>2026-09-30T08:23:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Crests (event peaks)" />
-    <summary type="text">Peak 7.77 ft (MINOR) at 2026-09-30T07:53:00Z
+    <summary type="text">Peak 7.92 ft (MINOR) at 2026-09-30T08:23:00Z
 Ongoing flood
 Record: 25 ft (1904-10-01)
 Source: NOAA NWS/NWPS via Responder TX crest summary · https://respondertx.org/data/crest-summary.json
-Updated: 2026-09-30T07:53:00Z</summary>
+Updated: 2026-09-30T08:23:00Z</summary>
     <georss:polygon>35.47028 -101.86262 35.47377 -101.86319 35.47702 -101.86484 35.47981 -101.86747 35.48195 -101.87089 35.48329 -101.87488 35.48375 -101.87917 35.48329 -101.88345 35.48195 -101.88744 35.47981 -101.89087 35.47702 -101.8935 35.47377 -101.89515 35.47028 -101.89571 35.46679 -101.89515 35.46354 -101.8935 35.46075 -101.89087 35.45861 -101.88744 35.45726 -101.88345 35.4568 -101.87917 35.45726 -101.87488 35.45861 -101.87089 35.46075 -101.86747 35.46354 -101.86484 35.46679 -101.86319 35.47028 -101.86262</georss:polygon>
   </entry>
   <entry>
@@ -1089,23 +1115,23 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Barton Creek at Loop 360</title>
     <id>tag:respondertx.org,2026:folder-gauges:ABTT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.65 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ABTT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.24444 -97.80194</georss:point>
   </entry>
   <entry>
     <title>Gauge: Bull Creek above Loop 360</title>
     <id>tag:respondertx.org,2026:folder-gauges:ABUT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.03 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ABUT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.37194 -97.78444</georss:point>
   </entry>
   <entry>
@@ -1133,13 +1159,13 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Austin</title>
     <id>tag:respondertx.org,2026:folder-gauges:ACRT2</id>
-    <updated>2026-09-30T07:50:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 15.37 ft (no flooding)
+    <summary type="text">Observed: 15.33 ft (no flooding)
 Forecast: 16.6 ft (no flooding) at 2026-10-01T08:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ACRT2
-Updated: 2026-09-30T07:50:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.24611 -97.68</georss:point>
   </entry>
   <entry>
@@ -1156,12 +1182,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Cow Creek (OK) near Addington</title>
     <id>tag:respondertx.org,2026:folder-gauges:ADDO2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.36 ft (flood category not defined)
+    <summary type="text">Observed: 2.35 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ADDO2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>34.245 -97.97417</georss:point>
   </entry>
   <entry>
@@ -1222,12 +1248,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Lake Austin</title>
     <id>tag:respondertx.org,2026:folder-gauges:ALKT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 492.3 ft (flood category not defined)
+    <summary type="text">Observed: 492.31 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ALKT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.31493 -97.7864</georss:point>
   </entry>
   <entry>
@@ -1255,13 +1281,13 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Canadian River at Amarillo · MINOR</title>
     <id>tag:respondertx.org,2026:folder-gauges:AMAT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 7.92 ft (MINOR)
+    <summary type="text">Observed: 8.03 ft (MINOR)
 Forecast: 10 ft (MODERATE) at 2026-09-30T18:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/AMAT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>35.47028 -101.87917</georss:point>
   </entry>
   <entry>
@@ -1289,24 +1315,24 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Tide Gauge above Aransas Pass</title>
     <id>tag:respondertx.org,2026:folder-gauges:ANPT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.25 ft (flood category not defined)
+    <summary type="text">Observed: 2.19 ft (flood category not defined)
 Forecast: 2.05 ft (flood category not defined) at 2026-10-03T06:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ANPT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>27.837 -97.039</georss:point>
   </entry>
   <entry>
     <title>Gauge: Brazos River near Aquilla</title>
     <id>tag:respondertx.org,2026:folder-gauges:AQLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 9.97 ft (no flooding)
+    <summary type="text">Observed: 9.68 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/AQLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.81222 -97.2975</georss:point>
   </entry>
   <entry>
@@ -1456,12 +1482,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Tide Gauge at Baffin Bay</title>
     <id>tag:respondertx.org,2026:folder-gauges:BABT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T07:54:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.7 ft (no flooding)
+    <summary type="text">Observed: 0.71 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BABT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T07:54:00Z</summary>
     <georss:point>27.29702 -97.40491</georss:point>
   </entry>
   <entry>
@@ -1501,12 +1527,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Blanco River at Crabapple Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:BAPT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.58 ft (no flooding)
+    <summary type="text">Observed: 0.57 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BAPT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.1025 -98.51056</georss:point>
   </entry>
   <entry>
@@ -1557,12 +1583,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Amon Carter</title>
     <id>tag:respondertx.org,2026:folder-gauges:BCAT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 916.16 ft (flood category not defined)
+    <summary type="text">Observed: 916.14 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BCAT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.47417 -97.86278</georss:point>
   </entry>
   <entry>
@@ -1579,12 +1605,12 @@ Updated: 2026-09-30T07:20:00Z</summary>
   <entry>
     <title>Gauge: Bear Creek below Route 1826 at Driftwood</title>
     <id>tag:respondertx.org,2026:folder-gauges:BCDT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.51 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BCDT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.15528 -97.93972</georss:point>
   </entry>
   <entry>
@@ -1645,12 +1671,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Cow Bayou at I-10</title>
     <id>tag:respondertx.org,2026:folder-gauges:BCVT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.59 ft (no flooding)
+    <summary type="text">Observed: 1.61 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BCVT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>30.1306 -93.9163</georss:point>
   </entry>
   <entry>
@@ -1667,7 +1693,7 @@ Updated: 2026-09-30T07:50:00Z</summary>
   <entry>
     <title>Gauge: Cypress Creek (E TX) at CR 725</title>
     <id>tag:respondertx.org,2026:folder-gauges:BCYT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -1690,7 +1716,7 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Daniel</title>
     <id>tag:respondertx.org,2026:folder-gauges:BDLT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -1702,12 +1728,12 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Onion Creek at Buda</title>
     <id>tag:respondertx.org,2026:folder-gauges:BDUT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.7 ft (no flooding)
+    <summary type="text">Observed: 0.68 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BDUT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.08667 -97.84861</georss:point>
   </entry>
   <entry>
@@ -1724,7 +1750,7 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Neches River at Beaumont</title>
     <id>tag:respondertx.org,2026:folder-gauges:BEAT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -1780,34 +1806,34 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Bear Creek at FM 2722 nr Sattler</title>
     <id>tag:respondertx.org,2026:folder-gauges:BEST2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.58 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BEST2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.80833 -98.23028</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande Below Falcon Reservoir</title>
     <id>tag:respondertx.org,2026:folder-gauges:BFAT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.95 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BFAT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>26.55722 -99.16667</georss:point>
   </entry>
   <entry>
     <title>Gauge: Blanco River at Fischer Store Rd near Fischer</title>
     <id>tag:respondertx.org,2026:folder-gauges:BFST2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.58 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BFST2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.00058 -98.20036</georss:point>
   </entry>
   <entry>
@@ -1835,12 +1861,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Boggy Creek at Manor Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:BGMT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.74 ft (flood category not defined)
+    <summary type="text">Observed: 0.73 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BGMT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.28611 -97.70861</georss:point>
   </entry>
   <entry>
@@ -2113,7 +2139,7 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Lavaca River at Breslau</title>
     <id>tag:respondertx.org,2026:folder-gauges:BRLT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2136,13 +2162,13 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Bastrop</title>
     <id>tag:respondertx.org,2026:folder-gauges:BRTT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.65 ft (no flooding)
+    <summary type="text">Observed: 3.66 ft (no flooding)
 Forecast: 4 ft (no flooding) at 2026-09-30T14:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BRTT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.10444 -97.31917</georss:point>
   </entry>
   <entry>
@@ -2160,12 +2186,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Mexia</title>
     <id>tag:respondertx.org,2026:folder-gauges:BSAT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 446.48 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BSAT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.64361 -96.57861</georss:point>
   </entry>
   <entry>
@@ -2215,23 +2241,23 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: San Saba River near Brady</title>
     <id>tag:respondertx.org,2026:folder-gauges:BSST2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.18 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BSST2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.00389 -99.26861</georss:point>
   </entry>
   <entry>
     <title>Gauge: Salado Creek at Wilderness Road near San Antonio</title>
     <id>tag:respondertx.org,2026:folder-gauges:BSWT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.03 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BSWT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.63056 -98.56528</georss:point>
   </entry>
   <entry>
@@ -2270,12 +2296,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Lake Buchanan</title>
     <id>tag:respondertx.org,2026:folder-gauges:BUDT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1018.29 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BUDT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.75139 -98.41806</georss:point>
   </entry>
   <entry>
@@ -2303,23 +2329,23 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Cibolo Creek at Specht Road near Bulverde</title>
     <id>tag:respondertx.org,2026:folder-gauges:BVST2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.81 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BVST2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.73678 -98.49337</georss:point>
   </entry>
   <entry>
     <title>Gauge: Sister Grove Creek near Blue Ridge</title>
     <id>tag:respondertx.org,2026:folder-gauges:BVWT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 11.33 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BVWT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.29444 -96.48278</georss:point>
   </entry>
   <entry>
@@ -2348,12 +2374,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Brushy Creek at Cedar Park</title>
     <id>tag:respondertx.org,2026:folder-gauges:BYBT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.65 ft (flood category not defined)
+    <summary type="text">Observed: 0.66 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BYBT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.525 -97.74972</georss:point>
   </entry>
   <entry>
@@ -2515,7 +2541,7 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Pease River at Childress 17SE</title>
     <id>tag:respondertx.org,2026:folder-gauges:CDPT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2538,18 +2564,18 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Prairie Dog Town Fork of the Red River at Childress 10N</title>
     <id>tag:respondertx.org,2026:folder-gauges:CHLT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 7.69 ft (no flooding)
+    <summary type="text">Observed: 7.66 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CHLT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>34.56917 -100.19361</georss:point>
   </entry>
   <entry>
     <title>Gauge: Frio River at Choke Canyon Dam</title>
     <id>tag:respondertx.org,2026:folder-gauges:CHOT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2561,34 +2587,34 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: South Concho River at Christoval</title>
     <id>tag:respondertx.org,2026:folder-gauges:CHVT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T07:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.88 ft (no flooding)
+    <summary type="text">Observed: 1.87 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CHVT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T07:50:00Z</summary>
     <georss:point>31.18694 -100.50167</georss:point>
   </entry>
   <entry>
     <title>Gauge: Wichita River near Charlie</title>
     <id>tag:respondertx.org,2026:folder-gauges:CHWT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.86 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CHWT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>34.05315 -98.29671</georss:point>
   </entry>
   <entry>
     <title>Gauge: Cibolo Creek near Boerne</title>
     <id>tag:respondertx.org,2026:folder-gauges:CICT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.17 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CICT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.775 -98.70944</georss:point>
   </entry>
   <entry>
@@ -2616,12 +2642,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: North Concho River near Carlsbad</title>
     <id>tag:respondertx.org,2026:folder-gauges:CLBT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T07:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.99 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CLBT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T07:50:00Z</summary>
     <georss:point>31.5925 -100.63667</georss:point>
   </entry>
   <entry>
@@ -2638,12 +2664,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Morgan Creek (TX) at Lake Colorado City</title>
     <id>tag:respondertx.org,2026:folder-gauges:CLRT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2058.75 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CLRT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.34484 -100.91984</georss:point>
   </entry>
   <entry>
@@ -2693,12 +2719,12 @@ Updated: 2026-09-30T07:55:00Z</summary>
   <entry>
     <title>Gauge: Frio River at Concan</title>
     <id>tag:respondertx.org,2026:folder-gauges:CNCT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.64 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CNCT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.48833 -99.70444</georss:point>
   </entry>
   <entry>
@@ -2715,7 +2741,7 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Cibolo Creek at Cibolo Nature Center</title>
     <id>tag:respondertx.org,2026:folder-gauges:CNXT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2738,13 +2764,13 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Guadalupe River at Comfort</title>
     <id>tag:respondertx.org,2026:folder-gauges:COMT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T07:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.27 ft (no flooding)
+    <summary type="text">Observed: 3.26 ft (no flooding)
 Forecast: 3.2 ft (no flooding) at 2026-09-30T09:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/COMT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T07:50:00Z</summary>
     <georss:point>29.96524 -98.89717</georss:point>
   </entry>
   <entry>
@@ -2818,7 +2844,7 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: North Sulphur River near Cooper</title>
     <id>tag:respondertx.org,2026:folder-gauges:CPPT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2930,7 +2956,7 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Cibolo Creek at Smithson Valley Rd nr Bulverde</title>
     <id>tag:respondertx.org,2026:folder-gauges:CSVT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2964,12 +2990,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: North Bosque River near Clifton</title>
     <id>tag:respondertx.org,2026:folder-gauges:CTNT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.45 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CTNT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.78583 -97.56778</georss:point>
   </entry>
   <entry>
@@ -2998,12 +3024,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Pecan Bayou near Cross Cut</title>
     <id>tag:respondertx.org,2026:folder-gauges:CUTT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.09 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CUTT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>31.97333 -99.12917</georss:point>
   </entry>
   <entry>
@@ -3075,18 +3101,18 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Denton Creek near Justin</title>
     <id>tag:respondertx.org,2026:folder-gauges:DCJT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.68 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/DCJT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.11889 -97.29028</georss:point>
   </entry>
   <entry>
     <title>Gauge: Cramer Creek 30SW Dalhart</title>
     <id>tag:respondertx.org,2026:folder-gauges:DCMT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -3221,23 +3247,23 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Brazos River near Dennis</title>
     <id>tag:respondertx.org,2026:folder-gauges:DNNT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.67 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/DNNT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>32.61556 -97.92556</georss:point>
   </entry>
   <entry>
     <title>Gauge: Dolan Creek above Devils River near Comstock</title>
     <id>tag:respondertx.org,2026:folder-gauges:DOLT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.84 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/DOLT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>29.88833 -100.98972</georss:point>
   </entry>
   <entry>
@@ -3254,12 +3280,12 @@ Updated: 2026-09-29T18:15:00Z</summary>
   <entry>
     <title>Gauge: Onion Creek near Driftwood</title>
     <id>tag:respondertx.org,2026:folder-gauges:DRWT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.35 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/DRWT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.08278 -98.0075</georss:point>
   </entry>
   <entry>
@@ -3298,12 +3324,12 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Sulphur River near Dalby Springs at Interstate 30</title>
     <id>tag:respondertx.org,2026:folder-gauges:DSPT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.01 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/DSPT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>33.3094 -94.6981</georss:point>
   </entry>
   <entry>
@@ -3410,7 +3436,7 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: East Fork Crystal Creek at FM 1485 near Conroe</title>
     <id>tag:respondertx.org,2026:folder-gauges:ECYT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -3433,23 +3459,23 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Wilbarger Creek at Elgin</title>
     <id>tag:respondertx.org,2026:folder-gauges:EGYT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 5.15 ft (no flooding)
+    <summary type="text">Observed: 5.14 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/EGYT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.23194 -97.43278</georss:point>
   </entry>
   <entry>
     <title>Gauge: Big Sandy Creek (TX) near Elgin</title>
     <id>tag:respondertx.org,2026:folder-gauges:EGZT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.55 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/EGZT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.2656 -97.3281</georss:point>
   </entry>
   <entry>
@@ -3488,13 +3514,13 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Tide Station (HGX) at East Matagorda</title>
     <id>tag:respondertx.org,2026:folder-gauges:EMAT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.54 ft (no flooding)
+    <summary type="text">Observed: 1.61 ft (no flooding)
 Forecast: 1.1 ft (flood category unknown) at 2026-10-03T11:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/EMAT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>28.71 -95.9138</georss:point>
   </entry>
   <entry>
@@ -3535,13 +3561,13 @@ Updated: 2026-09-30T07:05:00Z</summary>
   <entry>
     <title>Gauge: Tide Station (HGX) at San Leon</title>
     <id>tag:respondertx.org,2026:folder-gauges:EPTT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.69 ft (no flooding)
+    <summary type="text">Observed: 2.76 ft (no flooding)
 Forecast: 1.75 ft (flood category unknown) at 2026-10-03T11:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/EPTT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.48 -94.9183</georss:point>
   </entry>
   <entry>
@@ -3581,12 +3607,12 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: West Central Texas Lakes at E. V. Spence Reservoir</title>
     <id>tag:respondertx.org,2026:folder-gauges:EVST2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1842.09 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/EVST2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.87944 -100.51694</georss:point>
   </entry>
   <entry>
@@ -3614,12 +3640,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Rio Grande at Falcon Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:FALT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 260.16 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FALT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>26.55972 -99.16667</georss:point>
   </entry>
   <entry>
@@ -3669,23 +3695,23 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Richland-Chambers Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:FFLT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 312.28 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FFLT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>32.04028 -96.20639</georss:point>
   </entry>
   <entry>
     <title>Gauge: Frio River at at Leakey</title>
     <id>tag:respondertx.org,2026:folder-gauges:FILT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.47 ft (flood category not defined)
+    <summary type="text">Observed: 4.46 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FILT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.72278 -99.75333</georss:point>
   </entry>
   <entry>
@@ -3703,12 +3729,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: San Antonio River near Floresville</title>
     <id>tag:respondertx.org,2026:folder-gauges:FLVT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.1 ft (no flooding)
+    <summary type="text">Observed: 4.12 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FLVT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.11 -98.17444</georss:point>
   </entry>
   <entry>
@@ -3725,24 +3751,24 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Berry Creek near Florence, TX</title>
     <id>tag:respondertx.org,2026:folder-gauges:FMFT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T07:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.94 ft (flood category not defined)
+    <summary type="text">Observed: 4.84 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FMFT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T07:50:00Z</summary>
     <georss:point>30.8106 -97.826</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Station (HGX) at Freeport</title>
     <id>tag:respondertx.org,2026:folder-gauges:FPST2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T07:54:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.67 ft (no flooding)
+    <summary type="text">Observed: 2.64 ft (no flooding)
 Forecast: 2.52 ft (flood category unknown) at 2026-10-03T05:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FPST2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T07:54:00Z</summary>
     <georss:point>28.935 -95.295</georss:point>
   </entry>
   <entry>
@@ -3759,23 +3785,23 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Pedernales River at Fredericksburg</title>
     <id>tag:respondertx.org,2026:folder-gauges:FRBT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 7.64 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FRBT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.22028 -98.86944</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Ray Hubbard</title>
     <id>tag:respondertx.org,2026:folder-gauges:FRHT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 431.64 ft (flood category not defined)
+    <summary type="text">Observed: 431.63 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/FRHT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.8 -96.49583</georss:point>
   </entry>
   <entry>
@@ -3881,12 +3907,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Granbury</title>
     <id>tag:respondertx.org,2026:folder-gauges:GBYT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T07:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 689.93 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GBYT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T07:50:00Z</summary>
     <georss:point>32.37417 -97.68889</georss:point>
   </entry>
   <entry>
@@ -3914,12 +3940,12 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Guadalupe River near Centerpoint</title>
     <id>tag:respondertx.org,2026:folder-gauges:GCTT2</id>
-    <updated>2026-09-30T07:40:00Z</updated>
+    <updated>2026-09-30T07:55:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.2 ft (flood category not defined)
+    <summary type="text">Observed: 4.19 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GCTT2
-Updated: 2026-09-30T07:40:00Z</summary>
+Updated: 2026-09-30T07:55:00Z</summary>
     <georss:point>29.98778 -99.11</georss:point>
   </entry>
   <entry>
@@ -3958,12 +3984,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: San Gabriel River at Georgetown South Fork</title>
     <id>tag:respondertx.org,2026:folder-gauges:GETT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.73 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GETT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.62556 -97.69083</georss:point>
   </entry>
   <entry>
@@ -4035,12 +4061,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Goose Creek near McNair</title>
     <id>tag:respondertx.org,2026:folder-gauges:GMKT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 15.34 ft (no flooding)
+    <summary type="text">Observed: 15.33 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GMKT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>29.8014 -95.0047</georss:point>
   </entry>
   <entry>
@@ -4092,12 +4118,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: North Fork San Gabriel River at Ronald Reagan Blvd near Leander 8N</title>
     <id>tag:respondertx.org,2026:folder-gauges:GNRT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.29 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GNRT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>30.69778 -97.84917</georss:point>
   </entry>
   <entry>
@@ -4147,12 +4173,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Lake LBJ</title>
     <id>tag:respondertx.org,2026:folder-gauges:GPLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 824.53 ft (flood category not defined)
+    <summary type="text">Observed: 824.48 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GPLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.55583 -98.33806</georss:point>
   </entry>
   <entry>
@@ -4180,12 +4206,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Squaw Creek Reservoir</title>
     <id>tag:respondertx.org,2026:folder-gauges:GQQT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 775.18 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GQQT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.3 -97.78667</georss:point>
   </entry>
   <entry>
@@ -4225,12 +4251,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Paluxy River at Glen Rose</title>
     <id>tag:respondertx.org,2026:folder-gauges:GROT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.7 ft (no flooding)
+    <summary type="text">Observed: 1.69 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GROT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.23139 -97.77694</georss:point>
   </entry>
   <entry>
@@ -4248,23 +4274,23 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: Navasota River above Groesbeck</title>
     <id>tag:respondertx.org,2026:folder-gauges:GRST2</id>
-    <updated>2026-09-30T07:40:00Z</updated>
+    <updated>2026-09-30T07:55:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.03 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GRST2
-Updated: 2026-09-30T07:40:00Z</summary>
+Updated: 2026-09-30T07:55:00Z</summary>
     <georss:point>31.57417 -96.52056</georss:point>
   </entry>
   <entry>
     <title>Gauge: Guadalupe River at 3rd Crossing nr Sattler</title>
     <id>tag:respondertx.org,2026:folder-gauges:GRTT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.95 ft (flood category not defined)
+    <summary type="text">Observed: 3.96 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GRTT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.80361 -98.16306</georss:point>
   </entry>
   <entry>
@@ -4316,12 +4342,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Guadalupe River at FM474 near Bergheim</title>
     <id>tag:respondertx.org,2026:folder-gauges:GUBT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.72 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/GUBT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.89333 -98.66972</georss:point>
   </entry>
   <entry>
@@ -4349,7 +4375,7 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: Nueces River at George West</title>
     <id>tag:respondertx.org,2026:folder-gauges:GWNT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4361,7 +4387,7 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Grassy Creek at TX 105 near Navasota</title>
     <id>tag:respondertx.org,2026:folder-gauges:GYST2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4429,7 +4455,7 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Brazos River at FM 485 Near Hearne</title>
     <id>tag:respondertx.org,2026:folder-gauges:HBRT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4529,12 +4555,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Eastern Oklahoma Lakes at Hugo Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:HGLO2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 400.99 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/HGLO2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>34.01167 -95.38028</georss:point>
   </entry>
   <entry>
@@ -4584,13 +4610,13 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Tide Station (HGX) at High Island</title>
     <id>tag:respondertx.org,2026:folder-gauges:HIST2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.53 ft (no flooding)
+    <summary type="text">Observed: 2.51 ft (no flooding)
 Forecast: 1.96 ft (flood category unknown) at 2026-10-03T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/HIST2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.5947 -94.3902</georss:point>
   </entry>
   <entry>
@@ -4662,7 +4688,7 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Little Cypress Creek (SE TX) at County Road 3114</title>
     <id>tag:respondertx.org,2026:folder-gauges:HNLT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4674,18 +4700,18 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Guadalupe River at Hunt</title>
     <id>tag:respondertx.org,2026:folder-gauges:HNTT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T07:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 7.73 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/HNTT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T07:50:00Z</summary>
     <georss:point>30.06993 -99.32171</georss:point>
   </entry>
   <entry>
     <title>Gauge: Yellow Bayou at St. John Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:HNYT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4764,12 +4790,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: East Fork Little Wichita River near Henrietta</title>
     <id>tag:respondertx.org,2026:folder-gauges:HTWT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.92 ft (flood category not defined)
+    <summary type="text">Observed: 4.94 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/HTWT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>33.81288 -98.08504</georss:point>
   </entry>
   <entry>
@@ -4786,7 +4812,7 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: Hickory Slough at FM 865 near Pearland</title>
     <id>tag:respondertx.org,2026:folder-gauges:HYST2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4820,23 +4846,23 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Inks Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:IKLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 887.12 ft (flood category not defined)
+    <summary type="text">Observed: 887.11 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/IKLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.73111 -98.38472</georss:point>
   </entry>
   <entry>
     <title>Gauge: Red River at Index</title>
     <id>tag:respondertx.org,2026:folder-gauges:INGA4</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.73 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/INGA4
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.55194 -94.04111</georss:point>
   </entry>
   <entry>
@@ -4853,12 +4879,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Wichita River near Iowa Park</title>
     <id>tag:respondertx.org,2026:folder-gauges:IPWT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 6.68 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/IPWT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.89694 -98.70722</georss:point>
   </entry>
   <entry>
@@ -4875,12 +4901,12 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Tide Gauge at Bird Island</title>
     <id>tag:respondertx.org,2026:folder-gauges:IRDT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.72 ft (no flooding)
+    <summary type="text">Observed: 0.74 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/IRDT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>27.48611 -97.31694</georss:point>
   </entry>
   <entry>
@@ -4930,35 +4956,35 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Johnson Creek above Ingram</title>
     <id>tag:respondertx.org,2026:folder-gauges:JCIT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: -0.13 ft (flood category not defined)
+    <summary type="text">Observed: -0.11 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JCIT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.1 -99.28278</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Llano River near Junction</title>
     <id>tag:respondertx.org,2026:folder-gauges:JCTT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T07:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 8.78 ft (no flooding)
+    <summary type="text">Observed: 8.79 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JCTT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T07:50:00Z</summary>
     <georss:point>30.51722 -99.80583</georss:point>
   </entry>
   <entry>
     <title>Gauge: Black Cypress Bayou near Jefferson</title>
     <id>tag:respondertx.org,2026:folder-gauges:JEFT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.57 ft (no flooding)
+    <summary type="text">Observed: 3.61 ft (no flooding)
 Forecast: 3.6 ft (no flooding) at 2026-09-30T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JEFT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.77778 -94.35722</georss:point>
   </entry>
   <entry>
@@ -4976,118 +5002,118 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Little Cypress Creek near Jefferson</title>
     <id>tag:respondertx.org,2026:folder-gauges:JFFT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.8 ft (no flooding)
 Forecast: 1.8 ft (no flooding) at 2026-09-30T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JFFT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>32.71278 -94.34583</georss:point>
   </entry>
   <entry>
     <title>Gauge: Mud Creek near Jacksonville</title>
     <id>tag:respondertx.org,2026:folder-gauges:JKST2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.24 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JKST2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.97639 -95.16056</georss:point>
   </entry>
   <entry>
     <title>Gauge: Llano River near Junction</title>
     <id>tag:respondertx.org,2026:folder-gauges:JNCT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.53 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JNCT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.50417 -99.73417</georss:point>
   </entry>
   <entry>
     <title>Gauge: Devils River at Cauthorn Ranch near Juno</title>
     <id>tag:respondertx.org,2026:folder-gauges:JNXT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.4 ft (no flooding)
+    <summary type="text">Observed: 4.39 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JNXT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.07917 -101.10972</georss:point>
   </entry>
   <entry>
     <title>Gauge: Pedernales River at Johnson City</title>
     <id>tag:respondertx.org,2026:folder-gauges:JOCT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 10.42 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JOCT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.29167 -98.39917</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Texas Lakes at Joe Pool  Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:JPLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 519.56 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JPLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.64333 -97.00083</georss:point>
   </entry>
   <entry>
     <title>Gauge: Angelina River at Lake Sam Rayburn</title>
     <id>tag:respondertx.org,2026:folder-gauges:JSPT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 154.14 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JSPT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.06075 -94.10603</georss:point>
   </entry>
   <entry>
     <title>Gauge: Brazos River at Justiceburg</title>
     <id>tag:respondertx.org,2026:folder-gauges:JTBT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 6.45 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JTBT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.03833 -101.19722</georss:point>
   </entry>
   <entry>
     <title>Gauge: Juanita Creek at SH 71 near Midfield</title>
     <id>tag:respondertx.org,2026:folder-gauges:JUAT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 32.86 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JUAT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>28.97359 -96.20852</georss:point>
   </entry>
   <entry>
     <title>Gauge: Neches River at Downtown Beaumont</title>
     <id>tag:respondertx.org,2026:folder-gauges:JYBT2</id>
-    <updated>2026-09-30T08:05:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.18 ft (no flooding)
+    <summary type="text">Observed: 2.24 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JYBT2
-Updated: 2026-09-30T08:05:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>30.0868 -94.0957</georss:point>
   </entry>
   <entry>
     <title>Gauge: Hillebrandt Bayou at Hillebrandt Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:JYIT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -5110,7 +5136,7 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Little Pine Island Bayou near Thicket</title>
     <id>tag:respondertx.org,2026:folder-gauges:JYLT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -5122,34 +5148,34 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Black Creek at Highway 326</title>
     <id>tag:respondertx.org,2026:folder-gauges:JYMT2</id>
-    <updated>2026-09-30T04:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 42.95 ft (no flooding)
+    <summary type="text">Observed: 42.96 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JYMT2
-Updated: 2026-09-30T04:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.25556 -94.36472</georss:point>
   </entry>
   <entry>
     <title>Gauge: Pine Island Bayou near Bevil Oaks</title>
     <id>tag:respondertx.org,2026:folder-gauges:JYNT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.59 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JYNT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.13528 -94.27889</georss:point>
   </entry>
   <entry>
     <title>Gauge: Pine Island Bayou at Highway 326</title>
     <id>tag:respondertx.org,2026:folder-gauges:JZBT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 18.48 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JZBT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.09861 -94.40472</georss:point>
   </entry>
   <entry>
@@ -5199,12 +5225,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Lampasas River near Kempner</title>
     <id>tag:respondertx.org,2026:folder-gauges:KEMT2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.26 ft (no flooding)
+    <summary type="text">Observed: 1.25 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KEMT2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>31.0792 -98.0164</georss:point>
   </entry>
   <entry>
@@ -5232,18 +5258,18 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Rabbit Creek at Kilgore</title>
     <id>tag:respondertx.org,2026:folder-gauges:KLGT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.8 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KLGT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>32.38806 -94.90306</georss:point>
   </entry>
   <entry>
     <title>Gauge: Lavaca River at Komensky</title>
     <id>tag:respondertx.org,2026:folder-gauges:KMST2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -5266,12 +5292,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Sandy Creek near Kingsland</title>
     <id>tag:respondertx.org,2026:folder-gauges:KNLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.77 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KNLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.5575 -98.47194</georss:point>
   </entry>
   <entry>
@@ -5289,13 +5315,13 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Guadalupe River at Kerrville</title>
     <id>tag:respondertx.org,2026:folder-gauges:KRRT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T08:05:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.15 ft (no flooding)
+    <summary type="text">Observed: 1.14 ft (no flooding)
 Forecast: 1.1 ft (no flooding) at 2026-09-30T09:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KRRT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T08:05:00Z</summary>
     <georss:point>30.05306 -99.16306</georss:point>
   </entry>
   <entry>
@@ -5312,67 +5338,67 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Hondo Creek at SH 173 near Hondo</title>
     <id>tag:respondertx.org,2026:folder-gauges:KWHT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.7 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KWHT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.37611 -99.11667</georss:point>
   </entry>
   <entry>
     <title>Gauge: Blanco River near Kyle</title>
     <id>tag:respondertx.org,2026:folder-gauges:KYET2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.97 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KYET2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.97917 -97.90972</georss:point>
   </entry>
   <entry>
     <title>Gauge: Medina River near La Coste</title>
     <id>tag:respondertx.org,2026:folder-gauges:LACT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 6.06 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LACT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>29.32389 -98.81278</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Arlington</title>
     <id>tag:respondertx.org,2026:folder-gauges:LART2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 543.17 ft (flood category not defined)
+    <summary type="text">Observed: 543.19 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LART2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>32.71611 -97.19222</georss:point>
   </entry>
   <entry>
     <title>Gauge: Little Blanco River at FM32 near Fischer</title>
     <id>tag:respondertx.org,2026:folder-gauges:LBFT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.7 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LBFT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.02081 -98.33056</georss:point>
   </entry>
   <entry>
     <title>Gauge: Linnville Bayou at FM 521 near Cedar Lane</title>
     <id>tag:respondertx.org,2026:folder-gauges:LBUT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.36 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LBUT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>28.95151 -95.71123</georss:point>
   </entry>
   <entry>
@@ -5401,23 +5427,23 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Wolf Creek at Lipscomb</title>
     <id>tag:respondertx.org,2026:folder-gauges:LCBT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 5.27 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCBT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>36.23861 -100.27528</georss:point>
   </entry>
   <entry>
     <title>Gauge: Leon Creek at I-10 and Loop 1604</title>
     <id>tag:respondertx.org,2026:folder-gauges:LCFT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 982.65 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCFT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.59306 -98.59917</georss:point>
   </entry>
   <entry>
@@ -5434,23 +5460,23 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Lost Creek at Lost Creek Blvd</title>
     <id>tag:respondertx.org,2026:folder-gauges:LCKT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.41 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCKT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.27389 -97.84444</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Pat Cleburne</title>
     <id>tag:respondertx.org,2026:folder-gauges:LCLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 730.75 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.28889 -97.415</georss:point>
   </entry>
   <entry>
@@ -5468,79 +5494,79 @@ Updated: 2026-09-29T11:00:00Z</summary>
   <entry>
     <title>Gauge: Plum Creek at Lockhart</title>
     <id>tag:respondertx.org,2026:folder-gauges:LCPT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.02 ft (no flooding)
+    <summary type="text">Observed: 2 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCPT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.92278 -97.67889</georss:point>
   </entry>
   <entry>
     <title>Gauge: Cherokee Bayou at Lake Cherokee</title>
     <id>tag:respondertx.org,2026:folder-gauges:LCRT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 277.43 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCRT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>32.3433 -94.6412</georss:point>
   </entry>
   <entry>
     <title>Gauge: West Fork San Jacinto River at Lake Conroe</title>
     <id>tag:respondertx.org,2026:folder-gauges:LCTT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 199.54 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCTT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.35833 -95.56083</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande at Laredo</title>
     <id>tag:respondertx.org,2026:folder-gauges:LDOT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.4 ft (no flooding)
+    <summary type="text">Observed: 1.42 ft (no flooding)
 Forecast: 1.4 ft (no flooding) at 2026-09-30T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LDOT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>27.50183 -99.50297</georss:point>
   </entry>
   <entry>
     <title>Gauge: Mill Creek (E TX) at Brownlea Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:LEAT2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LEAT2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>30.40716 -94.18833</georss:point>
   </entry>
   <entry>
     <title>Gauge: Little Bernard Creek at I-10 near Sealy</title>
     <id>tag:respondertx.org,2026:folder-gauges:LEBT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 178.87 ft (no flooding)
+    <summary type="text">Observed: 178.86 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LEBT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.76168 -96.20533</georss:point>
   </entry>
   <entry>
     <title>Gauge: Leon Creek at Loop 410 near Leon Valley</title>
     <id>tag:respondertx.org,2026:folder-gauges:LECT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.71 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LECT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.44778 -98.63361</georss:point>
   </entry>
   <entry>
@@ -5580,12 +5606,12 @@ Updated: 2026-09-30T07:25:00Z</summary>
   <entry>
     <title>Gauge: South Fork San Gabriel River at SH 1869 near Liberty Hill</title>
     <id>tag:respondertx.org,2026:folder-gauges:LHGT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T08:05:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.96 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LHGT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T08:05:00Z</summary>
     <georss:point>30.66 -97.9378</georss:point>
   </entry>
   <entry>
@@ -5624,34 +5650,34 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Lake Creek at Lake Creek Parkway near Cedar Park 5SE</title>
     <id>tag:respondertx.org,2026:folder-gauges:LKPT2</id>
-    <updated>2026-09-30T07:50:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.35 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LKPT2
-Updated: 2026-09-30T07:50:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>30.46556 -97.78778</georss:point>
   </entry>
   <entry>
     <title>Gauge: Leon Creek at I-35S near San Antonio</title>
     <id>tag:respondertx.org,2026:folder-gauges:LKST2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.61 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LKST2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.32972 -98.58389</georss:point>
   </entry>
   <entry>
     <title>Gauge: Llano River at Llano</title>
     <id>tag:respondertx.org,2026:folder-gauges:LLAT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.52 ft (no flooding)
+    <summary type="text">Observed: 1.51 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LLAT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.75111 -98.66944</georss:point>
   </entry>
   <entry>
@@ -5679,12 +5705,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Limestone</title>
     <id>tag:respondertx.org,2026:folder-gauges:LLST2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 360.47 ft (flood category not defined)
+    <summary type="text">Observed: 360.45 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LLST2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>31.325 -96.31889</georss:point>
   </entry>
   <entry>
@@ -5712,23 +5738,23 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Graham</title>
     <id>tag:respondertx.org,2026:folder-gauges:LMGT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1067.63 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LMGT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.13444 -98.61333</georss:point>
   </entry>
   <entry>
     <title>Gauge: Manadas Creek at Laredo</title>
     <id>tag:respondertx.org,2026:folder-gauges:LMKT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 5.02 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LMKT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>27.57568 -99.50604</georss:point>
   </entry>
   <entry>
@@ -5745,34 +5771,34 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Murvaul Bayou at Lake Murvaul</title>
     <id>tag:respondertx.org,2026:folder-gauges:LMVT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 263.72 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LMVT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.03444 -94.42083</georss:point>
   </entry>
   <entry>
     <title>Gauge: South Fork Guadalupe River at Lynx Haven Crossing near Hunt, TX</title>
     <id>tag:respondertx.org,2026:folder-gauges:LNXT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T08:05:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.48 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LNXT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T08:05:00Z</summary>
     <georss:point>29.98018 -99.4423</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande at Foster Ranch</title>
     <id>tag:respondertx.org,2026:folder-gauges:LNYT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.84 ft (no flooding)
+    <summary type="text">Observed: 1.85 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LNYT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.78076 -101.75595</georss:point>
   </entry>
   <entry>
@@ -5801,12 +5827,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Sabine River below Longview</title>
     <id>tag:respondertx.org,2026:folder-gauges:LONT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.5 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LONT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.41667 -94.70972</georss:point>
   </entry>
   <entry>
@@ -5823,90 +5849,90 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Sabine River at Logansport</title>
     <id>tag:respondertx.org,2026:folder-gauges:LPTL1</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 20.82 ft (no flooding)
+    <summary type="text">Observed: 20.84 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LPTL1
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>31.97222 -94.00611</georss:point>
   </entry>
   <entry>
     <title>Gauge: Neches River at Lake Palestine</title>
     <id>tag:respondertx.org,2026:folder-gauges:LPTT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 343.05 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LPTT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.05333 -95.43667</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Gauge above La Quinta Channel</title>
     <id>tag:respondertx.org,2026:folder-gauges:LQAT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.79 ft (flood category not defined)
+    <summary type="text">Observed: 1.81 ft (flood category not defined)
 Forecast: 0.81 ft (flood category unknown) at 2026-10-03T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LQAT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>27.88 -97.28667</georss:point>
   </entry>
   <entry>
     <title>Gauge: Little River near Little River</title>
     <id>tag:respondertx.org,2026:folder-gauges:LRIT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.24 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LRIT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.96639 -97.34583</georss:point>
   </entry>
   <entry>
     <title>Gauge: Larrison Creek at FM 1428 near Midway</title>
     <id>tag:respondertx.org,2026:folder-gauges:LRST2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 157.04 ft (no flooding)
+    <summary type="text">Observed: 157.03 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LRST2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.9496 -95.7164</georss:point>
   </entry>
   <entry>
     <title>Gauge: Llano River at County Road 102</title>
     <id>tag:respondertx.org,2026:folder-gauges:LRTT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1074.76 ft (flood category not defined)
+    <summary type="text">Observed: 1074.75 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LRTT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.72722 -98.81444</georss:point>
   </entry>
   <entry>
     <title>Gauge: Leona River at CR 429A near Uvalde</title>
     <id>tag:respondertx.org,2026:folder-gauges:LRUT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.23 ft (flood category not defined)
+    <summary type="text">Observed: 4.24 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LRUT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.34528 -99.74889</georss:point>
   </entry>
   <entry>
     <title>Gauge: Brazos River near Lubbock 4ESE</title>
     <id>tag:respondertx.org,2026:folder-gauges:LSET2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 7.81 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LSET2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>33.5547 -101.7881</georss:point>
   </entry>
   <entry>
@@ -5923,12 +5949,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Navidad River at Strane Park</title>
     <id>tag:respondertx.org,2026:folder-gauges:LSNT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 5.11 ft (no flooding)
+    <summary type="text">Observed: 5.23 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LSNT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.06556 -96.67444</georss:point>
   </entry>
   <entry>
@@ -5967,23 +5993,23 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Pecos River near Langtry</title>
     <id>tag:respondertx.org,2026:folder-gauges:LTRT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.68 ft (no flooding)
+    <summary type="text">Observed: 1.69 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LTRT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.80278 -101.44583</georss:point>
   </entry>
   <entry>
     <title>Gauge: Navidad River at Lake Texana</title>
     <id>tag:respondertx.org,2026:folder-gauges:LTXT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 41.25 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LTXT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>28.89193 -96.57775</georss:point>
   </entry>
   <entry>
@@ -6000,46 +6026,46 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Tide Station (HGX) at San Luis Pass</title>
     <id>tag:respondertx.org,2026:folder-gauges:LUIT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:06:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.57 ft (no flooding)
+    <summary type="text">Observed: 2.53 ft (no flooding)
 Forecast: 1.97 ft (flood category unknown) at 2026-10-03T07:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LUIT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:06:00Z</summary>
     <georss:point>29.095 -95.1133</georss:point>
   </entry>
   <entry>
     <title>Gauge: Plum Creek near Luling</title>
     <id>tag:respondertx.org,2026:folder-gauges:LULT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.42 ft (no flooding)
+    <summary type="text">Observed: 4.43 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LULT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.6996 -97.6036</georss:point>
   </entry>
   <entry>
     <title>Gauge: Trinity River at Lake Livingston</title>
     <id>tag:respondertx.org,2026:folder-gauges:LVDT2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 128.93 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LVDT2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.63333 -95.01</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Lavon</title>
     <id>tag:respondertx.org,2026:folder-gauges:LVNT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 487.55 ft (flood category not defined)
+    <summary type="text">Observed: 487.54 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LVNT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.03167 -96.48222</georss:point>
   </entry>
   <entry>
@@ -6067,18 +6093,18 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Little Walnut Creek (TX) at Georgian Drive near Austin 7N</title>
     <id>tag:respondertx.org,2026:folder-gauges:LWGT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.31 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LWGT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.35417 -97.69778</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande at World Trade Bridge</title>
     <id>tag:respondertx.org,2026:folder-gauges:LWTT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6101,12 +6127,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Davidson Creek near Lyons</title>
     <id>tag:respondertx.org,2026:folder-gauges:LYNT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.22 ft (no flooding)
+    <summary type="text">Observed: 2.2 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LYNT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.41965 -96.54025</georss:point>
   </entry>
   <entry>
@@ -6123,18 +6149,18 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Beaver Creek (Llano River Basin) near Mason</title>
     <id>tag:respondertx.org,2026:folder-gauges:MBCT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 6.12 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MBCT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.64333 -99.09556</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Station (HGX) at Matagorda Bay Entrance Channel</title>
     <id>tag:respondertx.org,2026:folder-gauges:MBET2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6169,12 +6195,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Cedar Bayou at I-10 near Mont Belvieu</title>
     <id>tag:respondertx.org,2026:folder-gauges:MBVT2</id>
-    <updated>2026-09-30T07:55:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.98 ft (no flooding)
+    <summary type="text">Observed: 2.95 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MBVT2
-Updated: 2026-09-30T07:55:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>29.82151 -94.90971</georss:point>
   </entry>
   <entry>
@@ -6202,18 +6228,18 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Cow Bayou near Mauriceville</title>
     <id>tag:respondertx.org,2026:folder-gauges:MCVT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.65 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MCVT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.18639 -93.90833</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Floodway West of Mercedes</title>
     <id>tag:respondertx.org,2026:folder-gauges:MDET2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6225,12 +6251,12 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Medina River at Medina Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:MDLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1020.53 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MDLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.54 -98.93361</georss:point>
   </entry>
   <entry>
@@ -6258,23 +6284,23 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Medina River above Engligh Crossing near Pipe Creek</title>
     <id>tag:respondertx.org,2026:folder-gauges:MEPT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.83 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MEPT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.69444 -98.97944</georss:point>
   </entry>
   <entry>
     <title>Gauge: Medina River at Patterson Road at Medina</title>
     <id>tag:respondertx.org,2026:folder-gauges:MERT2</id>
-    <updated>2026-09-30T07:40:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.08 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MERT2
-Updated: 2026-09-30T07:40:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>29.79389 -99.24861</georss:point>
   </entry>
   <entry>
@@ -6291,12 +6317,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Lake Marble Falls</title>
     <id>tag:respondertx.org,2026:folder-gauges:MFDT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 736.76 ft (flood category not defined)
+    <summary type="text">Observed: 736.77 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MFDT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.55583 -98.25722</georss:point>
   </entry>
   <entry>
@@ -6313,24 +6339,24 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Tide Station (HGX) at Morgan's Point</title>
     <id>tag:respondertx.org,2026:folder-gauges:MGPT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:06:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.66 ft (no flooding)
+    <summary type="text">Observed: 2.68 ft (no flooding)
 Forecast: 1.92 ft (flood category unknown) at 2026-10-03T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MGPT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:06:00Z</summary>
     <georss:point>29.6817 -94.985</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Gauge at Enbridge Ingleside</title>
     <id>tag:respondertx.org,2026:folder-gauges:MHBT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:06:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.61 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MHBT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:06:00Z</summary>
     <georss:point>27.81861 -97.20894</georss:point>
   </entry>
   <entry>
@@ -6347,23 +6373,23 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Banker Inlet to Main Floodway</title>
     <id>tag:respondertx.org,2026:folder-gauges:MITT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 106.16 ft (flood category not defined)
+    <summary type="text">Observed: 106.17 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MITT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>26.14167 -98.32</georss:point>
   </entry>
   <entry>
     <title>Gauge: Mathis Creek at US 190 near Kurten</title>
     <id>tag:respondertx.org,2026:folder-gauges:MKTT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 274.92 ft (no flooding)
+    <summary type="text">Observed: 274.95 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MKTT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.75761 -96.29748</georss:point>
   </entry>
   <entry>
@@ -6380,23 +6406,23 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Sabine River near Mineola</title>
     <id>tag:respondertx.org,2026:folder-gauges:MLAT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.7 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MLAT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>32.61361 -95.48556</georss:point>
   </entry>
   <entry>
     <title>Gauge: Pecos River 3 miles ESE of Malaga</title>
     <id>tag:respondertx.org,2026:folder-gauges:MLGN5</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.33 ft (no flooding)
+    <summary type="text">Observed: 3.31 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MLGN5
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.20754 -104.02388</georss:point>
   </entry>
   <entry>
@@ -6413,23 +6439,23 @@ Updated: 2026-09-30T07:20:00Z</summary>
   <entry>
     <title>Gauge: Llano River near Mason</title>
     <id>tag:respondertx.org,2026:folder-gauges:MLRT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 5.95 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MLRT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.66056 -99.10889</georss:point>
   </entry>
   <entry>
     <title>Gauge: Medina River near Macdona</title>
     <id>tag:respondertx.org,2026:folder-gauges:MMDT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.01 ft (flood category not defined)
+    <summary type="text">Observed: 0.02 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MMDT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.33472 -98.68944</georss:point>
   </entry>
   <entry>
@@ -6446,29 +6472,29 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Walnut Creek near Mansfield</title>
     <id>tag:respondertx.org,2026:folder-gauges:MNFT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 6.53 ft (no flooding)
+    <summary type="text">Observed: 6.52 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MNFT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.58083 -97.10167</georss:point>
   </entry>
   <entry>
     <title>Gauge: San Saba River at Menard</title>
     <id>tag:respondertx.org,2026:folder-gauges:MNRT2</id>
-    <updated>2026-09-30T07:35:00Z</updated>
+    <updated>2026-09-30T08:05:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.73 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MNRT2
-Updated: 2026-09-30T07:35:00Z</summary>
+Updated: 2026-09-30T08:05:00Z</summary>
     <georss:point>30.91906 -99.78563</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Gauge at Bob Hall Pier</title>
     <id>tag:respondertx.org,2026:folder-gauges:MQTT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6491,13 +6517,13 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Matagorda</title>
     <id>tag:respondertx.org,2026:folder-gauges:MRCT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.42 ft (no flooding)
+    <summary type="text">Observed: 2.51 ft (no flooding)
 Forecast: 2.1 ft (no flooding) at 2026-09-30T09:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MRCT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>28.69917 -95.975</georss:point>
   </entry>
   <entry>
@@ -6514,12 +6540,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Lake Travis</title>
     <id>tag:respondertx.org,2026:folder-gauges:MSDT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 674.63 ft (no flooding)
+    <summary type="text">Observed: 674.64 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MSDT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.39159 -97.90696</georss:point>
   </entry>
   <entry>
@@ -6536,12 +6562,12 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: Nueces River at Lake Corpus Christi</title>
     <id>tag:respondertx.org,2026:folder-gauges:MTHT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 91.58 ft (flood category not defined)
+    <summary type="text">Observed: 91.59 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MTHT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>28.03806 -97.87083</georss:point>
   </entry>
   <entry>
@@ -6558,56 +6584,56 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: San Antonio River at Mitchell Street</title>
     <id>tag:respondertx.org,2026:folder-gauges:MTST2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.24 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MTST2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.39278 -98.49444</georss:point>
   </entry>
   <entry>
     <title>Gauge: Mustang Bayou at SH 6 near Alvin</title>
     <id>tag:respondertx.org,2026:folder-gauges:MUGT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 32.03 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MUGT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.43651 -95.26629</georss:point>
   </entry>
   <entry>
     <title>Gauge: Atascosa River near McCoy</title>
     <id>tag:respondertx.org,2026:folder-gauges:MYAT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.58 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MYAT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>28.86472 -98.33806</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Texas Lakes at Pat Mayse Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:MYST2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 448.98 ft (flood category not defined)
+    <summary type="text">Observed: 448.96 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MYST2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>33.85278 -95.54389</georss:point>
   </entry>
   <entry>
     <title>Gauge: La Nana Creek at Nacogdoches</title>
     <id>tag:respondertx.org,2026:folder-gauges:NADT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.77 ft (no flooding)
+    <summary type="text">Observed: 3.78 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NADT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>31.61768 -94.6416</georss:point>
   </entry>
   <entry>
@@ -6624,12 +6650,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Navasota River at SH 6 near Navasota</title>
     <id>tag:respondertx.org,2026:folder-gauges:NAVT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 151.11 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NAVT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.4184 -96.10662</georss:point>
   </entry>
   <entry>
@@ -6647,24 +6673,24 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Dry Comal at Loop 337</title>
     <id>tag:respondertx.org,2026:folder-gauges:NBDT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 5.09 ft (flood category not defined)
+    <summary type="text">Observed: 5.08 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NBDT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.68806 -98.15472</georss:point>
   </entry>
   <entry>
     <title>Gauge: Guadalupe River above Comal River at New Braunfels</title>
     <id>tag:respondertx.org,2026:folder-gauges:NBRT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.12 ft (no flooding)
 Forecast: 2.1 ft (no flooding) at 2026-09-30T09:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NBRT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.71472 -98.10972</georss:point>
   </entry>
   <entry>
@@ -6692,13 +6718,13 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: Tide Station (HGX) at Manchester</title>
     <id>tag:respondertx.org,2026:folder-gauges:NCHT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:06:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.96 ft (no flooding)
 Forecast: 2.25 ft (flood category unknown) at 2026-10-03T11:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NCHT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:06:00Z</summary>
     <georss:point>29.7262 -95.2658</georss:point>
   </entry>
   <entry>
@@ -6715,7 +6741,7 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Beals Creek at Natural Dam Salt Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:NDST2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6727,45 +6753,45 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Nelson Creek at FM 247 near Huntsville</title>
     <id>tag:respondertx.org,2026:folder-gauges:NEST2</id>
-    <updated>2026-09-30T07:55:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 182.03 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NEST2
-Updated: 2026-09-30T07:55:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>30.82226 -95.59463</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Fork San Gabriel River at 243 near Briggs, TX</title>
     <id>tag:respondertx.org,2026:folder-gauges:NFBT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 5.14 ft (flood category not defined)
+    <summary type="text">Observed: 5.15 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NFBT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.8139 -97.9658</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Floodway at Llano Grande</title>
     <id>tag:respondertx.org,2026:folder-gauges:NFLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 52.39 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NFLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>26.12778 -97.93417</georss:point>
   </entry>
   <entry>
     <title>Gauge: Garcitas Creek near Inez</title>
     <id>tag:respondertx.org,2026:folder-gauges:NGCT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.29 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NGCT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>28.89111 -96.81889</georss:point>
   </entry>
   <entry>
@@ -6793,12 +6819,12 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Nueces River at CR 414 near Montell</title>
     <id>tag:respondertx.org,2026:folder-gauges:NMOT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.05 ft (flood category not defined)
+    <summary type="text">Observed: 1.04 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NMOT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.52639 -100.01833</georss:point>
   </entry>
   <entry>
@@ -6815,12 +6841,12 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: North Prong Medina River at Brewington Creek</title>
     <id>tag:respondertx.org,2026:folder-gauges:NPBT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 3.77 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NPBT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.87528 -99.34861</georss:point>
   </entry>
   <entry>
@@ -6837,23 +6863,23 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Big Cow Creek at FM1416</title>
     <id>tag:respondertx.org,2026:folder-gauges:NTCT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 40.85 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NTCT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.605 -93.7944</georss:point>
   </entry>
   <entry>
     <title>Gauge: Nueces River near Barksdale</title>
     <id>tag:respondertx.org,2026:folder-gauges:NUBT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 13.1 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NUBT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.71883 -100.03957</georss:point>
   </entry>
   <entry>
@@ -6870,7 +6896,7 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Tide Gauge at Nueces Bay</title>
     <id>tag:respondertx.org,2026:folder-gauges:NUET2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6893,12 +6919,12 @@ Updated: 2026-09-25T19:45:00Z</summary>
   <entry>
     <title>Gauge: Adams Bayou at FM 3247</title>
     <id>tag:respondertx.org,2026:folder-gauges:OABT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.46 ft (no flooding)
+    <summary type="text">Observed: 1.47 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/OABT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.1319 -93.7866</georss:point>
   </entry>
   <entry>
@@ -6915,45 +6941,45 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Coon Bayou at Lane of the Oaks</title>
     <id>tag:respondertx.org,2026:folder-gauges:OCOT2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.18 ft (no flooding)
+    <summary type="text">Observed: 1.19 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/OCOT2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>30.07281 -93.81736</georss:point>
   </entry>
   <entry>
     <title>Gauge: Terry Gully at FM 1442</title>
     <id>tag:respondertx.org,2026:folder-gauges:ODCT2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.22 ft (no flooding)
+    <summary type="text">Observed: 3.23 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ODCT2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>30.1025 -93.9035</georss:point>
   </entry>
   <entry>
     <title>Gauge: Barton Creek above Hwy 71 near Oak Hill</title>
     <id>tag:respondertx.org,2026:folder-gauges:OHBT2</id>
-    <updated>2026-09-30T07:20:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.98 ft (no flooding)
+    <summary type="text">Observed: 1.99 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/OHBT2
-Updated: 2026-09-30T07:20:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>30.29611 -97.92528</georss:point>
   </entry>
   <entry>
     <title>Gauge: West Central Texas Lakes at O.H. Ivie Reservoir</title>
     <id>tag:respondertx.org,2026:folder-gauges:OHIT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1529.44 ft (no flooding)
+    <summary type="text">Observed: 1529.43 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/OHIT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>31.5 -99.66806</georss:point>
   </entry>
   <entry>
@@ -6970,56 +6996,56 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Onion Creek at Twin Creeks near Manchaca</title>
     <id>tag:respondertx.org,2026:folder-gauges:ONIT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.58 ft (flood category not defined)
+    <summary type="text">Observed: 3.59 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ONIT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.12611 -97.82083</georss:point>
   </entry>
   <entry>
     <title>Gauge: Oso Creek near Corpus Christi</title>
     <id>tag:respondertx.org,2026:folder-gauges:OOST2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 5.64 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/OOST2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>27.7114 -97.5019</georss:point>
   </entry>
   <entry>
     <title>Gauge: West Bouldin Creek above Oltorf Road at Austin</title>
     <id>tag:respondertx.org,2026:folder-gauges:ORBT2</id>
-    <updated>2026-09-30T07:50:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.47 ft (flood category not defined)
+    <summary type="text">Observed: 1.48 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ORBT2
-Updated: 2026-09-30T07:50:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>30.24667 -97.76917</georss:point>
   </entry>
   <entry>
     <title>Gauge: Little Cypress Creek near Ore City</title>
     <id>tag:respondertx.org,2026:folder-gauges:ORCT2</id>
-    <updated>2026-09-30T06:45:00Z</updated>
+    <updated>2026-09-30T07:45:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.92 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ORCT2
-Updated: 2026-09-30T06:45:00Z</summary>
+Updated: 2026-09-30T07:45:00Z</summary>
     <georss:point>32.6725 -94.75083</georss:point>
   </entry>
   <entry>
     <title>Gauge: Cow Bayou at FM 1442</title>
     <id>tag:respondertx.org,2026:folder-gauges:ORFT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.41 ft (no flooding)
+    <summary type="text">Observed: 1.44 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ORFT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.1079 -93.8963</georss:point>
   </entry>
   <entry>
@@ -7036,80 +7062,80 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Sabine River at Orange</title>
     <id>tag:respondertx.org,2026:folder-gauges:ORNT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.48 ft (no flooding)
+    <summary type="text">Observed: 1.5 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ORNT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.09722 -93.72111</georss:point>
   </entry>
   <entry>
     <title>Gauge: Sandy Creek near Willow City</title>
     <id>tag:respondertx.org,2026:folder-gauges:OXDT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.87 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/OXDT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.5528 -98.7013</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Gauge at Packery Channel</title>
     <id>tag:respondertx.org,2026:folder-gauges:PACT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:06:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.86 ft (no flooding)
+    <summary type="text">Observed: 0.87 ft (no flooding)
 Forecast: 0.7 ft (flood category unknown) at 2026-10-03T13:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PACT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:06:00Z</summary>
     <georss:point>27.61889 -97.23389</georss:point>
   </entry>
   <entry>
     <title>Gauge: Paw Paw Bayou near Greenwood</title>
     <id>tag:respondertx.org,2026:folder-gauges:PAWL1</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.12 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PAWL1
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.51667 -93.97222</georss:point>
   </entry>
   <entry>
     <title>Gauge: Big Cypress Creek near Pittsburg</title>
     <id>tag:respondertx.org,2026:folder-gauges:PBGT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.39 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PBGT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>33.02083 -94.88194</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Gauge at Port O'Connor</title>
     <id>tag:respondertx.org,2026:folder-gauges:PCNT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1 ft (no flooding)
+    <summary type="text">Observed: 1.02 ft (no flooding)
 Forecast: 0.63 ft (flood category unknown) at 2026-10-03T11:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PCNT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>28.45028 -96.38417</georss:point>
   </entry>
   <entry>
     <title>Gauge: Pecos River 2 miles NE of Pecos</title>
     <id>tag:respondertx.org,2026:folder-gauges:PCST2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.59 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PCST2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.48386 -103.49017</georss:point>
   </entry>
   <entry>
@@ -7126,12 +7152,12 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Pecos River at Pandale Crossing</title>
     <id>tag:respondertx.org,2026:folder-gauges:PDAT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.32 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PDAT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>30.125 -101.57222</georss:point>
   </entry>
   <entry>
@@ -7148,12 +7174,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Petronila Creek at FM665 Nr Driscoll</title>
     <id>tag:respondertx.org,2026:folder-gauges:PETT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 4.53 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PETT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>27.6652 -97.7022</georss:point>
   </entry>
   <entry>
@@ -7181,45 +7207,45 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Cowhouse Creek near Pidcoke</title>
     <id>tag:respondertx.org,2026:folder-gauges:PICT2</id>
-    <updated>2026-09-30T07:40:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.84 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PICT2
-Updated: 2026-09-30T07:40:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>31.28472 -97.88472</georss:point>
   </entry>
   <entry>
     <title>Gauge: Pin Oak Creek at S. Elizabeth Ave. Kirbyville</title>
     <id>tag:respondertx.org,2026:folder-gauges:PIKT2</id>
-    <updated>2026-09-30T07:10:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.77 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PIKT2
-Updated: 2026-09-30T07:10:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>30.6566 -93.8934</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande 6 miles WNW of Presidio</title>
     <id>tag:respondertx.org,2026:folder-gauges:PIOT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 7.49 ft (no flooding)
+    <summary type="text">Observed: 7.47 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PIOT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.60361 -104.45167</georss:point>
   </entry>
   <entry>
     <title>Gauge: Brazos River near Palo Pinto</title>
     <id>tag:respondertx.org,2026:folder-gauges:PLOT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.27 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PLOT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.8625 -98.30222</georss:point>
   </entry>
   <entry>
@@ -7236,7 +7262,7 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Rio Grande at Pipeline Crossing</title>
     <id>tag:respondertx.org,2026:folder-gauges:PLXT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -7248,12 +7274,12 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Neches River at Lee Avenue</title>
     <id>tag:respondertx.org,2026:folder-gauges:PNPT2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.36 ft (no flooding)
+    <summary type="text">Observed: 1.33 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PNPT2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>29.9978 -93.9529</georss:point>
   </entry>
   <entry>
@@ -7270,12 +7296,12 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Salt Fork - Brazos River at Plainview</title>
     <id>tag:respondertx.org,2026:folder-gauges:PNVT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 1.72 ft (no flooding)
+    <summary type="text">Observed: 1.97 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PNVT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>34.17889 -101.70222</georss:point>
   </entry>
   <entry>
@@ -7303,46 +7329,46 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Pinto Creek near Del Rio 17SE</title>
     <id>tag:respondertx.org,2026:folder-gauges:PPDT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.45 ft (flood category not defined)
+    <summary type="text">Observed: 0.47 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PPDT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.14583 -100.71806</georss:point>
   </entry>
   <entry>
     <title>Gauge: Buffalo Bayou at Piney Point Village</title>
     <id>tag:respondertx.org,2026:folder-gauges:PPTT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 27.98 ft (no flooding)
+    <summary type="text">Observed: 27.97 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PPTT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.74667 -95.52333</georss:point>
   </entry>
   <entry>
     <title>Gauge: Alamito Creek 5 miles ESE of Presidio</title>
     <id>tag:respondertx.org,2026:folder-gauges:PRBT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 5.45 ft (flood category not defined)
+    <summary type="text">Observed: 5.32 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PRBT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.52278 -104.28833</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande 5 miles SE of Presidio</title>
     <id>tag:respondertx.org,2026:folder-gauges:PRDT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.67 ft (no flooding)
 Forecast: 1.7 ft (no flooding) at 2026-09-30T09:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PRDT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.52 -104.28639</georss:point>
   </entry>
   <entry>
@@ -7359,67 +7385,67 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: Concho River at Paint Rock</title>
     <id>tag:respondertx.org,2026:folder-gauges:PRKT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 12.43 ft (no flooding)
+    <summary type="text">Observed: 12.4 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PRKT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.51583 -99.91917</georss:point>
   </entry>
   <entry>
     <title>Gauge: Clear Creek above Telephone Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:PRLT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 31.43 ft (no flooding)
+    <summary type="text">Observed: 31.47 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PRLT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.5968 -95.2972</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande at Presidio International Bridge</title>
     <id>tag:respondertx.org,2026:folder-gauges:PRST2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.48 ft (no flooding)
+    <summary type="text">Observed: 4.54 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PRST2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>29.5575 -104.39278</georss:point>
   </entry>
   <entry>
     <title>Gauge: North Texas Lakes at Possum Kingdom Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:PSMT2</id>
-    <updated>2026-09-30T07:30:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 994.26 ft (flood category not defined)
+    <summary type="text">Observed: 994.24 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PSMT2
-Updated: 2026-09-30T07:30:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.87222 -98.42556</georss:point>
   </entry>
   <entry>
     <title>Gauge: Pedernales River at LBJ Ranch Near Stonewall</title>
     <id>tag:respondertx.org,2026:folder-gauges:PWCT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 12.11 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PWCT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>30.2411 -98.6253</georss:point>
   </entry>
   <entry>
     <title>Gauge: Little Pine Island Bayou at Pine Wood Estates</title>
     <id>tag:respondertx.org,2026:folder-gauges:PWET2</id>
-    <updated>2026-09-30T08:05:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PWET2
-Updated: 2026-09-30T08:05:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>30.1623 -94.3171</georss:point>
   </entry>
   <entry>
@@ -7458,24 +7484,24 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Lake Fork Creek near Quitman</title>
     <id>tag:respondertx.org,2026:folder-gauges:QTMT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.21 ft (no flooding)
+    <summary type="text">Observed: 4.2 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/QTMT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>32.76306 -95.46278</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Station (LCH) at Rainbow Bridge · ACTION</title>
     <id>tag:respondertx.org,2026:folder-gauges:RBBT2</id>
-    <updated>2026-09-30T07:54:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.1 ft (ACTION)
 Forecast: 2.09 ft (ACTION) at 2026-10-03T11:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RBBT2
-Updated: 2026-09-30T07:54:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>29.98 -93.8817</georss:point>
   </entry>
   <entry>
@@ -7492,7 +7518,7 @@ Updated: 2026-09-30T07:45:00Z</summary>
   <entry>
     <title>Gauge: Red Bluff Creek at FM 1283 near Pipe Creek</title>
     <id>tag:respondertx.org,2026:folder-gauges:RBFT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -7504,12 +7530,12 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Ricon Bayou Channel near Calallen</title>
     <id>tag:respondertx.org,2026:folder-gauges:RBUT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.35 ft (flood category not defined)
+    <summary type="text">Observed: 2.38 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RBUT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>27.89667 -97.62528</georss:point>
   </entry>
   <entry>
@@ -7526,35 +7552,35 @@ Updated: 2026-09-30T07:30:00Z</summary>
   <entry>
     <title>Gauge: Chambers Creek near Rice</title>
     <id>tag:respondertx.org,2026:folder-gauges:RCET2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 4.38 ft (no flooding)
+    <summary type="text">Observed: 4.39 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RCET2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>32.19833 -96.52</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande at Canutillo</title>
     <id>tag:respondertx.org,2026:folder-gauges:RCLT2</id>
-    <updated>2026-09-30T07:10:00Z</updated>
+    <updated>2026-09-30T08:10:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.33 ft (flood category not defined)
+    <summary type="text">Observed: 2.32 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RCLT2
-Updated: 2026-09-30T07:10:00Z</summary>
+Updated: 2026-09-30T08:10:00Z</summary>
     <georss:point>31.915 -106.60222</georss:point>
   </entry>
   <entry>
     <title>Gauge: Tide Gauge at Rockport</title>
     <id>tag:respondertx.org,2026:folder-gauges:RCPT2</id>
-    <updated>2026-09-30T07:36:00Z</updated>
+    <updated>2026-09-30T08:06:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.9 ft (no flooding)
 Forecast: 0.48 ft (flood category unknown) at 2026-10-02T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RCPT2
-Updated: 2026-09-30T07:36:00Z</summary>
+Updated: 2026-09-30T08:06:00Z</summary>
     <georss:point>28.02417 -97.04806</georss:point>
   </entry>
   <entry>
@@ -7582,52 +7608,52 @@ Updated: 2026-09-30T08:00:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Robert Lee</title>
     <id>tag:respondertx.org,2026:folder-gauges:RELT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.83 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RELT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>31.88528 -100.48028</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande below American Canal Diversion</title>
     <id>tag:respondertx.org,2026:folder-gauges:RGAT2</id>
-    <updated>2026-09-30T07:45:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.92 ft (flood category not defined)
+    <summary type="text">Observed: 3.91 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RGAT2
-Updated: 2026-09-30T07:45:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>31.77722 -106.52389</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rhodair Gully at Wellspring Dr.</title>
     <id>tag:respondertx.org,2026:folder-gauges:RGBT2</id>
-    <updated>2026-09-30T08:00:00Z</updated>
+    <updated>2026-09-30T08:20:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RGBT2
-Updated: 2026-09-30T08:00:00Z</summary>
+Updated: 2026-09-30T08:20:00Z</summary>
     <georss:point>29.98435 -94.0277</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rio Grande at Rio Grande City</title>
     <id>tag:respondertx.org,2026:folder-gauges:RGDT2</id>
-    <updated>2026-09-30T07:00:00Z</updated>
+    <updated>2026-09-30T08:00:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 26.12 ft (no flooding)
+    <summary type="text">Observed: 26.14 ft (no flooding)
 Forecast: 26.2 ft (no flooding) at 2026-09-30T12:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RGDT2
-Updated: 2026-09-30T07:00:00Z</summary>
+Updated: 2026-09-30T08:00:00Z</summary>
     <georss:point>26.36667 -98.80278</georss:point>
   </entry>
   <entry>
     <title>Gauge: Rhodair Gully at 5th Street</title>
     <id>tag:respondertx.org,2026:folder-gauges:RGIT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -7639,12 +7665,12 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Rio Grande near Los Ebanos</title>
     <id>tag:respondertx.org,2026:folder-gauges:RGLT2</id>
-    <updated>2026-09-30T07:15:00Z</updated>
+    <updated>2026-09-30T08:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 3.16 ft (flood category not defined)
+    <summary type="text">Observed: 3.15 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RGLT2
-Updated: 2026-09-30T07:15:00Z</summary>
+Updated: 2026-09-30T08:15:00Z</summary>
     <georss:point>26.2375 -98.5625</georss:point>
   </entry>
   <entry>
@@ -7933,7 +7959,7 @@ Updated: 2026-09-30T07:15:00Z</summary>
   <entry>
     <title>Gauge: near Sabine Pass</title>
     <id>tag:respondertx.org,2026:folder-gauges:SBPT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -8559,7 +8585,7 @@ Updated: 2026-09-30T07:10:00Z</summary>
   <entry>
     <title>Gauge: Salado Creek at NE Loop 410</title>
     <id>tag:respondertx.org,2026:folder-gauges:SSCT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -9250,7 +9276,7 @@ Updated: 2026-09-30T07:00:00Z</summary>
   <entry>
     <title>Gauge: Oso Creek at Merrett Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:WEOT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -9363,7 +9389,7 @@ Updated: 2026-09-30T07:25:00Z</summary>
   <entry>
     <title>Gauge: Salt Fork of the Red River at Wellington</title>
     <id>tag:respondertx.org,2026:folder-gauges:WLGT2</id>
-    <updated>2026-09-30T08:25:13Z</updated>
+    <updated>2026-09-30T08:40:13Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading

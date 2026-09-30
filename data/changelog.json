@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.3",
+      "date": "2026-09-29",
+      "line": "Measure distances on the map: long-press a point, choose Measure from here, then tap to add legs. A bar shows the total, the last leg and its true bearing, with Undo and Done."
+    },
+    {
       "v": "v0.100.2",
       "date": "2026-09-29",
       "line": "Blank map squares now explain themselves: with no signal the board says the area is not saved for offline use, and when the map provider fails it says so. The map refills on its own when the connection returns."

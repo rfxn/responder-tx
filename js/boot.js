@@ -692,6 +692,7 @@ function relocalizeDynamic() {
   pushRerender();
   renderLayerPills();
   renderDriveMode();
+  if (state.measure) measureRender();
   if (state.legendEl) state.legendEl.innerHTML = mapLegendHtml();
   if (window.renderTeamTab) renderTeamTab();
   markUnknownBadges(); // a repaint before a source has answered must not leave a zero behind

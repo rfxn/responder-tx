@@ -1394,6 +1394,35 @@ body.pb-on .layer-pills { top: 84px; }
 button.inspect-gauge { cursor: pointer; color: var(--ink-1); }
 button.inspect-gauge:hover { color: var(--accent); }
 .inspect-note { font-size: 10px; color: var(--ink-muted); margin-top: 4px; line-height: 1.3; }
+.inspect-measure {
+  display: block; width: 100%; text-align: left; min-height: 32px; padding: 4px 8px; margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; color: var(--ink-1); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+}
+.inspect-measure:hover { border-color: var(--accent); color: var(--accent); }
+
+/* measure tool: the dashed route and its vertices, plus the readout bar while armed */
+#map.measure-armed.leaflet-grab { cursor: crosshair; }
+/* while measuring, a marker or polygon under the finger must not swallow the tap meant for the map */
+#map.measure-armed .leaflet-interactive { pointer-events: none; }
+.measure-line { stroke: var(--accent); }
+.measure-pt { stroke: var(--accent); fill: var(--surface-1); fill-opacity: 1; }
+#measure-bar {
+  position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 1150;
+  display: flex; align-items: center; gap: 8px; width: max-content; max-width: min(calc(100% - 24px), 520px);
+  padding: 6px 8px 6px 12px; font-size: 13px; color: var(--ink-1);
+  background: var(--surface-1); border: 1px solid var(--accent); border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+#measure-bar[hidden] { display: none; }
+body.pb-bar-open #measure-bar { bottom: 206px; } /* clear the radar timeline, which rides above the open playback bar */
+#measure-bar .mb-read { flex: 1 1 auto; line-height: 1.35; font-variant-numeric: tabular-nums; }
+#measure-bar button {
+  flex: 0 0 auto; min-height: 44px; min-width: 44px; padding: 0 12px; font-size: 13px; font-weight: 600;
+  color: var(--ink-1); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+}
+#measure-bar button:disabled { opacity: 0.45; cursor: default; }
+#measure-bar .mb-done { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* AO quick-jump — one collapsed context chip; taps open the preset row in place */
 .ao-jump {
@@ -2034,6 +2063,7 @@ body.pb-tween .pb-ghit .gauge-icon { transition: width 0.45s ease, height 0.45s 
   #playback-bar #pb-close { min-width: 40px; min-height: 40px; font-size: 16px; }
   .pb-tick { font-size: 12px; padding: 0 6px; }
   body.pb-bar-open #radar-scrub { bottom: 226px; } /* the taller wrapped bar needs more clearance */
+  body.pb-bar-open #measure-bar { bottom: 284px; }
   body.pb-bar-open #chat-fab { bottom: 226px; } /* the ≤768 178px lift still sits on the ~188px wrapped bar at phone width */
 }
 

@@ -267,7 +267,7 @@ declined the rebrand. See the forward queue.
 decoupling from the rfxn-infra vault · a DriveTexas WZDx key, the last half of N5
 · a terms surface · T5 evacuation zones (data-gated) · V4 wall view ·
 camera-imagery retention (object-store scale, not repo scale) · CalTopo live-sync
-stretch (subscription-gated) · team SOS (owner-gated) · the #18 measure tool.
+stretch (subscription-gated) · team SOS (owner-gated).
 
 Refuted on re-verification, do not re-queue: **A3** desktop KPI declutter (the
 tiles went at v0.97.93; no `kpi` identifier survives anywhere in the tree) and
@@ -441,9 +441,9 @@ write surfaces are deliberately deferred until a new owner ask (see Anti-backlog
   same as W9).
 - **#17. Radar/rain time scrubber** — DELIVERED (v0.35.0 radar scrub → v0.82.0
   playback → v0.90/0.93 rainfall replay → v0.96.0 unified timeline).
-- **#18. Leaflet.PolylineMeasure (vendored)** — OPEN (minor). Distance/bearing to
-  hazards already exists in Drive Mode and the point inspector; a dedicated
-  measure tool is not vendored.
+- **#18. Measure tool** — DELIVERED (v0.100.3, custom rather than vendored).
+  "Measure from here" on the point inspector card arms a tap-to-add route with a
+  running total, the last leg and its true bearing, plus Undo and Done.
 - **#19. Watchlist star (per-item follow)** — DELIVERED (v0.99.83, hardened
   v0.99.84). A star on each Gauges and Roads row pins that row to the top of its
   tab, held on the device in `localStorage` under `respondertx.watch.v1`. A
@@ -719,11 +719,9 @@ engineering.
     print-stylesheet tokens; pairs with the fullscreen plugin (#30).
 23. **#22 OpenFEMA declarations chip · #21 CoCoRaHS precip · #23 USGS STN HWM
     hook** — [data], mostly recovery/AAR, event-gated.
-24. **Minor polish** · the #18 measure tool. A3, A8, #19 and compat-9 came off
-    this list: the first two were refuted on re-verification, the watchlist star
-    shipped v0.99.83, and the offline tile-failure notice shipped v0.100.2 (a blank
-    basemap square says whether the device is offline or the tile host failed, and
-    reconnecting repaints it).
+24. ~~**Minor polish**~~ · DELIVERED. A3 and A8 were refuted on re-verification,
+    the watchlist star (#19) shipped v0.99.83, the offline tile-failure notice
+    (compat-9) shipped v0.100.2, and the measure tool (#18) shipped v0.100.3.
 25. **#28 X ingest worker · #29 remaining partnership feeds (PulsePoint,
     Broadcastify, LCRA, what3words)** — [infra], gated on partnerships or paid
     APIs; ingest never auto-publishes.

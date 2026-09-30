@@ -716,6 +716,7 @@ function inspectContent(lat, lon) {
   // playback engaged: this card reads live data while the map shows a historical frame — say so (striplive pattern)
   if (pbBlocksLive(state)) html += `<div class="inspect-line sev-warning">${esc(t('inspect.live'))}</div>`;
   html += `<button class="inspect-usng" title="${esc(t('inspect.copy'))}">${esc(usngLbl)}</button>`;
+  html += `<button class="inspect-measure">${esc(t('inspect.measure'))}</button>`;
   html += `<div class="inspect-read">${esc(read)}</div>`;
   if (nearAlerts.length) {
     const worst = nearAlerts.slice().sort(alertSevCmp)[0];
@@ -749,6 +750,10 @@ function inspectContent(lat, lon) {
       () => { /* clipboard denied — the string stays visible for manual copy */ });
   });
   div.querySelector('.inspect-x').addEventListener('click', () => state.map.closePopup());
+  div.querySelector('.inspect-measure').addEventListener('click', () => {
+    state.map.closePopup();
+    startMeasure(lat, lon);
+  });
   const gb = div.querySelector('.inspect-gauge');
   if (gb) gb.addEventListener('click', () => {
     const g = state.gauges.find((x) => x.lid === gb.dataset.lid);
@@ -765,6 +770,105 @@ function initPointInspector() {
       .setContent(inspectContent(e.latlng.lat, e.latlng.lng))
       .openOn(state.map);
   });
+  state.map.on('click', (e) => {
+    if (!state.measure) return;
+    const form = $('#new-request-form');
+    if (form && form.classList.contains('open')) return; // the intake form owns this tap
+    measureAdd(e.latlng.lat, e.latlng.lng);
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.measure) stopMeasure(); });
+}
+
+/* ---------- measure: started from the inspector card; each map tap adds a leg ---------- */
+
+const MEASURE_FT_BELOW_MI = 0.2;
+
+function measureTotalMi(pts) {
+  let mi = 0;
+  for (let i = 1; i < pts.length; i++) mi += distMi(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+  return mi;
+}
+
+function measureDistText(mi) {
+  if (mi < MEASURE_FT_BELOW_MI) return `${Math.round(mi * 5280)} ${t('measure.ft')}`;
+  return `${mi.toFixed(mi < 10 ? 2 : 1)} ${t('risk.mi')}`;
+}
+
+function measureBearingText(deg) {
+  const whole = Math.round(deg) % 360;
+  return `${COMPASS[Math.round(deg / 45) % 8]} ${String(whole).padStart(3, '0')}° ${t('measure.true')}`;
+}
+
+function measureText(pts) {
+  if (!pts || pts.length < 2) return t('measure.hint');
+  const [a, b] = pts.slice(-2);
+  const heading = measureBearingText(bearingDeg(a[0], a[1], b[0], b[1]));
+  const total = `${t('measure.total')} ${measureDistText(measureTotalMi(pts))}`;
+  if (pts.length === 2) return `${total} · ${heading}`;
+  return `${total} · ${t('measure.leg')} ${measureDistText(distMi(a[0], a[1], b[0], b[1]))} ${heading}`;
+}
+
+function measureBar() {
+  let el = document.getElementById('measure-bar');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'measure-bar';
+  el.hidden = true;
+  el.innerHTML = '<span class="mb-read" role="status" aria-live="polite"></span>' +
+    `<button type="button" class="mb-undo" data-i18n="measure.undo">${esc(t('measure.undo'))}</button>` +
+    `<button type="button" class="mb-done" data-i18n="measure.done">${esc(t('measure.done'))}</button>`;
+  const host = document.getElementById('map');
+  if (!host) return null;
+  host.appendChild(el);
+  L.DomEvent.disableClickPropagation(el); // a tap on Undo or Done must not also add a point
+  el.querySelector('.mb-undo').addEventListener('click', measureUndo);
+  el.querySelector('.mb-done').addEventListener('click', stopMeasure);
+  return el;
+}
+
+function measureRender() {
+  const m = state.measure;
+  const mapEl = document.getElementById('map');
+  if (mapEl) mapEl.classList.toggle('measure-armed', !!m);
+  if (state.measureGroup) state.measureGroup.clearLayers();
+  if (!m) {
+    const bar = document.getElementById('measure-bar');
+    if (bar) bar.hidden = true;
+    return;
+  }
+  if (!state.measureGroup) state.measureGroup = L.layerGroup().addTo(state.map);
+  if (m.pts.length > 1) {
+    state.measureGroup.addLayer(L.polyline(m.pts, { className: 'measure-line', weight: 3, dashArray: '6 6', interactive: false }));
+  }
+  for (const p of m.pts) state.measureGroup.addLayer(L.circleMarker(p, { className: 'measure-pt', radius: 5, interactive: false }));
+  const bar = measureBar();
+  if (!bar) return;
+  bar.querySelector('.mb-read').textContent = `📏 ${measureText(m.pts)}`;
+  bar.querySelector('.mb-undo').disabled = m.pts.length < 2;
+  bar.hidden = false;
+}
+
+function startMeasure(lat, lon) {
+  if (typeof window.teamDisarmDrop === 'function') window.teamDisarmDrop(); // one map-tap mode at a time
+  state.measure = { pts: [[lat, lon]] };
+  measureRender();
+}
+
+function measureAdd(lat, lon) {
+  if (!state.measure) return;
+  state.measure.pts.push([lat, lon]);
+  measureRender();
+}
+
+function measureUndo() {
+  if (!state.measure || state.measure.pts.length < 2) return;
+  state.measure.pts.pop();
+  measureRender();
+}
+
+function stopMeasure() {
+  state.measure = null;
+  measureRender();
 }
 
 function downloadBlob(text, mime, name) {

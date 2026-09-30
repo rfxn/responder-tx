@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.3 · 2026-09-29 (measure a distance on the map)
+
+-- New Features --
+- [New] Measure distances on the map: long-press a point, choose "Measure from
+      here", then tap to add legs. A bar shows the total, the last leg and its
+      true bearing, with Undo and Done
+
 ## v0.100.2 · 2026-09-29 (a blank map says why)
 
 -- Bug Fixes --

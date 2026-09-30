@@ -164,11 +164,7 @@ function renderWave() {
 /* ---------- Drive Mode: big-type nearest-hazards glance list ---------- */
 
 function bearing(fromLat, fromLon, toLat, toLon) {
-  const toR = Math.PI / 180;
-  const dLon = (toLon - fromLon) * toR;
-  const y = Math.sin(dLon) * Math.cos(toLat * toR);
-  const x = Math.cos(fromLat * toR) * Math.sin(toLat * toR) - Math.sin(fromLat * toR) * Math.cos(toLat * toR) * Math.cos(dLon);
-  return COMPASS[Math.round((((Math.atan2(y, x) / toR) + 360) % 360) / 45) % 8];
+  return COMPASS[Math.round(bearingDeg(fromLat, fromLon, toLat, toLon) / 45) % 8];
 }
 
 // hazards a driver cares about: closed/caution crossings, life-safety + road/cutoff notices, major/rising gauges, live TxDOT road closures

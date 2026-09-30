@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.2';
+const APP_VERSION = 'v0.100.3';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -330,6 +330,8 @@ const state = {
   sourceHealth: {},
   baseTitle: document.title,
   pendingLatLng: null,
+  measure: null, // { pts: [[lat, lon], ...] } while the measure tool is armed
+  measureGroup: null,
   refreshAt: 0,
   hist: { lsrs: {}, alerts: {} },
   showAged: false,
@@ -596,6 +598,15 @@ function distMi(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * toR, dLon = (lon2 - lon1) * toR;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toR) * Math.cos(lat2 * toR) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// initial great-circle bearing, degrees true in [0, 360)
+function bearingDeg(fromLat, fromLon, toLat, toLon) {
+  const toR = Math.PI / 180;
+  const dLon = (toLon - fromLon) * toR;
+  const y = Math.sin(dLon) * Math.cos(toLat * toR);
+  const x = Math.cos(fromLat * toR) * Math.sin(toLat * toR) - Math.sin(fromLat * toR) * Math.cos(toLat * toR) * Math.cos(dLon);
+  return ((Math.atan2(y, x) / toR) + 360) % 360;
 }
 
 /* USGS WaterServices rejects a bBox larger than 25 equator-equivalent square degrees:

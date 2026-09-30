@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.4 · 2026-09-30 (Houston roadway flood risk)
+
+-- New Features --
+- [New] Houston roadway flood risk layer from Houston TranStar and the Harris
+      County Flood Control District, marking areas where the risk of roadway
+      flooding is high. Off by default; it does not confirm a flooded or closed road
+
 ## v0.100.3 · 2026-09-29 (measure a distance on the map)
 
 -- New Features --

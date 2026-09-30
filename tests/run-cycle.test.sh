@@ -102,7 +102,7 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
     mkdir -p "$REPO/scripts" "$REPO/data"
 
     # every data file starts at the SAME old stamp, so any restamping is visible
-    for f in gauges-snapshot roads-snapshot crest-summary history gauge-meta shelters-live caltopo-export requests wildfire; do
+    for f in gauges-snapshot roads-snapshot crest-summary history gauge-meta shelters-live caltopo-export requests wildfire transtar-flood; do
         printf '{"generated":"%s","gauges":[{"id":"G1"}],"roads":[],"shelters":[],"requests":[]}\n' \
             "$OLD_STAMP" > "$REPO/data/$f.json"
     done
@@ -119,6 +119,7 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
     mk_gen gen-caltopo.py         data/caltopo-export.json
     mk_gen gen-crossings-status.py data/crossing-status.json
     mk_gen gen-wildfire.py        data/wildfire.json
+    mk_gen gen-transtar-flood.py  data/transtar-flood.json
 
     # validation + publish stubs; RESPONDER_TEST_CHECK_RC lets one test make validation fail
     # shellcheck disable=SC2016  # deliberate: the stub must expand this when IT runs, not now
@@ -253,7 +254,7 @@ rm -rf "$WORK"
 
 # --- Test 6: every generator failing is still a hard failure that publishes nothing ------------
 setup
-FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo,gen-crossings-status,gen-wildfire" run_cycle
+FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo,gen-crossings-status,gen-wildfire,gen-transtar-flood" run_cycle
 COMMITS=$(cd "$REPO" && git rev-list --count HEAD)
 if [ "$RC" -eq 1 ] \
    && grep -q 'ERROR: cycle failed (no source refreshed' "$WORK/cycle.log" \

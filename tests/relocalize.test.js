@@ -4,11 +4,11 @@
  *
  * relocalizeDynamic() repaints the cards, the legend, the pills and the lens tag, so a responder
  * who switched English to Spanish mid-incident got Spanish panels beside English marker
- * aria-labels: the three marker layers bake esc(t(...)) into a divIcon when they draw, and nothing
+ * aria-labels: the marker layers bake esc(t(...)) into a divIcon when they draw, and nothing
  * re-ran them. Popups are lazily built and were always right; only the baked labels went stale.
  *
  * Every assertion here RUNS relocalizeDynamic() and reads the label a screen reader would now get.
- * The safety half matters as much: the three renderers redraw into an existing layer group and add
+ * The safety half matters as much: the marker renderers redraw into an existing layer group and add
  * nothing to the map, so a language switch may never turn a layer on or reach the network.
  */
 
@@ -24,12 +24,13 @@ const ST = app.state;
 // the layer whose name is baked into each marker, and the i18n key that names it
 const LAYER_KEY = {
   wildfire: 'layers.wildfire',
+  roadFlood: 'layers.rflood',
   riverSentry: 'layers.rsentry',
   tideStations: 'layers.tides',
 };
 
 /* relocalizeDynamic() repaints fifteen other surfaces that need a live DOM. They are stubbed by
-   name so a rename fails loudly here rather than silently skipping the stub; the three marker
+   name so a rename fails loudly here rather than silently skipping the stub; the marker
    renderers under test stay REAL. */
 const QUIET = ['applyTheme', 'renderTiles', 'renderAlertList', 'renderForecastList', 'renderGaugesTab',
   'renderRequests', 'renderResources', 'renderCrossings', 'renderTides', 'renderSourceHealth',
@@ -40,6 +41,8 @@ const SOURCES = [{ key: 'tfs', name: 'Texas A&M Forest Service', status: 'ok', c
 const FIRE = { id: 'tfs:X', src: 'tfs', scope: 'tx', name: 'Point', lat: 31.5, lon: -99.5,
   status: 'Active', acres: 10, contain: null, observed: NOW };
 const TOWER = { site: 'Center Point', label: 'Tower 1', lat: 29.9, lon: -98.8 };
+const RFLOOD = { generated: NOW, sources: [{ key: 'transtar', name: 'Houston TranStar', status: 'ok', captured: NOW,
+  count: 1 }], warnings: [{ id: 'transtar:1', name: 'Sensor', lat: 29.45, lon: -95.05, radiusMi: 0.5, observed: NOW }] };
 const TIDE = { id: '8771013', name: 'Eagle Point', ok: true, obs: 2.1, pred: 1.8, surge: 0.3, dir: 'up',
   t: '2026-08-03T12:00:00Z' };
 
@@ -73,14 +76,14 @@ const ariaLabels = (g) => g.drawn.filter((o) => o.kind === 'marker').map((o) => 
 // the real table, not a fixture: the assertion is about the string a reader actually gets
 const speak = (lang) => (k) => (I18N[lang][k] === undefined ? k : I18N[lang][k]);
 
-/* Installs the three layer groups, a map that records what was added to it, fixtures for all three
-   sources, and a fetch that logs instead of reaching out. Every mutation is undone by close(). */
+/* Installs the layer groups, a map that records what was added to it, fixtures for every
+   source, and a fetch that logs instead of reaching out. Every mutation is undone by close(). */
 function stage() {
   const saved = { L: SB.L, t: SB.t, fetch: SB.fetch, opNotice: SB.opNotice, qs: SB.document.querySelector,
-    layers: ST.layers, map: ST.map, wildfire: ST.wildfire, riverSentry: ST.riverSentry,
+    layers: ST.layers, map: ST.map, wildfire: ST.wildfire, riverSentry: ST.riverSentry, roadFlood: ST.roadFlood,
     tides: ST.tides, tideMeta: ST.tideMeta, tideMetaNoted: ST.tideMetaNoted,
     wildfireLoaded: ST._wildfireLoaded, rsentryLoaded: ST._rsentryLoaded };
-  const groups = { wildfire: group(), riverSentry: group(), tideStations: group() };
+  const groups = { wildfire: group(), roadFlood: group(), riverSentry: group(), tideStations: group() };
   const onMap = new Set();
   const notices = [];
   const fetched = [];
@@ -92,6 +95,7 @@ function stage() {
     removeLayer(l) { onMap.delete(l); return this; } };
   ST.wildfire = { generated: NOW, sources: SOURCES, fires: [FIRE], perimeters: [] };
   ST.riverSentry = { towers: [TOWER], sites: [{ site: TOWER.site, towers: 1 }] };
+  ST.roadFlood = RFLOOD;
   ST.tides = [TIDE];
   ST.tideMeta = { stations: { [TIDE.id]: { lat: 29.48, lon: -94.92 } } };
   ST.tideMetaNoted = false;
@@ -101,6 +105,7 @@ function stage() {
   const draw = (lang) => {
     SB.t = speak(lang);
     SB.renderWildfire();
+    SB.renderRoadFlood();
     SB.renderRiverSentry();
     SB.renderTideStations();
   };
@@ -128,7 +133,7 @@ function stage() {
     SB.L = saved.L; SB.t = saved.t; SB.fetch = saved.fetch; SB.opNotice = saved.opNotice;
     SB.document.querySelector = saved.qs;
     ST.layers = saved.layers; ST.map = saved.map;
-    ST.wildfire = saved.wildfire; ST.riverSentry = saved.riverSentry;
+    ST.wildfire = saved.wildfire; ST.riverSentry = saved.riverSentry; ST.roadFlood = saved.roadFlood;
     ST.tides = saved.tides; ST.tideMeta = saved.tideMeta; ST.tideMetaNoted = saved.tideMetaNoted;
     ST._wildfireLoaded = saved.wildfireLoaded; ST._rsentryLoaded = saved.rsentryLoaded;
   };
@@ -136,7 +141,7 @@ function stage() {
   return { groups, onMap, notices, fetched, draw, switchTo, close };
 }
 
-test('a live language switch repaints the marker labels baked into all three layers', () => {
+test('a live language switch repaints the marker labels baked into every marker layer', () => {
   const s = stage();
   try {
     s.draw('en');
@@ -177,7 +182,7 @@ test('the wildfire marker attribution follows the language too', () => {
 });
 
 /* The safety property. Each renderer early-returns without its layer or its data and only ever
-   draws into a group it was handed, so calling all three on a language switch must not put a layer
+   draws into a group it was handed, so calling them all on a language switch must not put a layer
    on the map behind the operator, and must not spend a request. */
 test('a language switch leaves a layer that is off exactly as off, and fetches nothing', () => {
   const s = stage();
@@ -203,6 +208,7 @@ test('a language switch on a board where nothing has loaded draws nothing and st
   try {
     ST.wildfire = null;
     ST.riverSentry = null;
+    ST.roadFlood = null;
     ST.tides = null;
 
     assert.doesNotThrow(() => s.switchTo('es'), 'the renderers must tolerate a source that never answered');

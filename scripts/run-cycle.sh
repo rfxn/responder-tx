@@ -81,6 +81,7 @@ BUDGET_NOTICES_S=60
 BUDGET_SHELTERS_S=150
 BUDGET_CROSSSTATUS_S=120
 BUDGET_WILDFIRE_S=90
+BUDGET_ROADFLOOD_S=60
 BUDGET_CREST_S=120
 BUDGET_FEEDS_S=120
 BUDGET_CALTOPO_S=120
@@ -291,6 +292,7 @@ log "generator budget: ${CYCLE_BUDGET_S}s total"
 if gen snapshot fetch-snapshot.py data/gauges-snapshot.json "$BUDGET_SNAPSHOT_S"; then SNAPSHOT_FRESH=1; else SNAPSHOT_FRESH=0; fi
 
 gen roads gen-roads-snapshot.py data/roads-snapshot.json "$BUDGET_ROADS_S" || :  # independent source; outcome already recorded in gen()
+gen roadflood gen-transtar-flood.py data/transtar-flood.json "$BUDGET_ROADFLOOD_S" || :  # independent optional feed; ahead of history so its long pole cannot squeeze a flood feed
 gen history gen-history.py data/history.json "$BUDGET_HISTORY_S" || :  # reads COMMITTED snapshot history, so this cycle's fetch does not gate it
 gen notices gen-notices.py data/requests.json "$BUDGET_NOTICES_S" || :  # LAN intake merge, never committed by the cycle
 gen shelters gen-shelters.py data/shelters-live.json "$BUDGET_SHELTERS_S" || :  # independent optional feed
@@ -363,6 +365,7 @@ DATA_FILES=(
     data/shelters-live.json
     data/crossing-status.json
     data/wildfire.json
+    data/transtar-flood.json
     data/caltopo-export.json
     data/board.kml
     data/board-live.kml

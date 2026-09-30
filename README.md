@@ -131,9 +131,9 @@ Every live hazard layer is a **keyless, CORS-open** public endpoint, so the boar
 runs from any static host with no server of its own. Two kinds of source are
 fetched differently. Camera stills come through a same-origin `/api/cam` proxy (a
 Pages Function on the mirror, a `server.py` route on the LAN host) because the
-source imagery is not CORS-open. Shelters and wildfire are collected by the
-generator cycle and published as committed JSON, so the browser reads them from
-the same origin as the board. Each card names its provenance.
+source imagery is not CORS-open. Shelters, wildfire and Houston roadway flood
+warnings are collected by the generator cycle and published as committed JSON, so
+the browser reads them from the same origin as the board. Each card names its provenance.
 
 | Data | Provider | Host / API |
 |------|----------|------------|
@@ -150,6 +150,7 @@ the same origin as the board. Each card names its provenance.
 | Low-water crossing status, Austin-area flood cameras | [ATX Floods](https://atxfloods.com/) (Beholder Technology, LLC) | `atxfloods.com` |
 | Open shelter status | [FEMA National Shelter System](https://gis.fema.gov/) (American Red Cross sync) | `gis.fema.gov`, collected by the cycle |
 | Wildfire incidents and mapped perimeters | [Texas A&amp;M Forest Service](https://tfswildfires.com/public/) &#183; [National Interagency Fire Center (WFIGS)](https://data-nifc.opendata.arcgis.com/) | `tfswildfires.com`, `services3.arcgis.com`, collected by the cycle |
+| Houston roadway flood risk (areas at high risk, not confirmed closures) | [Houston TranStar Roadway Flood Warning System](https://www.houstontranstar.org/about_transtar/about_rfws.aspx), built with the [Harris County Flood Control District](https://www.harriscountyfws.org/) | `traffic.houstontranstar.org`, collected by the cycle |
 | City, county, port, border and coastal cameras | Houston TranStar, City of Austin, City of Arlington, City of Lubbock, City of Corpus Christi, City of El Paso, City of Laredo, City of Eagle Pass, City of Del Rio, Hays County OES, Port Houston, Port of Galveston, Saltwater Recon, WeatherBug, New Mexico DOT, National Park Service | stills via the same-origin `/api/cam` proxy; live feeds play direct from the operator |
 | Address / place geocoding | [OpenStreetMap Nominatim](https://nominatim.org/) | `nominatim.openstreetmap.org` |
 | Basemap tiles | [Esri](https://www.esri.com/) &#183; [OpenStreetMap](https://www.openstreetmap.org/copyright) | `server.arcgisonline.com`, `tile.openstreetmap.org` |

@@ -239,7 +239,7 @@ test('no client file substitutes an empty list for a missing payload key', () =>
 const CENSUS = {
   'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 3, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
   'map.js': 3, 'master.js': 1, 'notes.js': 4, 'panels.js': 9, 'playback.js': 4,
-  'sources.js': 16, 'team.js': 2, 'usng.js': 0,
+  'sources.js': 17, 'team.js': 2, 'usng.js': 0,
 };
 
 test('the client fetch census is unchanged, so no new call site slipped past this audit', () => {
@@ -295,6 +295,9 @@ const SITES = [
   { f: 'sources.js', d: 'async function fetchWildfire(', c: TOP, v: 'HONEST',
     req: ['Array.isArray(data.fires)', 'Array.isArray(data.sources)', 'state.wildfireUnknown =',
       'opNotice(', "t('note.wildfirefail')"] },
+  { f: 'sources.js', d: 'async function roadFloodLoad(', c: TOP, v: 'HONEST',
+    req: ['Array.isArray(data.warnings)', 'Array.isArray(data.sources)', 'state.roadFloodUnknown =',
+      "t('note.rfloodfail')"] },
   { f: 'sources.js', d: 'function wildfireNoticeText()', c: TOP, v: 'HONEST',
     req: ['state.wildfireUnknown', "t('wf.unknown')"] },
   { f: 'sources.js', d: 'async function fetchLsrs()', c: TOP, v: 'GUARDED',

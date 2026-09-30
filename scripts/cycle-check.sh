@@ -546,6 +546,62 @@ if d is not None:
     if perims and not flagged:
         print("note: wildfire.json predates the perimeter orphan column; the next cycle republishes it")
 
+# a failed TranStar read must never reach the client as a zero (E1)
+d = optional("data/transtar-flood.json")
+if d is not None:
+    if ("generated" not in d or not isinstance(d.get("warnings"), list)
+            or not isinstance(d.get("sources"), list)):
+        die("transtar-flood.json: generated/warnings[]/sources[] missing")
+    gen_at = parse_iso(d["generated"])
+    if len(d["sources"]) != 1:
+        die("transtar-flood.json: sources[] must name exactly one source, not %d" % len(d["sources"]))
+    s = d["sources"][0]
+    if not s.get("key") or not s.get("name") or not s.get("url"):
+        die("transtar-flood.json: sources[0] missing key/name/url")
+    if s.get("status") not in ("ok", "failed", "carried"):
+        die("transtar-flood.json: status must be ok, failed or carried, not %r" % s.get("status"))
+    if s["status"] == "failed":
+        if s.get("count") is not None or d["warnings"]:
+            die("transtar-flood.json: a failed read reports count %r and %d warnings; it may report neither"
+                % (s.get("count"), len(d["warnings"])))
+    elif s.get("count") != len(d["warnings"]) or isinstance(s.get("count"), bool):
+        die("transtar-flood.json: count %r disagrees with %d warnings" % (s.get("count"), len(d["warnings"])))
+    if s["status"] == "carried":
+        if not d["warnings"]:
+            die("transtar-flood.json: a carried read publishes no warnings; a failed read may not assert a zero")
+        if not s.get("carriedFrom"):
+            die("transtar-flood.json: carried but names no carriedFrom read to age it from")
+        if parse_iso(s["carriedFrom"]) > gen_at:
+            die("transtar-flood.json: carriedFrom is later than generated")
+    if s.get("captured"):
+        parse_iso(s["captured"])
+    seen = set()
+    for i, w in enumerate(d["warnings"]):
+        if not w.get("id") or w["id"] in seen:
+            die("transtar-flood.json: warnings[%d] id missing or repeated" % i)
+        seen.add(w["id"])
+        for k in ("lat", "lon"):
+            if isinstance(w.get(k), bool) or not isinstance(w.get(k), (int, float)) or not math.isfinite(w[k]):
+                die("transtar-flood.json: warnings[%d] %s is not a finite number" % (i, k))
+        for k in ("radiusMi", "stageFt", "bankFt"):
+            if w.get(k) is not None and (isinstance(w[k], bool) or not isinstance(w[k], (int, float))):
+                die("transtar-flood.json: warnings[%d] %s is neither a number nor null" % (i, k))
+        if w.get("radiusMi") is not None and not w["radiusMi"] > 0:
+            die("transtar-flood.json: warnings[%d] radiusMi %r would draw no area" % (i, w["radiusMi"]))
+        for k in ("observed", "stageAt"):
+            if w.get(k) is not None:
+                if not isinstance(w[k], str):
+                    die("transtar-flood.json: warnings[%d] %s is neither an ISO stamp nor null" % (i, k))
+                try:
+                    parse_iso(w[k])
+                except ValueError:
+                    die("transtar-flood.json: warnings[%d] %s %r is not an ISO stamp" % (i, k, w[k]))
+        for k in ("name", "shef", "url"):
+            if w.get(k) is not None and not isinstance(w[k], str):
+                die("transtar-flood.json: warnings[%d] %s is neither a string nor null" % (i, k))
+        if w.get("url") and not w["url"].lower().startswith(("https://", "http://")):
+            die("transtar-flood.json: warnings[%d] url is not http(s)" % i)
+
 d = optional("data/caltopo-export.json")
 if d is not None:
     if d.get("type") != "FeatureCollection" or not isinstance(d.get("features"), list):
@@ -670,7 +726,7 @@ EOF
 }
 if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin/boot) + #disclaimer"; else failck "911 footer on every lens"; fi
 
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, transtar-flood, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 # l. USGS bbox area cap. WaterServices 400s any bBox over 25 equator-equivalent square degrees, and
 # the AO outgrew that in a config change alone, with no code touched: the layer died silently for

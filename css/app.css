@@ -60,6 +60,8 @@
   --haz-fire: #f5518f;
   --haz-smoke: #b9718f;
   --haz-order: #e8593f;
+  /* roadway flood risk: a blue no flood-category or hazard token already holds */
+  --haz-rflood: #5c7cfa;
   --good: #0ca30c;
   --tile-value: #ffffff;
   /* aged/suppressed text. Must hold 4.5:1 on --surface-2 in BOTH themes: aging is an honesty
@@ -98,6 +100,7 @@
   --haz-fire: #c2185b;
   --haz-smoke: #8e4b63;
   --haz-order: #b6301a;
+  --haz-rflood: #364fc7;
   --cat-major: #8b2fd6;
   --good: #006300;
   --tile-value: #0d1b2a;
@@ -679,6 +682,11 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
    past its own gutter and the pair reads as one run of text */
 .wf-v { grid-column: 2; margin: 0; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
 .wf-unknown { color: var(--ink-2); font-style: italic; opacity: .8; }
+.wf-tag.rfw-tag { background: var(--haz-rflood); }
+/* a stream reading above the top of bank is the one figure the card must not let slide past */
+.wf-v.rfw-over { color: var(--sev-warning); font-weight: 700; }
+/* above bank but no longer current: still bold, but it wears the staleness colour */
+.wf-v.rfw-over.xg-stale { color: var(--cat-action); }
 /* a caveat, not a warning: the amber staleness treatment beside it would read as an alarm */
 .wf-unbacked { color: var(--ink-aged); }
 .wf-prov { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border, rgba(255,255,255,.12));
@@ -1828,6 +1836,30 @@ body.pb-bar-open #measure-bar { bottom: 206px; } /* clear the radar timeline, wh
   display: inline-flex; vertical-align: middle; box-shadow: none; border-width: 1.5px;
 }
 
+/* Houston TranStar roadway flood risk: a road-sign diamond, so it reads as neither a gauge, a fire
+   nor an alert. The plate is a rotated pseudo-element so the glyph stays upright. */
+.rflood-icon {
+  position: relative; z-index: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; font-size: 13px; font-weight: 700; line-height: 1;
+  color: var(--haz-rflood);
+}
+.rflood-icon::after {
+  content: ''; position: absolute; inset: 4px; z-index: -1; transform: rotate(45deg);
+  background: var(--surface-1); border: 2.5px solid var(--haz-rflood); border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+/* its sensor has stopped reporting, so it is drawn without being asserted as current */
+.rflood-icon.unconfirmed { opacity: 0.55; }
+.rflood-icon.unconfirmed::after { border-style: dashed; }
+.map-legend .rflood-icon, .ls-icon .rflood-icon {
+  width: 16px; height: 16px; margin-right: 6px; font-size: 10px;
+  display: inline-flex; vertical-align: middle;
+}
+.map-legend .rflood-icon::after, .ls-icon .rflood-icon::after { inset: 2px; border-width: 1.5px; box-shadow: none; }
+.rflood-area { stroke: var(--haz-rflood); fill: var(--haz-rflood); }
+.rflood-area.aged { stroke-opacity: 0.5; fill-opacity: 0.05; }
+
 /* NOAA CO-OPS tide station. Banded by the same surge residual the coastal card colours by, and
    'unknown' is a station that could not be read or has no prediction, never a calm one. */
 .tide-marker {
@@ -1853,6 +1885,7 @@ body.pb-bar-open #measure-bar { bottom: 206px; } /* clear the radar timeline, wh
   .leaflet-marker-pane .cam-icon,
   .leaflet-marker-pane .rsentry-icon,
   .leaflet-marker-pane .wildfire-icon,
+  .leaflet-marker-pane .rflood-icon,
   .leaflet-marker-pane .tide-marker,
   .leaflet-marker-pane .lsr-icon,
   .leaflet-marker-pane .usgs-dot { position: relative; }
@@ -1860,6 +1893,7 @@ body.pb-bar-open #measure-bar { bottom: 206px; } /* clear the radar timeline, wh
   .leaflet-marker-pane .cam-icon::before,
   .leaflet-marker-pane .rsentry-icon::before,
   .leaflet-marker-pane .wildfire-icon::before,
+  .leaflet-marker-pane .rflood-icon::before,
   .leaflet-marker-pane .tide-marker::before,
   .leaflet-marker-pane .lsr-icon::before,
   .leaflet-marker-pane .usgs-dot::before {

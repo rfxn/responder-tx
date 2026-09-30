@@ -21,6 +21,7 @@ suspended or mid-task).
 | `gen-shelters.py` | Live shelter status → `data/shelters-live.json`. Publishes OPEN only where a source states it. |
 | `gen-crossings-status.py` | Jurisdiction-reported low-water-crossing status → `data/crossing-status.json`. Only non-open rows publish, because the feed timestamps a record change rather than a confirmation. |
 | `gen-wildfire.py` | Reported wildfire incidents from Texas A&M Forest Service and NIFC WFIGS → `data/wildfire.json`. Points, never perimeters. Each source publishes its own `ok`/`failed` status and its own upstream capture stamp, so an empty-but-valid read (the normal Texas state for most of the year) is distinguishable from a read that failed. Unreported acreage and containment publish as `null`, never as `0`. |
+| `gen-transtar-flood.py` | Houston TranStar Roadway Flood Warning System → `data/transtar-flood.json`. Each entry is an area TranStar rates at high risk of roadway flooding, never a confirmed closure. An empty feed publishes `ok` with count `0`; a failed or unparseable read publishes `failed` with a `null` count, or `carried` with the last good warnings for up to an hour, and exits non-zero. Central local timestamps are converted to UTC. |
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`, and the listing is also clipped to the `aoArea`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
@@ -96,16 +97,17 @@ Order (matches the manual per-cycle protocol):
 
 1. `fetch-snapshot.py` → fresh `data/gauges-capture.json` + `data/gauges-snapshot.json`
 2. `gen-roads-snapshot.py` → `data/roads-capture.json` + `data/roads-snapshot.json`
-3. `gen-history.py` → `history/index.json` + `history/day/*.json` + `data/history.json` + `data/gauge-meta.json` (reads *committed* snapshot history, so the newest frame lands next cycle and this cycle's fetch does not gate it)
-4. `gen-notices.py` → `data/requests.json` (LAN intake merge; never committed by the cycle)
-5. `gen-shelters.py` → `data/shelters-live.json`
-6. `gen-crossings-status.py` → `data/crossing-status.json`
-7. `gen-wildfire.py` → `data/wildfire.json` (two independent sources; either may degrade alone)
-8. `gen-crest-summary.py` → `data/crest-summary.json` (derived from the gauge snapshot)
-9. `gen-feeds.py` → `feed.xml` + `crests.ics`
-10. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
-11. `cycle-check.sh --code-from-head` → validate
-12. If any file in `DATA_FILES` differs from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), then `deploy.sh`, then a best-effort push nudge. The cycle does **not** push: `deploy.sh` gates HEAD first and pushes on the far side of that gate, so a red suite reaches neither origin nor the mirror. The commit still precedes the gate because the artifact is `git archive HEAD`; a local commit is not a publish.
+3. `gen-transtar-flood.py` → `data/transtar-flood.json` (ahead of `gen-history.py`, whose long pole cannot then squeeze it)
+4. `gen-history.py` → `history/index.json` + `history/day/*.json` + `data/history.json` + `data/gauge-meta.json` (reads *committed* snapshot history, so the newest frame lands next cycle and this cycle's fetch does not gate it)
+5. `gen-notices.py` → `data/requests.json` (LAN intake merge; never committed by the cycle)
+6. `gen-shelters.py` → `data/shelters-live.json`
+7. `gen-crossings-status.py` → `data/crossing-status.json`
+8. `gen-wildfire.py` → `data/wildfire.json` (two independent sources; either may degrade alone)
+9. `gen-crest-summary.py` → `data/crest-summary.json` (derived from the gauge snapshot)
+10. `gen-feeds.py` → `feed.xml` + `crests.ics`
+11. `gen-caltopo.py` → `data/caltopo-export.json` (derived from the gauge snapshot)
+12. `cycle-check.sh --code-from-head` → validate
+13. If any file in `DATA_FILES` differs from `HEAD`: `git add` them **by name**, commit (author `Ryan MacDonald <ryan@rfxn.com>`), then `deploy.sh`, then a best-effort push nudge. The cycle does **not** push: `deploy.sh` gates HEAD first and pushes on the far side of that gate, so a red suite reaches neither origin nor the mirror. The commit still precedes the gate because the artifact is `git archive HEAD`; a local commit is not a publish.
 
 Properties:
 

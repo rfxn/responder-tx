@@ -74,6 +74,8 @@ async function refresh() {
     setFeedNote(t('note.refreshing'), '');
     if (state.refreshRadar) state.refreshRadar();
     if (state.layers.tropical && state.map.hasLayer(state.layers.tropical)) fetchTropical().catch(() => { /* keep last cone/track on a transient failure */ });
+    // every tick, the first at boot included: the layer-sheet row counts warnings before the layer is on
+    fetchRoadFlood({ quiet: true, force: true }).catch(() => { /* fetchRoadFlood owns its own failure reporting */ });
     const gaugesP = fetchGauges();
     // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
     const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
@@ -532,6 +534,7 @@ function renderGlossary() {
   html += glRow('<span class="cam-icon cam-snap" style="width:16px;height:16px;font-size:10px">📷</span>', t('glossary.camsnap.label'), t('glossary.camsnap'));
   html += glRow('<span style="color:var(--sev-emergency)">⛔</span>/🌊', t('glossary.roads.label'), t('glossary.roads'));
   html += glRow('<span style="color:var(--good)">✓</span>', t('glossary.reopen.label'), t('glossary.reopen'));
+  html += glRow('<span class="rflood-icon" style="width:16px;height:16px;font-size:10px">≈</span>', t('glossary.rflood.label'), t('glossary.rflood'));
   html += glRow('⛔⚠✓', t('glossary.cross.label'), t('glossary.cross'));
   html += glRow('🆘', t('glossary.notice.label'), t('glossary.notice'));
   html += glRow('<span class="rsentry-icon" style="width:16px;height:16px;font-size:10px">📢</span>', t('glossary.rsentry.label'), t('glossary.rsentry'));
@@ -685,6 +688,7 @@ function relocalizeDynamic() {
   // marker aria-labels are baked with esc(t(...)) at draw time; each of these repaints in place
   // and adds no layer to the map, so a language switch cannot turn a layer on
   renderWildfire();
+  renderRoadFlood();
   renderRiverSentry();
   renderTideStations();
   // the card bakes esc(t(...)) at render time, so applyI18n(document) cannot reach it and a
@@ -1173,7 +1177,7 @@ async function boot() {
   const shareQs = new URLSearchParams(location.search);
   const camOn = (lk) => { if (state.layers[lk]) state.layers[lk].addTo(state.map); };
   for (const [qk, lk] of [['usgs', 'usgs'], ['lwc', 'lwc'], ['inun', 'inundation'], ['reopen', 'roadReopen'],
-    ['rs', 'riverSentry'], ['fire', 'wildfire'], ['tide', 'tideStations']]) {
+    ['rflood', 'roadFlood'], ['rs', 'riverSentry'], ['fire', 'wildfire'], ['tide', 'tideStations']]) {
     if (shareQs.get(qk) === '1') camOn(lk);
   }
   // ?camreg=<id,id> names the camera regions to open, ?camreg=all opens every one of them; unknown

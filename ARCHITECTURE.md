@@ -105,6 +105,7 @@ Every 15 minutes (`8,23,38,53` on the system crontab, via `scripts/run-cycle.sh`
 |--------|--------|---------|
 | `fetch-snapshot.py` | `data/gauges-capture.json`, `data/gauges-snapshot.json` | One NWPS request at `captureBbox`, archived whole and filtered to `gaugeBbox` for display |
 | `gen-roads-snapshot.py` | `data/roads-capture.json`, `data/roads-snapshot.json` | DriveTexas closure archive, same capture/display split |
+| `gen-transtar-flood.py` | `data/transtar-flood.json` | Houston TranStar roadway flood warnings (areas at high risk, never confirmed closures), with an ok, failed or carried read status |
 | `gen-history.py` | `history/index.json` + `history/day/*.json`, `data/history.json`, `data/gauge-meta.json` | Playback frames from the committed snapshot history, plus a USGS/NWPS pre-event backfill |
 | `gen-notices.py` | `data/requests.json` | LAN intake merge (never committed by the cycle) |
 | `gen-shelters.py` | `data/shelters-live.json` | Live shelter status, published only where a source states one |

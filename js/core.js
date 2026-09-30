@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.3';
+const APP_VERSION = 'v0.100.4';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -387,6 +387,8 @@ const state = {
   riverSentry: null,
   wildfire: null,
   wildfireUnknown: false, // the incident file was unreadable: unknown, never "no fires are burning"
+  roadFlood: null,
+  roadFloodUnknown: false, // the TranStar file was unreadable: unknown, never "no roads at risk"
   snapshotAt: null, // epoch of the gauge snapshot currently on screen, else null
   seedHash: null,
   gaugeMarkers: null,
@@ -397,6 +399,10 @@ const state = {
   _lwcLoaded: false,
   _rsentryLoaded: false,
   _wildfireLoaded: false,
+  _roadFloodLoaded: false,
+  _roadFloodFp: null, // what the drawn markers were built from
+  _roadFloodBusy: null, // the read in flight, so a toggle-on answers from it
+  _roadFloodRow: null, // the layer-sheet row text last painted
 
   bootAt: 0,
   lastInteract: 0,

@@ -191,6 +191,8 @@ const EXPORTS = [
   'wildfirePopupHtml', 'wildfireNoticeText', 'wildfireStale', 'wildfireContained', 'wildfireAgeH',
   'wildfireSource', 'WILDFIRE_STALE_H',
   'wildfireActive', 'wildfireLargest', 'hasMajorWildfire', 'WILDFIRE_AUTO_ACRES', 'wildfireRowSub',
+  'ROADFLOOD_STALE_H', 'ROADFLOOD_M_PER_MI', 'roadFloodSource', 'roadFloodList', 'roadFloodAgeH',
+  'roadFloodStaleAt', 'roadFloodStale', 'roadFloodOverBank',
   'TIDE_NEUTRAL_FT', 'tideBand', 'tideQuiet', 'tideSplit', 'fetchTideMeta', 'tideStationLatLon',
   'renderTideStations', 'tidePopupHtml', 'paintTides', 'loadTides', 'fetchTides', 'focusTideStation',
 ];

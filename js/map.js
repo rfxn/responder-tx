@@ -514,6 +514,7 @@ function mapLegendHtml() {
       return `<div><span class="sw sw-line" style="background:${rc.color}"></span>${esc(roadLabel(rc))}</div>`;
     }).join('') +
     `<div><span class="reopen-icon">✓</span>${esc(t('legend.reopen'))}</div>` +
+    `<div><span class="rflood-icon">≈</span>${esc(t('legend.rflood'))}</div>` +
     `<div><span class="rsentry-icon">📢</span>${esc(t('legend.rsentry'))}</div>` +
     `<div><span class="wildfire-icon">🔥</span>${esc(t('legend.wildfire'))}</div>` +
     `<div><span class="wildfire-perim-key"></span>${esc(t('legend.wildfire.perim'))}</div>` +
@@ -599,6 +600,7 @@ function initMap() {
     if (e.layer === state.layers.lwc) fetchLwc();
     if (e.layer === state.layers.riverSentry) fetchRiverSentry();
     if (e.layer === state.layers.wildfire) fetchWildfire();
+    if (e.layer === state.layers.roadFlood) fetchRoadFlood();
     if (e.layer === state.layers.tideStations) loadTides();
     if (e.layer === state.layers.tropical) { showTropicalLegend(); fetchTropical().catch(() => { opNotice(t('note.tropfail')); }); }
     if (e.layer === state.layers.surge) $('#surge-legend').hidden = false;
@@ -661,6 +663,8 @@ function initMap() {
   state.layers.roadClosures = L.layerGroup().addTo(state.map);
   // recently-reopened roads (recovery ✓) — OFF by default, explicit opt-in nested under road closures; flood-scoped
   state.layers.roadReopen = L.layerGroup();
+  // Houston TranStar roadway flood warnings: OFF by default; areas at high RISK, never confirmed closures
+  state.layers.roadFlood = L.layerGroup();
   // NOAA NHC active tropical cyclones (Esri Living Atlas): cone/track/positions/watches; OFF by default, lazy-loaded on first enable
   state.layers.tropical = L.layerGroup();
   // TxGIO low-water-crossing location inventory — OFF by default, lazy-loaded, canvas-rendered; LOCATIONS, not live status
@@ -713,6 +717,7 @@ function initMap() {
     'Low-water crossings': state.layers.crossings,
     'Road closures / high water (TxDOT)': state.layers.roadClosures,
     'Road reopenings (recovering)': state.layers.roadReopen,
+    'Houston roadway flood risk (TranStar)': state.layers.roadFlood,
     'Low-water crossings (locations · not live status)': state.layers.lwc,
     'Crossings reported closed (Central Texas jurisdictions)': state.layers.crossStatus,
     'River Sentry siren sites (reported locations · not live status)': state.layers.riverSentry,
@@ -1100,6 +1105,7 @@ const PILL_LAYERS = [
   ['lsrsAged', 'layers.lsrhist'],
   ['lwc', 'layers.lwc'],
   ['roadReopen', 'layers.reopen'],
+  ['roadFlood', 'layers.rflood'],
   ['riverSentry', 'layers.rsentry'],
   ['wildfire', 'layers.wildfire'],
   ['tideStations', 'layers.tides'],
@@ -1223,6 +1229,7 @@ const SHEET_GROUPS = [
   ['sheet.g.roads', [
     ['roadClosures', '🚧', 'layers.roads', 'sheet.s.roads', 'official', true],
     ['roadReopen', '<span class="reopen-icon">✓</span>', 'layers.reopen', 'sheet.s.reopen', 'official', false, true],
+    ['roadFlood', '<span class="rflood-icon">≈</span>', 'layers.rflood', 'sheet.s.rflood', 'official', false],
   ]],
   ['sheet.g.cameras', CAM_ROWS],
   ['sheet.g.reports', [
@@ -1349,14 +1356,16 @@ function layerSheetIsOpen() {
   return !!el && !el.hidden;
 }
 
+// a row whose count decides whether it is worth opening states that count, like the camera rows
+const LIVE_ROW_SUBS = { wildfire: () => wildfireRowSub(), roadFlood: () => roadFloodRowSub() };
+
 // one toggle row; identical markup for flat groups and the indented camera children (child flag adds .ls-child)
 function lsRowHtml(row, dis) {
   const [k, icon, nameKey, subKey, badge, , child, , region] = row;
   const on = layerRowOn(k); // understands the virtual merged 'wx' row; null = no such layer
   if (on === null) return '';
   const name = region ? regionLabel(region, getLang()) : t(nameKey);
-  // a row whose count decides whether it is worth opening states that count, like the camera rows
-  const sub = region ? camRegionSub(region) : (k === 'wildfire' ? wildfireRowSub() : t(subKey));
+  const sub = region ? camRegionSub(region) : (LIVE_ROW_SUBS[k] ? LIVE_ROW_SUBS[k]() : t(subKey));
   return `<button class="ls-row${on ? ' on' : ''}${child ? ' ls-child' : ''}" data-layer="${k}" role="switch" aria-checked="${on}"${dis}>` +
     `<span class="ls-icon">${icon}</span>` +
     `<span class="ls-txt"><span class="ls-name">${esc(name)}${badge ? ' ' + srcBadge(badge, 'src-mini') : ''}</span>` +

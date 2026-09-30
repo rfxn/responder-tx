@@ -2601,6 +2601,196 @@ function wildfirePopupHtml(f) {
   return `<div class="wf-card">${head}${facts}${prov}${link}</div>`;
 }
 
+/* ---------- Houston TranStar roadway flood warnings (RISK, never a confirmed flooded road) ----------
+   data/transtar-flood.json is collected by the cycle because the feed is not CORS-open. */
+
+const ROADFLOOD_STALE_H = 2; // the sensors report every 15 minutes, so this is eight missed reports
+const ROADFLOOD_M_PER_MI = 1609.34;
+const ROADFLOOD_SYSTEM_URL = 'https://www.harriscountyfws.org/';
+const ROADFLOOD_ABOUT_URL = 'https://www.houstontranstar.org/about_transtar/about_rfws.aspx';
+const roadFloodSource = () => (((state.roadFlood || {}).sources) || [])[0] || null;
+const roadFloodList = () => (((state.roadFlood || {}).warnings) || []);
+const roadFloodAgeH = (iso) => (iso ? (Date.now() - new Date(iso).getTime()) / 3600000 : NaN);
+const roadFloodStaleAt = (iso) => !(roadFloodAgeH(iso) < ROADFLOOD_STALE_H); // NaN counts as stale
+const roadFloodStale = (w) => roadFloodStaleAt(w && w.observed);
+const roadFloodOverBank = (w) => !!w && Number.isFinite(w.stageFt) && Number.isFinite(w.bankFt)
+  && w.stageFt > w.bankFt;
+const roadFloodAttrib = () => esc(`${t('layers.rflood')}: ${t('rfw.attrib')}`);
+const roadFloodOnMap = () => !!(state.map && state.layers.roadFlood && state.map.hasLayer(state.layers.roadFlood));
+// what the drawn markers depend on; a refresh that changes none of it keeps an open popup open
+const roadFloodFp = () => JSON.stringify([(roadFloodSource() || {}).status, roadFloodList(),
+  roadFloodList().map(roadFloodStale)]);
+// states a reader looking at the layer must hear about even on a quiet tick
+const ROADFLOOD_LOUD_KEYS = ['rfw.unknown', 'rfw.carried', 'rfw.none.aged', 'rfw.none.undated'];
+
+// quiet on each refresh tick; a toggle-on always speaks, and one read runs at a time
+async function fetchRoadFlood(opts) {
+  const o = opts || {};
+  const speak = (msg) => { if (!o.quiet && msg) opNotice(msg); };
+  if (state._roadFloodBusy) await state._roadFloodBusy; // a toggle-on mid-read answers from that read
+  if (state._roadFloodLoaded && !o.force) { speak(roadFloodNoticeText()); return; }
+  state._roadFloodLoaded = true;
+  const busy = roadFloodLoad(o, speak);
+  state._roadFloodBusy = busy;
+  try { await busy; } finally { if (state._roadFloodBusy === busy) state._roadFloodBusy = null; }
+}
+
+async function roadFloodLoad(o, speak) {
+  const before = roadFloodNoticeKey();
+  try {
+    const res = await fetch(`data/transtar-flood.json?_=${Date.now()}`);
+    if (!res.ok) throw new Error(`transtar-flood HTTP ${res.status}`);
+    const data = await res.json();
+    // E1: no list or no source row is an unreadable file, never a report of clear roads
+    if (!data || !Array.isArray(data.warnings) || !Array.isArray(data.sources) || !data.sources.length) {
+      throw new Error('transtar-flood payload has no warnings/sources');
+    }
+    state.roadFlood = data;
+    state.roadFloodUnknown = false;
+  } catch (err) {
+    state._roadFloodLoaded = false;
+    state.roadFloodUnknown = !state.roadFlood;
+    speak(state.roadFloodUnknown ? roadFloodNoticeText() : t('note.rfloodfail'));
+    roadFloodRepaint();
+    return;
+  }
+  // the read succeeded, so a throw from here is ours and must not be reported against the feed
+  let drew = false;
+  try {
+    if (roadFloodFp() !== state._roadFloodFp) renderRoadFlood();
+    drew = true;
+  } catch (err) {
+    state._roadFloodLoaded = false;
+    speak(t('note.rflooddraw'));
+  }
+  if (drew) speak(roadFloodNoticeText());
+  const now = roadFloodNoticeKey();
+  if (o.quiet && drew && now !== before && ROADFLOOD_LOUD_KEYS.includes(now) && roadFloodOnMap()) {
+    opNotice(roadFloodNoticeText());
+  }
+  roadFloodRepaint();
+}
+
+// the sheet re-renders only when the row would read differently, so a tick keeps focus inside it
+function roadFloodRepaint() {
+  const row = roadFloodRowSub();
+  if (row === state._roadFloodRow) return;
+  state._roadFloodRow = row;
+  if (typeof layerSheetSync === 'function') layerSheetSync(); // map.js is absent from the panels bundle
+}
+
+// which sentence applies; a quiet tick compares keys so the clock ticking is not a change of state
+function roadFloodNoticeKey() {
+  const src = roadFloodSource();
+  if (state.roadFloodUnknown || !src || !['ok', 'carried'].includes(src.status)) return 'rfw.unknown';
+  if (src.status === 'carried') return 'rfw.carried';
+  if (src.skipped > 0) return 'rfw.skipped';
+  if (roadFloodList().length) return '';
+  // a feed that stopped updating, or never said when it did, cannot vouch for an all-clear
+  if (!src.captured) return 'rfw.none.undated';
+  return roadFloodStaleAt(src.captured) ? 'rfw.none.aged' : 'rfw.none';
+}
+
+// what the layer says when switched on; '' when the markers speak for themselves
+function roadFloodNoticeText() {
+  const key = roadFloodNoticeKey();
+  const src = roadFloodSource() || {};
+  if (!key) return '';
+  if (key === 'rfw.carried') return t(key).replace('{t}', fmtWhen(src.carriedFrom));
+  if (key === 'rfw.skipped') return t(key).replace('{n}', fmtNum(src.skipped));
+  if (key === 'rfw.none' || key === 'rfw.none.aged') return t(key).replace('{t}', fmtWhen(src.captured));
+  return t(key);
+}
+
+// "now" only for warnings whose sensor is still reporting
+function roadFloodRowSub() {
+  const src = roadFloodSource();
+  if (state.roadFloodUnknown || (src && !['ok', 'carried'].includes(src.status))) return t('sheet.s.rflood.unknown');
+  const list = roadFloodList();
+  if (!src || !list.length) return t('sheet.s.rflood');
+  if (src.status === 'carried') return t('sheet.s.rflood.carried').replace('{n}', fmtNum(list.length));
+  const aged = list.filter(roadFloodStale).length;
+  const fresh = list.length - aged;
+  if (!fresh) return t('sheet.s.rflood.aged').replace('{a}', fmtNum(aged));
+  return t(aged ? 'sheet.s.rflood.mixed' : 'sheet.s.rflood.n').replace('{n}', fmtNum(fresh)).replace('{a}', fmtNum(aged));
+}
+
+function renderRoadFlood() {
+  const layer = state.layers.roadFlood;
+  const data = state.roadFlood;
+  if (!layer || !data) return;
+  layer.clearLayers();
+  const lbl = esc(t('layers.rflood'));
+  for (const w of (Array.isArray(data.warnings) ? data.warnings : [])) {
+    if (!w || !Number.isFinite(w.lat) || !Number.isFinite(w.lon)) continue;
+    const aged = roadFloodStale(w);
+    if (Number.isFinite(w.radiusMi) && w.radiusMi > 0) {
+      // not interactive: the area must never take a tap off a road closure or an alert under it
+      layer.addLayer(L.circle([w.lat, w.lon], {
+        radius: w.radiusMi * ROADFLOOD_M_PER_MI, pane: 'shadowPane', interactive: false,
+        color: '#5c7cfa', weight: 2, opacity: 0.9, dashArray: '2 6', fillOpacity: 0.12,
+        className: `rflood-area${aged ? ' aged' : ''}`,
+      }));
+    }
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="rflood-icon${aged ? ' unconfirmed' : ''}" role="img" aria-label="${lbl}" title="${lbl}">≈</div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+    const m = L.marker([w.lat, w.lon], { icon, attribution: roadFloodAttrib(), zIndexOffset: 1100 });
+    m.bindPopup(() => roadFloodPopupHtml(w));
+    layer.addLayer(m);
+  }
+  state._roadFloodFp = roadFloodFp();
+}
+
+// the latest reading against the top of bank, or null when the feed reported no reading
+function roadFloodReadingText(w) {
+  if (!Number.isFinite(w.stageFt)) return null;
+  const ft = (v) => t('rfw.ft').replace('{n}', fmtNum(Math.round(v * 100) / 100));
+  if (!Number.isFinite(w.bankFt)) return ft(w.stageFt);
+  const d = Math.round((w.stageFt - w.bankFt) * 100) / 100;
+  const rel = d > 0 ? 'rfw.above' : (d < 0 ? 'rfw.below' : 'rfw.atbank');
+  return `${ft(w.stageFt)} · ${t(rel).replace('{d}', fmtNum(Math.abs(d))).replace('{b}', fmtNum(w.bankFt))}`;
+}
+
+function roadFloodPopupHtml(w) {
+  const src = roadFloodSource() || {};
+  const aged = roadFloodStale(w);
+  const readAged = !!w.stageAt && roadFloodStaleAt(w.stageAt);
+  const ageTag = w.observed
+    ? t('rfw.stale').replace('{h}', String(Math.round(roadFloodAgeH(w.observed))))
+    : t('rfw.undated');
+  const head = '<div class="wf-head">'
+    + `<div class="popup-title">≈ ${esc(w.name || t('rfw.unnamed'))}</div>`
+    + '<div class="wf-tags">'
+    + `<span class="wf-tag rfw-tag">${esc(t('rfw.risk'))}</span>`
+    + (aged ? `<span class="wf-tag is-stale">${esc(ageTag)}</span>` : '')
+    + (src.status === 'carried' ? `<span class="wf-tag is-stale">${esc(t('rfw.carried.tag'))}</span>` : '')
+    + '</div></div>';
+  const readCls = [roadFloodOverBank(w) && 'rfw-over', readAged && 'xg-stale'].filter(Boolean).join(' ');
+  const facts = '<dl class="wf-facts">'
+    + wfRow('rfw.k.reading', roadFloodReadingText(w), { showUnknown: true, cls: readCls })
+    // only when it differs: the feed usually stamps the warning and its reading together
+    + wfRow('rfw.k.readat', w.stageAt && w.stageAt !== w.observed ? fmtWhen(w.stageAt) : null,
+      { cls: readAged ? 'xg-stale' : '' })
+    + wfRow('rfw.k.observed', w.observed ? fmtWhen(w.observed) : null, { showUnknown: true, cls: aged ? 'xg-stale' : '' })
+    + wfRow('rfw.k.radius', Number.isFinite(w.radiusMi) ? t('rfw.radius').replace('{n}', fmtNum(w.radiusMi)) : null)
+    + '</dl>';
+  const currency = src.captured ? t('rfw.captured').replace('{t}', fmtWhen(src.captured)) : t('rfw.nocurrency');
+  const prov = '<div class="wf-prov">'
+    + `<div>${esc(t('rfw.notconfirmed'))}</div>`
+    + `<div>${esc(t('rfw.credit'))} · ${esc(currency)}</div>`
+    + '</div>';
+  const about = safeUrl(src.url) !== '#' ? src.url : ROADFLOOD_ABOUT_URL;
+  const link = (href, key) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(t(key))}</a>`;
+  // not every sensor is HCFCD's, so the fallback names the system rather than claiming this sensor
+  const sensor = safeUrl(w.url) !== '#' ? link(w.url, 'rfw.link.sensor') : link(ROADFLOOD_SYSTEM_URL, 'rfw.link.system');
+  return `<div class="wf-card rfw-card">${head}${facts}${prov}`
+    + `<div class="popup-link">${sensor} · ${link(about, 'rfw.link.about')}</div></div>`;
+}
+
 /* ---------- IEM local storm reports (ground truth) ---------- */
 
 async function fetchLsrs() {

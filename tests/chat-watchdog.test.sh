@@ -198,6 +198,21 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Test 6: every file the cycle stages is inside the lane --------------------
+# Two lists describe one set (E5): a file run-cycle.sh stages but the lane omits gets reverted by
+# a recovery run mid-publish. Both halves are read from source.
+LANE=$(grep -oP "^CYCLE_LANE='\\K[^']+" "$WATCHDOG_SRC")
+STAGED=$(sed -n '/^DATA_FILES=(/,/^)/p' "$REPO_ROOT/scripts/run-cycle.sh" | grep -E '^[[:space:]]+[a-z]' | tr -d ' ')
+MISSING=""
+for f in $STAGED; do
+    printf '%s\n' "$f" | grep -Eq "$LANE" || MISSING="$MISSING $f"
+done
+if [ -n "$LANE" ] && [ "$(printf '%s\n' "$STAGED" | grep -c .)" -ge 10 ] && [ -z "$MISSING" ]; then
+    pass "6 every run-cycle.sh DATA_FILES path is inside the watchdog's no-touch lane"
+else
+    fail "6 run-cycle.sh stages paths the watchdog would revert:${MISSING:- (lane or DATA_FILES unreadable)}"
+fi
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CHAT-WATCHDOG TREE-HYGIENE TESTS PASSED"

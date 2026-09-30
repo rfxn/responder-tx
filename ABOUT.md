@@ -85,7 +85,9 @@ the Texas Geographic Information Office, ATX Floods, and OpenStreetMap with Nomi
 and Overpass. Three exceptions to "directly": gauge hydrographs prefer a same-origin proxy
 and fall back to NOAA, FEMA National Shelter System data is collected server-side by
 the publishing cycle, and so are the wildfire incidents and perimeters that come from
-the Texas A&amp;M Forest Service and the National Interagency Fire Center (WFIGS).
+the Texas A&amp;M Forest Service and the National Interagency Fire Center (WFIGS), and
+the Houston TranStar roadway flood warnings, built with the Harris County Flood Control
+District, which mark areas at high risk of roadway flooding rather than confirmed closures.
 
 Camera stills come from city, county, port, border, state and federal (USGS, National
 Park Service) networks, a neighboring-state DOT, and private webcam operators. The

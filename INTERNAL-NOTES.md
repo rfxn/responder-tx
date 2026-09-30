@@ -553,3 +553,44 @@ outline (`tests/ao-area.test.js` walks a 0.1 degree grid). Before this change 7%
 in no box, including Brownwood/Stephenville and the Winter Garden. `workers/push-alerts`
 still carries the old Bertha-era `AO_FALLBACK` box (-98.0, 27.5, -93.4, 31.0), used only until
 its first successful event.json fetch.
+
+## Houston TranStar roadway flood warnings (2026-09-30)
+
+**Source.** `https://traffic.houstontranstar.org/data/layers/floodalert_json.js`, the file
+TranStar's own map (`/resources/js/mapctl_esri.js` `LoadFloodWarningData`) loads with
+`?arg=<epoch ms>`. Keyless, HTTP 200, `Content-Type: application/javascript`, a plain JSON
+array, no CORS headers, so the browser cannot read it and `scripts/gen-transtar-flood.py`
+collects it each cycle. `Last-Modified` updates every minute or so and is published as the
+source's `captured` stamp. The documented API (`/api/roadwayfloodwarning.json`) answers 403
+and its `_sample.json` is frozen at 2024-02-13; neither is used.
+
+**Semantics.** TranStar draws every entry as "Roadway Flooding Danger" with a circle of
+`Radius` miles. Presence in the array is an active warning; `[]` is none. Its own description
+(`about_rfws.aspx`): the warning areas "do not confirm the presence of roadway flooding but do
+identify areas where the risk of roadway flooding is high". Warnings persist after the stream
+drops (the 2026-09-30 Dickinson Bayou entry read 2.71 ft against a 3.5 ft bank), which is why
+the popup compares the reading with the bank instead of implying one from the other. Not every
+sensor is HCFCD's: `JF13-3` links `setexasrain.onerain.com`, so the popup links the sensor page
+the feed names and never credits HCFCD for a specific sensor.
+
+**Timestamps are US Central local time with no offset** (`2026-09-30T09:16:22` was 14:16Z).
+They are converted with `zoneinfo` `America/Chicago`; the repeated fall-back hour resolves to
+its first (CDT) pass. `0001-01-01T00:00:00` is a placeholder and publishes as null, as does a
+stamp more than 15 minutes in the future (the symptom of the feed switching to UTC). The
+string `"null"` is how the feed spells an absent `ShefId`.
+
+**E1 model.** One source row with `status` `ok`, `failed` or `carried`. A failed read writes
+`failed` with a null count and no warnings rather than leaving the previous file in place,
+because a previous `ok` with zero warnings would otherwise keep asserting an all-clear. The
+last good warnings are carried for up to `CARRY_H` (1h), keeping the original read time in
+`carriedFrom`, and a zero is never carried. The client ages each warning on its own
+`observed` stamp (`ROADFLOOD_STALE_H` = 2h, eight missed 15-minute reports), and an empty
+read whose `captured` is older than that, or absent, reads as "not a current all-clear": our own
+`generated` is rewritten every cycle and may never date an all-clear. The browser re-reads the
+file every refresh tick; the tick is quiet, except that a reader with the layer on is told once
+when it turns unavailable, carried or aged, because a failed read and a genuine zero clear the
+map identically. The layer is not in the Live feeds chips, like the other cycle-collected layers.
+
+**Budget.** One small request: 12s timeout, three attempts, 2s + 5s backoff, 43s worst case,
+so `BUDGET_ROADFLOOD_S` is 60. It runs straight after the roads step, ahead of `gen-history.py`,
+so the history long pole cannot squeeze a flood feed out of the aggregate budget.

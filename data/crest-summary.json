@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-30T07:10:23Z",
+ "generated": "2026-09-30T07:25:10Z",
  "event": "September 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-09-30T06:53:00Z"
+  "last": "2026-09-30T07:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1156,8 +1156,8 @@
   {
    "lid": "AMAT2",
    "name": "Canadian River at Amarillo",
-   "peak": 7.15,
-   "peak_time": "2026-09-30T06:53:00Z",
+   "peak": 7.35,
+   "peak_time": "2026-09-30T07:08:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-09-30T06:53:00Z",
@@ -1166,7 +1166,7 @@
    "record": {
     "record_ft": 25,
     "record_date": "1904-10-01",
-    "peak_pct": 28.6,
+    "peak_pct": 29.4,
     "exceeded": false,
     "approached": false
    },

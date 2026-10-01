@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.7",
+      "date": "2026-10-01",
+      "line": "Team roster: members who have lost contact move to the top, longest silent first, and the header counts them. A member who chose not to share stays in place."
+    },
+    {
       "v": "v0.100.6",
       "date": "2026-09-30",
       "line": "Team map: while a teammate's position is current, their popup shows how far away they are and in which direction, and whether they are moving, with speed and heading."

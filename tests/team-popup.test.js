@@ -75,3 +75,53 @@ test('Spanish reads the same facts in Spanish units', () => {
   assert.match(t, /\|a 365 pies al N de usted\|/);
   assert.match(t, /\|en movimiento a 12 mph, rumbo NE \(047°\)\|/);
 });
+
+/* The roster: command's eye should land on the unit that went silent, not wherever the server
+   happened to list it. renderRoster() runs against a recording host. */
+function rosterHost(ops) {
+  const list = { innerHTML: '' };
+  const count = { textContent: '', cls: new Set(), classList: { toggle(c, on) { if (on) count.cls.add(c); else count.cls.delete(c); } } };
+  const host = { querySelector: (sel) => (sel === '.tp-list' ? list : sel === '#team-rcount' ? count : null) };
+  return { host, list, count };
+}
+
+function loadRoster() {
+  const sandbox = buildSandbox();
+  const r = rosterHost();
+  sandbox.document.getElementById = (id) => (id === 'team-tab-body' ? r.host : null);
+  sandbox.document.querySelector = () => null;
+  vm.runInContext(`${read('js/core.js')}\n;\n${read('js/team.js')}`, vm.createContext(sandbox), { filename: 'team-bundle.js' });
+  return { ops: sandbox.teamMemberOps, ...r };
+}
+
+const names = (html) => [...html.matchAll(/class="tp-name">([^<]*)</g)].map((x) => x[1]);
+
+test('lost units rise to the top of the roster, longest silent first, and the header counts them', () => {
+  const { ops, list, count } = loadRoster();
+  const at = (s) => Date.now() - s * 1000;
+  const pos = { lat: 30, lon: -98 };
+  ops.renderRoster({ viewers: [], members: [
+    { pid: 'a', handle: 'Alpha', lastSeen: at(5), lastPos: pos },
+    { pid: 'b', handle: 'Bravo', lastSeen: at(200), lastPos: pos },
+    { pid: 'c', handle: 'Charlie', lastSeen: at(10), lastPos: pos },
+    { pid: 'd', handle: 'Delta', lastSeen: at(900), lastPos: pos },
+    { pid: 'e', handle: 'Echo', lastSeen: at(900), lastPos: pos, status: 'unavailable' },
+    { pid: 'f', handle: 'Foxtrot', lastSeen: at(900), lastPos: null },
+  ] });
+  assert.deepEqual(names(list.innerHTML), ['Delta', 'Bravo', 'Alpha', 'Charlie', 'Echo', 'Foxtrot'],
+    'lost units lead, longest silent first; a member who chose not to share and one with no fix keep their place');
+  assert.match(count.textContent, /· 2 lost contact$/);
+  assert.ok(count.cls.has('tt-rcount-lost'));
+});
+
+test('with everyone reporting, the roster keeps server order and the header claims no losses', () => {
+  const { ops, list, count } = loadRoster();
+  const pos = { lat: 30, lon: -98 };
+  ops.renderRoster({ viewers: [], members: [
+    { pid: 'a', handle: 'Alpha', lastSeen: Date.now() - 4000, lastPos: pos },
+    { pid: 'b', handle: 'Bravo', lastSeen: Date.now() - 8000, lastPos: pos },
+  ] });
+  assert.deepEqual(names(list.innerHTML), ['Alpha', 'Bravo']);
+  assert.doesNotMatch(count.textContent, /lost/);
+  assert.ok(!count.cls.has('tt-rcount-lost'));
+});

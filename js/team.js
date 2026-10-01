@@ -730,17 +730,31 @@
     renderQueueState();
   }
 
+  // a unit that had a fix and went silent; "not sharing" was a choice, not a dropped unit
+  const memberLost = (m, now) => !!m.lastPos && m.status !== 'unavailable' && now - (m.lastSeen || 0) > STALE_MS;
+
+  // lost units first, longest silent at the top; everyone else keeps the server's order
+  function rosterOrder(members, now) {
+    const lost = [], rest = [];
+    for (const m of members) (memberLost(m, now) ? lost : rest).push(m);
+    lost.sort((a, b) => (a.lastSeen || 0) - (b.lastSeen || 0));
+    return lost.concat(rest);
+  }
+
   function renderRoster(data) {
     const host = teamHost();
     if (!host) return;
     const list = host.querySelector('.tp-list');
     if (!list) return;
     const members = data.members || [], viewers = data.viewers || [];
+    const now = Date.now();
     const rows = [];
-    for (const m of members) {
+    let lostN = 0;
+    for (const m of rosterOrder(members, now)) {
       if (m.pid === T.pid) continue; // self lives in the you-bar
+      if (memberLost(m, now)) lostN++;
       const hasFix = !!m.lastPos;
-      const stale = Date.now() - (m.lastSeen || 0) > STALE_MS;
+      const stale = now - (m.lastSeen || 0) > STALE_MS;
       const swColor = m.color || '#40c4ff';
       // stale-with-a-fix reads as lost contact (command must not miss a dropped field member)
       const ageTxt = !hasFix ? tt('team.nofix', 'no fix')
@@ -765,7 +779,11 @@
     }
     list.innerHTML = rows.join('') || `<div class="tp-empty">${esc(tt('team.alone', 'No one else here yet. Share the link to bring your crew in.'))}</div>`;
     const c = host.querySelector('#team-rcount');
-    if (c) c.textContent = `${members.length} ${tt('team.members', 'members')} · ${viewers.length} ${tt('team.viewers', 'viewers')}`;
+    if (c) {
+      c.textContent = `${members.length} ${tt('team.members', 'members')} · ${viewers.length} ${tt('team.viewers', 'viewers')}`
+        + (lostN ? ` · ${lostN} ${tt('team.lost', 'lost contact')}` : '');
+      c.classList.toggle('tt-rcount-lost', lostN > 0);
+    }
     renderYouBar();
     updateDropFab();
     updateTeamCount(members.length + viewers.length);
@@ -1630,5 +1648,5 @@
 
   // pure string builders, same reason: the marker popup is asserted by calling it, not by grepping it
   window.teamMarkerOps = { popupHtml: markerPopupHtml, ageStr };
-  window.teamMemberOps = { popupHtml: memberPopupHtml, STALE_MS };
+  window.teamMemberOps = { popupHtml: memberPopupHtml, renderRoster, STALE_MS };
 })();

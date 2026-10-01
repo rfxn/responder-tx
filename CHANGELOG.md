@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.7 · 2026-10-01 (lost contact goes to the top)
+
+-- Changes --
+- [Change] Team roster: members who have lost contact move to the top, longest
+         silent first, and the header counts them. A member who chose not to
+         share stays in place
+
 ## v0.100.6 · 2026-09-30 (where a teammate is and where they are heading)
 
 -- New Features --

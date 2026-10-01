@@ -5,12 +5,51 @@
   <id>https://respondertx.org/data/board-georss.xml</id>
   <link rel="self" type="application/atom+xml" href="https://respondertx.org/data/board-georss.xml" />
   <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-  <updated>2026-10-01T03:55:20Z</updated>
+  <updated>2026-10-01T04:10:25Z</updated>
   <rights>Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.</rights>
   <author>
     <name>Responder TX</name>
   </author>
   <generator uri="https://respondertx.org">Responder TX board</generator>
+  <entry>
+    <title>Severe Thunderstorm Warning · Brewster, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:3478ed323aad25e0</id>
+    <updated>2026-10-01T04:09:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Severe Thunderstorm Warning issued September 30 at 11:09PM CDT until September 30 at 11:45PM CDT by NWS Midland/Odessa TX
+Severity: warning
+Expires: 2026-09-30T23:45:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.a7eb8f335c9d679f57e127df43ebe0f249fb8a52.001.1
+Updated: 2026-09-30T23:09:00-05:00</summary>
+    <georss:polygon>29.91 -103.27 30.06 -103.27 30.07 -103.23 30.13 -102.94 29.86 -102.9 29.91 -103.27</georss:polygon>
+  </entry>
+  <entry>
+    <title>Flood Advisory · Fisher, TX; Jones, TX; Nolan, TX; Taylor, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:94b6c0627372ef6e</id>
+    <updated>2026-10-01T04:04:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Flood Advisory issued September 30 at 11:04PM CDT until October 1 at 1:00AM CDT by NWS San Angelo TX
+Severity: advisory
+Expires: 2026-10-01T01:00:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b463c59c14fb9f32a7891bd5cf67d5beaddef538.001.1
+Updated: 2026-09-30T23:04:00-05:00</summary>
+    <georss:polygon>32.52 -100.23 32.7 -100.25 32.68 -99.62 32.51 -99.62 32.51 -99.63 32.24 -99.63 32.12 -100.17 32.52 -100.23</georss:polygon>
+  </entry>
+  <entry>
+    <title>Severe Thunderstorm Warning · Edwards, TX; Val Verde, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:e11307fbb4c19ab1</id>
+    <updated>2026-10-01T04:01:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Severe Thunderstorm Warning issued September 30 at 11:01PM CDT until October 1 at 12:00AM CDT by NWS Austin/San Antonio TX
+Severity: warning
+Expires: 2026-10-01T00:00:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.88bf2ee5b20c57aa972e6c0c36c0335b6ccc2690.001.1
+Updated: 2026-09-30T23:01:00-05:00</summary>
+    <georss:polygon>30.29 -100.89 30.29 -100.6 30.15 -100.43 30.05 -100.95 30.18 -101.06 30.29 -100.89</georss:polygon>
+  </entry>
   <entry>
     <title>Flood Advisory · Val Verde, TX</title>
     <id>tag:respondertx.org,2026:folder-alerts:eace225c6d38748b</id>
@@ -168,19 +207,6 @@ Updated: 2026-09-30T20:38:00-05:00</summary>
     <georss:polygon>30.51 -101.68 30.58 -100.96 30.29 -100.96 30.29 -101.76 30.3 -101.75 30.33 -101.74 30.34 -101.71 30.35 -101.69 30.34 -101.66 30.36 -101.66 30.38 -101.7 30.4 -101.7 30.41 -101.73 30.42 -101.74 30.44 -101.72 30.45 -101.72 30.47 -101.73 30.47 -101.72 30.46 -101.7 30.47 -101.69 30.51 -101.68</georss:polygon>
   </entry>
   <entry>
-    <title>Flood Advisory · Deaf Smith, TX; Moore, TX; Potter, TX; Randall, TX</title>
-    <id>tag:respondertx.org,2026:folder-alerts:2457791e4438484f</id>
-    <updated>2026-09-30T21:11:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="NWS alerts (active)" />
-    <summary type="text">Flood Advisory issued September 30 at 4:11PM CDT until October 1 at 4:15PM CDT by NWS Amarillo TX
-Severity: advisory
-Expires: 2026-10-01T16:15:00-05:00
-Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.c0bfaa3b30a63c9d2cbdd13b08f2950b0bf185d4.001.1
-Updated: 2026-09-30T16:11:00-05:00</summary>
-    <georss:polygon>35.12 -102.17 35.5 -102.04 35.61 -102 35.62 -101.87 35.62 -101.73 35.25 -101.82 35.09 -101.87 35.07 -101.95 35.05 -102.06 35.08 -102.17 35.12 -102.17</georss:polygon>
-  </entry>
-  <entry>
     <title>Flood Advisory · Potter, TX; Randall, TX</title>
     <id>tag:respondertx.org,2026:folder-alerts:4cdbd598c3f28364</id>
     <updated>2026-09-30T21:11:00Z</updated>
@@ -192,6 +218,19 @@ Expires: 2026-10-01T16:15:00-05:00
 Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.3392ef7ce00f6023b7652229eccf3babe274abb9.001.1
 Updated: 2026-09-30T16:11:00-05:00</summary>
     <georss:polygon>35.18 -101.88 35.24 -101.86 35.27 -101.63 34.81 -101.76 34.87 -102.02 35.18 -101.88</georss:polygon>
+  </entry>
+  <entry>
+    <title>Flood Advisory · Deaf Smith, TX; Moore, TX; Potter, TX; Randall, TX</title>
+    <id>tag:respondertx.org,2026:folder-alerts:2457791e4438484f</id>
+    <updated>2026-09-30T21:11:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="NWS alerts (active)" />
+    <summary type="text">Flood Advisory issued September 30 at 4:11PM CDT until October 1 at 4:15PM CDT by NWS Amarillo TX
+Severity: advisory
+Expires: 2026-10-01T16:15:00-05:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.c0bfaa3b30a63c9d2cbdd13b08f2950b0bf185d4.001.1
+Updated: 2026-09-30T16:11:00-05:00</summary>
+    <georss:polygon>35.12 -102.17 35.5 -102.04 35.61 -102 35.62 -101.87 35.62 -101.73 35.25 -101.82 35.09 -101.87 35.07 -101.95 35.05 -102.06 35.08 -102.17 35.12 -102.17</georss:polygon>
   </entry>
   <entry>
     <title>Flood Advisory · Deaf Smith, TX; Oldham, TX; Potter, TX; Randall, TX</title>
@@ -1080,16 +1119,16 @@ Updated: 2026-09-02T22:53:00Z</summary>
     <georss:polygon>30.1623 -94.30152 30.16579 -94.30205 30.16904 -94.3036 30.17183 -94.30608 30.17397 -94.30931 30.17532 -94.31307 30.17577 -94.3171 30.17532 -94.32113 30.17397 -94.32489 30.17183 -94.32812 30.16904 -94.3306 30.16579 -94.33215 30.1623 -94.33268 30.15881 -94.33215 30.15556 -94.3306 30.15277 -94.32812 30.15063 -94.32489 30.14928 -94.32113 30.14883 -94.3171 30.14928 -94.31307 30.15063 -94.30931 30.15277 -94.30608 30.15556 -94.3036 30.15881 -94.30205 30.1623 -94.30152</georss:polygon>
   </entry>
   <entry>
-    <title>Crest: Rio Grande at El Paso (Courchesne Bridge) · peak 8.79 ft</title>
+    <title>Crest: Rio Grande at El Paso (Courchesne Bridge) · peak 8.97 ft</title>
     <id>tag:respondertx.org,2026:folder-crests:EPRT2</id>
-    <updated>2026-10-01T02:53:00Z</updated>
+    <updated>2026-10-01T03:53:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Crests (event peaks)" />
-    <summary type="text">Peak 8.79 ft (MINOR) at 2026-10-01T02:53:00Z
+    <summary type="text">Peak 8.97 ft (MINOR) at 2026-10-01T03:53:00Z
 Ongoing flood
 Record: 11.2 ft (1903-06-21)
 Source: NOAA NWS/NWPS via Responder TX crest summary · https://respondertx.org/data/crest-summary.json
-Updated: 2026-10-01T02:53:00Z</summary>
+Updated: 2026-10-01T03:53:00Z</summary>
     <georss:polygon>31.80319 -106.52545 31.80668 -106.526 31.80993 -106.52758 31.81272 -106.5301 31.81486 -106.53338 31.81621 -106.53721 31.81666 -106.54131 31.81621 -106.54541 31.81486 -106.54924 31.81272 -106.55252 31.80993 -106.55504 31.80668 -106.55662 31.80319 -106.55717 31.7997 -106.55662 31.79645 -106.55504 31.79366 -106.55252 31.79152 -106.54924 31.79017 -106.54541 31.78972 -106.54131 31.79017 -106.53721 31.79152 -106.53338 31.79366 -106.5301 31.79645 -106.52758 31.7997 -106.526 31.80319 -106.52545</georss:polygon>
   </entry>
   <entry>
@@ -1211,13 +1250,13 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) at Austin</title>
     <id>tag:respondertx.org,2026:folder-gauges:ACRT2</id>
-    <updated>2026-10-01T03:00:00Z</updated>
+    <updated>2026-10-01T02:50:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 15.87 ft (no flooding)
+    <summary type="text">Observed: 15.85 ft (no flooding)
 Forecast: 16.5 ft (no flooding) at 2026-10-04T03:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ACRT2
-Updated: 2026-10-01T03:00:00Z</summary>
+Updated: 2026-10-01T02:50:00Z</summary>
     <georss:point>30.24611 -97.68</georss:point>
   </entry>
   <entry>
@@ -1245,12 +1284,12 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: Langham Creek at Addicks Reservoir</title>
     <id>tag:respondertx.org,2026:folder-gauges:ADDT2</id>
-    <updated>2026-10-01T02:45:00Z</updated>
+    <updated>2026-10-01T03:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 68.52 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ADDT2
-Updated: 2026-10-01T02:45:00Z</summary>
+Updated: 2026-10-01T03:15:00Z</summary>
     <georss:point>29.79111 -95.62333</georss:point>
   </entry>
   <entry>
@@ -1435,12 +1474,12 @@ Updated: 2026-10-01T02:30:00Z</summary>
   <entry>
     <title>Gauge: Shoal Creek above Silverway Drive</title>
     <id>tag:respondertx.org,2026:folder-gauges:ASHT2</id>
-    <updated>2026-10-01T02:15:00Z</updated>
+    <updated>2026-10-01T03:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 1.05 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ASHT2
-Updated: 2026-10-01T02:15:00Z</summary>
+Updated: 2026-10-01T03:15:00Z</summary>
     <georss:point>30.35417 -97.73889</georss:point>
   </entry>
   <entry>
@@ -1545,24 +1584,24 @@ Updated: 2026-10-01T03:06:00Z</summary>
   <entry>
     <title>Gauge: Colorado River (TX) near Bay City</title>
     <id>tag:respondertx.org,2026:folder-gauges:BACT2</id>
-    <updated>2026-10-01T02:15:00Z</updated>
+    <updated>2026-10-01T03:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 2.82 ft (no flooding)
+    <summary type="text">Observed: 2.98 ft (no flooding)
 Forecast: 3.3 ft (no flooding) at 2026-10-03T08:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BACT2
-Updated: 2026-10-01T02:15:00Z</summary>
+Updated: 2026-10-01T03:15:00Z</summary>
     <georss:point>28.97389 -96.01222</georss:point>
   </entry>
   <entry>
     <title>Gauge: Buffalo Bayou at Barker Reservoir</title>
     <id>tag:respondertx.org,2026:folder-gauges:BAKT2</id>
-    <updated>2026-10-01T02:45:00Z</updated>
+    <updated>2026-10-01T03:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 69.36 ft (no flooding)
+    <summary type="text">Observed: 69.4 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BAKT2
-Updated: 2026-10-01T02:45:00Z</summary>
+Updated: 2026-10-01T03:15:00Z</summary>
     <georss:point>29.76972 -95.64694</georss:point>
   </entry>
   <entry>
@@ -1579,12 +1618,13 @@ Updated: 2026-10-01T02:30:00Z</summary>
   <entry>
     <title>Gauge: Blanco River at Crabapple Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:BAPT2</id>
-    <updated>2026-10-01T03:00:00Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
-    <summary type="text">Observed: 0.59 ft (no flooding)
+    <summary type="text">Observed: no reading
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BAPT2
-Updated: 2026-10-01T03:00:00Z</summary>
+Updated: 0001-01-01T00:00:00Z
+The source published no machine-readable update time, so this entry's timestamp is the feed's own generation time, not the observation time.</summary>
     <georss:point>30.1025 -98.51056</georss:point>
   </entry>
   <entry>
@@ -1657,12 +1697,12 @@ Updated: 2026-10-01T02:20:00Z</summary>
   <entry>
     <title>Gauge: Bear Creek below Route 1826 at Driftwood</title>
     <id>tag:respondertx.org,2026:folder-gauges:BCDT2</id>
-    <updated>2026-10-01T03:00:00Z</updated>
+    <updated>2026-10-01T03:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 2.51 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BCDT2
-Updated: 2026-10-01T03:00:00Z</summary>
+Updated: 2026-10-01T03:15:00Z</summary>
     <georss:point>30.15528 -97.93972</georss:point>
   </entry>
   <entry>
@@ -1745,7 +1785,7 @@ Updated: 2026-10-01T03:05:00Z</summary>
   <entry>
     <title>Gauge: Cypress Creek (E TX) at CR 725</title>
     <id>tag:respondertx.org,2026:folder-gauges:BCYT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -1768,7 +1808,7 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: North Texas Lakes at Lake Daniel</title>
     <id>tag:respondertx.org,2026:folder-gauges:BDLT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -1802,7 +1842,7 @@ Updated: 2026-10-01T02:30:00Z</summary>
   <entry>
     <title>Gauge: Neches River at Beaumont</title>
     <id>tag:respondertx.org,2026:folder-gauges:BEAT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -1913,12 +1953,12 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: Boggy Creek at Manor Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:BGMT2</id>
-    <updated>2026-10-01T03:00:00Z</updated>
+    <updated>2026-10-01T03:15:00Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: 0.97 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BGMT2
-Updated: 2026-10-01T03:00:00Z</summary>
+Updated: 2026-10-01T03:15:00Z</summary>
     <georss:point>30.28611 -97.70861</georss:point>
   </entry>
   <entry>
@@ -2191,7 +2231,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Lavaca River at Breslau</title>
     <id>tag:respondertx.org,2026:folder-gauges:BRLT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2593,7 +2633,7 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: Pease River at Childress 17SE</title>
     <id>tag:respondertx.org,2026:folder-gauges:CDPT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2627,7 +2667,7 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: Frio River at Choke Canyon Dam</title>
     <id>tag:respondertx.org,2026:folder-gauges:CHOT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2793,7 +2833,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Cibolo Creek at Cibolo Nature Center</title>
     <id>tag:respondertx.org,2026:folder-gauges:CNXT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -2896,7 +2936,7 @@ Updated: 2026-10-01T03:06:00Z</summary>
   <entry>
     <title>Gauge: North Sulphur River near Cooper</title>
     <id>tag:respondertx.org,2026:folder-gauges:CPPT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -3009,7 +3049,7 @@ Updated: 2026-10-01T02:15:00Z</summary>
   <entry>
     <title>Gauge: Cibolo Creek at Smithson Valley Rd nr Bulverde</title>
     <id>tag:respondertx.org,2026:folder-gauges:CSVT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -3166,7 +3206,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Cramer Creek 30SW Dalhart</title>
     <id>tag:respondertx.org,2026:folder-gauges:DCMT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -3491,7 +3531,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: East Fork Crystal Creek at FM 1485 near Conroe</title>
     <id>tag:respondertx.org,2026:folder-gauges:ECYT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4430,7 +4470,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Nueces River at George West</title>
     <id>tag:respondertx.org,2026:folder-gauges:GWNT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4442,7 +4482,7 @@ The source published no machine-readable update time, so this entry's timestamp 
   <entry>
     <title>Gauge: Grassy Creek at TX 105 near Navasota</title>
     <id>tag:respondertx.org,2026:folder-gauges:GYST2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4510,7 +4550,7 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: Brazos River at FM 485 Near Hearne</title>
     <id>tag:respondertx.org,2026:folder-gauges:HBRT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -4743,7 +4783,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Little Cypress Creek (SE TX) at County Road 3114</title>
     <id>tag:respondertx.org,2026:folder-gauges:HNLT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -5166,7 +5206,7 @@ Updated: 2026-10-01T03:10:00Z</summary>
   <entry>
     <title>Gauge: Hillebrandt Bayou at Hillebrandt Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:JYIT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -5189,7 +5229,7 @@ Updated: 2026-10-01T02:30:00Z</summary>
   <entry>
     <title>Gauge: Little Pine Island Bayou near Thicket</title>
     <id>tag:respondertx.org,2026:folder-gauges:JYLT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -5322,7 +5362,7 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: Lavaca River at Komensky</title>
     <id>tag:respondertx.org,2026:folder-gauges:KMST2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6158,7 +6198,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Rio Grande at World Trade Bridge</title>
     <id>tag:respondertx.org,2026:folder-gauges:LWTT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6214,7 +6254,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Tide Station (HGX) at Matagorda Bay Entrance Channel</title>
     <id>tag:respondertx.org,2026:folder-gauges:MBET2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6293,7 +6333,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: North Floodway West of Mercedes</title>
     <id>tag:respondertx.org,2026:folder-gauges:MDET2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6549,7 +6589,7 @@ Updated: 2026-10-01T03:05:00Z</summary>
   <entry>
     <title>Gauge: Tide Gauge at Bob Hall Pier</title>
     <id>tag:respondertx.org,2026:folder-gauges:MQTT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6796,7 +6836,7 @@ Updated: 2026-10-01T02:30:00Z</summary>
   <entry>
     <title>Gauge: Beals Creek at Natural Dam Salt Lake</title>
     <id>tag:respondertx.org,2026:folder-gauges:NDST2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -6952,7 +6992,7 @@ Updated: 2026-10-01T02:30:00Z</summary>
   <entry>
     <title>Gauge: Tide Gauge at Nueces Bay</title>
     <id>tag:respondertx.org,2026:folder-gauges:NUET2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -7319,7 +7359,7 @@ Updated: 2026-10-01T02:30:00Z</summary>
   <entry>
     <title>Gauge: Rio Grande at Pipeline Crossing</title>
     <id>tag:respondertx.org,2026:folder-gauges:PLXT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -7575,7 +7615,7 @@ Updated: 2026-10-01T02:45:00Z</summary>
   <entry>
     <title>Gauge: Red Bluff Creek at FM 1283 near Pipe Creek</title>
     <id>tag:respondertx.org,2026:folder-gauges:RBFT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -7710,7 +7750,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Rhodair Gully at 5th Street</title>
     <id>tag:respondertx.org,2026:folder-gauges:RGIT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -8016,7 +8056,7 @@ Updated: 2026-10-01T02:15:00Z</summary>
   <entry>
     <title>Gauge: near Sabine Pass</title>
     <id>tag:respondertx.org,2026:folder-gauges:SBPT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -8642,7 +8682,7 @@ Updated: 2026-10-01T03:10:00Z</summary>
   <entry>
     <title>Gauge: Salado Creek at NE Loop 410</title>
     <id>tag:respondertx.org,2026:folder-gauges:SSCT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -9334,7 +9374,7 @@ Updated: 2026-10-01T03:00:00Z</summary>
   <entry>
     <title>Gauge: Oso Creek at Merrett Road</title>
     <id>tag:respondertx.org,2026:folder-gauges:WEOT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -9447,7 +9487,7 @@ Updated: 2026-10-01T02:25:00Z</summary>
   <entry>
     <title>Gauge: Salt Fork of the Red River at Wellington</title>
     <id>tag:respondertx.org,2026:folder-gauges:WLGT2</id>
-    <updated>2026-10-01T03:55:20Z</updated>
+    <updated>2026-10-01T04:10:25Z</updated>
     <link rel="alternate" type="text/html" href="https://respondertx.org/" />
     <category term="Gauges (NOAA NWPS)" />
     <summary type="text">Observed: no reading
@@ -9612,210 +9652,6 @@ Updated: 2026-10-01T03:00:00Z</summary>
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ZAJT2
 Updated: 2026-10-01T02:15:00Z</summary>
     <georss:point>27.5612 -99.4712</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM0302</title>
-    <id>tag:respondertx.org,2026:folder-roads:f3b26cabad0c1655</id>
-    <updated>2026-09-30T20:23:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T15:23:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T15:23:00-05:00</summary>
-    <georss:point>34.2644 -102.3579</georss:point>
-  </entry>
-  <entry>
-    <title>Closure: FM2163</title>
-    <id>tag:respondertx.org,2026:folder-roads:446601f69d521e9d</id>
-    <updated>2026-08-11T19:44:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">The roadway is closed due to Other conditions. Road is closed to restricted traffic. DC
-From: 2026-08-11T14:44:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-08-11T14:44:00-05:00</summary>
-    <georss:point>33.1717 -99.7347</georss:point>
-  </entry>
-  <entry>
-    <title>Closure: SL0323</title>
-    <id>tag:respondertx.org,2026:folder-roads:3c43f73bd548c82a</id>
-    <updated>2026-03-02T15:01:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">The roadway is closed due to damage. - ALL main lanes closed. - Use alternate route
-From: 2026-03-02T09:01:00-06:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-03-02T09:01:00-06:00</summary>
-    <georss:point>32.395 -95.2687</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM1057</title>
-    <id>tag:respondertx.org,2026:folder-roads:1b053debe027e563</id>
-    <updated>2026-09-29T16:15:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Low water crossings are flooding. - Water over roadway.
-From: 2026-09-29T11:15:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-29T11:15:00-05:00</summary>
-    <georss:point>34.734 -102.5131</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM0597</title>
-    <id>tag:respondertx.org,2026:folder-roads:2c044fcb185ca76f</id>
-    <updated>2026-09-30T14:36:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T09:36:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T09:36:00-05:00</summary>
-    <georss:point>33.8005 -102.2608</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM0168</title>
-    <id>tag:respondertx.org,2026:folder-roads:db513f5fda1cae21</id>
-    <updated>2026-09-30T22:02:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T17:02:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T17:02:00-05:00</summary>
-    <georss:point>33.971 -102.1539</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM2080</title>
-    <id>tag:respondertx.org,2026:folder-roads:ec2401cbb2b7d265</id>
-    <updated>2026-09-30T21:49:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T16:49:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T16:49:00-05:00</summary>
-    <georss:point>34.2316 -102.2882</georss:point>
-  </entry>
-  <entry>
-    <title>Damage: US0183</title>
-    <id>tag:respondertx.org,2026:folder-roads:4c772b30b44b325e</id>
-    <updated>2026-09-30T16:54:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Right lane closed.
-From: 2026-09-30T11:54:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T11:54:00-05:00</summary>
-    <georss:point>31.2401 -98.4216</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM1169</title>
-    <id>tag:respondertx.org,2026:folder-roads:9c3b58963e242bb1</id>
-    <updated>2026-09-30T20:05:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Low water crossings are flooding. - Water over roadway.
-From: 2026-09-30T15:05:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T15:05:00-05:00</summary>
-    <georss:point>33.692 -102.7874</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM1779</title>
-    <id>tag:respondertx.org,2026:folder-roads:c2fedc17144d5c3a</id>
-    <updated>2026-09-30T20:01:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Low water crossings are flooding. - Water over roadway.
-From: 2026-09-30T15:01:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T15:01:00-05:00</summary>
-    <georss:point>33.6769 -102.8207</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM1424</title>
-    <id>tag:respondertx.org,2026:folder-roads:853c794782bb5080</id>
-    <updated>2026-09-30T19:48:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T14:48:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T14:48:00-05:00</summary>
-    <georss:point>34.5138 -101.9202</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM2130</title>
-    <id>tag:respondertx.org,2026:folder-roads:ceb29f6cf9d1d1d5</id>
-    <updated>2026-09-30T14:32:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T09:32:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T09:32:00-05:00</summary>
-    <georss:point>33.7006 -102.1047</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM0168</title>
-    <id>tag:respondertx.org,2026:folder-roads:183a62abf961ad09</id>
-    <updated>2026-09-30T20:21:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T15:21:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T15:21:00-05:00</summary>
-    <georss:point>33.829 -102.1554</georss:point>
-  </entry>
-  <entry>
-    <title>Damage: FM0786</title>
-    <id>tag:respondertx.org,2026:folder-roads:1b079c36b1db6399</id>
-    <updated>2026-09-09T14:00:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Motorists should expect delays. Motorists should expect delays. Due to daily large number of semi tractor/trailer traffic, traveling both east and west bound, there is significant damage to the…
-From: 2026-09-09T09:00:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-09T09:00:00-05:00</summary>
-    <georss:point>34.0503 -101.3249</georss:point>
-  </entry>
-  <entry>
-    <title>Closure: FM2008</title>
-    <id>tag:respondertx.org,2026:folder-roads:7b459d709f839f28</id>
-    <updated>2026-09-01T16:58:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">The roadway is closed due to damage. - Use alternate route
-From: 2026-09-01T11:58:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-01T11:58:00-05:00</summary>
-    <georss:point>33.3663 -101.2169</georss:point>
-  </entry>
-  <entry>
-    <title>Damage: FM0097</title>
-    <id>tag:respondertx.org,2026:folder-roads:ce7a86d15a9974ed</id>
-    <updated>2026-09-15T18:08:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Motorists should expect delays. Due to daily large number of semi tractor/trailer traffic, traveling both east and west bound, there is significant damage to the roadway. Please slow down and travel…
-From: 2026-09-15T13:08:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-15T13:08:00-05:00</summary>
-    <georss:point>34.1427 -101.3076</georss:point>
-  </entry>
-  <entry>
-    <title>Flooding: FM0596</title>
-    <id>tag:respondertx.org,2026:folder-roads:4df91cb6e17c2d2b</id>
-    <updated>2026-09-30T07:19:00Z</updated>
-    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
-    <category term="Road closures (TxDOT)" />
-    <summary type="text">Water over roadway.
-From: 2026-09-30T02:19:00-05:00
-Source: TxDOT DriveTexas · https://drivetexas.org
-Updated: 2026-09-30T02:19:00-05:00</summary>
-    <georss:point>33.7856 -102.9013</georss:point>
   </entry>
   <entry>
     <title>Flooding: IH0410</title>
@@ -10104,6 +9940,210 @@ From: 2026-09-30T15:02:00-05:00
 Source: TxDOT DriveTexas · https://drivetexas.org
 Updated: 2026-09-30T15:02:00-05:00</summary>
     <georss:point>33.6982 -102.6159</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM0302</title>
+    <id>tag:respondertx.org,2026:folder-roads:f3b26cabad0c1655</id>
+    <updated>2026-09-30T20:23:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T15:23:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T15:23:00-05:00</summary>
+    <georss:point>34.2644 -102.3579</georss:point>
+  </entry>
+  <entry>
+    <title>Closure: FM2163</title>
+    <id>tag:respondertx.org,2026:folder-roads:446601f69d521e9d</id>
+    <updated>2026-08-11T19:44:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">The roadway is closed due to Other conditions. Road is closed to restricted traffic. DC
+From: 2026-08-11T14:44:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-08-11T14:44:00-05:00</summary>
+    <georss:point>33.1717 -99.7347</georss:point>
+  </entry>
+  <entry>
+    <title>Closure: SL0323</title>
+    <id>tag:respondertx.org,2026:folder-roads:3c43f73bd548c82a</id>
+    <updated>2026-03-02T15:01:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">The roadway is closed due to damage. - ALL main lanes closed. - Use alternate route
+From: 2026-03-02T09:01:00-06:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-03-02T09:01:00-06:00</summary>
+    <georss:point>32.395 -95.2687</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM1057</title>
+    <id>tag:respondertx.org,2026:folder-roads:1b053debe027e563</id>
+    <updated>2026-09-29T16:15:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Low water crossings are flooding. - Water over roadway.
+From: 2026-09-29T11:15:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-29T11:15:00-05:00</summary>
+    <georss:point>34.734 -102.5131</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM0597</title>
+    <id>tag:respondertx.org,2026:folder-roads:2c044fcb185ca76f</id>
+    <updated>2026-09-30T14:36:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T09:36:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T09:36:00-05:00</summary>
+    <georss:point>33.8005 -102.2608</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM0168</title>
+    <id>tag:respondertx.org,2026:folder-roads:db513f5fda1cae21</id>
+    <updated>2026-09-30T22:02:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T17:02:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T17:02:00-05:00</summary>
+    <georss:point>33.971 -102.1539</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM2080</title>
+    <id>tag:respondertx.org,2026:folder-roads:ec2401cbb2b7d265</id>
+    <updated>2026-09-30T21:49:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T16:49:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T16:49:00-05:00</summary>
+    <georss:point>34.2316 -102.2882</georss:point>
+  </entry>
+  <entry>
+    <title>Damage: US0183</title>
+    <id>tag:respondertx.org,2026:folder-roads:4c772b30b44b325e</id>
+    <updated>2026-09-30T16:54:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Right lane closed.
+From: 2026-09-30T11:54:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T11:54:00-05:00</summary>
+    <georss:point>31.2401 -98.4216</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM1169</title>
+    <id>tag:respondertx.org,2026:folder-roads:9c3b58963e242bb1</id>
+    <updated>2026-09-30T20:05:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Low water crossings are flooding. - Water over roadway.
+From: 2026-09-30T15:05:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T15:05:00-05:00</summary>
+    <georss:point>33.692 -102.7874</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM1779</title>
+    <id>tag:respondertx.org,2026:folder-roads:c2fedc17144d5c3a</id>
+    <updated>2026-09-30T20:01:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Low water crossings are flooding. - Water over roadway.
+From: 2026-09-30T15:01:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T15:01:00-05:00</summary>
+    <georss:point>33.6769 -102.8207</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM1424</title>
+    <id>tag:respondertx.org,2026:folder-roads:853c794782bb5080</id>
+    <updated>2026-09-30T19:48:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T14:48:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T14:48:00-05:00</summary>
+    <georss:point>34.5138 -101.9202</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM2130</title>
+    <id>tag:respondertx.org,2026:folder-roads:ceb29f6cf9d1d1d5</id>
+    <updated>2026-09-30T14:32:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T09:32:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T09:32:00-05:00</summary>
+    <georss:point>33.7006 -102.1047</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM0168</title>
+    <id>tag:respondertx.org,2026:folder-roads:183a62abf961ad09</id>
+    <updated>2026-09-30T20:21:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T15:21:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T15:21:00-05:00</summary>
+    <georss:point>33.829 -102.1554</georss:point>
+  </entry>
+  <entry>
+    <title>Damage: FM0786</title>
+    <id>tag:respondertx.org,2026:folder-roads:1b079c36b1db6399</id>
+    <updated>2026-09-09T14:00:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Motorists should expect delays. Motorists should expect delays. Due to daily large number of semi tractor/trailer traffic, traveling both east and west bound, there is significant damage to the…
+From: 2026-09-09T09:00:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-09T09:00:00-05:00</summary>
+    <georss:point>34.0503 -101.3249</georss:point>
+  </entry>
+  <entry>
+    <title>Closure: FM2008</title>
+    <id>tag:respondertx.org,2026:folder-roads:7b459d709f839f28</id>
+    <updated>2026-09-01T16:58:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">The roadway is closed due to damage. - Use alternate route
+From: 2026-09-01T11:58:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-01T11:58:00-05:00</summary>
+    <georss:point>33.3663 -101.2169</georss:point>
+  </entry>
+  <entry>
+    <title>Damage: FM0097</title>
+    <id>tag:respondertx.org,2026:folder-roads:ce7a86d15a9974ed</id>
+    <updated>2026-09-15T18:08:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Motorists should expect delays. Due to daily large number of semi tractor/trailer traffic, traveling both east and west bound, there is significant damage to the roadway. Please slow down and travel…
+From: 2026-09-15T13:08:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-15T13:08:00-05:00</summary>
+    <georss:point>34.1427 -101.3076</georss:point>
+  </entry>
+  <entry>
+    <title>Flooding: FM0596</title>
+    <id>tag:respondertx.org,2026:folder-roads:4df91cb6e17c2d2b</id>
+    <updated>2026-09-30T07:19:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://respondertx.org/" />
+    <category term="Road closures (TxDOT)" />
+    <summary type="text">Water over roadway.
+From: 2026-09-30T02:19:00-05:00
+Source: TxDOT DriveTexas · https://drivetexas.org
+Updated: 2026-09-30T02:19:00-05:00</summary>
+    <georss:point>33.7856 -102.9013</georss:point>
   </entry>
   <entry>
     <title>LSR: TSTM WND GST 68 MPH · 5 W Rotan</title>

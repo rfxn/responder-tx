@@ -123,7 +123,7 @@
       const ll = [pos.lat, pos.lon];
       const accPos = isSelf ? T.selfPos : m.lastPos; // full fix incl. acc for the popup + self halo
       if (!isSelf) T.lastKnown[m.pid] = { ll, handle: m.handle, color: m.color, mtype: m.mtype, k9Name: m.k9Name, lastSeen: m.lastSeen || now };
-      const popHtml = memberPopupHtml(mm, { isSelf, pos: accPos });
+      const popHtml = memberPopupHtml(mm, { isSelf, pos: accPos, self: T.selfPos });
       let entry = T.markers[m.pid];
       if (!entry) {
         entry = {
@@ -191,6 +191,31 @@
   }
 
   // popup for an interactive member marker (F3): identity, status, profile, freshness, and GPS accuracy
+  // GPS speed below this is receiver noise, not travel (about 1 mph)
+  const MOVING_MS = 0.45;
+
+  // speed and course from the member's own fix; heading is only meaningful while moving
+  function motionStr(pos) {
+    if (!pos || !Number.isFinite(pos.spd)) return '';
+    if (pos.spd < MOVING_MS) return tt('team.still', 'not moving');
+    const mph = String(Math.round(pos.spd * 2.23694));
+    if (!Number.isFinite(pos.hdg)) return tt('team.moving.nohdg', 'moving {s} mph').replace('{s}', mph);
+    const deg = ((pos.hdg % 360) + 360) % 360;
+    const dir = `${COMPASS[Math.round(deg / 45) % 8]} (${String(Math.round(deg) % 360).padStart(3, '0')}°)`;
+    return tt('team.moving', 'moving {s} mph, heading {d}').replace('{s}', mph).replace('{d}', dir);
+  }
+
+  // where a teammate is from your own fresh fix, in the board's mi/ft units
+  function fromYouStr(pos, self) {
+    if (!pos || !self || !Number.isFinite(self.lat) || !Number.isFinite(self.lon)) return '';
+    if (!(Date.now() - (self.ts || 0) <= STALE_MS)) return '';
+    const mi = distMi(self.lat, self.lon, pos.lat, pos.lon);
+    if (!Number.isFinite(mi)) return '';
+    const dist = mi < 0.2 ? `${Math.round(mi * 5280)} ${tt('measure.ft', 'ft')}` : `${mi.toFixed(mi < 10 ? 1 : 0)} ${tt('risk.mi', 'mi')}`;
+    const dir = COMPASS[Math.round(bearingDeg(self.lat, self.lon, pos.lat, pos.lon) / 45) % 8];
+    return tt('team.fromyou', '{dist} {dir} of you').replace('{dist}', dist).replace('{dir}', dir);
+  }
+
   function memberPopupHtml(m, opts) {
     opts = opts || {};
     const isSelf = !!opts.isSelf, pos = opts.pos || null, tomb = !!opts.tomb;
@@ -203,10 +228,15 @@
       : isSelf ? tt('team.you.here', 'your position')
       : stale ? `${tt('team.lost', 'lost contact')} · ${hhmm(m.lastSeen)}`
       : `${tt('team.seen', 'seen')} ${ageStr(m.lastSeen || Date.now())} ${tt('team.ago', 'ago')}`;
+    const live = !tomb && !stale;
+    const motion = live ? motionStr(pos) : '';
+    const away = live && !isSelf ? fromYouStr(pos, opts.self) : '';
     return '<div class="tmp-pop">' +
       `<div class="tmp-head"><strong>${esc(m.handle || '')}</strong>${you}</div>` +
       (chip || meta ? `<div class="tmp-row">${chip}${meta}</div>` : '') +
       `<div class="tmp-fresh">${esc(fresh)}</div>` +
+      (away ? `<div class="tmp-acc tmp-away">${esc(away)}</div>` : '') +
+      (motion ? `<div class="tmp-acc tmp-motion">${esc(motion)}</div>` : '') +
       (acc ? `<div class="tmp-acc">${esc(tt('team.acc.lbl', 'GPS accuracy'))}: ${esc(acc)}</div>` : '') +
       '</div>';
   }
@@ -1600,4 +1630,5 @@
 
   // pure string builders, same reason: the marker popup is asserted by calling it, not by grepping it
   window.teamMarkerOps = { popupHtml: markerPopupHtml, ageStr };
+  window.teamMemberOps = { popupHtml: memberPopupHtml, STALE_MS };
 })();

@@ -45,6 +45,9 @@ carry the same discipline.
 - [Shelters and hotlines](https://respondertx.org/data/shelters-live.json)
 - [Wildfire incidents and perimeters](https://respondertx.org/data/wildfire.json): reported
   incidents with per source status, and mapped perimeters where anyone has published one.
+- [Houston roadway flood risk](https://respondertx.org/data/transtar-flood.json): Houston
+  TranStar areas at high risk of roadway flooding, with read status; a warning is not a
+  confirmed flooded or closed road.
 - [Playback archive index](https://respondertx.org/history/index.json): how far back the
   committed archive reaches.
 - [Event configuration](https://respondertx.org/data/event.json): the region, map framing,

@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.6 · 2026-09-30 (where a teammate is and where they are heading)
+
+-- New Features --
+- [New] Team map: while a teammate's position is current, their popup shows how
+      far away they are and in which direction, and whether they are moving,
+      with speed and heading
+
 ## v0.100.5 · 2026-09-30 (one area reads as one)
 
 -- Bug Fixes --

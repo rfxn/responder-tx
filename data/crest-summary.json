@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-01T01:55:13Z",
+ "generated": "2026-10-01T02:10:37Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-01T01:38:00Z"
+  "last": "2026-10-01T01:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1185,6 +1185,25 @@
    "stale": false
   },
   {
+   "lid": "EPRT2",
+   "name": "Rio Grande at El Paso (Courchesne Bridge)",
+   "peak": 8.63,
+   "peak_time": "2026-10-01T01:53:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-01T01:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 11.2,
+    "record_date": "1903-06-21",
+    "peak_pct": 77.1,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "ODCT2",
    "name": "Terry Gully at FM 1442",
    "peak": 6.52,
@@ -1224,7 +1243,7 @@
    "src": "usgs"
   }
  ],
- "retained_gauges": 69,
+ "retained_gauges": 70,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

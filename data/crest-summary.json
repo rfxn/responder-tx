@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-01T05:55:15Z",
+ "generated": "2026-10-01T06:10:39Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-01T05:38:00Z"
+  "last": "2026-10-01T05:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1187,8 +1187,8 @@
   {
    "lid": "EPRT2",
    "name": "Rio Grande at El Paso (Courchesne Bridge)",
-   "peak": 9.19,
-   "peak_time": "2026-10-01T05:23:00Z",
+   "peak": 9.32,
+   "peak_time": "2026-10-01T05:53:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-01T01:53:00Z",
@@ -1197,7 +1197,7 @@
    "record": {
     "record_ft": 11.2,
     "record_date": "1903-06-21",
-    "peak_pct": 82.1,
+    "peak_pct": 83.2,
     "exceeded": false,
     "approached": false
    },

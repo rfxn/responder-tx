@@ -1071,8 +1071,19 @@ function sitAlertGroups() {
   return [...byEvent].map(([event, msgs]) => {
     const list = alertDedupe(msgs).sort(sitAlertCmp);
     return { event, list, n: list.length, lead: list[0], cls: hazardClass(list[0]),
-      emergency: list.some((f) => f._sev === 'emergency'), areas: sitAreaNames(msgs), until: sitGroupUntil(list) };
+      emergency: list.some((f) => f._sev === 'emergency'), areas: sitAreaNames(msgs), rivers: sitRiverPoints(list),
+      until: sitGroupUntil(list) };
   });
+}
+
+// the forecast points the group's river products name, as feed.xml titles them; an unreadable one is left out
+function sitRiverPoints(list) {
+  const out = [];
+  for (const f of list) {
+    const pt = alertRiverPoint(f.properties);
+    if (pt && !out.includes(pt)) out.push(pt);
+  }
+  return out;
 }
 
 // a forecast to a higher category is rising whatever the last hour of readings did
@@ -1185,6 +1196,7 @@ const SIT_HAS_DATA = ['ok', 'snapshot', 'stale'];
 const SIT_AREAS_SHOWN = 5;
 const SIT_RIVERS_SHOWN = 8;
 const SIT_RISING_SHOWN = 6;
+const SIT_POINTS_SHOWN = 3;
 
 /* What each source can vouch for. 'loading' and 'failed' carry no data, so nothing they feed may
    render as a count or a calm line: a request that has not answered is unknown, never zero (E1). */
@@ -1227,6 +1239,10 @@ function situationView(m) {
   };
   const more = (n, key, tab) => card('var(--hairline)', esc(t(key).replace('{n}', String(n))), '', sitOpenTab(tab), 'sit-more');
   const head = (key) => `<div class="sit-subhead">${esc(t(key))}</div>`;
+  const withCams = (html, g) => {
+    const cams = camsNearBtnHtml([[g.latitude, g.longitude]], g.name, true);
+    return cams ? `<div class="sit-row">${html}${cams}</div>` : html;
+  };
   const note = (cls, text) => `<div class="sit-note ${cls}">${esc(text)}</div>`;
   const label = (k) => t(`sit.src.${k}`);
   const names = (ks) => (ks.length < 2 ? ks.map(label).join('')
@@ -1262,12 +1278,14 @@ function situationView(m) {
     const tone = g.emergency ? 'var(--sev-emergency)' : `var(--haz-${hazardStyleKey(g.lead)}, var(--sev-${g.lead._sev}))`;
     const extra = g.areas.length - SIT_AREAS_SHOWN;
     const where = g.areas.slice(0, SIT_AREAS_SHOWN).join(', ') + (extra > 0 ? ` ${t('alert.areaMore').replace('{n}', String(extra))}` : '');
+    const extraPts = g.rivers.length - SIT_POINTS_SHOWN;
+    const rivers = g.rivers.slice(0, SIT_POINTS_SHOWN).join('; ') + (extraPts > 0 ? ` ${t('alert.areaMore').replace('{n}', String(extraPts))}` : '');
     const until = `${t('alert.untilShort')} ${g.until ? fmtCT(g.until) : t('alert.further')}`;
     // hazardStyleKey falls back to 'flood' for any unstyled product, and a wave on a wind warning misleads
     const glyph = hazardStyleKey(g.lead) === 'flood' && !SIT_FLOOD_EVENT_RE.test(g.event) ? '⚠' : hazardGlyph(g.lead);
     const title = `${esc(glyph)} ${esc(g.event)} <span class="sit-count">${g.n}</span>`
       + (g.emergency ? ` <span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : '');
-    out.push(card(tone, title, [where, until].filter(Boolean).join(' · '),
+    out.push(card(tone, title, [rivers, where, until].filter(Boolean).join(' · '),
       g.n === 1 ? () => openInAlertsList(g.list[0]) : () => openAlertGroupInList(g.list)));
   }
 
@@ -1279,7 +1297,7 @@ function situationView(m) {
       `${place} ${fmtNum(w.status.observed.primary)} ft`,
       r.rising ? t('sit.rising').replace('{n}', String(r.rising)) : '',
       r.falling ? t('sit.falling').replace('{n}', String(r.falling)) : ''].filter(Boolean).join(' · ');
-    out.push(card(`var(--cat-${r.cat})`, `● ${esc(r.river)} · ${esc(catWord(r.cat).toUpperCase())}`, sub, () => focusGauges(r.gauges, w)));
+    out.push(withCams(card(`var(--cat-${r.cat})`, `● ${esc(r.river)} · ${esc(catWord(r.cat).toUpperCase())}`, sub, () => focusGauges(r.gauges, w)), w));
   }
   if (m.rivers.length > SIT_RIVERS_SHOWN) out.push(more(m.rivers.length - SIT_RIVERS_SHOWN, 'sit.more.rivers', 'tab-gauges'));
 
@@ -1293,7 +1311,7 @@ function situationView(m) {
         : rc.near ? `⚑ ${t('record.neartail').replace('{rec}', rc.recFt).replace('{y}', rc.year).replace('{m}', rc.margin)}` : '';
     const sub = [t('sit.now').replace('{ft}', fmtNum(g.status.observed.primary)),
       t('sit.crest').replace('{ft}', fmtNum(fc.primary)).replace('{t}', fmtCT(fc.validTime)), rec].filter(Boolean).join(' · ');
-    out.push(card(`var(--cat-${fcat})`, `▲ ${esc(g.name)} → ${esc(catWord(fcat).toUpperCase())}`, sub, () => focusGauges([g], g)));
+    out.push(withCams(card(`var(--cat-${fcat})`, `▲ ${esc(g.name)} → ${esc(catWord(fcat).toUpperCase())}`, sub, () => focusGauges([g], g)), g));
   }
   if (m.rising.length > SIT_RISING_SHOWN) out.push(more(m.rising.length - SIT_RISING_SHOWN, 'sit.more.rising', 'tab-gauges'));
 
@@ -1331,6 +1349,7 @@ function renderFeedSituation() {
   if (sitPainted.get(el) === html) return;
   sitPainted.set(el, html);
   el.innerHTML = html;
+  camsNearReopen(el);
 }
 
 /* ---------- share view — one link reproduces map, tab, and filters ---------- */

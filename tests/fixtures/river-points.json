@@ -1,0 +1,95 @@
+{
+  "about": "NWS alert description texts the river-point parity test runs through scripts/gen-feeds.py river_point() and js/sources.js alertRiverPoint(). The first cases are the KEWX/KAMA/KFWD shapes from 2026-10-02 (also in tests/gen-feeds.test.py); the rest are edge shapes. expect is what both must return.",
+  "cases": [
+    {
+      "name": "segment WHERE line names its own point, wrapped across two lines",
+      "expect": "Devils River at Bakers Crossing 19N Of Comstock",
+      "description": "...The Flood Warning is extended for the following rivers in Texas...\n\nDevils River At Pafford Crossing nr Comstock affecting Val Verde\nCounty.\n\nDevils River At Bakers Crossing 19N Of Comstock affecting Val Verde\nCounty.\n\n* WHAT...Minor flooding is occurring.\n\n* WHERE...Devils River at Bakers Crossing 19N Of\nComstock.\n\n* WHEN...Until this evening."
+    },
+    {
+      "name": "the other segment of the same product names the other point",
+      "expect": "Devils River at Pafford Crossing nr Comstock",
+      "description": "...The Flood Warning is extended for the following rivers in Texas...\n\nDevils River At Pafford Crossing nr Comstock affecting Val Verde\nCounty.\n\nDevils River At Bakers Crossing 19N Of Comstock affecting Val Verde\nCounty.\n\n* WHAT...Minor flooding is occurring.\n\n* WHERE...Devils River at Pafford Crossing nr Comstock.\n\n* WHEN...Until late tonight."
+    },
+    {
+      "name": "a lone preamble point names a warning with no WHERE line",
+      "expect": "Canadian River at Amarillo 19N",
+      "description": "...The Flood Warning is extended for the following rivers in Texas...\n\nCanadian River at Amarillo 19N affecting Potter County.\n\nFor the Canadian River...including Amarillo 19N...Minor flooding is forecast."
+    },
+    {
+      "name": "several preamble points and no WHERE line name nothing rather than guess",
+      "expect": null,
+      "description": "...The Flood Warning is extended for the following rivers in Texas...\n\nDevils River At Pafford Crossing nr Comstock affecting Val Verde\nCounty.\n\nDevils River At Bakers Crossing 19N Of Comstock affecting Val Verde\nCounty.\n\nFor the Devils River...Minor flooding is forecast."
+    },
+    {
+      "name": "a cancelled point later in the product is not the warning's place",
+      "expect": "Trinity River At Dallas",
+      "description": "...The Flood Warning continues for the following rivers in Texas...\n\nTrinity River At Dallas affecting Dallas County.\n\n...The Flood Warning is cancelled for the following rivers in\nTexas...\n\nWhite Rock Creek At Greenville Ave affecting Dallas County."
+    },
+    {
+      "name": "an areal warning's WHERE is a county list, never a river point",
+      "expect": null,
+      "description": "* WHAT...Flooding caused by excessive rainfall continues.\n\n* WHERE...Portions of central Texas, including the following\ncounties, Bosque and Hill."
+    },
+    {
+      "name": "a flash flood warning with no river section",
+      "expect": null,
+      "description": "At 806 AM CDT, Doppler radar and automated rain gauges indicated that\nheavy rain was falling across the warned area. Up to 4 inches of rain\nhave fallen."
+    },
+    {
+      "name": "no description at all",
+      "expect": null,
+      "description": ""
+    },
+    {
+      "name": "trailing ellipsis dots are trimmed off the WHERE point",
+      "expect": "Guadalupe River at Comfort",
+      "description": "...The Flood Warning is issued for the following rivers in Texas...\n\nGuadalupe River at Comfort affecting Kendall County.\n\n* WHERE...Guadalupe River at Comfort...\n\n* WHEN...Until further notice."
+    },
+    {
+      "name": "the section phrase is matched in capitals too",
+      "expect": "Brazos River near Rosharon",
+      "description": "...THE FLOOD WARNING CONTINUES FOR THE FOLLOWING RIVERS IN TEXAS...\n\nBrazos River near Rosharon affecting Brazoria and Fort Bend Counties.\n\nFor the Lower Brazos River...Moderate flooding is occurring."
+    },
+    {
+      "name": "affecting in capitals is not the preamble shape, so a lone point is not read",
+      "expect": null,
+      "description": "...The Flood Warning continues for the following rivers in Texas...\n\nBrazos River near Rosharon AFFECTING Brazoria County.\n\nFor the Lower Brazos River...Moderate flooding is occurring."
+    },
+    {
+      "name": "CRLF line breaks separate paragraphs the same way",
+      "expect": "San Bernard River near Boling",
+      "description": "...The Flood Warning continues for the following rivers in Texas...\r\n\r\nSan Bernard River near Boling affecting Wharton County.\r\n\r\nFor the San Bernard River...Minor flooding is forecast."
+    },
+    {
+      "name": "a no-break space inside a point is whitespace to both",
+      "expect": "Navasota River near Easterly",
+      "description": "...The Flood Warning continues for the following rivers in Texas...\n\nNavasota River near Easterly affecting Robertson County.\n\nFor the Navasota River...Minor flooding is occurring."
+    },
+    {
+      "name": "a WHERE line with nothing after it",
+      "expect": null,
+      "description": "...The Flood Warning continues for the following rivers in Texas...\n\nSabine River near Deweyville affecting Newton County.\n\n* WHERE....\n\n* WHEN...Until further notice."
+    },
+    {
+      "name": "the section runs to the end of the text when nothing closes it",
+      "expect": "Neches River at Evadale",
+      "description": "...The Flood Warning continues for the following rivers in Texas...\n\nNeches River at Evadale affecting Hardin and Jasper Counties.\n"
+    },
+    {
+      "name": "a header that wraps after 'in' is still the river section (NWS Pueblo shape)",
+      "expect": "Purgatoire River Near Purgatoire R near Las Animas",
+      "description": "...The Flood Warning is extended for the following rivers in\nColorado...\n\nPurgatoire River Near Purgatoire R near Las Animas affecting Bent\nCounty.\n\nFor the Purgatoire River...including Purgatoire near Las Animas...\nMinor flooding is forecast."
+    },
+    {
+      "name": "a cancelled section ahead of the continuing one is passed over",
+      "expect": "Trinity River At Dallas",
+      "description": "...The Flood Warning is cancelled for the following rivers in\nTexas...\n\nWhite Rock Creek At Greenville Ave affecting Dallas County.\n\n...The Flood Warning continues for the following rivers in Texas...\n\nTrinity River At Dallas affecting Dallas County.\n\nFor the Trinity River...Minor flooding is occurring."
+    },
+    {
+      "name": "a product whose only river section is cancelled names nothing",
+      "expect": null,
+      "description": "...The Flood Warning is cancelled for the following rivers in\nTexas...\n\nWhite Rock Creek At Greenville Ave affecting Dallas County.\n\nThe river has fallen below flood stage."
+    }
+  ]
+}

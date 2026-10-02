@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.14';
+const APP_VERSION = 'v0.100.15';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -450,6 +450,7 @@ const state = {
 
   cameras: null,
   camerasP: null, // in-flight inventory fetch, shared by every trigger; cleared on failure to allow retry
+  camInvAt: null, // the inventory's own generated stamp: a camera's newest frame is aged against it
   camCounts: null, // null = the inventory has not been counted yet, which the pills read as unknown
   camLive: null,
   camLayerList: null,

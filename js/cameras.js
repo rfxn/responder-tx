@@ -44,6 +44,7 @@ function loadCameras() {
       // E1: a body carrying none of the networks is an unreadable inventory, not an empty one;
       // rejecting sends it to the camfail notice instead of drawing a camera-free map
       if (!CAM_NETS.some(([arr]) => Array.isArray(d[arr]))) throw new Error('cameras: no network arrays in body');
+      state.camInvAt = d.generated || null;
       state.cameras = { txdot: d.txdot || [], river: d.river || [], austin: d.austin || [], atxfloods: d.atxfloods || [], houston: d.houston || [], arlington: d.arlington || [], elpbridge: d.elpbridge || [], hays: d.hays || [], porthou: d.porthou || [], swrecon: d.swrecon || [], corpus: d.corpus || [], lubbock: d.lubbock || [], weatherbug: d.weatherbug || [], nmdot: d.nmdot || [], nps: d.nps || [], laredo: d.laredo || [], eaglepass: d.eaglepass || [], delrio: d.delrio || [], galveston: d.galveston || [] };
       renderCameras();
       return state.cameras;
@@ -374,6 +375,7 @@ function openCamViewer(c, kind) {
   state.camOpen = { c, kind };
   $('#cam-viewer').hidden = false;
   $('#cam-title').textContent = `📷 ${camTitle(c, kind)}`;
+  camNavRender(c, kind);
   const stage = $('#cam-stage'), meta = $('#cam-meta'), note = $('#cam-note');
   // the live test leads the chain, so what the marker calls live is exactly what reaches the
   // player and no per-source still branch below can take a stream camera
@@ -604,4 +606,359 @@ function closeCamViewer() {
   camViewerTeardown();
   state.camOpen = null;
   $('#cam-viewer').hidden = true;
+}
+
+// cameras near a hazard (gauge and road popups, Feed river cards); see INTERNAL-NOTES.md "Cameras near a hazard"
+const CAMS_NEAR_MI = 5;
+const CAMS_NEAR_MAX = 8;
+const CAM_OFFLINE_H = 24;
+const CAM_INV_FRESH_H = 48;
+let camPoolMemo = { of: null, pool: [] };
+const camsNearOpen = new Set();
+
+function camPool() {
+  if (!state.cameras) return [];
+  if (camPoolMemo.of !== state.cameras) {
+    const pool = [];
+    for (const [arr, kind] of CAM_NETS) {
+      for (const c of state.cameras[arr] || []) if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) pool.push({ c, kind });
+    }
+    camPoolMemo = { of: state.cameras, pool };
+  }
+  return camPoolMemo.pool;
+}
+
+// the inventory's own say: a newest frame that far behind the inventory clock is a stopped camera
+function camOffline(c) {
+  const at = Date.parse(state.camInvAt), newest = Date.parse(c && c.newest);
+  return Number.isFinite(at) && Number.isFinite(newest) && at - newest > CAM_OFFLINE_H * 3600000;
+}
+
+// the inventory is hand-run and can be weeks old, so its verdict carries its own date
+function camOfflineText() {
+  const day = new Date(Date.parse(state.camInvAt)).toLocaleDateString(getLang() === 'es' ? 'es-US' : 'en-US',
+    { timeZone: 'America/Chicago', month: 'short', day: 'numeric' });
+  return t('camnear.offline').replace('{d}', day);
+}
+
+const camInvFresh = () => Date.now() - Date.parse(state.camInvAt) <= CAM_INV_FRESH_H * 3600000;
+
+function camMiText(d, from, to) {
+  if (d < 0.05) return t('camnear.here');
+  const mi = d < 0.1 ? '<0.1' : d < 10 ? d.toFixed(1) : String(Math.round(d));
+  const dir = COMPASS[Math.round(bearingDeg(from[0], from[1], to[0], to[1]) / 45) % 8];
+  return t('camnear.dist').replace('{d}', mi).replace('{dir}', dir);
+}
+
+// cameras within radiusMi of the nearest anchor point, nearest first; the nearest overall when none are
+function camsNear(pts, radiusMi = CAMS_NEAR_MI, max = CAMS_NEAR_MAX) {
+  const all = [];
+  if (pts.length) {
+    for (const x of camPool()) {
+      let d = Infinity, from = null;
+      for (const p of pts) {
+        const di = distMi(p[0], p[1], x.c.lat, x.c.lon);
+        if (di < d) { d = di; from = p; }
+      }
+      all.push({ c: x.c, kind: x.kind, d, from });
+    }
+  }
+  all.sort((a, b) => a.d - b.d);
+  const within = all.filter((r) => r.d <= radiusMi);
+  const dress = (r) => Object.assign(r, { where: camMiText(r.d, r.from, [r.c.lat, r.c.lon]), offline: camOffline(r.c) });
+  return { rows: within.slice(0, max).map(dress), total: within.length, radius: radiusMi,
+    nearest: within.length || !all.length ? null : dress(all[0]) };
+}
+
+// up to n vertices spread along a closure, so a long one is near every camera along it
+function camAnchorPts(geo, n = 12) {
+  if (!geo || !Array.isArray(geo.coordinates)) return [];
+  const verts = geo.type === 'Point' ? [geo.coordinates] : geo.type === 'MultiLineString' ? geo.coordinates.flat() : geo.coordinates;
+  const ok = verts.filter((c) => Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]));
+  const pick = ok.length <= n ? ok : Array.from({ length: n }, (_, i) => ok[Math.round((i * (ok.length - 1)) / (n - 1))]);
+  return pick.map((c) => [c[1], c[0]]);
+}
+
+function camsNearPts(s) {
+  return String(s || '').split(';').map((p) => p.split(',').map(Number))
+    .filter((p) => p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+}
+
+// markup, so string-built popups and Feed cards can carry it; one document listener (boot.js) runs it
+function camsNearBtnHtml(pts, of, compact) {
+  const ok = pts.filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+  if (!ok.length) return '';
+  const enc = ok.map((p) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`).join(';');
+  const label = of ? t('camnear.of').replace('{of}', of) : t('camnear.btn');
+  const btn = compact
+    ? `<button type="button" class="cams-near-btn sit-cam-btn" aria-expanded="false" aria-label="${esc(label)}" title="${esc(label)}">📷</button>`
+    : `<button type="button" class="popup-expand cams-near-btn" aria-expanded="false">📷 ${esc(t('camnear.btn'))}</button>`;
+  return `<div class="cams-near${compact ? ' sit-cams' : ''}" data-pts="${enc}">${btn}<div class="cams-near-list" hidden></div></div>`;
+}
+
+function camsNearRowHtml(r, i) {
+  const glyph = r.offline ? '⏱' : camIsLive(r.c) ? '▶' : '📷';
+  const kindLbl = r.offline ? camOfflineText() : camKindLong(r.c);
+  const sub = [r.where, camNetLabel(r.kind), r.offline ? camOfflineText() : ''].filter(Boolean).join(' · ');
+  return `<button type="button" class="cams-near-row${r.offline ? ' off' : ''}" data-i="${i}">` +
+    `<span class="cnr-glyph" role="img" aria-label="${esc(kindLbl)}">${glyph}</span>` +
+    `<span class="cnr-text"><span class="cnr-name">${esc(camTitle(r.c, r.kind))}</span><span class="cnr-sub">${esc(sub)}</span></span></button>`;
+}
+
+function camsNearHtml(res) {
+  const r = String(res.radius);
+  if (res.rows.length) {
+    const more = res.total - res.rows.length;
+    return `<div class="cams-near-head">${esc(t('camnear.head').replace('{r}', r))}</div>` +
+      res.rows.map(camsNearRowHtml).join('') +
+      (more > 0 ? `<div class="cams-near-note">${esc(t('camnear.more').replace('{n}', String(more)).replace('{r}', r))}</div>` : '');
+  }
+  return `<div class="cams-near-note">${esc(t('camnear.none').replace('{r}', r))}</div>` +
+    (res.nearest ? `<div class="cams-near-head">${esc(t('camnear.nearest'))}</div>${camsNearRowHtml(res.nearest, 0)}` : '');
+}
+
+// E1: an inventory that did not load says so, never "no cameras within 5 mi"
+function camsNearToggle(box, open) {
+  const list = box.querySelector('.cams-near-list');
+  const btn = box.querySelector('.cams-near-btn');
+  if (!list || !btn) return Promise.resolve();
+  const want = open === undefined ? !!list.hidden : open;
+  list.hidden = !want;
+  btn.setAttribute('aria-expanded', want ? 'true' : 'false');
+  const key = box.classList.contains('sit-cams') ? box.getAttribute('data-pts') : null;
+  if (key) { if (want) camsNearOpen.add(key); else camsNearOpen.delete(key); }
+  if (!want) return Promise.resolve();
+  list.innerHTML = `<div class="cams-near-note">${esc(t('camnear.loading'))}</div>`;
+  return loadCameras().then(() => {
+    const res = camsNear(camsNearPts(box.getAttribute('data-pts')));
+    box._camRows = res.rows.length ? res.rows : res.nearest ? [res.nearest] : [];
+    list.innerHTML = camsNearHtml(res);
+  }).catch(() => {
+    box._camRows = [];
+    list.innerHTML = `<div class="cams-near-note failed">${esc(t('camnear.fail'))}</div>`;
+  });
+}
+
+function camsNearClick(e) {
+  const el = e && e.target && typeof e.target.closest === 'function' ? e.target : null;
+  const box = el && el.closest('.cams-near');
+  if (!box) return;
+  const row = el.closest('.cams-near-row');
+  if (row) {
+    const hit = (box._camRows || [])[Number(row.getAttribute('data-i'))];
+    if (hit) openCamViewer(hit.c, hit.kind);
+    return;
+  }
+  if (el.closest('.cams-near-btn')) camsNearToggle(box);
+}
+
+// the Feed repaints its cards wholesale, so a list the reader opened is opened again
+function camsNearReopen(root) {
+  if (!camsNearOpen.size || !root) return;
+  root.querySelectorAll('.cams-near.sit-cams').forEach((box) => {
+    if (camsNearOpen.has(box.getAttribute('data-pts'))) camsNearToggle(box, true);
+  });
+}
+
+// the next camera along the same road (TxDOT) or river (USGS HIVIS)
+const CAM_ROAD_RE = /^(IH|I|US|SH|SL|LP|LOOP|SP|SPUR|FM|RM|RR|BW)[\s-]*0*(\d+)([A-Z]{0,2})(?![A-Z\d])/i;
+const CAM_ROAD_PREFIX = { IH: 'I-', I: 'I-', US: 'US ', SH: 'SH ', SL: 'Loop ', LP: 'Loop ', LOOP: 'Loop ', SP: 'Spur ', SPUR: 'Spur ', FM: 'FM ', RM: 'RM ', RR: 'RM ', BW: 'Beltway ' };
+// I-35E/W and I-69E/C/W are separate roads; any other N/S/E/W suffix names one carriageway of the same road
+const CAM_ROAD_LETTERED = /^I-(?:35|69)$/;
+const CAM_ROAD_GAP_MI = 20;
+const CAM_STRAY_MI = 2;
+const CAM_DROP_MI = 5;
+const CAM_RIVER_GAP_MI = 150;
+const CAM_RIVER_RE = /^[A-Z]{2}_(.+?)_(?:at|nr|near|abv|above|blw|below|on|in)_/i;
+const CAM_RIVER_WORD = { rv: 'River', rvr: 'River', ck: 'Creek', fk: 'Fork', e: 'East', w: 'West', n: 'North', s: 'South' };
+// a USGS downstream-order station number: two-digit HUC part, then six digits that grow downstream
+const USGS_SITE_RE = /^(?:0[1-9]|1\d|2[01])\d{6}$/;
+const camSeqMemo = new Map();
+let camSeqOf = null;
+
+// the road a TxDOT camera stands on, from its route field or the text before "@" / " at "
+function camRoad(c, kind) {
+  if (kind !== 'txdot' || !c) return null;
+  const route = String(c.route || '').trim();
+  const raw = route && !/^unspecified$/i.test(route) ? route : String(c.description || c.name || '');
+  const head = raw.replace(/^CCTV[_\s-]*/i, '').split(/\s*@\s*|\s+at\s+/i)[0].trim();
+  if (!head || /^(?:HQ_)?PCMS\b|^TX_[A-Z]{3}_\d/i.test(head)) return null;
+  if (/\bsam hou/i.test(head)) return { key: 'BELTWAY 8', label: 'Beltway 8' };
+  const m = CAM_ROAD_RE.exec(head);
+  if (!m) {
+    const label = head.replace(/\s+/g, ' ');
+    return { key: label.toUpperCase(), label };
+  }
+  const pre = m[1].toUpperCase();
+  const base = `${CAM_ROAD_PREFIX[pre]}${m[2]}`;
+  const s = m[3].toUpperCase();
+  // two letters are a loop side or managed lanes (IH820NL, IH-10ML), never another road
+  const suf = pre === 'BW' || s.length === 2 || (/^[NSEW]$/.test(s) && !CAM_ROAD_LETTERED.test(base)) ? '' : s;
+  const label = `${base}${suf}`;
+  return { key: label.toUpperCase(), label };
+}
+
+// the river a HIVIS camera watches, read off its camId, with the station number that orders it downstream
+function camRiver(c, kind) {
+  if (kind !== 'river' || !c) return null;
+  const m = CAM_RIVER_RE.exec(String(c.camId || ''));
+  if (!m || !USGS_SITE_RE.test(String(c.nwisId || ''))) return null;
+  const label = m[1].split('_').filter(Boolean)
+    .map((w) => CAM_RIVER_WORD[w.toLowerCase()] || w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  // the HUC part keeps a same-named stream in another region off this one
+  return /\b(?:River|Creek|Bayou)\b|^Rio\b/.test(label)
+    ? { key: `${label.toLowerCase()}|${String(c.nwisId).slice(0, 2)}`, label, site: Number(c.nwisId) } : null;
+}
+
+// one river's cameras in downstream order, split where the next is too far off to be the same stream
+function camRiverChains(cams) {
+  const out = [];
+  for (const c of cams.slice().sort((a, b) => camRiver(a, 'river').site - camRiver(b, 'river').site)) {
+    const cur = out[out.length - 1];
+    const last = cur && cur.line[cur.line.length - 1];
+    if (last && distMi(last.lat, last.lon, c.lat, c.lon) <= CAM_RIVER_GAP_MI) cur.line.push(c);
+    else out.push({ line: [c], ring: false });
+  }
+  return out;
+}
+
+// single-linkage stretches: a gap longer than gapMi starts another stretch of the same road
+function camStretches(cams, gapMi) {
+  const n = cams.length, seen = new Array(n).fill(false), out = [];
+  const dLat = gapMi / 69;
+  for (let s = 0; s < n; s++) {
+    if (seen[s]) continue;
+    seen[s] = true;
+    const group = [cams[s]], stack = [s];
+    while (stack.length) {
+      const a = cams[stack.pop()];
+      for (let j = 0; j < n; j++) {
+        if (seen[j] || Math.abs(cams[j].lat - a.lat) > dLat) continue;
+        if (distMi(a.lat, a.lon, cams[j].lat, cams[j].lon) <= gapMi) { seen[j] = true; group.push(cams[j]); stack.push(j); }
+      }
+    }
+    out.push(group);
+  }
+  return out;
+}
+
+// road order: along the main axis (east- or northward) or around the centre, whichever walks shorter
+function camOrderStretch(group) {
+  const n = group.length;
+  const all = group.map((_, i) => i);
+  const lat0 = group.reduce((s, c) => s + c.lat, 0) / n;
+  const kx = 69.17 * Math.cos((lat0 * Math.PI) / 180), ky = 69.17;
+  const xy = group.map((c) => [c.lon * kx, c.lat * ky]);
+  const cx = xy.reduce((s, p) => s + p[0], 0) / n, cy = xy.reduce((s, p) => s + p[1], 0) / n;
+  let sxx = 0, syy = 0, sxy = 0;
+  for (const [x0, y0] of xy) {
+    const x = x0 - cx, y = y0 - cy;
+    sxx += x * x; syy += y * y; sxy += x * y;
+  }
+  const l1 = (sxx + syy) / 2 + Math.sqrt(((sxx - syy) / 2) ** 2 + sxy * sxy);
+  let ax = Math.abs(sxy) > 1e-9 ? sxy : sxx >= syy ? 1 : 0, ay = Math.abs(sxy) > 1e-9 ? l1 - sxx : sxx >= syy ? 0 : 1;
+  if (Math.abs(ax) >= Math.abs(ay) ? ax < 0 : ay < 0) { ax = -ax; ay = -ay; }
+  const proj = xy.map(([x, y]) => x * ax + y * ay);
+  const along = camDropStrays(all.slice().sort((a, b) => proj[a] - proj[b]).map((i) => group[i]));
+  if (n < 4) return { line: along, ring: false };
+  const ang = xy.map(([x, y]) => Math.atan2(y - cy, x - cx));
+  const round = all.slice().sort((a, b) => ang[a] - ang[b]);
+  let cut = 0, widest = -1;
+  for (let k = 0; k < n; k++) {
+    const span = ang[round[(k + 1) % n]] - ang[round[k]] + (k + 1 === n ? 2 * Math.PI : 0);
+    if (span > widest) { widest = span; cut = (k + 1) % n; }
+  }
+  const around = camDropStrays(round.slice(cut).concat(round.slice(0, cut)).map((i) => group[i]));
+  const hops = (line) => line.slice(1).map((c, k) => distMi(line[k].lat, line[k].lon, c.lat, c.lon));
+  const cost = (line) => hops(line).reduce((s, d) => s + d, 0) + (n - line.length) * CAM_DROP_MI;
+  if (cost(around) >= 0.9 * cost(along)) return { line: along, ring: false };
+  const steps = hops(around).sort((a, b) => a - b);
+  const last = around[around.length - 1];
+  // closed only where the loop really closes: no wide arc missing, and the jump back is a usual step
+  return { line: around, ring: widest < Math.PI / 2
+    && distMi(last.lat, last.lon, around[0].lat, around[0].lon) <= 3 * steps[Math.floor(steps.length / 2)] };
+}
+
+// a camera placed far off the line its neighbours draw is a misplaced position, not the next stop
+function camDropStrays(line) {
+  for (let k = 1; k < line.length - 1; k++) {
+    const [a, b, c] = [line[k - 1], line[k], line[k + 1]];
+    const ac = distMi(a.lat, a.lon, c.lat, c.lon);
+    if (distMi(a.lat, a.lon, b.lat, b.lon) + distMi(b.lat, b.lon, c.lat, c.lon) - ac > Math.max(CAM_STRAY_MI, 2 * ac)) {
+      line.splice(k, 1);
+      k = Math.max(0, k - 2);
+    }
+  }
+  return line;
+}
+
+function camLineOf(c, kind) {
+  const id = kind === 'river' ? camRiver(c, kind) : camRoad(c, kind);
+  if (!id || !state.cameras) return null;
+  if (camSeqOf !== state.cameras) { camSeqMemo.clear(); camSeqOf = state.cameras; }
+  const mk = `${kind}|${id.key}`;
+  if (!camSeqMemo.has(mk)) {
+    const pick = kind === 'river' ? camRiver : camRoad;
+    const cams = (state.cameras[kind] || []).filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lon)
+      && (pick(x, kind) || {}).key === id.key);
+    camSeqMemo.set(mk, kind === 'river' ? camRiverChains(cams) : camStretches(cams, CAM_ROAD_GAP_MI).map(camOrderStretch));
+  }
+  for (const s of camSeqMemo.get(mk)) {
+    const i = s.line.indexOf(c);
+    if (i !== -1) return { line: s.line, ring: s.ring, i, label: id.label, river: kind === 'river' };
+  }
+  return null;
+}
+
+// the adjacent camera each way; a stopped one is skipped only on a fresh inventory, else offered with its date
+function camNeighbours(c, kind) {
+  const s = camLineOf(c, kind);
+  if (!s) return null;
+  const n = s.line.length;
+  const skipStopped = camInvFresh();
+  const step = (dir) => {
+    for (let k = 1; k < n; k++) {
+      let j = s.i + dir * k;
+      if (s.ring) j = ((j % n) + n) % n;
+      else if (j < 0 || j >= n) return null;
+      const o = s.line[j];
+      if (o === c) return null;
+      const offline = camOffline(o);
+      if (offline && skipStopped) continue;
+      const d = distMi(c.lat, c.lon, o.lat, o.lon);
+      return { c: o, kind, d, offline, where: camMiText(d, [c.lat, c.lon], [o.lat, o.lon]) };
+    }
+    return null;
+  };
+  const next = step(1);
+  let prev = step(-1);
+  if (prev && next && prev.c === next.c) prev = null;
+  return prev || next ? { label: s.label, river: s.river, prev, next } : null;
+}
+
+function camNavHtml(nb) {
+  if (!nb) return '';
+  const btn = (side, x, key) => `<button type="button" class="cam-nav-btn ${side}" data-nav="${side}" title="${esc(camTitle(x.c, x.kind))}">` +
+    `${side === 'prev' ? '‹ ' : ''}${esc(t(key).replace('{road}', nb.label).replace('{d}', x.where))}` +
+    `${x.offline ? ` · ⏱ ${esc(camOfflineText())}` : ''}${side === 'next' ? ' ›' : ''}</button>`;
+  return (nb.prev ? btn('prev', nb.prev, nb.river ? 'camnav.up' : 'camnav.prev') : '') +
+    (nb.next ? btn('next', nb.next, nb.river ? 'camnav.down' : 'camnav.next') : '');
+}
+
+function camNavRender(c, kind) {
+  const nav = $('#cam-nav');
+  if (!nav) return;
+  const nb = camNeighbours(c, kind);
+  nav.innerHTML = camNavHtml(nb);
+  nav.hidden = !nb;
+  if (!nb) return;
+  nav.querySelectorAll('.cam-nav-btn').forEach((b) => b.addEventListener('click', () => {
+    const side = b.getAttribute('data-nav');
+    const x = nb[side];
+    if (!x) return;
+    openCamViewer(x.c, x.kind);
+    // the step rebuilt the buttons: keep the keyboard on the same side, or the one left at a road's end
+    const again = nav.querySelector(`.cam-nav-btn.${side}`) || nav.querySelector('.cam-nav-btn');
+    if (again) again.focus();
+  }));
 }

@@ -912,6 +912,7 @@ async function boot() {
     const link = e.target.closest && e.target.closest('.alert-popup-link');
     if (link) { e.preventDefault(); openAlertTextById(link.dataset.alertId); }
   });
+  document.addEventListener('click', camsNearClick); // popups and Feed cards carry the control as markup
   // camera viewer: ✕ / tap-outside / Escape all route through closeCamViewer so the stream is destroyed
   $('#cam-close').addEventListener('click', closeCamViewer);
   $('#cam-link').addEventListener('click', copyCamLink);

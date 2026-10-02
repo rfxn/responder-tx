@@ -1,0 +1,193 @@
+{
+ "about": "Flood products from api.weather.gov/alerts/active, captured verbatim (description untruncated) for the river-point parity test; only the fields it reads are kept.",
+ "captured": "2026-10-02T23:03:00Z",
+ "features": [
+  {
+   "id": "urn:oid:2.49.0.1.840.0.ac233d700fec76cc1902a172f995a4a7e6764096.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.ac233d700fec76cc1902a172f995a4a7e6764096.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Des Moines IA",
+    "areaDesc": "Story, IA",
+    "sent": "2026-10-02T17:35:00-05:00",
+    "description": "...The Flood Warning is extended for the following rivers in Iowa...\n\nSouth Skunk River near Ames W Riverside Rd affecting Story County.\n\n* WHAT...Minor flooding is occurring and minor flooding is forecast.\n\n* WHERE...South Skunk River near Ames W Riverside Rd, or from Keigley\nBranch near 170th Street to Ioway Creek.\n\n* WHEN...Until Saturday morning.\n\n* IMPACTS...At 13.9 feet, Water affects Westech Engineering located\nat 600 Arrasmith Trl.\n\n* ADDITIONAL DETAILS...\n- At 5:00 PM CDT Friday the stage was 13.9 feet, and falling.\n- Forecast...The river is expected to fall below flood stage late\ntonight and continue falling.\n- Flood stage is 12.5 feet."
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.f6c9f729f9e679aeac5801beada04135e714b7ae.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.f6c9f729f9e679aeac5801beada04135e714b7ae.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Des Moines IA",
+    "areaDesc": "Black Hawk, IA",
+    "sent": "2026-10-02T17:14:00-05:00",
+    "description": "...The Flood Warning is extended for the following rivers in Iowa...\n\nBlack Hawk Creek at Hudson affecting Black Hawk County.\n\n* WHAT...Moderate flooding is occurring and moderate flooding is\nforecast.\n\n* WHERE...Black Hawk Creek at Hudson, or from the Black Hawk-Grundy\nCounty line to the Cedar River in Waterloo.\n\n* WHEN...Until Sunday morning.\n\n* IMPACTS...At 18.0 feet, Water affects Hudson...including the 800\nblock of Dale Dr.\n\n* ADDITIONAL DETAILS...\n- At 4:45 PM CDT Friday the stage was 17.1 feet, and falling.\n- Forecast...The river is expected to rise to a crest of 17.3 feet\nthis evening. It will then fall below flood stage early Sunday\nmorning.\n- Flood stage is 15.0 feet."
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.7e4b618201cf9b1ada047d9e4cc65eae92fe482a.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.7e4b618201cf9b1ada047d9e4cc65eae92fe482a.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Pueblo CO",
+    "areaDesc": "Bent, CO",
+    "sent": "2026-10-02T15:25:00-06:00",
+    "description": "...The Flood Warning is extended for the following rivers in\nColorado...\n\nPurgatoire River Near Purgatoire R near Las Animas affecting Bent\nCounty.\n\nFor the Purgatoire River...including Purgatoire near Las Animas...\nMinor flooding is forecast.\n\n* WHAT...Minor flooding is forecast.\n\n* WHERE...Purgatoire River near Purgatoire R near Las Animas.\n\n* WHEN...Until Sunday morning.\n\n* IMPACTS...At 12.0 feet, Moderate Flood. Moderate agricultural\nflooding occurs in low lying areas along the river.\n\n* ADDITIONAL DETAILS...\n- At 3:15 PM MDT Friday the stage was 8.5 feet.\n- Forecast...The river is expected to rise above flood stage late\nthis afternoon to a crest of 10.8 feet early tomorrow afternoon.\nIt will then fall below flood stage Sunday afternoon.\n- Flood stage is 9.0 feet.\n- Flood History...This crest compares to a previous crest of 10.5\nfeet on 08/19/2004.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.2346cbe6da6d8ea8fe10915c5e99e8a8bf812020.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.2346cbe6da6d8ea8fe10915c5e99e8a8bf812020.001.1",
+    "event": "Flood Advisory",
+    "senderName": "NWS Tucson AZ",
+    "areaDesc": "Graham, AZ",
+    "sent": "2026-10-02T14:04:00-07:00",
+    "description": "...The Flood Advisory continues for the following rivers in\nArizona...\n\nGila River near Calva affecting Graham County.\n\nFor the Upper Gila...including Gila River at Calva...elevated river\nlevels are forecast.\n\n* WHAT...Flooding caused by earlier excessive rainfall continues.\nWater levels are expected to approach bankfull this evening through\nmuch of Saturday.\n\n* WHERE...Gila River near Gila River at Calva.\n\n* WHEN...Until Saturday afternoon.\n\n* IMPACTS...Elevated water levels on the Gila River through Bylas and\nCalva towards the San Carlos Reservoir.\n\n* ADDITIONAL DETAILS...\n- At 1:00 PM MST Friday the stage was 12.7 feet.\n- Bankfull stage is 15.0 feet.\n- Forecast...The river is expected to rise to a crest of 13.7 feet\njust after midnight tonight.\n- Action stage is 15.0 feet.\n- Flood stage is 20.0 feet.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.a23f2b711d6dd372f64b43f65c6f3b4512f04a61.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.a23f2b711d6dd372f64b43f65c6f3b4512f04a61.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Milwaukee/Sullivan WI",
+    "areaDesc": "Lake, IL; Kenosha, WI",
+    "sent": "2026-10-02T15:57:00-05:00",
+    "description": "...The Flood Warning continues for the following rivers in\nWisconsin...Illinois...\n\nFox River Lower Near New Munster affecting Lake and Kenosha\nCounties.\n\n* WHAT...Minor flooding is forecast.\n\n* WHERE...Fox River Lower near New Munster.\n\n* WHEN...Until Monday morning.\n\n* IMPACTS...At 11.5 feet, Water is in the yards of some homes in the\nVillage of Salem Lakes and Town of Wheatland areas, including\nRiverside Dr and Shorewood Dr. There are 3-4 inches of water over\n77th Street in the Town of Wheatland.\n\n* ADDITIONAL DETAILS...\n- At 3:00 PM CDT Friday the stage was 10.4 feet.\n- Bankfull stage is 10.0 feet.\n- Recent Activity...The maximum river stage in the 24 hours ending\nat 3:00 PM CDT Friday was 10.4 feet.\n- Forecast...The river will rise above flood stage just after\nmidnight tonight to 11.2 feet tomorrow morning. It will rise to\n11.4 feet late Saturday night then begin to fall. It will then\nfall below flood stage early Monday morning.\n- Flood stage is 11.0 feet.\n- Flood History...This crest compares to a previous crest of 11.7\nfeet on 02/08/2019.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.5f67226a8da8a2746485656af7f30cb9cb74e765.005.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.5f67226a8da8a2746485656af7f30cb9cb74e765.005.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Kansas City/Pleasant Hill MO",
+    "areaDesc": "Daviess, MO; Livingston, MO",
+    "sent": "2026-10-02T14:47:00-05:00",
+    "description": "...The Flood Warning continues for the following rivers in\nMissouri...\n\nGrand River near Chillicothe affecting Livingston and Linn\nCounties.\n\nGrand River near Pattonsburg affecting Gentry and Daviess Counties.\n\nGrand River near Gallatin affecting Livingston and Daviess\nCounties.\n\n...The Flood Warning is extended for the following rivers in\nMissouri...\n\nGrand River near Sumner affecting Carroll, Livingston, Chariton and\nLinn Counties.\n\nGrand River near Brunswick affecting Carroll and Chariton Counties.\n\n* WHAT...Minor flooding is occurring and minor flooding is forecast.\n\n* WHERE...Grand River near Gallatin.\n\n* WHEN...Until Sunday morning.\n\n* IMPACTS...At 26.0 feet, Low-lying woodlands and farmland along the\nriver flood.\n\n* ADDITIONAL DETAILS...\n- At 1:45 PM CDT Friday the stage was 28.5 feet.\n- Forecast...The river is expected to fall below flood stage\ntomorrow morning and continue falling to 6.6 feet early Wednesday\nafternoon.\n- Flood stage is 26.0 feet.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.5f67226a8da8a2746485656af7f30cb9cb74e765.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.5f67226a8da8a2746485656af7f30cb9cb74e765.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Kansas City/Pleasant Hill MO",
+    "areaDesc": "Linn, MO; Livingston, MO",
+    "sent": "2026-10-02T14:47:00-05:00",
+    "description": "...The Flood Warning continues for the following rivers in\nMissouri...\n\nGrand River near Chillicothe affecting Livingston and Linn\nCounties.\n\nGrand River near Pattonsburg affecting Gentry and Daviess Counties.\n\nGrand River near Gallatin affecting Livingston and Daviess\nCounties.\n\n...The Flood Warning is extended for the following rivers in\nMissouri...\n\nGrand River near Sumner affecting Carroll, Livingston, Chariton and\nLinn Counties.\n\nGrand River near Brunswick affecting Carroll and Chariton Counties.\n\n* WHAT...Moderate flooding is occurring and moderate flooding is\nforecast.\n\n* WHERE...Grand River near Chillicothe.\n\n* WHEN...Until Sunday evening.\n\n* IMPACTS...At 24.0 feet, Low-lying cropland floods. At 28.0 feet,\nRural roads are under water.\n\n* ADDITIONAL DETAILS...\n- At 1:45 PM CDT Friday the stage was 29.7 feet.\n- Forecast...The river is expected to fall below flood stage late\ntomorrow evening and continue falling to 8.2 feet early Wednesday\nafternoon.\n- Flood stage is 24.0 feet.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.f9aca49ebcd46d4148ecadc4f42f00d6fee04ca6.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.f9aca49ebcd46d4148ecadc4f42f00d6fee04ca6.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Fort Worth TX",
+    "areaDesc": "Dallas, TX",
+    "sent": "2026-10-02T13:51:00-05:00",
+    "description": "...The Flood Warning continues for the following rivers in Texas...\n\nTrinity River At Dallas affecting Dallas County.\n\n* WHAT...Minor flooding is occurring and minor flooding is forecast.\n\n* WHERE...Trinity River at Dallas.\n\n* WHEN...Until late tonight.\n\n* IMPACTS...At 30.0 feet, Minor lowland flooding will begin, and\ntrails along the river begin to flood.\n\n* ADDITIONAL DETAILS...\n- At 1:30 PM CDT Friday the stage was 30.9 feet.\n- Forecast...The river is expected to fall below flood stage this\nafternoon and continue falling to 12.7 feet early Wednesday\nafternoon.\n- Bankfull stage is 30.0 feet.\n- Flood stage is 30.0 feet."
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.28a1b3dd65379a7a4099db723a1a7154ed1623af.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.28a1b3dd65379a7a4099db723a1a7154ed1623af.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Topeka KS",
+    "areaDesc": "Cloud, KS",
+    "sent": "2026-10-02T13:33:00-05:00",
+    "description": "...The Flood Warning is extended for the following rivers in\nKansas...\n\nSolomon River near Glasco affecting Cloud County.\n\n* WHAT...Minor flooding is forecast.\n\n* WHERE...Solomon River near Glasco.\n\n* WHEN...Until Sunday evening.\n\n* IMPACTS...At 22.0 feet, Minor lowland flooding occurs along the\nriver from the Cloud and Mitchell County line to Niles.\n\n* ADDITIONAL DETAILS...\n- At 12:47 PM CDT Friday the stage was 21.8 feet.\n- Forecast...The river is expected to rise above flood stage late\nthis afternoon to a crest of 22.6 feet tomorrow morning. It will\nthen fall below flood stage early Sunday morning.\n- Flood stage is 22.0 feet."
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.860d50e232d2fbb84581c70ad8be5b41c1e4831c.002.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.860d50e232d2fbb84581c70ad8be5b41c1e4831c.002.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Quad Cities IA IL",
+    "areaDesc": "Keokuk, IA",
+    "sent": "2026-10-02T10:13:00-05:00",
+    "description": "...The Flood Warning continues for the following rivers in Iowa...\n\nSkunk River at Augusta affecting Des Moines, Henry IA and Lee\nCounties.\n\nNorth Skunk River near Sigourney affecting Keokuk County.\n\n* WHAT...Moderate flooding is occurring and will continue.\n\n* WHERE...North Skunk River near Sigourney.\n\n* WHEN...Until Sunday afternoon.\n\n* IMPACTS...At 18.0 feet, water affects most agricultural land near\nSigourney.\n\n* ADDITIONAL DETAILS...\n- At 9:30 AM CDT Friday the stage was 18.8 feet.\n- Forecast...The river is expected to fall below flood stage Sunday\nmorning and continue falling to 8.3 feet Friday, October 09.\n- Flood stage is 16.0 feet."
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.860d50e232d2fbb84581c70ad8be5b41c1e4831c.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.860d50e232d2fbb84581c70ad8be5b41c1e4831c.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Quad Cities IA IL",
+    "areaDesc": "Des Moines, IA; Henry, IA; Lee, IA",
+    "sent": "2026-10-02T10:13:00-05:00",
+    "description": "...The Flood Warning continues for the following rivers in Iowa...\n\nSkunk River at Augusta affecting Des Moines, Henry IA and Lee\nCounties.\n\nNorth Skunk River near Sigourney affecting Keokuk County.\n\n* WHAT...Minor flooding is occurring and moderate flooding is\nforecast.\n\n* WHERE...Skunk River at Augusta.\n\n* WHEN...Until Sunday afternoon.\n\n* IMPACTS...At 18.0 feet, widespread agricultural flooding occurs.\n\n* ADDITIONAL DETAILS...\n- At 9:45 AM CDT Friday the stage was 16.8 feet.\n- Forecast...The river is expected to rise to a crest of 17.3 feet\nthis evening. It will then fall below flood stage Sunday morning.\n- Flood stage is 15.0 feet."
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.229845bb8ad8ae6c61a08d9881ba934227a17e63.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.229845bb8ad8ae6c61a08d9881ba934227a17e63.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Melbourne FL",
+    "areaDesc": "Lake, FL; Volusia, FL",
+    "sent": "2026-10-02T10:50:00-04:00",
+    "description": "...The Flood Warning continues for the following rivers in Florida...\n\nSt Johns River Near Astor affecting Lake and Volusia Counties.\n\n.The St Johns River at Astor will remain near Minor Flood Stage\nthrough early this weekend before falling into Action Stage through\nearly next week. Towards the middle of next week, another rise into\nMinor Flood Stage is forecast due to increasing rain chances and a\nreturn of northerly winds.\n\nFor the St. Johns River...including Astor...Minor flooding is\nforecast.\n\n* WHAT...Minor flooding is occurring and minor flooding is forecast.\n\n* WHERE...St Johns River near Astor.\n\n* WHEN...Until further notice.\n\n* IMPACTS...At 2.3 feet, Many docks become submerged along the river\nand in canals in the Astor community. Water enters yards of\nproperties on Bartram Road, Holiday Circle and along Wild Hog Road\non the Lake County side. In Volusia County, water encroaches yards\nof homes on the river side of Alice Drive. No wake zones are in\neffect from near the South Moon Canal to approximately 800 feet\nsouth of the Riverview lodge.\n\n* ADDITIONAL DETAILS...\n- At 9:30 AM EDT Friday the stage was 2.3 feet.\n- Bankfull stage is 2.0 feet.\n- Recent Activity...The maximum river stage in the 24 hours ending\nat 9:30 AM EDT Friday was 2.5 feet.\n- Forecast...The river is forecast to remain near Minor Flood Stage\nthrough early this weekend and is then forecast to fall into\nAction Stage late this weekend into early next week. The river is\nthen expected to rise back into Minor Flood Stage into the middle\nof next week.\n- Flood stage is 2.3 feet.\n- Flood History...This crest compares to a previous crest of 2.4\nfeet on 06/06/2023.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.86579e917f82cc2bef758caed23475ed68c79c69.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.86579e917f82cc2bef758caed23475ed68c79c69.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Lake Charles LA",
+    "areaDesc": "Calcasieu, LA",
+    "sent": "2026-10-02T08:52:00-05:00",
+    "description": "...The National Weather Service in Lake Charles has issued a Flood\nWarning for the following rivers in Louisiana...\n\nCalcasieu River Near Salt Water Barrier affecting Calcasieu Parish.\n\nCalcasieu River near White Oak Park affecting Calcasieu Parish.\n\nAdditional information is available at www.weather.gov.\n\n* WHAT...Minor flooding is occurring.\n\n* WHERE...Calcasieu River near Salt Water Barrier.\n\n* WHEN...From this morning to this evening.\n\n* ADDITIONAL DETAILS...\n- At 5:59 AM CDT Friday the stage was 4.3 feet.\n- Recent Activity...The maximum river stage in the 24 hours ending\nat 5:59 AM CDT Friday was 4.3 feet.\n- Forecast...The river will oscillate around flood stage with a\nmaximum value of 3.7 feet tomorrow morning.\n- Flood stage is 4.0 feet.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.3a264cdf8102aa5fc9e3249f4bf654b1affca786.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.3a264cdf8102aa5fc9e3249f4bf654b1affca786.001.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Chicago IL",
+    "areaDesc": "La Salle, IL",
+    "sent": "2026-10-02T08:35:00-05:00",
+    "description": "...The Flood Warning is extended for the following rivers in\nIllinois...\n\nFox River at Dayton affecting La Salle County.\n\nDes Plaines River near Russell affecting Lake IL County.\n\n* WHAT...Minor flooding is occurring and minor flooding is forecast.\n\n* WHERE...Fox River from Millington downstream to confluence with the\nIllinois River, including the Dayton gauge.\n\n* WHEN...Until Saturday morning.\n\n* IMPACTS...At 12.0 feet, Water overflows low-lying banks in Wedron\nand Sheridan. At 12.5 feet, 2062nd Road threatened in Wedron.\nLow-lying agricultural land inundated near Wedron.\n\n* ADDITIONAL DETAILS...\n- At 7:45 AM CDT Friday the stage was 12.3 feet.\n- Forecast...The river is expected to crest near 12.6 feet this\nevening and fall below flood stage tomorrow morning.\n- Flood stage is 12.0 feet.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.3a264cdf8102aa5fc9e3249f4bf654b1affca786.002.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.3a264cdf8102aa5fc9e3249f4bf654b1affca786.002.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Chicago IL",
+    "areaDesc": "Lake, IL",
+    "sent": "2026-10-02T08:35:00-05:00",
+    "description": "...The Flood Warning is extended for the following rivers in\nIllinois...\n\nFox River at Dayton affecting La Salle County.\n\nDes Plaines River near Russell affecting Lake IL County.\n\n* WHAT...Minor flooding is occurring and minor flooding is forecast.\n\n* WHERE...Des Plaines River from IL/WI state line downstream to US-41\nin Gurnee, including the Russell gauge.\n\n* WHEN...Until further notice.\n\n* IMPACTS...At 7.0 feet, Low-lying wetlands and agricultural land is\ninundated near the river.\n\n* ADDITIONAL DETAILS...\n- At 7:30 AM CDT Friday the stage was 7.1 feet.\n- Forecast...The river is expected to remain in minor flood stage\ninto next week.\n- Flood stage is 7.0 feet.\n- http://www.weather.gov/safety/flood"
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.0b13ed0eba844109f6660ac06dcdbd88fc06d5c2.002.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.0b13ed0eba844109f6660ac06dcdbd88fc06d5c2.002.1",
+    "event": "Flood Warning",
+    "senderName": "NWS Topeka KS",
+    "areaDesc": "Marshall, KS",
+    "sent": "2026-10-02T08:09:00-05:00",
+    "description": "...The Flood Warning continues for the following rivers in Kansas...\n\nBlack Vermillion River near Frankfort affecting Marshall County.\n\nBig Blue River near Blue Rapids affecting Marshall County.\n\nLittle Blue River near Barnes affecting Marshall and Washington\nCounties.\n\n* WHAT...Minor flooding is occurring and minor flooding is forecast.\n\n* WHERE...Big Blue River near Blue Rapids.\n\n* WHEN...Until Tuesday evening.\n\n* IMPACTS...At 26.0 feet, Minor lowland flooding occurs from\nMarysville to Tuttle Creek Lake.\n\n* ADDITIONAL DETAILS...\n- At 7:15 AM CDT Friday the stage was 31.2 feet.\n- Forecast...The river is expected to rise to a crest of 34.1 feet\ntomorrow evening. It will then fall below flood stage Tuesday\nmorning.\n- Flood stage is 26.0 feet."
+   }
+  },
+  {
+   "id": "urn:oid:2.49.0.1.840.0.cbc73e97eabed2e01b57a1861b840a7658a219b6.001.1",
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.cbc73e97eabed2e01b57a1861b840a7658a219b6.001.1",
+    "event": "Flood Advisory",
+    "senderName": "NWS Dodge City KS",
+    "areaDesc": "Hamilton, KS",
+    "sent": "2026-10-02T06:53:00-06:00",
+    "description": "...The National Weather Service in Dodge City has issued a Flood\nAdvisory for the following rivers in Kansas...\n\nArkansas River At Coolidge affecting Hamilton County.\n\nFor the Arkansas River...including Coolidge...elevated river levels\nare forecast.\n\n* WHAT...Flooding caused by excessive rainfall is expected.\n\n* WHERE...Arkansas River at Coolidge.\n\n* WHEN...From this morning to Sunday evening.\n\n* IMPACTS...At 8.0 feet, Expect minor flooding in pastureland and\nfarmland adjacent to the river. Low water areas along the unpaved\nRiver Road south of the Arkansas River will have water over the\nroad... Exercise extreme caution.\n\n* ADDITIONAL DETAILS...\n- At 6:15 AM MDT Friday the stage was 6.9 feet.\n- Bankfull stage is 8.0 feet.\n- Forecast...The river is expected to rise to a crest of 7.4 feet\nthis afternoon. It will then rise to 7.6 feet tomorrow evening.\nAdditional rises are possible thereafter.\n- Action stage is 7.0 feet.\n- Flood stage is 8.0 feet.\n- http://www.weather.gov/safety/flood"
+   }
+  }
+ ]
+}

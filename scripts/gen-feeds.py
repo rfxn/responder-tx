@@ -197,22 +197,25 @@ def area_names(p):
     return [re.sub(r",\s*[A-Z]{2}$", "", s) for s in segs]
 
 
-RIVER_SECTION_RE = re.compile(r"for the following rivers in [^.]*\.\.\.(.*?)(?:\n\s*\.\.\.|\n\s*\*|\Z)", re.S | re.I)
+# the header wraps wherever the state name falls ("rivers in\nColorado..."); js/sources.js mirrors these
+RIVER_SECTION_RE = re.compile(r"\.\.\.([^.]*?)\bfor\s+the\s+following\s+rivers\s+in\s[^.]*\.\.\.(.*?)(?=\n\s*\.\.\.|\n\s*\*|\Z)",
+                              re.S | re.I)
+RIVER_ENDED_RE = re.compile(r"cancel|expire", re.I)
 RIVER_POINT_RE = re.compile(r"\s*(\S.*?)\s+affecting\s", re.S)
 WHERE_RE = re.compile(r"\*\s*WHERE\.\.\.(.+?)(?:\n\s*\n|\n\s*\*|\Z)", re.S)
 
 
 def river_point(p):
-    """The forecast point a river warning segment covers, or None; a river product's preamble lists
-    every point in the product, so only the segment's own WHERE line, or a lone point, names it."""
+    """The forecast point a river warning segment covers, or None: its own WHERE line, or the lone
+    point of its first section not cancelled or expired; a preamble listing several names nothing."""
     desc = str(p.get("description") or "")
-    section = RIVER_SECTION_RE.search(desc)
+    section = next((m for m in RIVER_SECTION_RE.finditer(desc) if not RIVER_ENDED_RE.search(m.group(1))), None)
     if not section:
         return None
     where = WHERE_RE.search(desc)
     if where:
         return " ".join(where.group(1).split()).rstrip(".") or None
-    paras = re.split(r"\n\s*\n", section.group(1))
+    paras = re.split(r"\n\s*\n", section.group(2))
     points = [" ".join(m.group(1).split()) for m in (RIVER_POINT_RE.match(x) for x in paras) if m]
     return points[0] if len(points) == 1 else None
 

@@ -1,5 +1,24 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.15 · 2026-10-02 (cameras near every hazard)
+
+-- New Features --
+- [New] Gauge and road-closure popups and the Feed's river cards list the cameras
+      within 5 mi, nearest first, with distance and direction
+- [New] The camera viewer steps to the previous or next camera on the same road,
+      or upstream and downstream on the same river
+- [New] Feed flood warning cards name the river point each warning covers, as the
+      RSS feed does
+
+-- Bug Fixes --
+- [Fix] The Alerts tab and map popups name the same river point as the Feed and RSS;
+      a warning listing several points without naming its own shows none
+- [Fix] The RSS feed and the app name the river point for more flood warnings,
+      including ones whose header wraps onto a second line
+
+-- Changes --
+- [Change] A camera with no recent image is marked with the date it was last checked
+
 ## v0.100.14 · 2026-10-02 (road closures are live again)
 
 -- Bug Fixes --

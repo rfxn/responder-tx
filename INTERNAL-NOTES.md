@@ -690,3 +690,59 @@ the same envelope-intersects rule ArcGIS applied server-side; the construction e
 a `where` clause to the same text test in code. A page that only repeats rows already held counts
 as truncation. Attribution drops "/ TDEM": TDEM ran the ArcGIS mirror, not this table.
 `services5.arcgis.com` left the CSP; MapLarge was already in `connect-src` for the cameras.
+
+## Cameras near a hazard, and along a road (2026-10-02)
+
+**Near a hazard.** Gauge popups, road-closure popups and the Feed's river and rising cards carry
+the same control (`camsNearBtnHtml`, markup so string-built popups can hold it; one document
+click listener in boot.js runs it). It lists cameras within 5 mi, nearest first, 8 rows, from
+every network in `CAM_NETS`. A closure is measured from up to 12 vertices along it, so a long
+one is near every camera beside it. When nothing is in range it says so and offers the nearest
+camera with its distance. A failed inventory load says unavailable, never "no cameras" (E1).
+
+**What "offline" means here.** Only river, ATX Floods and WeatherBug rows carry `newest`. A camera
+is flagged when its newest frame was already 24 h old at the inventory's own `generated` time,
+not at view time: the inventory is regenerated far less often than it is read, so aging against
+the wall clock would flag every camera a few hours after a regeneration. Measured on the
+2026-10-02 inventory, three river cams sat 19 to 26 h behind and the rest under 2 h. Every other
+network has no per-camera health in cameras.json; the viewer ages each frame when it opens.
+`itsCarried` is per district and cannot say which held rows are still live, so it is not used.
+cameras.json is hand-run (cycle-check allows 45 days), so the flag is worded with the inventory's
+date ("no image as of Oct 2"), never as a present-tense claim. Next/Previous steps over a flagged
+camera only while the inventory is under 48 h old; on an older one it offers the camera with the
+dated flag, because a month-old verdict may no longer hold.
+
+**Next along the road.** TxDOT rows only: the road is the ITS `route` field, else the text of
+the DriveTexas description before "@" or " at ", normalised (IH-10, IH 10 and I-10 Katy are one
+road; I-35E stays apart from I-35; any Sam Houston Parkway is Beltway 8). Lonestar names a loop
+side or carriageway (IH820NL/EL/WL, IH10E, US385N) where ITS names the route (IH-820), so a
+two-letter suffix and a lone N/S/E/W are dropped except on I-35 and I-69, whose E/W/C branches are
+separate roads; without that, two cameras at one I-820 interchange sat on different lines with
+opposite Next. The merged I-820 is one 46-camera line round the loop. Mile markers appear in
+150 of 4,429 rows, mostly El Paso I-10, so ordering is geometric. Cameras on one road split into
+stretches at 20 mi gaps; each stretch is ordered along its principal axis or around its centre,
+whichever walks shorter, where a camera dropped as misplaced (it sits more than
+max(2 mi, 2x the hop it interrupts) off the line) costs 5 mi. That penalty is what separates a
+loop (the axis order would drop 10 of I-610's 55 cameras and 3 of Loop 410's 37) from a road
+with bad coordinates (I-635 carries four rows 3 to 9 mi off the freeway, e.g. "IH635 @ Coit
+east"; the angular order keeps them and zig-zags). A loop closes only when no arc over 90
+degrees is missing and the closing hop is at most 3x the median step; on the live inventory only
+I-610 qualifies. 4,226 of 4,429 TxDOT cameras get at least one neighbour.
+
+**Along a river.** HIVIS cameras step by river (parsed from `camId`, forks kept apart) in USGS
+downstream-order station number, which grows downstream within a basin part. Ten rivers carry
+two or more cameras. Placeholder ids (`888888`, `89898989`) and reservoirs are not stepped. A
+chain also needs the same two-digit HUC region and at most 150 mi to the previous camera, so a
+same-named creek elsewhere never joins it; 150 mi because the Trinity's Cayuga to Goodrich hop is
+111 mi straight-line.
+
+**River names in Feed warning cards.** `alertRiverPoint` (js/sources.js) is a line-for-line port
+of `river_point` in scripts/gen-feeds.py; tests/river-point-parity.test.js runs both on the same
+texts. Both read a section header that wraps after "rivers in" ("in\nColorado..."): the
+original pattern needed a literal space there and missed 30 of 66 river products live nationally on
+2026-10-02, so those fell back to counties in feed.xml too. A section the product marks cancelled
+or expired is passed over. The Alerts tab's `alertReach` used to take the first point in a product's preamble, so
+on a two-point KEWX product it named Pafford Crossing on the Bakers Crossing segment. It now
+returns `alertRiverPoint` (casing tidied: At/Of/Nr). Where a text is in the river-product shape
+and the port declines (several points, no WHERE line) it names nothing. Only a text outside that
+shape keeps the old regex, and only when it holds a single "X affecting" reach.

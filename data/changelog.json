@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.15",
+      "date": "2026-10-02",
+      "line": "Cameras nearby: gauge and road-closure popups and the Feed's river cards list the closest cameras with distance and direction, and the camera viewer steps to the next camera on the same road or river. Flood warnings name the river point they cover in the Feed, the Alerts tab and the RSS feed."
+    },
+    {
       "v": "v0.100.14",
       "date": "2026-10-02",
       "line": "Live TxDOT road closures are back after TxDOT changed how its road conditions are published. A closure list that has stopped updating is shown as a dated snapshot, never as live."

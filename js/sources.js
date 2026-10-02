@@ -45,13 +45,36 @@ const alertAgencyText = (f) => {
   return a ? t('alert.agency').replace('{a}', a) : t('alert.agency.unknown');
 };
 
-// Riverine Flood Warnings in one county share an areaDesc ("Val Verde, TX"); the
-// specific reach that tells them apart lives in the description text.
+// the Alerts tab's reach is the point the Feed and feed.xml name; only a text outside that shape
+// with a single "X affecting" reach falls back to it, so a multi-point product names nothing
 function alertReach(p) {
-  const s = (p.description || '').replace(/\s+/g, ' ');
+  const desc = String((p && p.description) || '');
+  const tidy = (s) => s.replace(/\bAt\b/g, 'at').replace(/\bOf\b/g, 'of').replace(/\b(?:Nr|Near)\b/gi, 'near').trim();
+  const pt = alertRiverPoint(p);
+  if (pt) return tidy(pt);
+  if (riverSections(desc).length) return '';
+  const s = desc.replace(/\s+/g, ' ');
+  if ((s.match(/\saffecting\b/gi) || []).length !== 1) return '';
   const m = s.match(/rivers?\b[^.]*\.\.\.\s*(.+?)\s+affecting\b/i);
-  if (!m) return '';
-  return m[1].replace(/\bAt\b/g, 'at').replace(/\bOf\b/g, 'of').replace(/\b(?:Nr|Near)\b/gi, 'near').trim();
+  return m ? tidy(m[1]) : '';
+}
+
+// port of scripts/gen-feeds.py river_point(); tests/river-point-parity.test.js runs both on one fixture
+const RIVER_SECTION_RE = /\.\.\.([^.]*?)\bfor\s+the\s+following\s+rivers\s+in\s[^.]*\.\.\.([\s\S]*?)(?=\n\s*\.\.\.|\n\s*\*|$)/gi;
+const RIVER_ENDED_RE = /cancel|expire/i;
+const RIVER_POINT_RE = /^\s*(\S[\s\S]*?)\s+affecting\s/;
+const RIVER_WHERE_RE = /\*\s*WHERE\.\.\.([\s\S]+?)(?:\n\s*\n|\n\s*\*|$)/;
+const wsJoin = (s) => s.split(/\s+/).filter(Boolean).join(' ');
+const riverSections = (desc) => [...desc.matchAll(RIVER_SECTION_RE)];
+
+function alertRiverPoint(p) {
+  const desc = String((p && p.description) || '');
+  const section = riverSections(desc).find((m) => !RIVER_ENDED_RE.test(m[1]));
+  if (!section) return null;
+  const where = RIVER_WHERE_RE.exec(desc);
+  if (where) return wsJoin(where[1]).replace(/\.+$/, '') || null;
+  const points = section[2].split(/\n\s*\n/).map((x) => RIVER_POINT_RE.exec(x)).filter(Boolean).map((m) => wsJoin(m[1]));
+  return points.length === 1 ? points[0] : null;
 }
 
 /* area= returns every product that TOUCHES the area of operations, and each one carries its full
@@ -1303,6 +1326,7 @@ function gaugePopup(g) {
     `<button class="popup-expand basin-link">🏞 ${esc(t('basin.popup').replace('{river}', riverOf(g.name)))}</button>` +
     (typeof pushManageAvailable === 'function' && pushManageAvailable()
       ? `<button class="popup-expand push-notify-btn" data-lid="${esc(g.lid)}">🔔 ${esc(t('push.notify'))}</button>` : '') +
+    camsNearBtnHtml([[g.latitude, g.longitude]]) +
     `<div class="popup-link"><a href="https://water.noaa.gov/gauges/${esc(g.lid)}" target="_blank" rel="noopener">${esc(t('gauge.noaapage'))}</a></div>`;
   if (!noChart) drawSparkline(g, el.querySelector('canvas'), el.querySelector('.spark-note'));
   el.querySelector('.popup-expand').addEventListener('click', () => openHydro(g));
@@ -1993,6 +2017,7 @@ function roadPopupHtml(p, geo) {
     (p.start_time ? `<div class="popup-meta">${esc(t('road.since'))} ${esc(fmtWhen(p.start_time))}</div>` : '') +
     (detour ? `<div class="popup-meta">${esc(t('road.detour'))}</div>` : '') +
     `<div class="popup-meta" style="opacity:.8">${esc(t(isClosure ? 'road.note.closure' : 'road.note.cond'))}</div>` +
+    camsNearBtnHtml(camAnchorPts(geo)) +
     `<div class="popup-meta" style="opacity:.7;margin-top:4px">${srcBadge('official')} ${esc(ROAD_ATTRIB)} · ` +
     `${esc(p._snapshot ? t('road.snapshot').replace('{t}', fmtWhen(p._snapshotAt)) : t('road.live'))}</div>`;
 }
@@ -2016,7 +2041,7 @@ function renderRoadClosures() {
     if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
     const ct = roadCondType(f.properties);
     const m = L.circleMarker([c[1], c[0]], { radius: 7, color: '#fff', weight: 1.5, fillColor: ct.color, fillOpacity: 0.95, attribution: attrib });
-    m.bindPopup(roadPopupHtml(f.properties));
+    m.bindPopup(roadPopupHtml(f.properties, f.geometry));
     layer.addLayer(m);
   }
 }

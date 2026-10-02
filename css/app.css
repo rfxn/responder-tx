@@ -1127,6 +1127,43 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 .cam-time { color: var(--ink-1); }
 .cam-stale-note { flex: 1 1 100%; font-size: 11.5px; font-weight: 500; color: var(--sev-warning); }
 #cam-note { padding: 6px 14px 12px; }
+#cam-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 0; }
+#cam-nav[hidden] { display: none; }
+.cam-nav-btn {
+  flex: 1 1 220px; min-width: 0; min-height: 36px; padding: 6px 10px; font-size: 12.5px; font-weight: 650;
+  color: var(--accent); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+}
+.cam-nav-btn.prev { text-align: left; }
+.cam-nav-btn.next { text-align: right; }
+
+/* cameras near a hazard: the list a gauge popup, a road popup or a Feed river card opens */
+.cams-near-list { margin: 2px 0 4px; max-height: 240px; overflow-y: auto; }
+.cams-near-head { font-size: 11px; font-weight: 700; color: var(--ink-muted); margin: 4px 0 3px; }
+.cams-near-note { font-size: 11.5px; line-height: 1.35; color: var(--ink-2); margin: 4px 0; }
+.cams-near-note.failed { color: var(--sev-warning); font-weight: 600; }
+.cams-near-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; margin: 0 0 3px; padding: 5px 8px;
+  text-align: left; color: var(--ink-1); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+}
+.cams-near-row:hover, .cams-near-row:focus-visible { border-color: var(--accent); }
+.cams-near-row.off { opacity: 0.8; }
+.cams-near-row.off .cnr-sub { color: var(--sev-warning); }
+.cnr-glyph { flex: 0 0 18px; text-align: center; font-size: 13px; }
+.cnr-text { display: flex; flex-direction: column; min-width: 0; }
+.cnr-name { font-size: 12.5px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+.cnr-sub { font-size: 11px; color: var(--ink-2); }
+.sit-row { display: flex; flex-wrap: wrap; align-items: stretch; column-gap: 5px; }
+.sit-row > .sit-card { flex: 1 1 0; width: auto; }
+.sit-cams { display: contents; }
+.sit-cam-btn {
+  flex: 0 0 40px; margin: 0 0 5px; padding: 0; font-size: 15px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+}
+.sit-cams .cams-near-list { flex: 1 1 100%; margin-top: -2px; }
+@media (max-width: 768px) {
+  .sit-cam-btn { flex-basis: 44px; min-height: 44px; }
+  .cams-near-row, .cam-nav-btn { min-height: 44px; }
+}
 
 /* Drive Mode: big type, high contrast, one-thumb; overrides theme to dark for glare.
    It stays full-screen and stays a modal on purpose: it is eyes-off-road, and covering the map

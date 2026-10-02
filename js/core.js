@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.7';
+const APP_VERSION = 'v0.100.8';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -277,6 +277,8 @@ const priLabel = (v) => enumLabel('pri.', v);
 const nstatLabel = (v) => enumLabel('nstat.', v);
 const catWord = (cat) => (cat === 'none' ? t('cat.none').toLowerCase() : t('catw.' + cat));
 const CAT_SIZE = { major: 18, moderate: 15, minor: 12, action: 10, none: 8 };
+// marker-pane z: flood stage clears ordinary overlays (0) and stays under wildfire/road-flood (1100)
+const GAUGE_Z = { major: 1000, moderate: 900, minor: 800, action: 200, none: 0 };
 const TYPE_GLYPH = { rescue: '🆘', evacuation: '🏃', medical: '⚕️', supplies: '📦', shelter: '🏠', animal: '🐾', wellness: '💬', volunteer: '🤝', equipment: '🛠️', road: '🚧', cutoff: '⛔', info: 'ℹ️' };
 const LIFE_SAFETY_TYPES = ['rescue', 'evacuation', 'medical', 'cutoff'];
 
@@ -328,6 +330,8 @@ const state = {
   knownEmergencyIds: new Set(),
   alertsLoadedOnce: false,
   sourceHealth: {},
+  sourceFailed: {}, // source -> true when the last refresh got no answer from it: unknown, never zero
+  sitActs: [], // the Feed situation cards' tap actions, by data-sit index
   baseTitle: document.title,
   pendingLatLng: null,
   measure: null, // { pts: [[lat, lon], ...] } while the measure tool is armed

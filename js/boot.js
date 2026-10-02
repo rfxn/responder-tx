@@ -63,8 +63,11 @@ async function hydrateGaugesSnapshot() {
 
 /* Labels for the degraded tooltip, in refresh()'s Promise.allSettled order, which is NOT the
    life-safety-first order renderSourceHealth() displays. They reuse the Live feeds chip labels on
-   purpose: the tooltip names now match the list the chip taps through to, in both languages. */
-const REFRESH_SOURCE_KEYS = ['health.alerts', 'health.gauges', 'health.fcst', 'health.usgs', 'health.reports', 'health.board', 'health.roads'];
+   purpose: the tooltip names now match the list the chip taps through to, in both languages.
+   Each pair is [state.sourceHealth key, label key]. */
+const REFRESH_SOURCES = [['alerts', 'health.alerts'], ['gauges', 'health.gauges'], ['fcstMax', 'health.fcst'],
+  ['usgs', 'health.usgs'], ['lsrs', 'health.reports'], ['seeds', 'health.board'], ['roads', 'health.roads']];
+const REFRESH_SOURCE_KEYS = REFRESH_SOURCES.map((s) => s[1]);
 
 async function refresh() {
   // in-flight guard: overlapping triggers (interval, #refresh-now, visibility catch-up) queue one trailing run instead of racing
@@ -72,6 +75,7 @@ async function refresh() {
   state.refreshBusy = true;
   try {
     setFeedNote(t('note.refreshing'), '');
+    const started = Date.now();
     if (state.refreshRadar) state.refreshRadar();
     if (state.layers.tropical && state.map.hasLayer(state.layers.tropical)) fetchTropical().catch(() => { /* keep last cone/track on a transient failure */ });
     // every tick, the first at boot included: the layer-sheet row counts warnings before the layer is on
@@ -82,6 +86,11 @@ async function refresh() {
     const results = await Promise.allSettled([fetchAlerts(), gaugesP, afterGauges.then(fetchFcstMax), afterGauges.then(fetchUsgsIv), fetchLsrs(), loadSeeds(), fetchRoadClosures()]);
     const failed = results.filter((r) => r.status === 'rejected');
     const failedNames = results.map((r, i) => (r.status === 'rejected' ? t(REFRESH_SOURCE_KEYS[i]) : null)).filter(Boolean).join(', ');
+    // a rejection after the source marked itself healthy this round (a draw step failing) still answered
+    REFRESH_SOURCES.forEach(([k], i) => {
+      state.sourceFailed[k] = results[i].status === 'rejected' && !(state.sourceHealth[k] >= started);
+    });
+    renderFeedSituation(); // the one surface that must change when a source fails and nothing repaints
     state.refreshAt = Date.now() + CONFIG.refreshMs;
     if (failed.length && (!state.alerts.length || !state.gauges.length)) {
       const hydrated = hydrateFromCache();
@@ -523,8 +532,8 @@ function renderGlossary() {
   // the glossary and the map legend must name the same states, or one of them is lying by omission
   for (const s of GAUGE_DEGRADED) html += glRow(dot(`deg-${s}`), gaugeStateLabel(s), t(`gstate.${s}.note`));
   html += sec('glossary.sec.markers');
-  html += glRow('<span style="color:var(--cat-major)">▲</span>', t('glossary.rising.label'), t('glossary.rising'));
-  html += glRow('<span style="color:var(--good)">▼</span>', t('glossary.falling.label'), t('glossary.falling'));
+  html += glRow(gaugeTrendChip('up', 'major'), t('glossary.rising.label'), t('glossary.rising'));
+  html += glRow(gaugeTrendChip('down'), t('glossary.falling.label'), t('glossary.falling'));
   html += glRow(`<span class="fcst-ring cat-moderate" style="width:11px;height:11px"></span>`, t('glossary.ring.label'), t('glossary.ring'));
   html += glRow('💧', t('glossary.lsr.label'), t('glossary.lsr'));
   html += glRow('🌧', t('glossary.rain.label'), t('glossary.rain'));

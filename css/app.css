@@ -345,7 +345,7 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 @keyframes cutoffPulse { 50% { stroke-opacity: 0.35; } }
 /* zoomed out, the no-severity dots declutter. Degraded joins them: they carry no severity either,
    and 84 of ~290 grey dots would bury the flood ramp at state scale. The legend keeps their count. */
-.z-low .leaflet-marker-pane .gauge-icon.cat-none,
+.z-low .leaflet-marker-pane .gauge-hit:not(.rising) .gauge-icon.cat-none,
 .z-low .leaflet-marker-pane .gauge-icon.deg-nothresh,
 .z-low .leaflet-marker-pane .gauge-icon.deg-stale,
 .z-low .leaflet-marker-pane .gauge-icon.deg-oos { display: none; }
@@ -353,8 +353,9 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
   position: relative; width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
 }
-.gauge-hit .rise-arrow { top: -2px; right: 1px; }
-.gauge-hit .fall-arrow { bottom: -2px; right: 1px; }
+/* trend chips hug the dot's upper/lower right whatever its size, so they never read as a marker of their own */
+.gauge-hit .rise-arrow { left: calc(50% + var(--dot, 12px) * 0.4); bottom: calc(50% + var(--dot, 12px) * 0.4); }
+.gauge-hit .fall-arrow { left: calc(50% + var(--dot, 12px) * 0.4); top: calc(50% + var(--dot, 12px) * 0.4); }
 
 .tabs {
   display: flex; flex-wrap: nowrap;
@@ -446,6 +447,58 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .section-title { font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); margin: 14px 0 6px; }
 .section-title:first-child { margin-top: 0; }
 
+/* the Feed's generated situation picture: official-source cards, set apart from curated notices */
+.sit:empty { display: none; }
+.sit {
+  margin: 0 0 12px; padding: 8px 10px 6px;
+  background: var(--surface-1); border: 1px solid var(--hairline); border-top: 3px solid var(--accent); border-radius: 8px;
+}
+.sit-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 4px; }
+.sit-title { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-1); }
+.badge.sit-auto {
+  border-color: var(--accent); color: var(--accent); font-size: 9.5px; font-weight: 650;
+  letter-spacing: 0.03em; text-transform: uppercase; padding: 0 7px;
+}
+.sit-asof { margin-left: auto; font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.sit-subhead {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-muted); margin: 8px 0 4px;
+}
+.sit-card {
+  display: flex; flex-direction: column; align-items: stretch; gap: 2px; width: 100%; min-width: 0;
+  margin: 0 0 5px; padding: 6px 9px; text-align: left; color: var(--ink-1);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 4px solid var(--sit-tone, var(--ink-muted)); border-radius: 6px;
+}
+/* background, not border-color: the global button hover would repaint the tone the left edge carries */
+.sit-card:hover, .sit-card:focus-visible {
+  border-color: var(--border); border-left-color: var(--sit-tone, var(--ink-muted));
+  background: color-mix(in srgb, var(--sit-tone, var(--accent)) 10%, var(--surface-2));
+}
+.sit-card-title {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px;
+  font-size: 13px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere;
+}
+.sit-card-sub { font-size: 11.5px; line-height: 1.35; color: var(--ink-2); overflow-wrap: anywhere; }
+.sit-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 18px; padding: 0 6px;
+  border-radius: 9px; font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--sit-tone, var(--ink-2)); border: 1px solid var(--sit-tone, var(--border)); background: var(--surface-1);
+}
+.sit-card.sit-more { font-size: 12px; color: var(--accent); }
+.sit-note {
+  font-size: 11.5px; line-height: 1.35; color: var(--ink-2);
+  margin: 2px 0 6px; padding-left: 8px; border-left: 3px solid var(--hairline);
+}
+.sit-note.failed { color: var(--sev-warning); border-left-color: var(--sev-warning); font-weight: 600; }
+.sit-quiet {
+  font-size: 12px; font-weight: 650; color: var(--good); margin: 4px 0 2px; padding: 3px 0 3px 8px;
+  border-left: 3px solid var(--good); background: color-mix(in srgb, var(--good) 6%, transparent);
+}
+@media (max-width: 768px) {
+  .sit-card { min-height: 44px; }
+}
+
 .alert-card { border-left-width: 4px; }
 .alert-class-head {
   font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
@@ -476,7 +529,7 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .alert-card.haz-order { border-left-color: var(--haz-order); }
 .alert-card .event { font-weight: 650; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .alert-card .event .ev-name { min-width: 0; }
-.alert-card .event .emergency-flag {
+.alert-card .event .emergency-flag, .sit-card .emergency-flag {
   color: var(--sev-emergency); font-size: 10.5px; font-weight: 700; white-space: nowrap;
   border: 1px solid var(--sev-emergency); border-radius: 4px; padding: 1px 5px;
 }
@@ -606,10 +659,15 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
   border: 2px solid var(--surface-1);
   box-shadow: 0 0 0 1px var(--border);
 }
-.gauge-icon.cat-action { background: var(--cat-action); }
-.gauge-icon.cat-minor { background: var(--cat-minor); }
-.gauge-icon.cat-moderate { background: var(--cat-moderate); }
-.gauge-icon.cat-major { background: var(--cat-major); animation: pulse 1.6s infinite; }
+.gauge-icon.cat-action { background: var(--cat-action); box-shadow: 0 0 0 1px var(--border), 0 1px 3px rgba(0,0,0,0.5); }
+.gauge-icon.cat-minor { background: var(--cat-minor); --ring: var(--cat-minor); }
+.gauge-icon.cat-moderate { background: var(--cat-moderate); --ring: var(--cat-moderate); }
+.gauge-icon.cat-major { background: var(--cat-major); --ring: var(--cat-major); animation: pulse 1.6s infinite; }
+/* flood stage is a dot ringed in its own hue and lifted on a shadow, a shape no other overlay marker uses */
+.gauge-icon.cat-major, .gauge-icon.cat-moderate, .gauge-icon.cat-minor {
+  background-image: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.4), rgba(255,255,255,0) 55%);
+  box-shadow: 0 0 0 2.5px var(--ring), 0 0 0 3.5px rgba(0,0,0,0.45), 0 3px 6px 1px rgba(0,0,0,0.5);
+}
 .gauge-icon.cat-none { background: var(--cat-none); opacity: 0.7; }
 /* dead/stale sensor — greyed + dashed, no pulse; suppressed from flood signals but kept on the map */
 .gauge-icon.stale { background: var(--cat-none); opacity: 0.5; border-style: dashed; box-shadow: none; animation: none; }
@@ -716,6 +774,12 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 }
 /* legend swatches are chrome, never subject to marker declutter/pulse */
 .map-legend .gauge-icon { display: inline-block !important; animation: none; opacity: 1; }
+.map-legend .gauge-icon.cat-major, .map-legend .gauge-icon.cat-moderate, .map-legend .gauge-icon.cat-minor {
+  margin: 0 9px 0 3px; box-shadow: 0 0 0 2px var(--ring), 0 0 0 2.5px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.45);
+}
+.map-legend .gauge-icon.cat-action { box-shadow: 0 0 0 1px var(--border), 0 1px 3px rgba(0,0,0,0.5); }
+.map-legend .rise-arrow, .map-legend .fall-arrow { position: static; display: inline-block; vertical-align: middle; margin: 0 6px 0 1px; }
+.gl-sw .rise-arrow, .gl-sw .fall-arrow { position: static; display: inline-block; vertical-align: middle; }
 /* a legend row is a filter control: swatch, label, live count, its own checkbox */
 .map-legend .lg-row { display: flex; align-items: center; gap: 0; cursor: pointer; }
 .map-legend .lg-ck { margin: 0 5px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
@@ -727,20 +791,17 @@ main { flex: 1; display: flex; min-height: 0; position: relative; } /* the docke
 .leaflet-control-attribution.attr-open { max-width: min(92vw, 560px); white-space: normal; }
 .leaflet-control-attribution .attr-i { font-weight: 700; color: #0a58ca; padding: 0 1px; }
 
-.rise-arrow {
-  position: absolute; top: -10px; right: -7px;
-  font-size: 11px; font-weight: 700; line-height: 1;
-  color: var(--ink-1); text-shadow: 0 0 3px var(--page), 0 0 3px var(--page);
+.rise-arrow, .fall-arrow { position: absolute; display: block; line-height: 0; }
+.rise-arrow svg, .fall-arrow svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.rise-arrow path, .fall-arrow path {
+  fill: currentColor; stroke: var(--surface-1); stroke-width: 2.2; stroke-linejoin: round; paint-order: stroke;
 }
+.rise-arrow { width: 15px; height: 15px; color: var(--ink-1); filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.6)); }
 .rise-arrow.cat-major { color: var(--cat-major); }
 .rise-arrow.cat-moderate { color: var(--cat-moderate); }
 .rise-arrow.cat-minor { color: var(--cat-minor); }
 .rise-arrow.cat-action { color: var(--cat-action); }
-.fall-arrow {
-  position: absolute; bottom: -10px; right: -7px;
-  font-size: 10px; font-weight: 700; line-height: 1;
-  color: var(--good); text-shadow: 0 0 3px var(--page), 0 0 3px var(--page);
-}
+.fall-arrow { width: 10px; height: 10px; color: var(--good); }
 .lsr-icon {
   display: flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; font-size: 13px;
@@ -1127,6 +1188,9 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 }
 /* corridor emphasis on the map behind the view: accent ring on the river's gauge dots */
 .gauge-hit.basin-hi .gauge-icon { box-shadow: 0 0 0 3px var(--accent), 0 0 9px var(--accent); }
+.gauge-hit.basin-hi .gauge-icon.cat-major, .gauge-hit.basin-hi .gauge-icon.cat-moderate, .gauge-hit.basin-hi .gauge-icon.cat-minor {
+  box-shadow: 0 0 0 2.5px var(--ring), 0 0 0 5.5px var(--accent), 0 0 11px var(--accent);
+}
 #recovery-body .section-title { color: #d9dee3; margin-top: 18px; }
 .rcv-headline { font-size: 14px; font-weight: 700; color: #fff; margin-top: 4px; }
 .rcv-note { font-size: 11.5px; color: #8a94a8; margin: 2px 0 4px; }

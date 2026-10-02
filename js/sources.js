@@ -1210,6 +1210,13 @@ function basinRivers(gauges, crestRows) {
     || (b.gauges.length - a.gauges.length) || a.river.localeCompare(b.river));
 }
 
+// outlined triangle chip, legible on any basemap and beside same-hue overlay markers
+function gaugeTrendChip(dir, cat) {
+  const up = dir === 'up';
+  return `<span class="${up ? `rise-arrow cat-${cat}` : 'fall-arrow'}"><svg viewBox="0 0 12 12" aria-hidden="true">` +
+    `<path d="${up ? 'M6 1.5 11 10.5H1Z' : 'M6 10.5 11 1.5H1Z'}"/></svg></span>`;
+}
+
 function renderGauges() {
   state.layers.gauges.clearLayers();
   state.gaugeMarkers = {};
@@ -1223,21 +1230,25 @@ function renderGauges() {
     if (!gaugeStateShown(gs)) continue; // hidden by its legend row
     const degraded = GAUGE_DEGRADED.includes(gs);
     const cat = gaugeCat(g);
-    const rising = !degraded && gaugeRising(g);
+    const fcat = !degraded && gaugeRising(g) ? gaugeForecastCat(g) : null;
     const size = degraded ? 11 : CAT_SIZE[cat];
     const trend = degraded ? null : gaugeTrend(g.lid);
     const falling = cat !== 'none' && trend && trend.dir === 'down';
+    // a rising gauge is never decluttered: its forecast is the reason to look at it
+    const hitNone = !fcat && ((cat === 'none' && !degraded) || gs === 'nothresh');
     // 32px hit area around the visual dot — 8-18px dots are untappable one-thumbed (UX audit #5)
     const icon = L.divIcon({
       className: '',
-      html: `<div class="gauge-hit${(cat === 'none' && !degraded) || gs === 'nothresh' ? ' hit-none' : ''}">` +
+      html: `<div class="gauge-hit${hitNone ? ' hit-none' : ''}${fcat ? ' rising' : ''}" style="--dot:${size}px">` +
         `<div class="gauge-icon ${degraded ? `deg-${gs}` : `cat-${cat}`}" style="width:${size}px;height:${size}px"></div>` +
-        (rising ? `<span class="rise-arrow cat-${gaugeForecastCat(g)}">▲</span>` : '') +
-        (falling ? '<span class="fall-arrow">▼</span>' : '') + '</div>',
+        (fcat ? gaugeTrendChip('up', fcat) : '') +
+        (falling ? gaugeTrendChip('down') : '') + '</div>',
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
-    const m = L.marker([g.latitude, g.longitude], { icon, zIndexOffset: cat === 'major' ? 1000 : rising ? 500 : 0 });
+    // forecast-to-reach ranks just under observed-at, so a gauge in flood now outranks one heading there
+    const z = Math.max(GAUGE_Z[cat], fcat ? GAUGE_Z[fcat] - 50 : 0);
+    const m = L.marker([g.latitude, g.longitude], { icon, zIndexOffset: z });
     m.bindPopup(() => gaugePopup(g), { minWidth: 290 });
     state.layers.gauges.addLayer(m);
     state.gaugeMarkers[g.lid] = m;
@@ -1828,6 +1839,9 @@ function roadMemory() {
   return state.roadMemory;
 }
 
+// a high-water closure, by the feed's own condition or by its description; shared with the Feed count
+const roadIsFlood = (p) => !!p && (p.condition === 'Flooding' || FLOOD_ROAD_RE.test(p.description || ''));
+
 // diff only a complete, non-empty, successful fetch. An empty response and a truncated one both
 // hide live closures, so either would mark the missing segments reopened: a green recovery check
 // on a road that is still under water. A partial fetch keeps the last good reopened set instead.
@@ -1845,7 +1859,7 @@ function updateRoadMemory(lines, partial) {
     live.add(id);
     const prev = mem.seen[id];
     // sticky: a segment re-coded off Flooding (water down, road still shut) stays flood recovery
-    const flood = (prev && prev.flood === true) || p.condition === 'Flooding' || FLOOD_ROAD_RE.test(p.description || '');
+    const flood = (prev && prev.flood === true) || roadIsFlood(p);
     mem.seen[id] = { id, route_name: p.route_name, condition: p.condition, flood, lastSeen: now, vertex: roadVertex(f.geometry) };
     delete mem.reopened[id];
   }

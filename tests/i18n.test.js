@@ -594,6 +594,7 @@ const ACRONYMS = new Set(['NOAA', 'CO-OPS', 'NHC', 'NWS', 'NWPS', 'NWM', 'MRMS',
 const EXEMPT_RUNS = new Map([
   ['RESPONDER TX SITREP', 'SITREP is a fixed-format interop text product, English by design'],
   ['CUT-OFF AREAS', 'SITREP section label'],
+  ['NWS PRODUCTS', 'SITREP section label'],
   ['ACTIVE CRITICAL', 'SITREP section label'],
   ['ACTIVE NOTICES TOTAL', 'SITREP section label'],
   ['NOT IN', 'ArcGIS/NWPS where= predicate sent upstream, never rendered'],

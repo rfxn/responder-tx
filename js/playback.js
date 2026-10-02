@@ -953,7 +953,7 @@ function pbPaintMarkers(frame) {
       void ring.offsetWidth; // restart the ring animation on consecutive changes
       ring.style.animation = '';
     } else { ring.hidden = true; delete pulse[lid]; }
-    m.setZIndexOffset(cat === 'major' ? 1000 : cat === 'moderate' ? 500 : 0);
+    m.setZIndexOffset(stale ? 0 : GAUGE_Z[cat]);
   }
   state.pbPrevCodes = next;
   pbUpdateLabels(frame);

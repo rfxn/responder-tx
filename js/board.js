@@ -89,14 +89,20 @@ function flashRow(el) {
 }
 
 // map→list reveal: switch tab, scroll the row into view, ~1.5s outline pulse
-function revealInList(tab, sel) {
+function revealInList(tab, sel) { revealRowsInList(tab, [sel]); }
+
+// several rows at once: land on the first one present and pulse every one of them
+function revealRowsInList(tab, sels) {
   const btn = document.querySelector(`.tabs button[data-tab="${tab}"]`);
   if (btn) btn.click();
   requestAnimationFrame(() => {
-    const el = document.querySelector(sel);
-    if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    flashRow(el);
+    let scrolled = false;
+    for (const sel of sels) {
+      const el = document.querySelector(sel);
+      if (!el) continue;
+      if (!scrolled) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); scrolled = true; }
+      flashRow(el);
+    }
   });
 }
 
@@ -126,18 +132,29 @@ function focusAlert(f, reveal) {
 
 /* The hazard line can name an alert the Alerts tab is currently filtering out. Clear only what
    actually hides it, then reveal the row, so a tap never lands on a list without the alert it named. */
-function openInAlertsList(f) {
-  const sel = `#alert-list .alert-card[data-alert-id="${CSS.escape((f && f.id) || '')}"]`;
-  if (!document.querySelector(sel)) {
-    let changed = false;
-    for (const id of ['#flt-alert-sev', '#flt-alert-q']) {
-      const el = $(id);
-      if (el && el.value) { el.value = ''; changed = true; }
-    }
-    if (!state.showAlertsFar) { state.showAlertsFar = true; changed = true; }
-    if (changed) renderAlertList();
+const alertRowSel = (f) => `#alert-list .alert-card[data-alert-id="${CSS.escape((f && f.id) || '')}"]`;
+
+function unfoldAlertList() {
+  let changed = false;
+  for (const id of ['#flt-alert-sev', '#flt-alert-q']) {
+    const el = $(id);
+    if (el && el.value) { el.value = ''; changed = true; }
   }
+  if (!state.showAlertsFar) { state.showAlertsFar = true; changed = true; }
+  if (changed) renderAlertList();
+}
+
+function openInAlertsList(f) {
+  const sel = alertRowSel(f);
+  if (!document.querySelector(sel)) unfoldAlertList();
   revealInList('tab-alerts', sel);
+}
+
+// a Feed situation card stands for several products: unfold for any of them, pulse them all
+function openAlertGroupInList(list) {
+  const sels = list.map(alertRowSel);
+  if (sels.some((sel) => !document.querySelector(sel))) unfoldAlertList();
+  revealRowsInList('tab-alerts', sels);
 }
 
 /* Two folds can hide a gauge row: the normal-category fold and the degraded fold. Which one holds
@@ -292,7 +309,9 @@ function renderRequests() {
   ivBtn.classList.toggle('on', state.inView);
   ivBtn.textContent = state.inView ? `${t('sync.inview')} · ${listed.length}` : t('sync.inview');
   const el = $('#request-list');
-  el.innerHTML = '';
+  // the situation section above is generated; this heading marks where the hand-curated cards start
+  const notesHead = `<div class="section-title">${esc(t('feed.notices'))}</div>`;
+  el.innerHTML = notesHead;
 
   const counties = [...new Set(reqs.map((r) => r.county))].sort();
   const cSel = $('#flt-county');
@@ -364,7 +383,7 @@ function renderRequests() {
     const msg = heldForAge
       ? t('feed.aged.only').replace('{n}', String(agedCount))
       : t(restricted ? 'feed.empty' : 'feed.allclear');
-    el.innerHTML = `<div class="card${calm ? ' feed-allclear' : ''}">${esc(msg)}</div>`
+    el.innerHTML = `${notesHead}<div class="card${calm ? ' feed-allclear' : ''}">${esc(msg)}</div>`
       + (heldForAge ? `<button class="aged-toggle" id="feed-show-aged" type="button">${esc(t('feed.aged.show').replace('{n}', String(agedCount)))}</button>` : '');
     if (heldForAge) {
       $('#feed-show-aged').addEventListener('click', () => { state.showAged = true; renderRequests(); });
@@ -386,7 +405,9 @@ function renderRequests() {
       html: `<div class="req-icon pri-${esc(r.priority)}${resolved ? ' resolved' : ''}">${TYPE_GLYPH[r.type] || '📍'}</div>`,
       iconSize: [26, 26], iconAnchor: [4, 26],
     });
-    const m = L.marker([r.lat, r.lon], { icon });
+    // an open life-safety notice is never buried under a flooding gauge (GAUGE_Z tops out at 1000)
+    const lifeSafety = !resolved && LIFE_SAFETY_TYPES.includes(r.type);
+    const m = L.marker([r.lat, r.lon], { icon, zIndexOffset: lifeSafety ? 1150 : 0 });
     m.bindPopup(() => reqPopup(r));
     state.layers.requests.addLayer(m);
     state.reqMarkers[r.id] = m;
@@ -997,18 +1018,97 @@ function sitrepFallingGauges() {
   return state.gauges.filter((g) => gaugeCat(g) !== 'none' && (gaugeTrend(g.lid) || {}).dir === 'down');
 }
 
+/* One set of selectors behind the SITREP text, the Feed situation section, the hero cards and the
+   hazard line, so no two of those surfaces can disagree about what is active. */
+function sitOpenAlerts() { return state.alerts.filter(alertOpen); }
+function sitFloodGauges() { return state.gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor); }
+// soonest crest first
+function sitRisingGauges(minCat) {
+  const floor = CAT_RANK[minCat || 'minor'];
+  return state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= floor)
+    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
+}
+
+const SIT_FLOOD_EVENT_RE = /flood|storm surge/i;
+// hazard order throughout, except that a standing flood product leads the non-flood standing tier
+const sitStandingOther = (f) => (hazardClass(f) === 'standing' && !SIT_FLOOD_EVENT_RE.test(String(((f && f.properties) || {}).event || '')) ? 1 : 0);
+const sitAlertCmp = (a, b) => sitStandingOther(a) - sitStandingOther(b) || alertHazCmp(a, b);
+
+function sitAreaNames(list) {
+  const out = [];
+  for (const f of list) {
+    for (const a of alertAreaParts(f.properties).inAo) {
+      const name = a.replace(/,\s*[A-Z]{2}$/, '');
+      if (!out.includes(name)) out.push(name);
+    }
+  }
+  return out;
+}
+
+// a group runs until its last member does, and one member with no declared end holds it open
+function sitGroupUntil(list) {
+  let last = null;
+  for (const f of list) {
+    const end = alertEndsAt(f);
+    if (!end) return null;
+    if (!last || new Date(end) > new Date(last)) last = end;
+  }
+  return last;
+}
+
+/* One group per event type, counted per warning and named over every message, so a watch issued in
+   two segments is one watch with all its counties and a day of advisories is one line, not twenty. */
+function sitAlertGroups() {
+  const byEvent = new Map();
+  for (const f of sitOpenAlerts().sort(sitAlertCmp)) {
+    const ev = String(f.properties.event || '');
+    if (!byEvent.has(ev)) byEvent.set(ev, []);
+    byEvent.get(ev).push(f);
+  }
+  return [...byEvent].map(([event, msgs]) => {
+    const list = alertDedupe(msgs).sort(sitAlertCmp);
+    return { event, list, n: list.length, lead: list[0], cls: hazardClass(list[0]),
+      emergency: list.some((f) => f._sev === 'emergency'), areas: sitAreaNames(msgs), until: sitGroupUntil(list) };
+  });
+}
+
+// a forecast to a higher category is rising whatever the last hour of readings did
+function sitGaugeTrend(g) {
+  if (gaugeRising(g)) return 'up';
+  const tr = gaugeTrend(g.lid);
+  return tr ? tr.dir : '';
+}
+
+function sitRiverGroups() {
+  const byRiver = new Map();
+  for (const g of sitFloodGauges()) {
+    const river = riverOf(g.name);
+    if (!byRiver.has(river)) byRiver.set(river, []);
+    byRiver.get(river).push(g);
+  }
+  return [...byRiver].map(([river, gauges]) => {
+    gauges.sort((a, b) => CAT_RANK[gaugeCat(b)] - CAT_RANK[gaugeCat(a)]);
+    const trends = gauges.map(sitGaugeTrend);
+    return { river, gauges, worst: gauges[0], cat: gaugeCat(gauges[0]),
+      rising: trends.filter((d) => d === 'up').length, falling: trends.filter((d) => d === 'down').length };
+  }).sort((a, b) => CAT_RANK[b.cat] - CAT_RANK[a.cat] || b.gauges.length - a.gauges.length || a.river.localeCompare(b.river));
+}
+
 function buildSitrep() {
   const now = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  const emerg = state.alerts.filter((a) => a._sev === 'emergency' && alertOpen(a));
-  const warnings = state.alerts.filter((a) => a._sev === 'warning' && alertOpen(a)).length;
-  const majors = state.gauges.filter((g) => gaugeCat(g) === 'major');
-  const toMajor = state.gauges.filter((g) => gaugeRising(g) && gaugeForecastCat(g) === 'major');
+  const open = sitOpenAlerts();
+  const emerg = open.filter((a) => a._sev === 'emergency');
+  const warnings = open.filter((a) => a._sev === 'warning').length;
+  const majors = sitFloodGauges().filter((g) => gaugeCat(g) === 'major');
+  const toMajor = sitRisingGauges('major');
+  const groups = sitAlertGroups();
   const reqs = activeRequests().filter((r) => r.status !== 'resolved');
   const crit = sortRequests(reqs.filter((r) => r.priority === 'critical'));
   const cutoffs = reqs.filter((r) => r.type === 'cutoff');
   const L = [];
   L.push(`RESPONDER TX SITREP - ${now} CT`);
   L.push(`THREAT: ${emerg.length} flash flood emergencies${emerg.length ? ` (${emerg.map((a) => alertAreaText(a.properties)).join(' | ')})` : ''}; ${warnings} flood warnings statewide (official)`);
+  if (groups.length) L.push(`NWS PRODUCTS: ${groups.map((g) => `${g.event} (${g.n})`).join('; ')} (official)`);
   L.push(`GAUGES: ${majors.length} at MAJOR, ${toMajor.length} forecast to reach major (official)`);
   for (const g of majors) {
     const tr = gaugeTrend(g.lid);
@@ -1034,7 +1134,7 @@ function buildSitrep() {
 
 // bold the leading section label so the modal reads as a report, not a wall of text;
 // the label tokens contain no HTML-special chars, so escaped length equals raw length
-const SITREP_LABELS = /^(RESPONDER TX SITREP|THREAT|GAUGES|RECOVERY|CUT-OFF AREAS|ACTIVE CRITICAL|ACTIVE NOTICES TOTAL)/;
+const SITREP_LABELS = /^(RESPONDER TX SITREP|THREAT|NWS PRODUCTS|GAUGES|RECOVERY|CUT-OFF AREAS|ACTIVE CRITICAL|ACTIVE NOTICES TOTAL)/;
 function sitrepHtml(text) {
   return text.split('\n').map((line) => {
     const e = esc(line);
@@ -1068,6 +1168,166 @@ function copySitrep(btn) {
   copyText(text).then(
     () => { if (btn) { btn.textContent = t('sitrep.copied'); setTimeout(() => { btn.textContent = '📋 SITREP'; }, 2000); } },
     () => downloadBlob(text, 'text/plain', `sitrep-${stamp()}.txt`));
+}
+
+/* ---------- Feed situation: the board's own picture, generated from the official sources ---------- */
+
+// when each source last answered; a snapshot answers as of its own generated stamp, never as of now
+const SIT_SOURCE_AT = {
+  alerts: () => state.sourceHealth.alerts,
+  gauges: () => state.snapshotAt || state.sourceHealth.gauges,
+  roads: () => state.roadsFallbackAt || state.sourceHealth.roads,
+};
+const SIT_HAS_DATA = ['ok', 'snapshot', 'stale'];
+const SIT_AREAS_SHOWN = 5;
+const SIT_RIVERS_SHOWN = 8;
+const SIT_RISING_SHOWN = 6;
+
+/* What each source can vouch for. 'loading' and 'failed' carry no data, so nothing they feed may
+   render as a count or a calm line: a request that has not answered is unknown, never zero (E1). */
+function sitSourceStates() {
+  const failed = state.sourceFailed;
+  const live = (has, k) => (has ? (failed[k] ? 'stale' : 'ok') : (failed[k] ? 'failed' : 'loading'));
+  return {
+    alerts: live(state.alertsLoadedOnce, 'alerts'),
+    gauges: state.gauges.length && state.snapshotAt ? 'snapshot' : live(state.gauges.length > 0, 'gauges'),
+    roads: state.roadsUnknown ? 'failed'
+      : (state.roadClosures && state.roadsFallbackAt ? 'snapshot' : live(!!state.roadClosures, 'roads')),
+    shelters: state.sheltersUnknown ? 'failed' : (state.seedsLoadedOnce ? 'ok' : 'loading'),
+  };
+}
+
+function situationModel() {
+  const src = sitSourceStates();
+  const has = (k) => SIT_HAS_DATA.includes(src[k]);
+  const groups = has('alerts') ? sitAlertGroups() : [];
+  const rivers = has('gauges') ? sitRiverGroups() : [];
+  const rising = has('gauges') ? sitRisingGauges('minor') : [];
+  const roads = has('roads')
+    ? { flood: roadFeatures().filter((f) => roadIsFlood(f.properties)).length, total: roadFeatures().length } : null;
+  const shelters = src.shelters === 'ok' ? openShelterCount() : null;
+  const at = ['alerts', 'gauges', 'roads'].filter(has).map((k) => SIT_SOURCE_AT[k]()).filter(Number.isFinite);
+  // the calm line is a claim about every source, so each one has to have answered this round
+  const answered = src.alerts === 'ok' && ['ok', 'snapshot'].includes(src.gauges) && ['ok', 'snapshot'].includes(src.roads);
+  return { src, groups, rivers, rising, roads, shelters, asOf: at.length ? Math.min(...at) : null,
+    quiet: answered && !groups.length && !rivers.length && !rising.length && !(roads && roads.flood) };
+}
+
+const sitOpenTab = (tab) => () => { const b = document.querySelector(`.tabs button[data-tab="${tab}"]`); if (b) b.click(); };
+
+function situationView(m) {
+  const acts = [];
+  const card = (tone, titleHtml, sub, act, cls) => {
+    acts.push(act);
+    return `<button type="button" class="sit-card${cls ? ` ${cls}` : ''}" data-sit="${acts.length - 1}" style="--sit-tone:${esc(tone)}">`
+      + `<span class="sit-card-title">${titleHtml}</span>${sub ? `<span class="sit-card-sub">${esc(sub)}</span>` : ''}</button>`;
+  };
+  const more = (n, key, tab) => card('var(--hairline)', esc(t(key).replace('{n}', String(n))), '', sitOpenTab(tab), 'sit-more');
+  const head = (key) => `<div class="sit-subhead">${esc(t(key))}</div>`;
+  const note = (cls, text) => `<div class="sit-note ${cls}">${esc(text)}</div>`;
+  const label = (k) => t(`sit.src.${k}`);
+  const names = (ks) => (ks.length < 2 ? ks.map(label).join('')
+    : `${ks.slice(0, -1).map(label).join(', ')}${t('sit.src.and')}${label(ks[ks.length - 1])}`);
+  const out = [`<div class="sit-head"><span class="sit-title">${esc(t('sit.title'))}</span>`
+    + `<span class="badge sit-auto" title="${esc(t('sit.auto.title'))}">${esc(t('sit.auto'))}</span>`
+    + (m.asOf ? `<span class="sit-asof">${esc(t('sit.asof').replace('{t}', fmtCT(m.asOf)))}</span>` : '') + '</div>'];
+  if (pbBlocksLive(state)) out.push(note('', t('playback.striplive')));
+  const waiting = ['alerts', 'gauges', 'roads'].filter((k) => m.src[k] === 'loading');
+  if (waiting.length) out.push(note('loading', t('sit.src.loading').replace('{s}', names(waiting))));
+  // sources in the same state as of the same moment share one line
+  const dated = new Map();
+  for (const k of ['alerts', 'gauges', 'roads', 'shelters']) {
+    const s = m.src[k];
+    if (s === 'failed') out.push(note('failed', t('sit.src.failed').replace('{s}', label(k))));
+    else if (s === 'stale' || s === 'snapshot') {
+      const at = SIT_SOURCE_AT[k]();
+      // a copy restored from this device's cache has no answer time the board can vouch for
+      const key = `${s}|${Number.isFinite(at) ? fmtCT(at) : ''}`;
+      if (!dated.has(key)) dated.set(key, []);
+      dated.get(key).push(k);
+    }
+  }
+  for (const [key, ks] of dated) {
+    const [s, when] = key.split('|');
+    const text = when ? t(`sit.src.${s}`).replace('{t}', when) : t('sit.src.cached');
+    out.push(note(s, text.replace('{s}', names(ks))));
+  }
+
+  const seen = new Set();
+  for (const g of m.groups) {
+    if (!seen.has(g.cls) && HAZARD_CLASS_LABEL[g.cls]) { seen.add(g.cls); out.push(head(HAZARD_CLASS_LABEL[g.cls])); }
+    const tone = g.emergency ? 'var(--sev-emergency)' : `var(--haz-${hazardStyleKey(g.lead)}, var(--sev-${g.lead._sev}))`;
+    const extra = g.areas.length - SIT_AREAS_SHOWN;
+    const where = g.areas.slice(0, SIT_AREAS_SHOWN).join(', ') + (extra > 0 ? ` ${t('alert.areaMore').replace('{n}', String(extra))}` : '');
+    const until = `${t('alert.untilShort')} ${g.until ? fmtCT(g.until) : t('alert.further')}`;
+    // hazardStyleKey falls back to 'flood' for any unstyled product, and a wave on a wind warning misleads
+    const glyph = hazardStyleKey(g.lead) === 'flood' && !SIT_FLOOD_EVENT_RE.test(g.event) ? '⚠' : hazardGlyph(g.lead);
+    const title = `${esc(glyph)} ${esc(g.event)} <span class="sit-count">${g.n}</span>`
+      + (g.emergency ? ` <span class="emergency-flag">${esc(t('alert.flag.emerg'))}</span>` : '');
+    out.push(card(tone, title, [where, until].filter(Boolean).join(' · '),
+      g.n === 1 ? () => openInAlertsList(g.list[0]) : () => openAlertGroupInList(g.list)));
+  }
+
+  if (m.rivers.length) out.push(head('sit.h.rivers'));
+  for (const r of m.rivers.slice(0, SIT_RIVERS_SHOWN)) {
+    const w = r.worst;
+    const place = w.name.slice(r.river.length).trim() || w.name;
+    const sub = [t(r.gauges.length === 1 ? 'sit.river.n1' : 'sit.river.n').replace('{n}', String(r.gauges.length)),
+      `${place} ${fmtNum(w.status.observed.primary)} ft`,
+      r.rising ? t('sit.rising').replace('{n}', String(r.rising)) : '',
+      r.falling ? t('sit.falling').replace('{n}', String(r.falling)) : ''].filter(Boolean).join(' · ');
+    out.push(card(`var(--cat-${r.cat})`, `● ${esc(r.river)} · ${esc(catWord(r.cat).toUpperCase())}`, sub, () => focusGauges(r.gauges, w)));
+  }
+  if (m.rivers.length > SIT_RIVERS_SHOWN) out.push(more(m.rivers.length - SIT_RIVERS_SHOWN, 'sit.more.rivers', 'tab-gauges'));
+
+  if (m.rising.length) out.push(head('sit.h.rising'));
+  for (const g of m.rising.slice(0, SIT_RISING_SHOWN)) {
+    const fcat = gaugeForecastCat(g);
+    const fc = g.status.forecast;
+    const rc = recordContext(g);
+    const rec = !rc ? ''
+      : rc.atOrAbove ? `⚑ ${t('record.attail').replace('{rec}', rc.recFt).replace('{y}', rc.year).replace('{m}', Math.abs(rc.margin))}`
+        : rc.near ? `⚑ ${t('record.neartail').replace('{rec}', rc.recFt).replace('{y}', rc.year).replace('{m}', rc.margin)}` : '';
+    const sub = [t('sit.now').replace('{ft}', fmtNum(g.status.observed.primary)),
+      t('sit.crest').replace('{ft}', fmtNum(fc.primary)).replace('{t}', fmtCT(fc.validTime)), rec].filter(Boolean).join(' · ');
+    out.push(card(`var(--cat-${fcat})`, `▲ ${esc(g.name)} → ${esc(catWord(fcat).toUpperCase())}`, sub, () => focusGauges([g], g)));
+  }
+  if (m.rising.length > SIT_RISING_SHOWN) out.push(more(m.rising.length - SIT_RISING_SHOWN, 'sit.more.rising', 'tab-gauges'));
+
+  const ground = [];
+  if (m.roads && m.roads.flood) {
+    ground.push(card(ROAD_COND.Flooding.color, `🌊 ${esc(t(m.roads.flood === 1 ? 'sit.roads1' : 'sit.roads').replace('{n}', String(m.roads.flood)))}`,
+      `${t('roads.src.txdot')} · ${t('sit.roads.all').replace('{n}', String(m.roads.total))}`, sitOpenTab('tab-roads')));
+  }
+  if (m.shelters) {
+    ground.push(card('var(--good)', `🏠 ${esc(t(m.shelters === 1 ? 'sit.shelters1' : 'sit.shelters').replace('{n}', String(m.shelters)))}`,
+      t('sit.shelters.sub'), openHelpSheet));
+  }
+  if (ground.length) out.push(head('sit.h.ground'), ...ground);
+  if (m.quiet) out.push(`<div class="sit-quiet">✓ ${esc(t('sit.quiet'))}</div>`);
+  return { html: out.join(''), acts };
+}
+
+// element -> the markup it holds; presence also means its one delegated listener is wired
+const sitPainted = new WeakMap();
+
+/* Re-rendered on every repaint the hazard surfaces get, from the same state they read. Taps are
+   delegated through state.sitActs, so a repaint that changes nothing leaves the DOM alone. */
+function renderFeedSituation() {
+  const el = $('#feed-situation');
+  if (!el) return;
+  const { html, acts } = situationView(situationModel());
+  state.sitActs = acts;
+  if (!sitPainted.has(el)) {
+    el.addEventListener('click', (ev) => {
+      const b = ev.target && ev.target.closest && ev.target.closest('[data-sit]');
+      const act = b && state.sitActs[Number(b.getAttribute('data-sit'))];
+      if (act) act();
+    });
+  }
+  if (sitPainted.get(el) === html) return;
+  sitPainted.set(el, html);
+  el.innerHTML = html;
 }
 
 /* ---------- share view — one link reproduces map, tab, and filters ---------- */

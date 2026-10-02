@@ -1,5 +1,29 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.8 · 2026-10-02 (the Feed carries the situation)
+
+-- New Features --
+- [New] Feed: a Situation summary built from official sources leads the tab,
+      with NWS warnings, watches and advisories grouped by type, rivers in flood,
+      gauges rising toward flood, flooded road closures and open shelters. A source
+      that does not answer is shown as unavailable, never as an all clear
+- [New] The RSS feed carries flood warnings, watches and advisories, and says so
+      when that check could not be completed
+
+-- Bug Fixes --
+- [Fix] RSS item times no longer read five hours early
+
+-- Changes --
+- [Change] River gauges in flood stand out on the map: minor, moderate and major
+         are ringed in their category color and drawn above other markers, and a
+         rising gauge carries a larger triangle in its forecast color
+- [Change] Open rescue, evacuation, medical and cut-off notices draw above
+         flooding gauges
+- [Change] A gauge forecast to rise into flood stays visible on phones and at
+         state zoom
+- [Change] The SITREP lists active NWS products and orders rising gauges by
+         soonest crest
+
 ## v0.100.7 · 2026-10-01 (lost contact goes to the top)
 
 -- Changes --

@@ -1,0 +1,2286 @@
+{
+ "captured": "2026-10-02T13:39:00Z",
+ "note": "Every Texas product active on api.weather.gov/alerts/active?area=TX at capture time, verbatim except that description and instruction are cut to 240 characters and references are dropped. Six event types across all three tiers: Flash Flood Warning, Flood Warning (riverine, open-start VTEC), Flood Watch (KFWD 0007 arrives as two segments, EXT and EXB, sharing one VTEC tuple), Flood Advisory, Coastal Flood Advisory (one Louisiana and one Texas zone) and a High Wind Warning, the one non-flood standing product.",
+ "features": [
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.65be146bd8655b29b99c47853e92ea79a0a7be5a.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.65be146bd8655b29b99c47853e92ea79a0a7be5a.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.65be146bd8655b29b99c47853e92ea79a0a7be5a.001.1",
+    "areaDesc": "Walker; Burleson; Brazos; Washington; Grimes; Montgomery; Colorado; Austin; Waller; Inland Harris; Wharton; Fort Bend; Inland Jackson; Coastal Harris; Coastal Jackson",
+    "geocode": {
+     "SAME": [
+      "048471",
+      "048051",
+      "048041",
+      "048477",
+      "048185",
+      "048339",
+      "048089",
+      "048015",
+      "048473",
+      "048201",
+      "048481",
+      "048157",
+      "048239"
+     ],
+     "UGC": [
+      "TXZ177",
+      "TXZ195",
+      "TXZ196",
+      "TXZ197",
+      "TXZ198",
+      "TXZ199",
+      "TXZ210",
+      "TXZ211",
+      "TXZ212",
+      "TXZ213",
+      "TXZ226",
+      "TXZ227",
+      "TXZ235",
+      "TXZ313",
+      "TXZ335"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/TXZ177",
+     "https://api.weather.gov/zones/forecast/TXZ195",
+     "https://api.weather.gov/zones/forecast/TXZ196",
+     "https://api.weather.gov/zones/forecast/TXZ197",
+     "https://api.weather.gov/zones/forecast/TXZ198",
+     "https://api.weather.gov/zones/forecast/TXZ199",
+     "https://api.weather.gov/zones/forecast/TXZ210",
+     "https://api.weather.gov/zones/forecast/TXZ211",
+     "https://api.weather.gov/zones/forecast/TXZ212",
+     "https://api.weather.gov/zones/forecast/TXZ213",
+     "https://api.weather.gov/zones/forecast/TXZ226",
+     "https://api.weather.gov/zones/forecast/TXZ227",
+     "https://api.weather.gov/zones/forecast/TXZ235",
+     "https://api.weather.gov/zones/forecast/TXZ313",
+     "https://api.weather.gov/zones/forecast/TXZ335"
+    ],
+    "sent": "2026-10-02T08:36:00-05:00",
+    "effective": "2026-10-02T08:36:00-05:00",
+    "onset": "2026-10-02T08:36:00-05:00",
+    "expires": "2026-10-02T19:00:00-05:00",
+    "ends": "2026-10-02T19:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Possible",
+    "urgency": "Future",
+    "event": "Flood Watch",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Houston/Galveston TX",
+    "headline": "Flood Watch issued October 2 at 8:36AM CDT until October 2 at 7:00PM CDT by NWS Houston/Galveston TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall continues to be\npossible.\n\n* WHERE...Portions of south central and southeast Texas, including\nthe following areas, in south central Texas, Coastal Jackson and\nInland Jackson. In southeast Texas",
+    "instruction": "You should monitor later forecasts and be alert for possible Flood\nWarnings. Those living in areas prone to flooding should be prepared\nto take action should flooding develop.",
+    "response": "Prepare",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFAHGX"
+     ],
+     "WMOidentifier": [
+      "WGUS64 KHGX 021336"
+     ],
+     "NWSheadline": [
+      "FLOOD WATCH REMAINS IN EFFECT UNTIL 7 PM CDT THIS EVENING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CON.KHGX.FA.A.0006.000000T0000Z-261003T0000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T19:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFA"
+     ],
+     "NationalWeatherService": [
+      "FAA"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.2efc5a4de1766fa40f050d998334a46cfb5cfc26.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -98.28,
+       31.03
+      ],
+      [
+       -98.24,
+       31.3
+      ],
+      [
+       -97.98,
+       31.56
+      ],
+      [
+       -97.69,
+       31.71
+      ],
+      [
+       -97.62,
+       31.6
+      ],
+      [
+       -98.03,
+       31.03
+      ],
+      [
+       -98.28,
+       31.03
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.2efc5a4de1766fa40f050d998334a46cfb5cfc26.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.2efc5a4de1766fa40f050d998334a46cfb5cfc26.001.1",
+    "areaDesc": "Coryell, TX; Lampasas, TX",
+    "geocode": {
+     "SAME": [
+      "048099",
+      "048281"
+     ],
+     "UGC": [
+      "TXC099",
+      "TXC281"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC099",
+     "https://api.weather.gov/zones/county/TXC281"
+    ],
+    "sent": "2026-10-02T08:06:00-05:00",
+    "effective": "2026-10-02T08:06:00-05:00",
+    "onset": "2026-10-02T08:06:00-05:00",
+    "expires": "2026-10-02T09:00:00-05:00",
+    "ends": "2026-10-02T09:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Immediate",
+    "event": "Flash Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Fort Worth TX",
+    "headline": "Flash Flood Warning issued October 2 at 8:06AM CDT until October 2 at 9:00AM CDT by NWS Fort Worth TX",
+    "description": "At 806 AM CDT, Doppler radar and automated rain gauges indicated that\nheavy rain was falling across the warned area. Up to 4 inches of rain\nhave fallen. Additional rainfall amounts up to 1 inch are possible in\nthe warned area. Flash floodin",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFSFWD"
+     ],
+     "WMOidentifier": [
+      "WGUS74 KFWD 021306"
+     ],
+     "NWSheadline": [
+      "FLASH FLOOD WARNING REMAINS IN EFFECT UNTIL 9 AM CDT THIS MORNING FOR CENTRAL CORYELL AND EASTERN LAMPASAS COUNTIES"
+     ],
+     "flashFloodDetection": [
+      "RADAR AND GAUGE INDICATED"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CON.KFWD.FF.W.0090.000000T0000Z-261002T1400Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T09:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFS"
+     ],
+     "NationalWeatherService": [
+      "FFW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.96c3645f78c793d39332f1403f09756b7b4bfbd6.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -98.72,
+       29.64
+      ],
+      [
+       -98.74,
+       29.26
+      ],
+      [
+       -98.46,
+       29.17
+      ],
+      [
+       -98.18,
+       29.43
+      ],
+      [
+       -98.5,
+       29.71
+      ],
+      [
+       -98.72,
+       29.64
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.96c3645f78c793d39332f1403f09756b7b4bfbd6.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.96c3645f78c793d39332f1403f09756b7b4bfbd6.001.1",
+    "areaDesc": "Bexar, TX",
+    "geocode": {
+     "SAME": [
+      "048029"
+     ],
+     "UGC": [
+      "TXC029"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC029"
+    ],
+    "sent": "2026-10-02T08:05:00-05:00",
+    "effective": "2026-10-02T08:05:00-05:00",
+    "onset": "2026-10-02T08:05:00-05:00",
+    "expires": "2026-10-02T11:00:00-05:00",
+    "ends": "2026-10-02T11:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Austin/San Antonio TX",
+    "headline": "Flood Advisory issued October 2 at 8:05AM CDT until October 2 at 11:00AM CDT by NWS Austin/San Antonio TX",
+    "description": "* WHAT...Urban area and small stream flooding caused by excessive\nrainfall is expected.\n\n* WHERE...Bexar County in south central Texas...\n\n* WHEN...Until 1100 AM CDT.\n\n* IMPACTS...Minor flooding in low-lying and poor drainage areas.\nWater o",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.\n\nBe aware of your surroundings and do not drive on flooded roads.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSEWX"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KEWX 021305"
+     ],
+     "NWSheadline": [
+      "FLOOD ADVISORY IN EFFECT UNTIL 11 AM CDT THIS MORNING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.NEW.KEWX.FA.Y.0220.261002T1305Z-261002T1600Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T11:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "FAY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b59994f5ca1e042b0b129fd63d77f04e4fc07d21.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -98.61,
+       29.78
+      ],
+      [
+       -98.71,
+       29.79
+      ],
+      [
+       -98.63,
+       30.14
+      ],
+      [
+       -98.59,
+       30.14
+      ],
+      [
+       -98.59,
+       30.32
+      ],
+      [
+       -98.55,
+       30.49
+      ],
+      [
+       -98.19,
+       30.43
+      ],
+      [
+       -98.4,
+       29.75
+      ],
+      [
+       -98.61,
+       29.78
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b59994f5ca1e042b0b129fd63d77f04e4fc07d21.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.b59994f5ca1e042b0b129fd63d77f04e4fc07d21.001.1",
+    "areaDesc": "Blanco, TX; Comal, TX; Kendall, TX",
+    "geocode": {
+     "SAME": [
+      "048031",
+      "048091",
+      "048259"
+     ],
+     "UGC": [
+      "TXC031",
+      "TXC091",
+      "TXC259"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC031",
+     "https://api.weather.gov/zones/county/TXC091",
+     "https://api.weather.gov/zones/county/TXC259"
+    ],
+    "sent": "2026-10-02T07:58:00-05:00",
+    "effective": "2026-10-02T07:58:00-05:00",
+    "onset": "2026-10-02T07:58:00-05:00",
+    "expires": "2026-10-02T11:00:00-05:00",
+    "ends": "2026-10-02T11:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Austin/San Antonio TX",
+    "headline": "Flood Advisory issued October 2 at 7:58AM CDT until October 2 at 11:00AM CDT by NWS Austin/San Antonio TX",
+    "description": "* WHAT...Urban area and small stream flooding caused by excessive\nrainfall is expected.\n\n* WHERE...Blanco County in south central Texas...\nNorthwestern Comal County in south central Texas...\nEastern Kendall County in south central Texas...\n",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.\n\nBe aware of your surroundings and do not drive on flooded roads.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSEWX"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KEWX 021258"
+     ],
+     "NWSheadline": [
+      "FLOOD ADVISORY IN EFFECT UNTIL 11 AM CDT THIS MORNING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.NEW.KEWX.FA.Y.0219.261002T1258Z-261002T1600Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T11:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "FAY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.35eb478aa88c07049feff7461c2270db4af2a077.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.35eb478aa88c07049feff7461c2270db4af2a077.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.35eb478aa88c07049feff7461c2270db4af2a077.001.1",
+    "areaDesc": "Southern Calcasieu; Southern Orange",
+    "geocode": {
+     "SAME": [
+      "022019",
+      "048361"
+     ],
+     "UGC": [
+      "LAZ241",
+      "TXZ616"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/LAZ241",
+     "https://api.weather.gov/zones/forecast/TXZ616"
+    ],
+    "sent": "2026-10-02T07:57:00-05:00",
+    "effective": "2026-10-02T07:57:00-05:00",
+    "onset": "2026-10-02T07:57:00-05:00",
+    "expires": "2026-10-02T13:00:00-05:00",
+    "ends": "2026-10-02T13:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Coastal Flood Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Lake Charles LA",
+    "headline": "Coastal Flood Advisory issued October 2 at 7:57AM CDT until October 2 at 1:00PM CDT by NWS Lake Charles LA",
+    "description": "* WHAT...Minor coastal flooding expected with water levels\nreaching between 1.0 and 1.5 feet above mean higher high water.\n\n* WHERE...In Louisiana, Southern Calcasieu Parish. In Texas,\nSouthern Orange County.\n\n* WHEN...Until 1 PM CDT this a",
+    "instruction": "If travel is required, allow extra time as some roads may be\nclosed. Do not drive around barricades or through water of\nunknown depth. Take the necessary actions to protect flood-prone\nproperty.",
+    "response": "Monitor",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "CFWLCH"
+     ],
+     "WMOidentifier": [
+      "WHUS44 KLCH 021257"
+     ],
+     "NWSheadline": [
+      "COASTAL FLOOD ADVISORY REMAINS IN EFFECT UNTIL 1 PM CDT THIS AFTERNOON"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.CON.KLCH.CF.Y.0006.000000T0000Z-261002T1800Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T13:00:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.96ab700838ec8e539a8c284b2039666381b6f562.001.1,2026-10-02T01:53:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.78e0cd8e61cbc34b9dc1f55ed573e75f92ac59fe.001.1,2026-10-02T00:49:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.e6a242aef174b8c998b6e09923152de71598c517.001.1,2026-10-01T18:52:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "CFY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d5789941d1a84c0812c32a84baf77ac962591e0a.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -97.73,
+       31.86
+      ],
+      [
+       -97.63,
+       31.77
+      ],
+      [
+       -97.47,
+       31.87
+      ],
+      [
+       -97.53,
+       31.94
+      ],
+      [
+       -97.63,
+       31.97
+      ],
+      [
+       -97.73,
+       31.86
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d5789941d1a84c0812c32a84baf77ac962591e0a.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.d5789941d1a84c0812c32a84baf77ac962591e0a.001.1",
+    "areaDesc": "Bosque, TX",
+    "geocode": {
+     "SAME": [
+      "048035"
+     ],
+     "UGC": [
+      "TXC035"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC035"
+    ],
+    "sent": "2026-10-02T07:50:00-05:00",
+    "effective": "2026-10-02T07:50:00-05:00",
+    "onset": "2026-10-02T07:50:00-05:00",
+    "expires": "2026-10-02T10:45:00-05:00",
+    "ends": "2026-10-02T10:45:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Immediate",
+    "event": "Flash Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Fort Worth TX",
+    "headline": "Flash Flood Warning issued October 2 at 7:50AM CDT until October 2 at 10:45AM CDT by NWS Fort Worth TX",
+    "description": "FFWFWD\n\nThe National Weather Service in Fort Worth has issued a\n\n* Flash Flood Warning for...\nCentral Bosque County in central Texas...\n\n* Until 1045 AM CDT.\n\n* At 750 AM CDT, Doppler radar and automated rain gauges indicated\nthunderstorms ",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.\n\nBe aware of your surroundings and do not drive on flooded roads.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFWFWD"
+     ],
+     "WMOidentifier": [
+      "WGUS54 KFWD 021250"
+     ],
+     "flashFloodDetection": [
+      "RADAR AND GAUGE INDICATED"
+     ],
+     "flashFloodDamageThreat": [
+      "CONSIDERABLE"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.NEW.KFWD.FF.W.0092.261002T1250Z-261002T1545Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T10:45:00-05:00"
+     ],
+     "WEAHandling": [
+      "Imminent Threat"
+     ],
+     "CMAMtext": [
+      "NWS: FLASH FLOOD WARNING this area til 10:45 AM CDT. Avoid flooded areas."
+     ],
+     "CMAMlongtext": [
+      "National Weather Service: A FLASH FLOOD WARNING is in effect for this area until 10:45 AM CDT. This is a dangerous and life-threatening situation. Do not attempt to travel unless you are fleeing an area subject to flooding or under an evacuation order."
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFW"
+     ],
+     "NationalWeatherService": [
+      "FFW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.ba45f14e204fa21728265545b5438222002fc1e2.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -97.5,
+       32.13
+      ],
+      [
+       -97.45,
+       32.18
+      ],
+      [
+       -97.2,
+       32.24
+      ],
+      [
+       -97.18,
+       32.15
+      ],
+      [
+       -97.45,
+       31.82
+      ],
+      [
+       -97.77,
+       31.68
+      ],
+      [
+       -97.83,
+       31.77
+      ],
+      [
+       -97.5,
+       32.13
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.ba45f14e204fa21728265545b5438222002fc1e2.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.ba45f14e204fa21728265545b5438222002fc1e2.001.1",
+    "areaDesc": "Bosque, TX; Hill, TX",
+    "geocode": {
+     "SAME": [
+      "048035",
+      "048217"
+     ],
+     "UGC": [
+      "TXC035",
+      "TXC217"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC035",
+     "https://api.weather.gov/zones/county/TXC217"
+    ],
+    "sent": "2026-10-02T06:25:00-05:00",
+    "effective": "2026-10-02T06:25:00-05:00",
+    "onset": "2026-10-02T06:25:00-05:00",
+    "expires": "2026-10-02T09:00:00-05:00",
+    "ends": "2026-10-02T09:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Immediate",
+    "event": "Flash Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Fort Worth TX",
+    "headline": "Flash Flood Warning issued October 2 at 6:25AM CDT until October 2 at 9:00AM CDT by NWS Fort Worth TX",
+    "description": "FFWFWD\n\nThe National Weather Service in Fort Worth has issued a\n\n* Flash Flood Warning for...\nCentral Bosque County in central Texas...\nNorthwestern Hill County in central Texas...\n\n* Until 900 AM CDT.\n\n* At 625 AM CDT, Doppler radar indica",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFWFWD"
+     ],
+     "WMOidentifier": [
+      "WGUS54 KFWD 021125"
+     ],
+     "flashFloodDetection": [
+      "RADAR INDICATED"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.NEW.KFWD.FF.W.0091.261002T1125Z-261002T1400Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T09:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFW"
+     ],
+     "NationalWeatherService": [
+      "FFW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.8d5ca79b49b5caf1344425568e3eb62491f3ad4f.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -97.84,
+       29.38
+      ],
+      [
+       -97.86,
+       29.35
+      ],
+      [
+       -97.82,
+       29.32
+      ],
+      [
+       -97.94,
+       29.1
+      ],
+      [
+       -98.19,
+       28.89
+      ],
+      [
+       -98.39,
+       29.11
+      ],
+      [
+       -98.03,
+       29.54
+      ],
+      [
+       -97.81,
+       29.41
+      ],
+      [
+       -97.84,
+       29.38
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.8d5ca79b49b5caf1344425568e3eb62491f3ad4f.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.8d5ca79b49b5caf1344425568e3eb62491f3ad4f.001.1",
+    "areaDesc": "Guadalupe, TX; Wilson, TX",
+    "geocode": {
+     "SAME": [
+      "048187",
+      "048493"
+     ],
+     "UGC": [
+      "TXC187",
+      "TXC493"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC187",
+     "https://api.weather.gov/zones/county/TXC493"
+    ],
+    "sent": "2026-10-02T06:13:00-05:00",
+    "effective": "2026-10-02T06:13:00-05:00",
+    "onset": "2026-10-02T06:13:00-05:00",
+    "expires": "2026-10-02T09:15:00-05:00",
+    "ends": "2026-10-02T09:15:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Austin/San Antonio TX",
+    "headline": "Flood Advisory issued October 2 at 6:13AM CDT until October 2 at 9:15AM CDT by NWS Austin/San Antonio TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall is expected.\n\n* WHERE...South Central Guadalupe County in south central Texas...\nWilson County in south central Texas...\n\n* WHEN...Until 915 AM CDT.\n\n* IMPACTS...Minor flooding in low-lying and",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.\n\nBe especially cautious at night when it is harder to recognize the\ndangers of flooding.\n\nBe aware of your surroundings and do not drive on flood",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSEWX"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KEWX 021113"
+     ],
+     "NWSheadline": [
+      "FLOOD ADVISORY IN EFFECT UNTIL 915 AM CDT THIS MORNING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.NEW.KEWX.FA.Y.0218.261002T1113Z-261002T1415Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T09:15:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "FAY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.0259eb9cb0e47b8dfc8ecb19e352cd94aa195faf.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -97.91,
+       31.03
+      ],
+      [
+       -97.99,
+       30.85
+      ],
+      [
+       -98.37,
+       30.89
+      ],
+      [
+       -98.36,
+       31.03
+      ],
+      [
+       -97.91,
+       31.03
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.0259eb9cb0e47b8dfc8ecb19e352cd94aa195faf.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.0259eb9cb0e47b8dfc8ecb19e352cd94aa195faf.001.1",
+    "areaDesc": "Burnet, TX",
+    "geocode": {
+     "SAME": [
+      "048053"
+     ],
+     "UGC": [
+      "TXC053"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC053"
+    ],
+    "sent": "2026-10-02T05:49:00-05:00",
+    "effective": "2026-10-02T05:49:00-05:00",
+    "onset": "2026-10-02T05:49:00-05:00",
+    "expires": "2026-10-02T08:45:00-05:00",
+    "ends": "2026-10-02T08:45:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Austin/San Antonio TX",
+    "headline": "Flood Advisory issued October 2 at 5:49AM CDT until October 2 at 8:45AM CDT by NWS Austin/San Antonio TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall is expected.\n\n* WHERE...Northern Burnet County in south central Texas...\n\n* WHEN...Until 845 AM CDT.\n\n* IMPACTS...Minor flooding in low-lying and poor drainage areas.\nDangerous flows over low-w",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.\n\nBe especially cautious at night when it is harder to recognize the\ndangers of flooding.\n\nBe aware of your surroundings and do not drive on flood",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSEWX"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KEWX 021049"
+     ],
+     "NWSheadline": [
+      "FLOOD ADVISORY IN EFFECT UNTIL 845 AM CDT THIS MORNING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.NEW.KEWX.FA.Y.0217.261002T1049Z-261002T1345Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T08:45:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "FAY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f3f5e05d1162c2f74ed7636eee5696155d2ce0ac.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -98.06,
+       31.29
+      ],
+      [
+       -97.98,
+       31.69
+      ],
+      [
+       -97.83,
+       31.77
+      ],
+      [
+       -97.77,
+       31.68
+      ],
+      [
+       -97.69,
+       31.45
+      ],
+      [
+       -97.93,
+       31.1
+      ],
+      [
+       -98.06,
+       31.29
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.f3f5e05d1162c2f74ed7636eee5696155d2ce0ac.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.f3f5e05d1162c2f74ed7636eee5696155d2ce0ac.001.1",
+    "areaDesc": "Coryell, TX; Hamilton, TX",
+    "geocode": {
+     "SAME": [
+      "048099",
+      "048193"
+     ],
+     "UGC": [
+      "TXC099",
+      "TXC193"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC099",
+     "https://api.weather.gov/zones/county/TXC193"
+    ],
+    "sent": "2026-10-02T05:46:00-05:00",
+    "effective": "2026-10-02T05:46:00-05:00",
+    "onset": "2026-10-02T05:46:00-05:00",
+    "expires": "2026-10-02T09:00:00-05:00",
+    "ends": "2026-10-02T09:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Fort Worth TX",
+    "headline": "Flood Advisory issued October 2 at 5:46AM CDT until October 2 at 9:00AM CDT by NWS Fort Worth TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall is expected.\n\n* WHERE...Central Coryell County in central Texas...\nSoutheastern Hamilton County in central Texas...\n\n* WHEN...Until 900 AM CDT.\n\n* IMPACTS...Water over roadways. Some low-water ",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSFWD"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KFWD 021046"
+     ],
+     "NWSheadline": [
+      "FLOOD ADVISORY IN EFFECT UNTIL 9 AM CDT THIS MORNING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.NEW.KFWD.FA.Y.0138.261002T1046Z-261002T1400Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T09:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "FAY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e3d744de0b3b309f979842cbec6798d1545f0d54.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -101.93,
+       35.53
+      ],
+      [
+       -101.81,
+       35.62
+      ],
+      [
+       -101.62,
+       35.62
+      ],
+      [
+       -101.72,
+       35.37
+      ],
+      [
+       -102.16,
+       35.36
+      ],
+      [
+       -102.17,
+       35.62
+      ],
+      [
+       -101.93,
+       35.53
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e3d744de0b3b309f979842cbec6798d1545f0d54.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.e3d744de0b3b309f979842cbec6798d1545f0d54.001.1",
+    "areaDesc": "Potter, TX",
+    "geocode": {
+     "SAME": [
+      "048375"
+     ],
+     "UGC": [
+      "TXC375"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC375"
+    ],
+    "sent": "2026-10-02T03:05:00-05:00",
+    "effective": "2026-10-02T03:05:00-05:00",
+    "onset": "2026-10-02T03:05:00-05:00",
+    "expires": "2026-10-02T15:15:00-05:00",
+    "ends": "2026-10-03T16:20:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Observed",
+    "urgency": "Immediate",
+    "event": "Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Amarillo TX",
+    "headline": "Flood Warning issued October 2 at 3:05AM CDT until October 3 at 4:20PM CDT by NWS Amarillo TX",
+    "description": "...The Flood Warning is extended for the following rivers in Texas...\n\nCanadian River at Amarillo 19N affecting Potter County.\n\nFor the Canadian River...including Amarillo 19N...Minor flooding is\nforecast.\n\n* WHAT...Minor flooding is foreca",
+    "instruction": "Turn around, don't drown when encountering flooded roads. Most flood\ndeaths occur in vehicles.\n\nMotorists should not attempt to drive around barricades or drive cars\nthrough flooded areas.\n\nCaution is urged when walking near riverbanks.\n\nBe",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSAMA"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KAMA 020805"
+     ],
+     "NWSheadline": [
+      "FLOOD WARNING NOW IN EFFECT UNTIL SATURDAY AFTERNOON"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXT.KAMA.FL.W.0001.000000T0000Z-261003T2120Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-03T16:20:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.4f467dd6b3dc59f9b78eb62e7d9233ccf955f47e.001.1,2026-09-30T22:34:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.074126f496e09f85de05d7c0d2d1eeedcf65ffcd.001.1,2026-09-30T22:31:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.64334349999ca3262a6f1963c137ccfe0af4771e.001.1,2026-09-30T22:18:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.c9c377a43a6dd90291c2e2d1de200681fcc246a5.001.1,2026-09-30T15:57:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.2b6c20efd0b4b04db8bd5f1123c4ff864970403d.001.1,2026-09-30T03:54:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.91fed3686168577d36726832145c0d49d64f1c2d.001.1,2026-09-30T00:19:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FLS"
+     ],
+     "NationalWeatherService": [
+      "FLW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b4f4335299808f34a738abea5aebfcb79f4fad4c.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -101.18,
+       29.96
+      ],
+      [
+       -101.1,
+       29.96
+      ],
+      [
+       -100.97,
+       29.89
+      ],
+      [
+       -100.95,
+       29.71
+      ],
+      [
+       -101.03,
+       29.68
+      ],
+      [
+       -101.05,
+       29.86
+      ],
+      [
+       -101.18,
+       29.96
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b4f4335299808f34a738abea5aebfcb79f4fad4c.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.b4f4335299808f34a738abea5aebfcb79f4fad4c.001.1",
+    "areaDesc": "Val Verde, TX",
+    "geocode": {
+     "SAME": [
+      "048465"
+     ],
+     "UGC": [
+      "TXC465"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC465"
+    ],
+    "sent": "2026-10-02T02:48:00-05:00",
+    "effective": "2026-10-02T02:48:00-05:00",
+    "onset": "2026-10-02T02:48:00-05:00",
+    "expires": "2026-10-02T15:00:00-05:00",
+    "ends": "2026-10-02T17:20:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Observed",
+    "urgency": "Immediate",
+    "event": "Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Austin/San Antonio TX",
+    "headline": "Flood Warning issued October 2 at 2:48AM CDT until October 2 at 5:20PM CDT by NWS Austin/San Antonio TX",
+    "description": "...The Flood Warning continues for the following rivers in Texas...\n\nDevils River At Bakers Crossing 19N Of Comstock affecting Val Verde\nCounty.\n\n* WHAT...Moderate flooding is occurring and minor flooding is\nforecast.\n\n* WHERE...Devils Rive",
+    "instruction": "Motorists should not attempt to drive around barricades or drive cars\nthrough flooded areas.\n\nBe especially cautious at night when it is harder to recognize the\ndangers of flooding.\n\nTo escape rising water, take the shortest path to higher ",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSEWX"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KEWX 020748 RRA"
+     ],
+     "NWSheadline": [
+      "FLOOD WARNING NOW IN EFFECT UNTIL THIS AFTERNOON"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXT.KEWX.FL.W.0052.000000T0000Z-261002T2220Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T17:20:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.0f7cd2621044f3d4273c7178ad068b6a10170356.001.1,2026-10-01T12:43:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.f4be351c6b2111b6c31613932c0d06a461016288.001.1,2026-10-01T08:53:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.fc3ee66ae0c3ce13415cc6f9affabdafa04d216b.002.1,2026-10-01T06:46:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.92a00bf0518873a11d024801b748bbcf5571ceba.002.1,2026-10-01T05:33:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FLS"
+     ],
+     "NationalWeatherService": [
+      "FLW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.ffa79bafe5b4e886059a42a66c9d86b877f5ca91.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -101.03,
+       29.68
+      ],
+      [
+       -100.95,
+       29.71
+      ],
+      [
+       -100.89,
+       29.66
+      ],
+      [
+       -100.92,
+       29.56
+      ],
+      [
+       -101,
+       29.53
+      ],
+      [
+       -100.97,
+       29.63
+      ],
+      [
+       -101.03,
+       29.68
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.ffa79bafe5b4e886059a42a66c9d86b877f5ca91.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.ffa79bafe5b4e886059a42a66c9d86b877f5ca91.001.1",
+    "areaDesc": "Val Verde, TX",
+    "geocode": {
+     "SAME": [
+      "048465"
+     ],
+     "UGC": [
+      "TXC465"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC465"
+    ],
+    "sent": "2026-10-02T02:48:00-05:00",
+    "effective": "2026-10-02T02:48:00-05:00",
+    "onset": "2026-10-02T02:48:00-05:00",
+    "expires": "2026-10-02T15:00:00-05:00",
+    "ends": "2026-10-03T00:40:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Observed",
+    "urgency": "Immediate",
+    "event": "Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Austin/San Antonio TX",
+    "headline": "Flood Warning issued October 2 at 2:48AM CDT until October 3 at 12:40AM CDT by NWS Austin/San Antonio TX",
+    "description": "...The Flood Warning is extended for the following rivers in Texas...\n\nDevils River At Pafford Crossing nr Comstock affecting Val Verde\nCounty.\n\n* WHAT...Moderate flooding is occurring and moderate flooding is\nforecast.\n\n* WHERE...Devils Ri",
+    "instruction": "Motorists should not attempt to drive around barricades or drive cars\nthrough flooded areas.\n\nBe especially cautious at night when it is harder to recognize the\ndangers of flooding.\n\nTo escape rising water, take the shortest path to higher ",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSEWX"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KEWX 020748"
+     ],
+     "NWSheadline": [
+      "FLOOD WARNING NOW IN EFFECT UNTIL LATE TONIGHT"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXT.KEWX.FL.W.0053.000000T0000Z-261003T0540Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-03T00:40:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.c7bd13a4249d6d300e2f2856a7aebcefb138c634.001.1,2026-10-01T12:43:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.f4be351c6b2111b6c31613932c0d06a461016288.003.1,2026-10-01T08:53:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.fc3ee66ae0c3ce13415cc6f9affabdafa04d216b.001.1,2026-10-01T06:46:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FLS"
+     ],
+     "NationalWeatherService": [
+      "FLW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.889134bcecdcbdf79fd124d6075c7ada45d07776.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.889134bcecdcbdf79fd124d6075c7ada45d07776.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.889134bcecdcbdf79fd124d6075c7ada45d07776.001.1",
+    "areaDesc": "Guadalupe Mountains of Eddy County; Guadalupe Mountains Above 7000 Feet; Guadalupe and Delaware Mountains",
+    "geocode": {
+     "SAME": [
+      "035015",
+      "048109"
+     ],
+     "UGC": [
+      "NMZ027",
+      "TXZ270",
+      "TXZ271"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/NMZ027",
+     "https://api.weather.gov/zones/forecast/TXZ270",
+     "https://api.weather.gov/zones/forecast/TXZ271"
+    ],
+    "sent": "2026-10-02T01:14:00-06:00",
+    "effective": "2026-10-02T01:14:00-06:00",
+    "onset": "2026-10-02T01:14:00-06:00",
+    "expires": "2026-10-02T12:00:00-06:00",
+    "ends": "2026-10-02T12:00:00-06:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "High Wind Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Midland/Odessa TX",
+    "headline": "High Wind Warning issued October 2 at 1:14AM MDT until October 2 at 12:00PM MDT by NWS Midland/Odessa TX",
+    "description": "* WHAT...Northeast winds 35 to 45 mph with gusts up to 60 mph.\n\n* WHERE...Guadalupe Mountains of west Texas and Southeast New Mexico,\nespecially Guadalupe Pass.\n\n* WHEN...Until noon MDT /1 PM CDT/ today.\n\n* IMPACTS...Travel will be difficul",
+    "instruction": "Winds will be particularly hazardous at higher elevations where the\nstrongest winds are likely to occur. Be especially careful driving in\nthese mountainous areas. People driving high-profile vehicles should\nstrongly consider postponing trav",
+    "response": "Prepare",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "NPWMAF"
+     ],
+     "WMOidentifier": [
+      "WWUS74 KMAF 020714"
+     ],
+     "NWSheadline": [
+      "HIGH WIND WARNING REMAINS IN EFFECT UNTIL NOON MDT /1 PM CDT/ TODAY, ESPECIALLY FOR GUADALUPE PASS"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CON.KMAF.HW.W.0021.000000T0000Z-261002T1800Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T12:00:00-06:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "HWW"
+     ],
+     "NationalWeatherService": [
+      "HWW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b7cdd851a493afa58b5cf5fc13948ba8a35d2b25.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b7cdd851a493afa58b5cf5fc13948ba8a35d2b25.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.b7cdd851a493afa58b5cf5fc13948ba8a35d2b25.001.1",
+    "areaDesc": "La Salle; McMullen; Live Oak; Bee; Goliad; Victoria; Webb; Duval; Jim Wells; Inland Kleberg; Inland Nueces; Inland San Patricio",
+    "geocode": {
+     "SAME": [
+      "048283",
+      "048311",
+      "048297",
+      "048025",
+      "048175",
+      "048469",
+      "048479",
+      "048131",
+      "048249",
+      "048273",
+      "048355",
+      "048409"
+     ],
+     "UGC": [
+      "TXZ229",
+      "TXZ230",
+      "TXZ231",
+      "TXZ232",
+      "TXZ233",
+      "TXZ234",
+      "TXZ239",
+      "TXZ240",
+      "TXZ241",
+      "TXZ242",
+      "TXZ243",
+      "TXZ244"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/TXZ229",
+     "https://api.weather.gov/zones/forecast/TXZ230",
+     "https://api.weather.gov/zones/forecast/TXZ231",
+     "https://api.weather.gov/zones/forecast/TXZ232",
+     "https://api.weather.gov/zones/forecast/TXZ233",
+     "https://api.weather.gov/zones/forecast/TXZ234",
+     "https://api.weather.gov/zones/forecast/TXZ239",
+     "https://api.weather.gov/zones/forecast/TXZ240",
+     "https://api.weather.gov/zones/forecast/TXZ241",
+     "https://api.weather.gov/zones/forecast/TXZ242",
+     "https://api.weather.gov/zones/forecast/TXZ243",
+     "https://api.weather.gov/zones/forecast/TXZ244"
+    ],
+    "sent": "2026-10-02T01:36:00-05:00",
+    "effective": "2026-10-02T01:36:00-05:00",
+    "onset": "2026-10-02T01:36:00-05:00",
+    "expires": "2026-10-02T19:00:00-05:00",
+    "ends": "2026-10-02T19:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Possible",
+    "urgency": "Future",
+    "event": "Flood Watch",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Corpus Christi TX",
+    "headline": "Flood Watch issued October 2 at 1:36AM CDT until October 2 at 7:00PM CDT by NWS Corpus Christi TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall continues to be\npossible.\n\n* WHERE...A portion of south Texas, including the following areas,\nBee, Duval, Goliad, Inland Kleberg, Inland Nueces, Inland San\nPatricio, Jim Wells, La Salle, Live O",
+    "instruction": "You should monitor later forecasts and be alert for possible Flood\nWarnings. Those living in areas prone to flooding should be prepared\nto take action should flooding develop.",
+    "response": "Prepare",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFACRP"
+     ],
+     "WMOidentifier": [
+      "WGUS64 KCRP 020636"
+     ],
+     "NWSheadline": [
+      "FLOOD WATCH REMAINS IN EFFECT THROUGH THIS EVENING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CON.KCRP.FA.A.0004.000000T0000Z-261003T0000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T19:00:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.c24fa236d33f7db83f187aaac6e3e1d58e65bce1.001.1,2026-09-30T23:29:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFA"
+     ],
+     "NationalWeatherService": [
+      "FAA"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.22e07b86f1e6a63dd05ccae460c4cedf90117404.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.22e07b86f1e6a63dd05ccae460c4cedf90117404.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.22e07b86f1e6a63dd05ccae460c4cedf90117404.001.1",
+    "areaDesc": "Llano; Burnet; Williamson; Kerr; Bandera; Gillespie; Kendall; Blanco; Hays; Travis; Bastrop; Lee; Uvalde; Medina; Bexar; Comal; Guadalupe; Caldwell; Fayette; Zavala; Frio; Atascosa; Wilson; Karnes; Gonzales; De Witt; Lavaca; Dimmit",
+    "geocode": {
+     "SAME": [
+      "048299",
+      "048053",
+      "048491",
+      "048265",
+      "048019",
+      "048171",
+      "048259",
+      "048031",
+      "048209",
+      "048453",
+      "048021",
+      "048287",
+      "048463",
+      "048325",
+      "048029",
+      "048091",
+      "048187",
+      "048055",
+      "048149",
+      "048507",
+      "048163",
+      "048013",
+      "048493",
+      "048255",
+      "048177",
+      "048123",
+      "048285",
+      "048127"
+     ],
+     "UGC": [
+      "TXZ171",
+      "TXZ172",
+      "TXZ173",
+      "TXZ186",
+      "TXZ187",
+      "TXZ188",
+      "TXZ189",
+      "TXZ190",
+      "TXZ191",
+      "TXZ192",
+      "TXZ193",
+      "TXZ194",
+      "TXZ203",
+      "TXZ204",
+      "TXZ205",
+      "TXZ206",
+      "TXZ207",
+      "TXZ208",
+      "TXZ209",
+      "TXZ218",
+      "TXZ219",
+      "TXZ220",
+      "TXZ221",
+      "TXZ222",
+      "TXZ223",
+      "TXZ224",
+      "TXZ225",
+      "TXZ228"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/TXZ171",
+     "https://api.weather.gov/zones/forecast/TXZ172",
+     "https://api.weather.gov/zones/forecast/TXZ173",
+     "https://api.weather.gov/zones/forecast/TXZ186",
+     "https://api.weather.gov/zones/forecast/TXZ187",
+     "https://api.weather.gov/zones/forecast/TXZ188",
+     "https://api.weather.gov/zones/forecast/TXZ189",
+     "https://api.weather.gov/zones/forecast/TXZ190",
+     "https://api.weather.gov/zones/forecast/TXZ191",
+     "https://api.weather.gov/zones/forecast/TXZ192",
+     "https://api.weather.gov/zones/forecast/TXZ193",
+     "https://api.weather.gov/zones/forecast/TXZ194",
+     "https://api.weather.gov/zones/forecast/TXZ203",
+     "https://api.weather.gov/zones/forecast/TXZ204",
+     "https://api.weather.gov/zones/forecast/TXZ205",
+     "https://api.weather.gov/zones/forecast/TXZ206",
+     "https://api.weather.gov/zones/forecast/TXZ207",
+     "https://api.weather.gov/zones/forecast/TXZ208",
+     "https://api.weather.gov/zones/forecast/TXZ209",
+     "https://api.weather.gov/zones/forecast/TXZ218",
+     "https://api.weather.gov/zones/forecast/TXZ219",
+     "https://api.weather.gov/zones/forecast/TXZ220",
+     "https://api.weather.gov/zones/forecast/TXZ221",
+     "https://api.weather.gov/zones/forecast/TXZ222",
+     "https://api.weather.gov/zones/forecast/TXZ223",
+     "https://api.weather.gov/zones/forecast/TXZ224",
+     "https://api.weather.gov/zones/forecast/TXZ225",
+     "https://api.weather.gov/zones/forecast/TXZ228"
+    ],
+    "sent": "2026-10-02T01:33:00-05:00",
+    "effective": "2026-10-02T01:33:00-05:00",
+    "onset": "2026-10-02T01:33:00-05:00",
+    "expires": "2026-10-02T19:00:00-05:00",
+    "ends": "2026-10-02T19:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Possible",
+    "urgency": "Future",
+    "event": "Flood Watch",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Austin/San Antonio TX",
+    "headline": "Flood Watch issued October 2 at 1:33AM CDT until October 2 at 7:00PM CDT by NWS Austin/San Antonio TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall continues to be\npossible.\n\n* WHERE...A portion of south central Texas, including the following\ncounties, Atascosa, Bandera, Bastrop, Bexar, Blanco, Burnet,\nCaldwell, Comal, De Witt, Dimmit, Fay",
+    "instruction": "You should monitor later forecasts and be alert for possible Flood\nWarnings. Those living in areas prone to flooding should be prepared\nto take action should flooding develop.",
+    "response": "Prepare",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFAEWX"
+     ],
+     "WMOidentifier": [
+      "WGUS64 KEWX 020633"
+     ],
+     "NWSheadline": [
+      "FLOOD WATCH REMAINS IN EFFECT THROUGH THIS EVENING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CON.KEWX.FA.A.0008.000000T0000Z-261003T0000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T19:00:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.c08b64d6fb1ddc1bb6f9f6de6ae3a41d657b8d18.002.1,2026-10-01T10:29:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.e979d367785cf5d4e965904d771e9504ec65b4df.001.1,2026-09-30T21:52:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.70f75f164030f7681882e67ae548fa34932bd69d.001.1,2026-09-30T13:29:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.d02cd194c88fd6a036593ff8625743cf4a077774.001.1,2026-09-29T17:47:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.a89003886ff6e908fd8b92753f4de69804d3f0db.001.1,2026-09-29T09:24:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFA"
+     ],
+     "NationalWeatherService": [
+      "FAA"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.68f71c1385dfceb49863f7f88cc9d819c0611f2c.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.68f71c1385dfceb49863f7f88cc9d819c0611f2c.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.68f71c1385dfceb49863f7f88cc9d819c0611f2c.001.1",
+    "areaDesc": "McCurtain; Red River; Franklin; Titus; Camp; Morris; Wood; Upshur; Smith",
+    "geocode": {
+     "SAME": [
+      "040089",
+      "048387",
+      "048159",
+      "048449",
+      "048063",
+      "048343",
+      "048499",
+      "048459",
+      "048423"
+     ],
+     "UGC": [
+      "OKZ077",
+      "TXZ096",
+      "TXZ108",
+      "TXZ109",
+      "TXZ110",
+      "TXZ111",
+      "TXZ124",
+      "TXZ125",
+      "TXZ136"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/OKZ077",
+     "https://api.weather.gov/zones/forecast/TXZ096",
+     "https://api.weather.gov/zones/forecast/TXZ108",
+     "https://api.weather.gov/zones/forecast/TXZ109",
+     "https://api.weather.gov/zones/forecast/TXZ110",
+     "https://api.weather.gov/zones/forecast/TXZ111",
+     "https://api.weather.gov/zones/forecast/TXZ124",
+     "https://api.weather.gov/zones/forecast/TXZ125",
+     "https://api.weather.gov/zones/forecast/TXZ136"
+    ],
+    "sent": "2026-10-02T00:02:00-05:00",
+    "effective": "2026-10-02T00:02:00-05:00",
+    "onset": "2026-10-02T00:02:00-05:00",
+    "expires": "2026-10-02T19:00:00-05:00",
+    "ends": "2026-10-02T19:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Possible",
+    "urgency": "Future",
+    "event": "Flood Watch",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Shreveport LA",
+    "headline": "Flood Watch issued October 2 at 12:02AM CDT until October 2 at 7:00PM CDT by NWS Shreveport LA",
+    "description": "* WHAT...Flooding caused by excessive rainfall continues to be\npossible.\n\n* WHERE...Portions of southeast Oklahoma, including the following\ncounty, McCurtain and northeast Texas, including the following\ncounties, Camp, Franklin, Morris, Red",
+    "instruction": "You should monitor later forecasts and be alert for possible Flood\nWarnings. Those living in areas prone to flooding should be prepared\nto take action should flooding develop.",
+    "response": "Prepare",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFASHV"
+     ],
+     "WMOidentifier": [
+      "WGUS64 KSHV 020502"
+     ],
+     "NWSheadline": [
+      "FLOOD WATCH NOW IN EFFECT THROUGH FRIDAY EVENING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXT.KSHV.FA.A.0007.000000T0000Z-261003T0000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T19:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFA"
+     ],
+     "NationalWeatherService": [
+      "FAA"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.68ea060ba923626ccdc774a5e2d722bbc2edbb2b.002.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.68ea060ba923626ccdc774a5e2d722bbc2edbb2b.002.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.68ea060ba923626ccdc774a5e2d722bbc2edbb2b.002.1",
+    "areaDesc": "Denton; Collin; Hunt; Delta; Hopkins; Tarrant; Dallas; Rockwall; Kaufman; Van Zandt; Rains; Johnson; Ellis; Henderson; Bosque; Hill; Navarro; Lampasas; Coryell; Bell; McLennan; Falls; Limestone; Milam",
+    "geocode": {
+     "SAME": [
+      "048121",
+      "048085",
+      "048231",
+      "048119",
+      "048223",
+      "048439",
+      "048113",
+      "048397",
+      "048257",
+      "048467",
+      "048379",
+      "048251",
+      "048139",
+      "048213",
+      "048035",
+      "048217",
+      "048349",
+      "048281",
+      "048099",
+      "048027",
+      "048309",
+      "048145",
+      "048293",
+      "048331"
+     ],
+     "UGC": [
+      "TXZ103",
+      "TXZ104",
+      "TXZ105",
+      "TXZ106",
+      "TXZ107",
+      "TXZ118",
+      "TXZ119",
+      "TXZ120",
+      "TXZ121",
+      "TXZ122",
+      "TXZ123",
+      "TXZ133",
+      "TXZ134",
+      "TXZ135",
+      "TXZ144",
+      "TXZ145",
+      "TXZ146",
+      "TXZ156",
+      "TXZ157",
+      "TXZ158",
+      "TXZ159",
+      "TXZ160",
+      "TXZ161",
+      "TXZ174"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/TXZ103",
+     "https://api.weather.gov/zones/forecast/TXZ104",
+     "https://api.weather.gov/zones/forecast/TXZ105",
+     "https://api.weather.gov/zones/forecast/TXZ106",
+     "https://api.weather.gov/zones/forecast/TXZ107",
+     "https://api.weather.gov/zones/forecast/TXZ118",
+     "https://api.weather.gov/zones/forecast/TXZ119",
+     "https://api.weather.gov/zones/forecast/TXZ120",
+     "https://api.weather.gov/zones/forecast/TXZ121",
+     "https://api.weather.gov/zones/forecast/TXZ122",
+     "https://api.weather.gov/zones/forecast/TXZ123",
+     "https://api.weather.gov/zones/forecast/TXZ133",
+     "https://api.weather.gov/zones/forecast/TXZ134",
+     "https://api.weather.gov/zones/forecast/TXZ135",
+     "https://api.weather.gov/zones/forecast/TXZ144",
+     "https://api.weather.gov/zones/forecast/TXZ145",
+     "https://api.weather.gov/zones/forecast/TXZ146",
+     "https://api.weather.gov/zones/forecast/TXZ156",
+     "https://api.weather.gov/zones/forecast/TXZ157",
+     "https://api.weather.gov/zones/forecast/TXZ158",
+     "https://api.weather.gov/zones/forecast/TXZ159",
+     "https://api.weather.gov/zones/forecast/TXZ160",
+     "https://api.weather.gov/zones/forecast/TXZ161",
+     "https://api.weather.gov/zones/forecast/TXZ174"
+    ],
+    "sent": "2026-10-01T23:42:00-05:00",
+    "effective": "2026-10-01T23:42:00-05:00",
+    "onset": "2026-10-01T23:42:00-05:00",
+    "expires": "2026-10-02T14:00:00-05:00",
+    "ends": "2026-10-02T19:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Possible",
+    "urgency": "Future",
+    "event": "Flood Watch",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Fort Worth TX",
+    "headline": "Flood Watch issued October 1 at 11:42PM CDT until October 2 at 7:00PM CDT by NWS Fort Worth TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall continues to be\npossible.\n\n* WHERE...Portions of North and Central Texas, mainly along and near\nthe I-35 corridor.\n\n* WHEN...Through Friday evening.\n\n* IMPACTS...Excessive runoff may result in ",
+    "instruction": "You should monitor later forecasts and be alert for possible Flood\nWarnings. Those living in areas prone to flooding should be prepared\nto take action should flooding develop.",
+    "response": "Prepare",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFAFWD"
+     ],
+     "WMOidentifier": [
+      "WGUS64 KFWD 020442"
+     ],
+     "NWSheadline": [
+      "FLOOD WATCH NOW IN EFFECT THROUGH FRIDAY EVENING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXT.KFWD.FA.A.0007.000000T0000Z-261003T0000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T19:00:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.7e045d456426e96950d2b37b8626afca12d7c42d.001.1,2026-10-01T01:43:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.178e6a60f30c29675581dfc6d8dc6f5ed79a81e2.001.1,2026-09-30T14:26:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.62a788616671308b85090a8123fe3e6dcf0fa140.001.1,2026-09-30T04:40:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.8cf544e4b1227ba865bfa73b131b601be41f4c0d.002.1,2026-09-29T14:15:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.8cf544e4b1227ba865bfa73b131b601be41f4c0d.001.1,2026-09-29T14:15:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.42c765aed8ce98c7ecdac481bb15ebad257aaaad.001.1,2026-09-29T01:43:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFA"
+     ],
+     "NationalWeatherService": [
+      "FAA"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.68ea060ba923626ccdc774a5e2d722bbc2edbb2b.001.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.68ea060ba923626ccdc774a5e2d722bbc2edbb2b.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.68ea060ba923626ccdc774a5e2d722bbc2edbb2b.001.1",
+    "areaDesc": "Parker; Erath; Hood; Somervell; Hamilton; Freestone; Robertson",
+    "geocode": {
+     "SAME": [
+      "048367",
+      "048143",
+      "048221",
+      "048425",
+      "048193",
+      "048161",
+      "048395"
+     ],
+     "UGC": [
+      "TXZ117",
+      "TXZ130",
+      "TXZ131",
+      "TXZ132",
+      "TXZ143",
+      "TXZ147",
+      "TXZ175"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/forecast/TXZ117",
+     "https://api.weather.gov/zones/forecast/TXZ130",
+     "https://api.weather.gov/zones/forecast/TXZ131",
+     "https://api.weather.gov/zones/forecast/TXZ132",
+     "https://api.weather.gov/zones/forecast/TXZ143",
+     "https://api.weather.gov/zones/forecast/TXZ147",
+     "https://api.weather.gov/zones/forecast/TXZ175"
+    ],
+    "sent": "2026-10-01T23:42:00-05:00",
+    "effective": "2026-10-01T23:42:00-05:00",
+    "onset": "2026-10-01T23:42:00-05:00",
+    "expires": "2026-10-02T14:00:00-05:00",
+    "ends": "2026-10-02T19:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Possible",
+    "urgency": "Future",
+    "event": "Flood Watch",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Fort Worth TX",
+    "headline": "Flood Watch issued October 1 at 11:42PM CDT until October 2 at 7:00PM CDT by NWS Fort Worth TX",
+    "description": "* WHAT...Flooding caused by excessive rainfall continues to be\npossible.\n\n* WHERE...Portions of north central and south central Texas,\nincluding the following counties, in north central Texas, Erath,\nFreestone, Hamilton, Hood, Parker and So",
+    "instruction": "You should monitor later forecasts and be alert for possible Flood\nWarnings. Those living in areas prone to flooding should be prepared\nto take action should flooding develop.",
+    "response": "Prepare",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FFAFWD"
+     ],
+     "WMOidentifier": [
+      "WGUS64 KFWD 020442"
+     ],
+     "NWSheadline": [
+      "FLOOD WATCH IN EFFECT THROUGH FRIDAY EVENING"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXB.KFWD.FA.A.0007.000000T0000Z-261003T0000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-02T19:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FFA"
+     ],
+     "NationalWeatherService": [
+      "FAA"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.33c43f3e4712ac1acb645526066ec4c493622d52.002.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -96.93,
+       32.75
+      ],
+      [
+       -96.93,
+       32.81
+      ],
+      [
+       -96.83,
+       32.83
+      ],
+      [
+       -96.71,
+       32.75
+      ],
+      [
+       -96.76,
+       32.69
+      ],
+      [
+       -96.87,
+       32.78
+      ],
+      [
+       -96.93,
+       32.75
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.33c43f3e4712ac1acb645526066ec4c493622d52.002.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.33c43f3e4712ac1acb645526066ec4c493622d52.002.1",
+    "areaDesc": "Dallas, TX",
+    "geocode": {
+     "SAME": [
+      "048113"
+     ],
+     "UGC": [
+      "TXC113"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/TXC113"
+    ],
+    "sent": "2026-10-01T20:24:00-05:00",
+    "effective": "2026-10-01T20:24:00-05:00",
+    "onset": "2026-10-01T20:24:00-05:00",
+    "expires": "2026-10-02T14:30:00-05:00",
+    "ends": "2026-10-03T04:30:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Observed",
+    "urgency": "Immediate",
+    "event": "Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Fort Worth TX",
+    "headline": "Flood Warning issued October 1 at 8:24PM CDT until October 3 at 4:30AM CDT by NWS Fort Worth TX",
+    "description": "...The Flood Warning is extended for the following rivers in Texas...\n\nTrinity River At Dallas affecting Dallas County.\n\n...The Flood Warning is cancelled for the following rivers in\nTexas...\n\nWhite Rock Creek Near White Rock Creek At Green",
+    "instruction": "Do not drive cars through flooded areas. Caution is urged when\nwalking near riverbanks.\n\nAdditional information is available at water.noaa.gov/wfo/fwd.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "FLSFWD"
+     ],
+     "WMOidentifier": [
+      "WGUS84 KFWD 020124"
+     ],
+     "NWSheadline": [
+      "FLOOD WARNING NOW IN EFFECT UNTIL LATE FRIDAY NIGHT"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXT.KFWD.FL.W.0046.000000T0000Z-261003T0930Z/"
+     ],
+     "eventEndingTime": [
+      "2026-10-03T04:30:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "FLS"
+     ],
+     "NationalWeatherService": [
+      "FLW"
+     ]
+    }
+   }
+  }
+ ]
+}

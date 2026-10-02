@@ -505,8 +505,8 @@ function renderMapLegend() {
 function mapLegendHtml() {
   return `<div class="lg-title">${esc(t('legend.gauges'))}</div>` +
     gaugeLegendRows() +
-    `<div><span class="sw" style="width:10px">▲</span>${esc(t('legend.rise'))}</div>` +
-    `<div><span class="sw" style="width:10px;color:var(--good)">▼</span>${esc(t('legend.fall'))}</div>` +
+    `<div>${gaugeTrendChip('up', 'moderate')}${esc(t('legend.rise'))}</div>` +
+    `<div>${gaugeTrendChip('down')}${esc(t('legend.fall'))}</div>` +
     `<div><span class="sw fcst-ring cat-moderate" style="width:10px;height:10px"></span>${esc(t('legend.fcrest'))}</div>` +
     `<div class="lg-title" style="margin-top:6px">${esc(t('legend.roads'))}</div>` +
     ['Closure', 'Flooding', 'Damage'].map((k) => {

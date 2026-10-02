@@ -1208,10 +1208,9 @@ function feedCalmOk() {
 function heroCards() {
   const acute = alertDedupe(state.alerts.filter((f) => alertOpen(f) && hazardGlance(f)));
   const life = acute.filter((f) => f._sev === 'emergency');
-  const flood = state.gauges.filter((g) => CAT_RANK[gaugeCat(g)] >= CAT_RANK.minor);
+  const flood = sitFloodGauges();
   const major = flood.filter((g) => gaugeCat(g) === 'major');
-  const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
-    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
+  const rising = sitRisingGauges('minor');
   const roads = roadFeatures();
   // the card counts what the Roads badge counts: a closure with no current confirmation is listed
   // and mapped, never summed into a number the reader will act on
@@ -1447,8 +1446,7 @@ function tickerAlertItems() {
 function tickerItems() {
   const rise = [], majors = [];
   const emerg = tickerAlertItems();
-  const rising = state.gauges.filter((g) => gaugeRising(g) && CAT_RANK[gaugeForecastCat(g)] >= CAT_RANK.minor)
-    .sort((a, b) => new Date(a.status.forecast.validTime) - new Date(b.status.forecast.validTime));
+  const rising = sitRisingGauges('minor');
   // tapping a rising item frames the tapped gauge and pulses the whole rising set, on the map and
   // in the Gauges tab, so which gauges are in question is obvious rather than inferred
   for (const g of rising) {
@@ -1570,7 +1568,7 @@ function armTickerExpiry() {
   if (!ends.length) return;
   const wait = Math.min(...ends) - Date.now() + 1000;
   if (wait <= 0 || wait > CONFIG.refreshMs) return;
-  state.tickerExpiryTimer = setTimeout(() => { renderTicker(); renderDriveMode(); }, wait);
+  state.tickerExpiryTimer = setTimeout(() => { renderTicker(); renderDriveMode(); renderFeedSituation(); }, wait);
 }
 
 /* ---------- header ---------- */
@@ -1596,6 +1594,7 @@ function renderTiles() {
   renderThreatStrip();
   renderNine11Notice();
   renderTicker();
+  renderFeedSituation();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
   markUnknownBadges();
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical').length;

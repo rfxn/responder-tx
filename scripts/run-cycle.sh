@@ -83,7 +83,7 @@ BUDGET_CROSSSTATUS_S=120
 BUDGET_WILDFIRE_S=90
 BUDGET_ROADFLOOD_S=60
 BUDGET_CREST_S=120
-BUDGET_FEEDS_S=120
+BUDGET_FEEDS_S=150
 BUDGET_CALTOPO_S=120
 # Per-step budgets alone cannot bound the cycle: they sum past the window. This is the aggregate
 # guard, and it leaves room for the publish path (cycle-check, commit, deploy's own test gate,

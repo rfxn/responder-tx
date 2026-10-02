@@ -28,7 +28,7 @@ const CAM_STALE_MINS = 45; // aging invariant: a still older than this must neve
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
 const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
 // TxDOT signs each stream URL with a token that lapses within minutes, so it is resolved per view
-const DTX_ML = 'https://dtx-e-cdn.maplarge.com';
+const DTX_ML = CONFIG.dtxMapLarge;
 const DTX_NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const DTX_TABLE_RE = /^appgeo\/cameraPoint\/\d{6,24}$/;
 const DTX_STREAM_RE = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.skyvdn\.com\/[A-Za-z0-9_./-]+\.m3u8(\?token=[A-Za-z0-9._-]+)?$/;

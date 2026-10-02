@@ -124,7 +124,7 @@ cost bandwidth and time but not a cycle.
 *://api.weather.gov/*                 NWS active alerts + per-zone polygons
 *://waterservices.usgs.gov/*          USGS NWIS instantaneous values
 *://mesonet.agron.iastate.edu/*       IEM: LSRs, MRMS, HRRR, NEXRAD, playback archive tiles, SBW polys
-*://services5.arcgis.com/*            TxDOT/TDEM DriveTexas road conditions
+*://dtx-e-cdn.maplarge.com/*          DriveTexas road conditions, and the signer for each TxDOT stream URL
 *://services9.arcgis.com/*            NOAA/NHC active tropical cyclones
 *://feature.geographic.texas.gov/*    TxGIO low-water-crossing inventory
 *://api.tidesandcurrents.noaa.gov/*   NOAA CO-OPS water levels and predictions
@@ -140,7 +140,6 @@ cost bandwidth and time but not a cycle.
 *://tiles.arcgis.com/*                NOAA/NHC SLOSH surge raster
 *://*.rainviewer.com/*                RainViewer radar tiles (host arrives at runtime)
 *://*.skyvdn.com/*                    TxDOT Lonestar HLS camera streams
-*://dtx-e-cdn.maplarge.com/*          DriveTexas camera table: signs each TxDOT stream URL at view time
 *://cctv.austinmobility.io/*          City of Austin stills, loaded direct when the edge proxy is refused
 *://zoocams.elpasozoo.org/*           El Paso bridge HLS streams
 *://nominatim.openstreetmap.org/*     geocoding for map search and intake pins

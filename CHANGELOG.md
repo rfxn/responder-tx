@@ -1,5 +1,12 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.14 · 2026-10-02 (road closures are live again)
+
+-- Bug Fixes --
+- [Fix] Live TxDOT road closures are back after TxDOT changed how its road
+      conditions are published; a closure list that has stopped updating is
+      shown as a dated snapshot, never as live
+
 ## v0.100.13 · 2026-10-02 (a road count says how old it is)
 
 -- Bug Fixes --

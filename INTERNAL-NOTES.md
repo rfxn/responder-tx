@@ -389,13 +389,14 @@ while the WMS answers nothing. `wxFcstDegraded` keyed on `metaFail` alone, so th
 partial outage stepped through blank model hours reading as a dry forecast. Fixed
 v0.99.76: the hour layers now carry a `tileFail` signal, mirroring `wxObsUnverified`.
 
-**DriveTexas road closures** (`CONFIG.roadCondUrl`, ArcGIS). A real second endpoint
+**DriveTexas road closures** (ArcGIS when probed; DriveTexas's own MapLarge table since
+2026-10-02, see "Road closures after the DriveTexas token change"). A real second endpoint
 exists but is key-gated.
 
 | Candidate | Finding |
 |-----------|---------|
 | TxDOT WZDx 4.2 `api.drivetexas.org/api/conditions.wzdx.geojson` | **The real alternate.** Different host, different format, 5-minute cadence, listed active in the USDOT WZDx registry. Returns HTTP 401 without a key; the key is a free self-serve registration at `api.drivetexas.org`. **Owner action to mint**, same shape as the Cloudflare token |
-| TxDOT public ArcGIS org `KTcxiTD9dsQw4r7Z` | 685 services, none carrying live conditions. Lane geometry and inventory only. The live conditions exist solely in the `services5`/`Rvw11bGpzJNE7apK` DriveTexas service |
+| TxDOT public ArcGIS org `KTcxiTD9dsQw4r7Z` | 685 services, none carrying live conditions. Lane geometry and inventory only. The live conditions existed solely in the `services5`/`Rvw11bGpzJNE7apK` DriveTexas service, token-gated since 2026-10-02 |
 | City of Austin WZDx | Keyless, HTTP 200, 5.5 MB, fresh. But it is Austin **work zones** on a 60-minute cadence, not statewide flood closures. Wiring it as failover would answer a high-water question with construction cones, so it is excluded on honesty grounds, not availability |
 
 Registry query that produced this (41 rows, `state=texas` filtered client-side):
@@ -629,3 +630,63 @@ own timestamp into the picture. The LAN server's proxy is not blocked and still 
 the failures seen were cameras retired upstream since the 08-20 inventory. WeatherBug's index
 page now redirects to a traffic-cam page listing none of its weather cameras while the image CDN
 still serves them, so `gen-cameras.py` re-probes the last published set when the index is empty.
+
+## Road closures after the DriveTexas token change (2026-10-02)
+
+**What broke.** From about 13:40 CT the ArcGIS layer the board read,
+`services5.arcgis.com/Rvw11bGpzJNE7apK/.../DriveTexas_API/FeatureServer/0` (TDEM's org), answers
+HTTP 200 with `{"error":{"code":499,"message":"Token Required","messageCode":"GWM_0003"}}` on the
+layer metadata as well as on queries, and the service has left that org's public directory (115
+services listed, none DriveTexas). The generator refused the error body (E1) and kept the 18:23Z
+snapshot, so the board aged honestly but froze.
+
+**Why not mint a token.** drivetexas.org never called that layer. A headless load of the site makes
+zero ArcGIS requests; its condition layer is drawn from DriveTexas's own MapLarge tables at
+`dtx-e-cdn.maplarge.com`: `appgeo/conditionsLine` and `appgeo/conditionsPoint`, beside
+`futureConditions*`, the `floodPoint` sensors and `cameraPoint`. There is no public token endpoint,
+and a borrowed token would be circumvention.
+
+**The table.** TxDOT HCRS rows. `CNSTRNTTYPECD` is the condition, decoded by the site's own legend:
+`Z` Closures, `F` Flood, `D` Damage, `C` Construction, `A` Accidents, `I` Ice/Snow, `O` Other,
+`Y`/`X`/`N` contraflow and evaculanes. `RTENM` route, `CONDLMTFROMDSCR`/`CONDLMTTODSCR` limits,
+`CONDDSCR` description (HTML), `CONDSTARTTS`/`CONDENDTS` epoch ms, `CNSTRNTDETOURFLAG` Y/N,
+`lastUpdated` the import stamp. The line geometry is a WKT column named after the table
+(`conditionsLine`); the point table's `XY` is one icon point per line (same OBJECTIDs, `line` = 1),
+so the line table alone is the closure set. Answers are column-major; a zero-match query returns
+empty arrays and `totals.Records` 0, and naming a column that does not exist is HTTP 500.
+
+**Same data, verified.** The first MapLarge read (21:32Z) held 46 Closure/Flooding/Damage closures
+after the construction exclusion, against 51 in the last ArcGIS snapshot (18:23Z). The 42 segments
+in both agreed on condition, limits, cleaned description and first vertex every time, and on
+start/end in 38; the other 4 were re-posted upstream after 13:40. The 9 that left had posted end
+times at or before 16:30 CT; the 4 new ones started 14:03 to 15:14 CT. The ArcGIS layer was a
+re-publication of the same feed.
+
+**Cadence and currency.** The table re-imports every 5 minutes under a new versioned id (observed
+21:20, 21:25, 21:30, 21:35Z). `GetActiveTableID` is CDN-cached 30s and `ProcessDirect` 7 days, so
+the versioned id is what keeps a read current, the same rule as the cameras. A stalled import would
+keep answering with its last set, so both readers refuse a set whose `lastUpdated` is older than 30
+minutes (`STALE_MIN` / `ROAD_STALE_MIN`, asserted equal in `tests/drivetexas-roads.test.js`), or
+stamped more than 5 minutes ahead (`FUTURE_MIN` / `ROAD_FUTURE_MIN`; a unit change to microseconds
+lands there). With no matching rows the stamp comes from the whole-table census below, so a
+statewide zero still has to prove it is current before it publishes.
+
+**Drift is a failed read, not a smaller set.** `gen-history.py` reads a missing closure as cleared,
+so each of these used to publish fewer closures with a clean exit. *Codes:* the Z/F/D query cannot
+see a renamed code, so every read first runs one whole-table census (`groupby CNSTRNTTYPECD` with
+`lastUpdated.max`; live 2026-10-02: C Z D A F O, ~470 bytes) and refuses any code outside the
+site's legend (`LEGEND` / `ROAD_ML_LEGEND`); the census also supplies the zero-row stamp, so a
+read is still three requests. *Geometry:* a line the WKT reader rejects (`LINESTRING Z`, a NaN
+vertex) was skipped; the generator now keeps the previous file, the client marks the set partial
+(pausing the reopened diff) or falls back to the snapshot when no line reads. *Start:* the
+generator refuses a closure with no readable start, since `cycle-check.sh` fails that row and the
+failure stops every source's publish; the client still draws it.
+
+**What moved with it.** Start/end archive in the Central-offset form ArcGIS returned
+(`2026-10-01T16:41:00-05:00`) because `gen-history.py` keys a closure on route, start and vertex;
+the client takes UTC ISO, since it only parses them. `id` is now the HCRS OBJECTID; nothing keys on
+it. The read is statewide (64 rows, about 87 KB, during this event) and scoped to the AO in code by
+the same envelope-intersects rule ArcGIS applied server-side; the construction exclusion moved from
+a `where` clause to the same text test in code. A page that only repeats rows already held counts
+as truncation. Attribution drops "/ TDEM": TDEM ran the ArcGIS mirror, not this table.
+`services5.arcgis.com` left the CSP; MapLarge was already in `connect-src` for the cameras.

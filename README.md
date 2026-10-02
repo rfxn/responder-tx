@@ -145,7 +145,7 @@ the browser reads them from the same origin as the board. Each card names its pr
 | Radar frame timeline (observed past) | [RainViewer](https://www.rainviewer.com/api.html) | `api.rainviewer.com` |
 | Active tropical cyclones, storm-surge hazard maps | [NOAA National Hurricane Center](https://www.nhc.noaa.gov/) via Esri Living Atlas | `services9.arcgis.com`, `tiles.arcgis.com` |
 | Coastal water level vs prediction (surge residual) | [NOAA CO-OPS Tides &amp; Currents](https://tidesandcurrents.noaa.gov/) | `api.tidesandcurrents.noaa.gov` |
-| Road closures + traffic cameras | [TxDOT DriveTexas](https://drivetexas.org/) | `services5.arcgis.com`, `its.txdot.gov` |
+| Road closures + traffic cameras | [TxDOT DriveTexas](https://drivetexas.org/) | `dtx-e-cdn.maplarge.com`, `its.txdot.gov` |
 | Low-water crossing locations | [Texas Geographic Information Office (TxGIO)](https://geographic.texas.gov/) | `feature.geographic.texas.gov` |
 | Low-water crossing status, Austin-area flood cameras | [ATX Floods](https://atxfloods.com/) (Beholder Technology, LLC) | `atxfloods.com` |
 | Open shelter status | [FEMA National Shelter System](https://gis.fema.gov/) (American Red Cross sync) | `gis.fema.gov`, collected by the cycle |

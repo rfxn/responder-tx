@@ -659,7 +659,7 @@ function initMap() {
   state.layers.requests = L.layerGroup().addTo(state.map);
   state.layers.shelters = L.layerGroup().addTo(state.map);
   state.layers.crossings = L.layerGroup().addTo(state.map);
-  // TDEM DriveTexas live road conditions — flood-relevant subset only, first-class toggle (owner request), on by default
+  // TxDOT DriveTexas live road conditions, flood-relevant subset only, first-class toggle (owner request), on by default
   state.layers.roadClosures = L.layerGroup().addTo(state.map);
   // recently-reopened roads (recovery ✓) — OFF by default, explicit opt-in nested under road closures; flood-scoped
   state.layers.roadReopen = L.layerGroup();

@@ -765,7 +765,10 @@ test('a load that hits the ceiling says it is partial instead of under-reporting
    segment past the cut vanished from the map AND from the live set the reopened diff is built
    from, which painted a green "recently reopened" check on roads that were still shut. */
 
-// drive fetchRoadClosures against a scripted service: `total` closures served ROAD_PAGE at a time
+const DTX_TABLE = 'appgeo/conditionsLine/639265731022271036';
+const dtxRequest = (url) => JSON.parse(new URL(String(url)).searchParams.get('request')).query;
+
+// drive fetchRoadClosures against a scripted DriveTexas MapLarge: `total` closures served `take` at a time
 async function runRoads(total) {
   const urls = [];
   const notices = [];
@@ -773,17 +776,24 @@ async function runRoads(total) {
   for (const k of ['fetch', 'renderRoadClosures', 'renderRoadsTab', 'renderReopenedMap',
     'renderReopenedRoads', 'renderTiles', 'opNotice', 'markHealthy']) saved[k] = SB[k];
   SB.fetch = (url) => {
-    urls.push(String(url));
-    const off = +new URL(String(url), 'https://x.test').searchParams.get('resultOffset');
-    const n = Math.max(0, Math.min(app.ROAD_PAGE, total - off));
-    const body = {
-      features: Array.from({ length: n }, (_, i) => ({
-        properties: { route_name: `FM${off + i}`, from_limit: 'a', to_limit: 'b', condition: 'Flooding' },
-        geometry: { type: 'LineString', coordinates: [[-98.5, 29.7], [-98.4, 29.75]] },
-      })),
+    const u = String(url);
+    if (/GetActiveTableID/.test(u)) return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, table: DTX_TABLE }) });
+    const q = dtxRequest(u);
+    // the table-wide code census, answered apart so `urls` counts only closure pages
+    if (q.groupby) {
+      const census = { CNSTRNTTYPECD: ['F', 'C'], lastUpdated_Max: [Date.now() - 60000, Date.now() - 60000] };
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: { data: census, totals: { Records: 2 } } }) });
+    }
+    urls.push(u);
+    const n = Math.max(0, Math.min(q.take, total - q.start));
+    const col = (f) => Array.from({ length: n }, (_, i) => f(q.start + i));
+    const data = {
+      OBJECTID: col((i) => i), CNSTRNTTYPECD: col(() => 'F'), RTENM: col((i) => `FM${i}`),
+      CONDLMTFROMDSCR: col(() => 'a'), CONDLMTTODSCR: col(() => 'b'), CONDDSCR: col(() => 'Water over roadway.'),
+      CONDSTARTTS: col(() => Date.now() - 3600000), CONDENDTS: col(() => null), CNSTRNTDETOURFLAG: col(() => 'N'),
+      lastUpdated: col(() => Date.now() - 60000), conditionsLine: col(() => 'LINESTRING (-98.5 29.7, -98.4 29.75)'),
     };
-    if (off + n < total) body.exceededTransferLimit = true;
-    return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: { data, totals: { Records: total } } }) });
   };
   for (const k of ['renderRoadClosures', 'renderRoadsTab', 'renderReopenedMap', 'renderReopenedRoads',
     'renderTiles', 'markHealthy']) SB[k] = () => {};
@@ -799,8 +809,9 @@ test('the closure query pages past maxRecordCount and stops when the service rep
   const r = await runRoads(app.ROAD_PAGE * 2 + 7);
   assert.equal(r.urls.length, 3, 'three pages cover the set');
   assert.equal(r.lines.length, app.ROAD_PAGE * 2 + 7, 'every closure the service holds reaches the map');
-  assert.deepEqual(r.urls.map((u) => +new URL(u, 'https://x.test').searchParams.get('resultOffset')),
+  assert.deepEqual(r.urls.map((u) => dtxRequest(u).start),
     [0, app.ROAD_PAGE, app.ROAD_PAGE * 2], 'each page asks for the next offset');
+  assert.ok(r.urls.every((u) => dtxRequest(u).table === DTX_TABLE), 'every page reads the one versioned table');
   assert.equal(r.partial, false, 'a complete load is not partial');
   assert.deepEqual(r.notices, [], 'a complete load raises no notice');
 });
@@ -825,7 +836,7 @@ test('a truncated closure set is declared partial and never diffed into reopenin
   }).of('geoJSON')[0];
   try {
     setRoadsState({ roadClosures: { lines, points: [] } });
-    assert.equal(paintClosures().args[1].attribution, 'Road conditions: TxDOT DriveTexas / TDEM (drivetexas.org)');
+    assert.equal(paintClosures().args[1].attribution, 'Road conditions: TxDOT DriveTexas (drivetexas.org)');
     setRoadsState({ roadClosures: { lines, points: [] }, roadsPartial: true });
     assert.match(paintClosures().args[1].attribution, /· road\.partial$/, 'the map attribution must carry the partial claim');
   } finally { ST.layers.roadClosures = savedLayer; }
@@ -883,7 +894,7 @@ test('an ArcGIS error body on the crossing query fails the layer instead of draw
    it never reaches the reopened diff, and its absence is reported as unknown rather than as zero
    closures. */
 
-const DRIVETEXAS_RE = /arcgis/i;
+const DRIVETEXAS_RE = /maplarge/i;
 const SNAPSHOT_RE = /roads-snapshot\.json/;
 
 // live DriveTexas fails; the snapshot endpoint answers with whatever `snap` scripts

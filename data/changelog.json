@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.14",
+      "date": "2026-10-02",
+      "line": "Live TxDOT road closures are back after TxDOT changed how its road conditions are published. A closure list that has stopped updating is shown as a dated snapshot, never as live."
+    },
+    {
       "v": "v0.100.13",
       "date": "2026-10-02",
       "line": "When live TxDOT road data cannot be reached, the Roads closed card says it is showing a TxDOT snapshot and how old it is, instead of reading as current."

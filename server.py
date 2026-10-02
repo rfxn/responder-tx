@@ -135,7 +135,7 @@ CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
        "https://maps.water.noaa.gov https://usgs-nims-images.s3.amazonaws.com https://cctv.austinmobility.io; "
        "connect-src 'self' https://api.weather.gov https://api.water.noaa.gov https://maps.water.noaa.gov "
        "https://waterservices.usgs.gov https://mesonet.agron.iastate.edu https://api.rainviewer.com "
-       "https://services5.arcgis.com https://services9.arcgis.com https://feature.geographic.texas.gov "
+       "https://services9.arcgis.com https://feature.geographic.texas.gov "
        "https://nominatim.openstreetmap.org https://overpass-api.de https://api.tidesandcurrents.noaa.gov "
        "https://usgs-nims-images.s3.amazonaws.com https://tile.openstreetmap.org "
        "https://server.arcgisonline.com https://*.skyvdn.com https://zoocams.elpasozoo.org "

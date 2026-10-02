@@ -1628,15 +1628,26 @@ function renderUsgsIv() {
   }
 }
 
-/* ---------- TDEM DriveTexas live road conditions (closed / high-water / damage) ---------- */
+/* ---------- TxDOT DriveTexas live road conditions (closed / high-water / damage) ---------- */
 
-const ROAD_ATTRIB = 'Road conditions: TxDOT DriveTexas / TDEM (drivetexas.org)';
-// ArcGIS truncation signal, shared by the DriveTexas and TxGIO queries below: top level in
-// GeoJSON output, nested under properties in other builds of the service
+const ROAD_ATTRIB = 'Road conditions: TxDOT DriveTexas (drivetexas.org)';
+// ArcGIS truncation signal for the TxGIO query below: top level in GeoJSON output, nested under
+// properties in other builds of the service
 const arcgisHasMore = (d) => Boolean(d && (d.exceededTransferLimit || (d.properties && d.properties.exceededTransferLimit)));
-const ROAD_PAGE = 2000; // the service's own maxRecordCount
+// the short table name is CDN-cached for days; only a versioned id is a current read
+const ROAD_TABLE_RE = /^appgeo\/conditionsLine\/\d{6,24}$/;
+const ROAD_GEO_COL = 'conditionsLine';
+// drivetexas.org's own CNSTRNTTYPECD legend; mirrors scripts/gen-roads-snapshot.py COND
+const ROAD_ML_COND = { Z: 'Closure', F: 'Flooding', D: 'Damage' };
+// the site's full legend; a code outside it means upstream re-coded, mirrors gen-roads-snapshot.py LEGEND
+const ROAD_ML_LEGEND = ['Z', 'F', 'D', 'C', 'A', 'I', 'O', 'Y', 'X', 'N'];
+const ROAD_ML_COLS = ['OBJECTID', 'CNSTRNTTYPECD', 'RTENM', 'CONDLMTFROMDSCR', 'CONDLMTTODSCR', 'CONDDSCR',
+  'CONDSTARTTS', 'CONDENDTS', 'CNSTRNTDETOURFLAG', 'lastUpdated', ROAD_GEO_COL];
+const ROAD_PAGE = 1000;
 const ROAD_MAX_PAGES = 8; // runaway guard; the statewide set runs in the tens even in a major event
-// Closure + Flooding are prominent reds; Damage a distinct amber. Construction/Accident excluded server-side.
+const ROAD_STALE_MIN = 30; // upstream re-imports every 5 minutes; mirrors scripts/gen-roads-snapshot.py STALE_MIN
+const ROAD_FUTURE_MIN = 5; // clock-skew allowance for a stamp ahead of us; mirrors gen-roads-snapshot.py FUTURE_MIN
+// Closure + Flooding are prominent reds; Damage a distinct amber. Construction/Accident excluded at fetch.
 const ROAD_COND = {
   Closure: { key: 'road.cond.closure', color: '#e5342f' },
   Flooding: { key: 'road.cond.flooding', color: '#d81b8c' },
@@ -1672,19 +1683,78 @@ function roadPointNear(geo, pos) {
   return Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1]) ? [pt[1], pt[0]] : null;
 }
 
-function roadParams(outFields) {
-  const b = CONFIG.gaugeBbox;
-  return new URLSearchParams({
-    // exclude construction-driven closures coded as Closure/Damage (owner: flood-relevant only); null-safe keeps unlabeled closures
-    where: "condition IN ('Flooding','Closure','Damage') AND (description IS NULL OR UPPER(description) NOT LIKE '%CONSTRUCTION%')",
-    geometry: `${b.xmin},${b.ymin},${b.xmax},${b.ymax}`,
-    geometryType: 'esriGeometryEnvelope',
-    inSR: '4326',
-    spatialRel: 'esriSpatialRelIntersects',
-    outSR: '4326',
-    outFields,
-    f: 'geojson',
-  });
+// GeoJSON line geometry from a WKT LINESTRING / MULTILINESTRING, or null for anything else
+function wktLineGeometry(wkt) {
+  const m = /^\s*(MULTILINESTRING|LINESTRING)\s*\(([\s\S]*)\)\s*$/.exec(String(wkt ?? ''));
+  if (!m) return null;
+  const parts = m[1] === 'MULTILINESTRING' ? (m[2].match(/\([^()]*\)/g) || []).map((s) => s.slice(1, -1)) : [m[2]];
+  const lines = parts.map((s) => s.split(',').map((pt) => pt.trim().split(/\s+/).slice(0, 2).map(Number)));
+  if (!lines.length || !lines.every((l) => l.length && l.every((c) => c.length === 2 && c.every(Number.isFinite)))) return null;
+  return m[1] === 'MULTILINESTRING' ? { type: 'MultiLineString', coordinates: lines } : { type: 'LineString', coordinates: lines[0] };
+}
+
+// Liang-Barsky: does any part of the line touch the box, not just its first vertex
+function roadLineInBox(geo, b) {
+  const hit = (a, c) => {
+    let t0 = 0, t1 = 1;
+    const dx = c[0] - a[0], dy = c[1] - a[1];
+    for (const [p, q] of [[-dx, a[0] - b.xmin], [dx, b.xmax - a[0]], [-dy, a[1] - b.ymin], [dy, b.ymax - a[1]]]) {
+      if (p === 0) { if (q < 0) return false; continue; }
+      const r = q / p;
+      if (p < 0) { if (r > t1) return false; t0 = Math.max(t0, r); } else { if (r < t0) return false; t1 = Math.min(t1, r); }
+    }
+    return true;
+  };
+  const lines = geo.type === 'MultiLineString' ? geo.coordinates : [geo.coordinates];
+  return lines.some((l) => l.some((c, i) => hit(c, l[Math.min(i + 1, l.length - 1)])));
+}
+
+// one DriveTexas condition row as the closure feature the board draws; null when it is not one,
+// false when it is a closure whose line cannot be read
+function roadFromMl(r) {
+  const condition = ROAD_ML_COND[r.CNSTRNTTYPECD];
+  // construction-driven closures are coded Closure/Damage too (owner: flood-relevant only)
+  if (!condition || /construction/i.test(String(r.CONDDSCR ?? ''))) return null;
+  const geometry = wktLineGeometry(r[ROAD_GEO_COL]);
+  if (!geometry) return false;
+  const iso = (ms) => (Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : null);
+  return {
+    type: 'Feature',
+    properties: {
+      condition, route_name: r.RTENM, from_limit: r.CONDLMTFROMDSCR, to_limit: r.CONDLMTTODSCR,
+      description: r.CONDDSCR, start_time: iso(r.CONDSTARTTS), end_time: iso(r.CONDENDTS),
+      detour_flag: r.CNSTRNTDETOURFLAG === 'Y' ? 1 : 0,
+    },
+    geometry,
+  };
+}
+
+const dtxQueryUrl = (query) => `${CONFIG.dtxMapLarge}/Api/ProcessDirect?request=${encodeURIComponent(JSON.stringify({ action: 'table/query', query }))}`;
+
+// column-major MapLarge answer as rows; a refused query or a missing column is a throw, never zero rows
+function dtxRows(d, cols, label) {
+  const data = d.success === true && d.data ? d.data.data : null;
+  const total = d.data && d.data.totals ? d.data.totals.Records : NaN;
+  if (!data || !Number.isInteger(total)) throw new Error(`${label}: not a table answer`);
+  const n = Array.isArray(data[cols[0]]) ? data[cols[0]].length : -1;
+  if (!cols.every((c) => Array.isArray(data[c]) && data[c].length === n)) throw new Error(`${label}: column set incomplete`);
+  return { rows: Array.from({ length: n }, (_, i) => Object.fromEntries(cols.map((c) => [c, data[c][i]]))), total };
+}
+
+// newest import stamp per condition code across the whole table; a code outside the legend throws
+async function dtxCensus(table) {
+  const q = { sqlselect: ['CNSTRNTTYPECD', 'lastUpdated.max'], groupby: ['CNSTRNTTYPECD'], start: 0, table, take: 100, where: [] };
+  const got = dtxRows(await okJson(await fetch(dtxQueryUrl(q)), 'DriveTexas'), ['CNSTRNTTYPECD', 'lastUpdated_Max'], 'DriveTexas');
+  if (got.rows.length < got.total) throw new Error('DriveTexas: condition census short');
+  const odd = got.rows.map((g) => g.CNSTRNTTYPECD).filter((c) => !ROAD_ML_LEGEND.includes(c));
+  if (odd.length) throw new Error(`DriveTexas: condition codes outside the legend (${odd.map(String).join(', ')})`);
+  return got.rows.map((g) => g.lastUpdated_Max);
+}
+
+// upstream's last import, off the rows, or off the table census when none matched
+function dtxTableUpdated(rows, census) {
+  const nums = (rows.length ? rows.map((r) => r.lastUpdated) : census).filter(Number.isFinite);
+  return nums.length ? Math.max(...nums) : NaN;
 }
 
 // every closure feature the board holds: live lines and snapshot points share one hazard set
@@ -1702,29 +1772,44 @@ async function fetchRoadClosures() {
   }
 }
 
-// paged: an unpaged query stops at the service's maxRecordCount, and every closure past that cut
-// would be missing from the map and read as cleared by the reopened diff
+// the table drivetexas.org draws its own condition layer from, paged and read statewide, then scoped to the AO
 async function fetchRoadClosuresLive() {
-  const fields = 'condition,route_name,travel_direction,from_limit,to_limit,description,start_time,end_time,detour_flag,delay_flag';
-  const pages = [];
-  let partial = false;
+  const a = await okJson(await fetch(`${CONFIG.dtxMapLarge}/Remote/GetActiveTableID?shortTableId=appgeo%2FconditionsLine`, { cache: 'no-store' }), 'DriveTexas table');
+  if (!ROAD_TABLE_RE.test(String(a.table || ''))) throw new Error('DriveTexas: no active condition table');
+  const census = await dtxCensus(a.table);
+  const rows = [];
+  const seen = new Set();
+  let partial = true;
   for (let page = 0; page < ROAD_MAX_PAGES; page++) {
-    const qs = roadParams(fields);
-    qs.set('resultRecordCount', String(ROAD_PAGE));
-    qs.set('resultOffset', String(page * ROAD_PAGE));
-    const res = await fetch(`${CONFIG.roadCondUrl}?${qs}`);
-    const data = await okJson(res, 'DriveTexas');
-    // E1: an ArcGIS error body must not read as zero closures, which the reopened diff would
-    // then publish as every remembered road having reopened
-    const got = okList(data, 'features', 'DriveTexas');
-    pages.push(got);
-    if (!got.length || !arcgisHasMore(data)) { partial = false; break; }
-    partial = true; // more records remain; only survives the loop when the ceiling cuts paging short
+    const q = { sqlselect: ROAD_ML_COLS, start: page * ROAD_PAGE, table: a.table, take: ROAD_PAGE,
+      where: [{ col: 'CNSTRNTTYPECD', test: 'EqualAny', value: Object.keys(ROAD_ML_COND) }] };
+    // E1: a refused query must not read as zero closures, which the reopened diff would then
+    // publish as every remembered road having reopened
+    const got = dtxRows(await okJson(await fetch(dtxQueryUrl(q)), 'DriveTexas'), ROAD_ML_COLS, 'DriveTexas');
+    // a page that repeats rows already held is not progress, whatever its length
+    const fresh = got.rows.filter((r) => !seen.has(r.OBJECTID));
+    for (const r of fresh) seen.add(r.OBJECTID);
+    rows.push(...fresh);
+    if (rows.length >= got.total) { partial = false; break; }
+    if (!fresh.length) break;
+  }
+  // a stalled import keeps answering with its last set; serving that as live would hide it
+  const age = Date.now() - dtxTableUpdated(rows, census);
+  if (!(age <= ROAD_STALE_MIN * 60000)) throw new Error('DriveTexas: condition table not updated recently');
+  if (!(age >= -ROAD_FUTURE_MIN * 60000)) throw new Error('DriveTexas: condition table stamped in the future');
+  const read = rows.map(roadFromMl);
+  const feats = read.filter(Boolean);
+  // E1: an unreadable closure is still a closure; dropping it silently would mark it reopened
+  if (read.includes(false)) {
+    if (!feats.length) throw new Error('DriveTexas: no closure geometry readable');
+    partial = true;
   }
   state.roadsPartial = partial;
   if (partial) opNotice(t('road.partial'));
-  // keep points: [] so renderRoadClosures's points loop stays safe (DriveTexas API is lines-only)
-  state.roadClosures = { lines: [].concat(...pages).filter(roadCondActive), points: [] };
+  const b = CONFIG.gaugeBbox;
+  const lines = feats.filter((f) => roadLineInBox(f.geometry, b)).filter(roadCondActive);
+  // keep points: [] so renderRoadClosures's points loop stays safe (the live table is lines-only)
+  state.roadClosures = { lines, points: [] };
   state.roadsFallbackAt = null; // live again: stand the snapshot claim down
   state.roadsUnknown = false;
   markHealthy('roads');

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.13';
+const APP_VERSION = 'v0.100.14';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -46,8 +46,8 @@ const CONFIG = {
   // hard live-map cap: a storm report older than this ages out of the live layer into lsrsAged, even if the window filter is wider
   lsrMaxHours: 24,
   lsrUrl: 'https://mesonet.agron.iastate.edu/geojson/lsr.geojson',
-  // TDEM DriveTexas live road-hazard lines (CORS-open, no key). Full-word conditions, ISO-8601 timestamps.
-  roadCondUrl: 'https://services5.arcgis.com/Rvw11bGpzJNE7apK/arcgis/rest/services/DriveTexas_API/FeatureServer/0/query',
+  // DriveTexas's own MapLarge tables (CORS-open, no key): road conditions, and the signed TxDOT camera streams
+  dtxMapLarge: 'https://dtx-e-cdn.maplarge.com',
   // TxGIO low-water-crossing location inventory (CORS-open, no key). Static locations, no live status.
   lwcUrl: 'https://feature.geographic.texas.gov/arcgis/rest/services/Basemap/Low_Water_Crossing/MapServer/0/query',
   // NOAA NHC active tropical cyclones via Esri Living Atlas (CORS *, keyless, native GeoJSON). Sublayers are

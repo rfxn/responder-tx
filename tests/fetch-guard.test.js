@@ -239,7 +239,7 @@ test('no client file substitutes an empty list for a missing payload key', () =>
 const CENSUS = {
   'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 5, 'chat.js': 3, 'core.js': 1, 'i18n.js': 0,
   'map.js': 3, 'master.js': 1, 'notes.js': 4, 'panels.js': 9, 'playback.js': 4,
-  'sources.js': 17, 'team.js': 2, 'usng.js': 0,
+  'sources.js': 19, 'team.js': 2, 'usng.js': 0,
 };
 
 test('the client fetch census is unchanged, so no new call site slipped past this audit', () => {
@@ -283,7 +283,10 @@ const SITES = [
   { f: 'sources.js', d: 'async function fetchUsgsTile(', c: TOP, v: 'GUARDED',
     req: ["okJson(res, 'USGS IV')", "okList(data, 'value.timeSeries', 'USGS IV')"] },
   { f: 'sources.js', d: 'async function fetchRoadClosuresLive()', c: TOP, v: 'GUARDED',
-    req: ["okJson(res, 'DriveTexas')", "okList(data, 'features', 'DriveTexas')"] },
+    req: ["'DriveTexas table')", 'ROAD_TABLE_RE.test(', 'dtxRows(await okJson(',
+      "dtxQueryUrl(q)), 'DriveTexas'), ROAD_ML_COLS, 'DriveTexas')", 'ROAD_STALE_MIN * 60000'] },
+  { f: 'sources.js', d: 'async function dtxCensus(', c: TOP, v: 'GUARDED',
+    req: ['dtxRows(await okJson(', "['CNSTRNTTYPECD', 'lastUpdated_Max'], 'DriveTexas')", 'got.rows.length < got.total', 'ROAD_ML_LEGEND.includes('] },
   { f: 'sources.js', d: 'async function hydrateRoadsSnapshot()', c: TOP, v: 'HONEST',
     req: ['Array.isArray(d.roads)', 'state.roadsUnknown = true'] },
   { f: 'sources.js', d: 'async function fetchTropical()', c: TOP, v: 'GUARDED',

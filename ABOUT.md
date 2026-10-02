@@ -79,8 +79,8 @@ Live hazard layers are keyless, CORS-open public endpoints, and the browser fetc
 most of them directly: the National Weather Service, NOAA's National Water Prediction
 Service and River Forecast Centers, the National Hurricane Center and CO-OPS Tides
 &amp; Currents, the U.S. Geological Survey, the Iowa Environmental Mesonet (Iowa State
-University), RainViewer, TxDOT DriveTexas, Esri ArcGIS Online (which hosts the NHC
-tropical layers, the SLOSH surge tiles, DriveTexas and the dark and light basemaps),
+University), RainViewer, TxDOT DriveTexas (through its MapLarge host), Esri ArcGIS Online
+(which hosts the NHC tropical layers, the SLOSH surge tiles and the dark and light basemaps),
 the Texas Geographic Information Office, ATX Floods, and OpenStreetMap with Nominatim
 and Overpass. Three exceptions to "directly": gauge hydrographs prefer a same-origin proxy
 and fall back to NOAA, FEMA National Shelter System data is collected server-side by

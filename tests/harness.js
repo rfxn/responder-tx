@@ -174,6 +174,7 @@ const EXPORTS = [
   'roadId', 'roadWatchId', 'roadMemory', 'updateRoadMemory', 'reopenedRoads', 'reopenIsFlood', 'ROADS_KEY', 'ROADS_KEY_LEGACY',
   'roadPointNear', 'roadSegMiles', 'roadSegParts', 'roadPopupHtml', 'arcgisHasMore', 'LWC_PAGE', 'LWC_MAX_PAGES',
   'fetchRoadClosures', 'fetchRoadClosuresLive', 'hydrateRoadsSnapshot', 'roadFeatures', 'ROAD_PAGE', 'ROAD_MAX_PAGES',
+  'ROAD_STALE_MIN', 'ROAD_FUTURE_MIN', 'ROAD_ML_COND', 'ROAD_ML_LEGEND', 'ROAD_ML_COLS', 'roadIsFlood', 'roadCondActive',
   'cardAged',
   'buildShareUrl', 'applyShareParams', 'linkOwnsView', 'LINK_VIEW_PARAMS',
   'SHORT_LINK_TIMEOUT_MS',
@@ -492,4 +493,16 @@ function loadHeaderStatus() {
   return { ...sandbox.__HDR, node: (sel) => sandbox.document.querySelector(sel), timers, sandbox };
 }
 
-module.exports = { loadApp, loadMapApp, loadFullApp, loadWiredMap, buildSandbox, loadHeaderStatus };
+// The shipped Leaflet, for a render that must meet its real input checks: the L proxy above accepts
+// any object as GeoJSON, which is how a feature with no `type` would reach the browser and throw there.
+function loadRealLeaflet() {
+  const el = () => ({ style: {}, getContext: null, setAttribute() {}, appendChild() {} });
+  const document = { documentElement: { style: {} }, createElement: el, createElementNS: () => ({}), addEventListener() {} };
+  const window = { document, navigator: { userAgent: 'node', platform: 'node' }, devicePixelRatio: 1, addEventListener() {} };
+  window.window = window;
+  const ctx = vm.createContext({ window, document, navigator: window.navigator });
+  vm.runInContext(fs.readFileSync(path.join(JS_DIR, 'vendor', 'leaflet.js'), 'utf8'), ctx, { filename: 'leaflet.js' });
+  return ctx.window.L;
+}
+
+module.exports = { loadApp, loadMapApp, loadFullApp, loadWiredMap, buildSandbox, loadHeaderStatus, loadRealLeaflet };

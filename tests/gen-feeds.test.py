@@ -491,6 +491,57 @@ q = urllib.parse.parse_qs(urllib.parse.urlsplit(g.PRODUCTS_URL).query)
 check('the product request names exactly the table, in the area the board covers',
       q.get('event', [''])[0].split(',') == list(g.FLOOD_PRODUCTS) and q.get('area') == [g.AREA], g.PRODUCTS_URL)
 
+def river_warning(etn, desc, area='Val Verde, TX', ugc='TXC465'):
+    urn = 'urn:oid:river.%s' % etn
+    return {'id': 'https://api.weather.gov/alerts/' + urn, 'properties': {
+        'id': urn, 'event': 'Flood Warning', 'areaDesc': area, 'geocode': {'UGC': [ugc]},
+        'headline': 'Flood Warning issued October 2 by NWS Austin/San Antonio TX',
+        'sent': '2026-10-02T13:41:00Z', 'ends': '2026-10-03T08:00:00Z', 'expires': '2026-10-03T08:00:00Z',
+        'description': desc,
+        'parameters': {'VTEC': ['/O.EXT.KEWX.FL.W.%s.000000T0000Z-261003T0800Z/' % etn]}}}
+
+
+DEVILS_PREAMBLE = ('...The Flood Warning is extended for the following rivers in Texas...\n\n'
+                   'Devils River At Pafford Crossing nr Comstock affecting Val Verde\nCounty.\n\n'
+                   'Devils River At Bakers Crossing 19N Of Comstock affecting Val Verde\nCounty.\n\n')
+RIVERS = {'features': [
+    river_warning('0052', DEVILS_PREAMBLE + '* WHAT...Minor flooding is occurring.\n\n'
+                  '* WHERE...Devils River at Bakers Crossing 19N Of\nComstock.\n\n* WHEN...Until this evening.'),
+    river_warning('0053', DEVILS_PREAMBLE + '* WHAT...Minor flooding is occurring.\n\n'
+                  '* WHERE...Devils River at Pafford Crossing nr Comstock.\n\n* WHEN...Until late tonight.'),
+    river_warning('0060', '...The Flood Warning is extended for the following rivers in Texas...\n\n'
+                  'Canadian River at Amarillo 19N affecting Potter County.\n\n'
+                  'For the Canadian River...including Amarillo 19N...Minor flooding is forecast.',
+                  area='Potter, TX', ugc='TXC375'),
+    river_warning('0061', DEVILS_PREAMBLE + 'For the Devils River...Minor flooding is forecast.'),
+    river_warning('0062', '...The Flood Warning continues for the following rivers in Texas...\n\n'
+                  'Trinity River At Dallas affecting Dallas County.\n\n'
+                  '...The Flood Warning is cancelled for the following rivers in\nTexas...\n\n'
+                  'White Rock Creek At Greenville Ave affecting Dallas County.',
+                  area='Dallas, TX', ugc='TXC113'),
+    river_warning('0063', '* WHAT...Flooding caused by excessive rainfall continues.\n\n'
+                  '* WHERE...Portions of central Texas, including the following\ncounties, Bosque and Hill.',
+                  area='Bosque, TX; Hill, TX', ugc='TXC035'),
+]}
+RIVERS['features'][5]['properties']['geocode']['UGC'] = ['TXC035', 'TXC217']
+_, root_r, _, _ = run({'features': []}, products=RIVERS, now=CAPTURED)
+rt = [it.findtext('title') for it in product_items(root_r)]
+check('a river warning is titled by its own forecast point, wrapped lines joined',
+      'Flood Warning · Devils River at Bakers Crossing 19N Of Comstock' in rt, str(rt))
+check('two warnings in one county read as two different places',
+      'Flood Warning · Devils River at Pafford Crossing nr Comstock' in rt and len(set(rt)) == len(rt), str(rt))
+check('a lone preamble point names a warning with no WHERE line',
+      'Flood Warning · Canadian River at Amarillo 19N' in rt, str(rt))
+check('a cancelled point in the same product is not taken as the warning\'s place',
+      'Flood Warning · Trinity River At Dallas' in rt, str(rt))
+check('several points and no WHERE line keep the county title rather than guess',
+      sum(t == 'Flood Warning · Val Verde' for t in rt) == 1, str(rt))
+check('an areal warning keeps its counties: a WHERE line is a river point only on a river product',
+      'Flood Warning · Bosque, Hill' in rt, str(rt))
+gr = {it.findtext('title'): it.findtext('guid') for it in product_items(root_r)}
+check('the guid stays the VTEC identity, so a title change does not re-notify readers',
+      gr.get('Flood Warning · Devils River at Bakers Crossing 19N Of Comstock') == 'nws-KEWX.FL.W.0052-2026', str(gr))
+
 # a killed step publishes nothing, so the unavailability items only reach readers if every fetch can
 # exhaust its retry ladder inside the cycle's step budget
 src = inspect.getsource(g)

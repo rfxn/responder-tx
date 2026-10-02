@@ -197,6 +197,26 @@ def area_names(p):
     return [re.sub(r",\s*[A-Z]{2}$", "", s) for s in segs]
 
 
+RIVER_SECTION_RE = re.compile(r"for the following rivers in [^.]*\.\.\.(.*?)(?:\n\s*\.\.\.|\n\s*\*|\Z)", re.S | re.I)
+RIVER_POINT_RE = re.compile(r"\s*(\S.*?)\s+affecting\s", re.S)
+WHERE_RE = re.compile(r"\*\s*WHERE\.\.\.(.+?)(?:\n\s*\n|\n\s*\*|\Z)", re.S)
+
+
+def river_point(p):
+    """The forecast point a river warning segment covers, or None; a river product's preamble lists
+    every point in the product, so only the segment's own WHERE line, or a lone point, names it."""
+    desc = str(p.get("description") or "")
+    section = RIVER_SECTION_RE.search(desc)
+    if not section:
+        return None
+    where = WHERE_RE.search(desc)
+    if where:
+        return " ".join(where.group(1).split()).rstrip(".") or None
+    paras = re.split(r"\n\s*\n", section.group(1))
+    points = [" ".join(m.group(1).split()) for m in (RIVER_POINT_RE.match(x) for x in paras) if m]
+    return points[0] if len(points) == 1 else None
+
+
 def ct_text(iso):
     dt = parse_iso(iso)
     if not dt:
@@ -244,6 +264,7 @@ def flood_products(feats, now):
             "ids": {str(i) for m in msgs for i in (m.get("id"), (m.get("properties") or {}).get("id")) if i},
             "event": lp.get("event"), "rank": FLOOD_PRODUCTS[lp.get("event")], "areas": areas,
             "headline": lp.get("headline") or lp.get("event"), "sent": lp.get("sent"), "until": ends_at(lp),
+            "point": river_point(lp),
             # the ETN restarts every year, so the year keeps next year's 0001 off this guid
             "guid": f"nws-{key}-{min(sent).year}" if has_vtec and sent else key,
         })
@@ -262,7 +283,8 @@ def product_item(x, built):
     more = len(x["areas"]) - len(shown)
     where = ", ".join(shown) + (f" and {more} more" if more > 0 else "")
     until = ct_text(x["until"]) if x["until"] else "further notice"
-    it_title = f"{x['event']} · {where}" if where else x["event"]
+    place = x.get("point") or where
+    it_title = f"{x['event']} · {place}" if place else x["event"]
     it_desc = (f"{x['headline']}. In effect until {until}. "
                + (f"Areas: {', '.join(x['areas'])}. " if x["areas"] else "")
                + "Source: National Weather Service. Call 911 for life-threatening emergencies.")

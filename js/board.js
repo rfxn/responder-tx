@@ -414,7 +414,10 @@ function renderRequests() {
   }
 
   const open = reqs.filter((r) => !cardAged(r) && r.status !== 'resolved');
-  $('#requests-count').textContent = open.length;
+  const badge = $('#requests-count');
+  badge.textContent = open.length;
+  // the Situation section fills the tab without notices, so a known zero shows no badge rather than "0"
+  badge.hidden = open.length === 0 && !!state.seedsLoadedOnce;
   renderTiles();
 }
 

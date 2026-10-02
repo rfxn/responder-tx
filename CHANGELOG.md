@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.9 · 2026-10-02 (river warnings name their river)
+
+-- Changes --
+- [Change] RSS: a river flood warning is titled by the river and forecast point it
+         covers, so two warnings in one county read as two places
+- [Change] The Feed tab badge counts open notices and is hidden when there are
+         none, instead of reading 0 beside the Situation summary
+
 ## v0.100.8 · 2026-10-02 (the Feed carries the situation)
 
 -- New Features --

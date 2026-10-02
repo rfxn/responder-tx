@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.9",
+      "date": "2026-10-02",
+      "line": "RSS river flood warnings are titled by the river and forecast point they cover. The Feed tab badge counts open notices and is hidden when there are none, instead of reading 0 beside the Situation summary."
+    },
+    {
       "v": "v0.100.8",
       "date": "2026-10-02",
       "line": "The Feed opens on an automatic Situation summary of NWS warnings, watches and advisories, rivers in flood, rising gauges and flooded roads, and the RSS feed carries flood warnings and advisories. River gauges in flood stand out on the map, ringed in their category color, with a larger triangle on rising gauges. RSS item times no longer read five hours early."

@@ -455,3 +455,42 @@ test('the section renders in Spanish without a raw key leaking through', () => {
     assert.ok(html.includes('Situación') && html.includes('Ríos en inundación') && html.includes('No disponible: los cierres de caminos.'));
   }, 'es'));
 });
+
+test('the Feed badge counts open notices, hides at a known zero, and stays "?" until notices answer', () => {
+  const full = loadFullApp();
+  const FSB = full._sandbox;
+  const FST = full.state;
+  let txt = '?';
+  const badge = { get textContent() { return txt; }, set textContent(v) { txt = String(v); }, hidden: false }; // the DOM stringifies
+  const prev = { qs: FSB.document.querySelector, L: FSB.L, layers: FST.layers, seed: FST.seedRequests, store: FST.store, once: FST.seedsLoadedOnce };
+  const ts = new Date(Date.now() - 10 * 60000).toISOString();
+  const notice = (id, status) => ({ id, ts, type: 'rescue', priority: 'high', status, county: 'Harris', place: 'X', lat: 29.7, lon: -95.4, summary: 's' });
+  const paint = (seeds, loaded) => {
+    FST.seedRequests = seeds;
+    FST.seedsLoadedOnce = loaded;
+    FSB.renderRequests();
+    return { text: badge.textContent, hidden: badge.hidden };
+  };
+  let zero, two, unknown;
+  try {
+    const orig = prev.qs;
+    FSB.document.querySelector = (sel) => (sel === '#requests-count' ? badge : orig(sel));
+    FSB.L = { divIcon: (o) => o, marker: () => ({ bindPopup() { return this; } }), circle: () => ({ bindPopup() { return this; } }) };
+    FST.layers = Object.assign({}, prev.layers, { requests: { clearLayers() {}, addLayer() {} } });
+    FST.store = { added: [], overrides: {}, archived: [] };
+    zero = paint([notice('r1', 'resolved')], true);
+    two = paint([notice('r1', 'open'), notice('r2', 'open'), notice('r3', 'resolved')], true);
+    unknown = paint([], false);
+  } finally {
+    FSB.document.querySelector = prev.qs;
+    FSB.L = prev.L;
+    FST.layers = prev.layers;
+    FST.seedRequests = prev.seed;
+    FST.store = prev.store;
+    FST.seedsLoadedOnce = prev.once;
+  }
+  assert.equal(zero.hidden, true, 'no open notices once the source answered: no "0" beside a full Situation section');
+  assert.deepEqual(two, { text: '2', hidden: false }, 'open notices are counted; a resolved one is not');
+  assert.equal(unknown.hidden, false, 'before the notices answer, the badge stays visible');
+  assert.equal(unknown.text, '?', 'and reads unknown, never zero');
+});

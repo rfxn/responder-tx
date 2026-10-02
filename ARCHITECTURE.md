@@ -78,19 +78,20 @@ camera proxies as **Pages Functions** (`functions/api/`), and publishes the foll
 feeds `/feed.xml` and `/crests.ics`. `chat.js`, `master.js`, and the chat data are
 stripped at deploy and the absence is verified.
 
-Two opt-in write paths exist, each a Pages Function proxying a Durable Object that
+Three write paths exist, each a Pages Function proxying a Durable Object that
 ships from its own standalone Worker (a Pages project cannot define a DO):
 
 | Path | Worker | Holds |
 |------|--------|-------|
 | `functions/api/team/*` | `workers/team-relay` (`TeamRelay`) | One DO per team: members, viewers, latest positions, capped breadcrumb trails. TTL'd, never written to the repo. |
 | `functions/api/push/*` | `workers/push-alerts` (`PushRegistry`) | One DO for every anonymous push subscription: endpoint, browser-minted keys, alert prefs (types, alert area, followed gauges and places), language. Rows expire 60 days after the last renew; a 404/410 from a push service deletes the row. |
+| `functions/api/share/`, `functions/s/` | `workers/share-links` (`ShareLinks`) | One DO mapping 8-digit short-link codes (`/s/<code>`) to board view query strings, limited to the keys the share link builder emits. Never expires, holds no IP or identity. |
 
 The push evaluator runs on a `*/5` Cron Trigger inside its Worker and is nudged by
 `run-cycle.sh` right after each data deploy. It reads the **deployed** mirror's
 `data/gauges-snapshot.json`, so an alert can never claim something the board itself
-cannot show. Both Workers are `export-ignore`d and deploy separately from the Pages
-archive.
+cannot show. All three Workers are `export-ignore`d and deploy separately from the
+Pages archive.
 
 ## Generator pipeline · git history as the archive
 

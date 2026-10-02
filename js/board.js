@@ -1397,7 +1397,7 @@ function openShareSheet() {
   if (!el) return;
   const url = buildShareUrl();
   state.shareUrl = url;
-  $('#share-url').textContent = url;
+  $('#share-url').textContent = shortLinkIfReady(url);
   $('#share-native').hidden = !navigator.share;
   const qr = $('#share-qr');
   if (qr) { delete qr.dataset.done; qr.innerHTML = ''; qr.hidden = false; renderQr(qr, url); } // the link changes with the view
@@ -1443,19 +1443,18 @@ function closeNotifySheet() {
   if (el) el.hidden = true;
 }
 
-// every Copy link control funnels through here, so a change to how links are handed out lands once
+// every Copy link control funnels through here; a short link is minted only on an explicit Copy
 function copyShareLink(url, btn) {
-  return copyText(url).then(() => {
-    if (!btn) return;
-    if (btn.shareFlash) clearTimeout(btn.shareFlash); // a second tap must not save "copied" as the label
-    else btn.shareLabel = btn.textContent;
-    btn.textContent = t('share.copied');
-    btn.shareFlash = setTimeout(() => { btn.textContent = btn.shareLabel; btn.shareFlash = null; }, 2000);
-  }, () => prompt(t('share.prompt'), url));
+  return copyShortLink(url, btn);
 }
 
+// the share sheet also hosts export, so opening it never mints a link; only this Copy does
 function copyShareUrl() {
-  return copyShareLink(state.shareUrl || buildShareUrl(), $('#share-copy'));
+  const url = state.shareUrl || buildShareUrl();
+  return copyShareLink(url, $('#share-copy')).then((s) => {
+    if (s !== url && state.shareUrl === url) $('#share-url').textContent = s;
+    return s;
+  });
 }
 
 // set a filter control the way a user would (adding a missing SELECT option first, since the

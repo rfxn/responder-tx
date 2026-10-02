@@ -237,7 +237,7 @@ test('no client file substitutes an empty list for a missing payload key', () =>
    counts below fail on any added or removed call site, and each site named must still carry the
    token that makes its verdict true. */
 const CENSUS = {
-  'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 5, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
+  'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 5, 'chat.js': 3, 'core.js': 1, 'i18n.js': 0,
   'map.js': 3, 'master.js': 1, 'notes.js': 4, 'panels.js': 9, 'playback.js': 4,
   'sources.js': 17, 'team.js': 2, 'usng.js': 0,
 };
@@ -367,6 +367,11 @@ const SITES = [
   // not a fetch, but the same class: a parse that did not yield what we asked for is not a zero
   { f: 'board.js', d: 'function importRequests(', c: TOP, v: 'GUARDED',
     req: ["okList(data, 'requests', 'not a Responder export')", "t('import.failed')"] },
+
+  // ---- core.js ----
+  // a short link is only ever a code the mint answered; any failure copies the full link and says so
+  { f: 'core.js', d: 'function shortenShareUrl(', c: TOP, v: 'GUARDED',
+    req: ['r && r.ok', 'SHORT_CODE_RE.test(String(d.code))', '.catch(() => resolve(longUrl))'] },
 
   // ---- LAN-only (deploy.sh strips these from the public mirror) ----
   { f: 'team.js', d: 'async function loadFacilities()', c: NESTED, v: 'GUARDED',

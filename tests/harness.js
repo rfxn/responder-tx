@@ -176,6 +176,7 @@ const EXPORTS = [
   'fetchRoadClosures', 'fetchRoadClosuresLive', 'hydrateRoadsSnapshot', 'roadFeatures', 'ROAD_PAGE', 'ROAD_MAX_PAGES',
   'cardAged',
   'buildShareUrl', 'applyShareParams', 'linkOwnsView', 'LINK_VIEW_PARAMS',
+  'SHORT_LINK_TIMEOUT_MS',
   'smartScore', 'shortId', 'allRequests',
   'CALTOPO_EXPORT_URL', 'renderQr', 'caltopoStatusText',
   'mergeShelters', 'shelterDup', 'shelterKey',
@@ -261,7 +262,7 @@ function loadMapApp() {
 }
 
 // boot.js entry points the tests exercise (same rule as EXPORTS above)
-const BOOT_EXPORTS = ['relocalizeDynamic', 'renderGlossary'];
+const BOOT_EXPORTS = ['relocalizeDynamic', 'renderGlossary', 'OB_RECORD_PARAMS'];
 
 let fullCached = null;
 

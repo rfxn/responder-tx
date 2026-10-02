@@ -584,7 +584,7 @@ const ABOUT_SECTIONS = [
   ['about.sec.honest', ['about.honest.stale', 'about.honest.suppress', 'about.honest.fcst', 'about.honest.cite']],
   ['about.sec.data', ['about.data', 'about.data.cams', 'about.data.curated']],
   ['about.sec.alerts', ['about.alerts']],
-  ['about.sec.privacy', ['about.privacy.local', 'about.privacy.team', 'about.privacy.push', 'about.privacy.both']],
+  ['about.sec.privacy', ['about.privacy.local', 'about.privacy.team', 'about.privacy.push', 'about.privacy.share', 'about.privacy.both']],
 ];
 
 function renderAbout() {
@@ -873,7 +873,8 @@ async function boot() {
   });
   $('#share-copy').addEventListener('click', copyShareUrl);
   $('#share-native').addEventListener('click', () => {
-    if (navigator.share) navigator.share({ url: state.shareUrl || buildShareUrl() }).catch(() => copyShareUrl());
+    // never waits for a short link: the OS share sheet also needs the tap
+    if (navigator.share) navigator.share({ url: shortLinkIfReady(state.shareUrl || buildShareUrl()) }).catch(() => copyShareUrl());
   });
   $('#share-sheet-close').addEventListener('click', closeShareSheet);
   $('#share-sheet .ls-backdrop').addEventListener('click', closeShareSheet);

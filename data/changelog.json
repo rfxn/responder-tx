@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.12",
+      "date": "2026-10-02",
+      "line": "Copy link hands out a short link such as respondertx.org/s/37401230 for the map and camera views; if one cannot be made, the full link is copied and the button says so. Short links store the shared view on the board's server with no expiry, and are made only when Copy link is pressed."
+    },
+    {
       "v": "v0.100.11",
       "date": "2026-10-02",
       "line": "TxDOT traffic cameras play live again. The camera list is refreshed and retired cameras removed. A camera that cannot load now says its feed is unavailable from the operator. City of Austin cameras on the public board load directly from the city, labelled \"age not checked\"."

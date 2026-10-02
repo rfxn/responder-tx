@@ -310,6 +310,23 @@ test('the fetch router keeps its hands off everything it must not intercept', as
   assert.deepEqual(s.log.fetches, [], 'passing through means issuing no request of our own');
 });
 
+/* A short link is a redirect to a view. Answering its navigation with the cached shell would boot
+   the board at /s/<code> with no query (and relative asset paths under /s/), dropping the view. */
+test('short-link navigations bypass the worker, even offline with a shell in the cache', async () => {
+  const shell = mkRes('cached shell');
+  const s = loadSw(makeCaches({ [`respondertx-static-${sw.SW_VERSION}`]: { './': shell } }));
+  for (const u of ['https://respondertx.org/s/37401230', 'https://respondertx.org/share37401230']) {
+    const ev = await fire(s, 'fetch', getEvent(u, { mode: 'navigate' }));
+    assert.equal(ev.responded, undefined, `${u} was answered by the worker; it must go to the network`);
+  }
+  assert.deepEqual(s.log.fetches, []);
+  // the board itself still opens offline from the shell, so the bypass is not a blanket one
+  const board = await fire(s, 'fetch', getEvent('https://respondertx.org/?mlat=29.4&mlon=-98.5', { mode: 'navigate' }));
+  assert.equal(board.response, shell);
+  const lookalike = await fire(s, 'fetch', getEvent('https://respondertx.org/shared-notes', { mode: 'navigate' }));
+  assert.equal(lookalike.response, shell, 'only /s/<code> and /share<digits> are short links');
+});
+
 test('a stamped asset is fetched once and served from cache on every later open', async () => {
   const { assetUrl, APP_VERSION } = require('./harness.js').loadApp();
   const url = `https://respondertx.org/${assetUrl('js/team.js')}`;

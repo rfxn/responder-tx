@@ -33,8 +33,8 @@ public at <https://github.com/rfxn/responder-tx>.
   report.
 - **Zero backend.** The board itself runs from any static host and stays up when
   heavier infrastructure does not. The public mirror is a read-only copy on a CDN.
-  Two opt-in extras (live team sharing and device alerts) are the only pieces with
-  server-side state, and both stay dormant until someone turns them on.
+  Three opt-in extras (live team sharing, device alerts and short share links) are
+  the only pieces with server-side state, and each stays dormant until someone uses it.
 - **For the field.** Drive Mode, USNG/MGRS coordinates, an "Am I at risk?" address
   check, offline app and map caching, exports to CalTopo/SARTopo, and radio-ready
   SITREPs are first-class.
@@ -121,9 +121,9 @@ says so on the page and tells you not to read the empty shell behind the notice.
 - **Your data stays local.** Theme, language, filters, last-seen markers, saved
   places, and cached last-good data live in your browser (`localStorage`;
   `IndexedDB` holds offline map tiles). Nothing leaves the browser except through
-  the two opt-in relays below: alert preferences are posted to the alert registry
-  when you subscribe or renew, and the team client queues GPS fixes locally to
-  upload when a dead zone ends.
+  the opt-in features below: alert preferences are posted to the alert registry
+  when you subscribe or renew, the team client queues GPS fixes locally to upload
+  when a dead zone ends, and Copy link sends the view it is shortening.
 - **Read-only public mirror.** The public site has no chat and no board-data write
   routes. The deploy strips the LAN-only operator chat, the command oversight view,
   Field Notes, the LAN server and the ops scripts, and removes the field-report
@@ -138,6 +138,13 @@ says so on the page and tells you not to read the empty shell behind the notice.
   never written to the git archive, and stop when you leave the team or turn alerts
   off. One carve-out: a map marker you drop is team data rather than personal data,
   so it keeps your handle and outlives your session by up to 12 hours.
+- **Short links keep the view, and only the view.** Pressing Copy link on the public
+  site stores the board view the link carries (map position and zoom, tab, filters,
+  any search text, the layers that are on) under an 8-digit code, with when it was
+  made and last opened. It is kept without expiry so a link in an after-action report
+  keeps working, carries no name, account or retained IP, and is never written to the
+  git archive. Opening the share sheet stores nothing, the LAN board never shortens,
+  and team invite links are never shortened.
 - **Notifications are best effort.** They are a convenience layer over public NWS
   data and ride your browser's push service, so they can be late, throttled by your
   device, or missed entirely. They are not Wireless Emergency Alerts and they never

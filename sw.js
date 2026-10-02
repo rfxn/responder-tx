@@ -3,7 +3,7 @@
 /* App-shell service worker. SW_VERSION must move with APP_VERSION and the
    index.html ?v= stamps on every release (cycle-check.sh enforces agreement). */
 
-const SW_VERSION = '0.100.11';
+const SW_VERSION = '0.100.12';
 const CACHE_STATIC = `respondertx-static-${SW_VERSION}`;
 // version-independent: /data/ is not versioned by app release, and the last-good copies here are
 // the offline fallback. Keying it to SW_VERSION emptied that fallback on every accepted update.
@@ -161,6 +161,7 @@ async function stampedCacheFirst(request) {
    unaffected. */
 const HISTORY_INDEX_RE = /\/history\/index\.json$/;
 const HISTORY_DAY_RE = /\/history\/day\/(\d{4}-\d{2}-\d{2})\.json$/;
+const SHORT_LINK_RE = /^\/(s\/|share\d)/;
 const HISTORY_INDEX_PATH = 'history/index.json';
 const HISTORY_DAYS_KEPT = 30; // above the published retention, so pruning only ever trails the index
 
@@ -281,6 +282,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // tiles/radar/vendors pass through untouched
   if (url.pathname.indexOf('/api/') === 0) return; // never intercept first-party APIs
+  if (SHORT_LINK_RE.test(url.pathname)) return; // the cached shell here would drop the shared view
   if (req.mode === 'navigate') {
     event.respondWith(shellNetworkFirst(req));
     return;

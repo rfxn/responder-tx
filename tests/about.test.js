@@ -3,7 +3,7 @@
 /* The about/methodology surface and the version-poll artifact it shipped alongside.
  *
  * Two things are pinned here. First, a life-safety board that a stranger can reach must be able to
- * say who runs it, what it will not do, and what its two opt-in relays keep, without leaving the
+ * say who runs it, what it will not do, and what its server-side stores keep, without leaving the
  * board for GitHub. Second, the update poll must never again pull the whole changelog (~145 KB,
  * every 180 s) to read one version string, while the changelog modal must still show full history.
  */
@@ -180,8 +180,8 @@ test('about: the provenance claim names only the badges the board can actually d
   assert.ok(!/reporte de campo/i.test(I18N.es['about.honest.cite']), 'es about must not claim a field badge either');
 });
 
-test('about: the privacy text names BOTH opt-in relays and what each one stores', () => {
-  const en = `${I18N.en['about.privacy.local']} ${I18N.en['about.privacy.team']} ${I18N.en['about.privacy.push']} ${I18N.en['about.privacy.both']}`;
+test('about: the privacy text names every server-side store and what each one keeps', () => {
+  const en = `${I18N.en['about.privacy.local']} ${I18N.en['about.privacy.team']} ${I18N.en['about.privacy.push']} ${I18N.en['about.privacy.share']} ${I18N.en['about.privacy.both']}`;
   // relay one: live team sharing
   assert.match(en, /team/i);
   assert.match(en, /handle/i);
@@ -191,12 +191,17 @@ test('about: the privacy text names BOTH opt-in relays and what each one stores'
   assert.match(en, /push subscription/i);
   assert.match(en, /five points/i);
   assert.match(en, /kilometer/i);
-  // and the promise that binds both
+  // short links: made only on Copy link, keep the view, kept without expiry, never a team invite
+  assert.match(en, /only when you press Copy link/);
+  assert.match(en, /search text/);
+  assert.match(en, /kept so the link keeps working/);
+  assert.match(en, /Team invite links are never shortened/);
+  // and the promise that binds them
   assert.match(en, /opt in/i);
   assert.match(en, /no name, email, account or retained IP/i);
   assert.match(en, /No accounts, no analytics/);
 
-  const es = `${I18N.es['about.privacy.local']} ${I18N.es['about.privacy.team']} ${I18N.es['about.privacy.push']} ${I18N.es['about.privacy.both']}`;
+  const es = `${I18N.es['about.privacy.local']} ${I18N.es['about.privacy.team']} ${I18N.es['about.privacy.push']} ${I18N.es['about.privacy.share']} ${I18N.es['about.privacy.both']}`;
   assert.match(es, /equipo/);
   assert.match(es, /identificador/);
   assert.match(es, /rastro/);
@@ -205,6 +210,9 @@ test('about: the privacy text names BOTH opt-in relays and what each one stores'
   assert.match(es, /kilómetro/);
   assert.match(es, /opcional/);
   assert.match(es, /Sin cuentas, sin analítica/);
+  assert.match(es, /solo cuando usted pulsa Copiar enlace/);
+  assert.match(es, /texto de búsqueda/);
+  assert.match(es, /invitación a un equipo nunca se acortan/);
 });
 
 test('about: the alert promise stays best effort, not a WEA, not a 911 replacement', () => {

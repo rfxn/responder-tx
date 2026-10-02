@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.11';
+const APP_VERSION = 'v0.100.12';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -554,6 +554,82 @@ function copyText(text) {
     catch (e) { reject(e); }
     finally { ta.remove(); }
   });
+}
+
+/* ---------- short links: respondertx.org/s/<8 digits> stands in for a shared board view ---------- */
+
+const SHORT_LINK_TIMEOUT_MS = 3000;
+const SHORT_CODE_RE = /^[1-9]\d{7}$/;
+const BOARD_PATH_RE = /^\/(index\.html)?$/;
+const shortLinkAsks = new Map();
+const shortLinkMade = new Map();
+
+// only the public mirror runs /api/share; the LAN board (server.py) has no such endpoint
+function shortLinkCapable() {
+  const h = location.hostname || '';
+  return location.protocol === 'https:'
+    && (h === 'respondertx.org' || h === 'responder-tx.pages.dev' || h.endsWith('.responder-tx.pages.dev'));
+}
+
+// resolves to the short URL, or to longUrl itself on any failure: it never rejects
+function shortenShareUrl(longUrl) {
+  let u = null;
+  try { u = new URL(longUrl); } catch { u = null; }
+  if (!u || !shortLinkCapable() || u.origin !== location.origin || !BOARD_PATH_RE.test(u.pathname)
+    || u.search.length < 2 || u.hash || navigator.onLine === false) return Promise.resolve(longUrl);
+  const asked = shortLinkAsks.get(longUrl);
+  if (asked) return asked;
+  const ask = new Promise((resolve) => {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = setTimeout(() => { if (ctl) ctl.abort(); resolve(longUrl); }, SHORT_LINK_TIMEOUT_MS);
+    Promise.resolve()
+      .then(() => fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: u.search.slice(1) }),
+        signal: ctl ? ctl.signal : undefined,
+      }))
+      .then((r) => (r && r.ok ? r.json() : null))
+      .then((d) => resolve(d && SHORT_CODE_RE.test(String(d.code)) ? `${location.origin}/s/${d.code}` : longUrl))
+      .catch(() => resolve(longUrl))
+      .then(() => clearTimeout(timer));
+  });
+  shortLinkAsks.set(longUrl, ask);
+  ask.then((s) => {
+    if (s === longUrl) shortLinkAsks.delete(longUrl); // a miss is retried next time
+    else shortLinkMade.set(longUrl, s);
+  });
+  return ask;
+}
+
+// synchronous: the short link if this session already minted one, else longUrl (for navigator.share)
+function shortLinkIfReady(longUrl) {
+  return shortLinkMade.get(longUrl) || longUrl;
+}
+
+function flashCopied(btn, key) {
+  if (!btn) return;
+  if (btn.copyHtml === undefined) btn.copyHtml = btn.innerHTML;
+  btn.textContent = t(key);
+  clearTimeout(btn.copyTimer);
+  btn.copyTimer = setTimeout(() => { btn.innerHTML = btn.copyHtml; btn.copyHtml = undefined; }, 2000);
+}
+
+/* Safari allows a clipboard write only inside the tap, so the write always starts synchronously: a
+   promised ClipboardItem carries the network wait; without one, the link on hand is copied now. */
+function copyShortLink(longUrl, btn) {
+  const done = (url) => { flashCopied(btn, url === longUrl ? 'share.copied.full' : 'share.copied'); return url; };
+  const ask = (url) => { prompt(t('share.prompt'), url); return url; };
+  const ready = shortLinkIfReady(longUrl);
+  const clip = navigator.clipboard;
+  if (ready === longUrl && clip && clip.write && window.isSecureContext
+    && typeof ClipboardItem === 'function' && typeof Blob === 'function') {
+    const pending = shortenShareUrl(longUrl);
+    let item = null;
+    try { item = new ClipboardItem({ 'text/plain': pending.then((s) => new Blob([s], { type: 'text/plain' })) }); } catch { item = null; }
+    if (item) return clip.write([item]).then(() => pending.then(done), () => pending.then(ask));
+  }
+  return copyText(ready).then(() => done(ready), () => ask(ready));
 }
 
 /* ---------- screen wake lock: refcounted sentinel shared by team-sharing + Drive Mode ---------- */

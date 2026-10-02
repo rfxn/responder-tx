@@ -1,5 +1,19 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.12 · 2026-10-02 (short share links)
+
+-- New Features --
+- [New] Copy link hands out a short link such as respondertx.org/s/37401230,
+      for the map share sheet and the camera viewer alike. The same view always
+      gets the same code, and /share37401230 works too
+- [New] If a short link cannot be made, the full link is copied and the button
+      says "Full link copied"
+
+-- Changes --
+- [Change] About: short links store the shared view's map position, filters and
+         layers on the board's server, with no expiry. A link is made only when
+         Copy link is pressed
+
 ## v0.100.11 · 2026-10-02 (TxDOT cameras play again)
 
 -- Bug Fixes --

@@ -32,6 +32,13 @@ const CAMS = {
 };
 const HOUSTON_102 = CAMS.houston[0];
 
+// a plain-text button: the DOM keeps textContent and innerHTML in step, and the copy confirmation restores via innerHTML
+function textLinked(n, text) {
+  let v = text;
+  for (const k of ['textContent', 'innerHTML']) Object.defineProperty(n, k, { get: () => v, set: (x) => { v = String(x); }, configurable: true });
+  return n;
+}
+
 function node(tag, extra) {
   const listeners = [];
   return Object.assign({
@@ -68,7 +75,7 @@ function makeDom({ gateUp = false, tab = 'tab-gauges' } = {}) {
     '#cam-stage': node('DIV'),
     '#cam-meta': node('DIV', { querySelector: (sel) => (sel === '.cam-refresh' ? refresh : null) }),
     '#cam-note': node('DIV'),
-    '#cam-link': node('BUTTON', { textContent: '🔗 Copy link' }),
+    '#cam-link': textLinked(node('BUTTON'), '🔗 Copy link'),
     '#safety-modal': node('DIV', { hidden: !gateUp }),
     '#safety-ack': node('BUTTON'),
     '#op-toast': node('DIV', { hidden: true }),
@@ -356,7 +363,8 @@ test('Copy link copies the camera link through the one share-copy path, and conf
     assert.equal(q.get('mz'), '11');
     assert.equal(q.get('ft'), 'rescue');
     const btn = r.els['#cam-link'];
-    assert.equal(btn.textContent, 'share.copied');
+    // not shortened here (no ClipboardItem, not the public origin), and the button says so
+    assert.equal(btn.textContent, 'share.copied.full');
     // a second tap inside the confirmation must not make "copied" the button's resting label
     sb.copyCamLink();
     await settle();

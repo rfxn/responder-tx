@@ -61,6 +61,9 @@ All of the above are CORS open and keyless. The JSON files carry a `generated` f
   id used in the feeds, for example `?hydro=THET2`.
 - `?tab=alerts`, `?tab=gauges`, `?tab=roads` open a panel.
 - `?view=basin&river=NAME` opens the single river corridor view.
+- `?cam=NETWORK.ID` opens one camera's viewer, for example
+  `?cam=river.TX_Barker_Reservoir_near_Addicks`. The camera viewer's Copy link writes these
+  together with the map view they were shared from.
 - `?lang=es` loads the Spanish interface. The board is bilingual English and Spanish.
 - `?theme=light` and `?theme=dark` set the palette.
 

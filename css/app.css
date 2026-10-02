@@ -1109,6 +1109,7 @@ path.alert-flash { animation: alertFlash 0.55s ease-in-out 3; }
 #cam-viewer { position: fixed; inset: 0; z-index: 1700; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; }
 #cam-viewer[hidden] { display: none; }
 .cam-box { width: min(96vw, 840px); }
+.cam-head-acts { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 #cam-stage { padding: 10px 12px 2px; }
 #cam-stage video, #cam-stage img {
   display: block; width: 100%; max-height: min(62vh, 480px);

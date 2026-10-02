@@ -1335,7 +1335,9 @@ function renderFeedSituation() {
 
 /* ---------- share view — one link reproduces map, tab, and filters ---------- */
 
-function buildShareUrl() {
+// opts.cam = { c, kind }: the link also opens that camera's viewer (?cam=) and its region's layer
+function buildShareUrl(opts) {
+  const cam = opts && opts.cam;
   const p = new URLSearchParams();
   const c = state.map.getCenter();
   p.set('mlat', c.lat.toFixed(4));
@@ -1362,8 +1364,9 @@ function buildShareUrl() {
   // cameras travel as one ?camreg= list of region ids; the retired per-source params stay readable
   // on the way in (js/boot.js CAM_LEGACY_PARAMS) so links shared before the split keep working
   const camRows = camRegionsAll();
+  const camHome = cam ? camRegionId(cam.c.lat, cam.c.lon, camRegions()) : null; // its marker is the way back once the viewer closes
   const camOn = camRows
-    .filter((r) => state.layers[camRegionKey(r.id)] && state.map.hasLayer(state.layers[camRegionKey(r.id)]))
+    .filter((r) => r.id === camHome || (state.layers[camRegionKey(r.id)] && state.map.hasLayer(state.layers[camRegionKey(r.id)])))
     .map((r) => r.id);
   // every region on travels as the statewide token, so the link still means statewide if the region set grows
   if (camOn.length && camOn.length === camRows.length) p.set('camreg', CAM_REGION_ALL);
@@ -1371,6 +1374,8 @@ function buildShareUrl() {
   // Full AO is the resting pick, so a default link stays short; any sub-AO travels by its id
   const ao = typeof aoPickedId === 'function' ? aoPickedId() : null;
   if (ao && ao !== AO_FULL_ID) p.set('ao', ao);
+  const sv = $('#summary-view');
+  if (sv && !sv.hidden) p.set('view', 'summary');
   const rv = $('#recovery-view');
   if (rv && !rv.hidden) p.set('view', 'recovery');
   const bv = $('#basin-view');
@@ -1378,6 +1383,7 @@ function buildShareUrl() {
     p.set('view', 'basin');
     if (state.basinRiver) p.set('river', state.basinRiver);
   }
+  if (cam) p.set('cam', camLinkKey(cam.c, cam.kind));
   p.set('base', state.activeBase);
   p.set('theme', document.documentElement.getAttribute('data-theme'));
   return `${location.origin}${location.pathname}?${p}`;
@@ -1437,12 +1443,19 @@ function closeNotifySheet() {
   if (el) el.hidden = true;
 }
 
+// every Copy link control funnels through here, so a change to how links are handed out lands once
+function copyShareLink(url, btn) {
+  return copyText(url).then(() => {
+    if (!btn) return;
+    if (btn.shareFlash) clearTimeout(btn.shareFlash); // a second tap must not save "copied" as the label
+    else btn.shareLabel = btn.textContent;
+    btn.textContent = t('share.copied');
+    btn.shareFlash = setTimeout(() => { btn.textContent = btn.shareLabel; btn.shareFlash = null; }, 2000);
+  }, () => prompt(t('share.prompt'), url));
+}
+
 function copyShareUrl() {
-  const btn = $('#share-copy');
-  const url = state.shareUrl || buildShareUrl();
-  copyText(url).then(
-    () => { const orig = btn.textContent; btn.textContent = t('share.copied'); setTimeout(() => { btn.textContent = orig; }, 2000); },
-    () => prompt(t('share.prompt'), url));
+  return copyShareLink(state.shareUrl || buildShareUrl(), $('#share-copy'));
 }
 
 // set a filter control the way a user would (adding a missing SELECT option first, since the

@@ -55,8 +55,9 @@ const ENTRY_POINTS = [
   'renderWildfire', 'renderRiverSentry', 'renderTideStations',
   // cameras.js (called from map.js, sources.js, boot.js, panels.js)
   'loadCameras', 'renderCameras', 'openCamViewer', 'closeCamViewer', 'camNetLabel', 'nearestRiverCam',
+  'openCamLink', 'copyCamLink', 'camLinkKey',
   // panels.js / board.js / boot.js
-  'openView',
+  'openView', 'buildShareUrl', 'copyShareLink',
   'renderTiles', 'renderRequests', 'renderAlertList', 'loadSeeds', 'refresh',
   'restoreViewState', 'loadEventConfig', 'registerServiceWorker', 'initPushCard',
 ];

@@ -765,7 +765,7 @@ async function boot() {
   registerModal($('#about-modal'));
   registerModal($('#hydro-modal'));
   registerModal($('#alert-modal'));
-  registerModal($('#cam-viewer'));
+  registerModal($('#cam-viewer'), { initialFocus: '#cam-close' }); // a viewer that opens on its own must not land on Copy link
   registerModal($('#changelog-modal'));
   registerModal($('#risk-modal'), { initialFocus: '#risk-addr' });
   registerModal($('#sitrep-modal'), { initialFocus: '#sitrep-copy' });
@@ -913,6 +913,7 @@ async function boot() {
   });
   // camera viewer: ✕ / tap-outside / Escape all route through closeCamViewer so the stream is destroyed
   $('#cam-close').addEventListener('click', closeCamViewer);
+  $('#cam-link').addEventListener('click', copyCamLink);
   $('#cam-viewer').addEventListener('click', (e) => { if (e.target.id === 'cam-viewer') closeCamViewer(); });
   $('#drive-loc').addEventListener('click', () => { state.centerNextFix = true; gpsWait(true); state.map.locate({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }); });
   $('#update-chip').addEventListener('click', () => applyUpdateAndReload());
@@ -1181,7 +1182,6 @@ async function boot() {
   // every ?view= value is dispatched by openView() from applyShareParams above, button ids not involved
   const hydroParam = new URLSearchParams(location.search).get('hydro');
   if (hydroParam) state.pendingHydro = hydroParam.toUpperCase();
-  // ?cam=<camId|name|id> deep-links straight into the viewer (handled below).
   // shared/rollover layer toggles (set only when ON); radar handled above
   const shareQs = new URLSearchParams(location.search);
   const camOn = (lk) => { if (state.layers[lk]) state.layers[lk].addTo(state.map); };
@@ -1204,11 +1204,7 @@ async function boot() {
       if (ids === '*' || ids.includes(p.id)) camOn(camRegionKey(p.id));
     }
   }
-  const camParam = new URLSearchParams(location.search).get('cam');
-  if (camParam) {
-    state.pendingCam = camParam;
-    loadCameras().catch(() => { opNotice(t('note.camfail')); });
-  }
+  openCamLink(shareQs); // after the view it was shared from is restored, so the viewer opens over it
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board
   state.bootAt = Date.now();

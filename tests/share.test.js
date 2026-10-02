@@ -242,10 +242,9 @@ test('share round-trip — applyShareParams reopens the recovery view from view=
   delete sb.openRecoveryView;
 });
 
-/* ?view=summary and ?view=drive are accepted on the way in but buildShareUrl never emits them,
-   so they only reach the board through a hand-written or bookmarked link. They used to be
-   dispatched by clicking #summary-btn / #drive-btn from boot(); both now route through
-   openView() so relocating those buttons cannot silently break the link. */
+/* ?view=drive is accepted on the way in but buildShareUrl never emits it (?view=summary is emitted
+   while that lens is open). Both used to be dispatched by clicking #summary-btn / #drive-btn from
+   boot(); both now route through openView() so relocating those buttons cannot silently break the link. */
 test('share round-trip — applyShareParams reopens the crest summary from view=summary', () => {
   seedState();
   sb.document = makeDom('tab-requests');

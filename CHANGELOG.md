@@ -1,5 +1,17 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.10 · 2026-10-02 (share a camera)
+
+-- New Features --
+- [New] Camera viewer: Copy link shares the camera on the current map view. The
+      link restores the view, zoom, tab, filters and layers, then opens the camera
+      and starts loading it; on a first visit it opens after the 911 notice
+
+-- Changes --
+- [Change] A shared map link also carries the crest summary view when it is open
+- [Change] A shared camera that no longer exists opens the shared view with a
+         notice instead of an empty viewer
+
 ## v0.100.9 · 2026-10-02 (river warnings name their river)
 
 -- Changes --

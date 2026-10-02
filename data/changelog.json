@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.10",
+      "date": "2026-10-02",
+      "line": "Camera viewer: Copy link shares a camera on the current map view. Opening the link restores the view, zoom, tab, filters and layers, then opens the camera and starts loading it."
+    },
+    {
       "v": "v0.100.9",
       "date": "2026-10-02",
       "line": "RSS river flood warnings are titled by the river and forecast point they cover. The Feed tab badge counts open notices and is hidden when there are none, instead of reading 0 beside the Situation summary."

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.9';
+const APP_VERSION = 'v0.100.10';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -455,6 +455,7 @@ const state = {
   camLayerList: null,
   camHls: null,
   camObjUrl: null,
+  camOpen: null, // { c, kind } while the viewer shows a camera: what its Copy link names
 
   compassEl: null,
   compassRose: null,

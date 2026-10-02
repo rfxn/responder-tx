@@ -126,21 +126,31 @@ function renderCameras() {
     put(state.layers[camRegionKey(p.id)], buckets[p.id]);
   }
   layerSheetSync(); // the sheet shows per-region counts, so repaint if it is open when the inventory lands
-  // ?cam=<name|camId|id> deep link — open the viewer once the inventory is in (once)
-  if (state.pendingCam) {
-    const want = state.pendingCam;
-    state.pendingCam = null;
-    const hit = findCamByKey(want);
-    if (hit) openCamViewer(hit.c, hit.kind);
-  }
 }
+
+// river cams by camId, id-less networks (TxDOT, El Paso) by name, every other network by its own id
+function camLinkToken(c) {
+  return String(c.camId != null ? c.camId : c.id != null ? c.id : c.name);
+}
+
+// net-qualified because bare ids collide across networks (Austin and Houston both carry a "102")
+function camLinkKey(c, kind) {
+  return `${kind}.${camLinkToken(c)}`;
+}
+
+const CAM_LINK_RE = /^([a-z]+)\.(.+)$/;
 
 /* Deep-link precedence is frozen: river ids resolve before TxDOT names, then every other network
    in CAM_NETS order, so a ?cam= link shared before a network existed still opens the same camera. */
 const CAM_FIND_ORDER = ['river'].concat(CAM_NETS.map(([arr]) => arr).filter((a) => a !== 'river'));
 
-// resolve a deep-link token across every network (camId / name / id)
+// resolve a deep-link token: a net-qualified camLinkKey first, then the legacy camId / name / id
 function findCamByKey(want) {
+  const m = CAM_LINK_RE.exec(String(want));
+  if (m && CAM_NETS.some(([arr]) => arr === m[1])) {
+    const hit = (state.cameras[m[1]] || []).find((c) => camLinkToken(c) === m[2]);
+    if (hit) return { c: hit, kind: m[1] };
+  }
   for (const arr of CAM_FIND_ORDER) {
     const hit = (state.cameras[arr] || []).find((c) => c.name === want ||
       (c.camId !== undefined && c.camId === want) ||
@@ -148,6 +158,36 @@ function findCamByKey(want) {
     if (hit) return { c: hit, kind: arr };
   }
   return null;
+}
+
+// the viewer stacks above #safety-modal, so a linked camera waits for the 911 ack instead of covering it
+function afterSafetyGate(fn) {
+  const gate = $('#safety-modal'), ack = $('#safety-ack');
+  if (gate && !gate.hidden && ack) { ack.addEventListener('click', fn, { once: true }); return; }
+  fn();
+}
+
+// ?cam= link: the inventory may land before or after the URL is read, so resolve off its promise
+function openCamLink(q) {
+  const want = q.get('cam');
+  if (!want) return null;
+  state.pendingCam = want;
+  return loadCameras().then(openPendingCam, () => {
+    state.pendingCam = null;
+    opNotice(t('note.camfail'));
+  });
+}
+
+function openPendingCam() {
+  const want = state.pendingCam;
+  if (!want) return;
+  state.pendingCam = null;
+  const hit = findCamByKey(want);
+  afterSafetyGate(hit ? () => openCamViewer(hit.c, hit.kind) : () => opNotice(t('note.camgone')));
+}
+
+function copyCamLink() {
+  return state.camOpen ? copyShareLink(buildShareUrl({ cam: state.camOpen }), $('#cam-link')) : null;
 }
 
 function camPopup(c, kind) {
@@ -240,6 +280,7 @@ function openCamViewer(c, kind) {
   camViewerTeardown();
   state.camGen = (state.camGen || 0) + 1; // invalidates every in-flight load from the previous camera
   const gen = state.camGen;
+  state.camOpen = { c, kind };
   $('#cam-viewer').hidden = false;
   $('#cam-title').textContent = `📷 ${camTitle(c, kind)}`;
   const stage = $('#cam-stage'), meta = $('#cam-meta'), note = $('#cam-note');
@@ -424,5 +465,6 @@ function camViewerTeardown() {
 function closeCamViewer() {
   state.camGen = (state.camGen || 0) + 1; // late responses must not write into the hidden stage
   camViewerTeardown();
+  state.camOpen = null;
   $('#cam-viewer').hidden = true;
 }

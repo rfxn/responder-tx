@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-02T13:40:17Z",
+ "generated": "2026-10-02T13:55:29Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-01T18:23:00Z"
+  "last": "2026-10-02T13:38:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -260,6 +260,25 @@
    "src": "usgs"
   },
   {
+   "lid": "BOQT2",
+   "name": "Rio Grande at Boquillas Crossing",
+   "peak": 24.67,
+   "peak_time": "2026-10-02T13:38:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-09-30T05:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 25.5,
+    "record_date": "1978-10-03",
+    "peak_pct": 96.7,
+    "exceeded": false,
+    "approached": true
+   },
+   "stale": false
+  },
+  {
    "lid": "JOCT2",
    "name": "Pedernales River at Johnson City",
    "peak": 24.46,
@@ -326,8 +345,8 @@
    "peak_category": "major",
    "unit": "ft",
    "first_in_flood": "2026-07-18T09:58:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-10-01T18:23:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 15.09,
     "record_date": "2018-10-18",
@@ -551,8 +570,8 @@
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-07-16T08:00:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-10-01T18:23:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 43.3,
     "record_date": "1935-06-14",
@@ -777,25 +796,6 @@
    "src": "usgs"
   },
   {
-   "lid": "BOQT2",
-   "name": "Rio Grande at Boquillas Crossing",
-   "peak": 18.04,
-   "peak_time": "2026-09-30T23:53:00Z",
-   "peak_category": "moderate",
-   "unit": "ft",
-   "first_in_flood": "2026-09-30T05:53:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
-   "record": {
-    "record_ft": 25.5,
-    "record_date": "1978-10-03",
-    "peak_pct": 70.7,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
-  },
-  {
    "lid": "LTRT2",
    "name": "Pecos River near Langtry",
    "peak": 16.66,
@@ -862,8 +862,8 @@
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-07-18T23:40:00Z",
-   "last_in_flood": "2026-07-19T16:28:00Z",
-   "ongoing": false,
+   "last_in_flood": "ongoing",
+   "ongoing": true,
    "record": {
     "record_ft": 19.82,
     "record_date": "1974-09-18",
@@ -968,8 +968,8 @@
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-01T16:53:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-10-01T18:23:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 91.59,
     "record_date": "2018-09-22",
@@ -1007,6 +1007,25 @@
     "peak_pct": 96.7,
     "exceeded": false,
     "approached": true
+   },
+   "stale": false
+  },
+  {
+   "lid": "DALT2",
+   "name": "Trinity River at Dallas",
+   "peak": 32.27,
+   "peak_time": "2026-10-02T13:38:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-02T13:38:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 52.6,
+    "record_date": "1908-05-25",
+    "peak_pct": 61.3,
+    "exceeded": false,
+    "approached": false
    },
    "stale": false
   },
@@ -1249,6 +1268,25 @@
    "src": "usgs"
   },
   {
+   "lid": "RLOT2",
+   "name": "Tide Station (HGX) at Rollover Pass",
+   "peak": 3.51,
+   "peak_time": "2026-10-02T13:38:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-02T13:38:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 5.03,
+    "record_date": "2021-09-14",
+    "peak_pct": 69.8,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "LEAT2",
    "name": "Mill Creek (E TX) at Brownlea Road",
    "peak": 3.02,
@@ -1274,7 +1312,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 72,
+ "retained_gauges": 74,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

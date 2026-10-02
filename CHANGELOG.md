@@ -1,5 +1,11 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.13 · 2026-10-02 (a road count says how old it is)
+
+-- Bug Fixes --
+- [Fix] When live TxDOT road data cannot be reached, the Roads closed card says
+      it is showing a TxDOT snapshot and how old it is, instead of reading as current
+
 ## v0.100.12 · 2026-10-02 (short share links)
 
 -- New Features --

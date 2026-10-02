@@ -1268,7 +1268,9 @@ function heroCards() {
       n: state.roadsUnknown ? null : roads.length,
       tone: roads.length && !state.roadsUnknown ? 'warn' : 'ok',
       label: t('hero.roads'),
-      sub: state.roadsUnknown ? t('hero.unknown') : t('hero.roads.sub'),
+      sub: state.roadsUnknown ? t('hero.unknown')
+        : state.roadsFallbackAt ? t('hero.roads.snap').replace('{t}', relWhen(new Date(state.roadsFallbackAt).toISOString()))
+          : t('hero.roads.sub'),
       act: openTab('tab-roads'),
     },
     {

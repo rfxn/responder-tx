@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.13",
+      "date": "2026-10-02",
+      "line": "When live TxDOT road data cannot be reached, the Roads closed card says it is showing a TxDOT snapshot and how old it is, instead of reading as current."
+    },
+    {
       "v": "v0.100.12",
       "date": "2026-10-02",
       "line": "Copy link hands out a short link such as respondertx.org/s/37401230 for the map and camera views; if one cannot be made, the full link is copied and the button says so. Short links store the shared view on the board's server with no expiry, and are made only when Copy link is pressed."

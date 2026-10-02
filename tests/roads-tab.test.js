@@ -1115,3 +1115,22 @@ test('outside crossing coverage the tab says crossings are unknown, not clear', 
   assert.match(I18N.en['roads.nocross'], /unknown, not clear/i);
   assert.match(I18N.es['roads.nocross'], /se desconocen, no est/i);
 });
+
+test('the roads hero card names the snapshot age while the published fallback is serving', () => {
+  const prevT = SB.t;
+  SB.t = (k) => ({ 'hero.roads.snap': 'TxDOT snapshot · {t}', 'hero.roads.sub': 'TxDOT DriveTexas', 'when.ago': '{s} ago' }[k] || k);
+  const roadsSub = () => SB.heroCards().find((c) => c.key === 'roads').sub;
+  let live, snap;
+  try {
+    setRoadsState({});
+    ST.roadsFallbackAt = null;
+    live = roadsSub();
+    ST.roadsFallbackAt = Date.now() - 3 * 3600000;
+    snap = roadsSub();
+  } finally {
+    SB.t = prevT;
+    ST.roadsFallbackAt = null;
+  }
+  assert.equal(live, 'TxDOT DriveTexas', 'live data keeps the plain source line');
+  assert.equal(snap, 'TxDOT snapshot · 3h ago', 'a fallback count must not read as current');
+});

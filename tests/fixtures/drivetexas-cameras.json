@@ -1,0 +1,98 @@
+{
+ "_captured": "live 2026-10-02 from dtx-e-cdn.maplarge.com (DriveTexas camera table)",
+ "activeTable": {
+  "id": "56f7ff38030d4790ba031c3617cf1ea3",
+  "hash": null,
+  "success": true,
+  "processingComplete": true,
+  "isCached": false,
+  "authorized": true,
+  "errors": [],
+  "timestamp": 1790961957.0,
+  "data": null,
+  "core": "ML",
+  "actionCategory": "table",
+  "actionVerb": "getactivetableid",
+  "table": "appgeo/cameraPoint/639265586802570940"
+ },
+ "page": {
+  "id": "8911fedb8955476896a08c166a0e2643",
+  "hash": null,
+  "success": true,
+  "processingComplete": true,
+  "isCached": false,
+  "authorized": true,
+  "errors": [],
+  "timestamp": 1790962005.0,
+  "data": {
+   "data": {
+    "description": [
+     "IH10 @ MM 98.6",
+     "IH-35 @ River Hills Drive",
+     "IH-35 @ RM-1431",
+     "IH-35 @ RM-2243"
+    ],
+    "name": [
+     "TX_ELP_209",
+     "TX_AUS_033",
+     "TX_AUS_034",
+     "TX_AUS_035"
+    ],
+    "XY": [
+     "POINT (-105.491805 31.214949)",
+     "POINT (-97.6897 30.63984)",
+     "POINT (-97.691851 30.558534)",
+     "POINT (-97.69042 30.62083)"
+    ],
+    "httpsurl": [
+     "https://s69.us-east-1.skyvdn.com/rtplive/TX_ELP_209/playlist.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTA5NjE4NDQsImV4cCI6MTc5MDk2MjE0NH0.H9r24vRHpBDIZ0LAz_z3ip_0hPP7jBeDv4Kufvs9rOA",
+     "https://s76.us-east-1.skyvdn.com/rtplive/TX_AUS_033/playlist.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTA5NjE4NjksImV4cCI6MTc5MDk2MjE2OX0.01EigFmQHu0B9e-CYTTtDnB7aoS1Gi76_47tehGOyGw",
+     "https://s76.us-east-1.skyvdn.com/rtplive/TX_AUS_034/playlist.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTA5NjE4NjksImV4cCI6MTc5MDk2MjE2OX0.01EigFmQHu0B9e-CYTTtDnB7aoS1Gi76_47tehGOyGw",
+     "https://s76.us-east-1.skyvdn.com/rtplive/TX_AUS_035/playlist.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTA5NjE4NjksImV4cCI6MTc5MDk2MjE2OX0.01EigFmQHu0B9e-CYTTtDnB7aoS1Gi76_47tehGOyGw"
+    ]
+   },
+   "allGeo": {},
+   "totals": {
+    "Records": 4
+   },
+   "tablename": "appgeo/cameraPoint/639265586802570940",
+   "stats": null,
+   "removedColumnNames": []
+  },
+  "core": "ML",
+  "actionCategory": "table",
+  "actionVerb": "query",
+  "post": "success"
+ },
+ "byName": {
+  "id": "fc66bfb67fa7422b95d84317db4f098c",
+  "hash": null,
+  "success": true,
+  "processingComplete": true,
+  "isCached": false,
+  "authorized": true,
+  "errors": [],
+  "timestamp": 1790961918.0,
+  "data": {
+   "data": {
+    "name": [
+     "TX_AUS_033"
+    ],
+    "httpsurl": [
+     "https://s76.us-east-1.skyvdn.com/rtplive/TX_AUS_033/playlist.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTA5NjE4NjksImV4cCI6MTc5MDk2MjE2OX0.01EigFmQHu0B9e-CYTTtDnB7aoS1Gi76_47tehGOyGw"
+    ]
+   },
+   "allGeo": {},
+   "totals": {
+    "Records": 1
+   },
+   "tablename": "appgeo/cameraPoint/639265586802570940",
+   "stats": null,
+   "removedColumnNames": []
+  },
+  "core": "ML",
+  "actionCategory": "table",
+  "actionVerb": "query",
+  "post": "success"
+ }
+}

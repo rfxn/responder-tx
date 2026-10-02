@@ -47,6 +47,11 @@ def ao_bbox():
 
 BBOX = ao_bbox()  # xmin, ymin, xmax, ymax — gauge AO from data/event.json
 MAPLARGE = 'https://dtx-e-cdn.maplarge.com/Api/ProcessDirect'
+# the short table name is answered from a week-long CDN cache, so queries name the active version
+MAPLARGE_ACTIVE = 'https://dtx-e-cdn.maplarge.com/Remote/GetActiveTableID?shortTableId=appgeo%2FcameraPoint'
+MAPLARGE_TABLE_RE = re.compile(r'^appgeo/cameraPoint/[0-9]{6,24}$')
+# the stream URL carries a short-lived token; only the unsigned base is published
+TXDOT_STREAM_RE = re.compile(r'^https://[a-z0-9-]+(\.[a-z0-9-]+)*\.skyvdn\.com/[A-Za-z0-9_./-]+\.m3u8$')
 NIMS = 'https://api.waterdata.usgs.gov/nims/v0/cameras'
 ITS = 'https://its.txdot.gov/its/DistrictIts/GetCctvStatusListByDistrict?districtCode='
 ITS_DISTRICTS = ('ABL', 'AMA', 'ATL', 'AUS', 'BMT', 'BRY', 'BWD', 'CHS', 'CRP', 'DAL', 'ELP',
@@ -264,13 +269,20 @@ def fetch_text(url):
         return r.read().decode('utf-8', 'replace')
 
 
-def maplarge_page(start):
+def maplarge_table():
+    table = str(fetch_json(MAPLARGE_ACTIVE).get('table') or '')
+    if not MAPLARGE_TABLE_RE.match(table):
+        sys.exit(f'MapLarge: no active camera table ({table!r})')
+    return table
+
+
+def maplarge_page(table, start):
     q = {
         'action': 'table/query',
         'query': {
-            'sqlselect': ['route', 'description', 'name', 'httpsurl', 'XY'],
+            'sqlselect': ['description', 'name', 'httpsurl', 'XY'],
             'start': start,
-            'table': 'appgeo/cameraPoint',
+            'table': table,
             'take': PAGE,
         },
     }
@@ -282,22 +294,22 @@ def maplarge_page(start):
 
 def txdot_cams():
     test_re = re.compile(r'\btest\b', re.I)
+    table = maplarge_table()
     cams, start, pages = [], 0, 0
     while True:
-        cols = maplarge_page(start)
+        cols = maplarge_page(table, start)
         pages += 1
         names = cols.get('name', [])
         for i in range(len(names)):
             xy = cols['XY'][i]
-            url = cols['httpsurl'][i]
-            if not xy or not xy.startswith('POINT') or not str(url).startswith('https://'):
+            url = str(cols['httpsurl'][i] or '').split('?', 1)[0]
+            if not xy or not xy.startswith('POINT') or not TXDOT_STREAM_RE.match(url):
                 continue
             if test_re.search(cols['description'][i] or ''):  # vendor test streams (e.g. "Paris test WWD")
                 continue
             lon, lat = (float(v) for v in xy.strip('POINT ()').split())
             cams.append({
                 'name': names[i],
-                'route': cols['route'][i] or '',
                 'description': cols['description'][i] or '',
                 'lat': round(lat, 6),
                 'lon': round(lon, 6),
@@ -890,7 +902,7 @@ def weatherbug_newest(cid, minutes=WB_PROBE_MINUTES):
     return None
 
 
-def weatherbug_cams():
+def weatherbug_cams(prev=None):
     txt = fetch_text(WEATHERBUG)
     rows, seen = [], set()
     for m in WB_REC_RE.finditer(txt):
@@ -906,6 +918,12 @@ def weatherbug_cams():
         seen.add(cid)
         city, name = m.group('city').strip(), m.group('name').strip()
         rows.append({'name': f'{name} · {city}' if city else name, 'lat': lat, 'lon': lon, 'id': cid})
+    if not rows:
+        # the index now redirects to a traffic-cam page while the image CDN still serves: re-probe, never retire
+        rows = [{'name': c['name'], 'lat': c['lat'], 'lon': c['lon'], 'id': c['id']}
+                for c in (prev or {}).get('weatherbug') or []
+                if WEATHERBUG_ID_RE.match(str(c.get('id') or '')) and in_texas(c['lat'], c['lon'])]
+        print(f'WeatherBug: the index lists no cameras; re-probing the {len(rows)} last published')
     cams, dead = [], 0
     for c in rows:
         hit = weatherbug_newest(c['id'])
@@ -997,7 +1015,7 @@ def main():
     sw = swrecon_cams()  # liveness-checked; the operator rotates heads, so a dropped one is normal
     co = corpus_cams()  # hand-placed 4-cam list, liveness-checked
     lu = lubbock_cams()  # inventory is every signal, so the camera set is settled by image + frame age
-    wb = weatherbug_cams()  # no 'latest' URL: liveness is a walk back through the minute-stamped filenames
+    wb = weatherbug_cams(prev)  # no 'latest' URL: liveness is a walk back through the minute-stamped filenames
     nm = nmdot_cams()  # clipped to the southern reach; liveness is the frame age on the snapshot host
     np = nps_cams()  # hand-placed 6-cam list; liveness is the frame age on the park still
     la = dated_still_cams(LAREDO_CAMS, LAREDO_ID_RE, lambda i: LAREDO_IMG.format(id=i), 'Laredo bridges')

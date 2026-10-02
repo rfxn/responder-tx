@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.10';
+const APP_VERSION = 'v0.100.11';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -454,6 +454,7 @@ const state = {
   camLive: null,
   camLayerList: null,
   camHls: null,
+  camResign: null, // native-player re-sign timer for a token-signed stream
   camObjUrl: null,
   camOpen: null, // { c, kind } while the viewer shows a camera: what its Copy link names
 

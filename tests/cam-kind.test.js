@@ -204,7 +204,7 @@ test('a still with no capture time says so, and never wears the plain snapshot c
 
 test('a still the proxy could not fetch says so instead of leaving the last frame up', async () => {
   const failed = await renderStill(new Date().toISOString(), false);
-  assert.match(failed.stage.innerHTML, /cam\.snap\.unavail/);
+  assert.match(failed.stage.innerHTML, /cam\.feed\.unavail/);
   assert.equal(failed.meta.innerHTML, '', 'a stale chip over a missing frame would be a false currency claim');
 });
 

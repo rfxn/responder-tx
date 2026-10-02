@@ -594,3 +594,38 @@ map identically. The layer is not in the Live feeds chips, like the other cycle-
 **Budget.** One small request: 12s timeout, three attempts, 2s + 5s backoff, 43s worst case,
 so `BUDGET_ROADFLOOD_S` is 60. It runs straight after the roads step, ahead of `gen-history.py`,
 so the history long pole cannot squeeze a flood feed out of the aggregate budget.
+
+## Camera feeds after the TxDOT signing change (2026-10-02)
+
+**TxDOT streams are signed.** Every `httpsurl` in the DriveTexas MapLarge table
+(`appgeo/cameraPoint`) now ends in `?token=<JWT>`; the payload is only `{iat, exp}`, 300 s apart.
+A bare playlist answers nginx 401; so do the chunklist and every segment, and an expired token
+401s the same way. Referer and Origin play no part. The table is re-imported every ~3 min under
+a new version id (`Remote/GetActiveTableID`), each with fresh tokens, so the active table always
+holds a token with roughly 100 s or more to run. A chunklist opened under one token accepts any
+later valid token, which is what lets the client re-sign a playing stream.
+
+**Why the client resolves, not cameras.json.** A committed file cannot carry a 5-minute token.
+`gen-cameras.py` publishes the unsigned playlist URL (the marker still reads it as live), and
+`dtxStreamUrl()` makes the same two calls drivetexas.org makes on open: the active table id, then
+the row by name. MapLarge answers `Access-Control-Allow-Origin: *`. Query the versioned table,
+never the short name: CloudFront caches `ProcessDirect` for 7 days (`max-age=604800`, observed
+`Hit from cloudfront`), so a short-name query can hand back a long-dead token. hls.js re-signs
+each playlist and segment request through `xhrSetup`; a native-only player is re-pointed by timer
+before the token lapses. Verified by 7 minutes of continuous play across three token rotations
+with no 401. Chrome 145 reports native HLS (`canPlayType` "maybe"), which is why a signed stream
+prefers hls.js wherever MediaSource exists. The `route` column was dropped upstream; naming it in
+`sqlselect` is an HTTP 500, which is how the generator failed.
+
+**City of Austin blocks Cloudflare egress.** `cctv.austinmobility.io` is CloudFront in front of
+S3; from a Pages Function every image answers CloudFront `403 Request blocked`, whatever the
+User-Agent, while the same URL answers 200 to a residential or server IP. The city publishes the
+URL as `screenshot_address` in its open data, sends no CORS headers and no CORP header, so the
+viewer loads it as a plain `<img>` when the proxy fails. `Last-Modified` is unreadable that way,
+so the frame wears "age not checked" instead of a capture time; the frames sampled burn their
+own timestamp into the picture. The LAN server's proxy is not blocked and still dates the frame.
+
+**Not broken, despite looking it.** TxDOT ITS snapshots and NMDOT both work through the edge;
+the failures seen were cameras retired upstream since the 08-20 inventory. WeatherBug's index
+page now redirects to a traffic-cam page listing none of its weather cameras while the image CDN
+still serves them, so `gen-cameras.py` re-probes the last published set when the index is empty.

@@ -237,7 +237,7 @@ test('no client file substitutes an empty list for a missing payload key', () =>
    counts below fail on any added or removed call site, and each site named must still carry the
    token that makes its verdict true. */
 const CENSUS = {
-  'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 3, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
+  'board.js': 11, 'boot.js': 5, 'bootfloor.js': 0, 'cameras.js': 5, 'chat.js': 3, 'core.js': 0, 'i18n.js': 0,
   'map.js': 3, 'master.js': 1, 'notes.js': 4, 'panels.js': 9, 'playback.js': 4,
   'sources.js': 17, 'team.js': 2, 'usng.js': 0,
 };
@@ -345,6 +345,9 @@ const SITES = [
     req: ['if (!res.ok) throw', "t('cam.nostamp')"] },
   { f: 'cameras.js', d: 'async function loadRiverStill(', c: TOP, v: 'HONEST',
     req: ['if (!res.ok) throw', 'no recent imagery'] },
+  // a signed TxDOT stream is resolved per view; a refused or reshaped answer is a dead feed, never a URL
+  { f: 'cameras.js', d: 'async function dtxStreamUrl(', c: TOP, v: 'GUARDED',
+    req: ["'drivetexas table')", "'drivetexas camera')", 'if (!d.success) throw', 'DTX_STREAM_RE.test(url)'] },
 
   // ---- boot.js ----
   { f: 'boot.js', d: 'async function openChangelog()', c: TOP, v: 'GUARDED',

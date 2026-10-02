@@ -27,6 +27,13 @@ const CAM_ATTRIB = { txdot: CAM_ATTRIB_TXDOT, river: CAM_ATTRIB_USGS, austin: CA
 const CAM_STALE_MINS = 45; // aging invariant: a still older than this must never look live
 const HIVIS_S3 = 'https://usgs-nims-images.s3.amazonaws.com';
 const CAM_KEY_RE = /___\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.jpg$/;
+// TxDOT signs each stream URL with a token that lapses within minutes, so it is resolved per view
+const DTX_ML = 'https://dtx-e-cdn.maplarge.com';
+const DTX_NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;
+const DTX_TABLE_RE = /^appgeo\/cameraPoint\/\d{6,24}$/;
+const DTX_STREAM_RE = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.skyvdn\.com\/[A-Za-z0-9_./-]+\.m3u8(\?token=[A-Za-z0-9._-]+)?$/;
+const CAM_SIGN_MARGIN_S = 30;
+const CAM_SIGN_RETRY_MS = 15000;
 
 // lazy: inventory is a committed snapshot, fetched once on first layer enable / Drive Mode / gauge popup
 function loadCameras() {
@@ -276,6 +283,90 @@ function ensureHls() {
   return loadAssetOnce(assetUrl('js/vendor/hls.light.min.js')).then(() => !!window.Hls && Hls.isSupported());
 }
 
+// newest signed playlist for one TxDOT camera: the same two calls drivetexas.org makes on open
+async function dtxStreamUrl(name) {
+  if (!DTX_NAME_RE.test(String(name || ''))) throw new Error('drivetexas: bad camera name');
+  const a = await okJson(await fetch(`${DTX_ML}/Remote/GetActiveTableID?shortTableId=appgeo%2FcameraPoint`, { cache: 'no-store' }), 'drivetexas table');
+  if (!DTX_TABLE_RE.test(String(a.table || ''))) throw new Error('drivetexas: no active camera table');
+  const q = { action: 'table/query', query: { sqlselect: ['name', 'httpsurl'], start: 0, table: a.table, where: [{ col: 'name', test: 'EqualAny', value: [name] }] } };
+  const d = await okJson(await fetch(`${DTX_ML}/Api/ProcessDirect?request=${encodeURIComponent(JSON.stringify(q))}`), 'drivetexas camera');
+  if (!d.success) throw new Error('drivetexas: query refused');
+  const cols = (d.data && d.data.data) || {};
+  const i = (cols.name || []).indexOf(name);
+  const url = i === -1 ? '' : String((cols.httpsurl || [])[i] || '');
+  if (!DTX_STREAM_RE.test(url)) throw new Error(`drivetexas: no stream for ${name}`);
+  return url;
+}
+
+// networks whose stream URL carries a short-lived token: a new one is a row here, never a player branch
+const CAM_STREAM_SIGNERS = { txdot: (c) => dtxStreamUrl(c.name) };
+const camStreamSigned = (kind) => Object.prototype.hasOwnProperty.call(CAM_STREAM_SIGNERS, kind);
+
+// seconds until a signed URL's token lapses: Infinity when unsigned, 0 when unreadable
+function camTokenLeft(url) {
+  const tok = new URL(url).searchParams.get('token');
+  if (!tok) return Infinity;
+  try {
+    const exp = JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp;
+    return Number.isFinite(exp) ? exp - Date.now() / 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+// the viewer's stream URL, re-resolved only once the token it holds is near its expiry
+function camStreamSource(c, kind) {
+  if (!camStreamSigned(kind)) {
+    const url = safeUrl(c.httpsurl);
+    return () => Promise.resolve(url);
+  }
+  let cur = null, at = 0, pending = null;
+  return () => {
+    if (cur && (camTokenLeft(cur) > CAM_SIGN_MARGIN_S || Date.now() - at < CAM_SIGN_RETRY_MS)) return Promise.resolve(cur);
+    if (!pending) {
+      pending = CAM_STREAM_SIGNERS[kind](c).then((u) => { cur = u; at = Date.now(); return u; })
+        .finally(() => { pending = null; });
+    }
+    return pending;
+  };
+}
+
+// hls.js reloads a live playlist with the token it started on, so every request takes the newest
+const camResign = (src) => async (xhr, url) => {
+  const u = new URL(url);
+  if (u.searchParams.has('token')) u.searchParams.set('token', new URL(await src()).searchParams.get('token') || '');
+  xhr.open('GET', u.href, true);
+};
+
+// a native player cannot re-sign its own requests, so a signed stream is re-pointed before it lapses
+function camResignNative(video, src, gen, down) {
+  const left = camTokenLeft(video.src);
+  if (!Number.isFinite(left)) return;
+  state.camResign = setTimeout(() => {
+    if (gen !== state.camGen) return;
+    src().then((u) => {
+      if (gen !== state.camGen) return;
+      video.src = u;
+      video.play().catch(() => { /* autoplay refused; the controls stay */ });
+      camResignNative(video, src, gen, down);
+    }, down);
+  }, Math.max(5, left - CAM_SIGN_MARGIN_S) * 1000);
+}
+
+const camOperator = (kind) => camNetLabel(kind).split(' · ')[0];
+
+// a feed that will not load names who runs it, never a spinner or a black frame under a LIVE badge
+function camFeedDown(stage, meta, kind) {
+  if (state.camHls) {
+    try { state.camHls.destroy(); } catch { /* already detached */ }
+    state.camHls = null;
+  }
+  const v = stage.querySelector && stage.querySelector('video');
+  if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.feed.unavail').replace('{op}', camOperator(kind)))}</div>`;
+  meta.innerHTML = '';
+}
+
 function openCamViewer(c, kind) {
   camViewerTeardown();
   state.camGen = (state.camGen || 0) + 1; // invalidates every in-flight load from the previous camera
@@ -288,28 +379,42 @@ function openCamViewer(c, kind) {
   // player and no per-source still branch below can take a stream camera
   if (camIsLive(c)) {
     // live HLS: TxDOT SkyVDN + City of El Paso bridge cams both play direct (CORS-open) in the shared player
-    const url = safeUrl(c.httpsurl);
+    const src = camStreamSource(c, kind);
+    const signed = camStreamSigned(kind);
     const isElp = kind === 'elpbridge';
     note.innerHTML = `${srcBadge('official')} ${esc(t(isElp ? 'cam.elp.note' : 'cam.txdot.note'))} · ${esc(CAM_ATTRIB[kind] || CAM_ATTRIB_TXDOT)}`;
     const video = document.createElement('video');
     video.muted = true; video.autoplay = true; video.playsInline = true; video.controls = true;
+    const down = () => { if (gen === state.camGen) camFeedDown(stage, meta, kind); };
+    video.addEventListener('error', down);
     const playLive = () => {
       stage.innerHTML = '';
       stage.appendChild(video);
       meta.innerHTML = `<span class="cam-badge live">● ${esc(t('cam.live'))}</span>`;
     };
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      playLive(); // Safari/iOS play HLS natively and never fetch the player at all
+    const canNative = !!video.canPlayType('application/vnd.apple.mpegurl');
+    const playNative = () => src().then((url) => {
+      if (gen !== state.camGen) return;
+      playLive();
       video.src = url;
+      if (signed) camResignNative(video, src, gen, down);
+    }, down);
+    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+    // only hls.js can re-sign each request, so a signed stream plays natively only where it cannot run
+    if (canNative && !(signed && (window.MediaSource || window.ManagedMediaSource))) {
+      playNative(); // Safari/iOS play HLS natively and never fetch the player at all
     } else {
-      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
       ensureHls().then((ok) => {
         if (gen !== state.camGen) return; // viewer moved on — never paint into another camera's stage
-        if (!ok) { stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`; return; }
-        playLive();
-        state.camHls = new Hls({ maxBufferLength: 15 });
-        state.camHls.loadSource(url);
-        state.camHls.attachMedia(video);
+        if (!ok) { if (canNative) return playNative(); stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.nohls'))}</div>`; return; }
+        return src().then((url) => {
+          if (gen !== state.camGen) return;
+          playLive();
+          state.camHls = new Hls({ maxBufferLength: 15, xhrSetup: signed ? camResign(src) : undefined });
+          state.camHls.on(Hls.Events.ERROR, (ev, data) => { if (data && data.fatal) down(); });
+          state.camHls.loadSource(url);
+          state.camHls.attachMedia(video);
+        }, down);
       }).catch(() => {
         if (gen !== state.camGen) return;
         stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.hlsfail'))}</div>`;
@@ -330,7 +435,7 @@ function openCamViewer(c, kind) {
     stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
     loadRiverStill(c, stage, meta, gen).catch(() => {
       if (gen !== state.camGen) return; // viewer moved on — never paint into another camera's stage
-      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
+      camFeedDown(stage, meta, kind);
     });
   }
 }
@@ -354,7 +459,7 @@ function parseItsStamp(s) {
 }
 
 // fetch-as-blob (not <img src>) so the X-Cam-Captured header is readable; bust forces a re-fetch.
-// opts: { url(bust) -> string, parse(stamp) -> Date|null, alt } — shared by every same-origin proxy still
+// opts: { url(bust) -> string, parse(stamp) -> Date|null, alt, kind, direct?(bust) }, shared by every same-origin proxy still
 async function loadProxyStill(stage, meta, bust, gen, opts) {
   try {
     const res = await fetch(opts.url(bust), bust ? { cache: 'reload' } : undefined);
@@ -389,9 +494,31 @@ async function loadProxyStill(stage, meta, bust, gen, opts) {
     });
   } catch {
     if (gen !== state.camGen) return;
-    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.snap.unavail'))}</div>`;
-    meta.innerHTML = '';
+    if (opts.direct) { loadDirectStill(stage, meta, bust, gen, opts); return; }
+    camFeedDown(stage, meta, opts.kind);
   }
+}
+
+// the operator's own image, loaded by the browser where the edge proxy is refused; no stamp is readable cross-origin
+function loadDirectStill(stage, meta, bust, gen, opts) {
+  const img = document.createElement('img');
+  img.alt = opts.alt;
+  img.addEventListener('load', () => {
+    if (gen !== state.camGen) return;
+    stage.innerHTML = '';
+    stage.appendChild(img);
+    meta.innerHTML = `<span class="cam-badge nostamp">${esc(t('cam.direct'))}</span>` +
+      `<span class="cam-stale-note">${esc(t('cam.direct.note').replace('{op}', camOperator(opts.kind)))}</span>` +
+      `<button class="popup-expand cam-refresh">↻ ${esc(t('cam.refresh'))}</button>`;
+    meta.querySelector('.cam-refresh').addEventListener('click', () => {
+      stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.loading'))}</div>`;
+      loadDirectStill(stage, meta, true, gen, opts);
+    });
+  });
+  img.addEventListener('error', () => {
+    if (gen === state.camGen) camFeedDown(stage, meta, opts.kind);
+  });
+  img.src = opts.direct(bust);
 }
 
 function loadItsSnapshot(c, stage, meta, bust, gen) {
@@ -399,16 +526,25 @@ function loadItsSnapshot(c, stage, meta, bust, gen) {
     url: (b) => `api/cam/${encodeURIComponent(c.dist)}/${encodeURIComponent(c.icd)}${b ? `?_=${Date.now()}` : ''}`,
     parse: parseItsStamp,
     alt: camTitle(c, 'txdot'),
+    kind: 'txdot',
   });
 }
+
+// networks whose own published image the browser may load when the edge proxy is refused
+const CAM_DIRECT_STILLS = {
+  austin: (id) => `https://cctv.austinmobility.io/image/${encodeURIComponent(id)}.jpg`, // the city's published screenshot_address
+};
 
 // every direct-JPEG still network in CAM_STILL_NOTES, proxied same-origin; net is both the
 // /api/cam path segment and the camTitle kind
 function loadCityStill(c, stage, meta, bust, gen, net) {
+  const direct = Object.prototype.hasOwnProperty.call(CAM_DIRECT_STILLS, net) ? CAM_DIRECT_STILLS[net] : null;
   loadProxyStill(stage, meta, bust, gen, {
     url: (b) => `api/cam/${net}/${encodeURIComponent(c.id)}${b ? `?_=${Date.now()}` : ''}`,
     parse: (s) => { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }, // X-Cam-Captured is an HTTP (Last-Modified) date
     alt: camTitle(c, net),
+    kind: net,
+    direct: direct && ((b) => `${direct(c.id)}${b ? `?_=${Date.now()}` : ''}`),
   });
 }
 
@@ -441,7 +577,7 @@ async function loadRiverStill(c, stage, meta, gen) {
   });
   img.addEventListener('error', () => {
     if (gen !== state.camGen) return;
-    stage.innerHTML = `<div class="cam-fallback">${esc(t('cam.unavail'))}</div>`;
+    camFeedDown(stage, meta, 'river');
   });
   img.src = `${HIVIS_S3}/${encodeURI(key)}`;
   stage.innerHTML = '';
@@ -454,6 +590,7 @@ function camViewerTeardown() {
     try { state.camHls.destroy(); } catch { /* already detached */ }
     state.camHls = null;
   }
+  clearTimeout(state.camResign);
   const v = $('#cam-stage video');
   if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
   if (state.camObjUrl) { URL.revokeObjectURL(state.camObjUrl); state.camObjUrl = null; }

@@ -1,5 +1,20 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.11 · 2026-10-02 (TxDOT cameras play again)
+
+-- Bug Fixes --
+- [Fix] TxDOT traffic cameras play live again, and keep playing past TxDOT's
+      short stream authorization
+- [Fix] Camera list refreshed against the current TxDOT, NMDOT and WeatherBug
+      networks; retired cameras removed
+- [Fix] A camera that cannot load says its feed is unavailable from the operator,
+      instead of showing a blank or black viewer
+
+-- Changes --
+- [Change] City of Austin cameras on the public board load directly from the
+         city and are labelled "age not checked", because their capture time
+         cannot be read there
+
 ## v0.100.10 · 2026-10-02 (share a camera)
 
 -- New Features --

@@ -12,6 +12,7 @@ import os
 import shutil
 import sys
 import tempfile
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -382,6 +383,101 @@ try:
                   if c.get('src') == 'its' and not __import__('re').match(r'^[A-Za-z0-9_-]+$', c['icd'])]
     check('the shipped inventory really does depend on that decode',
           len(only_plain) > 500, '%d icds need percent-encoding' % len(only_plain))
+finally:
+    shutil.rmtree(root)
+
+# ---------------------------------------------------------------------------
+# DriveTexas moved its camera table: the 'route' column is gone (naming it is an HTTP 500), the
+# short table name is answered from a week-long CDN cache, and every httpsurl now carries a token
+# that lapses within minutes. Served from a captured answer, so no network is touched.
+CAPTURED = json.load(open(os.path.join(HERE, 'fixtures', 'drivetexas-cameras.json'), encoding='utf-8'))
+
+
+class FakeHTTP500(OSError):
+    pass
+
+
+def fake_maplarge(g, pages, seen):
+    """fetch_json stand-in that behaves like the captured upstream, including its 500 on an unknown column."""
+    cols = CAPTURED['page']['data']['data']
+
+    def fetch(url):
+        seen.append(url)
+        if url == g.MAPLARGE_ACTIVE:
+            return CAPTURED['activeTable']
+        q = json.loads(urllib.parse.unquote(url.split('request=', 1)[1]))['query']
+        if any(c not in cols for c in q['sqlselect']):
+            raise FakeHTTP500('HTTP Error 500: an unknown column')
+        n = pages[q['start'] // g.PAGE] if q['start'] // g.PAGE < len(pages) else 0
+        out = {k: [] for k in q['sqlselect']}
+        for i in range(n):
+            j = i % len(cols['name'])
+            out['name'].append('%s_%d_%d' % (cols['name'][j], q['start'], i))
+            for k in q['sqlselect']:
+                if k != 'name':
+                    out[k].append(cols[k][j])
+        return {'success': True, 'data': {'data': out}, 'table': q['table']}
+    return fetch
+
+
+root = fixture({})
+try:
+    g = load_gen(root)
+    seen = []
+    g.fetch_json = fake_maplarge(g, [g.PAGE, 40], seen)
+    cams = g.txdot_cams()
+    queried = [json.loads(urllib.parse.unquote(u.split('request=', 1)[1]))['query']
+               for u in seen if 'request=' in u]
+    check('the sweep reads every page of the new camera table', len(cams) == g.PAGE + 40, str(len(cams)))
+    check('every query names the active table version, never the CDN-cached short name',
+          queried and all(q['table'] == CAPTURED['activeTable']['table'] for q in queried),
+          str([q['table'] for q in queried]))
+    check('no published stream URL carries the expiring token',
+          all('?' not in c['httpsurl'] and 'token' not in c['httpsurl'] for c in cams))
+    check('the published URL is the unsigned playlist the client re-signs by name',
+          cams[0]['httpsurl'].endswith('/playlist.m3u8') and g.TXDOT_STREAM_RE.match(cams[0]['httpsurl']))
+    check('the removed route column is neither requested nor invented',
+          all('route' not in q['sqlselect'] for q in queried) and all('route' not in c for c in cams))
+    aus = [c for c in cams if c['name'].startswith('TX_AUS_033_')]
+    check('a Georgetown I-35 camera keeps its operator name, place and position',
+          aus and aus[0]['description'] == 'IH-35 @ River Hills Drive'
+          and (aus[0]['lat'], aus[0]['lon']) == (30.63984, -97.6897), str(aus[:1]))
+
+    g.fetch_json = lambda url: {'success': True, 'table': 'appgeo/cameraPoint'}
+    try:
+        g.txdot_cams()
+        check('a table answer that is not a versioned id refuses to publish', False)
+    except SystemExit as e:
+        check('a table answer that is not a versioned id refuses to publish', 'no active camera table' in str(e))
+    g.fetch_json = fake_maplarge(g, [3], [])
+    try:
+        g.txdot_cams()
+        check('a sweep that returns a handful of rows is a broken page, not the fleet', False)
+    except SystemExit as e:
+        check('a sweep that returns a handful of rows is a broken page, not the fleet', 'pagination broken' in str(e))
+finally:
+    shutil.rmtree(root)
+
+# ---------------------------------------------------------------------------
+# WeatherBug's camera index now redirects to a traffic-cam page that lists none of its weather
+# cameras, while the image CDN keeps serving them. The index going away must not retire them:
+# the last published set is re-probed, and only a camera with a recent frame survives.
+root = fixture({})
+try:
+    g = load_gen(root)
+    g.fetch_text = lambda url: '<title>Live Traffic Cameras | WeatherBug</title>'
+    g.weatherbug_newest = lambda cid, minutes=0: (('u', NOW) if cid == 'HSMMP' else None)
+    prev = {'weatherbug': [
+        {'name': 'San Marcos · Hays', 'lat': 29.88, 'lon': -97.94, 'id': 'HSMMP', 'newest': iso(NOW)},
+        {'name': 'Abilene · Taylor', 'lat': 32.45, 'lon': -99.73, 'id': 'ABTTX', 'newest': iso(NOW)},
+        {'name': 'bad id', 'lat': 30.0, 'lon': -97.0, 'id': '../x', 'newest': iso(NOW)},
+    ]}
+    wb = g.weatherbug_cams(prev)
+    check('an index that lists nothing re-probes the published cameras instead of retiring them',
+          [c['id'] for c in wb] == ['HSMMP'], str(wb))
+    check('a re-probed camera is stamped with its fresh frame time', wb and wb[0]['newest'] == iso(NOW))
+    check('with no published baseline either, the network really is empty and the floor decides',
+          g.weatherbug_cams(None) == [])
 finally:
     shutil.rmtree(root)
 

@@ -111,6 +111,7 @@ Every 15 minutes (`8,23,38,53` on the system crontab, via `scripts/run-cycle.sh`
 | `gen-notices.py` | `data/requests.json` | LAN intake merge (never committed by the cycle) |
 | `gen-shelters.py` | `data/shelters-live.json` | Live shelter status, published only where a source states one |
 | `gen-crossings-status.py` | `data/crossing-status.json` | Jurisdiction-reported low-water-crossing status; only non-open rows publish |
+| `gen-changes.py` | `data/changes.json`, `data/changes-state.json` | The Feed's "What changed" stream: crests, flood-stage changes, NWS warnings, road and crossing closures, shelters, diffed against the previous cycle's state; a source that did not refresh is carried, never diffed |
 | `gen-wildfire.py` | `data/wildfire.json` | Reported wildfire incidents and mapped perimeters (TFS + NIFC WFIGS), per-source status and capture stamp |
 | `gen-crest-summary.py` | `data/crest-summary.json` | Per-gauge event peak stages for after-action / FEMA review |
 | `gen-feeds.py` | `feed.xml`, `crests.ics` | Public RSS + crest calendar |

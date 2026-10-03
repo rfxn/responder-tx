@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.15';
+const APP_VERSION = 'v0.100.16';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -332,6 +332,14 @@ const state = {
   sourceHealth: {},
   sourceFailed: {}, // source -> true when the last refresh got no answer from it: unknown, never zero
   sitActs: [], // the Feed situation cards' tap actions, by data-sit index
+  changes: null, // data/changes.json payload (What changed); null until the first good load
+  changesUnknown: false, // the change log failed with no last-good copy: unknown, never "no changes"
+  changesMissing: false, // the change log is not published yet (404) and there is no last-good copy
+  changesAt: 0, // last fetch attempt, for the refetch throttle
+  changesAll: false, // What changed shows the whole retained window instead of the last 24h
+  changesLimit: 0, // rows the full window shows; 0 = its first page
+  changesKind: '', // What changed filter chip; '' = every kind, never persisted
+  wchActs: [], // What changed rows' tap actions, by data-wch index
   baseTitle: document.title,
   pendingLatLng: null,
   measure: null, // { pts: [[lat, lon], ...] } while the measure tool is armed

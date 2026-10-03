@@ -746,3 +746,102 @@ on a two-point KEWX product it named Pafford Crossing on the Bakers Crossing seg
 returns `alertRiverPoint` (casing tidied: At/Of/Nr). Where a text is in the river-product shape
 and the port declines (several points, no WHERE line) it names nothing. Only a text outside that
 shape keeps the old regex, and only when it holds a single "X affecting" reach.
+
+## What changed stream (2026-10-02)
+
+`scripts/gen-changes.py` diffs each cycle's sources against what the previous run saw and appends
+the transitions to `data/changes.json`, which the Feed renders under the Situation section. It runs
+last in the cycle: it reads every other source, and its NWS request must never delay the flood feeds.
+
+**State model.** Two files, both in the cycle's `DATA_FILES` and the watchdog's no-touch lane.
+`data/changes.json` is the published log. `data/changes-state.json` is the diff state per source:
+the stamp of the last observation consumed (`at`), the baseline time (`since`), the query scope,
+and the items (per gauge: last reading, confirmed band, pending change, crest tracker; per list
+item: its fields as observed, plus `last`, `gone` and an absence count once it goes missing). The
+state is read from the working tree because that is what the next cycle's generators read, and the
+cycle commits both files together, so the copy the next run diffs against is the one HEAD carries
+(E2/E3). The state is `export-ignore`d (the client never needs it, and a test archives the real
+`.gitattributes` to prove it), written with sorted keys and one value per line, and not rewritten
+when unchanged. A listed item carries no per-cycle stamp, so an unchanged list rewrites nothing.
+Measured over 100 replayed cycles: the state is 68 to 98 KB raw and packs at about 3.9 KB per cycle
+(the gauge capture committed beside it packs at 5.5 KB, the log at 0.4 KB); gauge readings are most
+of it, since every reading advances a gauge's last time and stage.
+
+**Write order.** The state is written first and carries `pending`, the lines this run adds; the
+log second. A kill between the two leaves the log one run behind and the next run merges the
+pending lines by id, so a kill can neither lose nor duplicate a line, including a detection-timed
+one whose time would differ if it were re-derived. An unreadable working log is recovered from HEAD.
+
+**Publish bounds, one module.** `scripts/changescheck.py` holds the bounds (kinds, time kinds,
+10-minute future slack, retention plus an hour, lid or key and act). `gen-changes.py` drops any line
+that fails them, `cycle-check.sh` gates on the same function (a missing or crashing checker only
+warns and skips that one check, never failing the gate), and `run-cycle.sh` runs it before
+validation: a change log outside its bounds (say a rolled-back release meeting a kind it does not
+know) is restored from HEAD together with its state, or both are dropped when HEAD has none that
+passes, and the cycle signs off degraded while every flood source still publishes. A derived log
+must never become a gate that stops a flood publish (CLAUDE.md "Deliberately NOT adopted").
+
+**E1: a stale source is carried, never diffed.** A source is diffed only when its own stamp
+advanced past the state's `at`: the capture's `generated` for gauges and roads, the file's
+`generated` for crossings and shelters, TranStar's upstream `captured` (only on status `ok`, and
+only when captured within 2h of the read), and the fetch time for NWS (whose failure is a reason,
+never an empty list). An unreadable file, a file that declares a `status` other than ok or a
+`partial`/`truncated` read, or an unchanged stamp carries the previous state untouched and emits
+nothing for that source. An exception reading or diffing one source carries that source alone
+(three failed diffs in a row re-baseline it). The diff runs on a deep copy of the source's state,
+because a gauge's crest tracker would otherwise be advanced in place by a diff that then failed,
+and the carried state would count one falling reading twice. A malformed NWS message or product
+is skipped. The generator exits 3 after writing when its own NWS read or a diff failed; run-cycle
+logs exit 3 as written-but-degraded (`partial:` in the sign-off and commit subject), so the cycle signs off
+degraded. Each source's `at` is published and the client says "not checked since" for any source
+more than 40 minutes behind. An absence must be seen on two fresh reads at least 10 minutes apart;
+an hour for TranStar (its rainfall-driven areas drop out for 30 minutes and return) and for NWS
+products with no stated end. `tests/gen-changes.test.py` fails loudly with each of the stale
+guards removed (verified by mutation).
+
+**An absence is not an end.** A warning that ends with a CAN, EXP or UPG message, or passes its
+stated end, is reported as cancelled, expired or upgraded at the source's time. One that merely
+stops being listed reads "no longer listed by NWS, no cancellation received", in a neutral tone and
+glyph, never the check mark of a real end.
+
+**Recovery after a gap.** An item missing on the first fresh read after a gap is pending; once
+confirmed it is published at the first missing read, as detection time, with `after` = the last
+time it was listed, so the reader sees "as of 10:10 PM, last listed 6:23 PM", never a clearing time
+nobody observed. A road whose posted end time falls inside that window is stamped at the posted
+end. New items carry the source's own time (TxDOT start, ATX change stamp, the NWS NEW message)
+when it is not later than the read that reported it; otherwise detection time, labelled as such.
+First run, a missing or unreadable state, or a malformed source block baselines silently.
+
+**Scope.** Gauges and roads are diffed on the capture files (Texas-wide), so an AO change never
+creates or clears anything (E6). Shelters are queried in `gaugeBbox` + margin: an item that leaves
+because the scope narrowed, or appears because it widened, is dropped or adopted silently. The
+client narrows only the display, with `aoContains`. Events are kept 7 days by `seen`, capped at 4000.
+
+**Gauge rules, sized by replaying the committed archive.** Every cycle commit for Jul 24-Aug 1,
+Sep 1-8 and Sep 27-Oct 2 was replayed through the generator. Pine Island Bayou at Batson entered
+minor, moderate and major and peaked at 66.54 ft on 9/3 (crest-summary agrees), with no flapping.
+A band change needs two consecutive readings; leaving a band also needs the stage 0.2 ft under its
+threshold (gauge-meta, else the lowest in-band stage seen). Sandy Creek near Cordele (CODT2)
+alternated 4.7 and 27.8 ft hourly with NWPS calling each high reading major, so a fall that
+reverses a rise inside 3h must persist 3h before it counts (fast attack, slow release): one entry
+and one exit instead of five transitions. A crest needs two readings 0.3 ft under the peak, an
+observed rise into it and the gauge confirmed in flood during the rise. The peak is a reading taken
+once a cycle, so the line says "highest reading", never an exact crest; it is marked uncertain when
+no reading sits within 45 minutes on either side, or when no neighbouring reading is within 1 ft of
+it (a lone 45 ft glitch between 12 ft readings), and an uncorroborated peak cannot raise the
+category the gauge was confirmed at. TxDOT re-enters closures with edited limits, so a clear is
+suppressed while the same route is still listed within a mile (over-warns rather than under-warns).
+A busy day is genuinely loud: about 200 road and 120 TranStar events statewide on 9/30-10/1, which
+is why the client has kind filter chips and keeps river and NWS lines ahead of road churn.
+
+**Client cost.** `renderTiles()` repaints the section on every refresh, so `renderFeedChanges()`
+skips the rebuild unless the payload, a filter, the language, the AO or the minute changed. Lines
+are parsed and sorted once per payload, date formatters are built once at load, and the 7-day view
+shows 100 lines a page. At 4000 events the 7-day view went from about 1500 ms to under 3 ms and a
+24h repaint from about 20 ms to under 1 ms. A 404 before the first cycle publishes the log reads
+as "starts with the next data cycle", not as a failed load.
+
+**Known gaps.** Peaks are observed peaks at the cycle's cadence, not NWPS's hydrograph. NWS
+advisories are left out (warnings and watches only). ATX publishes no open rows, so a crossing
+reopening is detection-timed. Budget: one NWS request (12s, 3 attempts, 43s worst case) plus local
+diffing (~0.4s measured), so `BUDGET_CHANGES_S` is 60, spent last inside the aggregate deadline.

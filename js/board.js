@@ -1352,6 +1352,331 @@ function renderFeedSituation() {
   camsNearReopen(el);
 }
 
+/* ---------- Feed "What changed": timestamped transitions published by scripts/gen-changes.py ---------- */
+
+const WCH_FETCH_MS = 5 * 60000;
+const WCH_WINDOW_MS = 24 * 3600000;
+const WCH_STALE_MS = 45 * 60000;
+const WCH_SRC_STALE_MS = 40 * 60000;
+const WCH_SHOWN = 15;
+const WCH_PAGE = 100;
+const WCH_AREAS_SHOWN = 3;
+const WCH_NEAR_MAX = 60;
+const WCH_SOURCES = ['gauges', 'warnings', 'roads', 'crossings', 'roadrisk', 'shelters'];
+const WCH_BANDS = ['none', 'minor', 'moderate', 'major'];
+const WCH_ROAD_GLYPH = { Flooding: '🌊', Closure: '⛔', Damage: '🚧' };
+const WCH_TZ = 'America/Chicago';
+// filter chips: a busy road day must not bury the few river and NWS lines
+const WCH_KIND_GROUP = { crest: 'rivers', flood: 'rivers', warn: 'nws', road: 'roads', xing: 'roads', risk: 'roads', shelter: 'shelters' };
+const WCH_KINDS = ['rivers', 'nws', 'roads', 'shelters'];
+const WCH_TIER = { crest: 0, flood: 0, warn: 0, road: 1, xing: 1, shelter: 1, risk: 2 };
+// built once: a formatter per row made the week view take seconds to paint
+const WCH_FMT_DAY = new Intl.DateTimeFormat('en-US', { timeZone: WCH_TZ, year: 'numeric', month: 'numeric', day: 'numeric' });
+const WCH_FMT_TIME = new Intl.DateTimeFormat('en-US', { timeZone: WCH_TZ, hour: 'numeric', minute: '2-digit' });
+const WCH_FMT_DATE = new Intl.DateTimeFormat('en-US', { timeZone: WCH_TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+const wchMs = (iso) => (typeof iso === 'string' ? Date.parse(iso) : NaN);
+const wchFill = (s, vals) => String(s).replace(/\{(\w+)\}/g, (m, k) => (k in vals ? String(vals[k]) : m));
+const wchStr = (v) => typeof v === 'string' && v.trim() !== '';
+// own keys only: a feed value like "constructor" must not resolve to an Object prototype member
+const wchOwn = (o, k) => (Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
+
+// the capped list keeps river and NWS lines ahead of road churn, then shows its picks in time order
+function wchPick(list, n) {
+  if (list.length <= n) return list;
+  const keep = new Set(list.slice().sort((a, b) => (WCH_TIER[a.e.k] ?? 3) - (WCH_TIER[b.e.k] ?? 3)).slice(0, n));
+  return list.filter((x) => keep.has(x));
+}
+
+// the CT clock alone on the reader's own day, month and day added otherwise
+function wchClock(ms, now) {
+  return (WCH_FMT_DAY.format(ms) === WCH_FMT_DAY.format(now) ? WCH_FMT_TIME : WCH_FMT_DATE).format(ms);
+}
+
+async function loadChanges(force) {
+  if (!force && state.changesAt && Date.now() - state.changesAt < WCH_FETCH_MS) return;
+  state.changesAt = Date.now();
+  let d = null;
+  let missing = false;
+  try {
+    const r = await fetch(`data/changes.json?_=${Date.now()}`);
+    if (r && r.status === 404) missing = true;
+    else d = await okJson(r, 'changes');
+  } catch { d = null; } // E1: a failed read keeps the last good copy and is unknown only when there is none
+  if (d && Number.isFinite(wchMs(d.generated)) && Array.isArray(d.events)) {
+    state.changes = d;
+    state.changesUnknown = false;
+    state.changesMissing = false;
+  } else {
+    // a log not published yet is a different fact from a failed read; a last good copy outranks both
+    state.changesMissing = missing && !state.changes;
+    state.changesUnknown = !missing && !state.changes;
+  }
+  renderFeedChanges();
+}
+
+function wchEventOk(e) {
+  if (!e || typeof e !== 'object' || typeof e.k !== 'string') return false;
+  if (!Number.isFinite(wchMs(e.t)) || !Number.isFinite(wchMs(e.seen))) return false;
+  switch (e.k) {
+    case 'crest': return wchStr(e.name) && Number.isFinite(e.ft) && WCH_BANDS.indexOf(e.cat) > 0;
+    case 'flood': return wchStr(e.name) && Number.isFinite(e.ft) && WCH_BANDS.includes(e.from)
+      && WCH_BANDS.includes(e.to) && e.from !== e.to;
+    case 'warn': return wchStr(e.ev) && (wchStr(e.pt) || (Array.isArray(e.areas) && e.areas.some(wchStr)))
+      && (e.act === 'new' || e.act === 'up' || (e.act === 'end' && ['exp', 'can', 'upg', 'gone'].includes(e.how)));
+    case 'road': return typeof e.route === 'string' && (e.act === 'new' || e.act === 'clear');
+    case 'xing': return wchStr(e.name) && (e.act === 'clear'
+      || ((e.act === 'new' || e.act === 'status') && (e.status === 'closed' || e.status === 'caution')));
+    case 'risk': return wchStr(e.name) && (e.act === 'new' || e.act === 'clear');
+    case 'shelter': return wchStr(e.name) && ['new', 'status', 'clear'].includes(e.act);
+    default: return false;
+  }
+}
+
+// display narrowing only: a located event outside the AO is hidden, an unlocated one is shown
+const wchInScope = (e) => !(Number.isFinite(e.lat) && Number.isFinite(e.lon)) || aoContains(e.lat, e.lon);
+
+// payload -> its valid lines parsed and sorted once; a payload is replaced on load, never mutated
+const wchPrepared = new WeakMap();
+function wchLines(d) {
+  let p = wchPrepared.get(d);
+  if (!p) {
+    p = { all: (Array.isArray(d.events) ? d.events : []).filter(wchEventOk)
+      .map((e) => ({ e, t: wchMs(e.t), s: wchMs(e.seen) })).sort((a, b) => b.t - a.t || b.s - a.s) };
+    wchPrepared.set(d, p);
+  }
+  if (p.bbox !== CONFIG.gaugeBbox || p.area !== CONFIG.aoArea) {
+    p.bbox = CONFIG.gaugeBbox;
+    p.area = CONFIG.aoArea;
+    p.scoped = p.all.filter((x) => wchInScope(x.e));
+  }
+  return p.scoped;
+}
+
+function whatChangedModel(now) {
+  const d = state.changes;
+  const gen = d ? wchMs(d.generated) : NaN;
+  if (!d || !Number.isFinite(gen)) {
+    return { phase: state.changesMissing ? 'starting' : (state.changesUnknown ? 'failed' : 'loading'), now };
+  }
+  const sources = d.sources && typeof d.sources === 'object' ? d.sources : {};
+  const groups = new Map();
+  for (const k of WCH_SOURCES) {
+    const at = wchMs((sources[k] || {}).at);
+    const key = !Number.isFinite(at) ? 'never' : (gen - at > WCH_SRC_STALE_MS ? `paused|${at}` : '');
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, { kind: key === 'never' ? 'never' : 'paused', at, keys: [] });
+    groups.get(key).keys.push(k);
+  }
+  const valid = wchLines(d);
+  const recent = valid.filter((x) => x.s >= now - WCH_WINDOW_MS);
+  const all = !!state.changesAll;
+  const kind = WCH_KINDS.includes(state.changesKind) ? state.changesKind : '';
+  const pool = all ? valid : recent;
+  const counts = { '': pool.length };
+  for (const g of WCH_KINDS) counts[g] = pool.filter((x) => WCH_KIND_GROUP[x.e.k] === g).length;
+  const pick = (list) => (kind ? list.filter((x) => WCH_KIND_GROUP[x.e.k] === kind) : list);
+  const fRecent = pick(recent);
+  const fAll = pick(valid);
+  const limit = Math.max(WCH_PAGE, Number(state.changesLimit) || 0);
+  const rows = all ? fAll.slice(0, limit) : wchPick(fRecent, WCH_SHOWN);
+  return { phase: 'ok', now, gen, stale: now - gen > WCH_STALE_MS, paused: [...groups.values()],
+    since: wchMs(d.since), days: Number.isFinite(d.retainDays) && d.retainDays > 0 ? d.retainDays : 7,
+    rows: rows.map((x) => x.e), recentN: fRecent.length, allN: fAll.length, rest: all ? Math.max(0, fAll.length - limit) : 0,
+    all, kind, counts };
+}
+
+function wchWhere(e) {
+  if (wchStr(e.pt)) return e.pt.trim();
+  const areas = e.areas.filter(wchStr).map((a) => a.trim());
+  const extra = Math.max(0, areas.length - WCH_AREAS_SHOWN) + (Number.isFinite(e.more) && e.more > 0 ? e.more : 0);
+  return areas.slice(0, WCH_AREAS_SHOWN).join(', ') + (extra > 0 ? ` ${t('alert.areaMore').replace('{n}', String(extra))}` : '');
+}
+
+// one row's sentence, glyph, tone and citation; the event has already passed wchEventOk
+function wchLine(e, now) {
+  const tt = (k) => t(`wch.${k}`);
+  const clock = (iso) => wchClock(wchMs(iso), now);
+  const meta = [];
+  const after = (key) => (Number.isFinite(wchMs(e.after)) ? wchFill(tt(key), { t: clock(e.after) }) : '');
+  let glyph = '✓';
+  let tone = 'var(--good)';
+  let text = '';
+  if (e.k === 'crest') {
+    glyph = '◆';
+    tone = `var(--cat-${e.cat})`;
+    text = wchFill(tt('g.crest'), { name: e.name, ft: +e.ft });
+    meta.push(tt('src.nwps'), catWord(e.cat), e.unc ? tt('unc') : '');
+  } else if (e.k === 'flood') {
+    const dir = e.from === 'none' ? 'enter' : e.to === 'none' ? 'exit'
+      : (WCH_BANDS.indexOf(e.to) > WCH_BANDS.indexOf(e.from) ? 'up' : 'down');
+    glyph = dir === 'enter' || dir === 'up' ? '▲' : '▼';
+    if (dir !== 'exit') tone = `var(--cat-${e.to})`;
+    text = wchFill(tt(`g.${dir}`), { name: e.name, cat: dir === 'exit' ? '' : catWord(e.to), ft: +e.ft });
+    meta.push(tt('src.nwps'), after('after.reading'));
+  } else if (e.k === 'warn') {
+    const sev = ['emergency', 'warning', 'watch'].includes(e.sev) ? e.sev : 'warning';
+    const key = e.act === 'end' ? `w.${e.how}` : e.act === 'up' ? 'w.up'
+      : e.again ? 'w.again' : (sev === 'emergency' ? 'w.newemerg' : 'w.new');
+    if (e.act !== 'end') { glyph = '⚠'; tone = `var(--sev-${sev})`; }
+    // dropping out of the feed is an absence, not an end the NWS stated
+    else if (e.how === 'gone') { glyph = '○'; tone = 'var(--ink-muted)'; }
+    text = wchFill(tt(key), { ev: e.ev, where: wchWhere(e) });
+    meta.push(wchStr(e.wfo) ? wchFill(tt('src.nws'), { wfo: e.wfo }) : tt('src.nwsplain'), after('after.listed'));
+  } else if (e.k === 'road') {
+    const ct = wchOwn(ROAD_COND, e.cond) || ROAD_COND_FALLBACK;
+    const road = prettyRoute(e.route) || t('word.road');
+    const near = wchStr(e.near) ? e.near.trim() : '';
+    if (e.act === 'new') {
+      glyph = wchOwn(WCH_ROAD_GLYPH, e.cond) || '🚧';
+      tone = ct.color;
+      text = wchFill(tt('r.new'), { road, cond: roadLabel(ct) });
+    } else text = wchFill(tt('r.clear'), { road });
+    meta.push(t('roads.src.txdot'), near.length > WCH_NEAR_MAX ? `${near.slice(0, WCH_NEAR_MAX - 1).trimEnd()}…` : near);
+    if (e.act === 'clear') meta.push(e.how === 'end' ? tt('r.end') : '', t('reopen.cleared'), after('after.listed'));
+  } else if (e.k === 'xing') {
+    if (e.act !== 'clear') {
+      glyph = e.status === 'closed' ? '⛔' : '⚠';
+      tone = e.status === 'closed' ? 'var(--sev-emergency)' : 'var(--cat-action)';
+    }
+    text = wchFill(tt(`x.${e.act}`), { name: e.name, status: e.act === 'clear' ? '' : t(`xword.${e.status}`) });
+    meta.push(tt('src.atx'), after('after.listed'));
+  } else if (e.k === 'risk') {
+    if (e.act === 'new') { glyph = '🌊'; tone = 'var(--haz-rflood)'; }
+    text = wchFill(tt(`rr.${e.act}`), { name: e.name });
+    meta.push(tt('src.transtar'), after('after.listed'));
+  } else if (e.k === 'shelter') {
+    const raw = String(e.status || 'unknown').trim().toLowerCase() || 'unknown';
+    const label = t(`shl.st.${raw}`) === `shl.st.${raw}` ? raw : t(`shl.st.${raw}`);
+    glyph = '🏠';
+    if (e.act === 'clear') tone = 'var(--ink-muted)';
+    text = wchFill(tt(`sh.${e.act}`), { name: e.name, status: label });
+    meta.push(tt('src.fema'), after('after.listed'));
+  }
+  return { glyph, tone, text, meta: meta.filter(Boolean).join(' · ') };
+}
+
+function wchAct(e) {
+  const located = Number.isFinite(e.lat) && Number.isFinite(e.lon);
+  const toPoint = (z) => () => {
+    if (!state.map) return;
+    state.map.setView([e.lat, e.lon], Math.max(state.map.getZoom(), z), { animate: true });
+    revealMapOnPhone();
+  };
+  if (e.k === 'crest' || e.k === 'flood') {
+    return () => {
+      const g = (state.gauges || []).find((x) => x && x.lid === e.lid);
+      if (g) focusGauges([g], g);
+      else if (located) toPoint(11)();
+    };
+  }
+  if (e.k === 'warn') {
+    return () => {
+      const f = (state.alerts || []).find((a) => alertVtecKey(a) === e.key && alertOpen(a));
+      if (f) openInAlertsList(f);
+      else sitOpenTab('tab-alerts')();
+    };
+  }
+  return located ? toPoint(13) : () => {};
+}
+
+function whatChangedView(m) {
+  const acts = [];
+  const tt = (k) => t(`wch.${k}`);
+  const note = (cls, text) => `<div class="sit-note${cls ? ` ${cls}` : ''}">${esc(text)}</div>`;
+  const stamp = (ms) => `${wchClock(ms, m.now)} CT`;
+  const label = (k) => tt(`s.${k}`);
+  const names = (ks) => (ks.length < 2 ? ks.map(label).join('')
+    : `${ks.slice(0, -1).map(label).join(', ')}${t('sit.src.and')}${label(ks[ks.length - 1])}`);
+  const out = [`<div class="sit-head"><span class="sit-title">${esc(tt('title'))}</span>`
+    + `<span class="badge sit-auto" title="${esc(t('sit.auto.title'))}">${esc(t('sit.auto'))}</span>`
+    + (m.phase === 'ok' ? `<span class="sit-asof">${esc(t('sit.asof').replace('{t}', stamp(m.gen)))}</span>` : '') + '</div>'];
+  if (pbBlocksLive(state)) out.push(note('', t('playback.striplive')));
+  if (m.phase !== 'ok') {
+    const cold = { failed: ['failed', 'failed'], starting: ['loading', 'starting'] }[m.phase] || ['loading', 'loading'];
+    out.push(note(cold[0], tt(cold[1])));
+    return { html: out.join(''), acts };
+  }
+  if (m.stale) out.push(note('stale', wchFill(tt('stale'), { t: stamp(m.gen) })));
+  for (const p of m.paused) {
+    out.push(note('stale', p.kind === 'never' ? wchFill(tt('never'), { s: names(p.keys) })
+      : wchFill(tt('paused'), { s: names(p.keys), t: stamp(p.at) })));
+  }
+  // a window holding one kind of change needs no filter; an active filter always keeps its way back
+  const kinds = WCH_KINDS.filter((g) => m.counts[g] > 0 || g === m.kind);
+  if (m.kind || kinds.length > 1) {
+    const chip = (g, label) => `<button type="button" class="wch-chip${m.kind === g ? ' on' : ''}" data-wch-kind="${g || 'all'}"`
+      + ` aria-pressed="${m.kind === g ? 'true' : 'false'}">${esc(label)} <span class="wch-n">${m.counts[g]}</span></button>`;
+    out.push(`<div class="wch-chips">${chip('', tt('f.all'))}${kinds.map((g) => chip(g, tt(`f.${g}`))).join('')}</div>`);
+  }
+  out.push(`<div class="sit-subhead">${esc(m.all ? wchFill(tt('h.all'), { d: m.days }) : tt('h.recent'))}</div>`);
+  for (const e of m.rows) {
+    const line = wchLine(e, m.now);
+    const det = e.tk === 'd';
+    const when = wchClock(wchMs(e.t), m.now);
+    acts.push(wchAct(e));
+    out.push(`<button type="button" class="wch-row${det ? ' wch-det' : ''}" data-wch="${acts.length - 1}" style="--sit-tone:${esc(line.tone)}"`
+      + `${det ? ` title="${esc(tt('det.title'))}"` : ''}>`
+      + `<span class="wch-time">${esc(det ? t('sit.asof').replace('{t}', when) : when)}</span>`
+      + `<span class="wch-text">${esc(`${line.glyph} ${line.text}`)}</span>`
+      + `<span class="wch-meta">${esc(line.meta)}</span></button>`);
+  }
+  if (!m.rows.length) {
+    const fresh = !m.all && Number.isFinite(m.since) && m.since >= m.now - WCH_WINDOW_MS;
+    const what = m.kind ? { s: tt(`fs.${m.kind}`), d: m.days } : { d: m.days };
+    const key = fresh ? (m.kind ? 'none.kindsince' : 'none.since')
+      : m.kind ? (m.all ? 'none.kindall' : 'none.kind') : (m.all ? 'none.all' : 'none');
+    out.push(note('', wchFill(tt(key), Object.assign({ t: Number.isFinite(m.since) ? stamp(m.since) : '' }, what))));
+  }
+  if (m.rest > 0) {
+    out.push(`<button type="button" class="sit-card sit-more wch-more" data-wch-page="1">${esc(wchFill(tt('page'), { n: Math.min(WCH_PAGE, m.rest) }))}</button>`);
+  }
+  if (m.all ? m.allN > m.recentN || m.recentN > WCH_SHOWN : m.allN > m.rows.length) {
+    out.push(`<button type="button" class="sit-card sit-more wch-more" data-wch-more="1">${esc(m.all ? tt('less')
+      : wchFill(tt('more'), { n: m.allN, d: m.days }))}</button>`);
+  }
+  return { html: out.join(''), acts };
+}
+
+// element -> what it was last painted from; presence also means its one delegated listener is wired
+const wchPainted = new WeakMap();
+
+// everything the painted section depends on; renderTiles runs on every repaint, so an unchanged
+// key must cost nothing (the minute keeps the 24h window and the stale notes moving)
+const wchRenderKey = (now) => [state.changes, state.changesUnknown, state.changesMissing, state.changesAll,
+  state.changesKind, state.changesLimit, Math.floor(now / 60000), t, typeof getLang === 'function' ? getLang() : '',
+  CONFIG.gaugeBbox, CONFIG.aoArea, pbBlocksLive(state)];
+
+function renderFeedChanges() {
+  const el = $('#feed-changes');
+  if (!el) return;
+  const now = Date.now();
+  const key = wchRenderKey(now);
+  const last = wchPainted.get(el);
+  if (!last) {
+    el.addEventListener('click', (ev) => {
+      const hit = (sel) => ev.target && ev.target.closest && ev.target.closest(sel);
+      if (hit('[data-wch-page]')) { state.changesLimit = Math.max(WCH_PAGE, state.changesLimit || 0) + WCH_PAGE; renderFeedChanges(); return; }
+      if (hit('[data-wch-more]')) { state.changesAll = !state.changesAll; state.changesLimit = 0; renderFeedChanges(); return; }
+      const chip = hit('[data-wch-kind]');
+      if (chip) {
+        const g = chip.getAttribute('data-wch-kind');
+        state.changesKind = WCH_KINDS.includes(g) && state.changesKind !== g ? g : '';
+        state.changesLimit = 0;
+        renderFeedChanges();
+        return;
+      }
+      const b = hit('[data-wch]');
+      const act = b && state.wchActs[Number(b.getAttribute('data-wch'))];
+      if (act) act();
+    });
+  } else if (last.key.every((v, i) => v === key[i])) return;
+  const { html, acts } = whatChangedView(whatChangedModel(now));
+  state.wchActs = acts;
+  wchPainted.set(el, { key, html });
+  if (!last || last.html !== html) el.innerHTML = html;
+}
+
 /* ---------- share view — one link reproduces map, tab, and filters ---------- */
 
 // opts.cam = { c, kind }: the link also opens that camera's viewer (?cam=) and its region's layer

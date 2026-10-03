@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.100.16",
+      "date": "2026-10-02",
+      "line": "New in the Feed: What changed. Crests, gauges entering or leaving flood stage, NWS warnings issued, upgraded and ended, road and crossing closures, and shelters opening, each with its time and source. A source that is not reporting is shown as paused, never as quiet."
+    },
+    {
       "v": "v0.100.15",
       "date": "2026-10-02",
       "line": "Cameras nearby: gauge and road-closure popups and the Feed's river cards list the closest cameras with distance and direction, and the camera viewer steps to the next camera on the same road or river. Flood warnings name the river point they cover in the Feed, the Alerts tab and the RSS feed."

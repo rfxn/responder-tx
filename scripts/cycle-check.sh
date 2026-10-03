@@ -4,6 +4,8 @@ set -euo pipefail
 
 # RESPONDER_ROOT lets run-cycle.sh execute a committed copy of this script against the live repo:
 # the script body comes from HEAD, the data it validates is still the working tree's
+RESPONDER_SCRIPTS_DIR=$(cd "$(command dirname "$0")" && pwd) || exit 1
+export RESPONDER_SCRIPTS_DIR
 cd "${RESPONDER_ROOT:-$(command dirname "$0")/..}" || exit 1
 
 CODE_FROM_HEAD=0
@@ -602,6 +604,19 @@ if d is not None:
         if w.get("url") and not w["url"].lower().startswith(("https://", "http://")):
             die("transtar-flood.json: warnings[%d] url is not http(s)" % i)
 
+# the change stream's publish bounds live in scripts/changescheck.py, shared with the generator
+d = optional("data/changes.json")
+if d is not None:
+    try:
+        sys.path.insert(0, os.environ.get("RESPONDER_SCRIPTS_DIR") or "scripts")
+        import changescheck
+        problem = changescheck.payload_problem(d)
+    except Exception as exc:  # a derived log's checker must never become a gate that stops a flood publish
+        print("WARN: changes.json check skipped: %s: %s" % (type(exc).__name__, exc))
+        problem = None
+    if problem:
+        die("changes.json: " + problem)
+
 d = optional("data/caltopo-export.json")
 if d is not None:
     if d.get("type") != "FeatureCollection" or not isinstance(d.get("features"), list):
@@ -726,7 +741,7 @@ EOF
 }
 if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin/boot) + #disclaimer"; else failck "911 footer on every lens"; fi
 
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, transtar-flood, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, transtar-flood, changes, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 # l. USGS bbox area cap. WaterServices 400s any bBox over 25 equator-equivalent square degrees, and
 # the AO outgrew that in a config change alone, with no code touched: the layer died silently for

@@ -68,6 +68,7 @@ STEPS_OK=()
 STEPS_FAILED=()
 STEPS_SKIPPED=()
 STEPS_TIMEOUT=()
+STEPS_PARTIAL=()
 
 # --- step budgets: a hung generator must not eat the 15-minute window -------------------------
 # The cycle holds a non-blocking flock, so a run that outlives its window makes the NEXT cycle
@@ -85,6 +86,7 @@ BUDGET_ROADFLOOD_S=60
 BUDGET_CREST_S=120
 BUDGET_FEEDS_S=150
 BUDGET_CALTOPO_S=120
+BUDGET_CHANGES_S=60
 # Per-step budgets alone cannot bound the cycle: they sum past the window. This is the aggregate
 # guard, and it leaves room for the publish path (cycle-check, commit, deploy's own test gate,
 # push, upload, smoke) to finish. Trimmed from 660s when that gate widened to the python and shell
@@ -130,6 +132,11 @@ gen() {
     command timeout -k "$KILL_GRACE_S" "$effective" python3 "${PIPE_ROOT}/scripts/${script}" || rc=$?
     if [ "$rc" -eq 0 ]; then
         STEPS_OK+=("$label")
+        return 0
+    fi
+    if [ "$rc" -eq 3 ]; then  # written, degraded: the output is new, but some input could not be checked
+        STEPS_PARTIAL+=("$label")
+        log "WARN: ${script} wrote ${keep} but reported a degraded read (exit 3); its own lines above name what it could not check"
         return 0
     fi
     if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then  # timeout's own code, and SIGKILL after the grace period
@@ -318,6 +325,9 @@ else
     skip caltopo gen-caltopo.py "the gauge snapshot did not refresh"
 fi
 
+# last: it diffs every source above, and its NWS read must never delay the flood feeds
+gen changes gen-changes.py "data/changes.json + data/changes-state.json" "$BUDGET_CHANGES_S" || :  # a stale source is carried, never diffed
+
 # a cycle where NOTHING refreshed is a hard failure: there is nothing to publish and the fault is
 # upstream-wide, not a single flaky source
 if [ "${#STEPS_OK[@]}" -eq 0 ]; then
@@ -326,7 +336,8 @@ if [ "${#STEPS_OK[@]}" -eq 0 ]; then
 fi
 
 DEGRADED=0
-if [ "${#STEPS_FAILED[@]}" -gt 0 ] || [ "${#STEPS_SKIPPED[@]}" -gt 0 ] || [ "${#STEPS_TIMEOUT[@]}" -gt 0 ]; then
+if [ "${#STEPS_FAILED[@]}" -gt 0 ] || [ "${#STEPS_SKIPPED[@]}" -gt 0 ] || [ "${#STEPS_TIMEOUT[@]}" -gt 0 ] \
+   || [ "${#STEPS_PARTIAL[@]}" -gt 0 ]; then
     DEGRADED=1
 fi
 
@@ -335,15 +346,41 @@ fi
 cycle_end() {
     STAGE=signoff
     if [ "$DEGRADED" -eq 1 ]; then
-        log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | timed out: ${STEPS_TIMEOUT[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}"
+        log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | timed out: ${STEPS_TIMEOUT[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}${STEPS_PARTIAL[*]:+ | partial: ${STEPS_PARTIAL[*]}}"
         exit 3
     fi
     log "=== $1 ==="
     exit 0
 }
 
+# heal_changes — the change log is derived, so one that breaks its publish bounds must never stop a
+# flood publish (CLAUDE.md "Deliberately NOT adopted"): restore it with its state from HEAD, or drop
+# both when HEAD has none that passes, and sign the cycle off degraded
+heal_changes() {
+    local checker="${PIPE_ROOT}/scripts/changescheck.py" why f
+    [ -f "$checker" ] || return 0
+    why=$(python3 "$checker" 2>&1) && return 0
+    log "WARN: the change log broke its publish bounds (${why}); restoring data/changes.json and data/changes-state.json from HEAD"
+    for f in data/changes.json data/changes-state.json; do
+        if git cat-file -e "HEAD:$f" 2>/dev/null; then  # absent at HEAD means there is nothing to restore
+            if ! { git show "HEAD:$f" > "$f.heal" && command mv -f "$f.heal" "$f"; }; then
+                log "WARN: could not restore $f"
+            fi
+        else
+            command rm -f "$f"
+        fi
+    done
+    if ! why=$(python3 "$checker" 2>&1); then
+        log "WARN: the committed change log fails too (${why}); dropping it, the next run starts a new one"
+        command rm -f data/changes.json data/changes-state.json
+    fi
+    STEPS_FAILED+=("changes")
+    DEGRADED=1
+}
+
 # validation stays fatal: it gates whether the data on disk is publishable at all
 STAGE=validate
+heal_changes
 log "step: cycle-check.sh (validation)"
 bash "${PIPE_ROOT}/scripts/cycle-check.sh" --code-from-head
 
@@ -366,6 +403,8 @@ DATA_FILES=(
     data/crossing-status.json
     data/wildfire.json
     data/transtar-flood.json
+    data/changes.json
+    data/changes-state.json
     data/caltopo-export.json
     data/board.kml
     data/board-live.kml
@@ -403,7 +442,7 @@ STAMP=$(command date -u '+%Y-%m-%dT%H:%MZ')
 # on a cycle that only published some of its sources
 COMMIT_MSG="Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + roads/history/crest/feeds/shelters/caltopo regen"
 if [ "$DEGRADED" -eq 1 ]; then
-    COMMIT_MSG="Data refresh ${STAMP} (auto-cron, partial): refreshed ${STEPS_OK[*]}; stale: ${STEPS_FAILED[*]:-none} ${STEPS_TIMEOUT[*]:-} ${STEPS_SKIPPED[*]:-}"
+    COMMIT_MSG="Data refresh ${STAMP} (auto-cron, partial): refreshed ${STEPS_OK[*]}${STEPS_PARTIAL[*]:+; partial: ${STEPS_PARTIAL[*]}}; stale: ${STEPS_FAILED[*]:-none} ${STEPS_TIMEOUT[*]:-} ${STEPS_SKIPPED[*]:-}"
 fi
 git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' commit -m "$COMMIT_MSG"
 log "committed: $(git log --oneline -1)"

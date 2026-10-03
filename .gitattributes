@@ -11,6 +11,8 @@ archive/        export-ignore
 # read the capture and apply display scope themselves, at publish time)
 data/gauges-capture.json export-ignore
 data/roads-capture.json  export-ignore
+# the change stream's diff state; the client reads data/changes.json only
+data/changes-state.json  export-ignore
 .gitattributes  export-ignore
 assets/architecture.svg export-ignore
 workers/        export-ignore

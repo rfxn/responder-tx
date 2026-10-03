@@ -80,6 +80,7 @@ async function refresh() {
     if (state.layers.tropical && state.map.hasLayer(state.layers.tropical)) fetchTropical().catch(() => { /* keep last cone/track on a transient failure */ });
     // every tick, the first at boot included: the layer-sheet row counts warnings before the layer is on
     fetchRoadFlood({ quiet: true, force: true }).catch(() => { /* fetchRoadFlood owns its own failure reporting */ });
+    loadChanges(false).catch((e) => console.error('What changed render failed', e)); // a failed read is handled inside; only a render fault lands here
     const gaugesP = fetchGauges();
     // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
     const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });

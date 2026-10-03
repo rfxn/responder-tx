@@ -15,6 +15,7 @@
 #   8 run-cycle.sh actually passes the flag
 #   9 data/event.json is data: both lanes read the working tree, so an uncommitted re-target
 #     is what gets validated (the copy the generators and the client actually load)
+#  56 the change-log check gates a bad log, and a missing or broken checker only warns
 # Runs against a scratch git repo, never the real one. Run: bash tests/cycle-check.test.sh
 set -uo pipefail
 
@@ -88,6 +89,8 @@ JS
     printf '%s\n' "module.exports = { loadApp: () => ({}) };" > "$REPO/tests/harness.js"
 
     cp "$CHECK_SRC" "$REPO/scripts/cycle-check.sh"
+    # the change-log bounds module cycle-check.sh imports from its own directory
+    cp "$REPO_ROOT/scripts/changescheck.py" "$REPO/scripts/changescheck.py"
     (
         cd "$REPO" || exit 1
         git init --quiet
@@ -878,6 +881,41 @@ if [ "$A" -eq 0 ] && grep -q 'OK:   AO area (config sound)' "$WORK/out" && grep 
     pass "55 a partial capture under the display floor warns and never fails the release lane"
 else
     fail "55 partial capture warns only (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# --- Test 56: the change-log check has teeth, and a broken checker can never fail the gate ---
+# The log is derived data; a missing or crashing checker must not become a gate that stops a flood
+# publish (CLAUDE.md "Deliberately NOT adopted"), so it warns and skips that one check.
+changes_fixture() {  # good|bad
+    local kind=crest
+    if [ "$1" = bad ]; then kind=tornado; fi
+    printf '{"generated":"2026-07-24T00:10:00Z","retainDays":7,"since":null,"sources":{},"events":[{"id":"e1","k":"%s","lid":"FX001","t":"2026-07-24T00:00:00Z","tk":"s","seen":"2026-07-24T00:05:00Z","src":"nwps"}]}\n' \
+        "$kind" > "$REPO/data/changes.json"
+}
+setup
+changes_fixture good
+run_check; A=$?
+changes_fixture bad
+run_check; B=$?
+if [ "$A" -eq 0 ] && [ "$B" -ne 0 ] && grep -q 'changes.json: events\[0\]' "$WORK/out"; then
+    pass "56 a well-formed change log passes and one outside its bounds fails the check"
+else
+    fail "56 change-log check (good=${A} bad=${B})"; cat "$WORK/out"
+fi
+rm -f "$REPO/scripts/changescheck.py"
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'WARN: changes.json check skipped' "$WORK/out" && grep -q '^OK:   data schemas' "$WORK/out"; then
+    pass "56b with the checker missing, cycle-check warns, skips only that check and still passes"
+else
+    fail "56b a missing checker must not fail cycle-check (rc=${A})"; cat "$WORK/out"
+fi
+printf '%s\n' 'def payload_problem(d):' '    raise TypeError("simulated checker bug")' > "$REPO/scripts/changescheck.py"
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'WARN: changes.json check skipped: TypeError' "$WORK/out"; then
+    pass "56c a checker that raises warns and skips, never failing cycle-check"
+else
+    fail "56c a crashing checker must not fail cycle-check (rc=${A})"; cat "$WORK/out"
 fi
 rm -rf "$WORK"
 

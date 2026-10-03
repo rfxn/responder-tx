@@ -187,7 +187,7 @@ write_state() {
 # publish, and the next cycle rewrites it anyway, so the watchdog never touches this lane.
 # data/event.json is deliberately absent: the cycle READS it as config and never writes it, which
 # is how a half-written copy widened the AO on 2026-07-25.
-CYCLE_LANE='^(data/(gauges-snapshot|gauges-capture|roads-snapshot|roads-capture|crest-summary|gauge-meta|history|requests|shelters-live|crossing-status|wildfire|transtar-flood|caltopo-export)\.json|data/(board|board-live)\.kml|data/board-georss\.xml|history/|feed\.xml|crests\.ics)'
+CYCLE_LANE='^(data/(gauges-snapshot|gauges-capture|roads-snapshot|roads-capture|crest-summary|gauge-meta|history|requests|shelters-live|crossing-status|wildfire|transtar-flood|caltopo-export|changes|changes-state)\.json|data/(board|board-live)\.kml|data/board-georss\.xml|history/|feed\.xml|crests\.ics)'
 
 # tree_dirt — tracked paths differing from HEAD outside the data cycle's lane, one per line.
 # Untracked files are excluded on purpose: git archive ships HEAD, the cycle stages only named

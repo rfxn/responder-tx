@@ -1597,6 +1597,7 @@ function renderTiles() {
   renderNine11Notice();
   renderTicker();
   renderFeedSituation();
+  renderFeedChanges();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
   markUnknownBadges();
   const crit = activeRequests().filter((r) => r.status !== 'resolved' && r.priority === 'critical').length;

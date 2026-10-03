@@ -58,7 +58,7 @@ const ENTRY_POINTS = [
   'openCamLink', 'copyCamLink', 'camLinkKey',
   // panels.js / board.js / boot.js
   'openView', 'buildShareUrl', 'copyShareLink',
-  'renderTiles', 'renderRequests', 'renderAlertList', 'loadSeeds', 'refresh',
+  'renderTiles', 'renderRequests', 'renderAlertList', 'loadSeeds', 'refresh', 'loadChanges', 'renderFeedChanges',
   'restoreViewState', 'loadEventConfig', 'registerServiceWorker', 'initPushCard',
 ];
 

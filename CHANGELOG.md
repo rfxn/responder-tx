@@ -1,5 +1,13 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.100.16 · 2026-10-02 (what changed)
+
+-- New Features --
+- [New] Feed "What changed": crests, flood-stage changes, NWS warnings and watches
+      issued, upgraded and ended, road and crossing closures, and shelters opening,
+      each with its time and source; a source that is not reporting is shown as
+      paused, never as quiet
+
 ## v0.100.15 · 2026-10-02 (cameras near every hazard)
 
 -- New Features --

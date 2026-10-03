@@ -33,6 +33,9 @@
 #  28 the count climbs across runs, and the monitor names the failing run instead of the host
 #  29 a run that publishes, degraded or clean, resets the count
 #  30 a lock skip and a dry run are not runs and leave the record alone
+#  31 the change stream runs last, after every source it diffs, and its log is committed
+#  32 a change log outside its publish bounds is restored from HEAD and never stops the publish
+#  33 a generator that wrote its output but reports a degraded read (exit 3) is logged truthfully
 # A scratch repo with stub generators and a bare origin keeps the real repo, the real Pages
 # project and the network untouched. Every lock, log and state path this suite touches is
 # redirected into $WORK: on 2026-07-25T01:23Z a hand-held flock on the production
@@ -108,6 +111,8 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
     done
     printf '<rss><lastBuildDate>%s</lastBuildDate></rss>\n' "$OLD_STAMP" > "$REPO/feed.xml"
     printf 'BEGIN:VCALENDAR\nDTSTAMP:%s\nEND:VCALENDAR\n' "$OLD_STAMP" > "$REPO/crests.ics"
+    printf '{"generated":"%s","retainDays":7,"since":null,"sources":{},"events":[]}\n' "$OLD_STAMP" > "$REPO/data/changes.json"
+    printf '{"v":1,"sources":{}}\n' > "$REPO/data/changes-state.json"
 
     mk_gen fetch-snapshot.py      data/gauges-snapshot.json
     mk_gen gen-roads-snapshot.py  data/roads-snapshot.json
@@ -120,6 +125,24 @@ setup() {  # scratch repo: run-cycle.sh, stub generators, stub validation + depl
     mk_gen gen-crossings-status.py data/crossing-status.json
     mk_gen gen-wildfire.py        data/wildfire.json
     mk_gen gen-transtar-flood.py  data/transtar-flood.json
+    # the change stream stub writes a well-formed log, or one carrying a kind the bounds refuse
+    cat > "$REPO/scripts/gen-changes.py" <<'PY'
+import datetime, json, os, sys
+if "gen-changes" in os.environ.get("RESPONDER_TEST_FAIL", "").split(","):
+    sys.exit("gen-changes: stub failure")
+now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+events = []
+if os.environ.get("RESPONDER_TEST_BAD_CHANGES"):
+    events = [{"id": "x1", "k": "tornado", "key": "K", "act": "new", "t": now, "tk": "s", "seen": now, "src": "nws"}]
+with open("data/changes.json", "w", encoding="utf-8") as f:
+    json.dump({"generated": now, "retainDays": 7, "since": None, "sources": {}, "events": events}, f)
+with open("data/changes-state.json", "w", encoding="utf-8") as f:
+    json.dump({"v": 1, "sources": {"roads": {"at": now}}}, f)
+print("gen-changes: stub wrote data/changes.json")
+if os.environ.get("RESPONDER_TEST_PARTIAL_CHANGES"):
+    sys.exit(3)
+PY
+    if [ -f "$REPO_ROOT/scripts/changescheck.py" ]; then cp "$REPO_ROOT/scripts/changescheck.py" "$REPO/scripts/"; fi
 
     # validation + publish stubs; RESPONDER_TEST_CHECK_RC lets one test make validation fail
     # shellcheck disable=SC2016  # deliberate: the stub must expand this when IT runs, not now
@@ -152,6 +175,8 @@ run_cycle() {  # sets RC and writes $WORK/cycle.log; RESPONDER_TEST_FAIL names t
     RESPONDER_TEST_FAIL="${FAILING:-}" \
     RESPONDER_TEST_CHECK_RC="${CHECK_RC:-0}" \
     RESPONDER_TEST_SLOW="${SLOW:-}" \
+    RESPONDER_TEST_BAD_CHANGES="${BAD_CHANGES:-}" \
+    RESPONDER_TEST_PARTIAL_CHANGES="${PARTIAL_CHANGES:-}" \
     RESPONDER_STEP_BUDGET_S="${STEP_BUDGET:-}" \
     RESPONDER_CYCLE_BUDGET_S="${CYCLE_BUDGET:-}" \
     RESPONDER_PUBLISH_BUDGET_S="${PUBLISH_BUDGET:-300}" \
@@ -174,6 +199,73 @@ if [ "$RC" -eq 0 ] \
     pass "1 a fully healthy cycle exits 0 and signs off clean"
 else
     fail "1 healthy cycle stays clean (rc=$RC)"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+# --- Test 31: the change stream diffs this cycle's sources, so it must run after all of them ----
+setup
+FAILING="" run_cycle
+line_of() { grep -n "step: $1 " "$WORK/cycle.log" | head -1 | cut -d: -f1; }
+CHG_AT=$(line_of gen-changes.py)
+LATE=""
+for g in fetch-snapshot.py gen-roads-snapshot.py gen-transtar-flood.py gen-history.py gen-shelters.py gen-crossings-status.py \
+         gen-wildfire.py gen-crest-summary.py gen-feeds.py gen-caltopo.py; do
+    at=$(line_of "$g")
+    if [ -z "$at" ] || [ -z "$CHG_AT" ] || [ "$at" -gt "$CHG_AT" ]; then LATE="$LATE $g"; fi
+done
+if [ "$RC" -eq 0 ] && [ -z "$LATE" ] \
+   && (cd "$REPO" && git show --name-only --format= HEAD | grep -qx 'data/changes.json'); then
+    pass "31 gen-changes.py runs last, after every source it diffs and behind the flood feeds, and is committed"
+else
+    fail "31 gen-changes.py ran before:${LATE:- (none)} (rc=$RC)"; cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# --- Test 32: a change log outside its publish bounds never stops the flood publish -----------
+# A gate that fails the data cycle over a derived log would freeze every source (CLAUDE.md,
+# "Deliberately NOT adopted"). The cycle restores the committed log and state together instead.
+setup
+GOOD_LOG=$(cat "$REPO/data/changes.json")
+GOOD_STATE=$(cat "$REPO/data/changes-state.json")
+BAD_CHANGES=1 FAILING="" run_cycle
+if [ "$RC" -eq 3 ] \
+   && grep -q 'restoring data/changes.json and data/changes-state.json from HEAD' "$WORK/cycle.log" \
+   && [ "$(cd "$REPO" && git show HEAD:data/changes.json)" = "$GOOD_LOG" ] \
+   && [ "$(cd "$REPO" && git show HEAD:data/changes-state.json)" = "$GOOD_STATE" ] \
+   && [ "$(cd "$REPO" && git show HEAD:data/gauges-snapshot.json | grep -c "$OLD_STAMP")" -eq 0 ] \
+   && (cd "$REPO" && git log -1 --format=%s | grep -q 'stale: changes') \
+   && grep -q 'stub deploy' "$WORK/run.out"; then
+    pass "32 a bad change log is restored from HEAD with its state, signed off degraded, and the flood data still publishes"
+else
+    fail "32 a bad change log must not stop the publish (rc=$RC)"; cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+setup
+(cd "$REPO" && git rm --quiet data/changes.json data/changes-state.json && git commit --quiet -m 'no change log yet')
+BAD_CHANGES=1 FAILING="" run_cycle
+if [ "$RC" -eq 3 ] && [ ! -e "$REPO/data/changes.json" ] && [ ! -e "$REPO/data/changes-state.json" ] \
+   && ! (cd "$REPO" && git cat-file -e HEAD:data/changes.json 2>/dev/null) \
+   && (cd "$REPO" && git log -1 --format=%s | grep -q '^Data refresh'); then  # cat-file failing is the pass condition
+    pass "32b with no committed log to restore, the bad one is dropped and the rest still publishes"
+else
+    fail "32b a bad first change log must not stop the publish (rc=$RC)"; cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# --- Test 33: exit 3 means "written, but degraded", and the log must not claim otherwise -------
+setup
+PARTIAL_CHANGES=1 FAILING="" run_cycle
+SUBJ=$(cd "$REPO" && git log -1 --format=%s)
+if [ "$RC" -eq 3 ] \
+   && grep -q 'gen-changes.py wrote data/changes.json + data/changes-state.json but reported a degraded read (exit 3)' "$WORK/cycle.log" \
+   && ! grep -q 'gen-changes.py failed (non-fatal); keeping previous' "$WORK/cycle.log" \
+   && grep -q '=== cycle complete (DEGRADED) ===.*| partial: changes' "$WORK/cycle.log" \
+   && [ "$(cd "$REPO" && git show HEAD:data/changes.json | grep -c "$OLD_STAMP")" -eq 0 ] \
+   && case "$SUBJ" in *"partial: changes"*) true ;; *) false ;; esac; then
+    pass "33 a written-but-degraded generator is logged as written, committed, and signs the cycle off degraded"
+else
+    fail "33 exit 3 must read as written but degraded (rc=$RC, subject: $SUBJ)"; cat "$WORK/cycle.log"
 fi
 rm -rf "$WORK"
 
@@ -254,7 +346,7 @@ rm -rf "$WORK"
 
 # --- Test 6: every generator failing is still a hard failure that publishes nothing ------------
 setup
-FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo,gen-crossings-status,gen-wildfire,gen-transtar-flood" run_cycle
+FAILING="fetch-snapshot,gen-roads-snapshot,gen-history,gen-crest-summary,gen-notices,gen-feeds,gen-shelters,gen-caltopo,gen-crossings-status,gen-wildfire,gen-transtar-flood,gen-changes" run_cycle
 COMMITS=$(cd "$REPO" && git rev-list --count HEAD)
 if [ "$RC" -eq 1 ] \
    && grep -q 'ERROR: cycle failed (no source refreshed' "$WORK/cycle.log" \

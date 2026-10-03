@@ -231,7 +231,8 @@ const MAP_EXPORTS = EXPORTS.concat(['VIEW_ROWS',
   'perimeterCampaign', 'perimeterStaleH', 'WILDFIRE_CAMPAIGN_STALE_H',
   'pbSbw', 'pbSbwSev', 'pbSbwKey', 'pbSbwStore', 'pbSbwInAO', 'pbEmergencyKey', 'pbStoryRebuild', 'PB_SBW_FLOOD',
   'pbChunkUrl', 'pbDaysInWindow', 'pbMergeFrames', 'pbArchiveStart', 'pbArchiveStartIso', 'pbDayAt', 'pbChunkPending', 'pbChunkFailed',
-  'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey']);
+  'PB_RANGES', 'pbArchiveDepthDays', 'pbRangeOverreaches', 'pbDepthLabel', 'pbBoundedView', 'pbKey',
+  'WCH_SHOWN', 'WCH_WINDOW_MS', 'WCH_SOURCES', 'wchInScope']);
 
 function buildBundle(files, exports, beforeLoad) {
   const sources = files.map(read).join('\n;\n');

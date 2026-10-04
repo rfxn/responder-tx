@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-04T05:55:52Z",
+ "generated": "2026-10-04T06:10:50Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-04T05:38:00Z"
+  "last": "2026-10-04T05:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1274,6 +1274,25 @@
    "src": "usgs"
   },
   {
+   "lid": "FPST2",
+   "name": "Tide Station (HGX) at Freeport",
+   "peak": 3.79,
+   "peak_time": "2026-10-04T05:53:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-04T04:23:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 4.01,
+    "record_date": "2021-10-24",
+    "peak_pct": 94.5,
+    "exceeded": false,
+    "approached": true
+   },
+   "stale": false
+  },
+  {
    "lid": "GOBT2",
    "name": "Goode Branch at CR 773",
    "peak": 3.73,
@@ -1287,25 +1306,6 @@
    "src": "usgs"
   },
   {
-   "lid": "FPST2",
-   "name": "Tide Station (HGX) at Freeport",
-   "peak": 3.71,
-   "peak_time": "2026-10-04T04:23:00Z",
-   "peak_category": "minor",
-   "unit": "ft",
-   "first_in_flood": "2026-10-04T04:23:00Z",
-   "last_in_flood": "2026-10-04T04:38:00Z",
-   "ongoing": false,
-   "record": {
-    "record_ft": 4.01,
-    "record_date": "2021-10-24",
-    "peak_pct": 92.5,
-    "exceeded": false,
-    "approached": true
-   },
-   "stale": false
-  },
-  {
    "lid": "GNJT2",
    "name": "Tide Station (HGX) at Galveston Bay Entrance North Jetty",
    "peak": 3.67,
@@ -1313,8 +1313,8 @@
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-04T05:38:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-10-04T05:38:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 4.97,
     "record_date": "2021-09-14",

@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-05T03:40:57Z",
+ "generated": "2026-10-05T03:56:16Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-05T03:23:00Z"
+  "last": "2026-10-05T03:38:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -970,8 +970,8 @@
   {
    "lid": "GLYT2",
    "name": "Gail Creek at FM 1280 near Lovelady",
-   "peak": 193.45,
-   "peak_time": "2026-10-05T03:23:00Z",
+   "peak": 193.47,
+   "peak_time": "2026-10-05T03:38:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-04T22:53:00Z",

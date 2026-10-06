@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-06T17:55:44Z",
+ "generated": "2026-10-06T18:10:32Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-06T17:38:00Z"
+  "last": "2026-10-06T17:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -992,6 +992,25 @@
    "stale": false
   },
   {
+   "lid": "BAKT2",
+   "name": "Buffalo Bayou at Barker Reservoir",
+   "peak": 103,
+   "peak_time": "2026-10-06T17:53:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-06T17:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 101.6,
+    "record_date": "2017-08-27",
+    "peak_pct": 101.4,
+    "exceeded": true,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "DWRT2",
    "name": "White Rock Creek at Dallas",
    "peak": 87.33,
@@ -1412,7 +1431,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 80,
+ "retained_gauges": 81,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

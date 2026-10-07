@@ -58,7 +58,7 @@ Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, I
     </Style>
     <ExtendedData>
       <Data name="generated">
-        <value>2026-10-07T13:55:27Z</value>
+        <value>2026-10-07T14:10:59Z</value>
       </Data>
       <Data name="features">
         <value>858</value>
@@ -2468,10 +2468,10 @@ Updated: 2026-10-07T13:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Colorado River (TX) at Austin</name>
-        <description>Observed: 13.05 ft (no flooding)
+        <description>Observed: 13.07 ft (no flooding)
 Forecast: 14.1 ft (no flooding) at 2026-10-08T04:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ACRT2
-Updated: 2026-10-07T13:00:00Z</description>
+Updated: 2026-10-07T12:50:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -2481,7 +2481,7 @@ Updated: 2026-10-07T13:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/ACRT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-07T13:00:00Z</value>
+            <value>2026-10-07T12:50:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9210,7 +9210,7 @@ Updated: 2026-10-07T13:05:00Z</description>
         <name>Gauge: Yellow Bayou at St. John Road</name>
         <description>Observed: 0.03 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/HNYT2
-Updated: 2026-10-07T13:00:00Z</description>
+Updated: 2026-10-07T13:20:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9220,7 +9220,7 @@ Updated: 2026-10-07T13:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/HNYT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-07T13:00:00Z</value>
+            <value>2026-10-07T13:20:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9356,9 +9356,9 @@ Updated: 2026-10-07T13:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: East Fork Little Wichita River near Henrietta</name>
-        <description>Observed: 5.34 ft (flood category not defined)
+        <description>Observed: 5.31 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/HTWT2
-Updated: 2026-10-07T12:15:00Z</description>
+Updated: 2026-10-07T13:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9368,7 +9368,7 @@ Updated: 2026-10-07T12:15:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/HTWT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-07T12:15:00Z</value>
+            <value>2026-10-07T13:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9482,9 +9482,9 @@ Updated: 2026-10-07T13:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Red River at Index</name>
-        <description>Observed: 0.94 ft (no flooding)
+        <description>Observed: 0.95 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/INGA4
-Updated: 2026-10-07T12:00:00Z</description>
+Updated: 2026-10-07T13:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9494,7 +9494,7 @@ Updated: 2026-10-07T12:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/INGA4</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-07T12:00:00Z</value>
+            <value>2026-10-07T13:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9526,7 +9526,7 @@ Updated: 2026-10-07T12:30:00Z</description>
         <name>Gauge: Wichita River near Iowa Park</name>
         <description>Observed: 6.9 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/IPWT2
-Updated: 2026-10-07T12:00:00Z</description>
+Updated: 2026-10-07T13:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9536,7 +9536,7 @@ Updated: 2026-10-07T12:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/IPWT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-07T12:00:00Z</value>
+            <value>2026-10-07T13:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -16432,7 +16432,7 @@ Updated: 2026-10-07T13:00:00Z</description>
       <Placemark>
         <name>Gauge: Guadalupe River near Spring Branch</name>
         <description>Observed: 2.66 ft (no flooding)
-Forecast: 2.7 ft (no flooding) at 2026-10-07T14:00:00Z
+Forecast: 2.7 ft (no flooding) at 2026-10-07T15:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/SRGT2
 Updated: 2026-10-07T13:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -17446,7 +17446,7 @@ Updated: 2026-10-07T12:30:00Z</description>
       <Placemark>
         <name>Gauge: Tide Gauge at Port Lavaca</name>
         <description>Observed: 1.01 ft (no flooding)
-Forecast: 0.4 ft (flood category unknown) at 2026-10-07T14:00:00Z
+Forecast: 0.36 ft (flood category unknown) at 2026-10-07T15:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/VCAT2
 Updated: 2026-10-07T13:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -17932,7 +17932,7 @@ Updated: 2026-10-07T12:45:00Z</description>
       <Placemark>
         <name>Gauge: Colorado River (TX) at Wharton</name>
         <description>Observed: 9.24 ft (no flooding)
-Forecast: 9.8 ft (no flooding) at 2026-10-07T14:00:00Z
+Forecast: 9.8 ft (no flooding) at 2026-10-07T15:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/WHAT2
 Updated: 2026-10-07T13:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -18103,7 +18103,7 @@ Updated: 2026-10-07T12:30:00Z</description>
       <Placemark>
         <name>Gauge: Blanco River at Wimberley</name>
         <description>Observed: 3.54 ft (no flooding)
-Forecast: 3.5 ft (no flooding) at 2026-10-07T14:00:00Z
+Forecast: 3.5 ft (no flooding) at 2026-10-07T15:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/WMBT2
 Updated: 2026-10-07T13:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>

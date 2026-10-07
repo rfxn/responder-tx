@@ -58,7 +58,7 @@ Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, I
     </Style>
     <ExtendedData>
       <Data name="generated">
-        <value>2026-10-07T14:41:52Z</value>
+        <value>2026-10-07T14:55:30Z</value>
       </Data>
       <Data name="features">
         <value>857</value>
@@ -4367,10 +4367,10 @@ Updated: 0001-01-01T00:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Colorado River (TX) at Bastrop</name>
-        <description>Observed: 3.15 ft (no flooding)
+        <description>Observed: no reading
 Forecast: 3.2 ft (no flooding) at 2026-10-07T17:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BRTT2
-Updated: 2026-10-07T12:45:00Z</description>
+Updated: 0001-01-01T00:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -4380,7 +4380,7 @@ Updated: 2026-10-07T12:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BRTT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-07T12:45:00Z</value>
+            <value>0001-01-01T00:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -5678,7 +5678,7 @@ Updated: 2026-10-07T13:00:00Z</description>
       <Placemark>
         <name>Gauge: North Sulphur River near Cooper</name>
         <description>Observed: 0.41 ft (no flooding)
-Forecast: 0.5 ft (no flooding) at 2026-10-08T06:00:00Z
+Forecast: 0.4 ft (no flooding) at 2026-10-07T18:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CPPT2
 Updated: 2026-10-07T13:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -9251,7 +9251,6 @@ Updated: 2026-10-07T12:30:00Z</description>
       <Placemark>
         <name>Gauge: Brazos River near Hempstead</name>
         <description>Observed: 10.92 ft (no flooding)
-Forecast: 11.5 ft (no flooding) at 2026-10-08T03:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/HPDT2
 Updated: 2026-10-07T12:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>

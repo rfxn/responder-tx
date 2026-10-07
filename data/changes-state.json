@@ -1,8 +1,26 @@
 {
-"pending":[],
+"pending":[
+{
+"act":"clear",
+"after":"2026-10-07T14:08:05Z",
+"cond":"Closure",
+"how":"gone",
+"id":"20dc422f8da2b7aa",
+"k":"road",
+"key":"b91f527f6d94",
+"lat":34.4279,
+"lon":-102.9907,
+"near":"327.36 Feet North of US0060 on FM2396",
+"route":"FM2396",
+"seen":"2026-10-07T14:38:07Z",
+"src":"txdot",
+"t":"2026-10-07T14:23:05Z",
+"tk":"d"
+}
+],
 "sources":{
 "crossings":{
-"at":"2026-10-07T14:25:24Z",
+"at":"2026-10-07T14:40:38Z",
 "items":{
 "2154":{
 "changed":"2026-08-10T17:45:22Z",
@@ -65,7 +83,7 @@
 "since":"2026-10-03T00:24:47Z"
 },
 "gauges":{
-"at":"2026-10-07T14:23:00Z",
+"at":"2026-10-07T14:38:00Z",
 "items":{
 "AAIT2":{
 "b":0,
@@ -4649,7 +4667,7 @@
 "since":"2026-10-03T00:23:00Z"
 },
 "roadrisk":{
-"at":"2026-10-07T14:22:24Z",
+"at":"2026-10-07T14:37:24Z",
 "items":{
 "transtar:145":{
 "lat":29.8109,
@@ -4661,7 +4679,7 @@
 "since":"2026-10-03T00:22:24Z"
 },
 "roads":{
-"at":"2026-10-07T14:23:05Z",
+"at":"2026-10-07T14:38:07Z",
 "items":{
 "FM0097|628.32 Feet East of SH0207 on FM0097|1.204 Miles East of FM1065 on FM0097":{
 "cond":"Damage",
@@ -4722,19 +4740,6 @@
 "near":"316.8 Feet West of BU0277F on FM2163",
 "route":"FM2163",
 "start":"2026-08-11T19:44:00Z"
-},
-"FM2396|327.36 Feet North of US0060 on FM2396|432.96 Feet South of FM2290 on FM2396":{
-"cond":"Closure",
-"end":"2026-10-09T21:30:00Z",
-"flood":true,
-"gone":"2026-10-07T14:23:05Z",
-"last":"2026-10-07T14:08:05Z",
-"lat":34.4279,
-"lon":-102.9907,
-"miss":1,
-"near":"327.36 Feet North of US0060 on FM2396",
-"route":"FM2396",
-"start":"2026-10-02T14:42:00Z"
 },
 "FM2407|89.76 Feet North of US0380 on FM2407|205.92 Feet East of SH0006 on FM2407":{
 "cond":"Closure",
@@ -4877,7 +4882,7 @@
 "since":"2026-10-03T00:24:47Z"
 },
 "warnings":{
-"at":"2026-10-07T14:26:29Z",
+"at":"2026-10-07T14:41:52Z",
 "items":{},
 "scope":null,
 "since":"2026-10-03T00:26:03Z",

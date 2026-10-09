@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-09T19:10:40Z",
+ "generated": "2026-10-09T19:25:36Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-09T18:53:00Z"
+  "last": "2026-10-09T19:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1312,8 +1312,8 @@
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-09T18:08:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-10-09T18:53:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 21.56,
     "record_date": "2017-09-01",
@@ -1414,8 +1414,8 @@
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-04T06:23:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-10-09T18:53:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 1.93,
     "record_date": "2018-06-19",

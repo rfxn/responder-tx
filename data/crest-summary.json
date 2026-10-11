@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-11T03:25:19Z",
+ "generated": "2026-10-11T03:40:28Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-11T03:08:00Z"
+  "last": "2026-10-11T03:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1414,8 +1414,8 @@
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-04T06:23:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
+   "last_in_flood": "2026-10-11T03:08:00Z",
+   "ongoing": false,
    "record": {
     "record_ft": 1.93,
     "record_date": "2018-06-19",
@@ -1423,6 +1423,18 @@
     "exceeded": false,
     "approached": true
    },
+   "stale": false
+  },
+  {
+   "lid": "VCAT2",
+   "name": "Tide Gauge at Port Lavaca",
+   "peak": 1.74,
+   "peak_time": "2026-10-11T03:23:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-01T09:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
    "stale": false
   },
   {
@@ -1435,18 +1447,6 @@
    "first_in_flood": "2026-10-04T08:23:00Z",
    "last_in_flood": "2026-10-04T13:53:00Z",
    "ongoing": false,
-   "stale": false
-  },
-  {
-   "lid": "VCAT2",
-   "name": "Tide Gauge at Port Lavaca",
-   "peak": 1.72,
-   "peak_time": "2026-10-11T03:08:00Z",
-   "peak_category": "minor",
-   "unit": "ft",
-   "first_in_flood": "2026-10-01T09:53:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
    "stale": false
   }
  ],

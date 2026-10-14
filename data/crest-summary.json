@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-14T14:40:41Z",
+ "generated": "2026-10-14T14:55:39Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-14T14:23:00Z"
+  "last": "2026-10-14T14:38:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1450,7 +1450,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 83,
+ "retained_gauges": 84,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

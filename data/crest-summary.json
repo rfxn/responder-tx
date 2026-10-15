@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-15T01:26:44Z",
+ "generated": "2026-10-15T01:41:56Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-15T01:08:00Z"
+  "last": "2026-10-15T01:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1197,6 +1197,25 @@
    "src": "usgs"
   },
   {
+   "lid": "TLPT2",
+   "name": "Middle Wichita River at Guthrie 19NE",
+   "peak": 15.39,
+   "peak_time": "2026-10-15T01:23:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-15T01:23:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 16.63,
+    "record_date": "2024-11-18",
+    "peak_pct": 92.5,
+    "exceeded": false,
+    "approached": true
+   },
+   "stale": false
+  },
+  {
    "lid": "SNPT2",
    "name": "San Antonio River at Loop 410",
    "peak": 13.67,
@@ -1450,7 +1469,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 85,
+ "retained_gauges": 86,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

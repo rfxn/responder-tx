@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-16T17:25:56Z",
+ "generated": "2026-10-16T17:40:50Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-16T17:08:00Z"
+  "last": "2026-10-16T17:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1216,6 +1216,25 @@
    "src": "usgs"
   },
   {
+   "lid": "VERT2",
+   "name": "Pease River near Vernon",
+   "peak": 15.03,
+   "peak_time": "2026-10-16T17:23:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-16T17:23:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 20.15,
+    "record_date": "1983-10-21",
+    "peak_pct": 74.6,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "SNPT2",
    "name": "San Antonio River at Loop 410",
    "peak": 13.67,
@@ -1469,7 +1488,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 89,
+ "retained_gauges": 90,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-16T19:26:03Z",
+ "generated": "2026-10-16T19:41:13Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-16T19:08:00Z"
+  "last": "2026-10-16T19:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1218,8 +1218,8 @@
   {
    "lid": "VERT2",
    "name": "Pease River near Vernon",
-   "peak": 15.03,
-   "peak_time": "2026-10-16T17:23:00Z",
+   "peak": 15.07,
+   "peak_time": "2026-10-16T19:23:00Z",
    "peak_category": "minor",
    "unit": "ft",
    "first_in_flood": "2026-10-16T17:23:00Z",
@@ -1228,7 +1228,7 @@
    "record": {
     "record_ft": 20.15,
     "record_date": "1983-10-21",
-    "peak_pct": 74.6,
+    "peak_pct": 74.8,
     "exceeded": false,
     "approached": false
    },

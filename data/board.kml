@@ -58,7 +58,7 @@ Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, I
     </Style>
     <ExtendedData>
       <Data name="generated">
-        <value>2026-10-22T21:41:31Z</value>
+        <value>2026-10-22T21:56:30Z</value>
       </Data>
       <Data name="features">
         <value>855</value>
@@ -2876,10 +2876,10 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge above Aransas Pass</name>
-        <description>Observed: 1.78 ft (flood category not defined)
+        <description>Observed: 1.74 ft (flood category not defined)
 Forecast: 2 ft (flood category not defined) at 2026-10-25T21:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ANPT2
-Updated: 2026-10-22T21:06:00Z</description>
+Updated: 2026-10-22T21:30:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -2889,7 +2889,7 @@ Updated: 2026-10-22T21:06:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/ANPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:06:00Z</value>
+            <value>2026-10-22T21:30:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -3153,7 +3153,7 @@ Updated: 2026-10-22T20:15:00Z</description>
         <name>Gauge: Austin Bayou at SH 35 near Liverpool</name>
         <description>Observed: 8.8 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/AUST2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -3163,7 +3163,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/AUST2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -3193,9 +3193,9 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge at Baffin Bay</name>
-        <description>Observed: 1.24 ft (no flooding)
+        <description>Observed: 1.25 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BABT2
-Updated: 2026-10-22T21:06:00Z</description>
+Updated: 2026-10-22T21:30:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -3205,7 +3205,7 @@ Updated: 2026-10-22T21:06:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BABT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:06:00Z</value>
+            <value>2026-10-22T21:30:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -3278,9 +3278,9 @@ Updated: 2026-10-22T20:30:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Blanco River at Crabapple Road</name>
-        <description>Observed: 0.55 ft (no flooding)
+        <description>Observed: no reading
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BAPT2
-Updated: 2026-10-22T20:45:00Z</description>
+Updated: 0001-01-01T00:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -3290,7 +3290,7 @@ Updated: 2026-10-22T20:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BAPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:45:00Z</value>
+            <value>0001-01-01T00:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -3552,9 +3552,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Cow Bayou at I-10</name>
-        <description>Observed: 0.88 ft (no flooding)
+        <description>Observed: 0.89 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BCVT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -3564,7 +3564,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BCVT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -3596,7 +3596,7 @@ Updated: 2026-10-22T20:50:00Z</description>
         <name>Gauge: Cypress Creek (E TX) at CR 725</name>
         <description>Observed: 1.01 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BCYT2
-Updated: 2026-10-22T21:20:00Z</description>
+Updated: 2026-10-22T21:30:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -3606,7 +3606,7 @@ Updated: 2026-10-22T21:20:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BCYT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:20:00Z</value>
+            <value>2026-10-22T21:30:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -3722,7 +3722,7 @@ Updated: 0001-01-01T00:00:00Z</description>
         <name>Gauge: Big Creek at TX 150 near Shepherd</name>
         <description>Observed: 132.86 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BEHT2
-Updated: 2026-10-22T21:05:00Z</description>
+Updated: 2026-10-22T21:20:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -3732,7 +3732,7 @@ Updated: 2026-10-22T21:05:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BEHT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:05:00Z</value>
+            <value>2026-10-22T21:20:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -4037,7 +4037,7 @@ Updated: 2026-10-22T20:35:00Z</description>
         <name>Gauge: Sabine River at Toledo Bend Reservoir</name>
         <description>Observed: 167.88 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BKLT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -4047,7 +4047,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BKLT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -4288,9 +4288,9 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Boggy Creek (E TX) at Park Road</name>
-        <description>Observed: 0.23 ft (no flooding)
+        <description>Observed: 0.22 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BOPT2
-Updated: 2026-10-22T21:20:00Z</description>
+Updated: 2026-10-22T21:30:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -4300,7 +4300,7 @@ Updated: 2026-10-22T21:20:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BOPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:20:00Z</value>
+            <value>2026-10-22T21:30:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9593,7 +9593,7 @@ Updated: 2026-10-22T20:30:00Z</description>
         <name>Gauge: Colorado River (TX) at Inks Lake</name>
         <description>Observed: 887 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/IKLT2
-Updated: 2026-10-22T20:00:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9603,7 +9603,7 @@ Updated: 2026-10-22T20:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/IKLT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:00:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9696,9 +9696,9 @@ Updated: 2026-10-22T20:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge at Bird Island</name>
-        <description>Observed: 1.14 ft (no flooding)
+        <description>Observed: 1.12 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/IRDT2
-Updated: 2026-10-22T20:30:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9708,7 +9708,7 @@ Updated: 2026-10-22T20:30:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/IRDT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:30:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9717,9 +9717,9 @@ Updated: 2026-10-22T20:30:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Taylor Bayou at Craigen Road</name>
-        <description>Observed: 1.95 ft (no flooding)
+        <description>Observed: 1.94 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JAIT2
-Updated: 2026-10-22T20:45:00Z</description>
+Updated: 2026-10-22T21:20:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9729,7 +9729,7 @@ Updated: 2026-10-22T20:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JAIT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:45:00Z</value>
+            <value>2026-10-22T21:20:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -9822,9 +9822,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: North Llano River near Junction</name>
-        <description>Observed: 9.09 ft (no flooding)
+        <description>Observed: 9.07 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JCTT2
-Updated: 2026-10-22T20:35:00Z</description>
+Updated: 2026-10-22T20:50:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -9834,7 +9834,7 @@ Updated: 2026-10-22T20:35:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JCTT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:35:00Z</value>
+            <value>2026-10-22T20:50:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10056,9 +10056,9 @@ Updated: 2026-10-22T20:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Juanita Creek at SH 71 near Midfield</name>
-        <description>Observed: 32.82 ft (no flooding)
+        <description>Observed: 32.8 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JUAT2
-Updated: 2026-10-22T16:55:00Z</description>
+Updated: 2026-10-22T21:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10068,7 +10068,7 @@ Updated: 2026-10-22T16:55:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JUAT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:55:00Z</value>
+            <value>2026-10-22T21:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10077,9 +10077,9 @@ Updated: 2026-10-22T16:55:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Neches River at Downtown Beaumont</name>
-        <description>Observed: 1.3 ft (no flooding)
+        <description>Observed: 1.35 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JYBT2
-Updated: 2026-10-22T20:50:00Z</description>
+Updated: 2026-10-22T21:20:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10089,7 +10089,7 @@ Updated: 2026-10-22T20:50:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JYBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:50:00Z</value>
+            <value>2026-10-22T21:20:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10121,7 +10121,7 @@ Updated: 0001-01-01T00:00:00Z</description>
         <name>Gauge: Pine Island Bayou near Batson</name>
         <description>Observed: 53.93 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JYKT2
-Updated: 2026-10-22T19:30:00Z</description>
+Updated: 2026-10-22T21:05:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10131,7 +10131,7 @@ Updated: 2026-10-22T19:30:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JYKT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T19:30:00Z</value>
+            <value>2026-10-22T21:05:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10184,7 +10184,7 @@ Updated: 0001-01-01T00:00:00Z</description>
         <name>Gauge: Pine Island Bayou near Bevil Oaks</name>
         <description>Observed: 3.33 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JYNT2
-Updated: 2026-10-22T20:15:00Z</description>
+Updated: 2026-10-22T21:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10194,7 +10194,7 @@ Updated: 2026-10-22T20:15:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JYNT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:15:00Z</value>
+            <value>2026-10-22T21:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10203,9 +10203,9 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Pine Island Bayou at Highway 326</name>
-        <description>Observed: 18.31 ft (no flooding)
+        <description>Observed: 18.3 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JZBT2
-Updated: 2026-10-22T20:35:00Z</description>
+Updated: 2026-10-22T21:10:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10215,7 +10215,7 @@ Updated: 2026-10-22T20:35:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JZBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:35:00Z</value>
+            <value>2026-10-22T21:10:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10226,7 +10226,7 @@ Updated: 2026-10-22T20:35:00Z</description>
         <name>Gauge: Hillebrandt Bayou at Highway 124</name>
         <description>Observed: 1.86 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JZHT2
-Updated: 2026-10-22T20:45:00Z</description>
+Updated: 2026-10-22T21:05:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10236,7 +10236,7 @@ Updated: 2026-10-22T20:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JZHT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:45:00Z</value>
+            <value>2026-10-22T21:05:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10266,9 +10266,9 @@ Updated: 2026-10-22T20:25:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Taylor Bayou at Labelle Road</name>
-        <description>Observed: 2.07 ft (no flooding)
+        <description>Observed: 2.06 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JZYT2
-Updated: 2026-10-22T20:45:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10278,7 +10278,7 @@ Updated: 2026-10-22T20:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/JZYT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:45:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10373,7 +10373,7 @@ Updated: 2026-10-22T20:30:00Z</description>
         <name>Gauge: Rabbit Creek at Kilgore</name>
         <description>Observed: 3.08 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KLGT2
-Updated: 2026-10-22T19:45:00Z</description>
+Updated: 2026-10-22T20:45:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10383,7 +10383,7 @@ Updated: 2026-10-22T19:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/KLGT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T19:45:00Z</value>
+            <value>2026-10-22T20:45:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10480,7 +10480,7 @@ Updated: 2026-10-22T20:30:00Z</description>
         <description>Observed: 1.11 ft (no flooding)
 Forecast: 1.1 ft (no flooding) at 2026-10-22T22:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KRRT2
-Updated: 2026-10-22T20:35:00Z</description>
+Updated: 2026-10-22T20:50:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10490,7 +10490,7 @@ Updated: 2026-10-22T20:35:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/KRRT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:35:00Z</value>
+            <value>2026-10-22T20:50:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10499,9 +10499,9 @@ Updated: 2026-10-22T20:35:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Sweetwater Creek at Kelton</name>
-        <description>Observed: 7.54 ft (no flooding)
+        <description>Observed: 7.55 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/KTNT2
-Updated: 2026-10-22T19:45:00Z</description>
+Updated: 2026-10-22T20:45:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10511,7 +10511,7 @@ Updated: 2026-10-22T19:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/KTNT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T19:45:00Z</value>
+            <value>2026-10-22T20:45:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10562,9 +10562,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Medina River near La Coste</name>
-        <description>Observed: 6.1 ft (no flooding)
+        <description>Observed: 6.09 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LACT2
-Updated: 2026-10-22T19:45:00Z</description>
+Updated: 2026-10-22T20:45:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10574,7 +10574,7 @@ Updated: 2026-10-22T19:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LACT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T19:45:00Z</value>
+            <value>2026-10-22T20:45:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10625,9 +10625,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Linnville Bayou at FM 521 near Cedar Lane</name>
-        <description>Observed: 1.51 ft (no flooding)
+        <description>Observed: 1.75 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LBUT2
-Updated: 2026-10-22T16:45:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10637,7 +10637,7 @@ Updated: 2026-10-22T16:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LBUT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:45:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10691,7 +10691,7 @@ Updated: 2026-10-22T20:15:00Z</description>
         <name>Gauge: Wolf Creek at Lipscomb</name>
         <description>Observed: 5.43 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCBT2
-Updated: 2026-10-22T19:45:00Z</description>
+Updated: 2026-10-22T20:45:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10701,7 +10701,7 @@ Updated: 2026-10-22T19:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LCBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T19:45:00Z</value>
+            <value>2026-10-22T20:45:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10710,9 +10710,9 @@ Updated: 2026-10-22T19:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Leon Creek at I-10 and Loop 1604</name>
-        <description>Observed: 982.54 ft (flood category not defined)
+        <description>Observed: 982.57 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCFT2
-Updated: 2026-10-22T16:30:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10722,7 +10722,7 @@ Updated: 2026-10-22T16:30:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LCFT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:30:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10837,9 +10837,9 @@ Updated: 2026-10-22T20:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Cherokee Bayou at Lake Cherokee</name>
-        <description>Observed: 277.06 ft (no flooding)
+        <description>Observed: 277.05 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LCRT2
-Updated: 2026-10-22T19:45:00Z</description>
+Updated: 2026-10-22T20:45:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10849,7 +10849,7 @@ Updated: 2026-10-22T19:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LCRT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T19:45:00Z</value>
+            <value>2026-10-22T20:45:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10901,9 +10901,9 @@ Updated: 2026-10-22T20:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Mill Creek (E TX) at Brownlea Road</name>
-        <description>Observed: 0 ft (no flooding)
+        <description>Observed: 0.01 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LEAT2
-Updated: 2026-10-22T20:50:00Z</description>
+Updated: 2026-10-22T21:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10913,7 +10913,7 @@ Updated: 2026-10-22T20:50:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LEAT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:50:00Z</value>
+            <value>2026-10-22T21:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -10922,9 +10922,9 @@ Updated: 2026-10-22T20:50:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Little Bernard Creek at I-10 near Sealy</name>
-        <description>Observed: 180.55 ft (no flooding)
+        <description>Observed: 180.54 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LEBT2
-Updated: 2026-10-22T16:15:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -10934,7 +10934,7 @@ Updated: 2026-10-22T16:15:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LEBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:15:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -11030,7 +11030,7 @@ Updated: 2026-10-22T20:25:00Z</description>
         <name>Gauge: South Fork San Gabriel River at SH 1869 near Liberty Hill</name>
         <description>Observed: 4.39 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LHGT2
-Updated: 2026-10-22T20:35:00Z</description>
+Updated: 2026-10-22T20:50:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -11040,7 +11040,7 @@ Updated: 2026-10-22T20:35:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LHGT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:35:00Z</value>
+            <value>2026-10-22T20:50:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -11156,7 +11156,7 @@ Updated: 2026-10-22T20:15:00Z</description>
         <name>Gauge: Llano River at Llano</name>
         <description>Observed: 2.29 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LLAT2
-Updated: 2026-10-22T20:00:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -11166,7 +11166,7 @@ Updated: 2026-10-22T20:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LLAT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:00:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -11491,9 +11491,9 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Sabine River at Logansport</name>
-        <description>Observed: 20.21 ft (no flooding)
+        <description>Observed: 20.16 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LPTL1
-Updated: 2026-10-22T19:45:00Z</description>
+Updated: 2026-10-22T20:45:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -11503,7 +11503,7 @@ Updated: 2026-10-22T19:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LPTL1</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T19:45:00Z</value>
+            <value>2026-10-22T20:45:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -11533,10 +11533,10 @@ Updated: 2026-10-22T20:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge above La Quinta Channel</name>
-        <description>Observed: 1.35 ft (flood category not defined)
+        <description>Observed: 1.32 ft (flood category not defined)
 Forecast: 0.62 ft (flood category unknown) at 2026-10-25T02:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LQAT2
-Updated: 2026-10-22T20:30:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -11546,7 +11546,7 @@ Updated: 2026-10-22T20:30:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LQAT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:30:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -11576,9 +11576,9 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Larrison Creek at FM 1428 near Midway</name>
-        <description>Observed: 157.36 ft (no flooding)
+        <description>Observed: 157.09 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/LRST2
-Updated: 2026-10-22T16:15:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -11588,7 +11588,7 @@ Updated: 2026-10-22T16:15:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/LRST2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:15:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -12145,9 +12145,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Cedar Bayou at I-10 near Mont Belvieu</name>
-        <description>Observed: 1.47 ft (no flooding)
+        <description>Observed: 1.4 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MBVT2
-Updated: 2026-10-22T16:55:00Z</description>
+Updated: 2026-10-22T21:10:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -12157,7 +12157,7 @@ Updated: 2026-10-22T16:55:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/MBVT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:55:00Z</value>
+            <value>2026-10-22T21:10:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -12418,10 +12418,10 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Station (HGX) at Morgan's Point</name>
-        <description>Observed: 1.22 ft (no flooding)
+        <description>Observed: 1.23 ft (no flooding)
 Forecast: 1.54 ft (flood category unknown) at 2026-10-25T02:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MGPT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -12431,7 +12431,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/MGPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -12440,9 +12440,9 @@ Updated: 2026-10-22T21:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge at Enbridge Ingleside</name>
-        <description>Observed: 1.18 ft (flood category not defined)
+        <description>Observed: 1.19 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MHBT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -12452,7 +12452,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/MHBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -12503,9 +12503,9 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Mathis Creek at US 190 near Kurten</name>
-        <description>Observed: 275.2 ft (no flooding)
+        <description>Observed: 275.17 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MKTT2
-Updated: 2026-10-22T16:15:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -12515,7 +12515,7 @@ Updated: 2026-10-22T16:15:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/MKTT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:15:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -12903,9 +12903,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Mustang Bayou at SH 6 near Alvin</name>
-        <description>Observed: 32.12 ft (no flooding)
+        <description>Observed: 32.1 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MUGT2
-Updated: 2026-10-22T16:55:00Z</description>
+Updated: 2026-10-22T21:05:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -12915,7 +12915,7 @@ Updated: 2026-10-22T16:55:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/MUGT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:55:00Z</value>
+            <value>2026-10-22T21:05:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -13008,9 +13008,9 @@ Updated: 2026-10-22T20:30:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Navasota River at SH 6 near Navasota</name>
-        <description>Observed: 151.1 ft (no flooding)
+        <description>Observed: 151.08 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NAVT2
-Updated: 2026-10-22T16:15:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -13020,7 +13020,7 @@ Updated: 2026-10-22T16:15:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/NAVT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:15:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -13136,10 +13136,10 @@ Updated: 2026-10-22T20:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Station (HGX) at Manchester</name>
-        <description>Observed: 1.18 ft (no flooding)
+        <description>Observed: 1.19 ft (no flooding)
 Forecast: 1.92 ft (flood category unknown) at 2026-10-25T02:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NCHT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -13149,7 +13149,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/NCHT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -13202,7 +13202,7 @@ Updated: 0001-01-01T00:00:00Z</description>
         <name>Gauge: Nelson Creek at FM 247 near Huntsville</name>
         <description>Observed: 182.1 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/NEST2
-Updated: 2026-10-22T16:50:00Z</description>
+Updated: 2026-10-22T21:10:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -13212,7 +13212,7 @@ Updated: 2026-10-22T16:50:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/NEST2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:50:00Z</value>
+            <value>2026-10-22T21:10:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -13557,9 +13557,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Coon Bayou at Lane of the Oaks</name>
-        <description>Observed: 0.56 ft (no flooding)
+        <description>Observed: 0.57 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/OCOT2
-Updated: 2026-10-22T20:50:00Z</description>
+Updated: 2026-10-22T21:20:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -13569,7 +13569,7 @@ Updated: 2026-10-22T20:50:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/OCOT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:50:00Z</value>
+            <value>2026-10-22T21:20:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -13578,9 +13578,9 @@ Updated: 2026-10-22T20:50:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Terry Gully at FM 1442</name>
-        <description>Observed: 2.46 ft (no flooding)
+        <description>Observed: 2.5 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/ODCT2
-Updated: 2026-10-22T20:50:00Z</description>
+Updated: 2026-10-22T21:20:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -13590,7 +13590,7 @@ Updated: 2026-10-22T20:50:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/ODCT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:50:00Z</value>
+            <value>2026-10-22T21:20:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -13833,7 +13833,7 @@ Updated: 2026-10-22T21:00:00Z</description>
         <description>Observed: 0.85 ft (no flooding)
 Forecast: 0.56 ft (flood category unknown) at 2026-10-25T08:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PACT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -13843,7 +13843,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/PACT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -13897,7 +13897,7 @@ Updated: 2026-10-22T20:15:00Z</description>
         <description>Observed: 0.34 ft (no flooding)
 Forecast: 0.29 ft (flood category unknown) at 2026-10-25T02:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PCNT2
-Updated: 2026-10-22T20:54:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -13907,7 +13907,7 @@ Updated: 2026-10-22T20:54:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/PCNT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:54:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -14189,9 +14189,9 @@ Updated: 0001-01-01T00:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Neches River at Lee Avenue</name>
-        <description>Observed: 0.68 ft (no flooding)
+        <description>Observed: 0.34 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/PNPT2
-Updated: 2026-10-22T20:45:00Z</description>
+Updated: 2026-10-22T21:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -14201,7 +14201,7 @@ Updated: 2026-10-22T20:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/PNPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:45:00Z</value>
+            <value>2026-10-22T21:15:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -14610,10 +14610,10 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Station (LCH) at Rainbow Bridge</name>
-        <description>Observed: 1.24 ft (no flooding)
+        <description>Observed: 1.23 ft (no flooding)
 Forecast: 1.91 ft (no flooding) at 2026-10-26T02:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RBBT2
-Updated: 2026-10-22T20:54:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -14623,7 +14623,7 @@ Updated: 2026-10-22T20:54:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/RBBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:54:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -14761,7 +14761,7 @@ Updated: 2026-10-22T20:10:00Z</description>
         <description>Observed: 0.75 ft (no flooding)
 Forecast: 0.38 ft (flood category unknown) at 2026-10-25T08:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RCPT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -14771,7 +14771,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/RCPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -14866,7 +14866,7 @@ Updated: 2026-10-22T20:45:00Z</description>
         <name>Gauge: Rhodair Gully at Wellspring Dr.</name>
         <description>Observed: 0 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RGBT2
-Updated: 2026-10-22T20:50:00Z</description>
+Updated: 2026-10-22T21:20:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -14876,7 +14876,7 @@ Updated: 2026-10-22T20:50:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/RGBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:50:00Z</value>
+            <value>2026-10-22T21:20:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -14970,10 +14970,10 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Station (HGX) at Rollover Pass</name>
-        <description>Observed: 1.82 ft (no flooding)
+        <description>Observed: 1.81 ft (no flooding)
 Forecast: 1.49 ft (flood category unknown) at 2026-10-25T01:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RLOT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -14983,7 +14983,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/RLOT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -15206,10 +15206,10 @@ Updated: 2026-10-22T20:30:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge at Port Aransas</name>
-        <description>Observed: 0.61 ft (no flooding)
+        <description>Observed: 0.53 ft (no flooding)
 Forecast: 0.52 ft (flood category unknown) at 2026-10-25T21:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/RTAT2
-Updated: 2026-10-22T20:54:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -15219,7 +15219,7 @@ Updated: 2026-10-22T20:54:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/RTAT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:54:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -15695,7 +15695,7 @@ Updated: 2026-10-22T20:30:00Z</description>
         <description>Observed: 0.78 ft (no flooding)
 Forecast: 0.25 ft (flood category unknown) at 2026-10-25T07:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/SDRT2
-Updated: 2026-10-22T20:54:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -15705,7 +15705,7 @@ Updated: 2026-10-22T20:54:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/SDRT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:54:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -15903,10 +15903,10 @@ Updated: 2026-10-22T20:30:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Station (HGX) at Sargent</name>
-        <description>Observed: 1.09 ft (no flooding)
+        <description>Observed: 1.1 ft (no flooding)
 Forecast: 1.17 ft (flood category unknown) at 2026-10-25T23:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/SGNT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -15916,7 +15916,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/SGNT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -16897,10 +16897,10 @@ Updated: 2026-10-22T20:15:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge at Texas State Aquarium</name>
-        <description>Observed: 0.51 ft (no flooding)
+        <description>Observed: 0.56 ft (no flooding)
 Forecast: 0.38 ft (flood category unknown) at 2026-10-25T01:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/TAQT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -16910,7 +16910,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/TAQT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -17256,9 +17256,9 @@ Updated: 2026-10-22T20:00:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Sabine River at I-10</name>
-        <description>Observed: 0.88 ft (no flooding)
+        <description>Observed: 0.95 ft (no flooding)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/TMYT2
-Updated: 2026-10-22T16:45:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -17268,7 +17268,7 @@ Updated: 2026-10-22T16:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/TMYT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T16:45:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -17425,10 +17425,10 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Station (LCH) at Texas Point</name>
-        <description>Observed: 1.92 ft (no flooding)
+        <description>Observed: 2.03 ft (no flooding)
 Forecast: 2.96 ft (ACTION) at 2026-10-25T22:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/TXPT2
-Updated: 2026-10-22T20:54:00Z</description>
+Updated: 2026-10-22T21:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -17438,7 +17438,7 @@ Updated: 2026-10-22T20:54:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/TXPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:54:00Z</value>
+            <value>2026-10-22T21:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -17573,10 +17573,10 @@ Updated: 2026-10-22T20:30:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge at Port Lavaca</name>
-        <description>Observed: 0.4 ft (no flooding)
+        <description>Observed: 0.39 ft (no flooding)
 Forecast: 0.29 ft (flood category unknown) at 2026-10-25T03:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/VCAT2
-Updated: 2026-10-22T21:00:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -17586,7 +17586,7 @@ Updated: 2026-10-22T21:00:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/VCAT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T21:00:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -17701,9 +17701,9 @@ Updated: 2026-10-22T20:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Tide Gauge above Viola Turning Basin</name>
-        <description>Observed: 1.33 ft (flood category not defined)
+        <description>Observed: 1.39 ft (flood category not defined)
 Source: NOAA NWPS · https://water.noaa.gov/gauges/VTBT2
-Updated: 2026-10-22T20:54:00Z</description>
+Updated: 2026-10-22T21:06:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -17713,7 +17713,7 @@ Updated: 2026-10-22T20:54:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/VTBT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-10-22T20:54:00Z</value>
+            <value>2026-10-22T21:06:00Z</value>
           </Data>
         </ExtendedData>
         <Point>

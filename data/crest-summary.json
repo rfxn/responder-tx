@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-26T18:58:05Z",
+ "generated": "2026-10-26T19:12:41Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-26T18:38:00Z"
+  "last": "2026-10-26T18:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1368,6 +1368,25 @@
    "stale": false
   },
   {
+   "lid": "PRDT2",
+   "name": "Rio Grande 5 miles SE of Presidio",
+   "peak": 9.02,
+   "peak_time": "2026-10-26T18:53:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-26T18:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 26.7,
+    "record_date": "1904-09-11",
+    "peak_pct": 33.8,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "ODCT2",
    "name": "Terry Gully at FM 1442",
    "peak": 6.52,
@@ -1526,7 +1545,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 97,
+ "retained_gauges": 98,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

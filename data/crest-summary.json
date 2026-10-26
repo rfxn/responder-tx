@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-26T19:12:41Z",
+ "generated": "2026-10-26T19:27:52Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-26T18:53:00Z"
+  "last": "2026-10-26T19:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1273,6 +1273,25 @@
    "stale": false
   },
   {
+   "lid": "CSTT2",
+   "name": "Rio Grande at Castolon",
+   "peak": 15.07,
+   "peak_time": "2026-10-26T19:08:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-10-26T19:08:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 24.7,
+    "record_date": "1958-09-27",
+    "peak_pct": 61.0,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "SNPT2",
    "name": "San Antonio River at Loop 410",
    "peak": 13.67,
@@ -1545,7 +1564,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 98,
+ "retained_gauges": 99,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

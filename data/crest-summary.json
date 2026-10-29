@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-29T17:42:01Z",
+ "generated": "2026-10-29T17:57:03Z",
  "event": "October 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-10-29T17:23:00Z"
+  "last": "2026-10-29T17:38:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -161,6 +161,25 @@
    },
    "stale": false,
    "src": "usgs"
+  },
+  {
+   "lid": "SHAT2",
+   "name": "North Fork of the Red River at Shamrock",
+   "peak": 32.39,
+   "peak_time": "2026-10-29T17:38:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-10-29T17:38:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 21.1,
+    "record_date": "1957-05-01",
+    "peak_pct": 153.5,
+    "exceeded": true,
+    "approached": false
+   },
+   "stale": false
   },
   {
    "lid": "ASRT2",
@@ -1583,7 +1602,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 100,
+ "retained_gauges": 101,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

@@ -1,9 +1,9 @@
 {
- "generated": "2026-11-02T14:26:53Z",
+ "generated": "2026-11-02T14:41:48Z",
  "event": "November 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-11-02T06:53:00Z"
+  "last": "2026-11-02T14:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -176,6 +176,25 @@
     "record_ft": 21.1,
     "record_date": "1957-05-01",
     "peak_pct": 153.5,
+    "exceeded": true,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
+   "lid": "RDBN5",
+   "name": "Delaware River (NM) 11 miles NW of Red Bluff",
+   "peak": 32.05,
+   "peak_time": "2026-11-02T14:23:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-11-02T14:23:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 27,
+    "record_date": "1955-10-02",
+    "peak_pct": 118.7,
     "exceeded": true,
     "approached": false
    },
@@ -1602,7 +1621,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 101,
+ "retained_gauges": 103,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

@@ -1,24 +1,39 @@
 {
 "pending":[
 {
-"from":"minor",
-"ft":1.6,
-"id":"816b1e8f74f6f2ac",
-"k":"flood",
-"lat":28.1169,
-"lid":"CPNT2",
-"lon":-97.0175,
-"name":"Tide Gauge at Copano Bay",
-"seen":"2026-11-08T20:53:00Z",
-"src":"nwps",
-"t":"2026-11-08T20:06:00Z",
-"tk":"s",
-"to":"none"
+"act":"new",
+"cond":"Flooding",
+"id":"99b05f1cc1741c33",
+"k":"road",
+"key":"97f18c6a5024",
+"lat":30.061,
+"lon":-100.3137,
+"near":"2.738 Miles West of RM2995 on SH0055",
+"route":"SH0055",
+"seen":"2026-11-08T21:09:43Z",
+"src":"txdot",
+"t":"2026-11-08T20:47:00Z",
+"tk":"s"
+},
+{
+"act":"new",
+"cond":"Flooding",
+"id":"d18860d5f96abb16",
+"k":"road",
+"key":"c49d4cd95c5b",
+"lat":27.6037,
+"lon":-97.8177,
+"near":"411.84 Feet North of FM0070 on FM0666",
+"route":"FM0666",
+"seen":"2026-11-08T21:09:43Z",
+"src":"txdot",
+"t":"2026-11-08T21:00:00Z",
+"tk":"s"
 }
 ],
 "sources":{
 "crossings":{
-"at":"2026-11-08T20:55:13Z",
+"at":"2026-11-08T21:11:48Z",
 "items":{
 "1038":{
 "changed":"2026-11-08T16:02:59Z",
@@ -4720,7 +4735,7 @@
 "since":"2026-10-03T00:23:00Z"
 },
 "roadrisk":{
-"at":"2026-11-08T20:52:23Z",
+"at":"2026-11-08T21:09:23Z",
 "items":{
 "transtar:1099":{
 "lat":27.4644,
@@ -4732,7 +4747,7 @@
 "since":"2026-10-03T00:22:24Z"
 },
 "roads":{
-"at":"2026-11-08T20:53:08Z",
+"at":"2026-11-08T21:09:43Z",
 "items":{
 "FM0097|628.32 Feet East of SH0207 on FM0097|1.204 Miles East of FM1065 on FM0097":{
 "cond":"Damage",
@@ -4753,6 +4768,16 @@
 "near":"2.33 Miles West of SH0090 on FM0244",
 "route":"FM0244",
 "start":"2026-10-01T21:41:00Z"
+},
+"FM0666|411.84 Feet North of FM0070 on FM0666|575.52 Feet South of FM0665 on FM0666":{
+"cond":"Flooding",
+"end":"2026-11-09T18:15:00Z",
+"flood":true,
+"lat":27.6037,
+"lon":-97.8177,
+"near":"411.84 Feet North of FM0070 on FM0666",
+"route":"FM0666",
+"start":"2026-11-08T21:00:00Z"
 },
 "FM0786|163.68 Feet East of SH0207 on FM0786|1.084 Miles West of FM0602 on FM0786":{
 "cond":"Damage",
@@ -4874,6 +4899,16 @@
 "route":"RM2995",
 "start":"2026-11-08T18:15:00Z"
 },
+"SH0055|2.738 Miles West of RM2995 on SH0055|5.865 Miles East of US0277 on SH0055":{
+"cond":"Flooding",
+"end":"2026-11-09T01:00:00Z",
+"flood":true,
+"lat":30.061,
+"lon":-100.3137,
+"near":"2.738 Miles West of RM2995 on SH0055",
+"route":"SH0055",
+"start":"2026-11-08T20:47:00Z"
+},
 "SL0323|485.76 Feet South of US0271 on SL0323|0.515 Miles South of US0271 on SL0323":{
 "cond":"Closure",
 "end":"2026-12-31T22:00:00Z",
@@ -4964,7 +4999,7 @@
 "since":"2026-10-03T00:23:04Z"
 },
 "shelters":{
-"at":"2026-11-08T20:55:12Z",
+"at":"2026-11-08T21:11:48Z",
 "items":{},
 "scope":[
 -107.15,
@@ -4975,7 +5010,7 @@
 "since":"2026-10-03T00:24:47Z"
 },
 "warnings":{
-"at":"2026-11-08T20:56:39Z",
+"at":"2026-11-08T21:12:05Z",
 "items":{
 "KBRO.CF.S.0013":{
 "areas":[
@@ -4984,7 +5019,6 @@
 "Cameron Island"
 ],
 "ev":"Coastal Flood Statement",
-"issued":"2026-11-08T07:07:00Z",
 "sev":"watch",
 "until":"2026-11-09T12:00:00Z",
 "wfo":"BRO"

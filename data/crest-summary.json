@@ -1,9 +1,9 @@
 {
- "generated": "2026-11-09T05:12:30Z",
+ "generated": "2026-11-09T07:27:44Z",
  "event": "November 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-11-09T04:53:00Z"
+  "last": "2026-11-09T07:08:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1495,6 +1495,25 @@
    "src": "usgs"
   },
   {
+   "lid": "CTKT2",
+   "name": "Dry Devils River near Comstock",
+   "peak": 5.76,
+   "peak_time": "2026-11-09T06:38:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-11-09T05:38:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 10.3,
+    "record_date": "1986-09-14",
+    "peak_pct": 55.9,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "NSBT2",
    "name": "Neches River at Saltwater Barrier",
    "peak": 4.15,
@@ -1640,7 +1659,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 104,
+ "retained_gauges": 105,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

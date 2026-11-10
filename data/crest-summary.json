@@ -1,9 +1,9 @@
 {
- "generated": "2026-11-10T05:56:36Z",
+ "generated": "2026-11-10T06:12:03Z",
  "event": "November 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-11-10T05:38:00Z"
+  "last": "2026-11-10T05:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1009,8 +1009,8 @@
   {
    "lid": "CTKT2",
    "name": "Dry Devils River near Comstock",
-   "peak": 10.4,
-   "peak_time": "2026-11-10T04:53:00Z",
+   "peak": 10.43,
+   "peak_time": "2026-11-10T05:53:00Z",
    "peak_category": "moderate",
    "unit": "ft",
    "first_in_flood": "2026-11-09T05:38:00Z",
@@ -1019,7 +1019,7 @@
    "record": {
     "record_ft": 10.3,
     "record_date": "1986-09-14",
-    "peak_pct": 101.0,
+    "peak_pct": 101.3,
     "exceeded": true,
     "approached": false
    },

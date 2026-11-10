@@ -1,9 +1,9 @@
 {
- "generated": "2026-11-10T01:56:38Z",
+ "generated": "2026-11-10T02:11:40Z",
  "event": "November 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-11-10T01:38:00Z"
+  "last": "2026-11-10T01:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1045,6 +1045,25 @@
    "stale": false
   },
   {
+   "lid": "CTKT2",
+   "name": "Dry Devils River near Comstock",
+   "peak": 8.23,
+   "peak_time": "2026-11-10T01:53:00Z",
+   "peak_category": "moderate",
+   "unit": "ft",
+   "first_in_flood": "2026-11-09T05:38:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 10.3,
+    "record_date": "1986-09-14",
+    "peak_pct": 79.9,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "PACT2",
    "name": "Tide Gauge at Packery Channel",
    "peak": 3.63,
@@ -1476,25 +1495,6 @@
     "record_ft": 26.7,
     "record_date": "1904-09-11",
     "peak_pct": 36.1,
-    "exceeded": false,
-    "approached": false
-   },
-   "stale": false
-  },
-  {
-   "lid": "CTKT2",
-   "name": "Dry Devils River near Comstock",
-   "peak": 6.98,
-   "peak_time": "2026-11-09T14:38:00Z",
-   "peak_category": "minor",
-   "unit": "ft",
-   "first_in_flood": "2026-11-09T05:38:00Z",
-   "last_in_flood": "ongoing",
-   "ongoing": true,
-   "record": {
-    "record_ft": 10.3,
-    "record_date": "1986-09-14",
-    "peak_pct": 67.8,
     "exceeded": false,
     "approached": false
    },

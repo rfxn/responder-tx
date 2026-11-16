@@ -1,9 +1,9 @@
 {
- "generated": "2026-11-16T00:27:31Z",
+ "generated": "2026-11-16T00:42:08Z",
  "event": "November 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-11-16T00:08:00Z"
+  "last": "2026-11-16T00:23:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
@@ -1270,6 +1270,25 @@
    "stale": false
   },
   {
+   "lid": "WTTT2",
+   "name": "Atascosa River at Whitsett",
+   "peak": 23.4,
+   "peak_time": "2026-11-16T00:23:00Z",
+   "peak_category": "minor",
+   "unit": "ft",
+   "first_in_flood": "2026-11-16T00:23:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 41.4,
+    "record_date": "1967-09-23",
+    "peak_pct": 56.5,
+    "exceeded": false,
+    "approached": false
+   },
+   "stale": false
+  },
+  {
    "lid": "SAAT2",
    "name": "Medina River at San Antonio US 281S",
    "peak": 20.88,
@@ -1714,7 +1733,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 109,
+ "retained_gauges": 110,
  "skipped_commits": 0,
  "backfill": {
   "from": "2026-07-05T00:00:00Z",

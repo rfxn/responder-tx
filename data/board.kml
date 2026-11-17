@@ -64,7 +64,7 @@ Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, I
     </Style>
     <ExtendedData>
       <Data name="generated">
-        <value>2026-11-17T16:30:17Z</value>
+        <value>2026-11-17T16:45:16Z</value>
       </Data>
       <Data name="features">
         <value>876</value>
@@ -12690,9 +12690,9 @@ Updated: 2026-11-17T15:45:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Arroyo Colorado South of Mercedes</name>
-        <description>Observed: 0.45 ft (flood category not defined)
+        <description>Observed: no reading
 Source: NOAA NWPS · https://water.noaa.gov/gauges/MECT2
-Updated: 2026-11-16T16:15:00Z</description>
+Updated: 0001-01-01T00:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -12702,7 +12702,7 @@ Updated: 2026-11-16T16:15:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/MECT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-11-16T16:15:00Z</value>
+            <value>0001-01-01T00:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>

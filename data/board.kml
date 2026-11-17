@@ -3,7 +3,7 @@
   <Document>
     <name>ResponderTX · live map</name>
     <open>1</open>
-    <description>Situational awareness, not a dispatch system; call 911 for emergencies. One-shot import: re-importing this file into the same CalTopo map duplicates objects. Sources that did not answer this cycle are missing from this export rather than empty: nws-alerts.
+    <description>Situational awareness, not a dispatch system; call 911 for emergencies. One-shot import: re-importing this file into the same CalTopo map duplicates objects. 2 zone-based product(s) are in effect and are not mapped in this export (Coastal Flood Advisory ×2); their area is published as county and zone codes, not as a polygon. See weather.gov for the extent.
 Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.</description>
     <Style id="mk-ff19b2fa-medium">
       <IconStyle>
@@ -51,6 +51,17 @@ Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, I
         <outline>1</outline>
       </PolyStyle>
     </Style>
+    <Style id="sh-e65a83ec-265a83ec-2">
+      <LineStyle>
+        <color>e65a83ec</color>
+        <width>2</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>265a83ec</color>
+        <fill>1</fill>
+        <outline>1</outline>
+      </PolyStyle>
+    </Style>
     <Style id="sh-e6f755a8-14f755a8-2">
       <LineStyle>
         <color>e6f755a8</color>
@@ -64,13 +75,13 @@ Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, I
     </Style>
     <ExtendedData>
       <Data name="generated">
-        <value>2026-11-17T16:45:16Z</value>
+        <value>2026-11-17T16:59:54Z</value>
       </Data>
       <Data name="features">
-        <value>876</value>
+        <value>877</value>
       </Data>
       <Data name="candidates">
-        <value>876</value>
+        <value>877</value>
       </Data>
       <Data name="cap">
         <value>2000</value>
@@ -85,15 +96,47 @@ Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, I
         <value>0</value>
       </Data>
       <Data name="sources_unavailable">
-        <value>nws-alerts</value>
+        <value />
       </Data>
       <Data name="zone_only_products">
-        <value>0</value>
+        <value>2</value>
       </Data>
       <Data name="attribution">
         <value>Responder TX · respondertx.org. Sources: NOAA NWS and NWPS, TxDOT DriveTexas, Iowa Environmental Mesonet, and curated local reports. Every feature names its own source.</value>
       </Data>
     </ExtendedData>
+    <Folder>
+      <name>NWS alerts (active)</name>
+      <open>0</open>
+      <Placemark>
+        <name>Flood Warning · McMullen, TX</name>
+        <description>Flood Warning issued November 17 at 8:27AM CST until November 18 at 7:36PM CST by NWS Corpus Christi TX
+Severity: warning
+Expires: 2026-11-17T23:30:00-06:00
+Source: NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1b79e2369a65d3d53cd09b2d82bcdcea2177543a.001.1
+Updated: 2026-11-17T08:27:00-06:00</description>
+        <styleUrl>#sh-e65a83ec-265a83ec-2</styleUrl>
+        <ExtendedData>
+          <Data name="folder">
+            <value>NWS alerts (active)</value>
+          </Data>
+          <Data name="source">
+            <value>NWS · https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1b79e2369a65d3d53cd09b2d82bcdcea2177543a.001.1</value>
+          </Data>
+          <Data name="updated">
+            <value>2026-11-17T08:27:00-06:00</value>
+          </Data>
+        </ExtendedData>
+        <Polygon>
+          <tessellate>1</tessellate>
+          <outerBoundaryIs>
+            <LinearRing>
+              <coordinates>-98.8,28.17 -98.59,28.36 -98.33,28.45 -98.33,28.33 -98.54,28.26 -98.8,28.07 -98.8,28.17</coordinates>
+            </LinearRing>
+          </outerBoundaryIs>
+        </Polygon>
+      </Placemark>
+    </Folder>
     <Folder>
       <name>Crests (event peaks)</name>
       <open>0</open>
@@ -3673,9 +3716,9 @@ Updated: 2026-11-17T15:30:00Z</description>
       </Placemark>
       <Placemark>
         <name>Gauge: Blanco River at Crabapple Road</name>
-        <description>Observed: 0.68 ft (no flooding)
+        <description>Observed: no reading
 Source: NOAA NWPS · https://water.noaa.gov/gauges/BAPT2
-Updated: 2026-11-17T15:45:00Z</description>
+Updated: 0001-01-01T00:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
         <ExtendedData>
           <Data name="folder">
@@ -3685,7 +3728,7 @@ Updated: 2026-11-17T15:45:00Z</description>
             <value>NOAA NWPS · https://water.noaa.gov/gauges/BAPT2</value>
           </Data>
           <Data name="updated">
-            <value>2026-11-17T15:45:00Z</value>
+            <value>0001-01-01T00:00:00Z</value>
           </Data>
         </ExtendedData>
         <Point>
@@ -6057,7 +6100,6 @@ Updated: 2026-11-17T15:35:00Z</description>
       <Placemark>
         <name>Gauge: South Sulphur River near Cooper</name>
         <description>Observed: 1.45 ft (no flooding)
-Forecast: 1.5 ft (no flooding) at 2026-11-17T18:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/COPT2
 Updated: 2026-11-17T14:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -6186,7 +6228,6 @@ Updated: 2026-11-17T15:36:00Z</description>
       <Placemark>
         <name>Gauge: North Sulphur River near Cooper</name>
         <description>Observed: 0.57 ft (no flooding)
-Forecast: 0.6 ft (no flooding) at 2026-11-17T18:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/CPPT2
 Updated: 2026-11-17T15:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -10242,7 +10283,6 @@ Updated: 2026-11-17T15:20:00Z</description>
       <Placemark>
         <name>Gauge: Black Cypress Bayou near Jefferson</name>
         <description>Observed: 3.81 ft (no flooding)
-Forecast: 3.8 ft (no flooding) at 2026-11-17T18:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JEFT2
 Updated: 2026-11-17T15:00:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -10264,7 +10304,6 @@ Updated: 2026-11-17T15:00:00Z</description>
       <Placemark>
         <name>Gauge: Big Cypress Creek above Jefferson</name>
         <description>Observed: 3.71 ft (no flooding)
-Forecast: 3.2 ft (no flooding) at 2026-11-17T18:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JFET2
 Updated: 2026-11-17T15:30:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>
@@ -10286,7 +10325,6 @@ Updated: 2026-11-17T15:30:00Z</description>
       <Placemark>
         <name>Gauge: Little Cypress Creek near Jefferson</name>
         <description>Observed: 1.94 ft (no flooding)
-Forecast: 2 ft (no flooding) at 2026-11-17T18:00:00Z
 Source: NOAA NWPS · https://water.noaa.gov/gauges/JFFT2
 Updated: 2026-11-17T15:15:00Z</description>
         <styleUrl>#mk-ff818789-small</styleUrl>

@@ -948,15 +948,28 @@ function caltopoStatusText(p) {
     .replace('{total}', fmtNum(Number(p.candidates) || kept + (Number(p.dropped) || 0)));
 }
 
+// the three URLs serve the same cycle-published copy, so its age speaks for all of them
+function caltopoCurrencyText(p, now) {
+  const gen = wchMs(p && p.generated);
+  if (!Number.isFinite(gen)) return '';
+  const when = `${wchClock(gen, now)} CT`;
+  const age = t(cycleStale(gen, CYCLE_STALE_MS, now) ? 'caltopo.old' : 'caltopo.published').replace('{t}', when);
+  return [age, cadenceText(now)].filter(Boolean).join(' ');
+}
+
 function renderCaltopoStatus() {
   const el = $('#caltopo-status');
   if (!el) return;
   fetch('data/caltopo-export.json', { cache: 'no-store' })
     .then((r) => (r.ok ? r.json() : null))
     .then((d) => {
-      const txt = caltopoStatusText(d && d.properties);
+      const p = d && d.properties;
+      const now = Date.now();
+      const counts = caltopoStatusText(p);
+      const txt = counts ? [counts, caltopoCurrencyText(p, now)].filter(Boolean).join(' ') : '';
       el.textContent = txt;
-      el.classList.toggle('caltopo-partial', !!(d && d.properties && d.properties.truncated));
+      const gen = wchMs(p && p.generated);
+      el.classList.toggle('caltopo-partial', !!(p && p.truncated) || (Number.isFinite(gen) && cycleStale(gen, CYCLE_STALE_MS, now)));
       el.hidden = !txt;
     })
     .catch(() => { el.hidden = true; }); // no metadata is silent; a wrong completeness claim would not be
@@ -1184,13 +1197,109 @@ function copySitrep(btn) {
     () => downloadBlob(text, 'text/plain', `sitrep-${stamp()}.txt`));
 }
 
+/* ---------- Publishing cadence: data/cadence.json says how often the cycle publishes ----------
+   A cycle-published file is stale past intervalMin + CADENCE_GRACE_MIN. A missing or invalid
+   cadence.json is not "quiet": every caller keeps its own fixed threshold (E1). */
+
+const CYCLE_STALE_MS = 45 * 60000;
+const CADENCE_GRACE_MIN = 45;
+const CYCLE_META_FETCH_MS = 5 * 60000;
+const CADENCE_REASONS_SHOWN = 5;
+
+function cadenceOk(c) {
+  return !!c && typeof c === 'object' && (c.mode === 'quiet' || c.mode === 'adverse')
+    && Number.isFinite(c.intervalMin) && c.intervalMin >= 15 && c.intervalMin <= 1440
+    && Number.isFinite(wchMs(c.generated));
+}
+
+function cycleStaleMs(fallbackMs) {
+  return cadenceOk(state.cadence) ? (state.cadence.intervalMin + CADENCE_GRACE_MIN) * 60000 : fallbackMs;
+}
+
+// NaN counts as stale: an undated publication cannot vouch for its own currency
+function cycleStale(generatedMs, fallbackMs, now) {
+  return !Number.isFinite(generatedMs) || now - generatedMs > cycleStaleMs(fallbackMs);
+}
+
+const cadenceLabelOk = (v) => wchStr(v) && v.length <= 80 && !/[<>]/.test(v);
+const cadenceCount = (n) => Number.isInteger(n) && n > 0;
+
+// one reason code in the reader's language; '' skips a code this client does not know
+function cadenceCodeText(rc) {
+  switch (rc.code) {
+    case 'alert':
+      if (!cadenceLabelOk(rc.event)) return '';
+      return cadenceCount(rc.n) ? t('cad.r.alert').replace('{event}', rc.event.trim()).replace('{n}', String(rc.n)) : rc.event.trim();
+    case 'gauges': return cadenceCount(rc.n) ? t(rc.forecast === true ? 'cad.r.gaugesfcst' : 'cad.r.gauges').replace('{n}', String(rc.n)) : '';
+    case 'probe': case 'recent': case 'operator': return t(`cad.r.${rc.code}`);
+    default: return '';
+  }
+}
+
+// reasonCodes localize; the older English `reasons` strings are the fallback when codes are absent or malformed
+function cadenceReasons(c) {
+  const codes = c.reasonCodes;
+  const coded = Array.isArray(codes) && codes.every((rc) => rc && typeof rc === 'object' && typeof rc.code === 'string');
+  const out = coded ? codes.map(cadenceCodeText)
+    : (Array.isArray(c.reasons) ? c.reasons : []).filter(cadenceLabelOk).map((r) => r.trim());
+  return out.filter(Boolean).slice(0, CADENCE_REASONS_SHOWN).join(', ');
+}
+
+// the board's own statement of when its published files next change; '' when it cannot say
+function cadenceText(now) {
+  const c = state.cadence;
+  if (!cadenceOk(c)) return '';
+  const parts = [t('cad.sched')];
+  const due = wchMs(c.nextDueBy);
+  if (Number.isFinite(due)) {
+    const late = now - due > CADENCE_GRACE_MIN * 60000;
+    parts.push(t(late ? 'cad.late' : 'cad.next').replace('{t}', `${wchClock(due, now)} CT`));
+  }
+  const why = c.mode === 'adverse' ? cadenceReasons(c) : '';
+  if (why) parts.push(t('cad.adverse').replace('{r}', why));
+  return parts.join(' ');
+}
+
+// 404 is "not published" (null); any other failure throws so the caller keeps its last good copy
+async function fetchPublished(file) {
+  const r = await fetch(`data/${file}?_=${Date.now()}`);
+  if (r && r.status === 404) return null;
+  return okJson(r, file);
+}
+
+// a cadence that arrives or changes moves every threshold at once, so each surface aging against it repaints
+function renderCadenceSurfaces() {
+  const open = (sel) => { const el = $(sel); return !!el && el.hidden === false; };
+  renderFeedChanges();
+  renderFeedSituation();
+  if (typeof renderDataAgeBar === 'function') renderDataAgeBar();
+  if (open('#caltopo-box')) renderCaltopoStatus();
+  if (typeof renderCrestSummaryBody === 'function' && open('#summary-view')) renderCrestSummaryBody();
+  if (typeof renderRecoveryBody === 'function' && open('#recovery-view')) renderRecoveryBody(state.recoveryCrest);
+  if (typeof renderBasinBody === 'function' && open('#basin-view')) renderBasinBody();
+}
+
+async function loadCadence(force) {
+  if (!force && state.cadenceAt && Date.now() - state.cadenceAt < CYCLE_META_FETCH_MS) return;
+  state.cadenceAt = Date.now();
+  let d;
+  try { d = await fetchPublished('cadence.json'); } catch { return; }
+  const next = cadenceOk(d) ? d : null;
+  const changed = JSON.stringify(next) !== JSON.stringify(state.cadence);
+  state.cadence = next;
+  if (changed) renderCadenceSurfaces();
+}
+
 /* ---------- Feed situation: the board's own picture, generated from the official sources ---------- */
+
+const sheltersLiveAt = () => wchMs(state.sheltersLive && state.sheltersLive.generated);
 
 // when each source last answered; a snapshot answers as of its own generated stamp, never as of now
 const SIT_SOURCE_AT = {
   alerts: () => state.sourceHealth.alerts,
   gauges: () => state.snapshotAt || state.sourceHealth.gauges,
   roads: () => state.roadsFallbackAt || state.sourceHealth.roads,
+  shelters: () => sheltersLiveAt(),
 };
 const SIT_HAS_DATA = ['ok', 'snapshot', 'stale'];
 const SIT_AREAS_SHOWN = 5;
@@ -1208,7 +1317,8 @@ function sitSourceStates() {
     gauges: state.gauges.length && state.snapshotAt ? 'snapshot' : live(state.gauges.length > 0, 'gauges'),
     roads: state.roadsUnknown ? 'failed'
       : (state.roadClosures && state.roadsFallbackAt ? 'snapshot' : live(!!state.roadClosures, 'roads')),
-    shelters: state.sheltersUnknown ? 'failed' : (state.seedsLoadedOnce ? 'ok' : 'loading'),
+    shelters: state.sheltersUnknown ? 'failed' : !state.seedsLoadedOnce ? 'loading'
+      : (Number.isFinite(sheltersLiveAt()) && cycleStale(sheltersLiveAt(), CYCLE_STALE_MS, Date.now()) ? 'snapshot' : 'ok'),
   };
 }
 
@@ -1220,7 +1330,7 @@ function situationModel() {
   const rising = has('gauges') ? sitRisingGauges('minor') : [];
   const roads = has('roads')
     ? { flood: roadFeatures().filter((f) => roadIsFlood(f.properties)).length, total: roadFeatures().length } : null;
-  const shelters = src.shelters === 'ok' ? openShelterCount() : null;
+  const shelters = has('shelters') ? openShelterCount() : null;
   const at = ['alerts', 'gauges', 'roads'].filter(has).map((k) => SIT_SOURCE_AT[k]()).filter(Number.isFinite);
   // the calm line is a claim about every source, so each one has to have answered this round
   const answered = src.alerts === 'ok' && ['ok', 'snapshot'].includes(src.gauges) && ['ok', 'snapshot'].includes(src.roads);
@@ -1356,7 +1466,6 @@ function renderFeedSituation() {
 
 const WCH_FETCH_MS = 5 * 60000;
 const WCH_WINDOW_MS = 24 * 3600000;
-const WCH_STALE_MS = 45 * 60000;
 const WCH_SRC_STALE_MS = 40 * 60000;
 const WCH_SHOWN = 15;
 const WCH_PAGE = 100;
@@ -1480,7 +1589,7 @@ function whatChangedModel(now) {
   const fAll = pick(valid);
   const limit = Math.max(WCH_PAGE, Number(state.changesLimit) || 0);
   const rows = all ? fAll.slice(0, limit) : wchPick(fRecent, WCH_SHOWN);
-  return { phase: 'ok', now, gen, stale: now - gen > WCH_STALE_MS, paused: [...groups.values()],
+  return { phase: 'ok', now, gen, stale: cycleStale(gen, CYCLE_STALE_MS, now), paused: [...groups.values()],
     since: wchMs(d.since), days: Number.isFinite(d.retainDays) && d.retainDays > 0 ? d.retainDays : 7,
     rows: rows.map((x) => x.e), recentN: fRecent.length, allN: fAll.length, rest: all ? Math.max(0, fAll.length - limit) : 0,
     all, kind, counts };
@@ -1598,6 +1707,8 @@ function whatChangedView(m) {
     return { html: out.join(''), acts };
   }
   if (m.stale) out.push(note('stale', wchFill(tt('stale'), { t: stamp(m.gen) })));
+  const cad = cadenceText(m.now);
+  if (cad) out.push(note('cad', cad));
   for (const p of m.paused) {
     out.push(note('stale', p.kind === 'never' ? wchFill(tt('never'), { s: names(p.keys) })
       : wchFill(tt('paused'), { s: names(p.keys), t: stamp(p.at) })));
@@ -1643,7 +1754,7 @@ const wchPainted = new WeakMap();
 
 // everything the painted section depends on; renderTiles runs on every repaint, so an unchanged
 // key must cost nothing (the minute keeps the 24h window and the stale notes moving)
-const wchRenderKey = (now) => [state.changes, state.changesUnknown, state.changesMissing, state.changesAll,
+const wchRenderKey = (now) => [state.changes, state.cadence, state.changesUnknown, state.changesMissing, state.changesAll,
   state.changesKind, state.changesLimit, Math.floor(now / 60000), t, typeof getLang === 'function' ? getLang() : '',
   CONFIG.gaugeBbox, CONFIG.aoArea, pbBlocksLive(state)];
 
@@ -1675,6 +1786,115 @@ function renderFeedChanges() {
   state.wchActs = acts;
   wchPainted.set(el, { key, html });
   if (!last || last.html !== html) el.innerHTML = html;
+}
+
+/* ---------- Feed "On the horizon": forecast hazards from data/outlook.json ----------
+   Missing, invalid or past validUntil renders nothing at all: an absent outlook is never a
+   "no hazards expected" claim. An item past its own window end is no longer on the horizon. */
+
+const OUTLOOK_KINDS = ['rain', 'severe', 'tropical', 'fire', 'drought', 'winter', 'temperature', 'other'];
+const OUTLOOK_LEVELS = ['none', 'low', 'elevated', 'high'];
+const OUTLOOK_MAX_ITEMS = 6;
+const OUTLOOK_MAX_CHARS = 280;
+const OUTLOOK_SHOWN = 3;
+const OUTLOOK_MAX_VALID_MS = 48 * 3600000; // the same bound cycle-check asserts on the committed file
+const OUTLOOK_GLYPH = { rain: '🌧', severe: '⛈', tropical: '🌀', fire: '🔥', drought: '🏜', winter: '❄', temperature: '🌡', other: '⚠' };
+const OUTLOOK_TONE = { none: 'var(--ink-muted)', low: 'var(--sev-advisory)', elevated: 'var(--sev-watch)', high: 'var(--sev-warning)' };
+
+function outlookText(v) {
+  if (typeof v !== 'string') return '';
+  const s = v.trim();
+  return s && s.length <= OUTLOOK_MAX_CHARS && !/[<>—]/.test(s) ? s : '';
+}
+
+const outlookPairOk = (o) => !!o && typeof o === 'object' && !!outlookText(o.en) && !!outlookText(o.es);
+
+function outlookItemOk(it) {
+  if (!it || typeof it !== 'object' || !wchStr(it.id)) return false;
+  if (!OUTLOOK_KINDS.includes(it.kind) || !OUTLOOK_LEVELS.includes(it.level)) return false;
+  if (!outlookPairOk(it.title) || !outlookPairOk(it.body)) return false;
+  const w = it.window && typeof it.window === 'object' ? it.window : {};
+  const a = wchMs(w.start);
+  const b = wchMs(w.end);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return false;
+  const src = it.source && typeof it.source === 'object' ? it.source : {};
+  if (!outlookText(src.name) || typeof src.url !== 'string' || !/^https:\/\/\S+$/i.test(src.url)) return false;
+  return Number.isFinite(wchMs(it.issued));
+}
+
+function outlookModel(d, now) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.items) || d.items.length > OUTLOOK_MAX_ITEMS) return null;
+  const gen = wchMs(d.generated);
+  const until = wchMs(d.validUntil);
+  if (!Number.isFinite(gen) || !Number.isFinite(until) || now > until || until - gen > OUTLOOK_MAX_VALID_MS) return null;
+  const lang = typeof getLang === 'function' && getLang() === 'es' ? 'es' : 'en';
+  const rank = (it) => OUTLOOK_LEVELS.indexOf(it.level);
+  const items = d.items.filter(outlookItemOk).filter((it) => wchMs(it.window.end) > now)
+    .sort((x, y) => rank(y) - rank(x) || wchMs(x.window.start) - wchMs(y.window.start))
+    .map((it) => ({
+      id: it.id, kind: it.kind, level: it.level,
+      title: outlookText(it.title[lang]), body: outlookText(it.body[lang]),
+      start: wchMs(it.window.start), end: wchMs(it.window.end),
+      srcName: outlookText(it.source.name), srcUrl: it.source.url, issued: wchMs(it.issued),
+    }));
+  if (!items.length) return null;
+  return { gen, headline: outlookPairOk(d.headline) ? outlookText(d.headline[lang]) : '', items };
+}
+
+function outlookView(m, now) {
+  if (!m) return '';
+  const clock = (ms) => `${wchClock(ms, now)} CT`;
+  const out = [`<div class="sit-head"><span class="sit-title">${esc(t('hzn.title'))}</span>`
+    + `<span class="badge sit-auto" title="${esc(t('hzn.badge.title'))}">${esc(t('hzn.badge'))}</span>`
+    + `<span class="sit-asof">${esc(t('sit.asof').replace('{t}', clock(m.gen)))}</span></div>`];
+  if (m.headline) out.push(`<div class="hzn-headline">${esc(m.headline)}</div>`);
+  const rows = state.outlookAll ? m.items : m.items.slice(0, OUTLOOK_SHOWN);
+  for (const it of rows) {
+    const when = it.start > now ? t('hzn.window').replace('{a}', clock(it.start)).replace('{b}', clock(it.end))
+      : t('hzn.until').replace('{b}', clock(it.end));
+    out.push(`<div class="hzn-item" data-hzn="${esc(it.id)}" style="--sit-tone:${OUTLOOK_TONE[it.level]}">`
+      + `<div class="hzn-top"><span class="hzn-lvl">${esc(t(`hzn.lvl.${it.level}`))}</span>`
+      + `<span class="hzn-title">${esc(`${OUTLOOK_GLYPH[it.kind]} ${it.title}`)}</span></div>`
+      + `<div class="hzn-when">${esc(when)}</div>`
+      + `<div class="hzn-body">${esc(it.body)}</div>`
+      + `<div class="hzn-meta"><a href="${esc(safeUrl(it.srcUrl))}" target="_blank" rel="noopener">${esc(it.srcName)}</a>`
+      + ` · ${esc(t('hzn.issued').replace('{t}', clock(it.issued)))}</div></div>`);
+  }
+  if (m.items.length > OUTLOOK_SHOWN) {
+    const label = state.outlookAll ? t('hzn.less') : t('hzn.more').replace('{n}', String(m.items.length - OUTLOOK_SHOWN));
+    out.push(`<button type="button" class="sit-card sit-more" data-hzn-more="1">${esc(label)}</button>`);
+  }
+  return out.join('');
+}
+
+async function loadOutlook(force) {
+  if (!force && state.outlookAt && Date.now() - state.outlookAt < CYCLE_META_FETCH_MS) return;
+  state.outlookAt = Date.now();
+  let d;
+  try { d = await fetchPublished('outlook.json'); } catch { renderFeedOutlook(); return; }
+  state.outlook = d;
+  renderFeedOutlook();
+}
+
+const hznPainted = new WeakMap();
+
+// during playback the board shows a past frame, so a forecast about now does not belong beside it
+function renderFeedOutlook() {
+  const el = $('#feed-outlook');
+  if (!el) return;
+  const now = Date.now();
+  if (!hznPainted.has(el)) {
+    el.addEventListener('click', (ev) => {
+      if (ev.target && ev.target.closest && ev.target.closest('[data-hzn-more]')) {
+        state.outlookAll = !state.outlookAll;
+        renderFeedOutlook();
+      }
+    });
+  }
+  const html = pbBlocksLive(state) ? '' : outlookView(outlookModel(state.outlook, now), now);
+  if (hznPainted.get(el) === html) return;
+  hznPainted.set(el, html);
+  el.innerHTML = html;
 }
 
 /* ---------- share view — one link reproduces map, tab, and filters ---------- */

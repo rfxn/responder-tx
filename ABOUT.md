@@ -28,9 +28,9 @@ public at <https://github.com/rfxn/responder-tx>.
   perimeters, a unified observed-to-forecast radar timeline, road and
   low-water-crossing status, open shelters, a statewide camera fleet, and a
   curated field feed.
-- **Forecast-first.** Every major crest this event appeared in the NWPS forecast
-  field hours before the water arrived. The board is built to anticipate, not just
-  report.
+- **Forecast-first.** In the July 2026 floods, every major crest appeared in the
+  NWPS forecast field hours before the water arrived. The board is built to
+  anticipate, not just report.
 - **Zero backend.** The board itself runs from any static host and stays up when
   heavier infrastructure does not. The public mirror is a read-only copy on a CDN.
   Three opt-in extras (live team sharing, device alerts and short share links) are
@@ -58,6 +58,11 @@ The board is *honest by construction*. These invariants are not optional:
 - **Stale never masquerades as live.** Every layer has a staleness threshold. When
   an observation ages past it, the board flags and badges it, and does not quietly
   keep drawing it as current. A frozen gauge reading is shown as frozen.
+- **Live where it matters, scheduled where it does not.** Alerts, river gauges,
+  road closures and radar are read live by the browser every few minutes. What the
+  board publishes itself (What changed, the crest summary, open shelters, the map
+  feeds, RSS and the crest calendar) is updated hourly during flood or severe
+  weather and twice daily otherwise, and each one says when it was made.
 - **Suppress &#8800; delete.** Aged and resolved items drop out of live counts and
   the default map, but remain retrievable in history and playback. Nothing is
   destroyed.

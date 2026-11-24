@@ -393,6 +393,13 @@ function openView(name, opts) {
   if (typeof syncViewsTrigger === 'function') syncViewsTrigger();
 }
 
+// the crest summary is cycle-published: past its cadence the peaks since then are missing, not absent
+function crestCurrencyHtml(d) {
+  const gen = Date.parse(d && d.generated);
+  if (!Number.isFinite(gen) || !cycleStale(gen, CYCLE_STALE_MS, Date.now())) return '';
+  return `<div class="sit-note stale sum-old">${esc(t('summary.old').replace('{t}', fmtCT(d.generated)))}</div>`;
+}
+
 async function openCrestSummary() {
   $('#summary-view').hidden = false;
   const el = $('#summary-body');
@@ -400,14 +407,23 @@ async function openCrestSummary() {
   let d = null;
   try { d = await fetch(`data/crest-summary.json?_=${Date.now()}`).then((r) => okJson(r, 'crest summary')); }
   catch { d = null; } // absent on older deploys or offline — quiet line below, never a crash
-  if (!d || !Array.isArray(d.gauges) || !d.gauges.length) {
+  state.summaryCrest = d && Array.isArray(d.gauges) && d.gauges.length ? d : null;
+  if (!state.summaryCrest) {
     el.innerHTML = `<div class="sum-quiet">${esc(t('summary.none'))}</div>`;
     return;
   }
+  renderCrestSummaryBody();
+}
+
+// from the payload already read, so a cadence change can repaint the open lens without a refetch
+function renderCrestSummaryBody() {
+  const d = state.summaryCrest;
+  if (!d) return;
   const w = d.window || {};
-  el.innerHTML =
+  $('#summary-body').innerHTML =
     '<div class="sum-head">' +
     `<div class="sum-event">${esc(t('summary.event'))} ${esc(d.event || '')} · ${esc(t('summary.generated'))} ${esc(fmtCT(d.generated))}</div>` +
+    crestCurrencyHtml(d) +
     `<div class="sum-sub">${esc(t('summary.sub'))}</div>` +
     `<div class="sum-cite">${esc(crestSourceCite(d.gauges))}${w.first ? ` · ${esc(fmtCT(w.first))} → ${esc(fmtCT(w.last))}` : ''}${w.first_incomplete ? ` · ${esc(t('summary.window.partial'))}` : ''}</div>` +
     '</div>' +
@@ -478,6 +494,7 @@ function renderRecoveryBody(crest) {
   const head =
     '<div class="sum-head">' +
     `<div class="sum-event">${esc(t('recovery.event'))} ${esc((crest && crest.event) || state.baseTitle || '')}${crest && crest.generated ? ` · ${esc(t('summary.generated'))} ${esc(fmtCT(crest.generated))}` : ''}</div>` +
+    (crestOk ? crestCurrencyHtml(crest) : '') +
     `<div class="rcv-headline">${esc(counts)}</div>` +
     (sitFalling.length ? `<div class="sum-sub">▼ ${esc(t('recovery.sitrep').replace('{n}', sitFalling.length).replace('{list}', sitFalling.map((g) => riverOf(g.name)).slice(0, 6).join('; ')))}</div>` : '') +
     `<div class="sum-cite">${esc(t('recovery.sub'))}</div>` +
@@ -658,6 +675,7 @@ function renderBasinBody() {
   el.innerHTML =
     '<div class="sum-head">' +
     `<div class="sum-event">${esc(t('recovery.event'))} ${esc((state.basinCrest && state.basinCrest.event) || state.baseTitle || '')}</div>` +
+    (crestOk ? crestCurrencyHtml(state.basinCrest) : '') +
     `<div class="sum-cite">${esc(t('basin.sub'))}</div>` +
     '</div>' +
     `<div class="basin-chips">${chips}</div>` +
@@ -1597,6 +1615,7 @@ function renderTiles() {
   renderNine11Notice();
   renderTicker();
   renderFeedSituation();
+  renderFeedOutlook();
   renderFeedChanges();
   renderDriveMode(); // no-op when Drive Mode is closed; keeps the glance list live on each refresh
   markUnknownBadges();

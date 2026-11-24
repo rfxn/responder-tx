@@ -9,6 +9,10 @@
 #   3 the data cycle's own regenerated files are never reverted (no racing a live publish)
 #   4 a run that commits its work leaves nothing to quarantine
 #   5 the kill switch and the drain-marker deference still short-circuit before any of it
+#   10 each recovery run lands in the steward ledger as WATCHDOG, with its cost from the JSON result
+#   9 the headless run starts no MCP connector (Slack, Gmail and the rest stay out of reach)
+#   8 a staged NEW file is unstaged and banked too, under the cycle lock (and left alone without it)
+#   7 the headless run gets the rfxn profile (CLAUDE_CONFIG_DIR) and needs that profile's credentials
 # A stub `claude` (RESPONDER_CHAT_CLAUDE_CMD) and a throwaway git repo keep the real repo
 # untouched. Run: bash tests/chat-watchdog.test.sh
 set -uo pipefail
@@ -24,6 +28,9 @@ trap cleanup EXIT INT TERM
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WATCHDOG_SRC="$REPO_ROOT/scripts/chat-watchdog.sh"
+# Every inherited RESPONDER_* is dropped (tests/run.sh exports shared scratch paths); each run pins its own.
+SCRUB=()
+while IFS= read -r v; do SCRUB+=(-u "$v"); done < <(compgen -e | grep '^RESPONDER_' || :)
 FAILS=0
 
 pass() { printf 'PASS: %s\n' "$1"; }
@@ -35,6 +42,7 @@ setup() {
     REPO="$WORK/repo"
     mkdir -p "$REPO/scripts" "$REPO/js" "$REPO/data" "$WORK/bin" "$WORK/home/.claude"
     cp "$WATCHDOG_SRC" "$REPO/scripts/chat-watchdog.sh"
+    mkdir -p "$REPO/scripts/steward" && cp "$REPO_ROOT/scripts/steward/steward.py" "$REPO/scripts/steward/"
 
     printf 'const APP_VERSION = "v9.9.9";\n' > "$REPO/js/core.js"
     printf '{"name":"Scratch Event","gaugeBbox":{"xmin":-100,"ymin":29,"xmax":-98,"ymax":31}}\n' > "$REPO/data/event.json"
@@ -71,6 +79,16 @@ PY
 exit 124
 SH
             ;;
+        stage-new)  # stages a brand-new file and edits source, commits nothing
+            cat > "$STUB" <<'SH'
+#!/bin/bash
+echo call >> "$STUB_CALLS"
+printf 'echo planted\n' > js/new-tool.js
+git add js/new-tool.js
+printf '// half\n' >> js/core.js
+exit 124
+SH
+            ;;
         cycle-lane)  # only touches a file the data cycle regenerates and stages itself
             cat > "$STUB" <<'SH'
 #!/bin/bash
@@ -83,9 +101,12 @@ SH
             cat > "$STUB" <<'SH'
 #!/bin/bash
 echo call >> "$STUB_CALLS"
+printf '%s\n' "${CLAUDE_CONFIG_DIR:-unset}" > "${STUB_CALLS}.cfg"
+{ printf '%s\n' "${ENABLE_CLAUDEAI_MCP_SERVERS:-unset}"; printf '%s\n' "$@"; } > "${STUB_CALLS}.argv"
 printf 'const APP_VERSION = "v9.9.10";\n' > js/core.js
 git -c user.email=t@example.test -c user.name=Test commit -qam 'v9.9.10: recovery shipped'
 echo 1 > "$RESPONDER_CHAT_CURSOR"
+printf '{"type":"result","subtype":"success","is_error":false,"result":"done","total_cost_usd":0.42,"num_turns":3,"usage":{"output_tokens":7}}\n'
 SH
             ;;
     esac
@@ -93,6 +114,7 @@ SH
 }
 
 run_watchdog() {
+    env "${SCRUB[@]}" \
     RESPONDER_CHAT_INBOX="$WORK/chat-inbox.jsonl" \
     RESPONDER_CHAT_OUTBOX="$WORK/chat-outbox.json" \
     RESPONDER_CHAT_CURSOR="$WORK/.chat-cursor" \
@@ -105,7 +127,11 @@ run_watchdog() {
     RESPONDER_CHAT_CLAUDE_CMD="$STUB" \
     RESPONDER_CHAT_WATCHDOG_TIMEOUT=20 \
     RESPONDER_CHAT_WATCHDOG_KILL_AFTER=2 \
+    RESPONDER_CYCLE_LOCK="$WORK/cycle.lock" \
+    RESPONDER_STEWARD_LEDGER="$WORK/ledger.jsonl" \
+    RESPONDER_CHAT_WATCHDOG_CYCLE_LOCK_WAIT="${LOCK_WAIT:-5}" \
     STUB_CALLS="$WORK/stub-calls" \
+    RESPONDER_CLAUDE_CONFIG_DIR="${PROFILE:-$WORK/home/.claude}" \
     HOME="$WORK/home" \
     bash "$REPO/scripts/chat-watchdog.sh" > "$WORK/run.out" 2>&1
 }
@@ -212,6 +238,67 @@ if [ -n "$LANE" ] && [ "$(printf '%s\n' "$STAGED" | grep -c .)" -ge 10 ] && [ -z
 else
     fail "6 run-cycle.sh stages paths the watchdog would revert:${MISSING:- (lane or DATA_FILES unreadable)}"
 fi
+
+# --- Test 7: the rfxn account profile reaches claude, and its credentials gate the run ----------
+setup; make_stub clean
+PROFILE="$WORK/profile"; mkdir -p "$PROFILE"; echo '{"stub":"creds"}' > "$PROFILE/.credentials.json"
+run_watchdog
+P_OK=0
+[ "$(cat "$WORK/stub-calls.cfg" 2>/dev/null)" = "$PROFILE" ] && P_OK=1
+rm -f "$PROFILE/.credentials.json" "$WORK/stub-calls" "$WORK/watchdog.state"
+echo 0 > "$WORK/.chat-cursor"
+run_watchdog
+C_OK=0
+if [ "$(stub_calls)" -eq 0 ] && grep -q "no readable credentials at $PROFILE/.credentials.json" "$WORK/watchdog.log"; then C_OK=1; fi
+unset PROFILE
+if [ "$P_OK" -eq 1 ] && [ "$C_OK" -eq 1 ]; then
+    pass "7 claude runs with CLAUDE_CONFIG_DIR set to the profile, and a profile without credentials is refused"
+else
+    fail "7 profile passed (${P_OK}) / credentials follow the profile (${C_OK})"
+    cat "$WORK/watchdog.log"
+fi
+rm -rf "$WORK"
+
+# --- Test 8: a staged new file is quarantined too, under the cycle lock --------------------------
+setup; make_stub stage-new
+run_watchdog
+QD=$(ls -d "$WORK/quarantine"/*.files 2>/dev/null | head -1)
+N_OK=0
+if [ -z "$(git -C "$REPO" status --porcelain --untracked-files=all -- js)" ] && [ -n "$QD" ] \
+   && grep -q 'echo planted' "$QD/js/new-tool.js"; then N_OK=1; fi
+rm -rf "$WORK"
+setup; make_stub stage-new
+( flock -n 5 && LOCK_WAIT=1 run_watchdog ) 5>"$WORK/cycle.lock"
+L_OK=0
+if git -C "$REPO" diff --cached --name-only | grep -qx 'js/new-tool.js' && grep -q 'cycle lock busy for 1s; leftovers stay in the tree' "$WORK/watchdog.log"; then L_OK=1; fi
+if [ "$N_OK" -eq 1 ] && [ "$L_OK" -eq 1 ]; then
+    pass "8 a staged new file is unstaged and banked with the rest, only while holding the cycle lock"
+else
+    fail "8 staged-new quarantine (${N_OK}) / cycle lock (${L_OK})"
+    cat "$WORK/watchdog.log"
+fi
+rm -rf "$WORK"
+
+# --- Test 9: no outward channels --------------------------------------------------------------------
+setup; make_stub clean
+run_watchdog
+if [ "$(head -n 1 "$WORK/stub-calls.argv" 2>/dev/null)" = "false" ] && grep -qx -- '--strict-mcp-config' "$WORK/stub-calls.argv"; then
+    pass "9 the recovery run gets --strict-mcp-config and ENABLE_CLAUDEAI_MCP_SERVERS=false"
+else
+    fail "9 MCP lockdown: $(tr '\n' ' ' < "$WORK/stub-calls.argv" 2>/dev/null)"
+fi
+rm -rf "$WORK"
+
+# --- Test 10: the watchdog's spend is on the same books ---------------------------------------------
+setup; make_stub clean
+run_watchdog
+if [ -f "$WORK/ledger.jsonl" ] && python3 -c 'import json,sys; e=json.loads(open(sys.argv[1]).readlines()[-1]); sys.exit(0 if e["task"]=="WATCHDOG" and e["cost_usd"]==0.42 and e["cost_known"] else 1)' "$WORK/ledger.jsonl"; then
+    pass "10 a recovery run is recorded in the steward ledger as WATCHDOG with its real cost"
+else
+    fail "10 watchdog ledger: $(cat "$WORK/ledger.jsonl" 2>/dev/null)"
+    cat "$WORK/watchdog.log"
+fi
+rm -rf "$WORK"
 
 echo "----"
 if [ "$FAILS" -eq 0 ]; then

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "v0.101.0",
+      "date": "2026-11-24",
+      "line": "New in the Feed: On the horizon, the coming days' outlook for Texas with each item's official source. Published files now update hourly during flood or severe weather and twice daily otherwise, and the board says when the next update is due. Radar stays on screen while zooming and says so when it cannot load."
+    },
+    {
       "v": "v0.100.16",
       "date": "2026-10-02",
       "line": "New in the Feed: What changed. Crests, gauges entering or leaving flood stage, NWS warnings issued, upgraded and ended, road and crossing closures, and shelters opening, each with its time and source. A source that is not reporting is shown as paused, never as quiet."

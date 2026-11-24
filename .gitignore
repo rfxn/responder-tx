@@ -9,8 +9,12 @@ data/.chat-watchdog-off
 data/.tick-gate-state
 data/.tick-gate-alert-state
 data/.tick-gate-off
+data/.cadence-state.json
+data/.cadence-force
 nohup.out
 *.log
 data/chat-outbox.json
 data/notes-inbox.jsonl
 data/notices-inbox.jsonl
+data/.steward-off
+data/.steward-backlog-on

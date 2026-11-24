@@ -48,6 +48,10 @@ RECORD_NEAR_PCT = 0.90
 # mirrors js/core.js stageOk; see INTERNAL-NOTES.md "Impossible gauge stages"
 STAGE_MIN_FT = -300
 STAGE_MAX_FT = 25000
+# per-gauge plausibility: far above the gauge's own record and major stage, or a lone record spike
+IMPLAUSIBLE_OVER_REFERENCE = 3
+SPIKE_FACTOR = 2
+SPIKE_NEIGHBOUR_S = 45 * 60
 
 
 def stage_ok(v):
@@ -62,8 +66,17 @@ def load_event():
         return {}
 
 
-def event_name(ev, now):
-    return ev.get("event") or ev.get("eventName") or now.strftime("%B %Y")
+def event_name(ev, first, last, now):
+    """The configured event name, else the months the window really spans."""
+    named = ev.get("event") or ev.get("eventName")
+    if named:
+        return named
+    a, b = parse_iso(first) or now, parse_iso(last) or now
+    if (a.year, a.month) == (b.year, b.month):
+        return b.strftime("%B %Y")
+    if a.year == b.year:
+        return "%s to %s" % (a.strftime("%B"), b.strftime("%B %Y"))
+    return "%s to %s" % (a.strftime("%B %Y"), b.strftime("%B %Y"))
 
 
 def bbox_of(b):
@@ -106,9 +119,25 @@ def git(*args):
     return subprocess.run(("git", "-C", ROOT) + args, capture_output=True, text=True, check=True).stdout
 
 
+_BLOBS = None
+
+
 def git_blob(commit_hash, path):
-    return subprocess.run(("git", "-C", ROOT, "show", f"{commit_hash}:{path}"),
-                          capture_output=True, text=True, check=True).stdout
+    """One `git cat-file --batch` serves the whole walk; a process per commit was most of the run."""
+    global _BLOBS
+    if _BLOBS is None or _BLOBS.poll() is not None:
+        _BLOBS = subprocess.Popen(("git", "-C", ROOT, "cat-file", "--batch"),
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    _BLOBS.stdin.write(f"{commit_hash}:{path}\n".encode("utf-8"))
+    _BLOBS.stdin.flush()
+    header = _BLOBS.stdout.readline().decode("utf-8", "replace").split()
+    if len(header) == 3 and header[1] != "blob" and header[2].isdigit():
+        _BLOBS.stdout.read(int(header[2]) + 1)  # a tree or commit still sends its body: drain it or the stream desyncs
+    if len(header) != 3 or header[1] != "blob":
+        raise subprocess.CalledProcessError(128, ("git", "cat-file", f"{commit_hash}:{path}"))
+    body = _BLOBS.stdout.read(int(header[2]))
+    _BLOBS.stdout.read(1)  # the record's trailing newline
+    return body.decode("utf-8")
 
 
 def parse_iso(s):
@@ -121,24 +150,53 @@ def parse_iso(s):
     return dt
 
 
+# the capture this cycle fetched and commits with its own output; without it quiet mode publishes a
+# record that ends at the previous publish
+WORKTREE = "WORKTREE"
+
+
+def worktree_capture(path):
+    """(WORKTREE, generated) when the working-tree copy of path differs from HEAD's, else None."""
+    try:
+        if not git("status", "--porcelain", "--", path).strip():
+            return None
+        with open(os.path.join(ROOT, path), encoding="utf-8") as f:
+            gen = json.load(f).get("generated")
+    except (subprocess.CalledProcessError, OSError, ValueError, AttributeError):
+        return None
+    return (WORKTREE, gen) if parse_iso(gen) else None
+
+
+def read_worktree(path):
+    try:
+        with open(os.path.join(ROOT, path), encoding="utf-8") as f:
+            return json.load(f)
+    except OSError as exc:
+        raise ValueError(f"working-tree {path} vanished: {exc}")
+
+
 def snapshot_commits():
     """Commits touching either capture or display snapshot, oldest first."""
-    seen = {}
+    seen, order = {}, {}
     for path in (CAPTURE_PATH, SNAPSHOT_PATH):
-        for line in git("log", "--format=%H %cI", "--follow", "--", path).splitlines():
-            if not line.strip():
-                continue
+        lines = [ln for ln in git("log", "--format=%H %cI", "--follow", "--", path).splitlines() if ln.strip()]
+        for line in reversed(lines):  # git log is newest-first; reversed is parent-before-child
             chash, ciso = line.split(" ", 1)
-            seen.setdefault(chash, ciso)
-    # parse before sorting: %cI carries per-commit UTC offsets, so the raw strings do not
-    # sort chronologically once the committer's timezone changes
+            if chash not in seen:
+                seen[chash] = ciso
+                order[chash] = len(order)
+    wt = worktree_capture(CAPTURE_PATH)  # newest by construction, so it walks last whatever the commit clock says
+    # parse before sorting (%cI carries per-commit UTC offsets); ancestry breaks same-second ties,
+    # which the per-gauge neighbour check depends on
     return sorted(seen.items(),
-                  key=lambda kv: parse_iso(kv[1]) or datetime.datetime.min.replace(
-                      tzinfo=datetime.timezone.utc))
+                  key=lambda kv: (parse_iso(kv[1]) or datetime.datetime.min.replace(
+                      tzinfo=datetime.timezone.utc), order[kv[0]])) + ([wt] if wt else [])
 
 
 def load_snapshot(commit_hash):
     """Widest gauge set available at this commit: capture if it exists, else display."""
+    if commit_hash == WORKTREE:
+        return read_worktree(CAPTURE_PATH)
     try:
         return json.loads(git_blob(commit_hash, CAPTURE_PATH))
     except (subprocess.CalledProcessError, ValueError):
@@ -231,10 +289,48 @@ def fold_backfill(gauges):
     return first_t, read_ok
 
 
-def walk(commits, gauges):
-    """Retention layer: every gauge that ever flooded, no geographic filter."""
+def stage_refs():
+    """lid -> (record_ft, major_ft), either None: the gauge's own bounds from records.json and gauge-meta.json."""
+    def load(name):
+        try:
+            with open(os.path.join(ROOT, "data", name), encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, dict) else {}
+        except (OSError, ValueError):
+            return {}
+    records, meta = load("records.json").get("records") or {}, load("gauge-meta.json")
+    pos = lambda v: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else None  # noqa: E731
+    return {lid: (pos((records.get(lid) or {}).get("record_ft")),
+                  pos((meta.get(lid) or {}).get("major") if isinstance(meta.get(lid), dict) else None))
+            for lid in set(records) | set(meta)}
+
+
+def lone_against(stage, vt, neighbour):
+    """True when a neighbouring reading is close in time and nowhere near this one."""
+    if neighbour is None or vt is None or neighbour[1] is None:
+        return False
+    close = abs((vt - neighbour[1]).total_seconds()) <= SPIKE_NEIGHBOUR_S
+    return close and not (stage / SPIKE_FACTOR <= neighbour[0] <= stage * SPIKE_FACTOR)
+
+
+def implausible(stage, obs, record, major):
+    """Why a reading inside the absolute envelope is still no reading for THIS gauge, else None."""
+    ref = max([v for v in (record, major) if v] or [0])
+    if ref and stage > IMPLAUSIBLE_OVER_REFERENCE * ref:
+        return "over %dx the gauge's record and major stage" % IMPLAUSIBLE_OVER_REFERENCE
+    if record and stage >= record and lone_against(stage, obs["vt"], obs["prev"]) \
+            and lone_against(stage, obs["vt"], obs["next"]):
+        return "a lone record reading between two close readings under 1/%d of it" % SPIKE_FACTOR
+    return None
+
+
+def walk(commits, gauges, refs=None):
+    """Retention layer: every gauge that ever flooded, no geographic filter. A reading that is
+    implausible for its own gauge is no reading, and so is the category it came with."""
+    refs = refs or {}
     skipped = 0
     first_snap = last_snap = None
+    last_obs, samples = {}, []
     for chash, _ciso in commits:
         try:
             snap = load_snapshot(chash)
@@ -252,32 +348,51 @@ def walk(commits, gauges):
             try:
                 observed = g["status"]["observed"]
                 cat = observed.get("floodCategory")
-                if cat not in FLOOD_CATS:
-                    continue
                 stage = observed.get("primary")
-                if not stage_ok(stage):  # the category NWPS sent with it is void too
-                    continue
                 lid = g["lid"]
             except (KeyError, TypeError):
                 continue
-            rec = gauges.setdefault(lid, {
-                "lid": lid, "name": g.get("name", lid),
-                "lat": g.get("latitude"), "lon": g.get("longitude"),
-                "peak": None, "peak_time": None,
-                "peak_category": None, "peak_stale": False, "peak_src": None,
-                "unit": observed.get("primaryUnit") or "ft",
-                "first_in_flood": snap_iso, "last_in_flood": snap_iso,
-            })
-            rec["last_in_flood"] = snap_iso
-            if rec.get("lat") is None:
-                rec["lat"], rec["lon"] = g.get("latitude"), g.get("longitude")
-            if rec["peak"] is None or stage > rec["peak"]:
-                rec["peak"] = stage
-                rec["peak_time"] = snap_iso
-                rec["peak_category"] = cat
-                rec["peak_stale"] = obs_stale(observed, snap_dt)
-                rec["peak_src"] = None
-    return gauges, skipped, first_snap, last_snap
+            if not stage_ok(stage):  # the category NWPS sent with it is void too
+                continue
+            # one observation per validTime: NWPS repeats a gauge's last reading while it is silent
+            vt = parse_iso(observed.get("validTime"))
+            prev = last_obs.get(lid)
+            if prev is None or (vt and prev["vt"] and vt > prev["vt"]):
+                obs = {"vt": vt, "prev": (prev["stage"], prev["vt"]) if prev else None, "next": None, "stage": stage}
+                if prev is not None:
+                    prev["next"] = (stage, vt)
+                last_obs[lid] = obs
+            elif vt and prev["vt"] and vt == prev["vt"]:
+                obs = prev
+            else:
+                obs = {"vt": vt, "prev": None, "next": None, "stage": stage}  # older or undated: nothing to judge by
+            if cat in FLOOD_CATS:
+                samples.append((snap_iso, lid, g.get("name", lid), g.get("latitude"), g.get("longitude"),
+                                observed.get("primaryUnit") or "ft", stage, cat, obs_stale(observed, snap_dt), obs))
+    voided = {}
+    for snap_iso, lid, name, lat, lon, unit, stage, cat, stale, obs in samples:
+        record, major = refs.get(lid, (None, None))
+        if implausible(stage, obs, record, major):
+            voided[lid] = voided.get(lid, 0) + 1
+            continue
+        rec = gauges.setdefault(lid, {
+            "lid": lid, "name": name,
+            "lat": lat, "lon": lon,
+            "peak": None, "peak_time": None,
+            "peak_category": None, "peak_stale": False, "peak_src": None,
+            "unit": unit,
+            "first_in_flood": snap_iso, "last_in_flood": snap_iso,
+        })
+        rec["last_in_flood"] = snap_iso
+        if rec.get("lat") is None:
+            rec["lat"], rec["lon"] = lat, lon
+        if rec["peak"] is None or stage > rec["peak"]:
+            rec["peak"] = stage
+            rec["peak_time"] = snap_iso
+            rec["peak_category"] = cat
+            rec["peak_stale"] = stale
+            rec["peak_src"] = None
+    return gauges, skipped, first_snap, last_snap, voided
 
 
 def published_lids():
@@ -356,7 +471,7 @@ def main():
         print("warn: event.json aoArea is malformed; the listing is not clipped to it", file=sys.stderr)
     gauges = {}
     backfill_from, archive_ok = fold_backfill(gauges)
-    gauges, skipped, first_snap, last_snap = walk(commits, gauges)
+    gauges, skipped, first_snap, last_snap, voided = walk(commits, gauges, stage_refs())
     if not gauges:
         sys.exit("no gauges reached minor+ flood in the snapshot history")
     retained = len(gauges)
@@ -386,7 +501,7 @@ def main():
                           "earlier.")
     out = {
         "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "event": event_name(ev, now),
+        "event": event_name(ev, window["first"], last_snap, now),
         "window": window,
         "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; "
                   "pre-archive window reconstructed from USGS/NWPS observed via the chunked "
@@ -394,6 +509,7 @@ def main():
         "gauges": rows,
         "retained_gauges": retained,
         "skipped_commits": skipped,
+        "implausible_readings": sum(voided.values()),
     }
     if backfill_from:
         out["backfill"] = {"from": backfill_from, "until": first_snap,
@@ -414,6 +530,9 @@ def main():
           f"{len(clipped)} outside the aoArea{': ' + ' '.join(clipped) if clipped else ''}), "
           f"window {out['window']['first']} → {last_snap}"
           + ("" if archive_ok else " (START NOT ESTABLISHED: the archive did not read)"))
+    if voided:
+        print(f"  implausible for their own gauge, published as no reading: {sum(voided.values())} snapshot readings at "
+              + " ".join(f"{lid}x{n}" for lid, n in sorted(voided.items())))
     for r in rows:
         bits = [f"{r['lid']} {r['peak']} {r['unit']} {r['peak_category']} @ {r['peak_time']}"]
         if r.get("src"):

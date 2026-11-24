@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.100.16';
+const APP_VERSION = 'v0.101.0';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -294,6 +294,7 @@ const state = {
   store: { added: [], overrides: {} },
   resources: null,
   sheltersLive: null, // data/shelters-live.json payload (FEMA NSS poller); null until first successful load
+  summaryCrest: null, // crest-summary payload the open summary lens was drawn from
   recoveryCrest: null, // last crest-summary payload; the open recovery view re-renders from it as live data lands
   basinCrest: null, // crest-summary payload for the basin view; re-renders as live data lands
   basinRiver: null, // selected river slug in the basin view (share round-trip carries it)
@@ -336,6 +337,11 @@ const state = {
   changesUnknown: false, // the change log failed with no last-good copy: unknown, never "no changes"
   changesMissing: false, // the change log is not published yet (404) and there is no last-good copy
   changesAt: 0, // last fetch attempt, for the refetch throttle
+  cadence: null, // data/cadence.json when valid; null = fixed staleness thresholds, never "quiet"
+  cadenceAt: 0,
+  outlook: null, // data/outlook.json as read; outlookModel() decides whether any of it renders
+  outlookAt: 0,
+  outlookAll: false, // On the horizon expanded past its first items
   changesAll: false, // What changed shows the whole retained window instead of the last 24h
   changesLimit: 0, // rows the full window shows; 0 = its first page
   changesKind: '', // What changed filter chip; '' = every kind, never persisted

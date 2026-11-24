@@ -1,5 +1,6 @@
 #!/bin/bash
-# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--full-tests] [--allow-dirty-functions] — gate HEAD, build the stripped archive, deploy to Cloudflare Pages
+# deploy.sh [--preflight-only] [--skip-live] [--skip-tests] [--full-tests] [--allow-dirty-functions] [--data-lane] — gate HEAD, build the stripped archive, deploy to Cloudflare Pages
+# --data-lane is run-cycle.sh's: cycle-check's advisory checks warn there instead of stopping a flood publish.
 # Staging is a per-run mktemp dir, dropped on exit; set RESPONDER_DEPLOY_DIR to pin it and keep it.
 set -euo pipefail
 
@@ -12,6 +13,7 @@ PREFLIGHT_ONLY=0
 SKIP_TESTS=0
 FULL_TESTS=0
 ALLOW_DIRTY_FUNCTIONS=0
+DATA_LANE=0
 for arg in "$@"; do
     case "$arg" in
         --skip-live) SKIP_LIVE=1 ;;
@@ -19,7 +21,8 @@ for arg in "$@"; do
         --skip-tests) SKIP_TESTS=1 ;;
         --full-tests) FULL_TESTS=1 ;;
         --allow-dirty-functions) ALLOW_DIRTY_FUNCTIONS=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live, --skip-tests, --full-tests, --allow-dirty-functions)" >&2; exit 2 ;;
+        --data-lane) DATA_LANE=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --preflight-only, --skip-live, --skip-tests, --full-tests, --allow-dirty-functions, --data-lane)" >&2; exit 2 ;;
     esac
 done
 
@@ -194,8 +197,13 @@ else
     else
         shell_verdict="shell suites already green at scripts+tests ${SHELL_GATE_KEY:0:12}, not re-run (--full-tests forces them)"
     fi
-    ( cd "$SRC" && bash scripts/cycle-check.sh ) || fail "test gate: scripts/cycle-check.sh failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
-    echo "test gate OK: node --test tests/ + python suites + cycle-check.sh green at HEAD; ${shell_verdict}"
+    # RESPONDER_ROOT would send cycle-check into the live working tree instead of the archive below
+    check_args=()
+    check_lane="release lane"
+    if [ "$DATA_LANE" -eq 1 ]; then check_args=(--data-lane); check_lane="data lane, advisory checks warn only"; fi
+    ( cd "$SRC" && env -u RESPONDER_ROOT bash scripts/cycle-check.sh ${check_args[@]+"${check_args[@]}"} ) \
+        || fail "test gate: scripts/cycle-check.sh failed at HEAD (fix it, or --skip-tests for a genuine field emergency)"
+    echo "test gate OK: node --test tests/ + python suites + cycle-check.sh green at HEAD (${check_lane}); ${shell_verdict}"
 fi
 
 # --- Build stripped deploy dir ---

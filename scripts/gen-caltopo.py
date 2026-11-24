@@ -43,7 +43,7 @@ SITE = "https://respondertx.org"
 KML_NS = "http://www.opengis.net/kml/2.2"
 ATOM_NS = "http://www.w3.org/2005/Atom"
 GEORSS_NS = "http://www.georss.org/georss"
-REFRESH_SECONDS = 900  # the data cycle's own period; a shorter poll would only re-fetch identical bytes
+REFRESH_SECONDS = 900  # the fastest the cycle has ever published; a shorter poll only re-fetches identical bytes
 
 ALERTS_URL = "https://api.weather.gov/alerts/active?area=TX"
 LSR_URL = "https://mesonet.agron.iastate.edu/geojson/lsr.geojson?hours=24&states=TX"
@@ -715,7 +715,8 @@ def write_kml_networklink(path, header):
     zone_only = header.get("zone_only") or {}
     ET.SubElement(doc, "description").text = (
         "Self-updating link to the Responder TX board. The linked document is re-fetched every "
-        f"{REFRESH_SECONDS // 60} minutes, which is how often the board republishes. "
+        f"{REFRESH_SECONDS // 60} minutes; the board republishes it hourly during flood or severe "
+        "weather and twice daily otherwise. "
         + DISCLAIMER.split(" One-shot")[0] + " "
         # the NetworkLink is a subscription: its reader never opens the share sheet either
         + ((header.get("truncation_note") or "") + " " if header.get("truncation_note") else "")

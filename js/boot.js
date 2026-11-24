@@ -40,7 +40,7 @@ function hydrateFromCache() {
   return true;
 }
 
-// cold-start fallback: ops cycles publish a ≤15-min NWPS snapshot — fresh public visitors survive rate-limit windows
+// cold-start fallback: the cycle's published NWPS snapshot carries fresh public visitors through rate-limit windows
 async function hydrateGaugesSnapshot() {
   if (state.gauges.length) return false;
   try {
@@ -81,6 +81,8 @@ async function refresh() {
     // every tick, the first at boot included: the layer-sheet row counts warnings before the layer is on
     fetchRoadFlood({ quiet: true, force: true }).catch(() => { /* fetchRoadFlood owns its own failure reporting */ });
     loadChanges(false).catch((e) => console.error('What changed render failed', e)); // a failed read is handled inside; only a render fault lands here
+    loadCadence(false).catch((e) => console.error('Cadence render failed', e));
+    loadOutlook(false).catch((e) => console.error('On the horizon render failed', e));
     const gaugesP = fetchGauges();
     // fcstMax/usgs dedupe against state.gauges — run after the NWPS fetch settles either way
     const afterGauges = gaugesP.catch(() => { /* NWPS failure reported via gaugesP; dedupe uses last-known gauges */ });
@@ -399,7 +401,7 @@ function renderDataAgeBar() {
   if (worst.k === 'gauges' && state.snapshotAt) {
     const snapAge = Math.round((Date.now() - state.snapshotAt) / 60000);
     if (snapAge < 30) { el.hidden = true; return; } // owner: a fresh snapshot is a working state, not a warning
-    cls = snapAge >= 60 ? 'red' : 'amber';
+    cls = snapAge * 60000 >= cycleStaleMs(3600000) ? 'red' : 'amber'; // a snapshot inside its publishing cadence is late, not lost
     text = t('age.snapshot').replace('{n}', snapAge) + usgsNote;
   } else {
     cls = worst.age > 15 ? 'red' : 'amber';
@@ -582,7 +584,7 @@ const ABOUT_SECTIONS = [
   ['about.sec.who', ['about.who']],
   ['about.sec.what', ['about.what']],
   ['about.sec.not', ['about.not.dispatch', 'about.not.official', 'about.not.monitored']],
-  ['about.sec.honest', ['about.honest.stale', 'about.honest.suppress', 'about.honest.fcst', 'about.honest.cite']],
+  ['about.sec.honest', ['about.honest.stale', 'about.honest.cadence', 'about.honest.suppress', 'about.honest.fcst', 'about.honest.cite']],
   ['about.sec.data', ['about.data', 'about.data.cams', 'about.data.curated']],
   ['about.sec.alerts', ['about.alerts']],
   ['about.sec.privacy', ['about.privacy.local', 'about.privacy.team', 'about.privacy.push', 'about.privacy.share', 'about.privacy.both']],

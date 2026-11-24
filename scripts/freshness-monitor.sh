@@ -31,8 +31,11 @@ if [ -z "${RESPONDER_CYCLE_STATUS:-}" ] && [ ! -e "$CYCLE_STATUS" ]; then
     CYCLE_STATUS=/tmp/responder-cycle-status.json  # run-cycle.sh's fallback when /var/log is unwritable
 fi
 STATE_FILE="${RESPONDER_MONITOR_STATE:-/tmp/responder-freshness-state}"  # "verdict streak last_alert_epoch last_alert_age_min verdict_since_epoch"; tick-gate.sh reads it too
-WARN_MIN="${RESPONDER_MONITOR_WARN_MIN:-45}"        # 3 missed 15-min cycles
-CRIT_MIN="${RESPONDER_MONITOR_CRIT_MIN:-90}"        # 6 missed 15-min cycles
+WARN_MIN="${RESPONDER_MONITOR_WARN_MIN:-45}"        # 3 missed 15-min fires past the publish interval
+CRIT_MIN="${RESPONDER_MONITOR_CRIT_MIN:-90}"        # 6 missed 15-min fires past the publish interval
+LIVE_MIN="${RESPONDER_MONITOR_LIVE_MIN:-45}"        # no gate verdict and no cycle run this long: the cron is not firing
+CADENCE_URL="${RESPONDER_MONITOR_CADENCE_URL:-${MIRROR_URL%/*}/cadence.json}"
+CADENCE_STATE="${RESPONDER_CADENCE_STATE:-data/.cadence-state.json}"
 FAIL_STREAK="${RESPONDER_MONITOR_FAIL_STREAK:-3}"   # consecutive fetch failures before the mirror counts as unreachable
 COOLDOWN="${RESPONDER_MONITOR_COOLDOWN:-21600}"     # re-alert gap (s) while a WARN persists
 CRIT_COOLDOWN="${RESPONDER_MONITOR_CRIT_COOLDOWN:-3600}"  # CRITICAL/UNREACHABLE repeat faster: 6h of silence on a life-safety board reads as recovery
@@ -91,6 +94,66 @@ if not isinstance(g, str) or not g.strip():
     sys.exit(1)
 print(g.strip())
 '
+}
+
+# cadence_reading MIRROR_GENERATED: three lines. 1) minutes after the mirror's snapshot that its next
+# publish is due: the LATER of the mirror's own nextDueBy and the local mode's since + interval (empty:
+# no cadence anywhere). 2) the gate's recent hold, if any. 3) minutes since the cycle last fired.
+cadence_reading() {
+    local url="$CADENCE_URL" body=""
+    case "$url" in
+        http*) url="${url}?_cb=$(command date +%s)" ;;
+    esac
+    body=$(curl -sf --max-time "$FETCH_TIMEOUT" "$url" 2>/dev/null) || body=""  # absent or unreachable: no mirror claim
+    CAD_BODY="$body" CAD_STATE="$CADENCE_STATE" CAD_GEN="$1" CAD_STATUS="$CYCLE_STATUS" python3 - <<'PY'
+import datetime, json, os
+INTERVAL = {"quiet": 720, "adverse": 60}
+FRESH_S = 45 * 60
+now = datetime.datetime.now(datetime.timezone.utc)
+
+
+def when(s):
+    try:
+        d = datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    return d if d.tzinfo else d.replace(tzinfo=datetime.timezone.utc)
+
+
+gen = when(os.environ.get("CAD_GEN"))
+mirror_due = None
+try:
+    mirror_due = when(json.loads(os.environ.get("CAD_BODY") or "null").get("nextDueBy"))
+except (ValueError, AttributeError):
+    pass
+try:
+    with open(os.environ["CAD_STATE"], encoding="utf-8") as f:
+        st = json.load(f)
+    st = st if isinstance(st, dict) else {}
+except (OSError, ValueError):
+    st = {}
+probed = when(st.get("lastProbeAt"))
+mode = st.get("mode") if probed and (now - probed).total_seconds() < FRESH_S else None  # a stale state is no mode
+local_due = None
+if mode in INTERVAL and when(st.get("since")):
+    local_due = when(st["since"]) + datetime.timedelta(minutes=INTERVAL[mode])
+if mirror_due is None and gen and mode in INTERVAL:
+    mirror_due = gen + datetime.timedelta(minutes=INTERVAL[mode])
+dues = [d for d in (mirror_due, local_due) if d]
+print(max(0, int((max(dues) - gen).total_seconds() // 60)) if dues and gen else "")
+gate_at = when(st.get("lastGateAt"))
+note = ""
+if gate_at and str(st.get("lastGate") or "").startswith("hold:") and (now - gate_at).total_seconds() < FRESH_S:
+    note = " ".join(str(st["lastGate"]).split())[:200]
+print(note)
+fired = [gate_at] if gate_at else []
+try:
+    with open(os.environ["CAD_STATUS"], encoding="utf-8") as f:
+        fired.append(datetime.datetime.fromtimestamp(int(json.load(f)["finished_epoch"]), datetime.timezone.utc))
+except (OSError, ValueError, TypeError, KeyError, OverflowError):
+    pass
+print(int((now - max(fired)).total_seconds() // 60) if fired else "")
+PY
 }
 
 # snapshot_age_min FILE — age of a local snapshot's generated stamp, empty if unreadable.
@@ -301,6 +364,7 @@ write_state() {
 read_state
 NOW=$(command date -u '+%s')
 
+
 REMOTE_GEN=""
 REMOTE_AGE=""
 FETCH_OK=0
@@ -308,6 +372,17 @@ if REMOTE_GEN=$(fetch_generated "$MIRROR_URL"); then
     FETCH_OK=1
     REMOTE_AGE=$(iso_age_min "$REMOTE_GEN")
 fi
+
+mapfile -t CAD < <(cadence_reading "$REMOTE_GEN")
+CADENCE_MIN="${CAD[0]:-}"  # empty: no cadence declared anywhere, so today's fixed thresholds
+GATE_NOTE="${CAD[1]:-}"
+LIVE_AGE="${CAD[2]:-}"
+if [ -n "${CADENCE_MIN:-}" ]; then
+    WARN_MIN=$((CADENCE_MIN + WARN_MIN))
+    CRIT_MIN=$((CADENCE_MIN + CRIT_MIN))
+fi
+CYCLE_DEAD=0
+if [ -n "$LIVE_AGE" ] && [ "$LIVE_AGE" -ge "$LIVE_MIN" ]; then CYCLE_DEAD=1; fi
 
 LOCAL_AGE=$(snapshot_age_min "$SNAPSHOT")
 COMMIT_READ=$(commit_age_min "$SNAPSHOT")
@@ -368,6 +443,9 @@ else
     VERDICT=UNREACHABLE
 fi
 
+# a cycle that stopped firing is news before the mirror ages past any cadence
+if [ "$CYCLE_DEAD" -eq 1 ] && [ "$VERDICT" = FRESH ]; then VERDICT=WARN; fi
+
 # when the current verdict began; a legacy state line has no such column, so its clock restarts once
 if [ "$VERDICT" = "$ST_VERDICT" ] && [ "$ST_SINCE" -gt 0 ]; then
     SINCE="$ST_SINCE"
@@ -382,10 +460,14 @@ if [ "$VERDICT" = UNREACHABLE ]; then
 elif [ "$VERDICT" != FRESH ]; then
     RUN_WORD=runs
     [ "$CS_FAILS" != 1 ] || RUN_WORD=run
-    if [ "$CYCLE_FAILING" -eq 1 ] && [ "$CYCLE_RECENT" -eq 1 ]; then
+    if [ "$CYCLE_DEAD" -eq 1 ]; then
+        CAUSE="the data cycle is not firing: no cadence verdict and no cycle run for ${LIVE_AGE} min, so the cron or its host is down"
+    elif [ "$CYCLE_FAILING" -eq 1 ] && [ "$CYCLE_RECENT" -eq 1 ]; then
         CAUSE="the data cycle is running but failing every run for ${CS_FAILS} ${RUN_WORD} since ${CS_SINCE:-an unrecorded time} (stage ${CS_STAGE:-unknown}): ${CS_ERROR:-no error line was recorded}"
     elif [ -n "$GIT_FAULT" ]; then
         CAUSE="git cannot read the repository history (${GIT_FAULT}), so no data commit can land"
+    elif [ -n "${GATE_NOTE:-}" ]; then
+        CAUSE="the cycle cron is firing but its cadence gate is holding the publish (${GATE_NOTE})"
     elif [ -n "$DEGRADED_SRC" ] && [ "$PUBLISHED" -eq 1 ]; then
         # the cycle IS running and IS publishing; one upstream is not answering. Saying "the cron
         # or its host is down" here would send an operator to the wrong place entirely.
@@ -405,7 +487,7 @@ elif [ "$VERDICT" != FRESH ]; then
     fi
 fi
 
-log "verdict=${VERDICT} mirror_generated=${REMOTE_GEN:-none} mirror_age=$(fmt_min "$REMOTE_AGE") warn=${WARN_MIN} crit=${CRIT_MIN} streak=${STREAK} | ${PIPELINE}"
+log "verdict=${VERDICT} mirror_generated=${REMOTE_GEN:-none} mirror_age=$(fmt_min "$REMOTE_AGE") warn=${WARN_MIN} crit=${CRIT_MIN} cadence=${CADENCE_MIN:-none} last_fire=$(fmt_min "$LIVE_AGE") streak=${STREAK} | ${PIPELINE}"
 
 alerting() { [ "$1" = WARN ] || [ "$1" = CRITICAL ] || [ "$1" = UNREACHABLE ]; }
 

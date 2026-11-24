@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""tick-burn.py [--days N] [--json] — measure what the revival tick actually costs.
+"""tick-burn.py [--days N] [--json] [--steward] — measure what the revival tick actually costs.
+
+--steward instead summarises scripts/steward.sh's spend ledger per day and per task.
 
 Reads the Claude Code session transcripts for this project and attributes model
 requests and tokens to the tick that caused them, so a cadence change is argued
@@ -25,6 +27,8 @@ TRANSCRIPTS = os.environ.get(
     "/root/.claude/projects/-root-admin-work-proj-responder",
 )
 TICK_MARKER = "AUTONOMOUS REVIVAL TICK"
+STEWARD_LEDGER = os.environ.get("RESPONDER_STEWARD_LEDGER", "/var/log/responder-steward-ledger.jsonl")
+STEWARD_CAP_USD = float(os.environ.get("RESPONDER_STEWARD_DAILY_CAP_USD", "8"))
 CHEAP_MAX_REQUESTS = 4  # a gate-obeying idle tick is the gate call plus a one-line reply
 
 
@@ -115,12 +119,80 @@ def summarise(ticks):
     }
 
 
+def steward_summary(days, as_json):
+    """Per-day, per-task steward runs, USD and tokens. Exit 3 when the ledger is absent or unreadable."""
+    import datetime
+    try:
+        handle = open(STEWARD_LEDGER, encoding="utf-8")
+    except OSError as exc:
+        msg = f"UNKNOWN: steward ledger {STEWARD_LEDGER} unreadable ({exc.strerror}); spend not measured"
+        print(json.dumps({"status": "unknown", "reason": msg}) if as_json else msg, file=sys.stderr)
+        return 3
+    now = datetime.datetime.now(datetime.timezone.utc)
+    since = (now - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
+    cutoff = (now - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rows = collections.defaultdict(lambda: {"runs": 0, "usd": 0.0, "usd_unknown_runs": 0,
+                                            "input_tokens": 0, "output_tokens": 0})
+    bad, last24, entries = 0, 0.0, []
+    with handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                e = json.loads(line)
+                e["cost_usd"] = float(e["cost_usd"])
+                e["ts"] = str(e["ts"])
+            except (ValueError, KeyError, TypeError):
+                bad += 1
+                continue
+            entries.append(e)
+    settled = {e.get("run_id") for e in entries if e.get("kind") == "settle"}
+    for e in entries:
+        if e.get("kind") == "reserve" and e.get("run_id") in settled:
+            continue  # its settle line carries the real cost
+        ts, cost = e["ts"], e["cost_usd"]
+        if ts >= cutoff and e.get("task") != "WATCHDOG":
+            last24 += cost
+        if ts[:10] < since:
+            continue
+        r = rows[(ts[:10], e.get("task", "?"))]
+        r["runs"] += 1
+        r["usd"] += cost
+        r["usd_unknown_runs"] += 0 if e.get("cost_known", True) else 1
+        r["input_tokens"] += (e.get("input_tokens") or 0) + (e.get("cache_read_tokens") or 0) \
+            + (e.get("cache_creation_tokens") or 0)
+        r["output_tokens"] += e.get("output_tokens") or 0
+    if as_json:
+        print(json.dumps({"status": "ok", "since": since, "last24h_usd": round(last24, 4),
+                          "cap_usd": STEWARD_CAP_USD, "unreadable_lines": bad,
+                          "days": [{"day": d, "task": t, **{k: round(v, 4) if isinstance(v, float) else v
+                                                             for k, v in r.items()}}
+                                   for (d, t), r in sorted(rows.items())]}, indent=2))
+        return 0
+    print(f"steward spend since {since}  (ledger {STEWARD_LEDGER})")
+    print(f"  last 24h               ${last24:.2f} of the ${STEWARD_CAP_USD:.2f} cap (WATCHDOG runs are listed, never capped)")
+    if bad:
+        print(f"  WARNING                {bad} unreadable ledger line(s); the steward refuses to spend until fixed")
+    if not rows:
+        print("  no steward runs in this window")
+        return 0
+    print(f"  {'day':<12}{'task':<12}{'runs':>5}{'usd':>9}{'in tokens':>12}{'out tokens':>12}")
+    for (day, task), r in sorted(rows.items()):
+        unknown = f"  ({r['usd_unknown_runs']} charged at budget)" if r["usd_unknown_runs"] else ""
+        print(f"  {day:<12}{task:<12}{r['runs']:>5}{r['usd']:>9.2f}{r['input_tokens']:>12,}"
+              f"{r['output_tokens']:>12,}{unknown}")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--days", type=int, default=7, help="look-back window (default 7)")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--detail", action="store_true", help="one line per tick")
+    ap.add_argument("--steward", action="store_true", help="summarise the steward ledger per day and task")
     args = ap.parse_args()
+    if args.steward:
+        return steward_summary(args.days, args.json)
 
     import datetime
 

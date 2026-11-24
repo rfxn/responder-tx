@@ -653,6 +653,34 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 27-28: cycle-check gates the HEAD tree it ships, in the lane the caller names ----------
+# run-cycle.sh exports RESPONDER_ROOT for its generators; inherited here, it sent cycle-check into the
+# live working tree, so the "at HEAD" gate passed on files HEAD did not carry (2026-11-23T23:01Z).
+# tests/cycle-check.test.sh drives the real check end to end; this pins the wiring.
+setup
+printf '%s\n' '#!/bin/bash' \
+    'printf "args=%s root=%s pwd=%s\n" "$*" "${RESPONDER_ROOT:-unset}" "$PWD" >> "$STUB_CHECK_LOG"' \
+    'echo "SUMMARY: all checks passed"' > "$REPO/scripts/cycle-check.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a cycle-check that records how it was called' )
+STUB_CHECK_LOG="$WORK/check.log" RESPONDER_ROOT="$REPO" run_deploy --skip-live --data-lane
+DATA_CALL=$(cat "$WORK/check.log" 2>/dev/null)
+DATA_RC=$RC
+: > "$WORK/check.log"
+STUB_CHECK_LOG="$WORK/check.log" RESPONDER_ROOT="$REPO" run_deploy --skip-live
+RELEASE_CALL=$(cat "$WORK/check.log" 2>/dev/null)
+case "$DATA_CALL" in
+    "args=--data-lane root=unset pwd=${TMPDIR:-/tmp}/responder-src."*)
+        [ "$DATA_RC" -eq 0 ] && pass "27 MUTATION · with RESPONDER_ROOT inherited, the data-lane gate runs cycle-check --data-lane in the HEAD tree" \
+            || fail "27 data-lane deploy must pass (rc=${DATA_RC})" ;;
+    *) fail "27 cycle-check must run in the HEAD tree with RESPONDER_ROOT unset (got: ${DATA_CALL})" ;;
+esac
+case "$RELEASE_CALL" in
+    "args= root=unset pwd=${TMPDIR:-/tmp}/responder-src."*)
+        pass "28 a deploy without --data-lane is the release lane: cycle-check gets no flag" ;;
+    *) fail "28 the release lane must call cycle-check with no flag (got: ${RELEASE_CALL})" ;;
+esac
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL DEPLOY GATE TESTS PASSED"

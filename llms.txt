@@ -23,6 +23,11 @@ The board itself never shows a stale observation as live: readings age out, get 
 drop off the map rather than sitting there looking current. An answer drawn from it should
 carry the same discipline.
 
+Alerts, river gauges, road closures and radar are read live by the board in the reader's
+browser. The data files below are rebuilt by the board's publishing cycle hourly during flood
+or severe weather and twice daily otherwise (the event configuration changes only on a
+re-target); `data/cadence.json` names the current mode and when the next update is due.
+
 ## Live machine readable endpoints
 
 - [RSS feed](https://respondertx.org/feed.xml): flash flood emergencies and forecast river

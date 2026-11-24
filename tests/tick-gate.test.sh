@@ -21,12 +21,19 @@
 #      fresh one does not; INBOX outranks it; one slot per condition per 3h; quiet hours and
 #      the override behave as they do for BACKLOG; and the gate reads the state files the
 #      monitor really writes, at the paths it really writes them
+#   29-31 --alert-only (scripts/steward.sh): ignores the inbox and quiet hours, never claims BACKLOG,
+#      and takes the caller's per-alert cooldown
+#   32-35 a data-lane advisory in the cycle status held past 24h raises ALERT naming it; a young one,
+#      an older status file without the fields, or an unreadable one does not; the path agrees with run-cycle.sh
 # A throwaway temp dir per case, with every path the script reads passed by env var,
 # keeps the real repo data/ and /var/log untouched. Run: bash tests/tick-gate.test.sh
 set -uo pipefail
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 GATE="$REPO_ROOT/scripts/tick-gate.sh"
+# Every inherited RESPONDER_* is dropped (tests/run.sh exports shared scratch paths); each run pins its own.
+SCRUB=()
+while IFS= read -r v; do SCRUB+=(-u "$v"); done < <(compgen -e | grep '^RESPONDER_' || :)
 FAILS=0
 
 pass() { printf 'PASS: %s\n' "$1"; }
@@ -58,9 +65,11 @@ reset_gate_env() {  # defaults for a case that is not exercising that particular
     MONSTATE="$WORK/monitor-state"
     BKSTATE="$WORK/backup-state"
     ALERTF="$WORK/.tick-gate-alert-state"
+    CYCSTAT="$WORK/cycle-status.json"
 }
 
 run_gate() {  # ARGS...: invokes tick-gate.sh against the case's env; sets RC and VERDICT
+    env "${SCRUB[@]}" \
     RESPONDER_CHAT_INBOX="$INBOXF" \
     RESPONDER_CHAT_CURSOR="$CURSORF" \
     RESPONDER_CHAT_DRAIN_MARKER="$MARKERF" \
@@ -71,6 +80,9 @@ run_gate() {  # ARGS...: invokes tick-gate.sh against the case's env; sets RC an
     RESPONDER_MONITOR_STATE="$MONSTATE" \
     RESPONDER_BACKUP_STATE="$BKSTATE" \
     RESPONDER_TICK_ALERT_AFTER_MIN="${ALERT_AFTER:-}" \
+    RESPONDER_TICK_ALERT_COOLDOWN="${ALERT_COOL:-}" \
+    RESPONDER_TICK_ADVISORY_AFTER_MIN="${ADV_AFTER:-}" \
+    RESPONDER_CYCLE_STATUS="$CYCSTAT" \
     RESPONDER_TICK_GATE_LOCK="$WORK/tick-gate.lock" \
     RESPONDER_TICK_GATE_LOG="$WORK/tick-gate.log" \
     RESPONDER_TICK_BACKLOG_COOLDOWN="$COOLSEC" \
@@ -455,6 +467,7 @@ printf '{"generated":"%s","gauges":[]}\n' "$(date -u -d '-200 min' '+%Y-%m-%dT%H
 cp "$WORK/remote/gauges-snapshot.json" "$WORK/data/gauges-snapshot.json"
 printf '{"head":"abc"}\n' > "$WORK/backups/hourly/manifest-test.json"
 printf '{"verdict":"FAIL","detail":"seeded by the test"}\n' > "$WORK/backups/status.json"
+env "${SCRUB[@]}" \
 RESPONDER_MONITOR_URL="file://$WORK/remote/gauges-snapshot.json" \
 RESPONDER_MONITOR_OUTBOX="$WORK/data/chat-outbox.json" \
 RESPONDER_MONITOR_SNAPSHOT="$WORK/data/gauges-snapshot.json" \
@@ -475,6 +488,86 @@ else
     fail "28b monitor-written state must drive ALERT (got '$V1' then '$VERDICT')"; cat "$MONSTATE" "$BKSTATE" "$WORK/run.out"
 fi
 rm -rf "$WORK"
+
+# --- Tests 29-31: --alert-only, the steward's view of the gate ----------------
+setup; write_inbox 2
+run_gate --alert-only
+if [ "$VERDICT" = "IDLE no-alert" ] && [ ! -e "$STATEF" ]; then
+    pass "29 --alert-only ignores unread inbox lines and never claims a BACKLOG slot"
+else
+    fail "29 --alert-only must answer IDLE no-alert without claiming (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 120; QSTART=$CONTAIN_START; QEND=$CONTAIN_END
+run_gate
+V1=$VERDICT
+run_gate --alert-only
+case "$V1|$VERDICT" in
+    "IDLE quiet-hours|ALERT freshness CRITICAL for 120m since "*)
+        pass "30 quiet hours hold an ALERT for the in-session tick but not for --alert-only" ;;
+    *) fail "30 quiet-hours handling (got '$V1' then '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+rm -rf "$WORK"
+
+setup; mk_mon CRITICAL 300; claim_ago freshness 150
+run_gate --alert-only --peek
+V1=$VERDICT
+ALERT_COOL=7200 run_gate --alert-only
+case "$V1|$VERDICT" in
+    "IDLE no-alert|ALERT freshness CRITICAL for 300m since "*)
+        pass "31 a claim 150m old blocks the default 3h cooldown but not the steward's 2h one" ;;
+    *) fail "31 caller cooldown (got '$V1' then '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+rm -rf "$WORK"
+
+# --- Tests 32-35: a data-lane advisory that persists (the 25-day freeze was one) ----------------
+mk_adv() {  # HELD_MIN — a cycle status whose advisory first appeared HELD_MIN ago
+    printf '{"stage":"done","advisories":["out-of-cycle artifact age: data/records.json 95d > 90d","second"],"advisories_since":"%s"}\n' \
+        "$(date -u -d "-$1 min" '+%Y-%m-%dT%H:%M:%SZ')" > "$CYCSTAT"
+}
+setup; mk_adv 1500
+run_gate --alert-only
+case "$VERDICT" in
+    "ALERT advisory out-of-cycle artifact age: data/records.json 95d  90d for 1500m since "*)
+        if grep -qE '^advisory [0-9]+$' "$ALERTF" && grep -q 'cycle-check.sh names the check' "$WORK/run.out"; then
+            pass "32 an advisory held 25h raises ALERT advisory naming the first advisory, and claims it"
+        else
+            fail "32 advisory ALERT must claim and carry its hint"; cat "$ALERTF" "$WORK/run.out"
+        fi ;;
+    *) fail "32 a day-old advisory should ALERT (got '$VERDICT')"; cat "$WORK/run.out" ;;
+esac
+rm -rf "$WORK"
+
+setup; mk_adv 120
+run_gate
+if [ "$VERDICT" = "BACKLOG" ] && [ ! -e "$ALERTF" ]; then
+    pass "33 an advisory only 2h old is not a fault yet (shipped 24h threshold)"
+else
+    fail "33 a young advisory must not ALERT (got '$VERDICT')"; cat "$WORK/run.out"
+fi
+rm -rf "$WORK"
+
+setup
+printf '{"stage":"done","ts":"2026-11-23T00:00:00Z"}\n' > "$CYCSTAT"
+run_gate --alert-only
+V1=$VERDICT
+printf 'not json' > "$CYCSTAT"
+run_gate --alert-only
+if [ "$V1" = "IDLE no-alert" ] && [ "$VERDICT" = "IDLE no-alert" ] && [ "$RC" -eq 0 ]; then
+    pass "34 a status file without the advisory fields, or one that will not parse, raises nothing and does not crash"
+else
+    fail "34 tolerate old/unreadable status (got '$V1' then '$VERDICT' rc=$RC)"; cat "$WORK/run.out" "$WORK/run.err"
+fi
+rm -rf "$WORK"
+
+in_gate=$(grep -oP '\$\{RESPONDER_CYCLE_STATUS:-\K[^}]+' "$GATE" | head -1)
+in_cycle=$(grep -oP '\$\{RESPONDER_CYCLE_STATUS:-\K[^}]+' "$REPO_ROOT/scripts/run-cycle.sh" | head -1)
+if [ -n "$in_gate" ] && [ "$in_gate" = "$in_cycle" ]; then
+    pass "35 tick-gate.sh reads the cycle status at the path run-cycle.sh writes it (${in_gate})"
+else
+    fail "35 RESPONDER_CYCLE_STATUS defaults differ: gate '${in_gate}' vs run-cycle '${in_cycle}'"
+fi
 
 echo "----"
 if [ "$FAILS" -eq 0 ]; then

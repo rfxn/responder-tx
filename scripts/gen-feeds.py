@@ -103,8 +103,9 @@ def event_branding():
     region = ev.get("region") or ""
     title = f"{name} · {label}" if label else f"{name} · Flood Ops"
     area = region or label or "the current coverage area"
-    desc = (f"Flood warnings, watches and advisories, flash flood emergencies, forecast river crests, "
-            f"and active notices for {area}. "
+    desc = (f"Flood warnings, watches and advisories, flash flood and tornado emergencies, forecast river "
+            f"crests, and active notices for {area}. "
+            "Updated hourly during flood or severe weather and twice daily otherwise. "
             "Situational awareness, not a dispatch system; call 911 for emergencies.")
     return title, desc
 

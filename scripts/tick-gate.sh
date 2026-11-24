@@ -1,5 +1,5 @@
 #!/bin/bash
-# tick-gate.sh [--peek] [--json] — zero-LLM admission control for the autonomous
+# tick-gate.sh [--peek] [--json] [--alert-only] — zero-LLM admission control for the autonomous
 # revival tick. The tick runs this FIRST and stops immediately on IDLE, so a tick
 # with nothing to do costs one tool call instead of a full context re-read.
 #
@@ -11,16 +11,20 @@
 #
 # BACKLOG and ALERT claim their slot as they report it: deciding "nothing is ready" is
 # itself the expensive part of a tick, so the rate limit has to bind before that
-# decision, not after it. --peek reports without claiming. See scripts/README.md "Tick gate".
+# decision, not after it. --peek reports without claiming. --alert-only (scripts/steward.sh) answers
+# ALERT or IDLE only: the inbox is the watchdog's and a headless run pays no context re-read at night.
+# See scripts/README.md "Tick gate".
 set -euo pipefail
 
 PEEK=0
 JSON=0
+ALERT_ONLY=0
 for arg in "$@"; do
     case "$arg" in
         --peek) PEEK=1 ;;
         --json) JSON=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --peek, --json)" >&2; exit 2 ;;
+        --alert-only) ALERT_ONLY=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --peek, --json, --alert-only)" >&2; exit 2 ;;
     esac
 done
 
@@ -43,9 +47,14 @@ LOGFILE="${RESPONDER_TICK_GATE_LOG:-/var/log/responder-tick-gate.log}"
 # Same env names and defaults as freshness-monitor.sh, the writer of both; tests/tick-gate.test.sh asserts they agree.
 MONITOR_STATE="${RESPONDER_MONITOR_STATE:-/tmp/responder-freshness-state}"
 BACKUP_STATE="${RESPONDER_BACKUP_STATE:-/tmp/responder-backup-health-state}"
+CYCLE_STATUS="${RESPONDER_CYCLE_STATUS:-/var/log/responder-cycle-status.json}"  # run-cycle.sh writes it; same fallback as freshness-monitor.sh
+if [ -z "${RESPONDER_CYCLE_STATUS:-}" ] && [ ! -e "$CYCLE_STATUS" ]; then
+    CYCLE_STATUS=/tmp/responder-cycle-status.json
+fi
 
 COOLDOWN="${RESPONDER_TICK_BACKLOG_COOLDOWN:-21600}"  # 6h between discretionary work slots; the inbox path ignores this
 ALERT_AFTER_MIN="${RESPONDER_TICK_ALERT_AFTER_MIN:-60}"  # a fault must hold this long before a tick is spent on it
+ADVISORY_AFTER_MIN="${RESPONDER_TICK_ADVISORY_AFTER_MIN:-1440}"  # a data-lane advisory never blocks a publish, so only a day-old one is a fault
 ALERT_COOLDOWN="${RESPONDER_TICK_ALERT_COOLDOWN:-10800}"  # 3h per condition, so one the tick cannot fix cannot claim every tick
 QUIET_START="${RESPONDER_TICK_QUIET_START:-1}"        # local hour the quiet window opens (inclusive)
 QUIET_END="${RESPONDER_TICK_QUIET_END:-9}"            # local hour it closes (exclusive); equal values disable quiet hours
@@ -124,12 +133,11 @@ claim_alert() {  # NAME — record NOW as NAME's last ALERT slot, keeping every 
 ALERT_WHAT=""
 ALERT_DETAIL=""
 ALERT_HINT=""
-consider_alert() {  # NAME FILE WANT FIELD HINT — pick the first held, unclaimed fault; note the rest
-    local since held claimed left
-    since=$(held_since "$2" "$3" "$4")
-    [ -n "$since" ] || return 0
-    held=$(( (NOW - since) / 60 ))
-    [ "$held" -ge "$ALERT_AFTER_MIN" ] || return 0
+consider_held() {  # NAME SINCE LABEL AFTER_MIN HINT: pick the first held, unclaimed fault; note the rest
+    local held claimed left
+    [ -n "$2" ] || return 0
+    held=$(( (NOW - $2) / 60 ))
+    [ "$held" -ge "$4" ] || return 0
     claimed=$(alert_claimed "$1")
     left=$(( ALERT_COOLDOWN - (NOW - claimed) ))
     if [ "$OVERRIDDEN" -eq 0 ] && [ "$left" -gt 0 ]; then
@@ -138,11 +146,33 @@ consider_alert() {  # NAME FILE WANT FIELD HINT — pick the first held, unclaim
     fi
     if [ -z "$ALERT_WHAT" ]; then
         ALERT_WHAT="$1"
-        ALERT_DETAIL="${3} for ${held}m since $(command date -u -d "@${since}" '+%Y-%m-%dT%H:%MZ')"
+        ALERT_DETAIL="${3} for ${held}m since $(command date -u -d "@${2}" '+%Y-%m-%dT%H:%MZ')"
         ALERT_HINT="$5"
     else
         ALERT_NOTE="${ALERT_NOTE:+${ALERT_NOTE}; }${1} ${3} held ${held}m, next in line"
     fi
+}
+
+consider_alert() {  # NAME FILE WANT FIELD HINT: a whitespace state file whose FIELD dates the WANT verdict
+    consider_held "$1" "$(held_since "$2" "$3" "$4")" "$3" "$ALERT_AFTER_MIN" "$5"
+}
+
+advisory_state() {  # -> "<since epoch> <first advisory>" from the cycle status; nothing when absent or undated
+    [ -r "$CYCLE_STATUS" ] || return 0
+    CYCLE_STATUS="$CYCLE_STATUS" python3 -I - 2>/dev/null <<'PY' || :
+import datetime, json, os, re
+try:
+    with open(os.environ["CYCLE_STATUS"], encoding="utf-8") as f:
+        status = json.load(f)
+    since = status.get("advisories_since")
+    first = (status.get("advisories") or [""])[0]
+    when = datetime.datetime.fromisoformat(since.replace("Z", "+00:00"))
+    epoch = int((when if when.tzinfo else when.replace(tzinfo=datetime.timezone.utc)).timestamp())
+except Exception:
+    raise SystemExit(0)
+label = re.sub(r"[^A-Za-z0-9 .,:;()/_%+=-]", "", str(first)).strip()[:120] or "unnamed advisory"
+print(epoch, label)
+PY
 }
 
 INBOX_COUNT=$(count_lines "$INBOX")
@@ -153,7 +183,7 @@ ELAPSED=$((NOW - LAST_CLAIM))
 COOL_LEFT=$((COOLDOWN > ELAPSED ? COOLDOWN - ELAPSED : 0))
 
 # The inbox outranks every throttle: an owner message is the one thing this gate must never delay.
-if [ "$UNREAD" -gt 0 ]; then
+if [ "$ALERT_ONLY" -eq 0 ] && [ "$UNREAD" -gt 0 ]; then
     emit "INBOX $UNREAD" "unprocessed owner messages; drain and act"
     exit 0
 fi
@@ -172,9 +202,13 @@ OVERRIDDEN=0
 
 # Freshness first: a stale public board outranks a stale backup. Field numbers are 0-based.
 consider_alert freshness "$MONITOR_STATE" CRITICAL 4 "the public mirror is stale; scripts/freshness-monitor.sh --dry-run names the cause"
+ADVISORY=$(advisory_state)
+if [ -n "$ADVISORY" ]; then
+    consider_held advisory "${ADVISORY%% *}" "${ADVISORY#* }" "$ADVISORY_AFTER_MIN" "a data-lane advisory has persisted; ${CYCLE_STATUS} lists them and scripts/cycle-check.sh names the check"
+fi
 consider_alert backup "$BACKUP_STATE" FAIL 2 "backups are failing; the Backup alert row of the scripts/README.md freshness runbook says where to look"
 
-if [ "$OVERRIDDEN" -eq 0 ] && [ "$QUIET_START" -ne "$QUIET_END" ]; then
+if [ "$ALERT_ONLY" -eq 0 ] && [ "$OVERRIDDEN" -eq 0 ] && [ "$QUIET_START" -ne "$QUIET_END" ]; then
     QUIET=0
     if [ "$QUIET_START" -lt "$QUIET_END" ]; then
         [ "$HOUR" -ge "$QUIET_START" ] && [ "$HOUR" -lt "$QUIET_END" ] && QUIET=1
@@ -205,6 +239,11 @@ if [ -n "$ALERT_WHAT" ]; then
     fi
     claim_alert "$ALERT_WHAT"
     emit "ALERT ${ALERT_WHAT} ${ALERT_DETAIL}" "${ALERT_WHAT} ${ALERT_DETAIL}: ${ALERT_HINT}; diagnose and fix before anything else$([ "$OVERRIDDEN" -eq 1 ] && echo ' (gate override active)')"
+    exit 0
+fi
+
+if [ "$ALERT_ONLY" -eq 1 ]; then
+    emit "IDLE no-alert" "no held, unclaimed fault"
     exit 0
 fi
 

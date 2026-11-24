@@ -919,6 +919,153 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 57-59: --data-lane demotes only the advisory checks --------------------------------
+# A check whose failure cannot make the published data wrong (artifact age, offline warm depth, AO
+# area, cron bootstrap) warns in the data lane; a data-correctness check still fails it.
+setup
+write_static cameras.json 46
+printf '%s\n' 'if then' > "$REPO/scripts/chat-poll.sh"  # a cron entrypoint saved mid-edit
+run_check; A=$?
+run_check --data-lane; B=$?
+if [ "$A" -ne 0 ] && [ "$B" -eq 0 ] \
+   && grep -q '^WARN: out-of-cycle artifact age (.*data lane: warn only' "$WORK/out" \
+   && grep -q '^WARN: cron bootstrap sanity (.*data lane: warn only' "$WORK/out"; then
+    pass "57 MUTATION · --data-lane warns on a stale inventory and a broken cron entrypoint; the release lane fails"
+else
+    fail "57 --data-lane must warn where the release lane fails (release=${A} data=${B})"; cat "$WORK/out"
+fi
+python3 - "$REPO/data/gauges-snapshot.json" <<'PY'
+import json, sys
+json.dump({"generated": "2026-07-24T00:00:00Z", "gauges": [{"lid": "FX001", "status": {}}]}, open(sys.argv[1], "w"))
+PY
+run_check --data-lane; B=$?
+if [ "$B" -ne 0 ] && grep -q '^FAIL: snapshot' "$WORK/out"; then
+    pass "58 MUTATION · a data-correctness check still fails the data lane"
+else
+    fail "58 the data lane must still fail on bad data (rc=${B})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 59-62: the real deploy gate reads the HEAD archive, in the lane it is given ------------
+# deploy.sh used to inherit run-cycle.sh's RESPONDER_ROOT, so cycle-check validated the live working
+# tree while `git archive HEAD` shipped something else (2026-11-23T23:01Z: fresh files left
+# uncommitted made the gate pass over HEAD's stale ones). Each case below is a stale or bad file at
+# HEAD with a good copy in the tree: only a gate that reads HEAD can see it.
+deploy_fixture() {
+    cp "$REPO_ROOT/scripts/deploy.sh" "$REPO/scripts/deploy.sh"
+    cp "$REPO_ROOT/tests/run.sh" "$REPO/tests/run.sh"
+    printf '%s\n' "const { test } = require('node:test');" "test('fixture suite is green', () => {});" > "$REPO/tests/ok.test.js"
+    printf '%s\n' 'print("PASS: fixture python suite is green")' > "$REPO/tests/ok.test.py"
+    printf '%s\n' '#!/bin/bash' 'echo "PASS: fixture shell suite is green"' > "$REPO/tests/ok.test.sh"
+    sed -i 's|<div id="disclaimer">call 911</div>|&\n<!-- lan-only:intake -->\n<form id="new-request-form"></form>\n<!-- /lan-only:intake -->|' "$REPO/index.html"
+    mkdir -p "$WORK/bin"
+    printf '%s\n' '#!/bin/bash' 'echo "$*" > "$STUB_WRANGLER_LOG"' > "$WORK/bin/wrangler"
+    chmod +x "$WORK/bin/wrangler"
+    git init --quiet --bare "$WORK/remote.git"
+    ( cd "$REPO" && git add -A && git commit --quiet -m 'deploy fixture' \
+        && git remote add origin "$WORK/remote.git" && git push --quiet -u origin main ) >/dev/null 2>&1
+}
+run_deploy_lane() {  # $1 = extra deploy.sh flag or ""; RESPONDER_ROOT set exactly as run-cycle.sh sets it
+    rm -f "$WORK/wrangler.log"
+    ( cd "$REPO" && STUB_WRANGLER_LOG="$WORK/wrangler.log" RESPONDER_ROOT="$REPO" \
+        RESPONDER_DEPLOY_WRANGLER="$WORK/bin/wrangler" RESPONDER_DEPLOY_DIR="$WORK/deploy" \
+        RESPONDER_DEPLOY_SHELL_MARKER="$WORK/shell-gate.key" RESPONDER_DEPLOY_BYPASS_LOG="$WORK/bypass.log" \
+        CLOUDFLARE_API_TOKEN=stub-not-a-credential bash scripts/deploy.sh --skip-live ${1:+"$1"} ) > "$WORK/out" 2>&1
+    RC=$?
+}
+
+setup
+deploy_fixture
+write_static cameras.json 46
+write_static records.json 10
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit a stale camera inventory' )
+write_static cameras.json 1  # regenerated, NOT committed: what the controller did on 2026-11-23
+run_deploy_lane --data-lane
+if [ "$RC" -eq 0 ] && grep -q '^WARN: out-of-cycle artifact age' "$WORK/out" \
+   && grep -q 'data/cameras.json is 46 days old' "$WORK/out" && [ -s "$WORK/wrangler.log" ]; then
+    pass "59 MUTATION · the data-lane deploy reads HEAD's stale inventory, warns, and still publishes"
+else
+    fail "59 data-lane deploy must warn on HEAD's stale file and publish (rc=${RC})"; cat "$WORK/out"
+fi
+run_deploy_lane ""
+if [ "$RC" -ne 0 ] && grep -q '^FAIL: out-of-cycle artifact age' "$WORK/out" && [ ! -s "$WORK/wrangler.log" ]; then
+    pass "60 MUTATION · the release lane fails on the stale file at HEAD although the tree copy is fresh"
+else
+    fail "60 release-lane deploy must fail on HEAD's stale file (rc=${RC})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+setup
+deploy_fixture
+python3 - "$REPO/data/gauges-snapshot.json" <<'PY'
+import json, sys
+json.dump({"generated": "2026-07-24T00:00:00Z", "gauges": [{"lid": "FX001", "status": {}}]}, open(sys.argv[1], "w"))
+PY
+( cd "$REPO" && git add -A && git commit --quiet -m 'commit a truncated snapshot' && git checkout --quiet HEAD~1 -- data/gauges-snapshot.json )
+run_deploy_lane --data-lane
+if [ "$RC" -ne 0 ] && grep -q '^FAIL: snapshot' "$WORK/out" && [ ! -s "$WORK/wrangler.log" ]; then
+    pass "61 MUTATION · a truncated snapshot at HEAD fails the data-lane deploy even with a good copy in the tree"
+else
+    fail "61 a bad file at HEAD must fail the data lane (rc=${RC})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
+# --- Tests 62-64: data/outlook.json (Contract 3) is checked, and only warns the data lane -------------
+# The steward writes it unattended; a bad outlook must never stop a flood publish, and must never ship
+# from a release run either.
+write_outlook() {  # $1 = how to break it, or "ok"
+    python3 - "$REPO/data/outlook.json" "$1" <<'PY'
+import json, sys
+path, how = sys.argv[1], sys.argv[2]
+item = {"id": "wpc-ero-d2", "kind": "rain", "level": "elevated",
+        "title": {"en": "Heavy rain possible", "es": "Posible lluvia intensa"},
+        "body": {"en": "Excessive rainfall risk Tuesday.", "es": "Riesgo de lluvia excesiva el martes."},
+        "window": {"start": "2026-11-24T12:00:00Z", "end": "2026-11-25T12:00:00Z"},
+        "source": {"name": "NWS Weather Prediction Center", "url": "https://www.wpc.ncep.noaa.gov/qpf/excess_rain.shtml"},
+        "issued": "2026-11-23T20:00:00Z"}
+doc = {"generated": "2026-11-23T23:00:00Z", "validUntil": "2026-11-24T12:00:00Z", "author": "steward",
+       "headline": {"en": "Rain chances rise Tuesday", "es": "Aumentan las lluvias el martes"}, "items": [item]}
+if how == "emdash":
+    doc["headline"]["es"] = "Lluvia — martes"
+elif how == "nosource":
+    item["source"] = {"name": "WPC", "url": "http://insecure.example"}
+elif how == "toomany":
+    doc["items"] = [dict(item, id="i%d" % n) for n in range(7)]
+elif how == "longlife":
+    doc["validUntil"] = "2026-11-25T23:00:01Z"
+json.dump(doc, open(path, "w"), ensure_ascii=False)
+PY
+}
+setup
+write_outlook ok
+run_check; A=$?
+run_check --data-lane; B=$?
+if [ "$A" -eq 0 ] && [ "$B" -eq 0 ] && grep -q '^OK:   data schemas (.*outlook)' "$WORK/out"; then
+    pass "62 a Contract 3 outlook passes both lanes"
+else
+    fail "62 a valid outlook must pass (release=${A} data=${B})"; cat "$WORK/out"
+fi
+for how in emdash nosource toomany longlife; do
+    write_outlook "$how"
+    run_check; A=$?
+    REL=$(grep -m1 'outlook.json' "$WORK/out")
+    run_check --data-lane; B=$?
+    if [ "$A" -ne 0 ] && [ "$B" -eq 0 ] && grep -q '^WARN: outlook.json breaks Contract 3' "$WORK/out" \
+       && grep -q '^OK:   data schemas' "$WORK/out"; then
+        pass "63 MUTATION · an outlook with ${how} fails the release lane and only warns the data lane (${REL})"
+    else
+        fail "63 outlook ${how} (release=${A} data=${B})"; cat "$WORK/out"
+    fi
+done
+rm -f "$REPO/data/outlook.json"
+run_check; A=$?
+if [ "$A" -eq 0 ] && grep -q 'note: data/outlook.json absent' "$WORK/out"; then
+    pass "64 no outlook at all is a quiet absence, not a failure"
+else
+    fail "64 absent outlook tolerated (rc=${A})"; cat "$WORK/out"
+fi
+rm -rf "$WORK"
+
 echo "----"
 if [ "$FAILS" -eq 0 ]; then
     echo "ALL CYCLE-CHECK IMMUNITY TESTS PASSED"

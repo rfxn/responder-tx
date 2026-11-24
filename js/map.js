@@ -626,9 +626,11 @@ function initMap() {
       state.usgsAutoOn = false;
     }
     if (e.layer !== state.layers.radar) return;
+    rtlDetachHidden(); // re-enable mounts the group's members: keep that to the visible frame
     rtlSync();
     if (rtlDomain().total) rtlSet(state.rtl.idx); // forecast-only bar repaints in the shrunk domain
   });
+  state.map.on('zoomstart movestart', rtlDetachHidden);
 
   state.map.on('baselayerchange', (e) => {
     state.activeBase = e.layer === state.baseLayers.streets ? 'streets'
@@ -1769,6 +1771,7 @@ function rtlSet(i) {
     if (r) {
       r.idx = rtl.idx;
       r.frameLayers.forEach((l, j) => l.setOpacity(j === rtl.idx ? RTL_RADAR_OPACITY : 0));
+      if (r.frameLayers[rtl.idx]) state.layers.radar.addLayer(r.frameLayers[rtl.idx]); // first show at this view fetches it
     }
   }
   rtlUpdateLabel(R);
@@ -1778,9 +1781,9 @@ function rtlUpdateLabel(R) {
   const rtl = state.rtl, label = $('#rs-label');
   // combined-legend source: observed until the RainViewer nowcast seam, forecast beyond (nowcast + HRRR)
   const wxFcst = !R.pastN || (state.radar && rtl.idx >= state.radar.castStart);
-  const obsKey = state.radar && state.radar.src === 'iem'
-    ? (wxObsUnverified(state.radar) ? 'leg.wx.obs.iem.blank' : 'leg.wx.obs.iem')
-    : 'leg.wx.obs';
+  const blankKey = wxObsUnverified(state.radar) ? 'leg.wx.obs.iem.blank'
+    : wxFrameFailed(radarShownLayer()) ? 'leg.wx.obs.blank' : null;
+  const obsKey = blankKey || (state.radar && state.radar.src === 'iem' ? 'leg.wx.obs.iem' : 'leg.wx.obs');
   $('#wx-legend-src').textContent = t(wxFcst ? (wxFcstDegraded(state.fcst) ? 'leg.wx.fcst.down' : 'leg.wx.fcst') : obsKey);
   $('#radar-scrub').classList.toggle('rs-future', rtl.fut);
   $('#rs-badge').hidden = !rtl.fut;
@@ -1798,7 +1801,7 @@ function rtlUpdateLabel(R) {
   }
   const r = state.radar;
   // a frame time we computed and cannot back with a tile carries the reason on the stamp itself
-  label.title = wxObsUnverified(r) ? t('leg.wx.obs.iem.blank') : '';
+  label.title = blankKey ? t(blankKey) : '';
   if (!R.pastN || !r) { label.textContent = '…'; label.classList.remove('projected'); return; }
   const dMin = Math.round((r.frames[rtl.idx].time - r.frames[r.nowIdx].time) / 60);
   label.textContent = dMin === 0 ? 'now' : dMin < 0 ? `${dMin >= -110 ? dMin + 'm' : Math.round(dMin / 6) / 10 + 'h'}` : `+${dMin}m PROJECTED`;
@@ -1818,6 +1821,7 @@ function rtlTogglePlay() {
   if (rtl.playing) { rtlStopPlay(); return; }
   if (!rtlDomain().total) return;
   rtl.playing = true;
+  rtlMountAll();
   $('#rs-play').textContent = '⏸';
   const step = () => {
     const R = rtlDomain();
@@ -1845,22 +1849,57 @@ function attachTileRetry(layer) {
   });
 }
 
-// mount the visible frame first (loads with uncontended bandwidth), then add the rest deferred once
-// it paints (or a short fallback); end state is all-frames-mounted so stepping stays opacity-only
-function radarMountFramesDeferred(r, primaryIdx) {
-  const group = state.layers.radar, layers = r.frameLayers;
-  const primary = layers[primaryIdx];
-  if (primary) group.addLayer(primary);
-  let mounted = false;
-  const mountRest = () => {
-    if (mounted) return;
-    mounted = true;
-    if (state.radar !== r) return; // a newer refresh superseded this frame set
-    layers.forEach((l, j) => { if (j !== primaryIdx && !group.hasLayer(l)) group.addLayer(l); });
+// only shown layers fetch: every mounted frame refetches per zoom/pan and RainViewer 429s a per-IP burst for 60s
+const RADAR_HOLD_MS = 2500; // cap on waiting for the visible frame to paint (offscreen or failing tiles)
+
+function radarShownLayer() {
+  const r = state.radar;
+  return r && !state.rtl.fut && !pbBlocksLive(state) ? r.frameLayers[r.idx] || null : null;
+}
+
+function rtlMountAll() {
+  if (state.radar && state.map.hasLayer(state.layers.radar)) state.radar.frameLayers.forEach((l) => state.layers.radar.addLayer(l));
+  if (state.map.hasLayer(state.layers.fcstRadar)) fcstEnsureWindow(state.rtl.fut ? state.rtl.hour : 1);
+}
+
+let rtlRemount = null; // the one pending re-mount; each movestart while playing replaces it
+
+function rtlRemountCancel() {
+  if (!rtlRemount) return;
+  if (rtlRemount.layer) rtlRemount.layer.off('load', rtlRemount.fn);
+  clearTimeout(rtlRemount.timer);
+  rtlRemount = null;
+}
+
+// zoomstart/movestart: the on-screen layer reloads alone; while playing the rest re-mount once it paints
+function rtlDetachHidden() {
+  const rtl = state.rtl, vis = radarShownLayer();
+  const visHour = rtl.fut ? state.fcst.hourLayers[rtl.hour - 1] : null;
+  if (state.radar) state.radar.frameLayers.forEach((l) => { if (l !== vis) state.layers.radar.removeLayer(l); });
+  state.fcst.hourLayers.forEach((l) => { if (l && l !== visHour) state.layers.fcstRadar.removeLayer(l); });
+  rtlRemountCancel();
+  if (!rtl.playing) return;
+  const layer = vis || visHour;
+  const fn = () => { rtlRemountCancel(); if (rtl.playing) rtlMountAll(); };
+  rtlRemount = { layer, fn, timer: setTimeout(fn, RADAR_HOLD_MS) };
+  if (layer) layer.on('load', fn);
+}
+
+// refresh: the frame on screen before it (`shown`, kept in the new set) stays up until the new visible frame paints
+function radarMountVisible(r, primaryIdx, shown) {
+  const primary = r.frameLayers[primaryIdx];
+  if (!primary) return;
+  state.layers.radar.addLayer(primary);
+  if (!shown || shown === primary || !r.frameLayers.includes(shown) || !primary.isLoading()) return;
+  shown.setOpacity(RTL_RADAR_OPACITY);
+  let done = false;
+  const release = () => {
+    if (done) return;
+    done = true;
+    if (shown !== radarShownLayer()) shown.setOpacity(0);
   };
-  if (!primary) { mountRest(); return; }
-  primary.once('load', mountRest);
-  setTimeout(mountRest, 1200); // fallback when the visible frame paints no tiles (offscreen)
+  primary.once('load', release);
+  setTimeout(release, RADAR_HOLD_MS);
 }
 
 // RainViewer-down fallback: synthesize a past-only frame set from the IEM NEXRAD composite archive
@@ -1880,6 +1919,20 @@ function iemRadarFrames(nowMs) {
    unanswered request and not an observation of clear sky, and the legend has to say which.
    Same shape as wxFcstDegraded: a failure signal AND nothing painted, so the load itself is quiet. */
 const wxObsUnverified = (r) => !!(r && r.src === 'iem' && r.tileFail && !r.tileOk);
+
+// a RainViewer frame that errored and painted nothing (a 429 included) is not clear sky; each load cycle re-decides
+const wxFrameFailed = (l) => !!(l && l.rtlTileFail && !l.rtlTileOk);
+
+function watchFrameTiles(layer) {
+  const mark = (key) => () => {
+    if (layer[key]) return;
+    layer[key] = true;
+    if (layer === radarShownLayer()) rtlUpdateLabel(rtlDomain());
+  };
+  layer.on('loading', () => { layer.rtlTileOk = layer.rtlTileFail = false; });
+  layer.on('tileload', mark('rtlTileOk'));
+  layer.on('tileerror', mark('rtlTileFail'));
+}
 
 function watchRadarTiles(r, layer) {
   const mark = (key) => () => {
@@ -1901,28 +1954,37 @@ async function fetchRadarFrames() {
   } catch { d = null; } // primary down — fall back to the IEM archive frame set below
   const past = d ? d.radar.past : iemRadarFrames(Date.now());
   const cast = d ? (d.radar.nowcast || []) : [];
-  const keepIdx = state.radar ? state.radar.idx : -1;
+  const prev = state.radar;
+  const keepIdx = prev ? prev.idx : -1;
+  const shown = radarShownLayer();
   const wasPlaying = state.rtl.playing;
   rtlStopPlay();
   state.radar = { src: d ? 'rainviewer' : 'iem', host: d ? d.host : '', frames: past.concat(cast), castStart: past.length, nowIdx: past.length - 1, idx: past.length - 1, frameLayers: [], tileOk: false, tileFail: false };
   const r = state.radar;
-  state.layers.radar.clearLayers();
-  r.frameLayers = r.frames.map((f) => L.tileLayer(
-    d ? `${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png` : PB_RADAR_URL(pbRadarStampAt(f.time * 1000)), {
-      pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, className: 'rtl-xfade',
-      attribution: d ? 'Radar: RainViewer' : 'Radar: NEXRAD via IEM',
-    }));
-  r.frameLayers.forEach(attachTileRetry);
-  if (!d) r.frameLayers.forEach((l) => watchRadarTiles(r, l)); // fallback frames only: RainViewer indexes its own
+  // a RainViewer path is one immutable frame, so a refresh keeps every layer it already has
+  const reuse = new Map(d && prev && prev.src === 'rainviewer' ? prev.frameLayers.map((l) => [l._url, l]) : []);
+  r.frameLayers = r.frames.map((f) => {
+    const url = d ? `${r.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png` : PB_RADAR_URL(pbRadarStampAt(f.time * 1000));
+    if (reuse.has(url)) return reuse.get(url);
+    const l = L.tileLayer(url, {
+      pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, updateWhenZooming: false,
+      className: 'rtl-xfade', attribution: d ? 'Radar: RainViewer' : 'Radar: NEXRAD via IEM',
+    });
+    attachTileRetry(l);
+    if (d) watchFrameTiles(l);
+    else watchRadarTiles(r, l); // fallback set verdict: its frame times are computed, not indexed
+    return l;
+  });
+  if (prev) prev.frameLayers.forEach((l) => { if (!r.frameLayers.includes(l)) state.layers.radar.removeLayer(l); });
   const rf = parseInt(new URLSearchParams(location.search).get('rf'), 10); // debug/deep-link: initial frame index
   const primaryIdx = (state.rtl.wantNow || state.rtl.fut) ? r.nowIdx
     : keepIdx >= 0 && keepIdx < r.frames.length ? keepIdx
       : rf >= 0 && rf < r.frames.length ? rf : r.nowIdx;
-  radarMountFramesDeferred(r, primaryIdx); // visible frame loads first; rest mount deferred (opacity-only after)
   rtlSync();
   if (state.rtl.wantNow) { state.rtl.wantNow = false; rtlSet(r.nowIdx); } // merged enable: land on NOW once observed frames arrive
   else if (state.rtl.fut) rtlSet(state.rtl.idx); // playhead in the model future; new frames only reshape the past segment
   else rtlSet(primaryIdx);
+  radarMountVisible(r, primaryIdx, shown);
   if (wasPlaying) rtlTogglePlay();
 }
 
@@ -1954,7 +2016,7 @@ function watchFcstTiles(layer) {
 function fcstMakeHourLayer(h) {
   const l = L.tileLayer.wms(CONFIG.hrrrWmsUrl, {
     layers: fcstLayerName(h), format: 'image/png', transparent: true, version: '1.1.1',
-    opacity: 0, pane: 'radar', maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false,
+    opacity: 0, pane: 'radar', maxNativeZoom: 7, maxZoom: 19, updateWhenIdle: false, updateWhenZooming: false,
     className: 'fcst-tiles rtl-xfade',
     attribution: 'Forecast radar: NOAA HRRR model via <a href="https://mesonet.agron.iastate.edu/">IEM</a>',
   });
@@ -1965,15 +2027,15 @@ function fcstMakeHourLayer(h) {
   return l;
 }
 
-// mount the hours around the playhead (created once, then persist like radar frames); bounds the enable burst
+// mount the hours around the playhead, h first (created once; a view change may have detached them)
 function fcstEnsureWindow(h) {
   const lo = Math.max(1, h - FCST_WIN_BEHIND), hi = Math.min(CONFIG.hrrrMaxHours, h + FCST_WIN_AHEAD);
-  for (let hr = lo; hr <= hi; hr++) {
-    if (state.fcst.hourLayers[hr - 1]) continue;
-    const l = fcstMakeHourLayer(hr);
-    state.fcst.hourLayers[hr - 1] = l;
+  const hours = [h];
+  for (let hr = lo; hr <= hi; hr++) if (hr !== h) hours.push(hr);
+  hours.forEach((hr) => {
+    const l = state.fcst.hourLayers[hr - 1] || (state.fcst.hourLayers[hr - 1] = fcstMakeHourLayer(hr));
     state.layers.fcstRadar.addLayer(l);
-  }
+  });
 }
 
 // show forecast hour h by opacity only (window-mounts nearby hours); never reloads the visible frame

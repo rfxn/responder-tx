@@ -480,7 +480,7 @@ test('a change log not published yet reads as starting, a failed one as unknown'
     await SB.loadChanges(true);
     const starting = withCopy(() => notes(SB.whatChangedView(SB.whatChangedModel(NOW)).html));
     assert.deepEqual(starting.map((n) => n.text), [I18N.en['wch.starting']]);
-    assert.ok(/15 minutes/.test(I18N.en['wch.starting']) && I18N.es['wch.starting']);
+    assert.ok(/hourly during flood or severe weather/.test(I18N.en['wch.starting']) && I18N.es['wch.starting']);
     status = 503;
     await SB.loadChanges(true);
     const failed = withCopy(() => notes(SB.whatChangedView(SB.whatChangedModel(NOW)).html));

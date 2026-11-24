@@ -180,6 +180,8 @@ run_cycle() {  # sets RC and writes $WORK/cycle.log; RESPONDER_TEST_FAIL names t
     RESPONDER_STEP_BUDGET_S="${STEP_BUDGET:-}" \
     RESPONDER_CYCLE_BUDGET_S="${CYCLE_BUDGET:-}" \
     RESPONDER_PUBLISH_BUDGET_S="${PUBLISH_BUDGET:-300}" \
+    RESPONDER_CADENCE_STATE="$REPO/data/.cadence-state.json" \
+    RESPONDER_WX_ALERTS_URL="file://$WORK/no-alerts.json" \
     bash "$REPO/scripts/run-cycle.sh" "$@" > "$WORK/run.out" 2>&1
     RC=$?
 }
@@ -333,6 +335,7 @@ MON_OUT=$(
     RESPONDER_MONITOR_STATE="$WORK/monitor-state" \
     RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
     RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
+    RESPONDER_CADENCE_STATE="$WORK/no-cadence-state.json" \
     RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
     RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
     bash "$MON_SRC" --dry-run 2>&1
@@ -766,6 +769,7 @@ MON_OUT=$(
     RESPONDER_MONITOR_STATE="$WORK/monitor-state" \
     RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
     RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
+    RESPONDER_CADENCE_STATE="$WORK/no-cadence-state.json" \
     RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
     RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
     RESPONDER_BACKUP_DIR="$WORK/no-backups" \
@@ -822,6 +826,251 @@ else
 fi
 rm -rf "$WORK"
 
+# --- Tests 34-36: the cycle's deploy is the data lane, and a failure names its cause -------------
+# 2026-10-29..11-23: deploy.sh's gate hard-failed every cycle on a hand-run artifact's age, and the
+# status file said only "deploy.sh failed (exit 1)", so 1387 alerts never named what to fix.
+setup
+printf '%s\n' '#!/bin/bash' 'printf "%s\n" "$@" > "$RESPONDER_TEST_DEPLOY_ARGS"' 'echo "stub deploy"' > "$REPO/scripts/deploy.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a deploy that records its arguments' )
+RESPONDER_TEST_DEPLOY_ARGS="$WORK/deploy-args" FAILING="" run_cycle
+if [ "$RC" -eq 0 ] && grep -qx -- '--data-lane' "$WORK/deploy-args"; then
+    pass "34 the cycle hands deploy.sh --data-lane, so advisory checks cannot stop a flood publish"
+else
+    fail "34 run-cycle must call deploy.sh --data-lane (rc=$RC, args=$(cat "$WORK/deploy-args" 2>/dev/null))"
+fi
+rm -rf "$WORK"
+
+setup
+printf '%s\n' '#!/bin/bash' 'echo "OK:   JSON validity"' \
+    'echo "FAIL: out-of-cycle artifact age (data/cameras.json past its limit; stub)"' \
+    'echo "FAIL: test gate: scripts/cycle-check.sh failed at HEAD" >&2' 'exit 1' > "$REPO/scripts/deploy.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a deploy whose gate names its cause' )
+FAILING="" run_cycle
+status_err=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["first_error"])' "$WORK/cycle-status.json" 2>/dev/null)
+case "$status_err" in
+    "deploy.sh failed (exit 1); first FAIL: out-of-cycle artifact age (data/cameras.json past its limit; stub)")
+        pass "35 MUTATION · the status file carries deploy's first FAIL line, not just its exit code" ;;
+    *) fail "35 first_error must name deploy's first FAIL line (rc=$RC, got: ${status_err})" ;;
+esac
+mkdir -p "$WORK/remote"
+printf '{"generated":"%s","gauges":[]}\n' "$OLD_STAMP" > "$WORK/remote/gauges-snapshot.json"
+MON_OUT=$(
+    RESPONDER_MONITOR_URL="file://$WORK/remote/gauges-snapshot.json" \
+    RESPONDER_MONITOR_OUTBOX="$REPO/data/chat-outbox.json" \
+    RESPONDER_MONITOR_SNAPSHOT="$REPO/data/gauges-snapshot.json" \
+    RESPONDER_MONITOR_STATE="$WORK/monitor-state" \
+    RESPONDER_MONITOR_LOCK="$WORK/monitor.lock" \
+    RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
+    RESPONDER_CADENCE_STATE="$WORK/no-cadence-state.json" \
+    RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
+    RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
+    RESPONDER_BACKUP_DIR="$WORK/no-backups" \
+    bash "$MON_SRC" --dry-run 2>&1
+)
+if printf '%s' "$MON_OUT" | grep -q 'Likely cause: the data cycle is running but failing .*(stage deploy): deploy.sh failed (exit 1); first FAIL: out-of-cycle artifact age'; then
+    pass "35b the freshness alert names the failing check, read from the real status file"
+else
+    fail "35b the freshness alert must name the failing check"; printf '%s\n' "$MON_OUT"
+fi
+rm -rf "$WORK"
+
+setup
+printf '%s\n' '#!/bin/bash' 'echo "OK:   JSON validity"' 'echo "FAIL: data schemas (stub: gauges-snapshot.json missing lid)"' \
+    'exit 1' > "$REPO/scripts/cycle-check.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a validator that names its cause' )
+FAILING="" run_cycle
+status_err=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["first_error"])' "$WORK/cycle-status.json" 2>/dev/null)
+if [ "$RC" -eq 1 ] && [ "$status_err" = "ERROR: validation failed: FAIL: data schemas (stub: gauges-snapshot.json missing lid)" ]; then
+    pass "36 a validation failure records cycle-check's first FAIL line as the cause"
+else
+    fail "36 validation failure must name its FAIL line (rc=$RC, got: ${status_err})"
+fi
+rm -rf "$WORK"
+
+# --- Tests 37-44: the cadence gate ------------------------------------------------------------
+# Every fire runs the snapshot and scripts/weather-mode.py; the rest runs only when a publish is due.
+# The real detector runs here with its mode pinned by data/.cadence-force (its probe fails in this
+# scratch repo: no allowlist table, no capture), so the gate's composition is what is under test.
+cadence_setup() {
+    setup
+    cp "$REPO_ROOT/scripts/weather-mode.py" "$REPO/scripts/weather-mode.py"
+    printf '%s\n' '#!/bin/bash' 'echo "deploy $*" >> "$RESPONDER_TEST_DEPLOY_CALLS"' \
+        'if [ -n "${RESPONDER_TEST_DEPLOY_FAIL:-}" ]; then echo "FAIL: stub gate is red"; exit 1; fi' \
+        'git push --quiet origin main' > "$REPO/scripts/deploy.sh"
+    ( cd "$REPO" && git add -A && git commit --quiet -m 'the cadence detector' && git push --quiet origin main )
+    printf 'quiet\n' > "$REPO/data/.cadence-force"
+    : > "$WORK/deploy-calls"
+}
+gate_run() {  # one fire; GATE_LOG is this fire's slice of the cycle log
+    local from
+    from=$(( $(wc -l < "$WORK/cycle.log" 2>/dev/null || echo 0) + 1 ))
+    RESPONDER_TEST_DEPLOY_CALLS="$WORK/deploy-calls" RESPONDER_TEST_DEPLOY_FAIL="${DEPLOY_FAIL:-}" FAILING="" run_cycle "$@"
+    GATE_LOG=$(tail -n +"$from" "$WORK/cycle.log")
+}
+calls() { wc -l < "$WORK/deploy-calls"; }
+commits() { git -C "$REPO" rev-list --count HEAD; }
+state_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]))' "$REPO/data/.cadence-state.json" "$1" 2>/dev/null; }
+cadence_field() { git -C "$REPO" show "HEAD:data/cadence.json" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get(sys.argv[1]))' "$1" 2>/dev/null; }
+
+cadence_setup
+gate_run
+FIRST_PUB=$(state_field lastPublishAt)
+if [ "$RC" -eq 0 ] && [ "$(calls)" -eq 1 ] && [ "$(cadence_field mode)" = quiet ] && [ "$(cadence_field intervalMin)" = 720 ] \
+   && [ -n "$FIRST_PUB" ] && [ "$FIRST_PUB" != None ] && printf '%s' "$GATE_LOG" | grep -q 'cadence: full (no publish recorded)'; then
+    pass "37 the first fire publishes, commits data/cadence.json (quiet, 720 min) and records the publish"
+else
+    fail "37 first fire must publish with a committed cadence.json (rc=$RC calls=$(calls) mode=$(cadence_field mode))"; printf '%s\n' "$GATE_LOG"
+fi
+
+STATUS_BEFORE=$(sha256sum "$WORK/cycle-status.json")
+COMMITS_BEFORE=$(commits)
+SNAP_BEFORE=$(stamp_of data/gauges-snapshot.json)
+gate_run
+if [ "$RC" -eq 0 ] && [ "$(calls)" -eq 1 ] && [ "$(commits)" -eq "$COMMITS_BEFORE" ] \
+   && [ "$(sha256sum "$WORK/cycle-status.json")" = "$STATUS_BEFORE" ] \
+   && printf '%s' "$GATE_LOG" | grep -q 'HOLD: quiet, last publish 0 min ago' \
+   && ! printf '%s' "$GATE_LOG" | grep -v 'cycle start' | grep -q ' === ' \
+   && ! printf '%s' "$GATE_LOG" | grep -q 'step: gen-roads-snapshot.py' \
+   && [ "$(stamp_of data/gauges-snapshot.json)" != "$SNAP_BEFORE" ]; then
+    pass "38 MUTATION · a quiet fire right after a publish holds: no commit, no deploy, no sign-off, status untouched, snapshot still refreshed"
+else
+    fail "38 a hold must change nothing but the uncommitted snapshot (rc=$RC calls=$(calls) commits=$(commits)/$COMMITS_BEFORE)"; printf '%s\n' "$GATE_LOG"
+fi
+
+printf 'adverse\n' > "$REPO/data/.cadence-force"
+gate_run
+if [ "$RC" -eq 0 ] && [ "$(calls)" -eq 2 ] && [ "$(cadence_field mode)" = adverse ] && [ "$(cadence_field intervalMin)" = 60 ] \
+   && printf '%s' "$GATE_LOG" | grep -q 'cadence: full (mode changed to adverse)'; then
+    pass "39 a turn to adverse publishes at once, and the committed cadence.json says hourly"
+else
+    fail "39 quiet to adverse must publish now (rc=$RC calls=$(calls) mode=$(cadence_field mode))"; printf '%s\n' "$GATE_LOG"
+fi
+gate_run
+printf '%s' "$GATE_LOG" | grep -q 'HOLD: adverse, last publish 0 min ago' && pass "39b adverse holds inside its hour" \
+    || { fail "39b adverse must hold inside 55 min"; printf '%s\n' "$GATE_LOG"; }
+
+( cd "$REPO" && printf '{"items":[]}\n' > data/outlook.json && git add data/outlook.json \
+    && git commit --quiet -m 'Steward outlook 2026-11-23T23:00Z (auto-cron)' )
+COMMITS_BEFORE=$(commits)
+gate_run
+if [ "$RC" -eq 0 ] && [ "$(calls)" -eq 3 ] && [ "$(commits)" -eq "$COMMITS_BEFORE" ] \
+   && printf '%s' "$GATE_LOG" | grep -q 'cadence: ship (HEAD is 1 commit(s) ahead of origin/main, 1 not made by the cycle)' \
+   && ! printf '%s' "$GATE_LOG" | grep -q 'step: gen-roads-snapshot.py' \
+   && [ "$(git -C "$WORK/remote.git" rev-parse refs/heads/main)" = "$(git -C "$REPO" rev-parse HEAD)" ]; then
+    pass "40 a commit the cycle did not make ships within one fire, without regenerating or committing"
+else
+    fail "40 a foreign commit must ship at the next fire (rc=$RC calls=$(calls))"; printf '%s\n' "$GATE_LOG"
+fi
+
+git -C "$REPO" update-ref -d refs/remotes/origin/main  # git can no longer say how far HEAD is ahead
+CALLS_BEFORE=$(calls)
+gate_run
+if [ "$(calls)" -eq $((CALLS_BEFORE + 1)) ] && printf '%s' "$GATE_LOG" | grep -q 'cadence: ship (could not read HEAD against origin/main'; then
+    pass "40b E1 · when git cannot count HEAD ahead of origin/main, the fire ships instead of reading it as zero"
+else
+    fail "40b a failed ahead read must ship, not hold"; printf '%s\n' "$GATE_LOG"
+fi
+git -C "$REPO" update-ref refs/remotes/origin/main "$(git -C "$WORK/remote.git" rev-parse refs/heads/main)"
+
+printf 'quiet\n' > "$REPO/data/.cadence-force"
+gate_run  # the change back to quiet is published first, so the retry below owes nothing but the deploy
+DEPLOY_FAIL=1 gate_run --now
+FAILED_CALLS=$(calls)
+gate_run
+if [ "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["consecutive_failures"])' "$WORK/cycle-status.json")" = 0 ] \
+   && [ "$(calls)" -eq $((FAILED_CALLS + 1)) ] && printf '%s' "$GATE_LOG" | grep -q 'cadence: ship (retry after 1 failed run(s) at stage deploy)' \
+   && ! printf '%s' "$GATE_LOG" | grep -q 'step: gen-roads-snapshot.py'; then
+    pass "41 a failed deploy is retried at the next fire by re-running the deploy alone"
+else
+    fail "41 a pending deploy failure must retry the deploy at the next fire"; printf '%s\n' "$GATE_LOG"
+fi
+
+python3 - "$WORK/cycle-status.json" <<'PY'
+import json, sys, time
+json.dump({"finished_at": "x", "finished_epoch": int(time.time()), "exit_code": 1, "stage": "deploy",
+           "first_error": "deploy.sh failed (exit 1)", "consecutive_failures": 5, "failing_since": "x"}, open(sys.argv[1], "w"))
+PY
+STATUS_BEFORE=$(sha256sum "$WORK/cycle-status.json")
+CALLS_BEFORE=$(calls)
+gate_run
+if [ "$(calls)" -eq "$CALLS_BEFORE" ] && [ "$(sha256sum "$WORK/cycle-status.json")" = "$STATUS_BEFORE" ] \
+   && printf '%s' "$GATE_LOG" | grep -q 'HOLD: 5 failed runs; retrying hourly'; then
+    pass "42 past 4 failures the retry backs off to hourly, and the backoff hold leaves the failure record alone"
+else
+    fail "42 the fifth failure must back off (calls=$(calls)/$CALLS_BEFORE)"; printf '%s\n' "$GATE_LOG"
+fi
+gate_run --now
+if [ "$(calls)" -eq $((CALLS_BEFORE + 1)) ] && printf '%s' "$GATE_LOG" | grep -q 'overridden by --now'; then
+    pass "43 --now runs the full cycle through any hold"
+else
+    fail "43 --now must override the gate"; printf '%s\n' "$GATE_LOG"
+fi
+rm -rf "$WORK"
+
+cadence_setup
+printf '%s\n' 'import sys' 'sys.exit("stub detector crashed")' > "$REPO/scripts/weather-mode.py"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a broken detector' )
+gate_run
+if [ "$RC" -eq 0 ] && [ "$(calls)" -eq 1 ] && printf '%s' "$GATE_LOG" | grep -q 'WARN: weather-mode.py did not finish its probe' \
+   && ! git -C "$REPO" cat-file -e HEAD:data/cadence.json 2>/dev/null; then
+    pass "44 MUTATION · a broken detector never holds a publish, and no cadence claim ships without a probe"
+else
+    fail "44 a broken detector must fall back to publishing (rc=$RC calls=$(calls))"; printf '%s\n' "$GATE_LOG"
+fi
+rm -rf "$WORK"
+
+# --- Test 45: a slow probe never squeezes the generators ------------------------------------------
+setup
+printf '%s\n' 'import sys, time' 'if "--due" in sys.argv: print("full stub verdict"); sys.exit(0)' \
+    'if "--mark-published" in sys.argv or "--write-cadence" in sys.argv: sys.exit(0)' 'time.sleep(9)' > "$REPO/scripts/weather-mode.py"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a detector whose probe takes 9 s' )
+FAILING="" CYCLE_BUDGET=12 run_cycle
+if [ "$RC" -eq 0 ] && ! grep -q 'not started; the 12s cycle generator budget is spent' "$WORK/cycle.log" \
+   && grep -q 'cadence: full (stub verdict)' "$WORK/cycle.log"; then
+    pass "45 MUTATION · a 9 s probe on a 12 s generator budget leaves every generator its full budget"
+else
+    fail "45 the probe must run outside the generator clock (rc=$RC)"; cat "$WORK/cycle.log"
+fi
+rm -rf "$WORK"
+
+# --- Test 46: a data-lane advisory reaches the status file, with when it first appeared -------------
+setup
+printf '%s\n' '#!/bin/bash' '[ -z "${RESPONDER_TEST_ADVISORY:-}" ] || echo "$RESPONDER_TEST_ADVISORY"' \
+    'echo "SUMMARY: all 18 checks passed"' > "$REPO/scripts/cycle-check.sh"
+( cd "$REPO" && git add -A && git commit --quiet -m 'a validator that can print an advisory' )
+ADV='WARN: out-of-cycle artifact age (stub) (data lane: warn only, so a flood publish is not stopped; a release deploy fails on this)'
+adv_field() { python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])).get(sys.argv[2])))' "$WORK/cycle-status.json" "$1" 2>/dev/null; }
+RESPONDER_TEST_ADVISORY="$ADV" FAILING="" run_cycle
+FIRST_SINCE=$(adv_field advisories_since)
+A1=$(adv_field advisories)
+sleep 1
+RESPONDER_TEST_ADVISORY="$ADV" FAILING="" run_cycle
+A2_SINCE=$(adv_field advisories_since)
+FAILING="" run_cycle
+if [ "$A1" = "$(python3 -c 'import json,sys; print(json.dumps([sys.argv[1]]))' "$ADV")" ] \
+   && [ "$FIRST_SINCE" != null ] && [ "$A2_SINCE" = "$FIRST_SINCE" ] \
+   && [ "$(adv_field advisories)" = '[]' ] && [ "$(adv_field advisories_since)" = null ]; then
+    pass "46 MUTATION · an advisory is recorded once with when it first appeared, kept while it persists, cleared when it goes"
+else
+    fail "46 advisories in the status file (first=$A1 since=$FIRST_SINCE then=$A2_SINCE now=$(adv_field advisories))"
+fi
+rm -rf "$WORK"
+
+# --- Test 47: the cycle commits its own files only ------------------------------------------------
+# A headless session's leftover staged file used to ride inside a "Data refresh" commit to production.
+setup
+printf 'not the cycle%s\n' "'s" > "$REPO/data/unrelated-staged.txt"
+git -C "$REPO" add data/unrelated-staged.txt
+FAILING="" run_cycle
+if [ "$RC" -eq 0 ] && git -C "$REPO" log -1 --format=%s | grep -q '^Data refresh ' \
+   && ! git -C "$REPO" show --name-only --format= HEAD | grep -qx data/unrelated-staged.txt \
+   && git -C "$REPO" diff --cached --name-only | grep -qx data/unrelated-staged.txt; then
+    pass "47 MUTATION · a file someone else staged stays staged and out of the cycle's commit"
+else
+    fail "47 the cycle must commit only its own files (rc=$RC)"; git -C "$REPO" show --stat HEAD | head -20
+fi
+rm -rf "$WORK"
+
 # --- Test 21: the budgets have to fit the window they exist to protect -------------------------
 # Static arithmetic over the real constants, per the "assert the bound in code" edict: a budget
 # raised past the cron interval, or a cron made more frequent, silently makes the guard useless.
@@ -839,13 +1088,14 @@ print(min(min((b - a) for a, b in zip(m, m[1:])), 60 - m[-1] + m[0]) * 60)
 # phase stayed the only unbudgeted step. Worst observed publish phase is ~261s (a code-change cycle,
 # where the deploy gate also runs the shell suites); a data-only cycle is ~30s.
 PUBLISH_RESERVE_S=$(grep -oP 'PUBLISH_BUDGET_S="\$\{RESPONDER_PUBLISH_BUDGET_S:-\K[0-9]+' "$CYCLE_SRC")
-if [ -n "$CYCLE_BUDGET_DEFAULT" ] && [ -n "$BIGGEST_STEP" ] && [ -n "$INTERVAL_S" ] && [ -n "$PUBLISH_RESERVE_S" ] \
-   && [ "$(( CYCLE_BUDGET_DEFAULT + PUBLISH_RESERVE_S ))" -le "$INTERVAL_S" ] \
+PROBE_S=$(grep -oP '^BUDGET_CADENCE_S=\K[0-9]+' "$CYCLE_SRC")  # the probe runs outside the generator clock
+if [ -n "$CYCLE_BUDGET_DEFAULT" ] && [ -n "$BIGGEST_STEP" ] && [ -n "$INTERVAL_S" ] && [ -n "$PUBLISH_RESERVE_S" ] && [ -n "$PROBE_S" ] \
+   && [ "$(( CYCLE_BUDGET_DEFAULT + PROBE_S + PUBLISH_RESERVE_S ))" -le "$INTERVAL_S" ] \
    && [ "$BIGGEST_STEP" -le "$CYCLE_BUDGET_DEFAULT" ] \
    && grep -q 'command timeout -k "\$KILL_GRACE_S" "\$PUBLISH_BUDGET_S" bash' "$CYCLE_SRC"; then
-    pass "21 budgets fit the cron window (${CYCLE_BUDGET_DEFAULT}s + ${PUBLISH_RESERVE_S}s enforced publish budget <= ${INTERVAL_S}s; biggest step ${BIGGEST_STEP}s)"
+    pass "21 budgets fit the cron window (${CYCLE_BUDGET_DEFAULT}s + ${PROBE_S}s probe + ${PUBLISH_RESERVE_S}s enforced publish budget <= ${INTERVAL_S}s; biggest step ${BIGGEST_STEP}s)"
 else
-    fail "21 the generator budget plus the ENFORCED publish budget must fit the cron interval (budget=${CYCLE_BUDGET_DEFAULT} publish=${PUBLISH_RESERVE_S:-unset} step=${BIGGEST_STEP} interval=${INTERVAL_S})"
+    fail "21 the generator budget, the probe and the ENFORCED publish budget must fit the cron interval (budget=${CYCLE_BUDGET_DEFAULT} probe=${PROBE_S:-unset} publish=${PUBLISH_RESERVE_S:-unset} step=${BIGGEST_STEP} interval=${INTERVAL_S})"
 fi
 
 echo "----"

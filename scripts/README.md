@@ -194,7 +194,9 @@ The cycle holds a **non-blocking** `flock`, so a generator that hangs past the
 15-minute window makes the *next* scheduled cycle log `SKIP` and exit. One hung
 upstream therefore stops the board publishing for as long as it lasts. Every
 generator runs under `timeout -k 20 <budget>`, and the generator phase as a whole
-runs under an aggregate budget (`RESPONDER_CYCLE_BUDGET_S`, default 600s).
+runs under an aggregate budget (`RESPONDER_CYCLE_BUDGET_S`, default 540s). The
+cadence probe runs outside that clock under its own 60s budget, so a slow NWS answer
+never squeezes a generator.
 
 - **A timed-out step is treated exactly like a failed one**: killed, previous
   output untouched, the cycle publishes everything else and signs off DEGRADED.
@@ -225,7 +227,7 @@ Exit codes:
 
 | Code | Meaning |
 | --- | --- |
-| `0` | clean cycle (published, nothing to publish, dry-run, or another cycle holds the lock) |
+| `0` | clean cycle (published, nothing to publish, dry-run, a cadence hold, or another cycle holds the lock) |
 | `1` | fatal: no source refreshed, or validation/commit/push failed |
 | `2` | unknown argument |
 | `3` | **published, but degraded**: some sources did not refresh |
@@ -270,7 +272,9 @@ from an `EXIT` trap, whatever path it exits by:
   "stage": "materialize",
   "first_error": "ERROR: could not materialize HEAD scripts/ at /tmp/responder-pipeline.Ab12Cd: fatal: invalid reference: HEAD (--allow-dirty-code runs the working tree instead)",
   "consecutive_failures": 2300,
-  "failing_since": "2026-09-05T01:23:04Z"
+  "failing_since": "2026-09-05T01:23:04Z",
+  "advisories": [],
+  "advisories_since": null
 }
 ```
 
@@ -284,6 +288,10 @@ from an `EXIT` trap, whatever path it exits by:
 - `consecutive_failures` counts runs in a row that exited with anything other
   than `0` or `3`, and `failing_since` is when that streak began. Exit `0` and
   exit `3` (published, degraded) reset both.
+- `advisories` lists each data-lane advisory `WARN` line this run's gates
+  printed (cycle-check's checks that warn instead of stopping a flood publish);
+  `advisories_since` is when the current unbroken run of advisories began, `null`
+  once a run prints none. A cadence hold writes no record, so both persist.
 - A lock `SKIP` and a `--dry-run` are not runs and never touch the file.
 
 ## Capture bbox vs display bbox
@@ -657,6 +665,47 @@ in-session path has missed the window), the drain prompt treats message text
 strictly as governed data, and the guardrails cap cost. Log tee's to
 `/var/log/responder-chat-watchdog.log` (falls back to `/tmp`).
 
+## Cadence (`weather-mode.py`)
+
+The cron still fires `run-cycle.sh` at 8,23,38,53, but the board publishes on a
+cadence: **2x/day when quiet, hourly in adverse weather**. Zero-LLM throughout.
+
+- **Every fire** takes the lock, refreshes the gauge snapshot (uncommitted until
+  a publish) and runs `weather-mode.py`, which writes `data/.cadence-state.json`
+  (local, untracked). Triggers: NWS active alerts for `area=TX` whose event is in
+  `event.json` `wxAutoEvents` or is an acute/watch-tier flood, tropical or surge
+  product in `gen-caltopo.py` `HAZARD_EVENTS`, with NWS severity Extreme, Severe or
+  Moderate; and gauges at observed minor+ or forecast moderate+ (after
+  `fetch-snapshot.py`'s stage envelope). Adverse starts at once and ends 6 h after
+  the last trigger. A failed or stale probe keeps the mode; 3 in a row turn quiet
+  into adverse. `data/.cadence-force` (`adverse` or `quiet`) overrides.
+- **The verdict** (`--due`): **full** when adverse and 55 min since the last
+  publish; quiet and 11 h 50 min, or the first fire 55 min+ after a 06:00/18:00
+  America/Chicago slot has passed; the mode changed (either way); or no publish is
+  recorded. **ship** (deploy HEAD, no regeneration) when HEAD is ahead of
+  `origin/main`, e.g. a steward, owner or out-of-band commit, or to retry a failed
+  deploy. A pending failure retries every fire for the first 4, then hourly.
+  **hold** otherwise: logged as `HOLD: <reason>`, exit 0, status file untouched.
+- Retention trade-off: the gauge capture is committed only at a publish, so the
+  git archive (and the playback built from it) keeps 2 captures a day in quiet
+  mode and 1 an hour in adverse mode, where it used to keep 4 an hour.
+  `gen-history.py` and `gen-crest-summary.py` also read the uncommitted capture
+  this cycle fetched, so a publish's record ends at that publish, not the last.
+- `--now` forces a full cycle. A missing or crashing detector never holds a
+  publish: the cycle runs full and withdraws `data/cadence.json`.
+- Each full cycle commits `data/cadence.json` (mode, `intervalMin`, `since`,
+  `nextDueBy`, public-safe `reasons`); clients and the freshness monitor read it.
+  Absent or unreadable is never "quiet".
+- `run-outofband.sh` (Mondays 04:29, `install-cron.sh --outofband`) refreshes
+  records, cameras, tide stations and River Sentry towers, validates with
+  `cycle-check.sh --code-from-head`, and commits only changed files, by name,
+  under the cycle lock; the next fire ships it. A file left uncommitted by
+  someone is skipped.
+- Deploys from the cycle pass `--data-lane`: cycle-check's advisory checks
+  (artifact age, offline warm depth, AO area, cron bootstrap, outlook schema)
+  warn there and still fail a hand-run release. The deploy gate checks the HEAD
+  archive it ships, never the working tree.
+
 ## Freshness monitor (`freshness-monitor.sh`)
 
 Every durable job above watches something *local*. None of them notice the worst
@@ -670,15 +719,16 @@ network**, not local state, and says which of those three actually broke.
 Each run:
 
 1. **Fetches the live mirror** (`https://respondertx.org/data/gauges-snapshot.json`,
-   cache-busted) and ages its embedded `generated` stamp. The data cron publishes
-   4x/hour, so the ladder sits well above one missed cycle: **WARN at 45 min**
-   (3 missed cycles), **CRITICAL at 90 min** (6 missed cycles).
+   cache-busted) and ages its embedded `generated` stamp. **WARN at the publish
+   interval + 45 min, CRITICAL at interval + 90 min**, the interval being the
+   stricter of the mirror's `data/cadence.json` and the local cadence state (720
+   quiet, 60 adverse); with neither readable, 45 and 90 as before.
 2. **Reads local pipeline health**: the age of the local cycle output
    (`data/gauges-snapshot.json`), the age of the last commit touching it, the
    last `deploy OK` in the cycle log, the cycle's **last sign-off**, and the
    **cycle status file** (see "Cycle status file" under the cycle section).
 3. **Attributes the fault** from those two halves, in this order:
-   - A **recent run that failed** (a status record inside the 45-minute warn
+   - A **recent run that failed** (a status record inside the warn
      window with `consecutive_failures` above 0) outranks everything: *the data
      cycle is running but failing every run for N runs since T (stage S):
      first error*. A failing run never signs off, so any sign-off still in the
@@ -918,7 +968,9 @@ an owner decision (it costs credentials and money) and is not wired up.
 the **data-refresh cycle** (`8,23,38,53 * * * *`); `--chat` / `--chat-ack-only`
 manage the **chat-inbox poll** (`*/3 * * * *`); `--watchdog` manages the **stall
 watchdog** (`*/3 * * * *`); `--monitor` manages the **freshness monitor**
-(`13,28,43,58 * * * *`, offset ~5 min after each data cycle). Each target is
+(`13,28,43,58 * * * *`, offset ~5 min after each data cycle); `--outofband`
+the **weekly inventory refresh** (`29 4 * * 1`); `--steward` the **site steward**
+(`11,41 * * * *`, refused while `steward.sh` is absent). Each target is
 grep-guarded on its own command path, so managing one leaves the others intact.
 
 ```bash
@@ -1046,3 +1098,51 @@ never committed. The default SANs cover `IP:192.168.2.250`, `IP:127.0.0.1`, and
 crontab line picks up HTTPS automatically once the cert exists. Set
 `RESPONDER_TLS_CERT`, `RESPONDER_TLS_KEY`, `HTTPS_PORT`, or `PORT` only when a
 non-default layout is needed.
+
+## Steward (`steward.sh`)
+
+Cron `11,41 * * * *` (`install-cron.sh --steward`). Each fire runs a zero-LLM pre-gate,
+logs one line to `/var/log/responder-steward.log` (a RUN fire adds one `DONE` line), and
+starts at most one headless `claude -p` on the rfxn account profile
+(`CLAUDE_CONFIG_DIR=/root/.claude-rfxn`). It replaces the in-session revival tick for
+alerts and collateral. The ops-chat inbox stays with `chat-watchdog.sh`, which uses the
+same profile.
+
+| Task | Runs when | Model, cap per run | May do |
+|---|---|---|---|
+| ALERT | `tick-gate.sh --alert-only` names a fault: freshness CRITICAL or backup FAIL held 60 min, or a data-lane advisory in the cycle status older than 24 h. Any hour; once per 2 h per fault; 3 runs per fault episode | opus, $2.50, 25 min | diagnose, fix data-only causes, change code only through the release lane, report to the ops chat |
+| COLLATERAL | quiet: `data/outlook.json` older than 11h50m or past `validUntil`, outside 01:00-08:59 local (about 2 a day; a failed run retries after 2 h). adverse: at most hourly, when `alertSetHash` changed or the outlook expired; a quiet to adverse change runs at once | sonnet, $1, 7 min | nothing: it has no tools |
+| BACKLOG | only while `data/.steward-backlog-on` exists, on a tick-gate BACKLOG slot | opus, $5, 40 min | advance one backlog item |
+
+The first task that is due and fits the budget runs, in that order.
+
+COLLATERAL: `steward/steward.py fetch` pulls WPC (excessive rainfall, short range,
+extended), SPC (days 1 to 3, 4 to 8, fire weather days 1 and 2), CPC 6 to 14 day, NHC
+(in season), the Texas A&M Forest Service fire potential PDF and the Drought Monitor for
+Texas, one request a second. It parses each product's issue time and withholds any source
+that failed, shows no issue time, or is stale (the WPC QPF discussion page still serves a
+2018 product). Claude sees only that text. The steward stamps `generated`, `validUntil`
+(15 h quiet, 4 h adverse) and `author`, checks Contract 3 (every item must cite a source
+fetched this run, with its exact URL, name and issue time), and commits only
+`data/outlook.json`, under the cycle lock, as `Collateral refresh <stamp> (steward):
+outlook`. It never pushes. Check a file by hand: `python3 -I scripts/steward/steward.py
+check data/outlook.json`.
+
+Refusals: `data/.steward-off` (kill switch), `/tmp/responder-steward.lock`, a fresh
+`data/.chat-drain-active`, a chat-watchdog recovery in flight, and an unreadable ledger.
+ALERT and BACKLOG also refuse a tree with tracked changes outside the cycle lane, and bank
+whatever their own run leaves uncommitted in `/tmp/responder-steward-quarantine`.
+
+Spend: each run reserves its full cap in `/var/log/responder-steward-ledger.jsonl` before
+claude starts and settles to the real USD and tokens from claude's JSON result after, so a
+killed run, or one that leaves no result, stays charged at its cap. A task runs only while the
+last 24 h of spend plus its cap stays within `RESPONDER_STEWARD_DAILY_CAP_USD` (default 8). The
+steward refuses to run when the ledger cannot be written or has vanished since it was last seen.
+`chat-watchdog.sh` records its recovery runs there as `WATCHDOG`; they are listed, never capped.
+Read it with `scripts/tick-burn.py --steward --days 7`. Measured 2026-11-24: one COLLATERAL
+run, $0.13.
+
+State and the last run's prompt, result and source manifest live in
+`/var/lib/responder-steward/`. `--dry-run` decides and logs without spending or claiming;
+`--force-collateral` skips pacing only. Models, caps and timeouts take `RESPONDER_STEWARD_*`
+overrides (top of `steward.sh`).

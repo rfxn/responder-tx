@@ -1,5 +1,7 @@
 #!/bin/bash
-# run-cycle.sh [--dry-run] [--allow-dirty-code] — durable 15-min data-refresh cycle.
+# run-cycle.sh [--dry-run] [--allow-dirty-code] [--now] — durable data-refresh cycle, fired every 15 min.
+# Every fire refreshes the gauge snapshot and runs scripts/weather-mode.py; the rest of the cycle
+# runs only when the cadence says a publish is due (--now forces it). See scripts/README.md "Cadence".
 # Fetch NWPS snapshot, regenerate roads/history/crest/notices/feeds/shelters/
 # caltopo, validate, then (unless --dry-run) commit the data files by name and
 # hand off to deploy.sh, which gates HEAD before it pushes or uploads anything.
@@ -18,11 +20,13 @@ set -euo pipefail
 
 DRY_RUN=0
 ALLOW_DIRTY_CODE=0
+NOW_FLAG=0
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
         --allow-dirty-code) ALLOW_DIRTY_CODE=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --dry-run, --allow-dirty-code)" >&2; exit 2 ;;
+        --now) NOW_FLAG=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --dry-run, --allow-dirty-code, --now)" >&2; exit 2 ;;
     esac
 done
 
@@ -77,7 +81,7 @@ STEPS_PARTIAL=()
 # the window arithmetic so a future edit cannot quietly tighten a budget onto a legitimate run.
 BUDGET_SNAPSHOT_S=150
 BUDGET_ROADS_S=150
-BUDGET_HISTORY_S=600
+BUDGET_HISTORY_S=540
 BUDGET_NOTICES_S=60
 BUDGET_SHELTERS_S=150
 BUDGET_CROSSSTATUS_S=120
@@ -87,11 +91,12 @@ BUDGET_CREST_S=120
 BUDGET_FEEDS_S=150
 BUDGET_CALTOPO_S=120
 BUDGET_CHANGES_S=60
+BUDGET_CADENCE_S=60
 # Per-step budgets alone cannot bound the cycle: they sum past the window. This is the aggregate
 # guard, and it leaves room for the publish path (cycle-check, commit, deploy's own test gate,
 # push, upload, smoke) to finish. Trimmed from 660s when that gate widened to the python and shell
 # suites; tests/run-cycle.test.sh asserts this against the publish reserve and the cron interval.
-CYCLE_BUDGET_S="${RESPONDER_CYCLE_BUDGET_S:-600}"
+CYCLE_BUDGET_S="${RESPONDER_CYCLE_BUDGET_S:-540}"  # + the probe's BUDGET_CADENCE_S, outside this clock
 # The publish reserve, enforced rather than assumed: deploy.sh's own retry ladders are unbounded and
 # it runs holding the cycle lock, so an overrun costs several cycles instead of one. Killed here the
 # data stays committed locally and the next cycle republishes. tests/run-cycle.test.sh reads this.
@@ -103,6 +108,8 @@ MIN_STEP_S=5      # never hand `timeout` a budget of 0 — GNU timeout reads 0 a
 # PIPE_ROOT is the tree the cycle's own code is read from; the data always lives in REPO_ROOT
 PIPE_ROOT="$REPO_ROOT"
 CODE_TMP=""
+STEP_OUT=""  # tee copy of a gate step's output, so its first FAIL line can name the cause
+ADVISORIES_OUT=""  # every data-lane advisory WARN this run, for the status file
 
 # gen LABEL SCRIPT KEEP BUDGET_S — run one generator under a time budget, record the outcome,
 # return its real status. A failed OR timed-out generator leaves its previous output untouched, so
@@ -157,6 +164,18 @@ skip() {
     log "SKIP: $2 not run ($3); keeping previous output and its older stamp"
 }
 
+# first_fail: the first "FAIL: " line the last captured gate step printed, empty if none
+first_fail() {
+    [ -n "$STEP_OUT" ] && [ -f "$STEP_OUT" ] || return 0
+    grep -m1 '^FAIL: ' "$STEP_OUT" || :  # no FAIL line is an answer too: the caller keeps its own
+}
+
+# collect_advisories: keep the data-lane advisory WARN lines the last gate step printed
+collect_advisories() {
+    [ -n "$ADVISORIES_OUT" ] && [ -f "$STEP_OUT" ] || return 0
+    grep -E '^WARN: .*data lane' "$STEP_OUT" >> "$ADVISORIES_OUT" || :  # a run with no advisory adds nothing
+}
+
 # git_reason GIT_OUTPUT — git's own fatal/error line out of its stderr, else its last line.
 git_reason() {
     local line
@@ -171,7 +190,7 @@ git_reason() {
 write_cycle_status() {
     local tmp
     tmp=$(command mktemp "${CYCLE_STATUS}.XXXXXX") || return 1
-    if CS_PREV="$CYCLE_STATUS" CS_RC="$1" CS_STAGE="$STAGE" CS_ERROR="${FIRST_ERROR:-$LAST_LOGGED}" \
+    if CS_PREV="$CYCLE_STATUS" CS_RC="$1" CS_STAGE="$STAGE" CS_ERROR="${FIRST_ERROR:-$LAST_LOGGED}" CS_ADVISORIES="$ADVISORIES_OUT" \
         python3 - > "$tmp" <<'PY'
 import json, os, sys, time
 now = int(time.time())
@@ -182,8 +201,22 @@ try:
         prev = json.load(f)
     prev_fails = max(0, int(prev.get("consecutive_failures") or 0))
     prev_since = prev.get("failing_since")
+    prev_adv, prev_adv_since = prev.get("advisories") or [], prev.get("advisories_since")
 except (OSError, ValueError, TypeError, AttributeError):
-    prev_fails, prev_since = 0, None
+    prev_fails, prev_since, prev_adv, prev_adv_since = 0, None, [], None
+advisories = []
+try:
+    with open(os.environ.get("CS_ADVISORIES") or "/nonexistent", encoding="utf-8") as f:
+        for line in f:
+            line = " ".join(line.split())[:300]
+            if line and line not in advisories:
+                advisories.append(line)
+except OSError:
+    pass
+advisories = advisories[:10]
+adv_since = None
+if advisories:
+    adv_since = prev_adv_since if prev_adv and isinstance(prev_adv_since, str) and prev_adv_since else stamp
 if rc in (0, 3):
     fails, since, err = 0, None, None
 else:
@@ -192,7 +225,8 @@ else:
     err = " ".join(os.environ.get("CS_ERROR", "").split())[:400] or None
 json.dump({"finished_at": stamp, "finished_epoch": now, "exit_code": rc,
            "stage": os.environ.get("CS_STAGE") or None, "first_error": err,
-           "consecutive_failures": fails, "failing_since": since}, sys.stdout, indent=2)
+           "consecutive_failures": fails, "failing_since": since,
+           "advisories": advisories, "advisories_since": adv_since}, sys.stdout, indent=2)
 print()
 PY
     then
@@ -207,9 +241,11 @@ PY
 on_exit() {
     local rc=$?
     set +e  # cleanup must never replace the cycle's own exit code
-    if [ "$STAGE" != skip ] && [ "$DRY_RUN" -eq 0 ]; then
+    if [ "$STAGE" != skip ] && [ "$STAGE" != hold ] && [ "$DRY_RUN" -eq 0 ]; then
         write_cycle_status "$rc" || log "WARN: could not write the cycle status file ${CYCLE_STATUS}"
     fi
+    if [ -n "$STEP_OUT" ]; then command rm -f "$STEP_OUT"; fi
+    if [ -n "$ADVISORIES_OUT" ]; then command rm -f "$ADVISORIES_OUT"; fi
     if [ -n "$CODE_TMP" ]; then
         cd "$REPO_ROOT" || exit "$rc"
         git worktree remove --force "$CODE_TMP" >/dev/null 2>&1 || command rm -rf "$CODE_TMP"  # remove is the clean path; rm covers a half-created worktree
@@ -219,8 +255,81 @@ on_exit() {
 }
 trap on_exit EXIT
 
+# degraded_now: DEGRADED is a fact about every step bucket, recomputed at sign-off
+degraded_now() {
+    if [ "${#STEPS_FAILED[@]}" -gt 0 ] || [ "${#STEPS_SKIPPED[@]}" -gt 0 ] || [ "${#STEPS_TIMEOUT[@]}" -gt 0 ] \
+       || [ "${#STEPS_PARTIAL[@]}" -gt 0 ]; then
+        DEGRADED=1
+    fi
+}
+
+# cycle_end MSG — the ONE exit point for every publishing path, so a partially-degraded cycle can
+# never sign off as a clean success. Exit 3 = published what refreshed, some sources did not.
+cycle_end() {
+    STAGE=signoff
+    if [ "$GATE_KIND" = full ] && [ "$DRY_RUN" -eq 0 ] && [ "$DETECTOR_OK" -eq 1 ]; then
+        python3 "$DETECTOR" --mark-published "$FIRE_ISO" \
+            || log "WARN: could not record this publish in the cadence state; the next fire runs the full cycle again"
+    fi
+    degraded_now
+    if [ "$DEGRADED" -eq 1 ]; then
+        log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | timed out: ${STEPS_TIMEOUT[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}${STEPS_PARTIAL[*]:+ | partial: ${STEPS_PARTIAL[*]}}"
+        exit 3
+    fi
+    log "=== $1 ==="
+    exit 0
+}
+
+# deploy.sh is the gate AND the publisher: it runs node, the python suites, the shell suites and
+# cycle-check.sh at HEAD, and only then pushes and uploads. The cycle used to push here first, so a
+# red gate still put the commit on origin. The commit above must still precede it, because the
+# artifact deploy.sh builds is `git archive HEAD` and unpublished data would otherwise ship; a
+# local commit is not a publish, and nothing reaches origin or the mirror until the gate is green.
+publish_head() {
+    STAGE=deploy
+    log "step: deploy.sh (gate HEAD + git push + CF Pages deploy + smoke, budget ${PUBLISH_BUDGET_S}s)"
+    : > "$STEP_OUT"
+    if command timeout -k "$KILL_GRACE_S" "$PUBLISH_BUDGET_S" bash "${PIPE_ROOT}/scripts/deploy.sh" --data-lane 2>&1 \
+        | command tee "$STEP_OUT"; then
+        collect_advisories
+        log "deploy OK"
+    else
+        rc=$?
+        collect_advisories
+        cause=$(first_fail)
+        if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+            log "TIMEOUT: deploy.sh outran its ${PUBLISH_BUDGET_S}s publish budget and was killed; the data is committed locally and NOT pushed. Next cycle re-gates and republishes"
+            [ -z "$cause" ] || FIRST_ERROR="deploy.sh timed out after ${PUBLISH_BUDGET_S}s; first ${cause}"
+        else
+            log "WARN: deploy.sh failed (exit ${rc}); the data is committed locally and NOT pushed. Next cycle re-gates and republishes"
+            [ -z "$cause" ] || FIRST_ERROR="deploy.sh failed (exit ${rc}); first ${cause}"
+        fi
+        exit "$rc"
+    fi
+
+    # best-effort push-evaluator nudge (fast path; the Worker's */5 cron is the guaranteed path).
+    # HMAC over the raw body with the shared key; NEVER fatal — push infra must not break the cycle.
+    STAGE=nudge
+    NUDGE_KEY_FILE=/root/.config/responder/push-nudge-key
+    if [ -s "$NUDGE_KEY_FILE" ]; then
+        log "step: push nudge (best-effort)"
+        if nudge_out=$(
+            key=$(command cat "$NUDGE_KEY_FILE") &&
+            body="{\"ts\":$(command date +%s)}" &&
+            sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$key" | awk '{print $NF}') &&
+            curl -sf -m 20 -X POST -H 'Content-Type: application/json' -H "X-Push-Sig: ${sig}" \
+                -d "$body" https://respondertx.org/api/push/nudge
+        ); then
+            log "push nudge OK: ${nudge_out}"
+        else
+            log "WARN: push nudge failed (non-fatal); the */5 worker cron covers it"
+        fi
+    fi
+}
+
 # --- lock: one cycle at a time (session refresh + system cron share this file) ---
 LOCKFILE="${RESPONDER_CYCLE_LOCK:-/tmp/responder-cycle.lock}"
+DEGRADED=0
 STAGE=lock
 exec 9>"$LOCKFILE"
 if ! flock -n 9; then
@@ -231,6 +340,11 @@ fi
 STAGE=materialize
 
 log "=== cycle start (dry_run=${DRY_RUN}) repo=${REPO_ROOT} ==="
+FIRE_ISO=$(command date -u '+%Y-%m-%dT%H:%M:%SZ')
+GATE_KIND=full
+DETECTOR_OK=0
+STEP_OUT=$(command mktemp "${TMPDIR:-/tmp}/responder-step.XXXXXX") || { log "ERROR: mktemp for the gate capture failed"; exit 1; }
+ADVISORIES_OUT=$(command mktemp "${TMPDIR:-/tmp}/responder-advisories.XXXXXX") || ADVISORIES_OUT=""  # without it the status file just lists none
 
 # --- Materialize HEAD's pipeline. This runs from cron every 15 minutes against a working tree an
 # agent may be mid-edit in, so executing the tree's generators publishes half-finished code as
@@ -293,10 +407,55 @@ fi
 STAGE=generators
 # the aggregate clock starts at the first generator, not at cycle start: materializing the HEAD
 # worktree is bounded work that must not eat a data source's budget
-GEN_DEADLINE=$(( $(command date +%s) + CYCLE_BUDGET_S ))
+GEN_START=$(command date +%s)
+GEN_DEADLINE=$(( GEN_START + CYCLE_BUDGET_S ))
 log "generator budget: ${CYCLE_BUDGET_S}s total"
 
 if gen snapshot fetch-snapshot.py data/gauges-snapshot.json "$BUDGET_SNAPSHOT_S"; then SNAPSHOT_FRESH=1; else SNAPSHOT_FRESH=0; fi
+SNAPSHOT_S=$(( $(command date +%s) - GEN_START ))
+
+# --- cadence gate. The snapshot above is the detector's gauge input, so it runs every fire and stays
+# uncommitted on a hold. A detector that is missing or broken never holds a publish.
+STAGE=cadence
+GATE_REASON="no cadence verdict"
+DETECTOR="${PIPE_ROOT}/scripts/weather-mode.py"
+if [ ! -f "$DETECTOR" ]; then
+    log "WARN: scripts/weather-mode.py is not in the HEAD pipeline; running the full cycle"
+elif ! command timeout -k "$KILL_GRACE_S" "$BUDGET_CADENCE_S" python3 "$DETECTOR"; then
+    log "WARN: weather-mode.py did not finish its probe; running the full cycle and withdrawing data/cadence.json"
+else
+    DETECTOR_OK=1
+    ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null) || ahead=-1  # E1: a failed read is not "0 ahead"
+    case "$ahead" in ''|*[!0-9-]*) ahead=-1 ;; esac
+    foreign=$(git log --format=%s origin/main..HEAD 2>/dev/null | grep -cv '^Data refresh ') || foreign=0
+    if verdict=$(python3 "$DETECTOR" --due --status "$CYCLE_STATUS" --ahead "${ahead:-0}" --foreign "${foreign:-0}"); then
+        GATE_KIND=${verdict%% *}
+        GATE_REASON=${verdict#* }
+    else
+        log "WARN: weather-mode.py --due failed; running the full cycle"
+    fi
+fi
+case "$GATE_KIND" in
+    full|ship|hold) ;;
+    *) log "WARN: unknown cadence verdict '${GATE_KIND}'; running the full cycle"; GATE_KIND=full ;;
+esac
+if [ "$GATE_KIND" != full ] && { [ "$NOW_FLAG" -eq 1 ] || [ "$DRY_RUN" -eq 1 ]; }; then
+    GATE_REASON="${GATE_KIND} (${GATE_REASON}) overridden by $([ "$NOW_FLAG" -eq 1 ] && echo --now || echo --dry-run)"
+    GATE_KIND=full
+fi
+log "cadence: ${GATE_KIND} (${GATE_REASON})"
+if [ "$GATE_KIND" = hold ]; then
+    STAGE=hold  # not a run and not a failure: the status file keeps the last real run
+    log "HOLD: ${GATE_REASON}"
+    exit 0
+fi
+if [ "$GATE_KIND" = ship ]; then
+    publish_head
+    cycle_end "cycle complete, HEAD shipped without regenerating (${GATE_REASON})"
+fi
+STAGE=generators
+# the probe ran outside the generator clock: a slow NWS answer must not squeeze gen-history
+GEN_DEADLINE=$(( $(command date +%s) + CYCLE_BUDGET_S - SNAPSHOT_S ))
 
 gen roads gen-roads-snapshot.py data/roads-snapshot.json "$BUDGET_ROADS_S" || :  # independent source; outcome already recorded in gen()
 gen roadflood gen-transtar-flood.py data/transtar-flood.json "$BUDGET_ROADFLOOD_S" || :  # independent optional feed; ahead of history so its long pole cannot squeeze a flood feed
@@ -335,23 +494,7 @@ if [ "${#STEPS_OK[@]}" -eq 0 ]; then
     exit 1
 fi
 
-DEGRADED=0
-if [ "${#STEPS_FAILED[@]}" -gt 0 ] || [ "${#STEPS_SKIPPED[@]}" -gt 0 ] || [ "${#STEPS_TIMEOUT[@]}" -gt 0 ] \
-   || [ "${#STEPS_PARTIAL[@]}" -gt 0 ]; then
-    DEGRADED=1
-fi
-
-# cycle_end MSG — the ONE exit point for every publishing path, so a partially-degraded cycle can
-# never sign off as a clean success. Exit 3 = published what refreshed, some sources did not.
-cycle_end() {
-    STAGE=signoff
-    if [ "$DEGRADED" -eq 1 ]; then
-        log "=== $1 (DEGRADED) === refreshed: ${STEPS_OK[*]:-none} | failed: ${STEPS_FAILED[*]:-none} | timed out: ${STEPS_TIMEOUT[*]:-none} | skipped: ${STEPS_SKIPPED[*]:-none}${STEPS_PARTIAL[*]:+ | partial: ${STEPS_PARTIAL[*]}}"
-        exit 3
-    fi
-    log "=== $1 ==="
-    exit 0
-}
+degraded_now
 
 # heal_changes — the change log is derived, so one that breaks its publish bounds must never stop a
 # flood publish (CLAUDE.md "Deliberately NOT adopted"): restore it with its state from HEAD, or drop
@@ -382,13 +525,26 @@ heal_changes() {
 STAGE=validate
 heal_changes
 log "step: cycle-check.sh (validation)"
-bash "${PIPE_ROOT}/scripts/cycle-check.sh" --code-from-head
+: > "$STEP_OUT"
+if ! bash "${PIPE_ROOT}/scripts/cycle-check.sh" --code-from-head 2>&1 | command tee "$STEP_OUT"; then
+    collect_advisories
+    cause=$(first_fail)
+    log "ERROR: validation failed: ${cause:-cycle-check.sh exited non-zero and printed no FAIL line}"
+    exit 1
+fi
+collect_advisories
 
 if [ "$DRY_RUN" -eq 1 ]; then
     cycle_end "DRY-RUN OK: fetch + generators + validation composed; stopping before git/deploy"
 fi
 
 STAGE=commit
+if [ "$DETECTOR_OK" -eq 1 ]; then
+    python3 "$DETECTOR" --write-cadence "$FIRE_ISO" \
+        || log "WARN: no truthful data/cadence.json could be written; withdrawn, so clients use fixed thresholds"
+else
+    command rm -f data/cadence.json  # an unprobed cadence is no claim at all (E1)
+fi
 DATA_FILES=(
     data/gauges-snapshot.json
     data/gauges-capture.json
@@ -411,6 +567,7 @@ DATA_FILES=(
     data/board-georss.xml
     feed.xml
     crests.ics
+    data/cadence.json
 )
 
 # history/day is a directory pathspec on purpose: the chunk set gains a file every UTC day, and
@@ -444,45 +601,9 @@ COMMIT_MSG="Data refresh ${STAMP} (auto-cron): snapshot ${GAUGE_COUNT} gauges + 
 if [ "$DEGRADED" -eq 1 ]; then
     COMMIT_MSG="Data refresh ${STAMP} (auto-cron, partial): refreshed ${STEPS_OK[*]}${STEPS_PARTIAL[*]:+; partial: ${STEPS_PARTIAL[*]}}; stale: ${STEPS_FAILED[*]:-none} ${STEPS_TIMEOUT[*]:-} ${STEPS_SKIPPED[*]:-}"
 fi
-git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' commit -m "$COMMIT_MSG"
+# the pathspec keeps anything another process left staged out of a "Data refresh" commit
+git -c user.name='Ryan MacDonald' -c user.email='ryan@rfxn.com' commit -m "$COMMIT_MSG" -- "${PRESENT_FILES[@]}"
 log "committed: $(git log --oneline -1)"
 
-# deploy.sh is the gate AND the publisher: it runs node, the python suites, the shell suites and
-# cycle-check.sh at HEAD, and only then pushes and uploads. The cycle used to push here first, so a
-# red gate still put the commit on origin. The commit above must still precede it, because the
-# artifact deploy.sh builds is `git archive HEAD` and unpublished data would otherwise ship; a
-# local commit is not a publish, and nothing reaches origin or the mirror until the gate is green.
-STAGE=deploy
-log "step: deploy.sh (gate HEAD + git push + CF Pages deploy + smoke, budget ${PUBLISH_BUDGET_S}s)"
-if command timeout -k "$KILL_GRACE_S" "$PUBLISH_BUDGET_S" bash "${PIPE_ROOT}/scripts/deploy.sh"; then
-    log "deploy OK"
-else
-    rc=$?
-    if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
-        log "TIMEOUT: deploy.sh outran its ${PUBLISH_BUDGET_S}s publish budget and was killed; the data is committed locally and NOT pushed. Next cycle re-gates and republishes"
-    else
-        log "WARN: deploy.sh failed (exit ${rc}); the data is committed locally and NOT pushed. Next cycle re-gates and republishes"
-    fi
-    exit "$rc"
-fi
-
-# best-effort push-evaluator nudge (fast path; the Worker's */5 cron is the guaranteed path).
-# HMAC over the raw body with the shared key; NEVER fatal — push infra must not break the cycle.
-STAGE=nudge
-NUDGE_KEY_FILE=/root/.config/responder/push-nudge-key
-if [ -s "$NUDGE_KEY_FILE" ]; then
-    log "step: push nudge (best-effort)"
-    if nudge_out=$(
-        key=$(command cat "$NUDGE_KEY_FILE") &&
-        body="{\"ts\":$(command date +%s)}" &&
-        sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$key" | awk '{print $NF}') &&
-        curl -sf -m 20 -X POST -H 'Content-Type: application/json' -H "X-Push-Sig: ${sig}" \
-            -d "$body" https://respondertx.org/api/push/nudge
-    ); then
-        log "push nudge OK: ${nudge_out}"
-    else
-        log "WARN: push nudge failed (non-fatal); the */5 worker cron covers it"
-    fi
-fi
-
+publish_head
 cycle_end "cycle complete"

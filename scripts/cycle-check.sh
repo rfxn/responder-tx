@@ -1,5 +1,5 @@
 #!/bin/bash
-# cycle-check.sh [--code-from-head] — pre-commit sanity bundle for the release cycle; runs all checks, reports each, exits non-zero if any fail
+# cycle-check.sh [--code-from-head] [--data-lane] — pre-commit sanity bundle for the release cycle; runs all checks, reports each, exits non-zero if any fail
 set -euo pipefail
 
 # RESPONDER_ROOT lets run-cycle.sh execute a committed copy of this script against the live repo:
@@ -9,16 +9,26 @@ export RESPONDER_SCRIPTS_DIR
 cd "${RESPONDER_ROOT:-$(command dirname "$0")/..}" || exit 1
 
 CODE_FROM_HEAD=0
+DATA_LANE=0
 for arg in "$@"; do
     case "$arg" in
-        --code-from-head) CODE_FROM_HEAD=1 ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --code-from-head)" >&2; exit 2 ;;
+        --code-from-head) CODE_FROM_HEAD=1; DATA_LANE=1 ;;
+        --data-lane) DATA_LANE=1 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --code-from-head, --data-lane)" >&2; exit 2 ;;
     esac
 done
 
 FAILURES=0
 pass() { echo "OK:   $*"; }
 failck() { echo "FAIL: $*"; FAILURES=$((FAILURES + 1)); }
+# a check whose failure cannot make the published data wrong: the data lane warns, a release fails
+advisory() {
+    if [ "$DATA_LANE" -eq 1 ]; then
+        echo "WARN: $* (data lane: warn only, so a flood publish is not stopped; a release deploy fails on this)"
+    else
+        failck "$*"
+    fi
+}
 
 # Two lanes. The DATA lane (JSON validity, feeds, snapshot, staged files, cursors, schemas) always
 # reads the working tree: that is the data the cycle is about to commit. The CODE lane is every
@@ -55,7 +65,7 @@ if [ "$CODE_FROM_HEAD" -eq 1 ]; then
         | grep -E '^js/[^/]+\.js$|^index\.html$|^sw\.js$|^CHANGELOG\.md$|^data/(changelog|version)\.json$|^scripts/(gen-caltopo|aoarea|fetch-snapshot)\.py$|^tests/(harness|hazard-mirror)\.js$')
     echo "note: code-lane checks read HEAD ($(git rev-parse --short HEAD)); data-lane checks read the working tree"
 fi
-export CODE_ROOT DATA_ROOT
+export CODE_ROOT DATA_ROOT DATA_LANE
 
 # a. JSON validity
 check_json() {
@@ -704,6 +714,83 @@ for i, r in enumerate(d["requests"]):
     if r.get("origin") == "operator" and not r.get("received_at"):
         die("requests.json: operator entry %s missing received_at" % r["id"])
 
+# "On the horizon" (Contract 3) is written by the steward, an LLM: a bad file warns the data lane and
+# fails a release, because the client hides an invalid outlook rather than misreading it
+def outlook_problem(d):
+    kinds = {"rain", "severe", "tropical", "fire", "drought", "winter", "temperature", "other"}
+    levels = {"none", "low", "elevated", "high"}
+
+    def stamp(v, what):
+        if not isinstance(v, str) or parse_iso_ok(v) is None:
+            return "%s is not an ISO time" % what
+        return None
+
+    def text(v, what):
+        if not isinstance(v, dict):
+            return "%s is not an {en, es} object" % what
+        for lang in ("en", "es"):
+            t = v.get(lang)
+            if not isinstance(t, str) or not t.strip():
+                return "%s.%s is missing" % (what, lang)
+            if len(t) > 280:
+                return "%s.%s is %d chars (max 280)" % (what, lang, len(t))
+            if "\u2014" in t or "<" in t or ">" in t:
+                return "%s.%s carries an em-dash or markup" % (what, lang)
+        return None
+
+    if not isinstance(d, dict):
+        return "not an object"
+    for what in ("generated", "validUntil"):
+        why = stamp(d.get(what), what)
+        if why:
+            return why
+    life = (parse_iso_ok(d["validUntil"]) - parse_iso_ok(d["generated"])).total_seconds()
+    if life > 48 * 3600:
+        return "validUntil is %.1f h after generated (max 48 h): an outlook cannot outlive what it forecasts" % (life / 3600)
+    if not isinstance(d.get("author"), str) or not d["author"].strip():
+        return "author is missing"
+    why = text(d.get("headline"), "headline")
+    if why:
+        return why
+    items = d.get("items")
+    if not isinstance(items, list) or len(items) > 6:
+        return "items must be a list of 0..6"
+    for i, it in enumerate(items):
+        if not isinstance(it, dict) or not isinstance(it.get("id"), str) or not it["id"]:
+            return "items[%d] has no id" % i
+        if it.get("kind") not in kinds or it.get("level") not in levels:
+            return "items[%d] kind/level outside the contract" % i
+        for what in ("title", "body"):
+            why = text(it.get(what), "items[%d].%s" % (i, what))
+            if why:
+                return why
+        w = it.get("window") or {}
+        why = stamp(w.get("start"), "items[%d].window.start" % i) or stamp(w.get("end"), "items[%d].window.end" % i) \
+            or stamp(it.get("issued"), "items[%d].issued" % i)
+        if why:
+            return why
+        src = it.get("source") or {}
+        if not isinstance(src.get("name"), str) or not src["name"].strip() \
+                or not str(src.get("url") or "").startswith("https://"):
+            return "items[%d] cites no source name and https url" % i
+    return None
+
+
+def parse_iso_ok(s):
+    try:
+        return parse_iso(s)
+    except (ValueError, TypeError):
+        return None
+
+
+d = optional("data/outlook.json")
+if d is not None:
+    why = outlook_problem(d)
+    if why and os.environ.get("DATA_LANE") == "1":
+        print("WARN: outlook.json breaks Contract 3 (%s); the data lane still publishes and the client hides it" % why)
+    elif why:
+        die("outlook.json: %s" % why)
+
 if os.path.exists("data/notices-inbox.jsonl"):
     for n, line in enumerate(open("data/notices-inbox.jsonl"), 1):
         line = line.strip()
@@ -741,7 +828,7 @@ EOF
 }
 if check_lens_911; then pass "911 footer on every lens (drive/summary/recovery/basin/boot) + #disclaimer"; else failck "911 footer on every lens"; fi
 
-if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, transtar-flood, changes, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox)"; else failck "data schemas (generator/consumer required keys)"; fi
+if check_schemas; then pass "data schemas (gauges-snapshot, history, crest-summary, roads-snapshot, shelters-live, wildfire, transtar-flood, changes, caltopo-export + kml/georss feeds, cameras, requests, notices-inbox, outlook)"; else failck "data schemas (generator/consumer required keys)"; fi
 
 # l. USGS bbox area cap. WaterServices 400s any bBox over 25 equator-equivalent square degrees, and
 # the AO outgrew that in a config change alone, with no code touched: the layer died silently for
@@ -861,10 +948,8 @@ EOF
 }
 if check_history_warm; then
     pass "offline warm depth (${WARM_DETAIL})"
-elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
-    echo "WARN: offline warm depth: the byte ceiling no longer holds the declared day count. This run only warns, but deploy.sh re-runs this check at HEAD with no flag before it publishes, and hard-fails there. Fix it now or the next publish stops."
 else
-    failck "offline warm depth (HISTORY_WARM_MAX_BYTES cannot hold HISTORY_WARM_MAX_DAYS at the index's real chunk sizes)"
+    advisory "offline warm depth (HISTORY_WARM_MAX_BYTES cannot hold HISTORY_WARM_MAX_DAYS at the index's real chunk sizes)"
 fi
 
 # n. out-of-cycle artifact age. gen-cameras.py and gen-records.py are hand-run because their inputs
@@ -935,10 +1020,8 @@ EOF
 }
 if check_static_age; then
     pass "out-of-cycle artifact age (${STATIC_DETAIL})"
-elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
-    echo "WARN: out-of-cycle artifact age: a hand-run generator's output has aged past its limit and nothing else watches it. This run only warns, but deploy.sh re-runs this check at HEAD with no flag before it publishes, and hard-fails there. Re-run the generator now or the next publish stops."
 else
-    failck "out-of-cycle artifact age (data/cameras.json or data/records.json past its limit; re-run the generator)"
+    advisory "out-of-cycle artifact age (data/cameras.json or data/records.json past its limit; re-run the generator)"
 fi
 
 # o. hazard allowlist agreement. The list of NWS products the board carries exists twice, in
@@ -969,7 +1052,7 @@ check_bootstrap() {
     # An entrypoint that is absent is a different fact from one that is broken, and only the second
     # can strand a publish. Absent ones are skipped rather than failed, so this can never turn a
     # partial checkout into a stopped data cycle; the count below makes a vacuous pass visible.
-    for f in run-cycle.sh chat-poll.sh chat-watchdog.sh freshness-monitor.sh tick-gate.sh; do
+    for f in run-cycle.sh chat-poll.sh chat-watchdog.sh freshness-monitor.sh tick-gate.sh run-outofband.sh steward.sh; do
         [ -f "$DATA_ROOT/scripts/$f" ] || continue
         bash -n "$DATA_ROOT/scripts/$f" || { echo "cron entrypoint scripts/${f} does not parse" >&2; return 1; }
         seen=$((seen + 1))
@@ -995,7 +1078,7 @@ BOOTSTRAP_DETAIL=""
 if check_bootstrap; then
     pass "cron bootstrap sanity (${BOOTSTRAP_DETAIL})"
 else
-    failck "cron bootstrap sanity (a working-tree cron entrypoint is unrunnable)"
+    advisory "cron bootstrap sanity (a working-tree cron entrypoint is unrunnable)"
 fi
 
 # p2. Revival tick vs stall threshold. Two constants describe one bound: the watchdog presumes the
@@ -1263,10 +1346,8 @@ if [ "$ao_rc" -eq 0 ]; then
 elif [ "$ao_rc" -eq 3 ]; then
     pass "AO area (config sound)"
     echo "WARN: AO area: ${AO_DETAIL}. A short upstream response, not a config fault; never a publish blocker."
-elif [ "$CODE_FROM_HEAD" -eq 1 ]; then
-    echo "WARN: AO area: data/event.json aoArea is broken or clips away the board. This run only warns, but deploy.sh re-runs this check at HEAD with no flag before it publishes, and hard-fails there."
 else
-    failck "AO area (data/event.json aoArea malformed, misses a region, or leaves too few gauges)"
+    advisory "AO area (data/event.json aoArea malformed, misses a region, or leaves too few gauges)"
 fi
 
 if [ "$FAILURES" -eq 0 ]; then

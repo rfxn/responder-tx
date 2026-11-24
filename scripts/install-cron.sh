@@ -1,5 +1,5 @@
 #!/bin/bash
-# install-cron.sh [--chat|--chat-ack-only|--watchdog|--monitor|--backup|--hooks] [--remove] [--dry-run] —
+# install-cron.sh [--chat|--chat-ack-only|--watchdog|--monitor|--backup|--outofband|--steward|--hooks] [--remove] [--dry-run] —
 # idempotently install/remove the durable Responder system-cron entries.
 #   (default)        the 15-min data-refresh cycle (run-cycle.sh)
 #   --chat           the chat-inbox poll (chat-poll.sh) — full headless-claude
@@ -10,6 +10,8 @@
 #   --monitor        the public-mirror freshness monitor (freshness-monitor.sh)
 #   --backup         the disaster-recovery snapshots (backup.sh hourly/daily/weekly
 #                    plus a daily restore-drill.sh); installs 4 entries, not 1
+#   --outofband      the weekly out-of-band inventory refresh (run-outofband.sh)
+#   --steward        the site steward (steward.sh)
 #   --hooks          the git pre-push guard (not a cron; hooks live outside the tree
 #                    and no clone carries them, so a fresh checkout must install it)
 # Re-running never duplicates an entry (grep-guarded on the command path); each
@@ -28,8 +30,10 @@ for arg in "$@"; do
         --watchdog) TARGET=watchdog ;;
         --monitor) TARGET=monitor ;;
         --backup) TARGET=backup ;;
+        --outofband) TARGET=outofband ;;
+        --steward) TARGET=steward ;;
         --hooks) TARGET=hooks ;;
-        *) echo "FAIL: unknown argument: $arg (supported: --chat, --chat-ack-only, --watchdog, --monitor, --backup, --hooks, --remove, --dry-run)" >&2; exit 2 ;;
+        *) echo "FAIL: unknown argument: $arg (supported: --chat, --chat-ack-only, --watchdog, --monitor, --backup, --outofband, --steward, --hooks, --remove, --dry-run)" >&2; exit 2 ;;
     esac
 done
 
@@ -57,6 +61,15 @@ MONITOR_MARKER="# responder-tx public-mirror freshness monitor (managed by insta
 MONITOR_SCHEDULE="13,28,43,58 * * * *"
 # freshness-monitor.sh self-logs to /var/log/responder-freshness.log; discard cron stdout
 MONITOR_LINE="${MONITOR_SCHEDULE} ${MONITOR_CMD} >/dev/null 2>&1"
+
+OUTOFBAND_CMD="/root/admin/work/proj/responder/scripts/run-outofband.sh"
+OUTOFBAND_MARKER="# responder-tx weekly out-of-band inventory refresh (managed by install-cron.sh)"
+OUTOFBAND_LINE="29 4 * * 1 ${OUTOFBAND_CMD} >>/var/log/responder-outofband.log 2>&1"
+
+STEWARD_CMD="/root/admin/work/proj/responder/scripts/steward.sh"
+STEWARD_MARKER="# responder-tx site steward (managed by install-cron.sh)"
+# steward.sh self-logs to /var/log/responder-steward.log; discard cron stdout
+STEWARD_LINE="11,41 * * * * ${STEWARD_CMD} >/dev/null 2>&1"
 
 BACKUP_CMD="/root/admin/work/proj/responder/scripts/backup.sh"
 BACKUP_MARKER="# responder-tx disaster-recovery snapshots (managed by install-cron.sh)"
@@ -97,7 +110,16 @@ case "$TARGET" in
     chat-ack-only)  MARKER="$CHAT_MARKER"; CMD="$CHAT_CMD"; LINE="$CHAT_LINE_ACK"; LABEL="chat-inbox poll (ack-only, no LLM)" ;;
     watchdog)       MARKER="$WATCHDOG_MARKER"; CMD="$WATCHDOG_CMD"; LINE="$WATCHDOG_LINE"; LABEL="chat stall-watchdog (build-capable recovery)" ;;
     monitor)        MARKER="$MONITOR_MARKER"; CMD="$MONITOR_CMD"; LINE="$MONITOR_LINE"; LABEL="public-mirror freshness monitor" ;;
+    outofband)      MARKER="$OUTOFBAND_MARKER"; CMD="$OUTOFBAND_CMD"; LINE="$OUTOFBAND_LINE"; LABEL="weekly out-of-band inventory refresh" ;;
+    steward)        MARKER="$STEWARD_MARKER"; CMD="$STEWARD_CMD"; LINE="$STEWARD_LINE"; LABEL="site steward" ;;
 esac
+
+# a cron line for a script this checkout does not carry would fail silently on every fire
+if [ "$REMOVE" -eq 0 ] && { [ "$TARGET" = outofband ] || [ "$TARGET" = steward ]; } \
+   && [ ! -f "$(cd "$(command dirname "$0")" && pwd)/$(command basename "$CMD")" ]; then
+    echo "FAIL: scripts/$(command basename "$CMD") is not in this checkout; not installing the ${LABEL} entry" >&2
+    exit 1
+fi
 
 if [ "$TARGET" = "chat" ] && [ "$REMOVE" -eq 0 ]; then
     echo "NOTICE: --chat enables an AUTONOMOUS headless-claude cron that processes the"

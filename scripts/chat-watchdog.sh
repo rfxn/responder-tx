@@ -27,7 +27,9 @@ cd "$REPO_ROOT" || exit 1
 
 # cron's minimal PATH (/usr/bin:/bin) omits /usr/local/bin where claude/node live —
 # prepend the standard dirs so claude/node/python3/git resolve as in a login shell.
-export HOME="${HOME:-/root}"  # cron may not set HOME; claude reads ~/.claude/.credentials.json
+export HOME="${HOME:-/root}"  # cron may not set HOME
+export CLAUDE_CONFIG_DIR="${RESPONDER_CLAUDE_CONFIG_DIR:-/root/.claude-rfxn}"  # the rfxn account profile, shared with scripts/steward.sh
+export ENABLE_CLAUDEAI_MCP_SERVERS=false  # the profile's claude.ai connectors (Slack, Gmail, ...) stay out of a headless run
 export PATH="$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"  # ~/.local/bin holds the claude binary
 export IS_SANDBOX="${IS_SANDBOX:-1}"  # claude -p --permission-mode bypassPermissions refuses to run as root without this; cron runs as root and its clean env lacks it, so recovery exited 1 instantly (msg waited 54m 2026-07-24)
 
@@ -36,7 +38,7 @@ OUTBOX="${RESPONDER_CHAT_OUTBOX:-data/chat-outbox.json}"
 CURSOR="${RESPONDER_CHAT_CURSOR:-data/.chat-cursor}"
 DRAIN_MARKER="${RESPONDER_CHAT_DRAIN_MARKER:-data/.chat-drain-active}"  # a live session touches this while draining; fresh marker => defer
 KILL_SWITCH="${RESPONDER_CHAT_WATCHDOG_OFF:-data/.chat-watchdog-off}"   # presence disables recovery (owner kill switch)
-CREDS="${HOME}/.claude/.credentials.json"
+CREDS="${CLAUDE_CONFIG_DIR}/.credentials.json"
 CLAUDE_CMD="${RESPONDER_CHAT_CLAUDE_CMD:-claude}"  # override is a test seam (env is controller-controlled, not attacker-influenceable)
 
 STALL_THRESHOLD="${RESPONDER_CHAT_STALL_THRESHOLD:-2100}"   # message-age (s) past which the in-session revival is presumed dark (> its 30-min tick)
@@ -47,7 +49,11 @@ WATCHDOG_TIMEOUT="${RESPONDER_CHAT_WATCHDOG_TIMEOUT:-600}"  # bound the headless
 WATCHDOG_KILL_AFTER="${RESPONDER_CHAT_WATCHDOG_KILL_AFTER:-30}"  # SIGKILL grace after SIGTERM so a hung claude cannot outlive the timeout
 STATE_FILE="${RESPONDER_CHAT_WATCHDOG_STATE:-/tmp/responder-chat-watchdog-state}"  # "cursor attempts last_fired_epoch dirty_note_epoch"; /tmp reset on reboot is harmless
 QUARANTINE_DIR="${RESPONDER_CHAT_WATCHDOG_QUARANTINE:-/tmp/responder-watchdog-quarantine}"  # killed-run leftovers land here as a re-appliable patch, never deleted
-DIRTY_NOTE_COOLDOWN="${RESPONDER_CHAT_DIRTY_NOTE_COOLDOWN:-21600}"  # min gap (s) between outbox notes about a tree this watchdog cannot clean
+DIRTY_NOTE_COOLDOWN="${RESPONDER_CHAT_DIRTY_NOTE_COOLDOWN:-21600}"
+LEDGER="${RESPONDER_STEWARD_LEDGER:-/var/log/responder-steward-ledger.jsonl}"  # recorded as WATCHDOG; never capped
+LAST_RESULT="${RESPONDER_CHAT_WATCHDOG_RESULT:-/tmp/responder-chat-watchdog-last.json}"
+CYCLE_LOCK="${RESPONDER_CYCLE_LOCK:-/tmp/responder-cycle.lock}"  # quarantine takes it so it never races a cycle add/commit
+CYCLE_LOCK_WAIT="${RESPONDER_CHAT_WATCHDOG_CYCLE_LOCK_WAIT:-900}"  # min gap (s) between outbox notes about a tree this watchdog cannot clean
 
 LOGFILE="${RESPONDER_CHAT_WATCHDOG_LOG:-/var/log/responder-chat-watchdog.log}"
 if ! ( : >> "$LOGFILE" ) 2>/dev/null; then  # probe: /var/log may be unwritable for non-root cron
@@ -187,7 +193,7 @@ write_state() {
 # publish, and the next cycle rewrites it anyway, so the watchdog never touches this lane.
 # data/event.json is deliberately absent: the cycle READS it as config and never writes it, which
 # is how a half-written copy widened the AO on 2026-07-25.
-CYCLE_LANE='^(data/(gauges-snapshot|gauges-capture|roads-snapshot|roads-capture|crest-summary|gauge-meta|history|requests|shelters-live|crossing-status|wildfire|transtar-flood|caltopo-export|changes|changes-state)\.json|data/(board|board-live)\.kml|data/board-georss\.xml|history/|feed\.xml|crests\.ics)'
+CYCLE_LANE='^(data/(gauges-snapshot|gauges-capture|roads-snapshot|roads-capture|crest-summary|gauge-meta|history|requests|shelters-live|crossing-status|wildfire|transtar-flood|caltopo-export|changes|changes-state|cadence)\.json|data/(board|board-live)\.kml|data/board-georss\.xml|history/|feed\.xml|crests\.ics)'
 
 # tree_dirt — tracked paths differing from HEAD outside the data cycle's lane, one per line.
 # Untracked files are excluded on purpose: git archive ships HEAD, the cycle stages only named
@@ -212,15 +218,36 @@ log_paths() {
 # silently discarded work is not.
 quarantine_dirt() {
     local reason="$1"; shift
-    local patch
+    local patch p rc=0
+    local -a added=() others=()
     command mkdir -p "$QUARANTINE_DIR" || { log "ERROR: cannot create ${QUARANTINE_DIR}; leaving the tree dirty rather than discarding work"; return 1; }
+    exec 7>"$CYCLE_LOCK"
+    if ! flock -w "$CYCLE_LOCK_WAIT" 7; then
+        log "ERROR: cycle lock busy for ${CYCLE_LOCK_WAIT}s; leftovers stay in the tree: $*"
+        exec 7>&-
+        return 1
+    fi
     patch="${QUARANTINE_DIR}/watchdog-$(command date -u '+%Y%m%dT%H%M%SZ')-$$.patch"
     if ! git -C "$REPO_ROOT" diff HEAD -- "$@" > "$patch"; then
         log "ERROR: could not write ${patch}; NOT restoring (a dirty tree beats losing the work)"
+        exec 7>&-
         return 1
     fi
-    if ! git -C "$REPO_ROOT" checkout HEAD -- "$@"; then
-        log "ERROR: git checkout HEAD failed; the tree is STILL dirty and needs a human: $*"
+    while IFS= read -r p; do [ -n "$p" ] && added+=("$p"); done < <(git -C "$REPO_ROOT" diff --name-only --diff-filter=A HEAD -- "$@")
+    for p in "$@"; do
+        printf '%s\n' "${added[@]}" | grep -qxF -- "$p" || others+=("$p")
+    done
+    if [ "${#added[@]}" -gt 0 ]; then  # checkout HEAD aborts on a path HEAD lacks, so a staged new file is unstaged and moved
+        git -C "$REPO_ROOT" rm -q --cached -- "${added[@]}" || rc=1
+        for p in "${added[@]}"; do
+            command mkdir -p "${patch%.patch}.files/$(command dirname "$p")" && [ ! -e "$REPO_ROOT/$p" ] \
+                || command mv -f -- "$REPO_ROOT/$p" "${patch%.patch}.files/$p" || rc=1
+        done
+    fi
+    if [ "${#others[@]}" -gt 0 ]; then git -C "$REPO_ROOT" checkout HEAD -- "${others[@]}" || rc=1; fi
+    exec 7>&-
+    if [ "$rc" -ne 0 ]; then
+        log "ERROR: quarantine incomplete; the tree is STILL dirty and needs a human: $*"
         return 1
     fi
     log "quarantined to ${patch} and restored to HEAD (${reason}): $*"
@@ -351,8 +378,8 @@ if [ "$DRY_RUN" -eq 1 ]; then
     log "DRY-RUN: would fire build-capable recovery (NOT fired). Prompt:"
     printf '%s\n' "$(build_prompt "$INBOX_COUNT" "$CURSOR_VAL")"
     log "DRY-RUN: invocation:"
-    printf 'timeout -k %s %s %s -p <PROMPT> --permission-mode bypassPermissions --output-format text < /dev/null\n' \
-        "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD"
+    printf 'CLAUDE_CONFIG_DIR=%s ENABLE_CLAUDEAI_MCP_SERVERS=false timeout -k %s %s %s -p <PROMPT> --permission-mode bypassPermissions --strict-mcp-config --output-format json < /dev/null\n' \
+        "$CLAUDE_CONFIG_DIR" "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD"
     log "DRY-RUN: after the run the wrapper verifies ${CURSOR} advanced past ${CURSOR_VAL}, then quarantines any leftover tracked changes to ${QUARANTINE_DIR} and restores them to HEAD"
     exit 0
 fi
@@ -374,8 +401,13 @@ PROMPT=$(build_prompt "$INBOX_COUNT" "$CURSOR_VAL")
 log "firing build-capable recovery (timeout ${WATCHDOG_TIMEOUT}s +${WATCHDOG_KILL_AFTER}s kill; bypassPermissions; claude owns outbox+cursor)"
 rc=0
 command timeout -k "$WATCHDOG_KILL_AFTER" "$WATCHDOG_TIMEOUT" "$CLAUDE_CMD" -p "$PROMPT" \
-    --permission-mode bypassPermissions \
-    --output-format text < /dev/null 9>&- || rc=$?  # 9>&- keeps a surviving grandchild from holding the flock forever
+    --permission-mode bypassPermissions --strict-mcp-config \
+    --output-format json < /dev/null > "$LAST_RESULT" 9>&- || rc=$?  # 9>&- keeps a surviving grandchild from holding the flock forever
+python3 -I -c 'import json,sys; print(str(json.load(open(sys.argv[1])).get("result", ""))[:2000])' "$LAST_RESULT" 2>/dev/null \
+    || log "no JSON result from the recovery run (rc=${rc})"
+python3 -I "$SCRIPT_DIR/steward/steward.py" ledger-append --ledger "$LEDGER" --task WATCHDOG --model default --rc "$rc" \
+    --outcome "rc=$rc" --budget 0 --result "$LAST_RESULT" --detail "cursor ${CURSOR_VAL}" > /dev/null \
+    || log "WARN: could not record this run in ${LEDGER}"
 
 # The tree was clean when this run started, so anything uncommitted now is this run's own scratch.
 # A killed session (rc=124) leaves half-written files behind, and the data cycle publishes from the

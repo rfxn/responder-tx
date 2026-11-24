@@ -15,26 +15,26 @@
   <meta property="og:url" content="https://respondertx.org/">
   <meta property="og:locale" content="en_US">
   <meta property="og:locale:alternate" content="es_US">
-  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.100.16">
+  <meta property="og:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.101.0">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="ResponderTX share card: river gauges, forecast crests, crest wave timing, record crest watch, NWS alerts, radar">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ResponderTX: Live Texas Flood Map, River Gauges, Road Closures">
   <meta name="twitter:description" content="Live Texas flood map: river gauges with observed and forecast flood category, crest times, NWS flash flood alerts, road and low water crossing closures, cameras, and radar. Every card cites its source. Not a dispatch system; call 911 for emergencies.">
-  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.100.16">
+  <meta name="twitter:image" content="https://respondertx.org/assets/brand/og-card.png?v=0.101.0">
   <meta name="twitter:image:alt" content="ResponderTX share card: river gauges, forecast crests, crest wave timing, record crest watch, NWS alerts, radar">
   <link rel="alternate" type="application/rss+xml" title="ResponderTX: flood alerts &amp; crests" href="/feed.xml">
   <link rel="alternate" type="text/calendar" title="ResponderTX forecast crest calendar" href="/crests.ics">
-  <link rel="icon" href="assets/brand/favicon.ico?v=0.100.16" sizes="any">
-  <link rel="icon" href="assets/brand/favicon-32.png?v=0.100.16" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/brand/icon.svg?v=0.100.16" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.100.16">
-  <link rel="manifest" href="manifest.webmanifest?v=0.100.16">
-  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.100.16">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.100.16">
-  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.100.16">
-  <link rel="stylesheet" href="css/app.css?v=0.100.16">
+  <link rel="icon" href="assets/brand/favicon.ico?v=0.101.0" sizes="any">
+  <link rel="icon" href="assets/brand/favicon-32.png?v=0.101.0" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/brand/icon.svg?v=0.101.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=0.101.0">
+  <link rel="manifest" href="manifest.webmanifest?v=0.101.0">
+  <link rel="stylesheet" href="js/vendor/leaflet.css?v=0.101.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.css?v=0.101.0">
+  <link rel="stylesheet" href="js/vendor/MarkerCluster.Default.css?v=0.101.0">
+  <link rel="stylesheet" href="css/app.css?v=0.101.0">
   <!-- Static shell, so nothing here may describe a live hazard: an alert-shaped node (schema.org
        SpecialAnnouncement) would be indexed once and then served past the event. feed.xml is the
        per-cycle surface. Coverage claims here are guarded by tests/seo.test.js against event.json. -->
@@ -95,7 +95,7 @@
         "@id": "https://respondertx.org/#feeds",
         "url": "https://respondertx.org/",
         "name": "ResponderTX public flood feeds for Texas",
-        "description": "Machine readable exports of the ResponderTX operating picture: forecast river crests, flash flood emergencies, and active field notices for Texas. Regenerated on a fifteen minute cycle; every file carries the timestamp it was generated at, so a consumer can tell fresh from stale.",
+        "description": "Machine readable exports of the ResponderTX operating picture: forecast river crests, flash flood emergencies, and active field notices for Texas. Regenerated hourly during flood or severe weather and twice daily otherwise; every file carries the timestamp it was generated at, so a consumer can tell fresh from stale.",
         "creator": { "@id": "https://respondertx.org/#publisher" },
         "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
         "isAccessibleForFree": true,
@@ -155,9 +155,9 @@
 
   <header>
     <div class="brand">
-      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.100.16" alt="ResponderTX" width="585" height="156">
-      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.100.16" alt="ResponderTX" width="677" height="162">
-      <img class="brand-mark" src="assets/brand/icon.svg?v=0.100.16" alt="ResponderTX" width="32" height="32">
+      <img class="brand-logo brand-logo-light" src="assets/brand/logo-lockup.png?v=0.101.0" alt="ResponderTX" width="585" height="156">
+      <img class="brand-logo brand-logo-dark" src="assets/brand/logo-lockup-dark.png?v=0.101.0" alt="ResponderTX" width="677" height="162">
+      <img class="brand-mark" src="assets/brand/icon.svg?v=0.101.0" alt="ResponderTX" width="32" height="32">
       <div class="sub"><span class="live-dot"></span><span class="sub-text" data-i18n="brand.sub">Live Hazard Awareness</span></div>
     </div>
     <div class="controls">
@@ -292,6 +292,8 @@
 
         <!-- generated from the live official sources by renderFeedSituation(); the notice filters below do not apply to it -->
         <div id="feed-situation" class="sit"></div>
+        <!-- forecast hazards from data/outlook.json, rendered by renderFeedOutlook(); empty when the file is absent, invalid or expired -->
+        <div id="feed-outlook" class="sit hzn"></div>
         <!-- recent transitions from data/changes.json, rendered by renderFeedChanges() -->
         <div id="feed-changes" class="sit wch"></div>
 
@@ -543,7 +545,7 @@
             <input type="file" id="import-file" accept="application/json" style="display:none">
           </div>
           <div id="caltopo-box" hidden>
-            <div class="hint" data-i18n="caltopo.hint">Three fixed URLs for the same curated selection: gauges, crests, alerts, road closures, crossings, notices, and storm reports, republished about every 15 minutes.</div>
+            <div class="hint" data-i18n="caltopo.hint">Three fixed URLs for the same curated selection: a priority-ranked set of gauges, crests, alerts, road closures, crossings, notices, and storm reports, republished hourly during flood or severe weather and twice daily otherwise.</div>
             <div class="hint" id="caltopo-status" hidden></div>
             <div class="caltopo-url-row">
               <code id="caltopo-url"></code>
@@ -554,7 +556,7 @@
               <code id="kml-url"></code>
               <button id="kml-copy" data-i18n="caltopo.copy">Copy URL</button>
             </div>
-            <div class="hint" data-i18n="feeds.kml">KML: a live layer for ArcGIS, ATAK and Google Earth. Add this address once and the tool re-checks the board about every 15 minutes.</div>
+            <div class="hint" data-i18n="feeds.kml">KML: a live layer for ArcGIS, ATAK and Google Earth. Add this address once and the tool re-checks it every 15 minutes, so it picks up each new publish.</div>
             <div class="caltopo-url-row">
               <code id="georss-url"></code>
               <button id="georss-copy" data-i18n="caltopo.copy">Copy URL</button>
@@ -709,18 +711,18 @@
   </div>
 
   <!-- first, and ES5: it is the only script that still runs on an engine the bundle below cannot parse -->
-  <script src="js/bootfloor.js?v=0.100.16"></script>
-  <script src="js/vendor/leaflet.js?v=0.100.16"></script>
-  <script src="js/vendor/leaflet.markercluster.js?v=0.100.16"></script>
-  <script src="js/usng.js?v=0.100.16"></script>
-  <script src="js/i18n.js?v=0.100.16"></script>
-  <script src="js/core.js?v=0.100.16"></script>
-  <script src="js/map.js?v=0.100.16"></script>
-  <script src="js/playback.js?v=0.100.16"></script>
-  <script src="js/sources.js?v=0.100.16"></script>
-  <script src="js/cameras.js?v=0.100.16"></script>
-  <script src="js/panels.js?v=0.100.16"></script>
-  <script src="js/board.js?v=0.100.16"></script>
-  <script src="js/boot.js?v=0.100.16"></script>
+  <script src="js/bootfloor.js?v=0.101.0"></script>
+  <script src="js/vendor/leaflet.js?v=0.101.0"></script>
+  <script src="js/vendor/leaflet.markercluster.js?v=0.101.0"></script>
+  <script src="js/usng.js?v=0.101.0"></script>
+  <script src="js/i18n.js?v=0.101.0"></script>
+  <script src="js/core.js?v=0.101.0"></script>
+  <script src="js/map.js?v=0.101.0"></script>
+  <script src="js/playback.js?v=0.101.0"></script>
+  <script src="js/sources.js?v=0.101.0"></script>
+  <script src="js/cameras.js?v=0.101.0"></script>
+  <script src="js/panels.js?v=0.101.0"></script>
+  <script src="js/board.js?v=0.101.0"></script>
+  <script src="js/boot.js?v=0.101.0"></script>
 </body>
 </html>

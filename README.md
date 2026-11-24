@@ -202,8 +202,9 @@ observed; timestamps come from the wall clock, never from prose.
 | Chat | present | `chat.js` + `master.js` stripped at deploy, verified |
 | Feeds | not served | `/feed.xml` (RSS), `/crests.ics`, `data/caltopo-export.json` |
 
-The generator pipeline (`scripts/gen-*.py`) runs on the operator host every 15
-minutes: it snapshots NWPS / USGS / DriveTexas into `data/`, writes the playback
+The generator pipeline (`scripts/gen-*.py`) runs on the operator host, checking
+the weather every 15 minutes and publishing hourly during flood or severe weather
+and twice daily otherwise: it snapshots NWPS / USGS / DriveTexas into `data/`, writes the playback
 archive under `history/`, and builds the crest summary, records, shelters,
 crossing status, CalTopo export and the feeds. Those files are committed, so the
 git history of `data/` is the event archive. `scripts/deploy.sh` then verifies

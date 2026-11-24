@@ -1,0 +1,51 @@
+{
+  "generated": "2026-11-23T23:00:00Z",
+  "validUntil": "2026-11-24T12:00:00Z",
+  "author": "steward",
+  "headline": {
+    "en": "Rain and storm chances rise Tuesday in Southeast and East Texas.",
+    "es": "Aumentan las probabilidades de lluvia y tormentas el martes en el sureste y el este de Texas."
+  },
+  "items": [
+    {
+      "id": "spc-d2-severe",
+      "kind": "severe",
+      "level": "low",
+      "title": { "en": "Marginal risk of severe storms, East Texas", "es": "Riesgo marginal de tormentas severas, este de Texas" },
+      "body": { "en": "A few storms could bring damaging wind gusts and small hail.", "es": "Algunas tormentas podrían traer ráfagas dañinas y granizo pequeño." },
+      "window": { "start": "2026-11-24T12:00:00Z", "end": "2026-11-25T12:00:00Z" },
+      "source": { "name": "NWS Storm Prediction Center", "url": "https://www.spc.noaa.gov/products/outlook/day2otlk.html" },
+      "issued": "2026-11-23T17:30:00Z"
+    },
+    {
+      "id": "wpc-ero-d2",
+      "kind": "rain",
+      "level": "elevated",
+      "title": { "en": "Slight risk of excessive rainfall, Southeast Texas", "es": "Riesgo leve de lluvia excesiva, sureste de Texas" },
+      "body": { "en": "Heavy rain could flood low-lying roads and creeks, mainly from Houston to Beaumont.", "es": "La lluvia fuerte podría inundar caminos bajos y arroyos, sobre todo de Houston a Beaumont." },
+      "window": { "start": "2026-11-24T12:00:00Z", "end": "2026-11-25T12:00:00Z" },
+      "source": { "name": "NWS Weather Prediction Center", "url": "https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" },
+      "issued": "2026-11-23T20:39:00Z"
+    },
+    {
+      "id": "spc-fire-d1",
+      "kind": "fire",
+      "level": "elevated",
+      "title": { "en": "Elevated fire weather, Trans-Pecos", "es": "Condiciones elevadas para incendios, Trans-Pecos" },
+      "body": { "en": "Dry, gusty wind this afternoon can spread any new fire quickly.", "es": "El viento seco y racheado de esta tarde puede propagar rápido cualquier incendio nuevo." },
+      "window": { "start": "2026-11-23T18:00:00Z", "end": "2026-11-24T03:00:00Z" },
+      "source": { "name": "NWS Storm Prediction Center", "url": "https://www.spc.noaa.gov/products/fire_wx/fwdy1.html" },
+      "issued": "2026-11-23T19:45:00Z"
+    },
+    {
+      "id": "ama-freeze",
+      "kind": "temperature",
+      "level": "low",
+      "title": { "en": "Hard freeze possible, Panhandle", "es": "Posible helada fuerte, Panhandle" },
+      "body": { "en": "Lows in the teens Wednesday morning; protect pipes and pets.", "es": "Mínimas de entre -10 y -7 °C el miércoles por la mañana; proteja tuberías y mascotas." },
+      "window": { "start": "2026-11-25T06:00:00Z", "end": "2026-11-25T15:00:00Z" },
+      "source": { "name": "NWS Amarillo", "url": "https://www.weather.gov/ama/" },
+      "issued": "2026-11-23T21:10:00Z"
+    }
+  ]
+}

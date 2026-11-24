@@ -360,6 +360,50 @@ except Bail as e:
 finally:
     shutil.rmtree(tmp)
 
+# --- quiet mode: the capture this cycle fetched is the newest frame, though not yet committed ---
+tmp_wt = tempfile.mkdtemp(prefix='gen-history-worktree.')
+try:
+    wrepo = make_repo(tmp_wt)
+    commit(wrepo, WIDE, 0, 'wide 1')
+    commit(wrepo, WIDE, 1, 'wide 2')
+    with open(os.path.join(wrepo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+        json.dump(capture(2), f)
+    rw = run_gen(wrepo)
+    frames = history(wrepo)['frames'] if rw.returncode == 0 else []
+    check('WORKTREE · MUTATION the uncommitted capture this cycle fetched is the newest playback frame',
+          bool(frames) and frames[-1]['t'] == capture(2)['generated'] and len(frames) == 3,
+          '%s %s' % ([f['t'] for f in frames], rw.stderr[-300:]))
+    check('WORKTREE · the generator commits nothing itself',
+          git(wrepo, 'status', '--porcelain', '--', 'data/gauges-capture.json').strip().startswith('M'))
+except Bail as e:
+    check(str(e), False)
+finally:
+    shutil.rmtree(tmp_wt, ignore_errors=True)
+
+# --- the one cat-file stream stays in step after a path that is not a blob ----------------------
+tmp_cf = tempfile.mkdtemp(prefix='gen-history-catfile.')
+try:
+    crepo = make_repo(tmp_cf)
+    commit(crepo, WIDE, 0, 'one')
+    head = git(crepo, 'rev-parse', 'HEAD').strip()
+    GH.ROOT, GH._BLOBS = crepo, None
+    try:
+        GH.git_blob(head, 'data')  # a tree: cat-file answers "<sha> tree <size>" and then sends the tree
+        raised = False
+    except subprocess.CalledProcessError:
+        raised = True
+    with open(os.path.join(crepo, 'data', 'gauges-capture.json'), encoding='utf-8') as f:
+        want = f.read()
+    try:
+        got = GH.git_blob(head, 'data/gauges-capture.json')
+    except Exception as e:  # noqa: BLE001, a desynced stream can fail in several ways
+        got = 'raised %s' % type(e).__name__
+    check('CATFILE · MUTATION a tree path raises and the next blob read is still the right blob',
+          raised and got == want, repr(got[:80]))
+finally:
+    GH._BLOBS = None
+    shutil.rmtree(tmp_cf, ignore_errors=True)
+
 # --- pure helpers -----------------------------------------------------------
 check('archive_floor ignores event.json "start" (a display field that moves on a pivot)',
       GH.archive_floor({'start': '2026-07-22T00:00:00Z',

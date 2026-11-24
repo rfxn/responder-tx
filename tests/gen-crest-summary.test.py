@@ -303,6 +303,99 @@ except Bail as e:
 finally:
     shutil.rmtree(tmp_stage, ignore_errors=True)
 
+# --- quiet mode: the capture this cycle fetched is the newest snapshot, though not yet committed ---
+# Captures are committed only at a publish (2x/day quiet), so walking commits alone ended every
+# published summary at the PREVIOUS publish.
+tmp_wt = tempfile.mkdtemp(prefix='gen-crest-summary-worktree.')
+try:
+    wrepo = make_repo(tmp_wt, 'wt')
+    with open(os.path.join(wrepo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+        json.dump(capture(2), f)
+    rw = run_gen(wrepo)
+    doc = summary(wrepo)
+    east = {g['lid']: g for g in doc['gauges']}.get('EASTA', {})
+    check('WORKTREE · MUTATION the uncommitted capture this cycle fetched is the newest peak and window end',
+          rw.returncode == 0 and east.get('peak') == 16.0 and doc['window']['last'] == capture(2)['generated'],
+          '%s %s' % (east, doc.get('window')))
+    check('WORKTREE · the generator commits nothing itself',
+          git(wrepo, 'status', '--porcelain', '--', 'data/gauges-capture.json').strip().startswith('M'),
+          git(wrepo, 'status', '--porcelain'))
+except Bail as e:
+    check(str(e), False)
+finally:
+    shutil.rmtree(tmp_wt, ignore_errors=True)
+
+# --- a reading implausible for ITS OWN gauge is no reading ------------------------------------
+# 2026-11-17 summary, live on the mirror: SGET2 at 638 ft "major", 1747.9% of its 36.5 ft record, was
+# the top row. It sat inside the absolute envelope; its real stage was 6.4 ft (a x100 datum shift).
+# GRRT2, a Galveston tide gauge, read 9.89 then 25.49 ft for one observation each, repeated while the
+# gauge was silent, between 1.58 and 1.17 ft. SHAT2 jumped 5.05 -> 32.39 -> 5.06 in one hour. Readings
+# here are 30 min apart, as those gauges report; SPRS reports hourly, the BWRT2 case that must stand.
+PLAUS_TIMELINE = [  # (lid, stage, category, validTime index)
+    [('DATM', 6.38, 'no_flooding', 0), ('TIDE', 1.58, 'no_flooding', 0), ('SPIK', 5.05, 'no_flooding', 0),
+     ('REAL', 10.0, 'minor', 0), ('FLSH', 8.0, 'minor', 0), ('NREF', 9.0, 'minor', 0), ('SPRS', 2.0, 'no_flooding', 0)],
+    [('DATM', 634, 'major', 1), ('TIDE', 9.89, 'major', 1), ('SPIK', 32.39, 'major', 1),
+     ('REAL', 18.0, 'moderate', 1), ('FLSH', 17.0, 'major', 1), ('NREF', 60.0, 'major', 1), ('SPRS', 2.0, 'no_flooding', 0)],
+    [('DATM', 638, 'major', 2), ('TIDE', 9.89, 'major', 1), ('SPIK', 5.06, 'no_flooding', 2),
+     ('REAL', 27.5, 'major', 2), ('FLSH', 16.0, 'major', 2), ('NREF', 9.5, 'minor', 2), ('SPRS', 15.0, 'major', 2)],
+    [('DATM', 6.4, 'no_flooding', 3), ('TIDE', 25.49, 'major', 3), ('SPIK', 5.04, 'no_flooding', 3),
+     ('REAL', 26.8, 'major', 3), ('FLSH', 9.0, 'minor', 3), ('NREF', 9.1, 'minor', 3), ('SPRS', 15.0, 'major', 2)],
+    [('DATM', 6.41, 'no_flooding', 4), ('TIDE', 1.17, 'no_flooding', 4), ('SPIK', 5.0, 'no_flooding', 4),
+     ('REAL', 20.0, 'moderate', 4), ('FLSH', 7.0, 'no_flooding', 4), ('NREF', 9.0, 'minor', 4), ('SPRS', 4.0, 'no_flooding', 4)],
+]
+RECORDS = {'DATM': 36.5, 'TIDE': 5.04, 'SPIK': 21.1, 'REAL': 25.0, 'FLSH': 15.0, 'SPRS': 12.0}
+MAJORS = {'TIDE': 4.5, 'REAL': 22.0, 'FLSH': 14.0}
+
+tmp_pl = tempfile.mkdtemp(prefix='gen-crest-summary-plausible.')
+try:
+    prepo = os.path.join(tmp_pl, 'plausible')
+    os.makedirs(os.path.join(prepo, 'data'))
+    os.makedirs(os.path.join(prepo, 'scripts'))
+    shutil.copy(GEN, os.path.join(prepo, 'scripts', 'gen-crest-summary.py'))
+    shutil.copy(AOAREA, os.path.join(prepo, 'scripts', 'aoarea.py'))
+    subprocess.run(('git', 'init', '-q', prepo), check=True, capture_output=True)
+    with open(os.path.join(prepo, 'data', 'records.json'), 'w', encoding='utf-8') as f:
+        json.dump({'records': {k: {'record_ft': v, 'record_date': '1908-05-01'} for k, v in RECORDS.items()}}, f)
+    with open(os.path.join(prepo, 'data', 'gauge-meta.json'), 'w', encoding='utf-8') as f:
+        json.dump({k: {'action': v * 0.6, 'minor': v * 0.7, 'moderate': v * 0.85, 'major': v} for k, v in MAJORS.items()}, f)
+    first = datetime(2026, 9, 30, 23, 0, 0, tzinfo=timezone.utc)
+    for n, rows in enumerate(PLAUS_TIMELINE):
+        stamp = iso(first + timedelta(minutes=30 * n))
+        caprows = [row(lid, v, c, iso(first + timedelta(minutes=(60 if lid == 'SPRS' else 30) * k))) for lid, v, c, k in rows]
+        with open(os.path.join(prepo, 'data', 'event.json'), 'w', encoding='utf-8') as f:
+            json.dump({'name': 'fixture', 'event': '', 'gaugeBbox': {'xmin': -98.0, 'ymin': 27.5, 'xmax': -93.4, 'ymax': 31.0}}, f)
+        with open(os.path.join(prepo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+            json.dump({'generated': stamp, 'gauges': caprows}, f)
+        git(prepo, 'add', 'data/event.json', 'data/gauges-capture.json')
+        git(prepo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'p%d' % n)
+    rp = run_gen(prepo)
+    check('PLAUSIBLE · the run exits 0 and reports what it voided', rp.returncode == 0
+          and 'published as no reading: 4 snapshot readings at DATMx2 SPIKx1 TIDEx1' in rp.stdout, rp.stdout[-600:] + rp.stderr[-400:])
+    doc = summary(prepo)
+    peaks = {g['lid']: g for g in doc['gauges']}
+    check('PLAUSIBLE · MUTATION a x100 datum shift (634, 638 ft on a 36.5 ft record) is no crest, however consistent',
+          'DATM' not in peaks, str(peaks.get('DATM')))
+    # the 9.89 ft reading is followed by an hour of silence, so no neighbour rule can call it: reported, not hidden
+    check('PLAUSIBLE · MUTATION a tide gauge reading of 25.49 ft (5x its record and major stage) is no reading',
+          peaks.get('TIDE', {}).get('peak') == 9.89, str(peaks.get('TIDE')))
+    check('PLAUSIBLE · a one-hour 5 -> 32 -> 5 ft spike claims no record', 'SPIK' not in peaks, str(peaks.get('SPIK')))
+    real = peaks.get('REAL', {})
+    check('PLAUSIBLE · a real record crest on a continuous hydrograph still publishes, record exceeded',
+          real.get('peak') == 27.5 and real.get('record', {}).get('exceeded') is True, str(real))
+    check('PLAUSIBLE · a flash rise that doubles in an hour keeps its record, its next reading confirms it',
+          peaks.get('FLSH', {}).get('peak') == 17.0, str(peaks.get('FLSH')))
+    check('PLAUSIBLE · a lone record between readings an hour or more away is not judged: too sparse to call',
+          peaks.get('SPRS', {}).get('peak') == 15.0, str(peaks.get('SPRS')))
+    check('PLAUSIBLE · a gauge with no record or flood stage is not judged by a bound it does not have',
+          peaks.get('NREF', {}).get('peak') == 60.0, str(peaks.get('NREF')))
+    check('PLAUSIBLE · the summary counts what it voided', doc.get('implausible_readings') == 4, str(doc.get('implausible_readings')))
+    check('LABEL · with no configured event name, the label is the months the window spans',
+          doc.get('event') == 'September to October 2026', str(doc.get('event')))
+except Bail as e:
+    check(str(e), False)
+finally:
+    shutil.rmtree(tmp_pl, ignore_errors=True)
+
 print('---')
 if FAILS:
     print('%d FAILURE(S)' % FAILS)

@@ -72,6 +72,7 @@ run_monitor() {  # runs the monitor against the temp state + file:// mirror; set
     RESPONDER_MONITOR_LOG="$WORK/monitor.log" \
     RESPONDER_CYCLE_LOG="$WORK/cycle.log" \
     RESPONDER_CYCLE_STATUS="$WORK/cycle-status.json" \
+    RESPONDER_CADENCE_STATE="$WORK/data/.cadence-state.json" \
     RESPONDER_MONITOR_WARN_MIN="${WARN:-45}" \
     RESPONDER_MONITOR_CRIT_MIN="${CRIT:-90}" \
     RESPONDER_MONITOR_FAIL_STREAK="${STREAK:-3}" \
@@ -525,6 +526,107 @@ if [ -n "$S1" ] && [ "$S1" -gt 0 ] && [ "$S1" = "$S2" ] && [ "$S3" -gt "$S1" ] \
     pass "30 a held verdict keeps its start epoch in both state files, and a new verdict restarts it"
 else
     fail "30 verdict-since columns (mirror $S1 $S2 $S3, backup $B1 $B2 $B3)"
+fi
+rm -rf "$WORK"
+
+# --- Tests 31-37: thresholds follow the publish cadence, and a silent cycle is news ----------------
+# The deadline is the LATER of the mirror's own nextDueBy and the local mode's since + interval (a
+# turn to adverse must not call the last quiet publish late), plus 45/90. A local mode counts only
+# while the detector probed in the last 45 min; no cadence anywhere is today's 45/90.
+iso_ago() { date -u -d "-$1 min" '+%Y-%m-%dT%H:%M:%SZ'; }
+mk_cadence() {  # MODE AGE_MIN: the mirror's cadence.json for a publish AGE_MIN ago, its snapshot to match
+    local iv=60; [ "$1" = quiet ] && iv=720
+    mk_snapshot "$WORK/remote/gauges-snapshot.json" "$2"
+    printf '{"generated":"%s","mode":"%s","intervalMin":%s,"since":"%s","nextDueBy":"%s","reasons":[]}\n' \
+        "$(iso_ago "$2")" "$1" "$iv" "$(iso_ago "$2")" "$(date -u -d "-$2 min +$iv min" '+%Y-%m-%dT%H:%M:%SZ')" > "$WORK/remote/cadence.json"
+}
+mk_state() {  # MODE SINCE_MIN_AGO [LASTGATE] [PROBE_MIN_AGO] [GATE_MIN_AGO]: the local cadence state
+    printf '{"mode":"%s","since":"%s","lastProbeAt":"%s","lastGate":"%s","lastGateAt":"%s"}\n' "$1" "$(iso_ago "$2")" \
+        "$(iso_ago "${4:-1}")" "${3:-full: fixture}" "$(iso_ago "${5:-1}")" > "$WORK/data/.cadence-state.json"
+}
+verdict_line() { grep 'verdict=' "$WORK/monitor.log" | tail -1; }
+
+setup; mk_cadence quiet 120
+run_monitor
+if [ "$RC" -eq 0 ] && verdict_line | grep -q 'verdict=FRESH .* warn=765 crit=810 cadence=720' && [ "$(count_msgs "$OUT")" -eq 0 ]; then
+    pass "31 a quiet mirror two hours old is fresh: its nextDueBy is 720 min after its snapshot, + 45/90"
+else
+    fail "31 the mirror's own cadence must widen the thresholds"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_cadence quiet 360; mk_state adverse 0
+run_monitor
+if [ "$RC" -eq 0 ] && verdict_line | grep -q 'verdict=FRESH .* cadence=720' && [ "$(count_msgs "$OUT")" -eq 0 ]; then
+    pass "32 MUTATION · a turn to adverse does not make the last quiet publish late: no false CRITICAL at the flip"
+else
+    fail "32 the later deadline must win at a quiet to adverse flip"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_cadence adverse 120; mk_state adverse 300
+run_monitor
+if [ "$RC" -ne 0 ] && verdict_line | grep -q 'verdict=WARN .* warn=105 crit=150 cadence=60'; then
+    pass "32b a steady adverse mirror two hours old is late: due 60 min after its snapshot"
+else
+    fail "32b steady adverse must keep the hourly deadline"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 800; mk_state quiet 3000
+run_monitor
+if [ "$RC" -ne 0 ] && verdict_line | grep -q 'verdict=WARN .* warn=765 crit=810 cadence=720'; then
+    pass "33 a freshly probed local quiet mode sets the deadline when the mirror publishes no cadence"
+else
+    fail "33 a local quiet state must set 765/810"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 60; mk_state quiet 3000 'full: fixture' 120 5
+run_monitor
+if [ "$RC" -ne 0 ] && verdict_line | grep -q 'verdict=WARN .* warn=45 crit=90 cadence=none'; then
+    pass "33b MUTATION · a local mode the detector has not probed for 2 h is ignored: 45/90 stand"
+else
+    fail "33b a stale local mode must not widen the thresholds"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 50; printf 'not json\n' > "$WORK/remote/cadence.json"
+run_monitor
+if [ "$RC" -ne 0 ] && verdict_line | grep -q 'verdict=WARN .* warn=45 crit=90 cadence=none'; then
+    pass "34 an unreadable cadence anywhere is not quiet: today's 45/90 stand"
+else
+    fail "34 no readable cadence must keep 45/90"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_snapshot "$WORK/remote/gauges-snapshot.json" 900; mk_snapshot "$WORK/data/gauges-snapshot.json" 5
+mk_state quiet 3000 'hold: quiet, last publish 890 min ago, due within 0 min'
+run_monitor
+if has_text "$OUT" 'Likely cause: the cycle cron is firing but its cadence gate is holding the publish (hold: quiet, last publish 890 min ago'; then
+    pass "35 a gate that keeps holding past its own interval is named, not blamed on the cron or the host"
+else
+    fail "35 a stuck hold must be the named cause"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_cadence quiet 10; mk_state quiet 3000 'hold: x' 120 120
+python3 -c 'import json,sys,time; json.dump({"finished_epoch": int(time.time()) - 180 * 60, "exit_code": 0, "consecutive_failures": 0}, open(sys.argv[1], "w"))' "$WORK/cycle-status.json"
+run_monitor
+if [ "$RC" -ne 0 ] && has_text "$OUT" 'Likely cause: the data cycle is not firing: no cadence verdict and no cycle run for 120 min'; then
+    pass "36 MUTATION · a cycle that stopped firing alerts while the mirror still reads fresh"
+else
+    fail "36 a silent cycle must alert regardless of cadence"; cat "$WORK/monitor.log"
+fi
+rm -rf "$WORK"
+
+setup; mk_cadence quiet 300; mk_state quiet 3000 'hold: quiet' 5 5
+python3 -c 'import json,sys,time; json.dump({"finished_epoch": int(time.time()) - 300 * 60, "exit_code": 0, "consecutive_failures": 0}, open(sys.argv[1], "w"))' "$WORK/cycle-status.json"
+run_monitor
+if [ "$RC" -eq 0 ] && verdict_line | grep -q 'verdict=FRESH'; then
+    pass "37 a quiet cycle that holds every fire is firing: an old run record alone is not a dead cron"
+else
+    fail "37 holds must count as firing"; cat "$WORK/monitor.log"
 fi
 rm -rf "$WORK"
 

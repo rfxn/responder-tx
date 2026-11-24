@@ -1,0 +1,121 @@
+{
+  "generated": "2026-11-24T06:53:45Z",
+  "validUntil": "2026-11-24T21:53:45Z",
+  "author": "steward",
+  "headline": {
+    "en": "Another hard freeze is forecast Wednesday for parts of West Texas, and severe storms are not expected today",
+    "es": "Se pronostica otra helada fuerte el miércoles en partes del oeste de Texas, y hoy no se esperan tormentas severas"
+  },
+  "items": [
+    {
+      "id": "spc-d1",
+      "kind": "severe",
+      "level": "none",
+      "title": {
+        "en": "Severe storms not expected today",
+        "es": "No se esperan tormentas severas hoy"
+      },
+      "body": {
+        "en": "Isolated thunderstorms are possible in the Big Bend region and South Texas today. The Storm Prediction Center says severe thunderstorms are not expected.",
+        "es": "Hoy son posibles tormentas aisladas en la región de Big Bend y el sur de Texas. El Centro de Predicción de Tormentas dice que no se esperan tormentas severas."
+      },
+      "window": {
+        "start": "2026-11-24T12:00:00Z",
+        "end": "2026-11-25T12:00:00Z"
+      },
+      "source": {
+        "name": "NWS Storm Prediction Center",
+        "url": "https://www.spc.noaa.gov/products/outlook/day1otlk.html"
+      },
+      "issued": "2026-11-24T05:28:00Z"
+    },
+    {
+      "id": "nhc-atlantic",
+      "kind": "tropical",
+      "level": "none",
+      "title": {
+        "en": "No tropical formation expected in the Gulf",
+        "es": "No se espera formación tropical en el Golfo"
+      },
+      "body": {
+        "en": "The Hurricane Center says tropical cyclone formation is not expected over the Atlantic, Caribbean Sea or Gulf during the next 7 days.",
+        "es": "El Centro Nacional de Huracanes dice que no se espera la formación de ciclones tropicales en el Atlántico, el Caribe ni el Golfo durante los próximos 7 días."
+      },
+      "window": {
+        "start": "2026-11-24T06:00:00Z",
+        "end": "2026-12-01T06:00:00Z"
+      },
+      "source": {
+        "name": "NWS National Hurricane Center",
+        "url": "https://www.nhc.noaa.gov/text/MIATWOAT.shtml"
+      },
+      "issued": "2026-11-24T06:00:00Z"
+    },
+    {
+      "id": "tfs-fire",
+      "kind": "fire",
+      "level": "low",
+      "title": {
+        "en": "Low fire potential in East Texas this week",
+        "es": "Bajo potencial de incendios en el este de Texas esta semana"
+      },
+      "body": {
+        "en": "Low fire potential continues in East and Northeast Texas where it is dry. Humidity may fall below 30% in Northeast Texas Thursday. Fires should stay small. Fire potential is limited in the rest of the state.",
+        "es": "El bajo potencial de incendios continúa en el este y noreste de Texas, donde hay sequedad. La humedad podría bajar de 30% en el noreste el jueves. Los incendios deben ser pequeños. En el resto del estado es limitado."
+      },
+      "window": {
+        "start": "2026-11-23T06:00:00Z",
+        "end": "2026-12-01T06:00:00Z"
+      },
+      "source": {
+        "name": "Texas A&M Forest Service",
+        "url": "https://ticc.tamu.edu/Documents/PredictiveServices/Outlooks/texas_fire_potential_update.pdf"
+      },
+      "issued": "2026-11-23T19:25:31Z"
+    },
+    {
+      "id": "tfs-freeze-d2",
+      "kind": "temperature",
+      "level": "elevated",
+      "title": {
+        "en": "Hard freeze forecast Wednesday in West Texas",
+        "es": "Se pronostica helada fuerte el miércoles en el oeste de Texas"
+      },
+      "body": {
+        "en": "Another hard freeze, below 28°F, is forecast Wednesday, Nov 25, reaching the Rolling Plains and Western Hill Country. The High Plains had its first hard freeze Nov 23. Highs stay cold through Wednesday, then warm up.",
+        "es": "Se pronostica otra helada fuerte, bajo 28°F, el miércoles 25 de noviembre, que llegaría a las Rolling Plains y el oeste del Hill Country. Las High Plains tuvieron su primera helada fuerte el 23 de noviembre. El frío sigue hasta el miércoles y luego sube la temperatura."
+      },
+      "window": {
+        "start": "2026-11-25T06:00:00Z",
+        "end": "2026-11-26T06:00:00Z"
+      },
+      "source": {
+        "name": "Texas A&M Forest Service",
+        "url": "https://ticc.tamu.edu/Documents/PredictiveServices/Outlooks/texas_fire_potential_update.pdf"
+      },
+      "issued": "2026-11-23T19:25:31Z"
+    },
+    {
+      "id": "usdm-tx",
+      "kind": "drought",
+      "level": "elevated",
+      "title": {
+        "en": "Drought covers part of Texas",
+        "es": "La sequía cubre parte de Texas"
+      },
+      "body": {
+        "en": "As of Nov 17, about 43% of Texas was in drought (D1 or worse), 19% in severe drought or worse (D2) and 6% in extreme drought or worse (D3). That is down from 54% in drought a week earlier.",
+        "es": "Al 17 de noviembre, cerca del 43% de Texas estaba en sequía (D1 o peor), 19% en sequía severa o peor (D2) y 6% en sequía extrema o peor (D3). Antes era 54% en sequía una semana atrás."
+      },
+      "window": {
+        "start": "2026-11-17T12:00:00Z",
+        "end": "2026-11-24T12:00:00Z"
+      },
+      "source": {
+        "name": "U.S. Drought Monitor",
+        "url": "https://droughtmonitor.unl.edu/CurrentMap/StateDroughtMonitor.aspx?TX"
+      },
+      "issued": "2026-11-17T12:00:00Z"
+    }
+  ]
+}

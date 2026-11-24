@@ -1,5 +1,31 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.101.0 · 2026-11-24 (on the horizon, steadier radar)
+
+-- New Features --
+- [New] Feed "On the horizon": the outlook for Texas over the coming days (rain,
+      severe storms, tropical, fire, drought and temperature), each item citing
+      its official source and issue time, and hidden once it expires
+- [New] The board says when its published files next update and, during flood or
+      severe weather, what made it switch to hourly updates
+
+-- Changes --
+- [Change] What changed, the crest summary, open shelters, the map feeds, RSS and
+         the crest calendar update hourly during flood or severe weather and twice
+         daily otherwise; alerts, gauges, roads and radar stay live in the browser
+- [Change] Staleness notices follow that schedule
+- [Change] App text no longer refers to a single past event; replay ranges read as
+         the last 3 to 90 days
+
+-- Bug Fixes --
+- [Fix] Published board data is current again, including the crest summary, gauge
+      records and the camera list
+- [Fix] Radar stays on screen while zooming or panning instead of going blank
+- [Fix] Radar that cannot be loaded says so; blank areas no longer read as clear
+      sky
+- [Fix] The crest summary no longer lists impossible gauge readings as record
+      crests, and its period label matches the period it covers
+
 ## v0.100.16 · 2026-10-02 (what changed)
 
 -- New Features --

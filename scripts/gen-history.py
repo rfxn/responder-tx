@@ -150,9 +150,25 @@ def git(*args):
     return subprocess.run(("git", "-C", ROOT) + args, capture_output=True, text=True, check=True).stdout
 
 
+_BLOBS = None
+
+
 def git_blob(commit_hash, path):
-    return subprocess.run(("git", "-C", ROOT, "show", f"{commit_hash}:{path}"),
-                          capture_output=True, text=True, check=True).stdout
+    """One `git cat-file --batch` serves the whole walk; a process per commit was most of the run."""
+    global _BLOBS
+    if _BLOBS is None or _BLOBS.poll() is not None:
+        _BLOBS = subprocess.Popen(("git", "-C", ROOT, "cat-file", "--batch"),
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    _BLOBS.stdin.write(f"{commit_hash}:{path}\n".encode("utf-8"))
+    _BLOBS.stdin.flush()
+    header = _BLOBS.stdout.readline().decode("utf-8", "replace").split()
+    if len(header) == 3 and header[1] != "blob" and header[2].isdigit():
+        _BLOBS.stdout.read(int(header[2]) + 1)  # a tree or commit still sends its body: drain it or the stream desyncs
+    if len(header) != 3 or header[1] != "blob":
+        raise subprocess.CalledProcessError(128, ("git", "cat-file", f"{commit_hash}:{path}"))
+    body = _BLOBS.stdout.read(int(header[2]))
+    _BLOBS.stdout.read(1)  # the record's trailing newline
+    return body.decode("utf-8")
 
 
 def parse_iso(s):
@@ -221,6 +237,31 @@ def archive_floor(ev):
             - datetime.timedelta(days=BACKFILL_FALLBACK_DAYS))
 
 
+# the capture this cycle fetched and commits with its own output; without it quiet mode publishes a
+# record that ends at the previous publish
+WORKTREE = "WORKTREE"
+
+
+def worktree_capture(path):
+    """(WORKTREE, generated) when the working-tree copy of path differs from HEAD's, else None."""
+    try:
+        if not git("status", "--porcelain", "--", path).strip():
+            return None
+        with open(os.path.join(ROOT, path), encoding="utf-8") as f:
+            gen = json.load(f).get("generated")
+    except (subprocess.CalledProcessError, OSError, ValueError, AttributeError):
+        return None
+    return (WORKTREE, gen) if parse_iso(gen) else None
+
+
+def read_worktree(path):
+    try:
+        with open(os.path.join(ROOT, path), encoding="utf-8") as f:
+            return json.load(f)
+    except OSError as exc:
+        raise ValueError(f"working-tree {path} vanished: {exc}")
+
+
 def snapshot_commits():
     """Commits touching either capture or display snapshot, oldest first. The capture
     file only exists from the 2026-07-24 split forward; older commits carry the
@@ -233,14 +274,17 @@ def snapshot_commits():
             if chash not in seen:
                 seen[chash] = ciso
                 order[chash] = len(order)
+    wt = worktree_capture(CAPTURE_PATH)  # newest by construction, so it walks last whatever the commit clock says
     # parse %cI before sorting (its per-commit UTC offset defeats string order), and keep the
     # reversed-log position as the tiebreak so same-second commits stay in ancestry order
     return sorted(seen.items(),
-                  key=lambda kv: (parse_iso(kv[1]) or EPOCH, order[kv[0]]))
+                  key=lambda kv: (parse_iso(kv[1]) or EPOCH, order[kv[0]])) + ([wt] if wt else [])
 
 
 def load_snapshot(commit_hash):
     """Widest gauge set available at this commit: capture if it exists, else display."""
+    if commit_hash == WORKTREE:
+        return read_worktree(CAPTURE_PATH)
     try:
         return json.loads(git_blob(commit_hash, CAPTURE_PATH))
     except (subprocess.CalledProcessError, ValueError):
@@ -496,6 +540,8 @@ def road_key(rec):
 
 def load_road_snapshot(commit_hash):
     """Widest road set available at this commit: statewide capture if it exists, else display."""
+    if commit_hash == WORKTREE:
+        return read_worktree(ROADS_CAPTURE_PATH)
     try:
         return json.loads(git_blob(commit_hash, ROADS_CAPTURE_PATH))
     except (subprocess.CalledProcessError, ValueError):
@@ -507,7 +553,7 @@ def road_snapshots():
     out = git("log", "--format=%H", "--", ROADS_CAPTURE_PATH, ROADS_PATH).split()
     snaps = []
     index, rid_by_key = {}, {}
-    for chash in reversed(out):
+    for chash in list(reversed(out)) + ([WORKTREE] if worktree_capture(ROADS_CAPTURE_PATH) else []):
         try:
             snap = load_road_snapshot(chash)
             snap_dt = parse_iso(snap["generated"])

@@ -1,0 +1,16 @@
+{
+ "generated": "2026-11-24T23:11:03Z",
+ "mode": "adverse",
+ "intervalMin": 60,
+ "since": "2026-11-24T23:08:11Z",
+ "nextDueBy": "2026-11-25T00:08:00Z",
+ "reasons": [
+  "Gauges in flood (1)"
+ ],
+ "reasonCodes": [
+  {
+   "code": "gauges",
+   "n": 1
+  }
+ ]
+}

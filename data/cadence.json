@@ -1,9 +1,9 @@
 {
- "generated": "2026-11-25T03:11:10Z",
+ "generated": "2026-11-25T04:10:51Z",
  "mode": "adverse",
  "intervalMin": 60,
  "since": "2026-11-24T23:08:11Z",
- "nextDueBy": "2026-11-25T04:08:00Z",
+ "nextDueBy": "2026-11-25T05:08:00Z",
  "reasons": [
   "Alerts active in the last 6 hours"
  ],

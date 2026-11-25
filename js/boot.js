@@ -94,6 +94,7 @@ async function refresh() {
       state.sourceFailed[k] = results[i].status === 'rejected' && !(state.sourceHealth[k] >= started);
     });
     renderFeedSituation(); // the one surface that must change when a source fails and nothing repaints
+    renderTicker(); // its calm line is a claim about the alerts read, so it follows the same verdict
     state.refreshAt = Date.now() + CONFIG.refreshMs;
     if (failed.length && (!state.alerts.length || !state.gauges.length)) {
       const hydrated = hydrateFromCache();
@@ -1194,21 +1195,7 @@ async function boot() {
     ['rflood', 'roadFlood'], ['rs', 'riverSentry'], ['fire', 'wildfire'], ['tide', 'tideStations']]) {
     if (shareQs.get(qk) === '1') camOn(lk);
   }
-  // ?camreg=<id,id> names the camera regions to open, ?camreg=all opens every one of them; unknown
-  // ids are ignored, never fatal, and a list shared before the statewide form still resolves
-  const wanted = new Set((shareQs.get('camreg') || '').split(',').map((x) => x.trim()).filter(Boolean));
-  const camAll = wanted.has(CAM_REGION_ALL);
-  for (const p of camRegionsAll()) {
-    if (camAll || wanted.has(p.id)) camOn(camRegionKey(p.id));
-  }
-  // links shared before the by-region split carry per-source params; map each onto the regions that
-  // source actually covered, so an old link opens the same cameras it always did
-  for (const [qk, ids] of Object.entries(CAM_LEGACY_PARAMS)) {
-    if (shareQs.get(qk) !== '1') continue;
-    for (const p of camRegionsAll()) {
-      if (ids === '*' || ids.includes(p.id)) camOn(camRegionKey(p.id));
-    }
-  }
+  for (const id of linkCamRegionIds(shareQs)) camOn(camRegionKey(id));
   openCamLink(shareQs); // after the view it was shared from is restored, so the viewer opens over it
 
   // paint snapshot gauges immediately — a slow/failing NWPS first-fetch must never leave a blank, scary board

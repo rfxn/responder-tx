@@ -250,7 +250,8 @@ scripts/cycle-check.sh       # the pre-commit validation bundle
 ## Configuration
 
 Per-event settings live in `data/event.json`: name, region, map center/zoom, the
-sub-area preset pills, coastal tide stations, and two bounding boxes. `captureBbox`
+region pills (All Texas plus Gulf Coast, South, Central, North, East and West Texas, and the
+Panhandle, which also group the cameras), coastal tide stations, and two bounding boxes. `captureBbox`
 governs what the pipeline collects and archives; `gaugeBbox` governs what the board
 displays, so narrowing the view can never delete a stored observation. `archiveStart`
 sets how far back reconstruction may reach. Swap that file to re-point the board at

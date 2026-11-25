@@ -61,8 +61,8 @@ def write_alerts(root, feats):
         json.dump({'features': feats}, f)
 
 
-def gauge(lid, obs='no_flooding', fcst='fcst_not_current', stage=3.0):
-    return {'lid': lid, 'name': lid, 'latitude': 30.0, 'longitude': -97.0,
+def gauge(lid, obs='no_flooding', fcst='fcst_not_current', stage=3.0, name=None):
+    return {'lid': lid, 'name': name or lid, 'latitude': 30.0, 'longitude': -97.0,
             'status': {'observed': {'floodCategory': obs, 'primary': stage},
                        'forecast': {'floodCategory': fcst, 'primary': -999 if fcst == 'fcst_not_current' else 9.0}}}
 
@@ -142,6 +142,28 @@ check('gauges in flood and forecast in moderate flood are triggers; a minor fore
       s['mode'] == 'adverse' and s['reasons'] == ['Gauges in flood (1)', 'Gauges forecast in moderate flood (1)'], s)
 check('gauge reasonCodes: code gauges, the forecast one flagged',
       s.get('reasonCodes') == [{'code': 'gauges', 'n': 1}, {'code': 'gauges', 'n': 1, 'forecast': True}], s.get('reasonCodes'))
+shutil.rmtree(root)
+root = fixture()
+m = load(root)
+write_alerts(root, [])
+# 2026-11-24T23:08Z, first live fire: MQTT2 observed minor at 1.39 ft on a routine high tide, while NWS
+# carried only a Minor Coastal Flood Advisory there; the board went hourly over it
+write_capture(root, [gauge('MQTT2', obs='minor', stage=1.39, name='Tide Gauge at Bob Hall Pier'),
+                     gauge('GRRT2', fcst='minor', name='Tide Station (HGX) at Galveston Railroad Bridge')])
+s = m.probe()
+check('MUTATION · a tide gauge at observed or forecast minor is a high tide, not a trigger', s['mode'] == 'quiet', s.get('reasons'))
+write_capture(root, [gauge('MQTT2', obs='moderate', stage=2.6, name='Tide Gauge at Bob Hall Pier'),
+                     gauge('GRRT2', fcst='moderate', name='Tide Station (HGX) at Galveston Railroad Bridge')])
+s = m.probe()
+check('a tide gauge at observed or forecast moderate triggers adverse',
+      s['mode'] == 'adverse' and s['reasons'] == ['Gauges in flood (1)', 'Gauges forecast in moderate flood (1)'], s.get('reasons'))
+shutil.rmtree(root)
+root = fixture()
+m = load(root)
+write_alerts(root, [])
+write_capture(root, [gauge('BACT2', obs='minor', name='Colorado River (TX) near Bay City')])
+s = m.probe()
+check('a river gauge at observed minor still triggers adverse', s['mode'] == 'adverse' and s['reasons'] == ['Gauges in flood (1)'], s.get('reasons'))
 shutil.rmtree(root)
 root = fixture()
 m = load(root)

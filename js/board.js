@@ -1935,7 +1935,7 @@ function buildShareUrl(opts) {
   // every region on travels as the statewide token, so the link still means statewide if the region set grows
   if (camOn.length && camOn.length === camRows.length) p.set('camreg', CAM_REGION_ALL);
   else if (camOn.length) p.set('camreg', camOn.join(','));
-  // Full AO is the resting pick, so a default link stays short; any sub-AO travels by its id
+  // All Texas is the resting pick, so a default link stays short; any region travels by its id
   const ao = typeof aoPickedId === 'function' ? aoPickedId() : null;
   if (ao && ao !== AO_FULL_ID) p.set('ao', ao);
   const sv = $('#summary-view');

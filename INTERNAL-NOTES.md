@@ -546,7 +546,7 @@ back to the rectangle, never to an empty board; cycle-check r is what makes that
 snapshot, the offline cache, RFC forecast crests, USGS sites, low-water crossings, and the
 crest-summary listing (the clip overrides its sticky ratchet). Not clipped: `captureBbox`,
 `gauges-capture.json`, `gen-history.py` publication, road closures (TxDOT, Texas only),
-cameras (they keep their state buckets), shelters. `fetch-snapshot.py` now writes the capture
+cameras (out-of-state ones land in the Neighboring states row), shelters. `fetch-snapshot.py` now writes the capture
 even when the display falls under its floor, so a display-scope mistake cannot stall retention.
 
 **Region pills.** The preset boxes are framing only, but together they must cover the whole
@@ -554,6 +554,33 @@ outline (`tests/ao-area.test.js` walks a 0.1 degree grid). Before this change 7%
 in no box, including Brownwood/Stephenville and the Winter Garden. `workers/push-alerts`
 still carries the old Bertha-era `AO_FALLBACK` box (-98.0, 27.5, -93.4, 31.0), used only until
 its first successful event.json fetch.
+
+**Seven regions (2026-11-24, owner).** Gulf Coast, South, Central, North, East and West Texas,
+Panhandle replaced the twelve overlapping pills. Boxes stay inside `gaugeBbox` and no two share
+more than 15% of the smaller one's Texas ground (`tests/ao-area.test.js`); the coast is a
+diagonal, so the Gulf Coast box shares the Coastal Bend with South Texas and the
+Bastrop-Brenham corner with Central Texas. Camera rows follow the anchors, not the boxes, and
+every point inside the Texas outline is within `CAM_REGION_MAX_MI` of an anchor
+(`tests/cam-regions.test.js`), which is what makes "Neighboring states" a true name for the
+residual row. Retired ids live in each preset's `aliases`, so saved views, `?ao=` and
+`?camreg=` keep resolving; the NM/OK/AR/LA bucket ids are aliases of the residual in
+`js/core.js`. A Texas row also requires `aoContains()`, the gauges' own area rule (gaugeBbox plus
+the outline and its `bufferMi`), so Las Cruces NM cameras land in Neighboring states while the
+El Paso state-line and Eagle Pass bridge cameras keep their rows; with no `aoArea`, anchors alone
+decide.
+
+## Calm hazard line (2026-11-24)
+
+With no ticker items the rail shows one muted line instead of hiding. "No tornado, severe
+thunderstorm, flood or tropical warnings in Texas" is true only because every named product is
+'acute' in `HAZARD_EVENTS`; Winter Storm, Ice Storm and Blizzard Warnings are filtered out at
+fetch, so the line says "severe thunderstorm", never "severe storm". The order class is not
+claimed: a county can issue an order the NWS feed never relays. Calm needs an alerts answer that
+did not fail this round and is under `2 x CONFIG.refreshMs` old, because a hung fetch never
+reports failure and `refreshBusy` blocks the next round; a timer re-renders the line when the
+answer ages out. Before the first answer it reads "Checking warnings…" until a round completes or
+two rounds pass since boot, then "Warnings could not be checked", stamped with the last answer
+when there was one. `tests/ticker-calm.test.js` covers each state.
 
 ## Houston TranStar roadway flood warnings (2026-09-30)
 

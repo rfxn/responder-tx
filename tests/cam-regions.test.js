@@ -2,8 +2,8 @@
 
 /* Cameras are grouped by Texas region, not by the company that owns the lens. The region set is
    event config (data/event.json aoPresets), the assignment is nearest-anchor, and the invariant
-   that matters is that no camera is ever quietly lost: one that sits far from every anchor is
-   named as outside the regions and counted, rather than folded into the nearest Texas row. */
+   that matters is that no camera is ever quietly lost: one that sits far from every anchor lands
+   in the Neighboring states row and is counted, rather than folded into the nearest Texas row. */
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -12,11 +12,11 @@ const path = require('node:path');
 const { loadApp, loadMapApp } = require('./harness.js');
 
 const { CONFIG, camRegions, camRegionsAll, camRegionId, camRegionKey,
-  CAM_REGION_OTHER, CAM_REGION_MAX_MI, CAM_REGION_ALL, regionLabel,
-  CAM_STATE_REGIONS, camOutsideId } = loadApp();
+  CAM_REGION_OTHER, CAM_REGION_MAX_MI, CAM_REGION_ALL, regionLabel, regionIdNow,
+  aoAreaParse, aoAreaContains } = loadApp();
 const mapApp = loadMapApp();
 const { CAM_LEGACY_PARAMS, PB_LIVE_HIDE, pbLiveHideAll,
-  CAM_ROWS, CAM_SUBGROUPS, initCamRegionRows, camTriState, camParentRows, camParentOn } = mapApp;
+  CAM_ROWS, initCamRegionRows, camTriState, camParentRows, camParentOn } = mapApp;
 
 const EVENT = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'event.json'), 'utf8'));
 
@@ -27,15 +27,15 @@ function withRegions(presets, fn) {
 }
 
 const FIXTURE = [
-  { id: 'houston', label: 'Houston', anchors: [[29.76, -95.37]], band: 'coast' },
-  { id: 'elpaso', label: 'El Paso', anchors: [[31.76, -106.49]], band: 'west' },
+  { id: 'gulfcoast', label: 'Gulf Coast', anchors: [[29.76, -95.37]] },
+  { id: 'westtx', label: 'West Texas', anchors: [[31.76, -106.49]] },
 ];
 
 test('camRegionId: a camera lands in the region whose anchor is nearest', () => {
   withRegions(FIXTURE, () => {
     const r = camRegions();
-    assert.equal(camRegionId(29.80, -95.40, r), 'houston');
-    assert.equal(camRegionId(31.70, -106.40, r), 'elpaso');
+    assert.equal(camRegionId(29.80, -95.40, r), 'gulfcoast');
+    assert.equal(camRegionId(31.70, -106.40, r), 'westtx');
   });
 });
 
@@ -50,12 +50,11 @@ test('camRegionId: longitude is scaled by latitude, so nearest means real distan
   });
 });
 
-test('camRegionId: a camera beyond the guard is named by its own state, never absorbed', () => {
+test('camRegionId: a camera beyond the guard lands in Neighboring states, never absorbed', () => {
   withRegions(FIXTURE, () => {
     const r = camRegions();
     // the real case this exists for: USGS river cams around Ruidoso NM, ~120 mi from El Paso
-    assert.equal(camRegionId(33.34, -105.73, r), 'nm');
-    assert.notEqual(camRegionId(33.34, -105.73, r), 'elpaso');
+    assert.equal(camRegionId(33.34, -105.73, r), CAM_REGION_OTHER.id);
   });
 });
 
@@ -100,94 +99,98 @@ test('camRegions: config entries without an id, label or usable anchor are dropp
 test('camRegionsAll: the residual bucket is always present and always last', () => {
   withRegions(FIXTURE, () => {
     const all = camRegionsAll();
-    assert.equal(all.length, camRegions().length + CAM_STATE_REGIONS.length + 1);
+    assert.equal(all.length, camRegions().length + 1);
     assert.equal(all[all.length - 1].id, CAM_REGION_OTHER.id,
-      'the residual must stay last, so a camera in no named state is the final row, never a hidden one');
+      'the residual must stay last, so a camera outside every region is the final row, never a hidden one');
+    assert.equal(regionLabel(all[all.length - 1], 'en'), 'cams.region.other');
   });
 });
 
-/* ---------- out-of-state buckets ---------- */
-
-test('camOutsideId: the state is read off the coordinates, never off a source list', () => {
-  // the four boxes are disjoint, so a point resolves to exactly one of them
-  assert.equal(camOutsideId(33.34, -105.73), 'nm', 'Ruidoso NM');
-  assert.equal(camOutsideId(36.03, -94.91), 'ok', 'Illinois River near Moodys OK');
-  assert.equal(camOutsideId(34.75, -92.29), 'ar', 'Little Rock AR');
-  assert.equal(camOutsideId(30.45, -91.19), 'la', 'Baton Rouge LA');
-  // nothing about a camera record but its position is consulted
-  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
-  const fn = src.match(/function camOutsideId\(lat, lon\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'camOutsideId() not found');
-  assert.ok(!/\bsrc\b|camId|httpsurl|nwisId/.test(fn[0]),
-    'the bucket must come from the coordinates, so a new source inherits it without a list');
-});
-
-test('camOutsideId: the state boxes are disjoint, so no point is claimed by two buckets', () => {
-  for (const a of CAM_STATE_REGIONS) {
-    for (const b of CAM_STATE_REGIONS) {
-      if (a.id === b.id) continue;
-      const overlapLat = a.bbox[0][0] < b.bbox[1][0] && b.bbox[0][0] < a.bbox[1][0];
-      const overlapLon = a.bbox[0][1] < b.bbox[1][1] && b.bbox[0][1] < a.bbox[1][1];
-      assert.ok(!(overlapLat && overlapLon), `${a.id} and ${b.id} overlap, so a camera has two homes`);
-    }
-  }
-});
-
-test('a point in no state box keeps the residual, which stays reachable and never disappears', () => {
-  // deep in Mexico: outside every Texas region and outside every state box
-  assert.equal(camOutsideId(24.0, -101.0), CAM_REGION_OTHER.id);
-  withRegions(FIXTURE, () => {
-    assert.equal(camRegionId(24.0, -101.0, camRegions()), CAM_REGION_OTHER.id,
-      'a camera no bucket names must still be counted, never filed under a state it is not in');
+test('with no region config the residual holds every camera and does not call them out of state', () => {
+  withRegions(null, () => {
+    const all = camRegionsAll();
+    assert.deepEqual([...all.map((p) => p.id)], [CAM_REGION_OTHER.id], 'cameras still have one row to land in');
+    assert.equal(camRegionId(29.76, -95.37, camRegions()), CAM_REGION_OTHER.id);
+    assert.equal(regionLabel(all[0], 'en'), 'cams.region.unsplit',
+      'a Houston camera must not be labelled Neighboring states because event.json failed to load');
   });
-  const ids = camRegionsAll().map((p) => p.id);
-  assert.ok(ids.includes(CAM_REGION_OTHER.id), 'the residual row must survive the state split');
 });
 
-test('the state boxes never claim a camera the Texas regions already placed', () => {
+/* ---------- the residual and the ids it absorbed ---------- */
+
+test('the retired state buckets resolve to the Neighboring states row', () => {
   withRegions(EVENT.aoPresets, () => {
-    const r = camRegions();
-    // El Paso sits inside the New Mexico rectangle; the Texas guard runs first, so it stays Texas
-    assert.equal(camRegionId(31.76, -106.49, r), 'elpaso');
-    for (const [lat, lon, want] of [[29.76, -95.37, 'houston'], [32.78, -96.80, 'dfw'],
-      [35.22, -101.83, 'panhandle'], [30.27, -97.74, 'austin']]) {
-      assert.equal(camRegionId(lat, lon, r), want, `${want} camera was pulled out of state`);
-    }
+    for (const id of ['nm', 'ok', 'ar', 'la', 'other']) assert.equal(regionIdNow(id), CAM_REGION_OTHER.id, id);
   });
 });
 
-test('every out-of-state camera the board ships lands in a named state bucket', () => {
+// the board applies data/event.json before any camera is bucketed, so the outline is in force
+function withShippedArea(fn) {
+  const saved = { area: CONFIG.aoArea, box: CONFIG.gaugeBbox };
+  CONFIG.aoArea = aoAreaParse(EVENT.aoArea);
+  CONFIG.gaugeBbox = EVENT.gaugeBbox;
+  try { withRegions(EVENT.aoPresets, fn); } finally { CONFIG.aoArea = saved.area; CONFIG.gaugeBbox = saved.box; }
+}
+
+test('a Texas row takes only cameras inside the area outline and its border buffer', () => {
+  const at = (lat, lon) => camRegionId(lat, lon, camRegions());
+  withShippedArea(() => {
+    assert.equal(at(32.2866, -106.7375), CAM_REGION_OTHER.id, 'I-25 @ University, Las Cruces NM is not West Texas');
+    assert.equal(at(32.3486, -106.7696), CAM_REGION_OTHER.id, 'I-25 @ US 70, Las Cruces NM');
+    assert.equal(at(32.0012, -106.3273), 'westtx', 'US-54 @ State Line is inside the border buffer and stays');
+    assert.equal(at(31.7488, -106.4864), 'westtx', 'an El Paso river-crossing camera stays');
+    assert.equal(at(28.6979, -100.5096), 'southtx', 'the Eagle Pass bridge stays in South Texas');
+  });
+  withRegions(EVENT.aoPresets, () => {
+    assert.equal(CONFIG.aoArea, null, 'precondition: no outline configured');
+    assert.equal(at(32.2866, -106.7375), 'westtx', 'with no outline the anchors alone decide, never a blanket residual');
+  });
+});
+
+test('every Texas camera the board ships lands in a Texas row, and only out-of-state ones in Neighboring states', () => {
   const cams = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'cameras.json'), 'utf8'));
-  withRegions(EVENT.aoPresets, () => {
+  const texas = aoAreaParse({ bufferMi: 0, polygon: EVENT.aoArea.polygon });
+  withShippedArea(() => {
     const r = camRegions();
     const counts = {};
     for (const p of camRegionsAll()) counts[p.id] = 0;
+    const texasInNeighbors = [];
     for (const arr of Object.values(cams)) {
       if (!Array.isArray(arr)) continue;
       for (const c of arr) {
         const id = camRegionId(c.lat, c.lon, r);
-        if (id !== null) counts[id]++;
+        if (id === null) continue;
+        counts[id]++;
+        if (id === CAM_REGION_OTHER.id && aoAreaContains(texas, c.lat, c.lon)) texasInNeighbors.push(c.name || c.id);
       }
     }
-    const outstate = CAM_STATE_REGIONS.reduce((a, sr) => a + counts[sr.id], 0);
-    assert.ok(outstate > 0, 'the split must actually be carrying the out-of-state cameras');
-    assert.equal(counts[CAM_REGION_OTHER.id], 0,
-      'every out-of-state camera in the inventory should now be named by its state');
-    // and the Texas rows are untouched by the split
-    assert.ok(counts.houston > 100 && counts.dfw > 100, 'a Texas region lost cameras to a state box');
+    assert.deepEqual(texasInNeighbors, [], 'a Texas camera is filed under Neighboring states');
+    assert.ok(counts[CAM_REGION_OTHER.id] > 0, 'the out-of-state cameras must actually be carried');
+    for (const p of EVENT.aoPresets) assert.ok(counts[p.id] > 50, `${p.id} carries only ${counts[p.id]} cameras`);
   });
 });
 
-test('the out-of-state buckets are addressable ids that cannot collide or shadow a region', () => {
+test('every point inside the Texas outline is within the guard of a shipped anchor', () => {
+  // the structural half of the row above: no Texas camera, now or added later, can reach Neighboring states
+  const texas = aoAreaParse({ bufferMi: 0, polygon: EVENT.aoArea.polygon });
+  withShippedArea(() => {
+    const r = camRegions();
+    const far = [];
+    for (let i = 0; i <= 107; i++) {
+      for (let j = 0; j <= 132; j++) {
+        const lat = +(25.84 + i * 0.1).toFixed(2), lon = +(-106.66 + j * 0.1).toFixed(2);
+        if (aoAreaContains(texas, lat, lon) && camRegionId(lat, lon, r) === CAM_REGION_OTHER.id) far.push([lat, lon]);
+      }
+    }
+    assert.deepEqual(far, [], `Texas ground more than ${CAM_REGION_MAX_MI} mi from every anchor`);
+  });
+});
+
+test('the residual id cannot collide with or shadow a configured region', () => {
   const cfgIds = EVENT.aoPresets.map((p) => p.id);
-  for (const sr of CAM_STATE_REGIONS) {
-    assert.notEqual(sr.id, CAM_REGION_ALL, 'a bucket id must never be the statewide token');
-    assert.notEqual(sr.id, CAM_REGION_OTHER.id);
-    assert.ok(!cfgIds.includes(sr.id), `${sr.id} collides with a configured region id`);
-    assert.ok(/^[a-z]+$/.test(sr.id), 'ids travel in a URL, so keep them bare');
-    assert.ok(sr.i18nKey && sr.band, `${sr.id} needs a name and a band or it renders as a bare id`);
-    assert.ok(CAM_SUBGROUPS.some(([b]) => b === sr.band), `${sr.id} band is not a rendered group`);
-  }
+  assert.ok(!cfgIds.includes(CAM_REGION_OTHER.id), 'a config region may not shadow the residual bucket');
+  assert.notEqual(CAM_REGION_OTHER.id, CAM_REGION_ALL, 'the residual id must never be the statewide token');
+  for (const a of CAM_REGION_OTHER.aliases) assert.ok(!cfgIds.includes(a), `${a} is both retired and live`);
 });
 
 test('regionLabel: config regions name themselves, the residual takes its name from i18n', () => {
@@ -198,14 +201,15 @@ test('regionLabel: config regions name themselves, the residual takes its name f
 });
 
 test('camRegionKey: layer keys are namespaced so no region id can collide with a real layer', () => {
-  assert.equal(camRegionKey('houston'), 'camsR_houston');
+  assert.equal(camRegionKey('gulfcoast'), 'camsR_gulfcoast');
   assert.ok(camRegionKey(CAM_REGION_OTHER.id).startsWith('camsR_'));
 });
 
 /* ---------- the shipped region set ---------- */
 
 test('data/event.json: every region carries an id, both labels, bounds and anchors', () => {
-  assert.ok(EVENT.aoPresets.length >= 8, 'a statewide board needs a real region set');
+  assert.deepEqual(EVENT.aoPresets.map((p) => p.id),
+    ['gulfcoast', 'southtx', 'centraltx', 'northtx', 'easttx', 'westtx', 'panhandle']);
   const ids = EVENT.aoPresets.map((p) => p.id);
   assert.equal(new Set(ids).size, ids.length, 'duplicate region id');
   assert.ok(!ids.includes(CAM_REGION_OTHER.id), 'a config region may not shadow the residual bucket');
@@ -235,15 +239,21 @@ test('data/event.json: no user-facing region label uses an em-dash', () => {
 test('the shipped regions place the Texas cities an operator would look for', () => {
   withRegions(EVENT.aoPresets, () => {
     const r = camRegions();
-    const at = (lat, lon) => camRegionId(lat, lon, r);
-    for (const [name, lat, lon] of [
-      ['Houston', 29.760, -95.370], ['Dallas', 32.777, -96.797], ['Fort Worth', 32.755, -97.331],
-      ['Austin', 30.267, -97.743], ['San Antonio', 29.424, -98.494], ['El Paso', 31.762, -106.485],
-      ['Corpus Christi', 27.801, -97.396], ['Beaumont', 30.080, -94.127], ['Lubbock', 33.578, -101.855],
-      ['Amarillo', 35.222, -101.831], ['Waco', 31.549, -97.147], ['Tyler', 32.351, -95.301],
-      ['Brownsville', 25.902, -97.497], ['Midland', 31.997, -102.078], ['Laredo', 27.506, -99.507],
+    for (const [name, lat, lon, want] of [
+      ['Houston', 29.760, -95.370, 'gulfcoast'], ['Beaumont', 30.080, -94.127, 'gulfcoast'],
+      ['Corpus Christi', 27.801, -97.396, 'gulfcoast'], ['Victoria', 28.805, -97.004, 'gulfcoast'],
+      ['San Antonio', 29.424, -98.494, 'southtx'], ['Laredo', 27.506, -99.507, 'southtx'],
+      ['Brownsville', 25.902, -97.497, 'southtx'], ['McAllen', 26.203, -98.230, 'southtx'],
+      ['Austin', 30.267, -97.743, 'centraltx'], ['Kerrville', 30.047, -99.140, 'centraltx'], ['Waco', 31.549, -97.147, 'centraltx'],
+      ['Dallas', 32.777, -96.797, 'northtx'], ['Fort Worth', 32.755, -97.331, 'northtx'], ['Wichita Falls', 33.914, -98.493, 'northtx'],
+      ['Tyler', 32.351, -95.301, 'easttx'], ['Lufkin', 31.338, -94.729, 'easttx'], ['Nacogdoches', 31.604, -94.655, 'easttx'],
+      ['Midland', 31.997, -102.078, 'westtx'], ['Alpine', 30.358, -103.661, 'westtx'], ['El Paso', 31.762, -106.485, 'westtx'],
+      ['Amarillo', 35.222, -101.831, 'panhandle'], ['Lubbock', 33.578, -101.855, 'panhandle'], ['Perryton', 36.400, -100.803, 'panhandle'],
     ]) {
-      assert.notEqual(at(lat, lon), CAM_REGION_OTHER.id, `${name} must fall inside a Texas region`);
+      assert.equal(camRegionId(lat, lon, r), want, `${name} cameras belong in ${want}`);
+      const box = EVENT.aoPresets.find((p) => p.id === want).bounds;
+      assert.ok(lat >= box[0][0] && lat <= box[1][0] && lon >= box[0][1] && lon <= box[1][1],
+        `${name} sits outside the ${want} framing, so picking the region would not show it`);
     }
   });
 });
@@ -267,15 +277,24 @@ test('CAM_LEGACY_PARAMS: the statewide sources map to every region, not just one
   assert.equal(CAM_LEGACY_PARAMS.camr, '*', 'USGS river cameras are statewide');
 });
 
-test('js/boot.js reads camreg and still honours every legacy camera param', () => {
-  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
-  assert.match(boot, /shareQs\.get\('camreg'\)/, 'camreg is the new addressable form');
-  assert.match(boot, /CAM_LEGACY_PARAMS/, 'legacy params must still be read on the way in');
+test('linkCamRegionIds: ?camreg= lists, the statewide token and retired ids all resolve to live regions', () => {
+  withCamRows([], null, () => {
+    const ids = (q) => [...mapApp.linkCamRegionIds(new URLSearchParams(q))];
+    assert.deepEqual(ids('?camreg=gulfcoast,westtx'), ['gulfcoast', 'westtx'], 'in config order');
+    assert.deepEqual(ids('?camreg=all'), SHIPPED_IDS);
+    assert.deepEqual(ids('?camreg=houston,beaumont,elpaso'), ['gulfcoast', 'westtx'],
+      'a link shared before the merge must open the region that absorbed each id');
+    assert.deepEqual(ids('?camreg=dfw,rgv'), ['southtx', 'northtx']);
+    assert.deepEqual(ids('?camreg=nm,la'), [CAM_REGION_OTHER.id], 'the state buckets are now Neighboring states');
+    assert.deepEqual(ids('?camreg=nowhere'), [], 'an unknown id is ignored, never fatal');
+    assert.deepEqual(ids('?camh=1'), ['gulfcoast', 'centraltx'], 'a pre-split per-source link still opens its cameras');
+    assert.deepEqual(ids('?cams=1'), SHIPPED_IDS, 'a statewide source opens every region');
+  });
 });
 
-/* ---------- parent toggles: one statewide, one per band ----------
-   A parent reports its children rather than holding its own state, so three regions switched on
-   individually must leave the statewide parent reading partial and not off. */
+/* ---------- the statewide parent toggle ----------
+   It reports its children rather than holding its own state, so three regions switched on
+   individually must leave it reading partial and not off. */
 
 // CAM_ROWS is built from the event config at map init; membership is read through state.map, so a
 // set of "on" layer keys stands in for the Leaflet map here
@@ -306,57 +325,33 @@ test('camTriState: on only when every child is on, mixed for any partial, off fo
 });
 
 // map.js lives in its own sandbox, so the row list and every array it returns come from that realm
-const parentIds = (band) => [...camParentRows(band)].map((r) => r[8].id);
+const parentIds = () => [...camParentRows()].map((r) => r[7].id);
 // the shipped set, read from the config file rather than a sandbox whose presets are not applied yet
-const SHIPPED_IDS = EVENT.aoPresets.map((p) => p.id)
-  .concat(CAM_STATE_REGIONS.map((s) => s.id), [CAM_REGION_OTHER.id]);
+const SHIPPED_IDS = EVENT.aoPresets.map((p) => p.id).concat([CAM_REGION_OTHER.id]);
 
 test('the statewide parent owns every camera region row, including the residual', () => {
   withCamRows([], null, () => {
-    const ids = parentIds(null);
+    const ids = parentIds();
     assert.deepEqual(ids, SHIPPED_IDS);
     assert.ok(ids.includes(CAM_REGION_OTHER.id), 'the residual row must be covered by statewide too');
   });
 });
 
-test('a band parent owns exactly its own band, and the bands partition the regions', () => {
-  withCamRows([], null, () => {
-    const seen = [];
-    for (const [band] of CAM_SUBGROUPS) {
-      for (const r of camParentRows(band)) assert.equal(r[7], band, `${r[8].id} is in the wrong band`);
-      seen.push(...parentIds(band));
-    }
-    assert.deepEqual(seen.slice().sort(), parentIds(null).sort(),
-      'every region belongs to exactly one band parent');
-    assert.equal(new Set(seen).size, seen.length, 'a region counted by two band parents');
-  });
-});
-
 test('the statewide parent reads partial when only some regions were switched on by hand', () => {
-  const three = ['houston', 'austin', 'dfw'].map(camRegionKey);
+  const three = ['gulfcoast', 'centraltx', 'northtx'].map(camRegionKey);
   withCamRows(three, null, () => {
-    const rows = camParentRows(null);
+    const rows = camParentRows();
     assert.equal(camParentOn(rows), 3);
     assert.equal(camTriState(camParentOn(rows), rows.length), 'mixed',
       'three regions on individually must not leave the statewide parent reading off');
   });
   withCamRows([], null, () => {
-    const rows = camParentRows(null);
+    const rows = camParentRows();
     assert.equal(camTriState(camParentOn(rows), rows.length), 'off');
   });
   withCamRows(SHIPPED_IDS.map(camRegionKey), null, () => {
-    const rows = camParentRows(null);
+    const rows = camParentRows();
     assert.equal(camTriState(camParentOn(rows), rows.length), 'on');
-  });
-});
-
-test('a band parent reads on once its own regions are on, whatever the rest of the state is', () => {
-  const coast = EVENT.aoPresets.filter((p) => p.band === 'coast').map((p) => camRegionKey(p.id));
-  withCamRows(coast, null, () => {
-    const kids = camParentRows('coast');
-    assert.equal(camTriState(camParentOn(kids), kids.length), 'on');
-    const all = camParentRows(null);
-    assert.equal(camTriState(camParentOn(all), all.length), 'mixed', 'statewide is still only partial');
   });
 });
 
@@ -364,12 +359,12 @@ test('a region with no cameras is not counted by the parent that would claim to 
   // camRegionHasCams drops the row from the sheet; a parent that still counted it could never
   // reach "on", and would toggle a layer the user was never shown
   const counts = {};
-  for (const id of SHIPPED_IDS) counts[id] = id === 'houston' ? 0 : 5;
+  for (const id of SHIPPED_IDS) counts[id] = id === 'gulfcoast' ? 0 : 5;
   withCamRows([], counts, () => {
-    const ids = camParentRows(null).map((r) => r[8].id);
-    assert.ok(!ids.includes('houston'), 'an empty region is still offered to the parent');
+    const ids = camParentRows().map((r) => r[7].id);
+    assert.ok(!ids.includes('gulfcoast'), 'an empty region is still offered to the parent');
     assert.equal(ids.length, SHIPPED_IDS.length - 1);
-    assert.ok(!camParentRows('coast').map((r) => r[8].id).includes('houston'));
+    assert.ok(!mapApp.camRowsHtml(CAM_ROWS, '').includes('camsR_gulfcoast'), 'and the sheet does not offer the row');
   });
 });
 
@@ -466,17 +461,17 @@ test('ATX Floods routes through the same-origin proxy on both servers, id-valida
 test('the frozen camf link param still resolves', () => {
   // v0.99.0 froze these: an old shared link must keep opening the same cameras. camf maps to the
   // Austin region, not to the ATX Floods source, so a source coming or going leaves it intact.
-  assert.deepEqual([...CAM_LEGACY_PARAMS.camf], ['austin']); // cross-realm array: copy before comparing
+  assert.deepEqual([...CAM_LEGACY_PARAMS.camf], ['centraltx']); // cross-realm array: copy before comparing
   for (const p of ['cams', 'camr', 'cama', 'camf', 'camh', 'caml', 'came', 'camm']) {
     assert.ok(CAM_LEGACY_PARAMS[p], `frozen link param ${p} was dropped`);
   }
 });
 
-test('every ATX Floods camera lands in the Austin region row', () => {
+test('every ATX Floods camera lands in the Central Texas row', () => {
   withRegions(EVENT.aoPresets, () => {
     const r = camRegions();
     for (const c of CAMS.atxfloods || []) {
-      assert.equal(camRegionId(c.lat, c.lon, r), 'austin', `${c.name} is not in the Austin row`);
+      assert.equal(camRegionId(c.lat, c.lon, r), 'centraltx', `${c.name} is not in the Central Texas row`);
     }
   });
 });

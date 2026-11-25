@@ -24,6 +24,7 @@ suspended or mid-task).
 | `changescheck.py` | The publish bounds for `data/changes.json`, one module three callers use: `gen-changes.py` drops any line that fails them, `cycle-check.sh` gates on them (a missing or crashing checker only warns and skips that one check), and `run-cycle.sh` runs it before validation and, on a failure, restores both change files from `HEAD` (or drops them when `HEAD` has none that pass) and signs the cycle off degraded, so a derived log can never stop a flood publish. |
 | `gen-wildfire.py` | Reported wildfire incidents from Texas A&M Forest Service and NIFC WFIGS → `data/wildfire.json`. Points, never perimeters. Each source publishes its own `ok`/`failed` status and its own upstream capture stamp, so an empty-but-valid read (the normal Texas state for most of the year) is distinguishable from a read that failed. Unreported acreage and containment publish as `null`, never as `0`. |
 | `gen-transtar-flood.py` | Houston TranStar Roadway Flood Warning System → `data/transtar-flood.json`. Each entry is an area TranStar rates at high risk of roadway flooding, never a confirmed closure. An empty feed publishes `ok` with count `0`; a failed or unparseable read publishes `failed` with a `null` count, or `carried` with the last good warnings for up to an hour, and exits non-zero. Central local timestamps are converted to UTC. |
+| `stageplaus.py` | Per-gauge stage plausibility shared by `gen-crest-summary.py` and `gen-history.py`: a reading over 3x the gauge's own record and major stage, or one at or above major stage (or above its record) that no other reading within 10% sustains inside 90 min (nothing under half of it between) and whose first later reading, however late, falls under half of it, is published as no reading. A high reading with no later reading yet is unconfirmed and stands. Raw captures stay in git. |
 | `gen-crest-summary.py` | Per-gauge event peak stages for AAR/FEMA → `data/crest-summary.json`. Same retain-wide / publish-scoped split as `gen-history.py`, and the listing is also clipped to the `aoArea`. |
 | `gen-feeds.py` | RSS `feed.xml` + `crests.ics` from the current snapshot + requests + live NWS FF alerts. |
 | `gen-caltopo.py` | CalTopo / SARTopo GeoJSON layer → `data/caltopo-export.json`, derived from the gauge snapshot. |
@@ -364,7 +365,7 @@ data only; no code edits. All geography flows from `data/event.json`.
    scoping, and the LSR/alert in-AO filters; it no longer governs what we collect
    or what history and crest retain, see "Capture bbox vs display bbox"),
    `archiveStart` (how far back reconstruction may reach; independent of `start`,
-   which is display only), `aoPresets` (sub-AO pills; omit for Full AO only),
+   which is display only), `aoPresets` (region pills and camera rows; omit for All Texas only),
    `tideStations` (coastal events only; omit or empty inland and the coastal
    water-level card does not render), and optionally
    `tropicalAutoEnable: false` to pin the NHC tracker auto-default off (it is
@@ -380,7 +381,7 @@ data only; no code edits. All geography flows from `data/event.json`.
    first new-AO frame; playback depth grows from there). The snapshot guard is
    bbox-aware: a bbox change only has to clear the absolute gauge floor, not
    50% of the old event's count.
-4. **Verify:** board title/tab name, map center and Full AO pill extent, gauge
+4. **Verify:** board title/tab name, map center and All Texas pill extent, gauge
    markers inside the new AO, roads layer scoped to the new bbox, no coastal
    card for an inland event, `feed.xml` `<title>` carries the new name. Commit
    `data/event.json` plus the regenerated data files by name, then deploy.

@@ -79,6 +79,8 @@ import time
 import urllib.request
 
 ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import stageplaus  # noqa: E402
 CAPTURE_PATH = "data/gauges-capture.json"
 SNAPSHOT_PATH = "data/gauges-snapshot.json"
 EVENT_PATH = "data/event.json"
@@ -321,6 +323,8 @@ def walk(commits):
     gauge_index = {}
     unreadable = empty = 0
     last_kept = None
+    refs = stageplaus.stage_refs(ROOT)
+    plaus, last_vt, marks = stageplaus.Plausibility(refs), {}, []
     for chash, _ciso in commits:
         try:
             snap = load_snapshot(chash)
@@ -336,9 +340,26 @@ def walk(commits):
         if not gauges:
             empty += 1  # snapshot readable but no gauge reported a usable observation
             continue
+        for g in snap["gauges"]:  # judged against the gauge's own readings (scripts/stageplaus.py)
+            lid = g.get("lid") if isinstance(g, dict) else None
+            if lid not in gauges or lid not in refs:
+                continue
+            observed = (g.get("status") or {}).get("observed") or {}
+            stage = observed.get("primary")
+            vt = parse_iso(observed.get("validTime"))
+            t = vt.timestamp() if vt else None
+            if t is not None and (lid not in last_vt or t > last_vt[lid]):
+                last_vt[lid] = t
+                plaus.observe(lid, t, stage)
+            if plaus.over_reference(lid, stage) or plaus.is_candidate(lid, t):
+                marks.append((len(frames), lid, t, stage))
         frames.append({"t": snap["generated"], "gauges": gauges, "_dt": snap_dt})
         last_kept = snap_dt
-    return frames, gauge_index, unreadable, empty
+    voided = 0  # publication copies only: the raw reading stays in the committed capture (E6)
+    for idx, lid, t, stage in marks:
+        if plaus.void(lid, t, stage) and frames[idx]["gauges"].pop(lid, None) is not None:
+            voided += 1
+    return frames, gauge_index, unreadable, empty, voided
 
 
 def recovered_sources():
@@ -1007,7 +1028,9 @@ def main():
     boxes = event_bboxes(ev)
     start_dt = archive_floor(ev)
 
-    frames, gauge_index, unreadable, empty = walk(commits)
+    frames, gauge_index, unreadable, empty, voided = walk(commits)
+    if voided:
+        print(f"  implausible or unsustained for their own gauge, published as no reading: {voided} frame entries")
     if not frames:
         sys.exit("no usable frames in the snapshot history")
     prev = load_published()

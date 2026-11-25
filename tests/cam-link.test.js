@@ -13,9 +13,9 @@ const sb = app._sandbox;
 const { state, CONFIG, CAM_NETS, camRegionKey, camRegionsAll } = app;
 
 const REGIONS = [
-  { id: 'houston', label: 'Houston', anchors: [[29.76, -95.37]] },
-  { id: 'dfw', label: 'DFW', anchors: [[32.78, -96.80]] },
-  { id: 'austin', label: 'Austin', anchors: [[30.27, -97.74]] },
+  { id: 'gulfcoast', label: 'Gulf Coast', anchors: [[29.76, -95.37]] },
+  { id: 'northtx', label: 'North Texas', anchors: [[32.78, -96.80]] },
+  { id: 'centraltx', label: 'Central Texas', anchors: [[30.27, -97.74]] },
 ];
 
 // Austin and Houston both publish a camera "102": the bare id cannot say which one a link meant
@@ -139,7 +139,7 @@ function rig(opts = {}) {
   for (const r of camRegionsAll()) layers[camRegionKey(r.id)] = { id: r.id };
   Object.assign(state, {
     cameras: null, camerasP: null, pendingCam: null, camOpen: null, camGen: 0, camLayerList: null,
-    layers, map: fakeMap([29.4832, -95.1123], 11, new Set([layers[camRegionKey('austin')]])),
+    layers, map: fakeMap([29.4832, -95.1123], 11, new Set([layers[camRegionKey('centraltx')]])),
     filters: { type: 'rescue', county: 'Harris', q: 'R-031', window: '360', dist: '25' },
     sort: 'age', rainWindow: '1h', activeBase: 'Dark', basinRiver: null,
   });
@@ -210,11 +210,11 @@ test('the camera link carries the camera, the view, the filters and the layers t
     assert.equal(q.get('base'), 'Dark');
     assert.equal(q.get('theme'), 'dark');
     // the region that was on stays on, and the camera's own region joins it so its marker is there to return to
-    assert.equal(q.get('camreg'), 'houston,austin');
+    assert.equal(q.get('camreg'), 'gulfcoast,centraltx');
     // the map's own share link is unchanged: no camera unless one is passed
     const plain = query(sb.buildShareUrl());
     assert.equal(plain.get('cam'), null);
-    assert.equal(plain.get('camreg'), 'austin');
+    assert.equal(plain.get('camreg'), 'centraltx');
   } finally { r.restore(); }
 });
 

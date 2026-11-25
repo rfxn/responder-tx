@@ -39,7 +39,7 @@ test('applyEventConfig: every event field lands in CONFIG, consumers read config
     deq(CONFIG.center, [30.0, -99.2]);
     assert.equal(CONFIG.zoom, 9);
     deq(CONFIG.gaugeBbox, HILL_EVENT.gaugeBbox);
-    deq(aoFullBounds(), [[29.2, -100.5], [30.9, -97.8]], 'Full AO derives from the event bbox');
+    deq(aoFullBounds(), [[29.2, -100.5], [30.9, -97.8]], 'All Texas derives from the event bbox');
     const pills = resolveAoPresets('en');
     assert.equal(pills.length, 2);
     assert.equal(pills[1][0], 'Kerr · Guadalupe');
@@ -75,7 +75,7 @@ test('built-in CONFIG defaults are event-neutral (no Bertha coastal residue in c
   // the no-event fallback must cover Texas, not the last event AO
   assert.ok(CONFIG.gaugeBbox.xmin < -106 && CONFIG.gaugeBbox.ymax > 36, 'Texas-wide fallback bbox');
   deq(CONFIG.tideStations, [], 'no built-in tide-station seed');
-  assert.equal(resolveAoPresets('en').length, 1, 'no built-in sub-AO pills from a prior event');
+  assert.equal(resolveAoPresets('en').length, 1, 'no built-in region pills from a prior event');
 });
 
 test('chipHealth: fresh/aging/stale by age; never-loaded says no data instead of blank', () => {

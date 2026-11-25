@@ -682,7 +682,7 @@ function initMap() {
   state.layers.wildfire = L.layerGroup();
   // NOAA CO-OPS tide stations — OFF by default (coastal only), lazy-loaded on first enable
   state.layers.tideStations = L.layerGroup();
-  // cameras: one group per AO region (every source pooled into the region it sits in), all OFF by
+  // cameras: one group per region (every source pooled into the region it sits in), all OFF by
   // default, lazy-loaded, clustered; plain group if the markercluster plugin failed to load
   const camGroup = () => (L.markerClusterGroup
     ? L.markerClusterGroup({ disableClusteringAtZoom: 12, maxClusterRadius: 46 })
@@ -1030,7 +1030,7 @@ const CTL_ICON_LINK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="non
 // north-up compass rose: red north needle, muted south needle, "N" tick; the map is always north up
 const CTL_ICON_COMPASS = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="13" r="7.4" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.65"/><polygon points="12 6.5 8.7 15.2 12 13.2 15.3 15.2" fill="#e5484d" stroke="#e5484d" stroke-width="0.5" stroke-linejoin="round"/><polygon points="12 19.9 8.7 15.2 12 17.2 15.3 15.2" fill="currentColor" opacity="0.7"/><text x="12" y="5.2" text-anchor="middle" font-size="7" font-weight="800" fill="currentColor">N</text></svg>';
 
-/* ---------- AO quick-jump — pills along the map top edge, never another stacked box ---------- */
+/* ---------- region quick-jump — pills along the map top edge, never another stacked box ---------- */
 
 /* The picked AO is part of the view the board restores, so it lives beside the control rather than
    inside its closure: initAoJump() publishes the handle, and aoSelectById() is how a saved or
@@ -1039,10 +1039,11 @@ let aoCtl = null;
 
 function aoPickedId() { return aoCtl && aoCtl.picked ? aoCtl.picked[2] : null; }
 
-// select an AO pill by its event-config id; fit only when the caller has no framing of its own
+// select a region pill by its event-config id (or one it absorbed); fit only when the caller has no framing of its own
 function aoSelectById(id, fit) {
   if (!aoCtl || !id) return false;
-  const p = aoCtl.presets.find((x) => x[2] === id);
+  const want = regionIdNow(id);
+  const p = aoCtl.presets.find((x) => x[2] === want);
   if (!p) return false; // a region dropped from the event config since the view was saved
   aoCtl.picked = p;
   aoCtl.label(p[0]);
@@ -1116,7 +1117,7 @@ const PILL_LAYERS = [
 // a static row carries an i18n key; a region camera row takes its name from the event config
 function pillLabel(k, key) {
   if (key) return t(key);
-  const p = camRegions().find((r) => camRegionKey(r.id) === k);
+  const p = camRegionsAll().find((r) => camRegionKey(r.id) === k);
   return p ? `📷 ${regionLabel(p, getLang())}` : k;
 }
 
@@ -1195,11 +1196,10 @@ function initLayerPills() {
 // observed radar + HRRR forecast present as one virtual 'wx' row: one scrub, one legend
 const WX_RAIN_ROWS = [['wx', '📡', 'layers.wx', 'sheet.s.wx', null, false]];
 
-// one camera row per camRegionsAll() entry, filled by initCamRegionRows(): the AO regions come from
-// the event config, the neighbour-state buckets and the residual do not
+// one camera row per camRegionsAll() entry, filled by initCamRegionRows()
 const CAM_ROWS = [];
 
-// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?, camSub?, region?]
+// [layerKey, iconHtml, nameKey, subKey, provenanceBadge|null, onByDefault, child?, region?]
 const SHEET_GROUPS = [
   ['sheet.g.base', [
     ['labelBoost', '🔤', 'layers.labels', 'sheet.s.labels', null, true],
@@ -1243,21 +1243,12 @@ const SHEET_GROUPS = [
   ]],
 ];
 
-// camera sub-groups are the region bands (coast first); each region row carries its band in tuple[7]
-const CAM_SUBGROUPS = [
-  ['coast', 'sheet.g.cams.coast'],
-  ['central', 'sheet.g.cams.central'],
-  ['north', 'sheet.g.cams.north'],
-  ['west', 'sheet.g.cams.west'],
-  ['outstate', 'sheet.g.cams.outstate'],
-];
-
 // region camera rows + pills, built from data/event.json once the event config is applied
 function initCamRegionRows() {
   CAM_ROWS.length = 0;
   for (const p of camRegionsAll()) {
     const k = camRegionKey(p.id);
-    CAM_ROWS.push([k, '\u{1F4F7}', null, null, 'official', false, true, p.band || CAM_SUBGROUPS[0][0], p]);
+    CAM_ROWS.push([k, '\u{1F4F7}', null, null, 'official', false, true, p]);
     PILL_LAYERS.push([k, null]);
   }
 }
@@ -1268,13 +1259,22 @@ function initCamRegionRows() {
 const CAM_LEGACY_PARAMS = {
   cams: '*',                        // TxDOT road cams, statewide
   camr: '*',                        // USGS river/flood cams, statewide
-  cama: ['austin'],                 // City of Austin
-  camf: ['austin'],                 // ATX Floods low-water crossings
-  camh: ['houston', 'centraltx'],   // Houston TranStar
-  caml: ['dfw'],                    // City of Arlington
-  came: ['elpaso'],                 // El Paso international bridges
-  camm: ['austin'],                 // Hays County
+  cama: ['centraltx'],              // City of Austin
+  camf: ['centraltx'],              // ATX Floods low-water crossings
+  camh: ['gulfcoast', 'centraltx'], // Houston TranStar
+  caml: ['northtx'],                // City of Arlington
+  came: ['westtx'],                 // El Paso international bridges
+  camm: ['centraltx'],              // Hays County
 };
+
+// camera regions a link opens: ?camreg= ids (absorbed ids resolve, unknown ones are ignored) or pre-split per-source params
+function linkCamRegionIds(q) {
+  const wanted = new Set((q.get('camreg') || '').split(',').map((x) => regionIdNow(x.trim())).filter(Boolean));
+  const all = wanted.has(CAM_REGION_ALL);
+  const legacy = Object.entries(CAM_LEGACY_PARAMS).filter(([qk]) => q.get(qk) === '1').map(([, ids]) => ids);
+  return camRegionsAll().map((p) => p.id)
+    .filter((id) => all || wanted.has(id) || legacy.some((ids) => ids === '*' || ids.includes(id)));
+}
 
 // a region with no cameras is not a row worth offering; before the inventory lands, count is
 // undefined and every row shows, which is what lets the user turn one on and trigger the load
@@ -1283,23 +1283,22 @@ function camRegionHasCams(p) {
   return !Number.isFinite(n) || n > 0;
 }
 
-/* ---------- camera parent toggles: one statewide, one per band ----------
-   A parent holds no state of its own. It reports what its children are doing, so turning three
-   regions on individually leaves the statewide parent reading partial rather than off. */
+/* ---------- camera parent toggle: one statewide switch over the region rows ----------
+   It holds no state of its own. It reports what its children are doing, so turning three regions
+   on individually leaves it reading partial rather than off. */
 
 const camTriState = (on, total) => (total > 0 && on === total ? 'on' : on > 0 ? 'mixed' : 'off');
 
-// the rows a parent owns: every camera region, or one band. A region with no cameras is not
-// offered as a row, so the parent that would claim to cover it does not count it either.
-function camParentRows(band) {
-  return CAM_ROWS.filter((r) => (band ? r[7] === band : true) && camRegionHasCams(r[8]));
+// a region with no cameras is not offered as a row, so the parent does not count it either
+function camParentRows() {
+  return CAM_ROWS.filter((r) => camRegionHasCams(r[7]));
 }
 
 const camParentOn = (rows) => rows.filter((r) => layerRowOn(r[0]) === true).length;
 
 // off or partial turns every child on; only a fully-on parent turns them back off
-function camParentToggle(band) {
-  const rows = camParentRows(band);
+function camParentToggle() {
+  const rows = camParentRows();
   const turnOff = camTriState(camParentOn(rows), rows.length) === 'on';
   state.lsBulk = true; // one repaint: the sheet and the pill row redraw after the loop, not per row
   try {
@@ -1326,12 +1325,12 @@ const camParentCls = (st) => (st === 'on' ? ' on' : st === 'mixed' ? ' part' : '
 // statewide parent. The subtitle states the count in words, so the three states never rest on the
 // knob's colour alone; before the inventory lands there is no count to state.
 function camAllRowHtml(dis) {
-  const rows = camParentRows(null);
+  const rows = camParentRows();
   if (!rows.length) return '';
   const on = camParentOn(rows);
   const st = camTriState(on, rows.length);
   const counted = !!state.camCounts;
-  const tally = (m) => rows.reduce((a, r) => a + ((m && m[r[8].id]) || 0), 0);
+  const tally = (m) => rows.reduce((a, r) => a + ((m && m[r[7].id]) || 0), 0);
   const sub = counted
     ? t('sheet.cams.all.sub').replace('{k}', fmtNum(on)).replace('{m}', fmtNum(rows.length))
       .replace('{n}', fmtNum(tally(state.camCounts))).replace('{l}', fmtNum(tally(state.camLive)))
@@ -1363,7 +1362,7 @@ const LIVE_ROW_SUBS = { wildfire: () => wildfireRowSub(), roadFlood: () => roadF
 
 // one toggle row; identical markup for flat groups and the indented camera children (child flag adds .ls-child)
 function lsRowHtml(row, dis) {
-  const [k, icon, nameKey, subKey, badge, , child, , region] = row;
+  const [k, icon, nameKey, subKey, badge, , child, region] = row;
   const on = layerRowOn(k); // understands the virtual merged 'wx' row; null = no such layer
   if (on === null) return '';
   const name = region ? regionLabel(region, getLang()) : t(nameKey);
@@ -1375,34 +1374,8 @@ function lsRowHtml(row, dis) {
     '<span class="ls-knob" aria-hidden="true"></span></button>';
 }
 
-/* cameras region: disclosure sub-headers per CAM_SUBGROUPS; a group renders open if opened OR any
-   child is ON. Each header carries its own parent toggle beside the disclosure, as a sibling
-   button rather than a nested one, so the two controls stay separately reachable. */
-function camSubgroupsHtml(rows, dis) {
-  let out = '';
-  for (const [sub, nameKey] of CAM_SUBGROUPS) {
-    const kids = rows.filter((r) => r[7] === sub && camRegionHasCams(r[8]));
-    if (!kids.length) continue;
-    const onCount = camParentOn(kids);
-    const st = camTriState(onCount, kids.length);
-    const open = state.lsCamOpen.has(sub) || onCount > 0;
-    const name = t(nameKey);
-    out += '<div class="ls-subrow">' +
-      `<button class="ls-subhead" data-sub="${sub}" aria-expanded="${open}">` +
-      '<span class="ls-sub-caret" aria-hidden="true">▸</span>' +
-      `<span class="ls-sub-name">${esc(name)}</span>` +
-      (onCount ? `<span class="ls-sub-count">${esc(t('sheet.cams.nofm').replace('{n}', onCount).replace('{m}', kids.length))}</span>` : '') +
-      '</button>' +
-      `<button class="ls-camband${camParentCls(st)}" data-camband="${sub}"` +
-      camParentAttrs(st, t('sheet.cams.band.title').replace('{g}', name), dis) +
-      '><span class="ls-knob" aria-hidden="true"></span></button>' +
-      '</div>' +
-      `<div class="ls-subrows" data-sub="${sub}"${open ? '' : ' hidden'}>` +
-      kids.map((r) => lsRowHtml(r, dis)).join('') +
-      '</div>';
-  }
-  return out;
-}
+// region rows under the statewide parent, in config order; a region with no cameras is not offered
+const camRowsHtml = (rows, dis) => rows.filter((r) => camRegionHasCams(r[7])).map((r) => lsRowHtml(r, dis)).join('');
 
 function renderLayerSheet() {
   const el = document.getElementById('layer-sheet');
@@ -1420,7 +1393,7 @@ function renderLayerSheet() {
   for (const [gKey, rows] of SHEET_GROUPS) {
     html += `<div class="ls-group">${esc(t(gKey))}</div>`;
     if (gKey === 'sheet.g.base') html += seg;
-    if (gKey === 'sheet.g.cameras') { html += camAllRowHtml(dis) + camSubgroupsHtml(rows, dis); continue; }
+    if (gKey === 'sheet.g.cameras') { html += camAllRowHtml(dis) + camRowsHtml(rows, dis); continue; }
     for (const row of rows) html += lsRowHtml(row, dis);
   }
   html += offlineSheetHtml() +
@@ -1470,18 +1443,8 @@ function onLayerSheetClick(e) {
   if (offz) { setOfflineDepth(parseInt(offz.dataset.offz, 10)); return; }
   if (e.target.closest('[data-act="off-save"]')) { saveViewportOffline(); return; }
   if (e.target.closest('[data-act="off-clear"]')) { clearOfflineCache(); return; }
-  // parents first: the statewide row is also an .ls-row, and it carries no data-layer of its own
-  if (e.target.closest('[data-camall]')) { camParentToggle(null); return; }
-  const band = e.target.closest('[data-camband]');
-  if (band) { camParentToggle(band.dataset.camband); return; }
-  const sub = e.target.closest('.ls-subhead');
-  if (sub) {
-    const key = sub.dataset.sub;
-    if (state.lsCamOpen.has(key)) state.lsCamOpen.delete(key);
-    else state.lsCamOpen.add(key);
-    renderLayerSheet();
-    return;
-  }
+  // the parent first: the statewide row is also an .ls-row, and it carries no data-layer of its own
+  if (e.target.closest('[data-camall]')) { camParentToggle(); return; }
   const row = e.target.closest('.ls-row');
   if (!row) return;
   if (row.dataset.layer === 'wx') { wxToggle(); return; } // merged row toggles both underlying layers together
@@ -1491,7 +1454,7 @@ function onLayerSheetClick(e) {
   else lyr.addTo(state.map); // registered overlay — map fires overlayadd (lazy loads, legends, pills, sheet sync)
 }
 
-// default view: default overlays on, extras off, Streets base, Full AO framing (same bounds as the AO chip)
+// default view: default overlays on, extras off, Streets base, All Texas framing (same bounds as its pill)
 function layerSheetReset() {
   for (const [, rows] of SHEET_GROUPS) {
     for (const r of rows) {
@@ -1507,8 +1470,7 @@ function layerSheetReset() {
     Object.values(state.baseLayers).forEach((l) => state.map.removeLayer(l));
     state.baseLayers.streets.addTo(state.map);
   }
-  state.lsCamOpen.clear(); // reset returns the camera sub-groups to all-collapsed
-  aoSelectById(AO_FULL_ID, false); // framing is set below; the pill must not still name a sub-AO
+  aoSelectById(AO_FULL_ID, false); // framing is set below; the pill must not still name a region
   state.map.fitBounds(aoFullBounds());
   renderLayerSheet();
 }
@@ -1532,10 +1494,14 @@ function collectLayerState() {
   return { on: known.filter((k) => layerRowOn(k) === true), known };
 }
 
+// a camera key saved under a region id that was since merged reads as the region that absorbed it
+const layerKeyNow = (k) => (typeof k === 'string' && k.startsWith(CAM_REGION_PREFIX)
+  ? camRegionKey(regionIdNow(k.slice(CAM_REGION_PREFIX.length))) : k);
+
 function applyLayerState(on, known) {
   if (!Array.isArray(on) || pbBlocksLive(state)) return false;
-  const wasKnown = new Set(Array.isArray(known) && known.length ? known : on);
-  const want = new Set(on);
+  const wasKnown = new Set((Array.isArray(known) && known.length ? known : on).map(layerKeyNow));
+  const want = new Set(on.map(layerKeyNow));
   state.lsBulk = true; // a whole layer set at once: the sheet and the pill row repaint after the loop
   try {
     for (const k of layerRowKeys()) {

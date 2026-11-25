@@ -582,10 +582,10 @@ function pbStoryRebuild() {
     const pri = w.emergency ? 7 : (w.phenomena === 'TO' ? 6 : 5);
     const issuedKey = w.emergency ? 'playback.story.emergissued' : 'playback.story.warnissued';
     if (w.issue >= pb.loT && w.issue <= pb.hiT) {
-      ev.push({ t: w.issue, iso: new Date(w.issue).toISOString(), pri, text: t(issuedKey).replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'AO') });
+      ev.push({ t: w.issue, iso: new Date(w.issue).toISOString(), pri, text: t(issuedKey).replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'Texas') });
     }
     if (w.expire >= pb.loT && w.expire <= pb.hiT) {
-      ev.push({ t: w.expire, iso: new Date(w.expire).toISOString(), pri: 2, text: t('playback.story.warnexpired').replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'AO') });
+      ev.push({ t: w.expire, iso: new Date(w.expire).toISOString(), pri: 2, text: t('playback.story.warnexpired').replace('{ps}', w.ps || 'NWS warning').replace('{wfo}', w.wfo || 'Texas') });
     }
   }
   ev.sort((a, b) => a.t - b.t || a.pri - b.pri); // equal-time ties: highest significance last, wins nearest-past

@@ -281,9 +281,9 @@ test('share round-trip — applyShareParams reopens drive mode from view=drive',
 const { CONFIG, camRegionKey, camRegionsAll, CAM_REGION_ALL } = app;
 
 const CAM_REGION_FIXTURE = [
-  { id: 'houston', label: 'Houston', anchors: [[29.76, -95.37]] },
-  { id: 'dfw', label: 'DFW', anchors: [[32.78, -96.80]] },
-  { id: 'austin', label: 'Austin', anchors: [[30.27, -97.74]] },
+  { id: 'gulfcoast', aliases: ['houston'], label: 'Gulf Coast', anchors: [[29.76, -95.37]] },
+  { id: 'northtx', aliases: ['dfw'], label: 'North Texas', anchors: [[32.78, -96.80]] },
+  { id: 'centraltx', aliases: ['austin'], label: 'Central Texas', anchors: [[30.27, -97.74]] },
 ];
 
 function withCamRegions(fn) {
@@ -299,9 +299,9 @@ test('buildShareUrl: the camera regions that are ON travel as one ?camreg= list'
     for (const r of camRegionsAll()) layers[camRegionKey(r.id)] = { id: r.id };
     state.layers = layers;
     state.map = fakeMap([29.76, -95.37], 9,
-      new Set([layers[camRegionKey('houston')], layers[camRegionKey('austin')]]));
+      new Set([layers[camRegionKey('gulfcoast')], layers[camRegionKey('centraltx')]]));
     const q = new URLSearchParams(buildShareUrl().split('?')[1]);
-    assert.equal(q.get('camreg'), 'houston,austin', 'only the regions on the map, in config order');
+    assert.equal(q.get('camreg'), 'gulfcoast,centraltx', 'only the regions on the map, in config order');
     for (const dead of ['cams', 'camr', 'cama', 'camf', 'camh', 'caml', 'came', 'camm']) {
       assert.equal(q.get(dead), null, `${dead} is read on the way in, never written on the way out`);
     }
@@ -367,12 +367,17 @@ test('onboarding stands down for every param a shared link can carry', () => {
   } finally { S.location.search = ''; }
 });
 
-test('the statewide token and an explicit list are both read on the way in', () => {
-  // js/boot.js owns the read (it needs the live map), so the contract is asserted at its source
-  const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
-  const blk = boot.match(/const wanted = new Set\(\(shareQs\.get\('camreg'\)[\s\S]{0,400}?\n  \}/);
-  assert.ok(blk, 'the camreg read block moved; the statewide/list contract is unverified');
-  assert.match(blk[0], /wanted\.has\(CAM_REGION_ALL\)/, 'camreg=all no longer opens every region');
-  assert.match(blk[0], /wanted\.has\(p\.id\)/, 'an explicit id list must still resolve, so old links keep working');
-  assert.match(blk[0], /camAll \|\| wanted\.has\(p\.id\)/, 'the two forms must both be honoured, not one or the other');
+test('the statewide token, an explicit list and a retired id are all read on the way in', () => {
+  const mapApp = loadMapApp();
+  const saved = mapApp.CONFIG.aoPresets;
+  mapApp.CONFIG.aoPresets = CAM_REGION_FIXTURE;
+  try {
+    const ids = (q) => [...mapApp.linkCamRegionIds(new URLSearchParams(q))];
+    assert.deepEqual(ids('?camreg=all'), ['gulfcoast', 'northtx', 'centraltx', 'other'], 'camreg=all opens every region');
+    assert.deepEqual(ids('?camreg=centraltx,gulfcoast'), ['gulfcoast', 'centraltx'], 'an explicit list resolves, in config order');
+    assert.deepEqual(ids('?camreg=houston,dfw'), ['gulfcoast', 'northtx'], 'a list shared before the merge still opens');
+  } finally { mapApp.CONFIG.aoPresets = saved; }
+  // js/boot.js owns the live map, so its one call into the resolver is asserted at the source
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8'),
+    /for \(const id of linkCamRegionIds\(shareQs\)\) camOn\(camRegionKey\(id\)\);/);
 });

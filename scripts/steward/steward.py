@@ -80,6 +80,7 @@ BY_ID = {src["id"]: src for src in SOURCES}
 MAX_STR = 280
 MAX_ITEMS = 6
 ISSUED_SKEW_S = 120
+NOMINAL_AHEAD_S = 2 * H  # NHC and others label a product with its nominal time and post it early
 
 TZ_OFFSETS = {"UTC": 0, "GMT": 0, "EST": -5, "EDT": -4, "CST": -6, "CDT": -5, "MST": -7, "MDT": -6,
               "PST": -8, "PDT": -7, "AKST": -9, "AKDT": -8, "HST": -10}
@@ -301,7 +302,7 @@ def fetch_one(src, now, fixture_dir):
     if age > src["max_age"]:
         row.update(status="stale", reason="issued %dh ago (limit %dh)" % (age // H, src["max_age"] // H))
         return row, None
-    if age < -ISSUED_SKEW_S:
+    if age < -NOMINAL_AHEAD_S:
         row.update(status="failed", reason="issue time is in the future")
         return row, None
     text = clean_upstream(text)
@@ -510,7 +511,7 @@ def validate(doc, manifest, now):
         issued = parse_iso(item.get("issued"))
         if issued is None:
             errors.append("%s.issued: not an ISO time" % where)
-        elif gen is not None and issued > gen + ISSUED_SKEW_S:
+        elif gen is not None and issued > gen + NOMINAL_AHEAD_S:
             errors.append("%s.issued: after generation time" % where)
         if manifest is not None and isinstance(url, str):
             row = by_url.get(url)
@@ -522,6 +523,8 @@ def validate(doc, manifest, now):
                     errors.append('%s: a %s "none" must cite %s' % (where, item.get("kind"), "/".join(sorted(family))))
                 horizon = BY_ID.get(row["id"], {}).get("horizon")
                 row_issued = parse_iso(row["issued"])
+                if row_issued is not None and gen is not None:
+                    row_issued = min(row_issued, gen)  # an early-posted nominal label counts from now, never later
                 if horizon and end is not None and row_issued is not None and end > row_issued + horizon + HORIZON_SLACK_S:
                     errors.append("%s.window: ends %dh after issue, past %s's %dh horizon" % (
                         where, (end - row_issued) // H, row["id"], horizon // H))

@@ -172,11 +172,7 @@ test('the emergency banner clears the hazard line instead of covering it', () =>
   const panels = fs.readFileSync(path.join(__dirname, '..', 'js', 'panels.js'), 'utf8');
   assert.match(panels, /function syncHazlineAnchor\(\)/, 'nothing publishes the hazard line edge');
   assert.match(panels, /setProperty\('--hazline-bottom'/);
-  // both exits of renderTicker must publish it, or a board that loses its last item leaves a stale edge
-  const fn = panels.match(/function renderTicker\(\)[\s\S]*?\n\}/);
-  assert.ok(fn, 'renderTicker() not found');
-  assert.equal((fn[0].match(/syncHazlineAnchor\(\)/g) || []).length, 2,
-    'renderTicker must publish the edge on both the empty and the populated path');
+  // both exits of renderTicker publishing it is executed in tests/ticker-calm.test.js
   const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
   assert.match(boot, /syncHazlineAnchor\(\);/, 'rotation changes the line height; resize must republish it');
 });
@@ -453,39 +449,10 @@ test('the shelters sheet keeps one entry point, and no shelter count rides in th
   assert.ok(!/[Ss]helter/.test(ticker[0]), 'a shelter count leaked into the hazard line');
 });
 
-/* The camera bands are the sheet's only sub-category headers. Everything about them that is not
-   genuinely new (the disclosure and the parent toggle) follows .ls-group, the one header idiom the
-   sheet already had, instead of inventing a type step of its own. */
-test('the camera sub-category header follows the sheet header convention and declares its own floor', () => {
-  const rule = (sel) => {
-    const i = CSS.indexOf(`${sel} {`);
-    return i === -1 ? '' : CSS.slice(i, CSS.indexOf('}', i));
-  };
-  const group = rule('.ls-group');
-  const head = rule('.ls-subhead');
-  assert.notEqual(head, '', '.ls-subhead rule not found');
-  for (const prop of ['font-size', 'font-weight', 'letter-spacing', 'text-transform']) {
-    const want = new RegExp(`${prop}:\\s*([^;]+)`).exec(group);
-    assert.ok(want, `.ls-group has no ${prop} to match`);
-    assert.ok(new RegExp(`${prop}:\\s*${want[1].trim()}\\s*[;\\n]`).test(head),
-      `.ls-subhead ${prop} diverges from .ls-group (${want[1].trim()})`);
-  }
-  // the floor must be its own, not inherited from whichever sibling happens to sit beside it
-  assert.ok(/min-height:\s*44px/.test(head),
-    'the sub-header must declare 44px itself; a 34px declaration only reached the floor via .ls-camband');
-});
-
-test('the camera parent toggles are 44px targets and state partial by position', () => {
-  const band = CSS.slice(CSS.indexOf('.ls-camband {'), CSS.indexOf('}', CSS.indexOf('.ls-camband {')));
-  assert.notEqual(band, '', '.ls-camband rule not found');
-  assert.ok(/min-height:\s*44px/.test(band), 'the band parent must declare a 44px min-height');
-  assert.ok(/min-width:\s*44px/.test(band), 'the band parent must declare a 44px min-width');
-  assert.ok(/\.ls-subrow \{[^}]*align-items:\s*stretch/.test(CSS),
-    'the disclosure must stretch to the parent toggle height, or half the header row is dead space');
-  // off/mixed/on are three knob positions: 2px, 9px, 16px
+// off/mixed/on are three knob positions: 2px, 9px, 16px
+test('the statewide camera parent states partial by position', () => {
   assert.ok(/\.ls-row\.part \.ls-knob::after[^}]*left:\s*9px/.test(CSS),
     'partial must move the knob to its own position, not merely recolour it');
-  assert.ok(/\.ls-camband\.part \.ls-knob::after/.test(CSS));
 });
 
 test('the import control is a 44px target, not the 30px badge it was', () => {

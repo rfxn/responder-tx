@@ -792,7 +792,7 @@ import json, os, sys
 repo, src, how = sys.argv[1:4]
 ev = json.load(open(os.path.join(src, "data", "event.json"), encoding="utf-8"))
 area = ev["aoArea"]
-presets = [{"id": "houston", "label": "Houston", "labelEs": "Houston",
+presets = [{"id": "gulfcoast", "label": "Gulf Coast", "labelEs": "Costa del Golfo",
             "bounds": [[29.0, -96.0], [30.5, -94.5]], "anchors": [[29.76, -95.37]]}]
 if how == "twopoint":
     area = dict(area, polygon=area["polygon"][:2])
@@ -849,7 +849,7 @@ for how in nohouston tiny; do
     ao_fixture "$how"
     run_check; A=$?
     case "$how" in
-        nohouston) want='aoArea leaves region anchors outside the AO: houston' ;;
+        nohouston) want='aoArea leaves region anchors outside the AO: gulfcoast' ;;
         tiny) want='the aoArea keeps 2 of 45 gauges in gauges-capture.json' ;;
     esac
     if [ "$A" -ne 0 ] && grep -q "$want" "$WORK/out"; then

@@ -63,7 +63,7 @@ def capture(n):
     stamp = iso(BASE + timedelta(minutes=20 * n))
     return {'generated': stamp, 'gauges': [
         {'lid': lid, 'name': lid + ' River', 'latitude': lat, 'longitude': lon,
-         'status': {'observed': {'primary': 10.0 + n, 'primaryUnit': 'ft',
+         'status': {'observed': {'primary': 10.0 + n % 10, 'primaryUnit': 'ft',
                                  'floodCategory': 'minor', 'validTime': stamp}}}
         for lid, lat, lon in SITES]}
 
@@ -109,6 +109,7 @@ def make_repo(tmp):
     os.makedirs(os.path.join(repo, 'data'))
     os.makedirs(os.path.join(repo, 'scripts'))
     shutil.copy(GEN, os.path.join(repo, 'scripts', 'gen-history.py'))
+    shutil.copy(os.path.join(os.path.dirname(GEN), 'stageplaus.py'), os.path.join(repo, 'scripts', 'stageplaus.py'))
     subprocess.run(('git', 'init', '-q', repo), check=True, capture_output=True)
     seed_gauge_meta(repo)
     return repo
@@ -307,6 +308,7 @@ try:
     os.makedirs(os.path.join(rrepo, 'data'))
     os.makedirs(os.path.join(rrepo, 'scripts'))
     shutil.copy(GEN, os.path.join(rrepo, 'scripts', 'gen-history.py'))
+    shutil.copy(os.path.join(os.path.dirname(GEN), 'stageplaus.py'), os.path.join(rrepo, 'scripts', 'stageplaus.py'))
     subprocess.run(('git', 'init', '-q', rrepo), check=True, capture_output=True)
     seed_gauge_meta(rrepo)
 
@@ -403,6 +405,39 @@ try:
 finally:
     GH._BLOBS = None
     shutil.rmtree(tmp_cf, ignore_errors=True)
+
+# --- the playback publishes no unsustained or impossible high reading, and keeps a real crest -------
+# EASTA alternates 9.7 / 40.6 / 9.7 / 35.8 / 42.1 ft like PRST2 on 2026-10-26; WESTA reads 70 ft once on a
+# 20 ft major stage (a datum shift); EASTB is a real crest whose readings sustain each other.
+tmp_pl = tempfile.mkdtemp(prefix='gen-history-plausible.')
+try:
+    prepo = make_repo(tmp_pl)
+    series = {'EASTA': [9.7, 40.6, 9.7, 35.8, 42.1, 9.7], 'WESTA': [12.0, 70.0, 70.0, 12.5, 12.4, 12.3],
+              'EASTB': [14.0, 21.0, 21.5, 21.2, 17.0, 16.0]}
+    cat = lambda v: 'major' if v >= 20 else ('minor' if v >= 13 else ('action' if v >= 10 else 'no_flooding'))  # noqa: E731
+    for n in range(6):
+        stamp = iso(BASE + timedelta(minutes=20 * n))
+        rows = [{'lid': lid, 'name': lid + ' River', 'latitude': lat, 'longitude': lon,
+                 'status': {'observed': {'primary': series.get(lid, [11.0] * 6)[n], 'primaryUnit': 'ft',
+                                         'floodCategory': cat(series.get(lid, [11.0] * 6)[n]),
+                                         'validTime': iso(BASE + timedelta(minutes=20 * (n if lid != 'WESTA' or n != 2 else 1)))}}}
+                for lid, lat, lon in SITES]
+        with open(os.path.join(prepo, 'data', 'event.json'), 'w', encoding='utf-8') as f:
+            json.dump({'name': 'fixture', 'start': '2026-07-22T00:00:00Z', 'gaugeBbox': WIDE}, f)
+        with open(os.path.join(prepo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
+            json.dump({'generated': stamp, 'gauges': rows}, f)
+        git(prepo, 'add', 'data/event.json', 'data/gauges-capture.json')
+        git(prepo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'p%d' % n)
+    rp = run_gen(prepo)
+    frames = history(prepo)['frames'] if rp.returncode == 0 else []
+    at = lambda lid: [(f['t'][11:16], (f['gauges'].get(lid) or [None])[0]) for f in frames]  # noqa: E731
+    check('PLAUSIBLE · MUTATION an alternating 9.7 / 35-42 ft series publishes none of its high readings',
+          bool(frames) and all(v is None or v < 20 for _, v in at('EASTA')) and any(v == 9.7 for _, v in at('EASTA')), str(at('EASTA')))
+    check('PLAUSIBLE · a reading over 3x the major stage publishes as no reading', all(v != 70.0 for _, v in at('WESTA')), str(at('WESTA')))
+    check('PLAUSIBLE · a sustained real crest keeps every reading', [v for _, v in at('EASTB')] == [14.0, 21.0, 21.5, 21.2, 17.0, 16.0], str(at('EASTB')))
+    check('PLAUSIBLE · the run says how many entries it voided', 'published as no reading: 5 frame entries' in rp.stdout, rp.stdout[-300:])
+finally:
+    shutil.rmtree(tmp_pl, ignore_errors=True)
 
 # --- pure helpers -----------------------------------------------------------
 check('archive_floor ignores event.json "start" (a display field that moves on a pivot)',

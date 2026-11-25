@@ -1,5 +1,27 @@
 # Changelog — Responder TX Flood Ops Board
 
+## v0.101.1 · 2026-11-24 (seven regions, calm ticker)
+
+-- New Features --
+- [New] When no tornado, severe storm, flood or tropical warning is active, the
+      top rail says so, with the time checked and the next item from On the
+      horizon; if warnings could not be checked it says that instead
+
+-- Changes --
+- [Change] The map picker offers All Texas and seven regions: Gulf Coast, South
+         Texas, Central Texas, North Texas, East Texas, West Texas and Panhandle;
+         saved views and shared links to the old regions open the matching new one
+- [Change] Camera layers are grouped into the same seven regions plus one
+         Neighboring states row
+- [Change] Hourly publishing starts for coastal tide gauges at moderate flood,
+         not minor
+
+-- Bug Fixes --
+- [Fix] The crest summary and playback no longer show brief impossible gauge
+      readings as crests
+- [Fix] The tropical outlook from the National Hurricane Center is no longer
+      skipped when it is posted ahead of its stated issue time
+
 ## v0.101.0 · 2026-11-24 (on the horizon, steadier radar)
 
 -- New Features --

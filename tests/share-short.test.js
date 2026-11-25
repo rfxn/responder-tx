@@ -300,7 +300,7 @@ function everythingOn(fn) {
   state.rainWindow = '24h';
   state.basinRiver = 'guadalupe-river';
   state.activeBase = 'Dark';
-  sb.aoPickedId = () => 'houston';
+  sb.aoPickedId = () => 'gulfcoast';
   try { return fn(); } finally {
     Object.assign(state, { map: saved.map, layers: saved.layers, filters: saved.filters, sort: saved.sort,
       rainWindow: saved.rainWindow, basinRiver: saved.basinRiver, activeBase: saved.activeBase });

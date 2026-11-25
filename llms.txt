@@ -56,7 +56,8 @@ re-target); `data/cadence.json` names the current mode and when the next update 
 - [Playback archive index](https://respondertx.org/history/index.json): how far back the
   committed archive reaches.
 - [Event configuration](https://respondertx.org/data/event.json): the region, map framing,
-  and the bounding boxes that decide what is captured and what is displayed.
+  the seven map regions, and the bounding boxes that decide what is captured and what is
+  displayed.
 
 All of the above are CORS open and keyless. The JSON files carry a `generated` field.
 

@@ -6,7 +6,7 @@ const { loadApp } = require('./harness.js');
 
 const { CONFIG, resolveAoPresets, aoFullBounds } = loadApp();
 
-// harness t() echoes keys, so the Full AO pill label resolves to its i18n key here
+// harness t() echoes keys, so the All Texas pill label resolves to its i18n key here
 const FULL_LABEL = 'ao.full';
 
 // sandbox-built arrays live in another realm (different Array prototype), so
@@ -30,7 +30,7 @@ test('aoFullBounds — derives [[s,w],[n,e]] from CONFIG.gaugeBbox, not literals
   });
 });
 
-test('resolveAoPresets: absent event presets leave only the Full AO pill (no stale-event fallback)', () => {
+test('resolveAoPresets: absent event presets leave only the All Texas pill (no stale-event fallback)', () => {
   withConfig({ aoPresets: null }, () => {
     const p = resolveAoPresets('en');
     assert.equal(p.length, 1);
@@ -55,13 +55,13 @@ test('resolveAoPresets — event.json presets replace the fallback when present'
 
 /* The id is what a saved or shared view names a pill by. A label cannot serve: it is translated,
    so a saved AO would be lost the moment the user switched language. */
-test('resolveAoPresets — every pill carries a language-independent id, Full AO included', () => {
+test('resolveAoPresets — every pill carries a language-independent id, All Texas included', () => {
   const evp = [
     { id: 'galvestonbay', label: 'Galveston Bay', labelEs: 'Bahía de Galveston', bounds: [[28.9, -95.5], [29.75, -94.35]] },
     { label: 'No id at all', bounds: [[29.4, -95.9], [30.2, -94.9]] },
   ];
   withConfig({ aoPresets: evp }, () => {
-    assert.equal(resolveAoPresets('en')[0][2], 'full', 'the Full AO pill needs a reserved id of its own');
+    assert.equal(resolveAoPresets('en')[0][2], 'full', 'the All Texas pill needs a reserved id of its own');
     assert.equal(resolveAoPresets('en')[1][2], 'galvestonbay');
     assert.equal(resolveAoPresets('es')[1][2], 'galvestonbay', 'the id must not change with the language');
     assert.equal(resolveAoPresets('en')[2][2], '', 'a preset with no id gets an empty one, never undefined');
@@ -80,7 +80,7 @@ test('resolveAoPresets — labelEs wins under es, label under en or when labelEs
   });
 });
 
-test('resolveAoPresets: malformed entries are dropped; all-malformed leaves only Full AO', () => {
+test('resolveAoPresets: malformed entries are dropped; all-malformed leaves only All Texas', () => {
   const good = { id: 'ok', label: 'OK area', bounds: [[29.0, -95.0], [30.0, -94.0]] };
   const bad = [
     null,

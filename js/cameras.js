@@ -90,7 +90,7 @@ const CAM_NETS = [
   ['galveston', 'galveston'],
 ];
 
-// every source is pooled into the AO region it sits in, so one toggle covers an area rather than an operator
+// every source is pooled into the region it sits in, so one toggle covers an area rather than an operator
 function renderCameras() {
   if (!state.cameras || !state.camLayerList || !state.camLayerList.length) return;
   const put = (layer, marks) => {

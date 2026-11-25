@@ -115,7 +115,7 @@ async function refreshWith(failing) {
   for (const noop of ['saveCache', 'checkAppVersion', 'renderSourceHealth', 'loadTides']) SB[noop] = () => {};
   SB.hydrateFromCache = () => false;
   SB.hydrateGaugesSnapshot = () => Promise.resolve(false);
-  hdr.state.alerts = [{}];
+  hdr.state.alerts = [{ properties: { event: 'Flood Advisory' } }]; // a standing product: on the board, not on the line
   hdr.state.gauges = [{}]; // a non-empty last-good keeps refresh on the plain degraded path
   await SB.refresh();
   return { hdr, note: hdr.node('#refresh-note'), detail: hdr.state.feedNoteDetail };

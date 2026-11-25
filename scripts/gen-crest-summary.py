@@ -32,6 +32,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aoarea  # noqa: E402
+import stageplaus  # noqa: E402
 
 ROOT = os.environ.get("RESPONDER_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAPTURE_PATH = "data/gauges-capture.json"
@@ -48,10 +49,6 @@ RECORD_NEAR_PCT = 0.90
 # mirrors js/core.js stageOk; see INTERNAL-NOTES.md "Impossible gauge stages"
 STAGE_MIN_FT = -300
 STAGE_MAX_FT = 25000
-# per-gauge plausibility: far above the gauge's own record and major stage, or a lone record spike
-IMPLAUSIBLE_OVER_REFERENCE = 3
-SPIKE_FACTOR = 2
-SPIKE_NEIGHBOUR_S = 45 * 60
 
 
 def stage_ok(v):
@@ -289,48 +286,13 @@ def fold_backfill(gauges):
     return first_t, read_ok
 
 
-def stage_refs():
-    """lid -> (record_ft, major_ft), either None: the gauge's own bounds from records.json and gauge-meta.json."""
-    def load(name):
-        try:
-            with open(os.path.join(ROOT, "data", name), encoding="utf-8") as f:
-                d = json.load(f)
-            return d if isinstance(d, dict) else {}
-        except (OSError, ValueError):
-            return {}
-    records, meta = load("records.json").get("records") or {}, load("gauge-meta.json")
-    pos = lambda v: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else None  # noqa: E731
-    return {lid: (pos((records.get(lid) or {}).get("record_ft")),
-                  pos((meta.get(lid) or {}).get("major") if isinstance(meta.get(lid), dict) else None))
-            for lid in set(records) | set(meta)}
-
-
-def lone_against(stage, vt, neighbour):
-    """True when a neighbouring reading is close in time and nowhere near this one."""
-    if neighbour is None or vt is None or neighbour[1] is None:
-        return False
-    close = abs((vt - neighbour[1]).total_seconds()) <= SPIKE_NEIGHBOUR_S
-    return close and not (stage / SPIKE_FACTOR <= neighbour[0] <= stage * SPIKE_FACTOR)
-
-
-def implausible(stage, obs, record, major):
-    """Why a reading inside the absolute envelope is still no reading for THIS gauge, else None."""
-    ref = max([v for v in (record, major) if v] or [0])
-    if ref and stage > IMPLAUSIBLE_OVER_REFERENCE * ref:
-        return "over %dx the gauge's record and major stage" % IMPLAUSIBLE_OVER_REFERENCE
-    if record and stage >= record and lone_against(stage, obs["vt"], obs["prev"]) \
-            and lone_against(stage, obs["vt"], obs["next"]):
-        return "a lone record reading between two close readings under 1/%d of it" % SPIKE_FACTOR
-    return None
-
-
 def walk(commits, gauges, refs=None):
     """Retention layer: every gauge that ever flooded, no geographic filter. A reading that is
-    implausible for its own gauge is no reading, and so is the category it came with."""
-    refs = refs or {}
+    implausible for its own gauge (scripts/stageplaus.py) is no reading, and so is its category."""
+    plaus = stageplaus.Plausibility(refs or {})
     skipped = 0
     first_snap = last_snap = None
-    last_obs, samples = {}, []
+    last_vt, samples = {}, []
     for chash, _ciso in commits:
         try:
             snap = load_snapshot(chash)
@@ -356,23 +318,16 @@ def walk(commits, gauges, refs=None):
                 continue
             # one observation per validTime: NWPS repeats a gauge's last reading while it is silent
             vt = parse_iso(observed.get("validTime"))
-            prev = last_obs.get(lid)
-            if prev is None or (vt and prev["vt"] and vt > prev["vt"]):
-                obs = {"vt": vt, "prev": (prev["stage"], prev["vt"]) if prev else None, "next": None, "stage": stage}
-                if prev is not None:
-                    prev["next"] = (stage, vt)
-                last_obs[lid] = obs
-            elif vt and prev["vt"] and vt == prev["vt"]:
-                obs = prev
-            else:
-                obs = {"vt": vt, "prev": None, "next": None, "stage": stage}  # older or undated: nothing to judge by
+            t = vt.timestamp() if vt else None
+            if t is not None and (lid not in last_vt or t > last_vt[lid]):
+                last_vt[lid] = t
+                plaus.observe(lid, t, stage)
             if cat in FLOOD_CATS:
                 samples.append((snap_iso, lid, g.get("name", lid), g.get("latitude"), g.get("longitude"),
-                                observed.get("primaryUnit") or "ft", stage, cat, obs_stale(observed, snap_dt), obs))
+                                observed.get("primaryUnit") or "ft", stage, cat, obs_stale(observed, snap_dt), t))
     voided = {}
-    for snap_iso, lid, name, lat, lon, unit, stage, cat, stale, obs in samples:
-        record, major = refs.get(lid, (None, None))
-        if implausible(stage, obs, record, major):
+    for snap_iso, lid, name, lat, lon, unit, stage, cat, stale, t in samples:
+        if plaus.void(lid, t, stage):
             voided[lid] = voided.get(lid, 0) + 1
             continue
         rec = gauges.setdefault(lid, {
@@ -471,7 +426,7 @@ def main():
         print("warn: event.json aoArea is malformed; the listing is not clipped to it", file=sys.stderr)
     gauges = {}
     backfill_from, archive_ok = fold_backfill(gauges)
-    gauges, skipped, first_snap, last_snap, voided = walk(commits, gauges, stage_refs())
+    gauges, skipped, first_snap, last_snap, voided = walk(commits, gauges, stageplaus.stage_refs(ROOT))
     if not gauges:
         sys.exit("no gauges reached minor+ flood in the snapshot history")
     retained = len(gauges)
@@ -531,7 +486,7 @@ def main():
           f"window {out['window']['first']} → {last_snap}"
           + ("" if archive_ok else " (START NOT ESTABLISHED: the archive did not read)"))
     if voided:
-        print(f"  implausible for their own gauge, published as no reading: {sum(voided.values())} snapshot readings at "
+        print(f"  implausible or unsustained for their own gauge, published as no reading: {sum(voided.values())} snapshot readings at "
               + " ".join(f"{lid}x{n}" for lid, n in sorted(voided.items())))
     for r in rows:
         bits = [f"{r['lid']} {r['peak']} {r['unit']} {r['peak_category']} @ {r['peak_time']}"]

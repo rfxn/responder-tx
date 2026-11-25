@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = 'v0.101.0';
+const APP_VERSION = 'v0.101.1';
 
 const CONFIG = {
   // event-neutral Texas-wide fallback; data/event.json is authoritative and overrides per-event
@@ -9,7 +9,7 @@ const CONFIG = {
   gaugeBbox: { xmin: -106.65, ymin: 25.83, xmax: -93.4, ymax: 36.5 },
   // parsed data/event.json aoArea (outline + border buffer); null = gaugeBbox is the whole AO
   aoArea: null,
-  // sub-AO quick-jump presets from data/event.json; empty = only the Full AO pill renders
+  // region quick-jump presets from data/event.json; empty = only the All Texas pill renders
   aoPresets: null,
   // NOAA CO-OPS tide stations from data/event.json (coastal events only); empty = card hidden
   tideStations: [],
@@ -174,11 +174,10 @@ function aoGauges(list) {
 const regionLabel = (p, lang) => (p.i18nKey ? t(p.i18nKey)
   : ((lang === 'es' && typeof p.labelEs === 'string') ? p.labelEs : p.label));
 
-// the Full AO pill is not an event-config region, so it carries a reserved id of its own
+// the All Texas pill is not an event-config region, so it carries a reserved id of its own
 const AO_FULL_ID = 'full';
 
-// [label, bounds, id] pill list: Full AO (always first, from CONFIG.gaugeBbox) + the Texas region
-// AOs. The id is language-independent, so a saved or shared AO pick survives a language switch.
+// [label, bounds, id]: All Texas first, then the regions; the id is language-independent so a pick survives a switch
 function resolveAoPresets(lang) {
   const evp = (Array.isArray(CONFIG.aoPresets) ? CONFIG.aoPresets : [])
     .filter((p) => p && typeof p.label === 'string' && aoBoundsOk(p.bounds))
@@ -186,7 +185,7 @@ function resolveAoPresets(lang) {
   return [[t('ao.full'), aoFullBounds(), AO_FULL_ID]].concat(evp);
 }
 
-/* ---------- region camera layers: one Leaflet group per AO region, not per source ---------- */
+/* ---------- region camera layers: one Leaflet group per region, not per source ---------- */
 
 const CAM_REGION_PREFIX = 'camsR_';
 const camRegionKey = (id) => CAM_REGION_PREFIX + id;
@@ -203,29 +202,16 @@ function camRegions() {
 
 /* The residual bucket. Nearest-anchor alone would fold a camera 145 mi into New Mexico onto the
    Panhandle row and call it Texas, which is a silent drop wearing a region's name. Anything beyond
-   CAM_REGION_MAX_MI of every anchor is named as outside the regions instead, and counted. */
-const CAM_REGION_OTHER = { id: 'other', i18nKey: 'cams.region.other', band: 'outstate' };
+   CAM_REGION_MAX_MI of every anchor lands here instead, and is counted. */
+const CAM_REGION_OTHER = { id: 'other', i18nKey: 'cams.region.other', aliases: ['nm', 'ok', 'ar', 'la'] };
 const CAM_REGION_MAX_MI = 100;
 const MI_PER_DEG_LAT = 69;
 
-/* One bucket per neighbouring state, so an operator working the Sabine, the Red River or the Rio
-   Grande can open just the side they care about. The state is read off the camera's own
-   coordinates, never off a source list, so a source added upstream inherits its bucket. These
-   boxes are consulted only after the Texas guard above has already rejected the point, which is
-   why they may overlap Texas at the El Paso notch without ever claiming a Texas camera. */
-const CAM_STATE_REGIONS = [
-  { id: 'nm', i18nKey: 'cams.region.nm', band: 'outstate', bbox: [[31.33, -109.05], [37.00, -103.00]] },
-  { id: 'ok', i18nKey: 'cams.region.ok', band: 'outstate', bbox: [[33.62, -103.00], [37.00, -94.43]] },
-  { id: 'ar', i18nKey: 'cams.region.ar', band: 'outstate', bbox: [[33.00, -94.43], [36.50, -89.64]] },
-  { id: 'la', i18nKey: 'cams.region.la', band: 'outstate', bbox: [[28.92, -94.05], [33.00, -88.75]] },
-];
-
-const inCamBbox = (lat, lon, b) => lat >= b[0][0] && lat <= b[1][0] && lon >= b[0][1] && lon <= b[1][1];
-
-// a point no Texas region claims: name the state it sits in, or keep it in the honest residual
-function camOutsideId(lat, lon) {
-  for (const s of CAM_STATE_REGIONS) if (inCamBbox(lat, lon, s.bbox)) return s.id;
-  return CAM_REGION_OTHER.id;
+// a region id as a saved view or a link names it: an id a region absorbed resolves to that region
+function regionIdNow(id) {
+  const all = (Array.isArray(CONFIG.aoPresets) ? CONFIG.aoPresets : []).concat([CAM_REGION_OTHER]);
+  const hit = all.find((p) => p && typeof p.id === 'string' && Array.isArray(p.aliases) && p.aliases.includes(id));
+  return hit ? hit.id : id;
 }
 
 // nearest anchor wins; the anchor set tiles Texas, so every in-state camera lands in exactly one
@@ -242,12 +228,20 @@ function camRegionId(lat, lon, regions) {
       if (d < bestD) { bestD = d; best = p.id; }
     }
   }
-  if (best === null) return camOutsideId(lat, lon); // no usable anchors: still reachable, never dropped
-  return Math.sqrt(bestD) * MI_PER_DEG_LAT > CAM_REGION_MAX_MI ? camOutsideId(lat, lon) : best;
+  if (best === null) return CAM_REGION_OTHER.id; // no usable anchors: still reachable, never dropped
+  if (Math.sqrt(bestD) * MI_PER_DEG_LAT > CAM_REGION_MAX_MI) return CAM_REGION_OTHER.id;
+  // a Texas row takes only cameras the gauges' own area rule admits; with no outline, anchors alone decide
+  return CONFIG.aoArea && !aoContains(lat, lon) ? CAM_REGION_OTHER.id : best;
 }
 
-// the rows/layers cameras can land in: configured regions, the state buckets, then the residual
-const camRegionsAll = () => camRegions().concat(CAM_STATE_REGIONS, [CAM_REGION_OTHER]);
+// with no region config to measure against, the residual holds every camera and cannot call them out of state
+const CAM_REGION_UNSPLIT = { id: CAM_REGION_OTHER.id, i18nKey: 'cams.region.unsplit' };
+
+// the rows/layers cameras can land in: the configured regions, then the residual
+function camRegionsAll() {
+  const r = camRegions();
+  return r.length ? r.concat([CAM_REGION_OTHER]) : [CAM_REGION_UNSPLIT];
+}
 
 const CAT_RANK = { none: 0, action: 1, minor: 2, moderate: 3, major: 4 };
 /* Ground-truth report types the board carries. A confirmed tornado touchdown is the single
@@ -366,6 +360,7 @@ const state = {
   showAlertHist: false,
   showAlertsFar: false, // the alerts outside the current proximity scope are folded, never dropped
   tickerExpiryTimer: null, // fires at the soonest acute end so a 23-minute warning is not asserted for 3 more
+  tickerCalmTimer: null, // re-renders the calm line when its answer ages past two rounds
   acuteAlertTimer: null, // 60s alerts-only poll, armed only while an acute product is open in scope
   showNormalGauges: false,
   showDegradedGauges: false,
@@ -385,7 +380,6 @@ const state = {
   tideMarkers: {}, // station id → map marker, so the card can open the reading it names
   tideMetaNoted: false, // the "no station coordinates" notice has been raised once this session
 
-  lsCamOpen: new Set(), // camera sub-groups expanded this session (ephemeral, not persisted)
   lsBulk: false, // a parent toggle is mid-flight: repaint once at the end, not once per child layer
   offDepth: null, // extra zoom levels an offline save covers; read from storage on first use
   viewReady: false, // boot restore and URL params are done: only now does a change mean the user made it

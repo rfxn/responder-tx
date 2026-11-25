@@ -15,6 +15,7 @@
 #   22-23 BACKLOG is off without its flag file; --dry-run calls nothing and claims nothing
 #   24    the steward's cycle lane agrees with chat-watchdog.sh's (E5)
 #   25    tick-burn.py --steward reports spend per day and per task, and UNKNOWN (exit 3) with no ledger
+#   36    a product labelled up to 2h ahead of now (NHC publishes early) is current; further ahead is refused
 #   34-35 an item may not outlast its product's horizon, and the outlook expires with its earliest "none"
 #   31-33 spend is reserved before a run and settled after; no writable ledger, or a vanished one, means no run
 #   30    every headless call shuts out MCP connectors; build runs are told the inbox is not theirs
@@ -560,6 +561,29 @@ LEFT=$(python3 -c 'import json,sys,datetime as t; d=json.load(open(sys.argv[1]))
 if [ -n "$LEFT" ] && [ "$LEFT" -ge 17880 ] && [ "$LEFT" -le 18000 ]; then
     pass "35 a 'none' item ending in 5h caps validUntil at 5h instead of the 15h quiet TTL"
 else fail "35 validUntil cap (validUntil - generated = ${LEFT:-none}s): $(last_log)"; fi
+rm -rf "$WORK"
+
+# --- 36: nominal issuance labels a little ahead of the clock -------------------------------------------
+setup
+AHEAD_FILLER="Tropical cyclone formation is not expected during the next 7 days. Forecaster text padding to look real."
+printf '<html><pre>\nDay 1 Convective Outlook\nNWS Storm Prediction Center Norman OK\n%s\n\n%s %s %s\n</pre></html>\n' \
+    "$(date -u -d '+49 min' '+%I%M %p UTC %a %b %d %Y')" "$AHEAD_FILLER" "$AHEAD_FILLER" "$AHEAD_FILLER" > "$FX/spc-d1"
+RESPONDER_STEWARD_FETCH_DIR="$FX" python3 -I "$REPO/scripts/steward/steward.py" fetch --out "$WORK/f1" > /dev/null
+ROW=$(python3 -c 'import json,sys; r=[s for s in json.load(open(sys.argv[1]))["sources"] if s["id"]=="spc-d1"][0]; print(r["status"], r["issued"])' "$WORK/f1/manifest.json")
+ISS=${ROW#* }
+NOWI=$(date -u '+%Y-%m-%dT%H:%M:%SZ'); END=$(date -u -d '+30 hours' '+%Y-%m-%dT%H:%M:%SZ'); UNTIL=$(date -u -d '+10 hours' '+%Y-%m-%dT%H:%M:%SZ')
+printf '{"generated":"%s","validUntil":"%s","author":"steward","headline":{"en":"Quiet day for Texas.","es":"Dia tranquilo para Texas."},"items":[{"id":"spc-d1","kind":"severe","level":"none","title":{"en":"Quiet","es":"Tranquilo"},"body":{"en":"Severe storms are not expected today.","es":"No se esperan tormentas severas hoy."},"window":{"start":"%s","end":"%s"},"source":{"name":"NWS Storm Prediction Center","url":"https://www.spc.noaa.gov/products/outlook/day1otlk.html"},"issued":"%s"}]}\n' \
+    "$NOWI" "$UNTIL" "$NOWI" "$END" "$ISS" > "$WORK/o.json"
+CHK=$(python3 -I "$REPO/scripts/steward/steward.py" check "$WORK/o.json" --manifest "$WORK/f1/manifest.json" || :)
+printf '<html><pre>\nDay 1 Convective Outlook\nNWS Storm Prediction Center Norman OK\n%s\n\n%s %s %s\n</pre></html>\n' \
+    "$(date -u -d '+3 hours' '+%I%M %p UTC %a %b %d %Y')" "$AHEAD_FILLER" "$AHEAD_FILLER" "$AHEAD_FILLER" > "$FX/spc-d1"
+RESPONDER_STEWARD_FETCH_DIR="$FX" python3 -I "$REPO/scripts/steward/steward.py" fetch --out "$WORK/f2" > /dev/null
+ROW2=$(python3 -c 'import json,sys; r=[s for s in json.load(open(sys.argv[1]))["sources"] if s["id"]=="spc-d1"][0]; print(r["status"], r["reason"])' "$WORK/f2/manifest.json")
+if [ "${ROW%% *}" = "ok" ] && [ "$ISS" = "$(date -u -d "@$(( $(date -u -d "$ISS" +%s) ))" '+%Y-%m-%dT%H:%M:%SZ')" ] \
+   && [ "$(date -u -d "$ISS" +%s)" -gt "$(date -u +%s)" ] && [ "$CHK" = "OK 1 items" ] \
+   && [ "$ROW2" = "failed issue time is in the future" ]; then
+    pass "36 a label 49m ahead is current, keeps its nominal time and validates; 3h ahead is still refused"
+else fail "36 nominal early issuance: fetch '$ROW' | check '$CHK' | 3h '$ROW2'"; fi
 rm -rf "$WORK"
 
 echo "----"

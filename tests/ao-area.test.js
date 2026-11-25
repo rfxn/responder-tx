@@ -251,3 +251,30 @@ test('every region pill keeps its anchors inside its own box with a margin', () 
     }
   }
 });
+
+test('every region pill frames inside the gauge box and no two frame much of the same ground', () => {
+  const gb = EVENT.gaugeBbox;
+  for (const p of EVENT.aoPresets) {
+    const [[s, w], [n, e]] = p.bounds;
+    assert.ok(s >= gb.ymin && n <= gb.ymax && w >= gb.xmin && e <= gb.xmax, `${p.id}: bounds reach outside gaugeBbox`);
+  }
+  // Texas ground in both boxes, as a share of the smaller box's Texas ground; the coast is a diagonal,
+  // so seams overlap a little, but one region must never frame most of another
+  const texas = aoAreaParse({ bufferMi: 0, polygon: EVENT.aoArea.polygon });
+  const inBox = (b, lat, lon) => lat >= b[0][0] && lat <= b[1][0] && lon >= b[0][1] && lon <= b[1][1];
+  const land = EVENT.aoPresets.map(() => []);
+  for (let i = 0; i <= 107; i++) {
+    for (let j = 0; j <= 132; j++) {
+      const lat = +(25.84 + i * 0.1).toFixed(2), lon = +(-106.66 + j * 0.1).toFixed(2);
+      if (!aoAreaContains(texas, lat, lon)) continue;
+      EVENT.aoPresets.forEach((p, k) => { if (inBox(p.bounds, lat, lon)) land[k].push(`${lat},${lon}`); });
+    }
+  }
+  for (let a = 0; a < land.length; a++) {
+    for (let b = a + 1; b < land.length; b++) {
+      const shared = land[a].filter((x) => land[b].includes(x)).length;
+      const share = shared / Math.min(land[a].length, land[b].length);
+      assert.ok(share <= 0.15, `${EVENT.aoPresets[a].id} and ${EVENT.aoPresets[b].id} share ${(share * 100).toFixed(1)}% of their ground`);
+    }
+  }
+});

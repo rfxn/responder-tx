@@ -53,6 +53,10 @@ TRIGGER_NAME_RE = re.compile(r"flood|tropical|surge|^hurricane (warning|watch)$"
 TRIGGER_SEVERITIES = ("Extreme", "Severe", "Moderate")  # watches and statements; a warning triggers at any severity
 OBS_FLOOD = ("minor", "moderate", "major")
 FCST_FLOOD = ("moderate", "major")
+# NWPS names every coastal water-level gauge "Tide Gauge ..." or "Tide Station ..."; a minor tide is
+# a routine high tide (its Coastal Flood Advisory is Minor), so tide gauges trigger at moderate+ only
+TIDE_NAME_RE = re.compile(r"\btide\b", re.I)
+TIDE_FLOOD = ("moderate", "major")
 
 
 def iso(dt):
@@ -225,11 +229,14 @@ def gauge_triggers(now):
         return [], [], f"stage envelope unavailable: {type(exc).__name__}: {exc}"
     obs, fcst = [], []
     for g in cap["gauges"]:
-        st = (clean(g) if isinstance(g, dict) else {}).get("status") or {}
+        if not isinstance(g, dict):
+            continue
+        st = clean(g).get("status") or {}
         lid = str(g.get("lid"))
-        if (st.get("observed") or {}).get("floodCategory") in OBS_FLOOD:
+        tide = bool(TIDE_NAME_RE.search(str(g.get("name") or "")))
+        if (st.get("observed") or {}).get("floodCategory") in (TIDE_FLOOD if tide else OBS_FLOOD):
             obs.append("gauge:" + lid)
-        elif (st.get("forecast") or {}).get("floodCategory") in FCST_FLOOD:
+        elif (st.get("forecast") or {}).get("floodCategory") in (TIDE_FLOOD if tide else FCST_FLOOD):
             fcst.append("gauge-forecast:" + lid)
     codes = []
     if obs:

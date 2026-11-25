@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 HERE = os.path.dirname(os.path.abspath(__file__))
 GEN = os.path.join(HERE, '..', 'scripts', 'gen-crest-summary.py')
 AOAREA = os.path.join(HERE, '..', 'scripts', 'aoarea.py')
+STAGEPLAUS = os.path.join(HERE, '..', 'scripts', 'stageplaus.py')
 with open(os.path.join(HERE, '..', 'data', 'event.json'), encoding='utf-8') as _f:
     SHIPPED_AO = json.load(_f)['aoArea']
 
@@ -88,6 +89,7 @@ def make_repo(tmp, name):
     os.makedirs(os.path.join(repo, 'scripts'))
     shutil.copy(GEN, os.path.join(repo, 'scripts', 'gen-crest-summary.py'))
     shutil.copy(AOAREA, os.path.join(repo, 'scripts', 'aoarea.py'))
+    shutil.copy(STAGEPLAUS, os.path.join(repo, 'scripts', 'stageplaus.py'))
     subprocess.run(('git', 'init', '-q', repo), check=True, capture_output=True)
     commit(repo, 0, 'first')
     commit(repo, 1, 'second')
@@ -102,6 +104,7 @@ def ao_repo(tmp, name, with_ao):
     os.makedirs(os.path.join(repo, 'scripts'))
     shutil.copy(GEN, os.path.join(repo, 'scripts', 'gen-crest-summary.py'))
     shutil.copy(AOAREA, os.path.join(repo, 'scripts', 'aoarea.py'))
+    shutil.copy(STAGEPLAUS, os.path.join(repo, 'scripts', 'stageplaus.py'))
     subprocess.run(('git', 'init', '-q', repo), check=True, capture_output=True)
     event = {'name': 'fixture', 'gaugeBbox': {'xmin': -106.65, 'ymin': 25.83, 'xmax': -93.4, 'ymax': 36.5}}
     if with_ao:
@@ -260,6 +263,7 @@ try:
     os.makedirs(os.path.join(srepo, 'scripts'))
     shutil.copy(GEN, os.path.join(srepo, 'scripts', 'gen-crest-summary.py'))
     shutil.copy(AOAREA, os.path.join(srepo, 'scripts', 'aoarea.py'))
+    shutil.copy(STAGEPLAUS, os.path.join(srepo, 'scripts', 'stageplaus.py'))
     subprocess.run(('git', 'init', '-q', srepo), check=True, capture_output=True)
     for n, rows in enumerate(STAGE_TIMELINE):
         stamp = iso(BASE + timedelta(minutes=20 * n))
@@ -333,18 +337,26 @@ finally:
 # here are 30 min apart, as those gauges report; SPRS reports hourly, the BWRT2 case that must stand.
 PLAUS_TIMELINE = [  # (lid, stage, category, validTime index)
     [('DATM', 6.38, 'no_flooding', 0), ('TIDE', 1.58, 'no_flooding', 0), ('SPIK', 5.05, 'no_flooding', 0),
-     ('REAL', 10.0, 'minor', 0), ('FLSH', 8.0, 'minor', 0), ('NREF', 9.0, 'minor', 0), ('SPRS', 2.0, 'no_flooding', 0)],
+     ('REAL', 10.0, 'minor', 0), ('FLSH', 8.0, 'minor', 0), ('NREF', 9.0, 'minor', 0), ('SPRS', 2.0, 'no_flooding', 0),
+     ('ALTN', 9.7, 'no_flooding', 0), ('FLSH2', 3.36, 'no_flooding', 0), ('SPKH', 16.28, 'no_flooding', 0)],
     [('DATM', 634, 'major', 1), ('TIDE', 9.89, 'major', 1), ('SPIK', 32.39, 'major', 1),
-     ('REAL', 18.0, 'moderate', 1), ('FLSH', 17.0, 'major', 1), ('NREF', 60.0, 'major', 1), ('SPRS', 2.0, 'no_flooding', 0)],
+     ('REAL', 18.0, 'moderate', 1), ('FLSH', 17.0, 'major', 1), ('NREF', 60.0, 'major', 1), ('SPRS', 2.0, 'no_flooding', 0),
+     ('ALTN', 40.62, 'major', 1), ('FLSH2', 7.15, 'minor', 1), ('SPKH', 16.3, 'no_flooding', 1)],
     [('DATM', 638, 'major', 2), ('TIDE', 9.89, 'major', 1), ('SPIK', 5.06, 'no_flooding', 2),
-     ('REAL', 27.5, 'major', 2), ('FLSH', 16.0, 'major', 2), ('NREF', 9.5, 'minor', 2), ('SPRS', 15.0, 'major', 2)],
+     ('REAL', 27.5, 'major', 2), ('FLSH', 16.0, 'major', 2), ('NREF', 9.5, 'minor', 2), ('SPRS', 15.0, 'major', 2),
+     ('ALTN', 9.68, 'no_flooding', 2), ('FLSH2', 17.35, 'major', 2), ('SPKH', 48.47, 'major', 2)],
     [('DATM', 6.4, 'no_flooding', 3), ('TIDE', 25.49, 'major', 3), ('SPIK', 5.04, 'no_flooding', 3),
-     ('REAL', 26.8, 'major', 3), ('FLSH', 9.0, 'minor', 3), ('NREF', 9.1, 'minor', 3), ('SPRS', 15.0, 'major', 2)],
+     ('REAL', 26.8, 'major', 3), ('FLSH', 9.0, 'minor', 3), ('NREF', 9.1, 'minor', 3), ('SPRS', 15.0, 'major', 2),
+     ('ALTN', 35.83, 'major', 3), ('FLSH2', 10.3, 'moderate', 3), ('SPKH', 16.53, 'no_flooding', 3)],
     [('DATM', 6.41, 'no_flooding', 4), ('TIDE', 1.17, 'no_flooding', 4), ('SPIK', 5.0, 'no_flooding', 4),
-     ('REAL', 20.0, 'moderate', 4), ('FLSH', 7.0, 'no_flooding', 4), ('NREF', 9.0, 'minor', 4), ('SPRS', 4.0, 'no_flooding', 4)],
+     ('REAL', 20.0, 'moderate', 4), ('FLSH', 7.0, 'no_flooding', 4), ('NREF', 9.0, 'minor', 4), ('SPRS', 4.0, 'no_flooding', 4),
+     ('ALTN', 42.08, 'major', 4), ('FLSH2', 9.45, 'moderate', 4), ('SPKH', 16.63, 'no_flooding', 4)],
+    [('ALTN', 42.08, 'major', 4)],  # NWPS repeats the last reading while the gauge is silent
+    [('ALTN', 9.7, 'no_flooding', 8)],  # ...until it reports again, as PRST2 did, back at 9.7 ft
 ]
-RECORDS = {'DATM': 36.5, 'TIDE': 5.04, 'SPIK': 21.1, 'REAL': 25.0, 'FLSH': 15.0, 'SPRS': 12.0}
-MAJORS = {'TIDE': 4.5, 'REAL': 22.0, 'FLSH': 14.0}
+RECORDS = {'DATM': 36.5, 'TIDE': 5.04, 'SPIK': 21.1, 'REAL': 25.0, 'FLSH': 15.0, 'SPRS': 12.0, 'ALTN': 28.21,
+           'FLSH2': 14.5, 'SPKH': 44.3}
+MAJORS = {'TIDE': 4.5, 'REAL': 22.0, 'FLSH': 14.0, 'ALTN': 22.9, 'FLSH2': 16.0}
 
 tmp_pl = tempfile.mkdtemp(prefix='gen-crest-summary-plausible.')
 try:
@@ -353,6 +365,7 @@ try:
     os.makedirs(os.path.join(prepo, 'scripts'))
     shutil.copy(GEN, os.path.join(prepo, 'scripts', 'gen-crest-summary.py'))
     shutil.copy(AOAREA, os.path.join(prepo, 'scripts', 'aoarea.py'))
+    shutil.copy(STAGEPLAUS, os.path.join(prepo, 'scripts', 'stageplaus.py'))
     subprocess.run(('git', 'init', '-q', prepo), check=True, capture_output=True)
     with open(os.path.join(prepo, 'data', 'records.json'), 'w', encoding='utf-8') as f:
         json.dump({'records': {k: {'record_ft': v, 'record_date': '1908-05-01'} for k, v in RECORDS.items()}}, f)
@@ -361,7 +374,9 @@ try:
     first = datetime(2026, 9, 30, 23, 0, 0, tzinfo=timezone.utc)
     for n, rows in enumerate(PLAUS_TIMELINE):
         stamp = iso(first + timedelta(minutes=30 * n))
-        caprows = [row(lid, v, c, iso(first + timedelta(minutes=(60 if lid == 'SPRS' else 30) * k))) for lid, v, c, k in rows]
+        caprows = [row(lid, v, c, iso(first + timedelta(minutes=(60 if lid in ('SPRS', 'FLSH2', 'SPKH') else 30) * k))) for lid, v, c, k in rows]
+        if n >= 5:  # only the silent gauge reports in the last two snapshots
+            caprows = [r for r in caprows if r['lid'] == 'ALTN']
         with open(os.path.join(prepo, 'data', 'event.json'), 'w', encoding='utf-8') as f:
             json.dump({'name': 'fixture', 'event': '', 'gaugeBbox': {'xmin': -98.0, 'ymin': 27.5, 'xmax': -93.4, 'ymax': 31.0}}, f)
         with open(os.path.join(prepo, 'data', 'gauges-capture.json'), 'w', encoding='utf-8') as f:
@@ -370,25 +385,33 @@ try:
         git(prepo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'p%d' % n)
     rp = run_gen(prepo)
     check('PLAUSIBLE · the run exits 0 and reports what it voided', rp.returncode == 0
-          and 'published as no reading: 4 snapshot readings at DATMx2 SPIKx1 TIDEx1' in rp.stdout, rp.stdout[-600:] + rp.stderr[-400:])
+          and 'published as no reading: 13 snapshot readings at ALTNx4 DATMx2 SPIKx1 SPKHx1 SPRSx2 TIDEx3' in rp.stdout, rp.stdout[-600:] + rp.stderr[-400:])
     doc = summary(prepo)
     peaks = {g['lid']: g for g in doc['gauges']}
     check('PLAUSIBLE · MUTATION a x100 datum shift (634, 638 ft on a 36.5 ft record) is no crest, however consistent',
           'DATM' not in peaks, str(peaks.get('DATM')))
-    # the 9.89 ft reading is followed by an hour of silence, so no neighbour rule can call it: reported, not hidden
-    check('PLAUSIBLE · MUTATION a tide gauge reading of 25.49 ft (5x its record and major stage) is no reading',
-          peaks.get('TIDE', {}).get('peak') == 9.89, str(peaks.get('TIDE')))
+    check('PLAUSIBLE · a tide gauge whose single readings jump 1.58 -> 9.89 -> 25.49 -> 1.17 ft is no crest',
+          'TIDE' not in peaks, str(peaks.get('TIDE')))
+    # 2026-10-26 PRST2 Rio Grande at Presidio: 9.7 / 40.62 / 9.68 / 35.83 / 42.08 (then repeated), NWPS's
+    # own observed series never above 20 ft; the summary published 42.08 ft major, record exceeded
+    check('PLAUSIBLE · MUTATION a series alternating 9.7 and 35-42 ft is no crest: no high reading is sustained',
+          'ALTN' not in peaks, str(peaks.get('ALTN')))
     check('PLAUSIBLE · a one-hour 5 -> 32 -> 5 ft spike claims no record', 'SPIK' not in peaks, str(peaks.get('SPIK')))
     real = peaks.get('REAL', {})
     check('PLAUSIBLE · a real record crest on a continuous hydrograph still publishes, record exceeded',
           real.get('peak') == 27.5 and real.get('record', {}).get('exceeded') is True, str(real))
     check('PLAUSIBLE · a flash rise that doubles in an hour keeps its record, its next reading confirms it',
           peaks.get('FLSH', {}).get('peak') == 17.0, str(peaks.get('FLSH')))
-    check('PLAUSIBLE · a lone record between readings an hour or more away is not judged: too sparse to call',
-          peaks.get('SPRS', {}).get('peak') == 15.0, str(peaks.get('SPRS')))
+    # 2026-08-23 BAMT2 Elm Creek at Ballinger, hourly: 3.36 / 7.15 / 17.35 / 10.3 / 9.45, a flash crest
+    check('PLAUSIBLE · an hourly flash crest whose recession holds above half of it keeps its record',
+          peaks.get('FLSH2', {}).get('peak') == 17.35 and peaks['FLSH2'].get('record', {}).get('exceeded') is True, str(peaks.get('FLSH2')))
+    # 2026-07-24 BWRT2, hourly: 16.28 / 48.47 / 16.53, while NWPS's own series read ~16.7 ft
+    check('PLAUSIBLE · an hourly spike that falls straight back is no crest', 'SPKH' not in peaks, str(peaks.get('SPKH')))
+    check('PLAUSIBLE · a lone record whose next reading, 2 h on, is under half of it is contradicted',
+          'SPRS' not in peaks, str(peaks.get('SPRS')))
     check('PLAUSIBLE · a gauge with no record or flood stage is not judged by a bound it does not have',
           peaks.get('NREF', {}).get('peak') == 60.0, str(peaks.get('NREF')))
-    check('PLAUSIBLE · the summary counts what it voided', doc.get('implausible_readings') == 4, str(doc.get('implausible_readings')))
+    check('PLAUSIBLE · the summary counts what it voided', doc.get('implausible_readings') == 13, str(doc.get('implausible_readings')))
     check('LABEL · with no configured event name, the label is the months the window spans',
           doc.get('event') == 'September to October 2026', str(doc.get('event')))
 except Bail as e:

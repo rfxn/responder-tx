@@ -57,7 +57,7 @@ function mapCtx() {
   const map = fakeMap([30.0, -95.5], 9);
   Object.assign(app.state, {
     map, layers: {}, pb: null, lsBulk: false, viewReady: true,
-    filters: {}, sort: 'smart', rainWindow: '1h', activeBase: 'streets', lsCamOpen: new Set(),
+    filters: {}, sort: 'smart', rainWindow: '1h', activeBase: 'streets',
   });
   // the sheet rows are the vocabulary; give every one of them a layer so layerRowOn is truthful
   for (const k of app.layerRowKeys()) app.state.layers[k] = fakeLayer(map);
@@ -94,8 +94,10 @@ function withAoPills(app, presets) {
 }
 
 const AO_PILLS = [
-  { id: 'houston', label: 'Houston', bounds: [[29.4, -95.8], [30.2, -94.9]] },
-  { id: 'hillcountry', label: 'Hill Country', bounds: [[29.6, -99.6], [30.6, -98.0]] },
+  { id: 'gulfcoast', aliases: ['houston', 'beaumont'], label: 'Gulf Coast', bounds: [[27.55, -97.5], [30.4, -93.5]],
+    anchors: [[29.76, -95.37]] },
+  { id: 'centraltx', aliases: ['austin'], label: 'Central Texas', bounds: [[29.8, -99.85], [32.0, -96.2]],
+    anchors: [[30.27, -97.74]] },
 ];
 
 test('the saved layer set is re-applied on the next load, on and off alike', () => {
@@ -180,7 +182,7 @@ test('a link overrides the kept framing and layer set; a plain load restores it'
     assert.equal(linkOwnsView(new URLSearchParams(q)), false,
       `${q} names one control or one record and must not cost the reader their kept view`);
   }
-  for (const q of ['?mlat=30.1&mlon=-95.4&mz=11', '?usgs=1', '?camreg=all', '?ao=houston', '?rain=1h']) {
+  for (const q of ['?mlat=30.1&mlon=-95.4&mz=11', '?usgs=1', '?camreg=all', '?ao=gulfcoast', '?rain=1h']) {
     assert.equal(linkOwnsView(new URLSearchParams(q)), true, `${q} is a shared framing and must win`);
   }
 
@@ -270,39 +272,73 @@ test('a layer toggle or a pan schedules a save, so the kept view cannot go stale
 
 test('the area chip is named by a stable id in storage and in a shared link', () => {
   const { app, sb, map } = mapCtx();
-  assert.equal(app.AO_FULL_ID, 'full', 'the Full AO pill carries a reserved, language-independent id');
+  assert.equal(app.AO_FULL_ID, 'full', 'the All Texas pill carries a reserved, language-independent id');
   const restore = withAoPills(app, AO_PILLS);
   try {
-    assert.equal(app.aoSelectById('hillcountry', false), true);
-    assert.equal(sb.aoPickedId(), 'hillcountry', 'the pick is named by id, not by its translated label');
+    assert.equal(app.aoSelectById('centraltx', false), true);
+    assert.equal(sb.aoPickedId(), 'centraltx', 'the pick is named by id, not by its translated label');
     assert.deepEqual(map._fits, [], 'a caller with framing of its own must not be re-fitted');
-    assert.equal(app.aoSelectById('hillcountry', true), true);
+    assert.equal(app.aoSelectById('centraltx', true), true);
     assert.deepEqual(map._fits, [AO_PILLS[1].bounds], 'a bare ?ao= has no framing to honour, so it fits');
 
     assert.equal(app.aoSelectById('a-region-since-dropped', false), false,
       'a region dropped from the event config must not throw on the way in');
-    assert.equal(sb.aoPickedId(), 'hillcountry', 'and must not clear the pick either');
+    assert.equal(sb.aoPickedId(), 'centraltx', 'and must not clear the pick either');
 
-    assert.equal(new URL(sb.buildShareUrl()).searchParams.get('ao'), 'hillcountry');
+    assert.equal(new URL(sb.buildShareUrl()).searchParams.get('ao'), 'centraltx');
     app.aoSelectById(app.AO_FULL_ID, false);
     assert.equal(new URL(sb.buildShareUrl()).searchParams.has('ao'), false,
-      'Full AO is the resting pick, so a default link stays short');
+      'All Texas is the resting pick, so a default link stays short');
 
-    app.applyShareParams(new URLSearchParams('?ao=houston'));
-    assert.equal(sb.aoPickedId(), 'houston', 'a shared link names the chip by the same id');
+    app.applyShareParams(new URLSearchParams('?ao=gulfcoast'));
+    assert.equal(sb.aoPickedId(), 'gulfcoast', 'a shared link names the chip by the same id');
   } finally { restore(); }
 });
 
-test('a reset returns the area chip to Full AO and re-frames on the full bounds', () => {
+test('a reset returns the area chip to All Texas and re-frames on the full bounds', () => {
   const { app, sb, map } = mapCtx();
   const restore = withAoPills(app, AO_PILLS);
   try {
-    app.aoSelectById('houston', false);
+    app.aoSelectById('gulfcoast', false);
     map._fits.length = 0;
     sb.layerSheetReset();
-    assert.equal(sb.aoPickedId(), app.AO_FULL_ID, 'reset must return the area chip to Full AO');
+    assert.equal(sb.aoPickedId(), app.AO_FULL_ID, 'reset must return the area chip to All Texas');
     assert.deepEqual(map._fits, [app.aoFullBounds()],
-      'a reset that left a sub-AO framing would be undone by the kept view on the next load');
+      'a reset that left a region framing would be undone by the kept view on the next load');
+  } finally { restore(); }
+});
+
+/* The region set went from twelve to seven. Saved views, shared links and stored layer sets still
+   name the twelve, and each must land on the region that absorbed it rather than on nothing. */
+test('a share link naming a retired region opens the region that absorbed it', () => {
+  const { app, sb, map } = mapCtx();
+  const restore = withAoPills(app, AO_PILLS);
+  try {
+    app.applyShareParams(new URLSearchParams('?ao=houston'));
+    assert.equal(sb.aoPickedId(), 'gulfcoast');
+    assert.deepEqual(map._fits, [AO_PILLS[0].bounds], 'a bare ?ao= still fits the region it names');
+    app.applyShareParams(new URLSearchParams('?ao=beaumont&mlat=30.1&mlon=-94.1&mz=10'));
+    assert.equal(sb.aoPickedId(), 'gulfcoast');
+    assert.equal(map._fits.length, 1, 'a framed link keeps its own framing');
+  } finally { restore(); }
+});
+
+test('a saved view naming a retired region restores the region and its camera layer', () => {
+  const { app, sb, map, state } = mapCtx();
+  const restore = withAoPills(app, AO_PILLS);
+  try {
+    sb.location.search = '';
+    app.initCamRegionRows(); // the camera rows are built from the region config, as initMap() does
+    for (const k of app.layerRowKeys()) if (!state.layers[k]) state.layers[k] = fakeLayer(map);
+    const known = app.layerRowKeys().filter((k) => !k.startsWith('camsR_'))
+      .concat(['camsR_houston', 'camsR_beaumont', 'camsR_austin', 'camsR_nm']);
+    map.addLayer(state.layers.camsR_centraltx); // on now, and the old view had Austin off
+    sb.restoreViewFraming({ ao: 'austin', mlat: 30.3, mlon: -97.7, mz: 10, ly: ['gauges', 'camsR_houston'], lyk: known });
+    assert.equal(sb.aoPickedId(), 'centraltx', 'the stored pick resolves to the region that absorbed it');
+    assert.equal(app.layerRowOn('camsR_gulfcoast'), true, 'a stored Houston camera layer reopens as Gulf Coast');
+    assert.equal(app.layerRowOn('camsR_centraltx'), false, 'and a stored Austin off is still an off');
+    assert.equal(app.layerKeyNow('camsR_nm'), 'camsR_other', 'a state bucket key reads as Neighboring states');
+    assert.equal(app.layerKeyNow('gauges'), 'gauges');
   } finally { restore(); }
 });
 

@@ -184,7 +184,7 @@ const EXPORTS = [
   'resolveAoPresets', 'aoFullBounds', 'applyEventConfig', 'chipHealth',
   'aoAreaParse', 'aoAreaContains', 'aoContains', 'aoGauges',
   'camRegions', 'camRegionsAll', 'camRegionId', 'camRegionKey', 'CAM_REGION_OTHER', 'CAM_REGION_MAX_MI', 'CAM_REGION_ALL', 'regionLabel',
-  'CAM_STATE_REGIONS', 'camOutsideId', 'inCamBbox',
+  'regionIdNow',
   'camIsLive', 'CAM_NETS', 'CAM_STALE_MINS',
   'pushCardState', 'pushCardVisible', 'pushFollowPending', 'pushPendingHtml', 'pushFreshState', 'pushNormalizePrefs', 'pushKeysMatch', 'pushBootPlan', 'pushNearbyGauges', 'pushFixKey',
   'pushNormalizePlaces', 'pushScopeState', 'pushDelivers', 'pushPlacesHtml', 'pushRadiusLabel', 'pushPlaceLabel', 'PUSH_PLACE_KM', 'PUSH_MAX_PLACES',
@@ -219,8 +219,8 @@ const PANEL_EXPORTS = ['quietState', 'feedCalmOk', 'quietGauges', 'xstatusAutoOn
 
 // map.js + playback.js add the playback frame-selection / archive-stamp math (pure, state-driven)
 const MAP_EXPORTS = EXPORTS.concat(['VIEW_ROWS',
-  'CAM_LEGACY_PARAMS', 'CAM_ROWS', 'CAM_SUBGROUPS', 'CAM_PILL_MAX',
-  'initCamRegionRows', 'camTriState', 'camParentRows', 'camParentOn', 'camRegionHasCams',
+  'CAM_LEGACY_PARAMS', 'CAM_ROWS', 'CAM_PILL_MAX',
+  'initCamRegionRows', 'camTriState', 'camParentRows', 'camParentOn', 'camRegionHasCams', 'camRowsHtml', 'layerKeyNow', 'pillLabel', 'linkCamRegionIds',
   'layerRowKeys', 'layerRowOn', 'collectLayerState', 'applyLayerState', 'aoPickedId', 'aoSelectById',
   'offlineResultText', 'offlineSaveClean', 'offlineDepth', 'OFFLINE_DEPTHS', 'OFFLINE_DEPTH_DEFAULT',
   'pbLiveHideAll', 'pbFrameAt', 'pbFirstIdx', 'pbRadarStampAt', 'pbMrmsStampAt', 'pbBlocksLive', 'pbGaugeNoteKey', 'PB_LIVE_HIDE', 'iemRadarFrames', 'wxFcstDegraded', 'wxObsUnverified',
@@ -488,7 +488,7 @@ function loadHeaderStatus() {
   sandbox.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
   sandbox.clearTimeout = () => {};
   sandbox.__timers = timers;
-  const files = ['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'board.js', 'boot.js'];
+  const files = ['core.js', 'usng.js', 'map.js', 'playback.js', 'sources.js', 'cameras.js', 'panels.js', 'board.js', 'boot.js'];
   const exports = ['state', 'setFeedNote', 'setFeedNoteHealthy', 'refreshNoteTitle', 'opNotice', 'compassNotice', 'REFRESH_SOURCE_KEYS'];
   const epilogue = `\n;globalThis.__HDR = { ${exports.join(', ')} };\n`;
   vm.runInContext(files.map(read).join('\n;\n') + epilogue, vm.createContext(sandbox), { filename: 'header-status.js' });

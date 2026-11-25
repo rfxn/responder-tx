@@ -1551,13 +1551,62 @@ function syncHazlineAnchor() {
   document.documentElement.style.setProperty('--hazline-bottom', `${Math.round(anchor.getBoundingClientRect().bottom)}px`);
 }
 
+// the line's calm claim names only classes hazardGlance admits; see INTERNAL-NOTES.md "Calm hazard line"
+const TICKER_HORIZON_LEVELS = ['high', 'elevated'];
+const tickerClock = (ms) => new Date(ms).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' });
+
+// calm needs an answer this round and under two rounds old: a hung fetch never reports itself failed
+function tickerAlertsVerdict(now) {
+  const limit = 2 * CONFIG.refreshMs;
+  const at = state.sourceHealth.alerts;
+  if (!state.alertsLoadedOnce || !Number.isFinite(at)) {
+    const gaveUp = Boolean(state.refreshAt) || (state.bootAt > 0 && now - state.bootAt > limit);
+    return { kind: gaveUp ? 'unchecked' : 'checking', at: null, until: !gaveUp && state.bootAt > 0 ? state.bootAt + limit : null };
+  }
+  const fresh = !state.sourceFailed.alerts && now - at <= limit;
+  return { kind: fresh ? 'calm' : 'unchecked', at, until: fresh ? at + limit : null };
+}
+
+function tickerCalm(now) {
+  const v = tickerAlertsVerdict(now);
+  let text = v.kind === 'calm' ? t('ticker.calm').replace('{t}', tickerClock(v.at))
+    : v.kind === 'checking' ? t('ticker.checking')
+      : v.at ? t('ticker.unchecked.since').replace('{t}', tickerClock(v.at)) : t('ticker.unchecked');
+  const m = pbBlocksLive(state) ? null : outlookModel(state.outlook, now); // the card is hidden during playback
+  const next = m && m.items.find((it) => TICKER_HORIZON_LEVELS.includes(it.level));
+  if (!next) return { text, act: null, until: v.until };
+  text += ` · ${t('ticker.next').replace('{title}', next.title).replace('{h}', t('hzn.title'))}`;
+  return { text, act: () => revealInList('tab-requests', `#feed-outlook [data-hzn="${CSS.escape(next.id)}"]`), until: v.until };
+}
+
+// one static muted line in place of the reel, at the reel's own height, so the map does not move
+function renderTickerCalm(el) {
+  const calm = tickerCalm(Date.now());
+  state.tickerActs = calm.act ? [calm.act] : [];
+  clearTimeout(state.tickerCalmTimer);
+  state.tickerCalmTimer = calm.until ? setTimeout(renderTicker, Math.max(0, calm.until - Date.now()) + 1000) : null;
+  const txt = `<span class="tc-txt">${esc(calm.text)}</span>`;
+  const html = calm.act
+    ? `<button type="button" class="ticker-item ticker-calm" data-ti="0">${txt}</button>`
+    : `<span class="ticker-item ticker-calm">${txt}</span>`;
+  el.hidden = false;
+  el.classList.add('calm');
+  if (html !== state.tickerHash) {
+    state.tickerHash = html;
+    $('#ticker-track').innerHTML = html;
+    $('#ticker-rest').innerHTML = '';
+  }
+  syncHazlineAnchor();
+}
+
 function renderTicker() {
   const el = $('#ticker');
   if (!el) return;
   const items = tickerItems();
+  if (!items.length) { renderTickerCalm(el); return; }
   state.tickerActs = items.map((i) => i.act);
-  if (!items.length) { el.hidden = true; state.tickerHash = ''; syncHazlineAnchor(); return; }
   el.hidden = false;
+  el.classList.remove('calm');
   // the reel carries the whole ranked set, worst first, so the loop opens on the worst item
   const reel = `<div class="ticker-marquee"><div class="ticker-reel" style="animation-duration:${tickerSecs(items.length)}s">` +
     `<div class="ticker-run">${tickerRunHtml(items, false)}</div>` +

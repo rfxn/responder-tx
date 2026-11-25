@@ -1,89 +1,89 @@
 {
-  "generated": "2026-11-25T00:41:44Z",
-  "validUntil": "2026-11-25T04:41:44Z",
+  "generated": "2026-11-25T05:11:44Z",
+  "validUntil": "2026-11-25T09:11:44Z",
   "author": "steward",
   "headline": {
-    "en": "A cold week for Texas with a hard freeze Wednesday from the Rolling Plains to the western Hill Country, and low fire danger in East Texas.",
-    "es": "Una semana fría en Texas con una helada fuerte el miércoles desde las Rolling Plains hasta el oeste del Hill Country, y bajo peligro de incendios en el este de Texas."
+    "en": "A cold start to the week with a hard freeze Wednesday in the Rolling Plains and Western Hill Country, then warming, with low fire potential in East Texas.",
+    "es": "Inicio de semana frío con helada fuerte el miércoles en las Planicies Rolling y el oeste del Hill Country, luego más calor y bajo potencial de incendios en el este de Texas."
   },
   "items": [
-    {
-      "id": "cpc-6-14-rain",
-      "kind": "rain",
-      "level": "low",
-      "title": {
-        "en": "Rain odds shift from drier to wetter in early December",
-        "es": "Las probabilidades de lluvia pasan de más secas a más húmedas a inicios de diciembre"
-      },
-      "body": {
-        "en": "Odds favor below to near normal rain over much of Texas Nov 30 to Dec 4, then above normal rain for Texas Dec 2 to 8. This is a tilt in the odds, not a forecast of any one storm.",
-        "es": "Las probabilidades favorecen lluvia de menor a normal en gran parte de Texas del 30 de nov. al 4 de dic., y luego más lluvia de lo normal del 2 al 8 de dic. Es una tendencia, no un pronóstico de una tormenta."
-      },
-      "window": {
-        "start": "2026-11-30T06:00:00Z",
-        "end": "2026-12-09T06:00:00Z"
-      },
-      "source": {
-        "name": "NWS Climate Prediction Center",
-        "url": "https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html"
-      },
-      "issued": "2026-11-24T20:00:00Z"
-    },
     {
       "id": "spc-d1",
       "kind": "severe",
       "level": "none",
       "title": {
-        "en": "No severe storms forecast through tonight",
-        "es": "No se pronostican tormentas severas hasta esta noche"
+        "en": "No severe storms forecast tonight",
+        "es": "Sin tormentas severas en el pronóstico esta noche"
       },
       "body": {
-        "en": "The Storm Prediction Center does not forecast severe thunderstorms anywhere in the country, including Texas, through early Wednesday morning.",
-        "es": "El Centro de Predicción de Tormentas no pronostica tormentas eléctricas severas en ninguna parte del país, incluido Texas, hasta la madrugada del miércoles."
+        "en": "The Storm Prediction Center does not forecast severe thunderstorms anywhere in the contiguous U.S. through tonight, which includes Texas.",
+        "es": "El Centro de Predicción de Tormentas no pronostica tormentas eléctricas severas en ninguna parte de los EE. UU. contiguos hasta esta noche, lo que incluye Texas."
       },
       "window": {
-        "start": "2026-11-24T20:00:00Z",
+        "start": "2026-11-25T01:00:00Z",
         "end": "2026-11-25T12:00:00Z"
       },
       "source": {
         "name": "NWS Storm Prediction Center",
         "url": "https://www.spc.noaa.gov/products/outlook/day1otlk.html"
       },
-      "issued": "2026-11-24T19:48:00Z"
+      "issued": "2026-11-25T00:57:00Z"
     },
     {
       "id": "nhc-atlantic",
       "kind": "tropical",
       "level": "none",
       "title": {
-        "en": "No tropical formation expected in the Gulf",
-        "es": "No se espera formación tropical en el Golfo"
+        "en": "No Atlantic or Gulf tropical formation expected",
+        "es": "No se espera formación tropical en el Atlántico ni el Golfo"
       },
       "body": {
-        "en": "The Hurricane Center does not expect a tropical cyclone to form in the Atlantic, Caribbean Sea or Gulf over the next 7 days.",
-        "es": "El Centro Nacional de Huracanes no espera que se forme un ciclón tropical en el Atlántico, el Caribe o el Golfo en los próximos 7 días."
+        "en": "The Hurricane Center says tropical cyclone formation is not expected in the Atlantic, Caribbean Sea or Gulf during the next 7 days.",
+        "es": "El Centro Nacional de Huracanes indica que no se espera la formación de ciclones tropicales en el Atlántico, el Caribe ni el Golfo durante los próximos 7 días."
       },
       "window": {
-        "start": "2026-11-25T00:00:00Z",
-        "end": "2026-12-02T00:00:00Z"
+        "start": "2026-11-25T06:00:00Z",
+        "end": "2026-12-02T06:00:00Z"
       },
       "source": {
         "name": "NWS National Hurricane Center",
         "url": "https://www.nhc.noaa.gov/text/MIATWOAT.shtml"
       },
-      "issued": "2026-11-25T00:00:00Z"
+      "issued": "2026-11-25T06:00:00Z"
     },
     {
-      "id": "tfs-fire",
+      "id": "tfs-fire-freeze",
+      "kind": "temperature",
+      "level": "low",
+      "title": {
+        "en": "Hard freeze Wednesday in the Rolling Plains and Western Hill Country",
+        "es": "Helada fuerte el miércoles en las Planicies Rolling y el oeste del Hill Country"
+      },
+      "body": {
+        "en": "Another hard freeze, below 28 degrees F, is forecast for Wednesday, Nov. 25. Highs stay below normal through Wednesday, then warm gradually into the weekend.",
+        "es": "Se pronostica otra helada fuerte, bajo 28 grados F, para el miércoles 25 de noviembre. Las máximas siguen bajo lo normal hasta el miércoles y luego suben poco a poco hacia el fin de semana."
+      },
+      "window": {
+        "start": "2026-11-25T06:00:00Z",
+        "end": "2026-11-26T06:00:00Z"
+      },
+      "source": {
+        "name": "Texas A&M Forest Service",
+        "url": "https://ticc.tamu.edu/Documents/PredictiveServices/Outlooks/texas_fire_potential_update.pdf"
+      },
+      "issued": "2026-11-23T19:25:31Z"
+    },
+    {
+      "id": "tfs-fire-east",
       "kind": "fire",
       "level": "low",
       "title": {
-        "en": "Low fire potential in East Texas",
-        "es": "Bajo potencial de incendios en el este de Texas"
+        "en": "Low fire potential in East Texas through Thanksgiving weekend",
+        "es": "Bajo potencial de incendios en el este de Texas durante el fin de semana de Acción de Gracias"
       },
       "body": {
-        "en": "Fire potential stays low in East Texas through Nov 30, with dry air in Northeast Texas and light north winds. Elsewhere it stays limited. Fires should stay small and easy to control.",
-        "es": "El potencial de incendios sigue bajo en el este de Texas hasta el 30 de nov., con aire seco en el noreste y vientos ligeros del norte. En el resto del estado sigue limitado. Los incendios deben ser pequeños y fáciles de controlar."
+        "en": "Dry spots in Northeast and East Texas support low fire potential, with humidity near 25 to 30 percent late in the week. Fires should stay small and easy to control. Elsewhere fire potential is limited.",
+        "es": "Zonas secas del noreste y este de Texas mantienen bajo potencial de incendios, con humedad cerca de 25 a 30 por ciento al final de la semana. Los incendios deben seguir pequeños y fáciles de controlar. En el resto del estado es limitado."
       },
       "window": {
         "start": "2026-11-23T06:00:00Z",
@@ -96,26 +96,48 @@
       "issued": "2026-11-23T19:25:31Z"
     },
     {
-      "id": "tfs-freeze",
+      "id": "spc-fire-d2",
+      "kind": "fire",
+      "level": "low",
+      "title": {
+        "en": "Gusty, drier air in East Texas Thursday",
+        "es": "Aire más seco y ventoso en el este de Texas el jueves"
+      },
+      "body": {
+        "en": "No critical fire areas are forecast. Northwest winds of 10 to 15 mph and humidity of 25 to 30 percent may bring a local fire threat where fuels are dry. Recent rain keeps broader concerns low.",
+        "es": "No se pronostican áreas críticas de incendio. Vientos del noroeste de 10 a 15 mph y humedad de 25 a 30 por ciento podrían causar riesgo local donde el combustible esté seco. La lluvia reciente mantiene bajas las preocupaciones generales."
+      },
+      "window": {
+        "start": "2026-11-26T12:00:00Z",
+        "end": "2026-11-27T12:00:00Z"
+      },
+      "source": {
+        "name": "NWS Storm Prediction Center",
+        "url": "https://www.spc.noaa.gov/products/fire_wx/fwdy2.html"
+      },
+      "issued": "2026-11-25T05:00:00Z"
+    },
+    {
+      "id": "cpc-6-14-texas",
       "kind": "temperature",
       "level": "low",
       "title": {
-        "en": "Hard freeze Wednesday in the Rolling Plains and western Hill Country",
-        "es": "Helada fuerte el miércoles en las Rolling Plains y el oeste del Hill Country"
+        "en": "Odds favor warmer than normal into early December",
+        "es": "Las probabilidades favorecen más calor de lo normal a inicios de diciembre"
       },
       "body": {
-        "en": "A hard freeze, below 28 degrees, is forecast Wednesday, Nov 25, after one on the High Plains Monday. Freeze-cured grasses should become more widespread across Texas by early next week.",
-        "es": "Se pronostica una helada fuerte, bajo 28 grados, el miércoles 25 de nov., después de una el lunes en las High Plains. Los pastos secados por la helada serán más comunes en Texas a inicios de la próxima semana."
+        "en": "For Nov. 30 to Dec. 8, odds favor above normal temperatures across Texas. Rain odds lean wet in North Texas, near or below normal in South and West Texas early, then lean wet statewide Dec. 2 to 8.",
+        "es": "Del 30 de nov. al 8 de dic., las probabilidades favorecen temperaturas sobre lo normal en Texas. La lluvia tiende a ser mayor en el norte, normal o menor en el sur y oeste al inicio, y mayor en todo el estado del 2 al 8 de dic."
       },
       "window": {
-        "start": "2026-11-25T06:00:00Z",
-        "end": "2026-11-26T06:00:00Z"
+        "start": "2026-11-30T06:00:00Z",
+        "end": "2026-12-09T06:00:00Z"
       },
       "source": {
-        "name": "Texas A&M Forest Service",
-        "url": "https://ticc.tamu.edu/Documents/PredictiveServices/Outlooks/texas_fire_potential_update.pdf"
+        "name": "NWS Climate Prediction Center",
+        "url": "https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html"
       },
-      "issued": "2026-11-23T19:25:31Z"
+      "issued": "2026-11-24T20:00:00Z"
     }
   ]
 }

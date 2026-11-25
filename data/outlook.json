@@ -1,10 +1,10 @@
 {
-  "generated": "2026-11-24T23:11:44Z",
-  "validUntil": "2026-11-25T03:11:44Z",
+  "generated": "2026-11-25T00:41:44Z",
+  "validUntil": "2026-11-25T04:41:44Z",
   "author": "steward",
   "headline": {
-    "en": "A cold week for Texas with a hard freeze Wednesday in the Rolling Plains and Western Hill Country, then warmer, with low fire potential in East Texas.",
-    "es": "Una semana fría en Texas con helada fuerte el miércoles en las Rolling Plains y el oeste del Hill Country, luego más cálido, con bajo potencial de incendios en el este de Texas."
+    "en": "A cold week for Texas with a hard freeze Wednesday from the Rolling Plains to the western Hill Country, and low fire danger in East Texas.",
+    "es": "Una semana fría en Texas con una helada fuerte el miércoles desde las Rolling Plains hasta el oeste del Hill Country, y bajo peligro de incendios en el este de Texas."
   },
   "items": [
     {
@@ -12,12 +12,12 @@
       "kind": "rain",
       "level": "low",
       "title": {
-        "en": "Rain odds: drier early, wetter later",
-        "es": "Probabilidad de lluvia: más seco al inicio, más húmedo después"
+        "en": "Rain odds shift from drier to wetter in early December",
+        "es": "Las probabilidades de lluvia pasan de más secas a más húmedas a inicios de diciembre"
       },
       "body": {
-        "en": "Odds favor near to below normal rain over much of Texas from Nov 30 to Dec 4. For Dec 2 to 8, odds favor wetter than normal conditions across Texas. This is a tilt in the odds, not a forecast of a storm.",
-        "es": "Las probabilidades favorecen lluvia normal o por debajo de lo normal en gran parte de Texas del 30 de nov. al 4 de dic. Del 2 al 8 de dic., favorecen más lluvia de lo normal en Texas. Es una inclinación de probabilidades, no un pronóstico de tormenta."
+        "en": "Odds favor below to near normal rain over much of Texas Nov 30 to Dec 4, then above normal rain for Texas Dec 2 to 8. This is a tilt in the odds, not a forecast of any one storm.",
+        "es": "Las probabilidades favorecen lluvia de menor a normal en gran parte de Texas del 30 de nov. al 4 de dic., y luego más lluvia de lo normal del 2 al 8 de dic. Es una tendencia, no un pronóstico de una tormenta."
       },
       "window": {
         "start": "2026-11-30T06:00:00Z",
@@ -34,12 +34,12 @@
       "kind": "severe",
       "level": "none",
       "title": {
-        "en": "No severe storms forecast tonight",
-        "es": "No se pronostican tormentas severas esta noche"
+        "en": "No severe storms forecast through tonight",
+        "es": "No se pronostican tormentas severas hasta esta noche"
       },
       "body": {
-        "en": "The Storm Prediction Center forecasts no severe thunderstorm areas across the contiguous United States, including Texas, from this afternoon through early Wednesday morning.",
-        "es": "El Storm Prediction Center no pronostica áreas de tormentas severas en los Estados Unidos contiguos, incluido Texas, desde esta tarde hasta temprano el miércoles por la mañana."
+        "en": "The Storm Prediction Center does not forecast severe thunderstorms anywhere in the country, including Texas, through early Wednesday morning.",
+        "es": "El Centro de Predicción de Tormentas no pronostica tormentas eléctricas severas en ninguna parte del país, incluido Texas, hasta la madrugada del miércoles."
       },
       "window": {
         "start": "2026-11-24T20:00:00Z",
@@ -52,7 +52,29 @@
       "issued": "2026-11-24T19:48:00Z"
     },
     {
-      "id": "tfs-fire-east",
+      "id": "nhc-atlantic",
+      "kind": "tropical",
+      "level": "none",
+      "title": {
+        "en": "No tropical formation expected in the Gulf",
+        "es": "No se espera formación tropical en el Golfo"
+      },
+      "body": {
+        "en": "The Hurricane Center does not expect a tropical cyclone to form in the Atlantic, Caribbean Sea or Gulf over the next 7 days.",
+        "es": "El Centro Nacional de Huracanes no espera que se forme un ciclón tropical en el Atlántico, el Caribe o el Golfo en los próximos 7 días."
+      },
+      "window": {
+        "start": "2026-11-25T00:00:00Z",
+        "end": "2026-12-02T00:00:00Z"
+      },
+      "source": {
+        "name": "NWS National Hurricane Center",
+        "url": "https://www.nhc.noaa.gov/text/MIATWOAT.shtml"
+      },
+      "issued": "2026-11-25T00:00:00Z"
+    },
+    {
+      "id": "tfs-fire",
       "kind": "fire",
       "level": "low",
       "title": {
@@ -60,8 +82,8 @@
         "es": "Bajo potencial de incendios en el este de Texas"
       },
       "body": {
-        "en": "Dry ground and low humidity keep fire potential low in East Texas, with Northeast Texas humidity near 25 to 30 percent late in the week. Fires should stay small and easy to control. Elsewhere in Texas fire potential is limited.",
-        "es": "El suelo seco y la baja humedad mantienen bajo el potencial de incendios en el este de Texas, con humedad de 25 a 30 por ciento en el noreste al final de la semana. Los incendios deben seguir pequeños y fáciles de controlar. En el resto de Texas es limitado."
+        "en": "Fire potential stays low in East Texas through Nov 30, with dry air in Northeast Texas and light north winds. Elsewhere it stays limited. Fires should stay small and easy to control.",
+        "es": "El potencial de incendios sigue bajo en el este de Texas hasta el 30 de nov., con aire seco en el noreste y vientos ligeros del norte. En el resto del estado sigue limitado. Los incendios deben ser pequeños y fáciles de controlar."
       },
       "window": {
         "start": "2026-11-23T06:00:00Z",
@@ -74,16 +96,16 @@
       "issued": "2026-11-23T19:25:31Z"
     },
     {
-      "id": "tfs-fire-freeze",
+      "id": "tfs-freeze",
       "kind": "temperature",
       "level": "low",
       "title": {
-        "en": "Hard freeze Wednesday in the Rolling Plains and Western Hill Country",
+        "en": "Hard freeze Wednesday in the Rolling Plains and western Hill Country",
         "es": "Helada fuerte el miércoles en las Rolling Plains y el oeste del Hill Country"
       },
       "body": {
-        "en": "Another hard freeze, below 28 degrees, is forecast for Wednesday, Nov 25, reaching the Rolling Plains and Western Hill Country. Freeze-cured grasses should become more widespread across Texas by early next week.",
-        "es": "Se pronostica otra helada fuerte, bajo 28 grados, para el miércoles 25 de nov., que llegaría a las Rolling Plains y al oeste del Hill Country. Los pastos secados por la helada serían más comunes en Texas a inicios de la próxima semana."
+        "en": "A hard freeze, below 28 degrees, is forecast Wednesday, Nov 25, after one on the High Plains Monday. Freeze-cured grasses should become more widespread across Texas by early next week.",
+        "es": "Se pronostica una helada fuerte, bajo 28 grados, el miércoles 25 de nov., después de una el lunes en las High Plains. Los pastos secados por la helada serán más comunes en Texas a inicios de la próxima semana."
       },
       "window": {
         "start": "2026-11-25T06:00:00Z",
@@ -94,28 +116,6 @@
         "url": "https://ticc.tamu.edu/Documents/PredictiveServices/Outlooks/texas_fire_potential_update.pdf"
       },
       "issued": "2026-11-23T19:25:31Z"
-    },
-    {
-      "id": "cpc-6-14-temp",
-      "kind": "temperature",
-      "level": "low",
-      "title": {
-        "en": "Warmer than normal odds into early December",
-        "es": "Probabilidad de temperaturas sobre lo normal a inicios de diciembre"
-      },
-      "body": {
-        "en": "Odds favor above normal temperatures across Texas from Nov 30 to Dec 4 and again from Dec 2 to 8. Forecast confidence is above average.",
-        "es": "Las probabilidades favorecen temperaturas sobre lo normal en Texas del 30 de nov. al 4 de dic. y otra vez del 2 al 8 de dic. La confianza del pronóstico es superior al promedio."
-      },
-      "window": {
-        "start": "2026-11-30T06:00:00Z",
-        "end": "2026-12-09T06:00:00Z"
-      },
-      "source": {
-        "name": "NWS Climate Prediction Center",
-        "url": "https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html"
-      },
-      "issued": "2026-11-24T20:00:00Z"
     }
   ]
 }

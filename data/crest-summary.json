@@ -1,12 +1,31 @@
 {
- "generated": "2026-11-26T12:10:40Z",
+ "generated": "2026-11-26T13:55:42Z",
  "event": "July to November 2026",
  "window": {
   "first": "2026-07-05T00:00:00Z",
-  "last": "2026-11-26T12:08:00Z"
+  "last": "2026-11-26T13:53:00Z"
  },
  "source": "NOAA NWS/NWPS observed stages via committed gauges-snapshot.json archive; pre-archive window reconstructed from USGS/NWPS observed via the chunked playback archive under history/",
  "gauges": [
+  {
+   "lid": "ELMT2",
+   "name": "San Antonio River at Elmendorf",
+   "peak": 66.87,
+   "peak_time": "2026-11-26T13:53:00Z",
+   "peak_category": "major",
+   "unit": "ft",
+   "first_in_flood": "2026-11-26T13:53:00Z",
+   "last_in_flood": "ongoing",
+   "ongoing": true,
+   "record": {
+    "record_ft": 64.2,
+    "record_date": "1998-10-18",
+    "peak_pct": 104.2,
+    "exceeded": true,
+    "approached": false
+   },
+   "stale": false
+  },
   {
    "lid": "JYKT2",
    "name": "Pine Island Bayou near Batson",
@@ -1676,7 +1695,7 @@
    "stale": false
   }
  ],
- "retained_gauges": 107,
+ "retained_gauges": 108,
  "skipped_commits": 0,
  "implausible_readings": 559,
  "backfill": {

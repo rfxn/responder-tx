@@ -1,15 +1,9 @@
 {
- "generated": "2026-11-26T18:56:52Z",
- "mode": "adverse",
- "intervalMin": 60,
- "since": "2026-11-26T13:53:08Z",
- "nextDueBy": "2026-11-26T19:53:00Z",
- "reasons": [
-  "Alerts active in the last 6 hours"
- ],
- "reasonCodes": [
-  {
-   "code": "recent"
-  }
- ]
+ "generated": "2026-11-26T19:56:07Z",
+ "mode": "quiet",
+ "intervalMin": 720,
+ "since": "2026-11-26T19:53:10Z",
+ "nextDueBy": "2026-11-27T07:53:00Z",
+ "reasons": [],
+ "reasonCodes": []
 }

@@ -1,10 +1,10 @@
 {
-  "generated": "2026-11-25T15:11:49Z",
-  "validUntil": "2026-11-26T06:11:49Z",
+  "generated": "2026-11-26T03:11:42Z",
+  "validUntil": "2026-11-26T18:11:42Z",
   "author": "steward",
   "headline": {
-    "en": "Freeze warnings and watches for parts of Texas Wednesday, and the odds favor a warmer than normal start to December.",
-    "es": "Hay avisos y vigilancias de helada en partes de Texas el miércoles, y lo más probable es un inicio de diciembre más cálido de lo normal."
+    "en": "A calm stretch for Texas: low fire potential in East Texas through the holiday weekend, and odds favor warmer than normal weather into early December.",
+    "es": "Un periodo tranquilo para Texas: poco potencial de incendios en el este de Texas durante el fin de semana festivo, y lo más probable es un clima más cálido de lo normal hasta principios de diciembre."
   },
   "items": [
     {
@@ -12,22 +12,22 @@
       "kind": "rain",
       "level": "low",
       "title": {
-        "en": "Rain odds mixed for early December",
-        "es": "Probabilidades de lluvia mixtas a inicios de diciembre"
+        "en": "Wetter odds in Texas for early to mid December",
+        "es": "Más probabilidad de lluvia en Texas a inicios y mediados de diciembre"
       },
       "body": {
-        "en": "Nov 30 to Dec 4: odds favor below to near normal rain over a large part of Texas. Dec 2 to 8: odds lean toward more rain than normal across the state. This is a tilt in the odds, not a forecast of heavy rain.",
-        "es": "Del 30 de nov. al 4 de dic.: lo más probable es lluvia de menor a normal en gran parte de Texas. Del 2 al 8 de dic.: hay más probabilidad de lluvia sobre lo normal en el estado. Es una inclinación de probabilidades, no un pronóstico de lluvia fuerte."
+        "en": "Dec 3 to 9: odds favor more rain than normal across Texas. Dec 1 to 5: near normal rain, with a slight lean toward drier in the central and lower Rio Grande Valley. This is a tilt in the odds, not a forecast.",
+        "es": "Del 3 al 9 de dic: lo más probable es más lluvia de lo normal en Texas. Del 1 al 5 de dic: lluvia cercana a lo normal, con ligera tendencia a más seco en el centro y bajo Valle del Río Grande. Es una tendencia, no un pronóstico."
       },
       "window": {
-        "start": "2026-11-30T06:00:00Z",
-        "end": "2026-12-09T06:00:00Z"
+        "start": "2026-12-01T06:00:00Z",
+        "end": "2026-12-10T06:00:00Z"
       },
       "source": {
         "name": "NWS Climate Prediction Center",
         "url": "https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html"
       },
-      "issued": "2026-11-24T20:00:00Z"
+      "issued": "2026-11-25T20:00:00Z"
     },
     {
       "id": "nhc-atlantic",
@@ -38,30 +38,30 @@
         "es": "No se espera formación tropical en el Golfo"
       },
       "body": {
-        "en": "The Hurricane Center says tropical cyclone formation is not expected during the next 7 days in the Atlantic, the Caribbean Sea and the Gulf of America.",
-        "es": "El Centro Nacional de Huracanes indica que no se espera la formación de ciclones tropicales en los próximos 7 días en el Atlántico, el mar Caribe y el Golfo de América."
+        "en": "The Hurricane Center says tropical cyclone formation is not expected during the next 7 days in the Atlantic, Caribbean Sea and Gulf.",
+        "es": "El Centro Nacional de Huracanes indica que no se espera la formación de ciclones tropicales en los próximos 7 días en el Atlántico, el Caribe y el Golfo."
       },
       "window": {
-        "start": "2026-11-25T12:00:00Z",
-        "end": "2026-12-02T12:00:00Z"
+        "start": "2026-11-26T00:00:00Z",
+        "end": "2026-12-03T00:00:00Z"
       },
       "source": {
         "name": "NWS National Hurricane Center",
         "url": "https://www.nhc.noaa.gov/text/MIATWOAT.shtml"
       },
-      "issued": "2026-11-25T12:00:00Z"
+      "issued": "2026-11-26T00:00:00Z"
     },
     {
       "id": "tfs-fire",
       "kind": "fire",
       "level": "low",
       "title": {
-        "en": "Low fire potential in East and Northeast Texas",
-        "es": "Potencial bajo de incendios en el este y noreste de Texas"
+        "en": "Low fire potential in East Texas through the holiday weekend",
+        "es": "Poco potencial de incendios en el este de Texas durante el fin de semana festivo"
       },
       "body": {
-        "en": "Fire potential stays low where dryness lingers in East and Northeast Texas, and is limited elsewhere. Humidity may fall below 30 percent in Northeast Texas Thursday. Fires are expected to stay small and easy to control.",
-        "es": "El potencial de incendios sigue bajo donde persiste la sequedad en el este y noreste de Texas, y es limitado en el resto. La humedad puede bajar de 30 por ciento en el noreste el jueves. Se esperan incendios pequeños y fáciles de controlar."
+        "en": "Low fire potential in East and Northeast Texas where it is dry, and limited elsewhere. Humidity may fall to 25 to 30 percent in Northeast Texas Thursday. Fires should stay small with low resistance to control.",
+        "es": "Poco potencial de incendios en el este y noreste de Texas, donde hay sequedad, y limitado en el resto del estado. La humedad puede bajar a 25 a 30 por ciento en el noreste el jueves. Los incendios deben ser fáciles de controlar."
       },
       "window": {
         "start": "2026-11-23T06:00:00Z",
@@ -74,60 +74,38 @@
       "issued": "2026-11-23T19:25:31Z"
     },
     {
-      "id": "wpc-short-freeze",
-      "kind": "temperature",
-      "level": "elevated",
-      "title": {
-        "en": "Freeze warnings and watches in parts of Texas",
-        "es": "Avisos y vigilancias de helada en partes de Texas"
-      },
-      "body": {
-        "en": "Freeze Warnings and Freeze Watches are posted over parts of Texas through Thursday.",
-        "es": "Hay avisos y vigilancias de helada en partes de Texas hasta el jueves."
-      },
-      "window": {
-        "start": "2026-11-25T12:00:00Z",
-        "end": "2026-11-27T12:00:00Z"
-      },
-      "source": {
-        "name": "NWS Weather Prediction Center",
-        "url": "https://www.wpc.ncep.noaa.gov/discussions/hpcdiscussions.php?disc=pmdspd"
-      },
-      "issued": "2026-11-25T08:14:00Z"
-    },
-    {
       "id": "cpc-6-14-temp",
       "kind": "temperature",
       "level": "low",
       "title": {
-        "en": "Warmer than normal odds into early December",
-        "es": "Probabilidad de temperaturas sobre lo normal a inicios de diciembre"
+        "en": "Warmer than normal odds across Texas",
+        "es": "Más probabilidad de temperaturas sobre lo normal en Texas"
       },
       "body": {
-        "en": "Odds favor above normal temperatures across Texas for Nov 30 to Dec 4 and again for Dec 2 to 8. Forecaster confidence is above average.",
-        "es": "Lo más probable son temperaturas sobre lo normal en todo Texas del 30 de nov. al 4 de dic. y otra vez del 2 al 8 de dic. La confianza del pronosticador es superior al promedio."
+        "en": "For Dec 1 to 5 and Dec 3 to 9, odds favor above normal temperatures in North, South and West Texas. This is a tilt in the odds, not a forecast of a specific day.",
+        "es": "Del 1 al 5 y del 3 al 9 de diciembre, lo más probable son temperaturas sobre lo normal en el norte, sur y oeste de Texas. Es una tendencia, no un pronóstico para un día específico."
       },
       "window": {
-        "start": "2026-11-30T06:00:00Z",
-        "end": "2026-12-09T06:00:00Z"
+        "start": "2026-12-01T06:00:00Z",
+        "end": "2026-12-10T06:00:00Z"
       },
       "source": {
         "name": "NWS Climate Prediction Center",
         "url": "https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html"
       },
-      "issued": "2026-11-24T20:00:00Z"
+      "issued": "2026-11-25T20:00:00Z"
     },
     {
       "id": "usdm-tx",
       "kind": "drought",
       "level": "low",
       "title": {
-        "en": "Drought covers part of Texas, easing slightly",
-        "es": "La sequía cubre parte de Texas y mejora un poco"
+        "en": "Drought covers part of Texas, slightly less than last week",
+        "es": "La sequía cubre parte de Texas, un poco menos que la semana pasada"
       },
       "body": {
-        "en": "About 13 percent of Texas is in severe drought or worse, down from about 19 percent a week earlier. About 37 percent is in at least moderate drought, and about 5 percent is in extreme drought or worse.",
-        "es": "Cerca de 13 por ciento de Texas está en sequía severa o peor, frente a cerca de 19 por ciento hace una semana. Cerca de 37 por ciento está en sequía moderada o peor, y cerca de 5 por ciento en sequía extrema o peor."
+        "en": "About 37 percent of Texas is in drought, down from 43 percent last week. Severe drought or worse covers about 13 percent, and extreme to exceptional drought about 5 percent.",
+        "es": "Cerca del 37 por ciento de Texas está en sequía, menos que el 43 por ciento de la semana pasada. La sequía severa o peor cubre cerca del 13 por ciento, y la extrema o excepcional cerca del 5 por ciento."
       },
       "window": {
         "start": "2026-11-24T12:00:00Z",

@@ -1,16 +1,15 @@
 {
- "generated": "2026-11-28T13:56:06Z",
+ "generated": "2026-11-28T14:55:55Z",
  "mode": "adverse",
  "intervalMin": 60,
  "since": "2026-11-28T08:53:05Z",
- "nextDueBy": "2026-11-28T14:53:00Z",
+ "nextDueBy": "2026-11-28T15:53:00Z",
  "reasons": [
-  "Gauges in flood (1)"
+  "Alerts active in the last 6 hours"
  ],
  "reasonCodes": [
   {
-   "code": "gauges",
-   "n": 1
+   "code": "recent"
   }
  ]
 }

@@ -1,10 +1,10 @@
 {
-  "generated": "2026-11-28T09:11:41Z",
-  "validUntil": "2026-11-28T13:11:41Z",
+  "generated": "2026-11-28T13:41:41Z",
+  "validUntil": "2026-11-28T17:41:41Z",
   "author": "steward",
   "headline": {
-    "en": "A quiet start for Texas today, then odds favor wetter and warmer than normal weather in early December.",
-    "es": "Un comienzo tranquilo para Texas hoy, y luego las probabilidades favorecen un inicio de diciembre más húmedo y más cálido de lo normal."
+    "en": "A quiet weekend for Texas with no severe storms forecast today, then a chance of strong storms in East Texas next Thursday and warm, wet odds into early December.",
+    "es": "Un fin de semana tranquilo en Texas, sin tormentas severas pronosticadas hoy, luego posibles tormentas fuertes en el este de Texas el jueves y probabilidades de clima cálido y húmedo a inicios de diciembre."
   },
   "items": [
     {
@@ -12,12 +12,12 @@
       "kind": "rain",
       "level": "low",
       "title": {
-        "en": "Odds favor a wetter than normal early December",
-        "es": "Probable inicio de diciembre más húmedo de lo normal"
+        "en": "Odds favor a wetter than normal start to December",
+        "es": "Probabilidades favorecen un inicio de diciembre más húmedo de lo normal"
       },
       "body": {
-        "en": "For Dec 3 to 11, odds favor above normal rain across north, south and west Texas. This is a tilt in the odds, not a forecast of heavy rain. Confidence in the pattern is above average.",
-        "es": "Del 3 al 11 de diciembre, las probabilidades favorecen más lluvia de lo normal en el norte, sur y oeste de Texas. Es una inclinación de probabilidades, no un pronóstico de lluvia fuerte. La confianza en el patrón es mayor que el promedio."
+        "en": "For about Dec 3 to Dec 11, odds favor above normal rainfall across North, South and West Texas. This is a tilt in the odds, not a forecast of heavy rain. The product has above average confidence in the pattern.",
+        "es": "Del 3 al 11 de diciembre aproximadamente, las probabilidades favorecen más lluvia de lo normal en el norte, sur y oeste de Texas. Es una inclinación en las probabilidades, no un pronóstico de lluvia fuerte. El producto tiene confianza arriba del promedio."
       },
       "window": {
         "start": "2026-12-03T06:00:00Z",
@@ -30,82 +30,82 @@
       "issued": "2026-11-27T20:00:00Z"
     },
     {
+      "id": "spc-d48-d6",
+      "kind": "severe",
+      "level": "elevated",
+      "title": {
+        "en": "Severe storm chance in East Texas next Thursday",
+        "es": "Posibles tormentas severas en el este de Texas el próximo jueves"
+      },
+      "body": {
+        "en": "A 15 percent severe storm area is outlined for Thursday, Dec 3, from East Texas into Louisiana and parts of Mississippi and Arkansas. Timing of the system is still uncertain this far out.",
+        "es": "Se marcó un área de 15 por ciento de tormentas severas para el jueves 3 de diciembre, del este de Texas a Luisiana y partes de Misisipi y Arkansas. El momento exacto del sistema aún es incierto."
+      },
+      "window": {
+        "start": "2026-12-03T12:00:00Z",
+        "end": "2026-12-04T12:00:00Z"
+      },
+      "source": {
+        "name": "NWS Storm Prediction Center",
+        "url": "https://www.spc.noaa.gov/products/exper/day4-8/"
+      },
+      "issued": "2026-11-28T09:59:00Z"
+    },
+    {
       "id": "spc-d1",
       "kind": "severe",
       "level": "none",
       "title": {
-        "en": "No severe storms forecast today",
+        "en": "No severe thunderstorms forecast today",
         "es": "No se pronostican tormentas severas hoy"
       },
       "body": {
-        "en": "Severe thunderstorms are not forecast across the country today or tonight, including Texas. Moisture moves into East Texas this afternoon and evening, but no severe threat is expected.",
-        "es": "No se pronostican tormentas eléctricas severas en el país hoy ni esta noche, incluido Texas. La humedad llega al este de Texas esta tarde y noche, pero no se espera amenaza severa."
+        "en": "Severe thunderstorms are not forecast anywhere in the country today or tonight, including Texas.",
+        "es": "No se pronostican tormentas severas en ninguna parte del país hoy ni esta noche, incluido Texas."
       },
       "window": {
-        "start": "2026-11-28T12:00:00Z",
+        "start": "2026-11-28T13:00:00Z",
         "end": "2026-11-29T12:00:00Z"
       },
       "source": {
         "name": "NWS Storm Prediction Center",
         "url": "https://www.spc.noaa.gov/products/outlook/day1otlk.html"
       },
-      "issued": "2026-11-28T05:59:00Z"
+      "issued": "2026-11-28T12:37:00Z"
     },
     {
-      "id": "nhc-atlantic-7day",
+      "id": "nhc-atlantic",
       "kind": "tropical",
       "level": "none",
       "title": {
-        "en": "No Gulf tropical formation expected",
+        "en": "No tropical formation expected in the Gulf",
         "es": "No se espera formación tropical en el Golfo"
       },
       "body": {
-        "en": "Tropical cyclone formation is not expected over the Atlantic, Caribbean Sea or Gulf during the next 7 days.",
-        "es": "No se espera la formación de ciclones tropicales en el Atlántico, el Caribe ni el Golfo durante los próximos 7 días."
+        "en": "Tropical cyclone formation is not expected during the next 7 days in the Atlantic, Caribbean Sea and Gulf of America.",
+        "es": "No se espera la formación de ciclones tropicales en los próximos 7 días en el Atlántico, el Mar Caribe y el Golfo de América."
       },
       "window": {
-        "start": "2026-11-28T06:00:00Z",
-        "end": "2026-12-05T06:00:00Z"
+        "start": "2026-11-28T12:00:00Z",
+        "end": "2026-12-05T12:00:00Z"
       },
       "source": {
         "name": "NWS National Hurricane Center",
         "url": "https://www.nhc.noaa.gov/text/MIATWOAT.shtml"
       },
-      "issued": "2026-11-28T06:00:00Z"
-    },
-    {
-      "id": "spc-fire-d1",
-      "kind": "fire",
-      "level": "none",
-      "title": {
-        "en": "No critical fire weather areas today",
-        "es": "Sin zonas críticas de clima de incendio hoy"
-      },
-      "body": {
-        "en": "No critical fire areas are forecast. Winds pick up over the southern High Plains this afternoon, but seasonably moist fuels should keep fire weather concerns low.",
-        "es": "No se pronostican zonas críticas de incendio. Los vientos aumentan en las Altas Planicies del sur esta tarde, pero el combustible con humedad normal para la temporada debería mantener bajas las preocupaciones."
-      },
-      "window": {
-        "start": "2026-11-28T12:00:00Z",
-        "end": "2026-11-29T12:00:00Z"
-      },
-      "source": {
-        "name": "NWS Storm Prediction Center",
-        "url": "https://www.spc.noaa.gov/products/fire_wx/fwdy1.html"
-      },
-      "issued": "2026-11-28T05:45:00Z"
+      "issued": "2026-11-28T12:00:00Z"
     },
     {
       "id": "cpc-6-14-temp",
       "kind": "temperature",
       "level": "low",
       "title": {
-        "en": "Odds favor warmer than normal weather",
-        "es": "Probable clima más cálido de lo normal"
+        "en": "Odds favor warmer than normal temperatures",
+        "es": "Probabilidades favorecen temperaturas más cálidas de lo normal"
       },
       "body": {
-        "en": "For Dec 3 to 11, odds favor above normal temperatures across north, south and west Texas. Cold Arctic air is expected to stay at higher latitudes.",
-        "es": "Del 3 al 11 de diciembre, las probabilidades favorecen temperaturas arriba de lo normal en el norte, sur y oeste de Texas. Se espera que el aire ártico frío se quede en latitudes más altas."
+        "en": "For about Dec 3 to Dec 11, odds favor above normal temperatures across North, South and West Texas. This is a tilt in the odds, not a forecast of heat.",
+        "es": "Del 3 al 11 de diciembre aproximadamente, las probabilidades favorecen temperaturas arriba de lo normal en el norte, sur y oeste de Texas. Es una inclinación en las probabilidades, no un pronóstico de calor."
       },
       "window": {
         "start": "2026-12-03T06:00:00Z",
@@ -122,12 +122,12 @@
       "kind": "drought",
       "level": "low",
       "title": {
-        "en": "Drought covers part of Texas, easing slightly",
-        "es": "La sequía cubre parte de Texas y mejora un poco"
+        "en": "Drought still covers part of Texas",
+        "es": "La sequía aún cubre parte de Texas"
       },
       "body": {
-        "en": "About 37 percent of Texas is in drought (D1 or worse) and about 13 percent is in severe drought (D2 or worse), down from about 19 percent a week earlier. About 1 percent is in exceptional drought.",
-        "es": "Cerca del 37 por ciento de Texas está en sequía (D1 o peor) y cerca del 13 por ciento en sequía severa (D2 o peor), menos que el 19 por ciento de la semana anterior. Cerca del 1 por ciento está en sequía excepcional."
+        "en": "The Nov 24 map shows about 37 percent of Texas in drought, 13 percent in severe drought or worse, and 5 percent in extreme drought or worse. Coverage is down from a week earlier.",
+        "es": "El mapa del 24 de noviembre muestra cerca de 37 por ciento de Texas en sequía, 13 por ciento en sequía severa o peor y 5 por ciento en sequía extrema o peor. La cobertura bajó respecto a la semana anterior."
       },
       "window": {
         "start": "2026-11-24T12:00:00Z",

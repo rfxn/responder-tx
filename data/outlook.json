@@ -1,77 +1,77 @@
 {
-  "generated": "2026-11-27T15:11:48Z",
-  "validUntil": "2026-11-28T06:11:48Z",
+  "generated": "2026-11-28T03:11:48Z",
+  "validUntil": "2026-11-28T12:00:00Z",
   "author": "steward",
   "headline": {
-    "en": "A dry, mild stretch for Texas with highs in the low 70s Saturday, and odds favor a warmer, wetter than normal early December.",
-    "es": "Un periodo seco y templado para Texas con máximas en los 70 grados bajos el sábado, y las probabilidades favorecen un inicio de diciembre más cálido y lluvioso de lo normal."
+    "en": "A quiet weekend for Texas with no heavy rain or severe storm areas outlined, then odds favor a warmer and wetter than normal early December.",
+    "es": "Un fin de semana tranquilo en Texas sin zonas de lluvia fuerte ni tormentas severas, y luego las probabilidades favorecen un inicio de diciembre más cálido y más húmedo de lo normal."
   },
   "items": [
     {
-      "id": "wpc-ero-d1-d2",
+      "id": "wpc-ero-d1-2",
       "kind": "rain",
       "level": "none",
       "title": {
-        "en": "Flash flooding very unlikely through Saturday",
-        "es": "Inundaciones repentinas muy poco probables hasta el sábado"
+        "en": "No heavy rain risk through Sunday morning",
+        "es": "Sin riesgo de lluvia fuerte hasta el domingo por la mañana"
       },
       "body": {
-        "en": "The national outlook puts the chance of rain heavy enough to cause flash flooding at under 5 percent for today and Saturday.",
-        "es": "El pronóstico nacional pone la probabilidad de lluvia lo bastante fuerte para causar inundaciones repentinas en menos de 5 por ciento para hoy y el sábado."
+        "en": "The Weather Prediction Center puts the chance of rain above flash flood guidance at under 5 percent for Friday night through Saturday night. No excessive rainfall areas are outlined.",
+        "es": "El Centro de Predicción del Tiempo estima menos de 5 por ciento de probabilidad de lluvia por encima de la guía de inundaciones repentinas desde el viernes por la noche hasta el sábado por la noche. No hay zonas de lluvia excesiva."
       },
       "window": {
-        "start": "2026-11-27T12:00:00Z",
+        "start": "2026-11-28T01:00:00Z",
         "end": "2026-11-29T12:00:00Z"
       },
       "source": {
         "name": "NWS Weather Prediction Center",
         "url": "https://www.wpc.ncep.noaa.gov/discussions/hpcdiscussions.php?disc=qpferd"
       },
-      "issued": "2026-11-27T08:14:00Z"
+      "issued": "2026-11-28T00:30:00Z"
     },
     {
       "id": "cpc-6-14-rain",
       "kind": "rain",
       "level": "low",
       "title": {
-        "en": "Odds favor a wetter than normal early December",
-        "es": "Las probabilidades favorecen un inicio de diciembre más lluvioso de lo normal"
+        "en": "Odds favor warmer and wetter than normal, Dec 3 to 11",
+        "es": "Probabilidades de más calor y más lluvia de lo normal, del 3 al 11 de dic."
       },
       "body": {
-        "en": "For Dec 2 to 6, odds favor above normal rain in North, South and West Texas. For Dec 4 to 10, that tilt stays for North and South Texas. This is a tilt in the odds, not a forecast of storms.",
-        "es": "Del 2 al 6 de diciembre, las probabilidades favorecen más lluvia de lo normal en el norte, sur y oeste de Texas. Del 4 al 10, esa tendencia sigue en el norte y sur de Texas. Es una tendencia, no un pronóstico de tormentas."
+        "en": "For north, south and west Texas, odds favor above normal temperatures and above normal precipitation from Dec 3 to 7 and again Dec 5 to 11. This is a tilt in the odds, not a forecast of a specific storm.",
+        "es": "Para el norte, sur y oeste de Texas, las probabilidades favorecen temperaturas y precipitación por encima de lo normal del 3 al 7 de dic. y del 5 al 11 de dic. Es una inclinación de las probabilidades, no un pronóstico de una tormenta específica."
       },
       "window": {
-        "start": "2026-12-02T06:00:00Z",
-        "end": "2026-12-11T06:00:00Z"
+        "start": "2026-12-03T06:00:00Z",
+        "end": "2026-12-12T06:00:00Z"
       },
       "source": {
         "name": "NWS Climate Prediction Center",
         "url": "https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html"
       },
-      "issued": "2026-11-26T20:00:00Z"
+      "issued": "2026-11-27T20:00:00Z"
     },
     {
       "id": "spc-d1",
       "kind": "severe",
       "level": "none",
       "title": {
-        "en": "No severe storms forecast today",
-        "es": "No se pronostican tormentas severas hoy"
+        "en": "No severe thunderstorms forecast tonight",
+        "es": "No se pronostican tormentas severas esta noche"
       },
       "body": {
-        "en": "Severe thunderstorms are not forecast anywhere in the contiguous United States through tonight, including Texas.",
-        "es": "No se pronostican tormentas eléctricas severas en ninguna parte de los Estados Unidos contiguos hasta esta noche, incluido Texas."
+        "en": "The Storm Prediction Center says severe thunderstorms are not forecast across the country through tonight, and no thunderstorms are forecast outside western Oregon through daybreak Saturday.",
+        "es": "El Centro de Predicción de Tormentas dice que no se pronostican tormentas severas en el país hasta esta noche, y no se pronostican tronadas fuera del oeste de Oregón hasta el amanecer del sábado."
       },
       "window": {
-        "start": "2026-11-27T13:00:00Z",
+        "start": "2026-11-28T01:00:00Z",
         "end": "2026-11-28T12:00:00Z"
       },
       "source": {
         "name": "NWS Storm Prediction Center",
         "url": "https://www.spc.noaa.gov/products/outlook/day1otlk.html"
       },
-      "issued": "2026-11-27T12:21:00Z"
+      "issued": "2026-11-28T00:46:00Z"
     },
     {
       "id": "nhc-atlantic",
@@ -82,52 +82,52 @@
         "es": "No se espera formación tropical en el Golfo"
       },
       "body": {
-        "en": "Tropical cyclone formation is not expected in the Atlantic, Caribbean Sea or Gulf over the next 7 days.",
-        "es": "No se espera la formación de ciclones tropicales en el Atlántico, el Caribe ni el Golfo durante los próximos 7 días."
+        "en": "The National Hurricane Center says tropical cyclone formation is not expected during the next 7 days in the Atlantic, Caribbean Sea and the Gulf.",
+        "es": "El Centro Nacional de Huracanes dice que no se espera la formación de ciclones tropicales en los próximos 7 días en el Atlántico, el Caribe y el Golfo."
       },
       "window": {
-        "start": "2026-11-27T12:00:00Z",
-        "end": "2026-12-04T12:00:00Z"
+        "start": "2026-11-28T00:00:00Z",
+        "end": "2026-12-05T00:00:00Z"
       },
       "source": {
         "name": "NWS National Hurricane Center",
         "url": "https://www.nhc.noaa.gov/text/MIATWOAT.shtml"
       },
-      "issued": "2026-11-27T12:00:00Z"
+      "issued": "2026-11-28T00:00:00Z"
     },
     {
-      "id": "wpc-short-temp",
-      "kind": "temperature",
-      "level": "low",
+      "id": "spc-fire-d2",
+      "kind": "fire",
+      "level": "none",
       "title": {
-        "en": "Dry and mild, warmer Saturday",
-        "es": "Seco y templado, más cálido el sábado"
+        "en": "No critical fire weather areas Saturday",
+        "es": "Sin zonas críticas de clima de incendios el sábado"
       },
       "body": {
-        "en": "The central U.S. stays dry today into early Saturday with mild temperatures. Some low 70s are possible across Texas on Saturday.",
-        "es": "El centro del país sigue seco hoy hasta temprano el sábado con temperaturas templadas. Se pueden alcanzar los 70 grados bajos en partes de Texas el sábado."
+        "en": "The Storm Prediction Center outlines no critical fire weather areas for Saturday. Winds rise in the southern High Plains, but seasonably moist fuels should keep fire concerns away.",
+        "es": "El Centro de Predicción de Tormentas no marca zonas críticas de clima de incendios para el sábado. El viento aumenta en las Altas Planicies del sur, pero la vegetación húmeda para la temporada debería evitar problemas de incendio."
       },
       "window": {
-        "start": "2026-11-27T12:00:00Z",
+        "start": "2026-11-28T12:00:00Z",
         "end": "2026-11-29T12:00:00Z"
       },
       "source": {
-        "name": "NWS Weather Prediction Center",
-        "url": "https://www.wpc.ncep.noaa.gov/discussions/hpcdiscussions.php?disc=pmdspd"
+        "name": "NWS Storm Prediction Center",
+        "url": "https://www.spc.noaa.gov/products/fire_wx/fwdy2.html"
       },
-      "issued": "2026-11-27T08:13:00Z"
+      "issued": "2026-11-27T19:13:00Z"
     },
     {
       "id": "usdm-tx",
       "kind": "drought",
       "level": "low",
       "title": {
-        "en": "Drought covers about 37 percent of Texas",
-        "es": "La sequía cubre cerca de 37 por ciento de Texas"
+        "en": "Drought covers about 37 percent of Texas, easing",
+        "es": "La sequía cubre cerca del 37 por ciento de Texas y va mejorando"
       },
       "body": {
-        "en": "As of Nov 24, about 37 percent of Texas is in drought, down from 43 percent a week earlier. Severe drought or worse covers about 13 percent, and extreme drought or worse about 5 percent.",
-        "es": "Al 24 de noviembre, cerca de 37 por ciento de Texas está en sequía, menos que el 43 por ciento de la semana anterior. La sequía severa o peor cubre cerca de 13 por ciento, y la extrema o peor cerca de 5 por ciento."
+        "en": "The Nov 24 map shows moderate drought or worse on 37.4 percent of Texas, down from 43.1 percent a week earlier. Severe drought or worse covers 12.9 percent, and extreme to exceptional drought 5.1 percent.",
+        "es": "El mapa del 24 de nov. muestra sequía moderada o peor en 37.4 por ciento de Texas, menos que el 43.1 por ciento de una semana antes. La sequía severa o peor cubre 12.9 por ciento, y la extrema o excepcional 5.1 por ciento."
       },
       "window": {
         "start": "2026-11-24T12:00:00Z",

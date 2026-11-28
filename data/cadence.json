@@ -1,9 +1,9 @@
 {
- "generated": "2026-11-28T11:55:52Z",
+ "generated": "2026-11-28T12:55:56Z",
  "mode": "adverse",
  "intervalMin": 60,
  "since": "2026-11-28T08:53:05Z",
- "nextDueBy": "2026-11-28T12:53:00Z",
+ "nextDueBy": "2026-11-28T13:53:00Z",
  "reasons": [
   "Gauges in flood (1)"
  ],
